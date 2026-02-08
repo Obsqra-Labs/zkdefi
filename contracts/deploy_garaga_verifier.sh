@@ -24,7 +24,7 @@ USE_KEYSTORE=false
 if [ -f "$DEPLOYER_ACCOUNT" ] && [ -f "$DEPLOYER_KEYSTORE" ]; then
   ACCOUNT="$DEPLOYER_ACCOUNT"
   USE_KEYSTORE=true
-  export STARKNET_KEYSTORE_PASSWORD="${STARKNET_KEYSTORE_PASSWORD:-L!nux123}"
+  : "${STARKNET_KEYSTORE_PASSWORD:?Set STARKNET_KEYSTORE_PASSWORD in env (do not commit)}"
 elif [ -f "$ACCOUNT" ] && [ -f "$KEY" ]; then
   PK="$(cat "$KEY")"
   [[ "$PK" != 0x* ]] && PK="0x$PK"

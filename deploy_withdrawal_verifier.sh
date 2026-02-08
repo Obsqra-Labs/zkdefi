@@ -25,7 +25,7 @@ echo ""
 
 # Step 1: Declare
 echo "📝 Step 1: Declaring contract..."
-export STARKNET_KEYSTORE_PASSWORD='L!nux123'
+: "${STARKNET_KEYSTORE_PASSWORD:?Set STARKNET_KEYSTORE_PASSWORD in env (do not commit)}"
 CLASS_HASH=$(starkli declare "$CONTRACT_FILE" \
     --account "$ACCOUNT_FILE" \
     --keystore "$KEYSTORE_FILE" \

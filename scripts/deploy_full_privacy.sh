@@ -6,7 +6,7 @@ set -e
 cd /opt/obsqra.starknet/zkdefi/contracts
 
 export STARKNET_RPC="https://starknet-sepolia.g.alchemy.com/v2/EvhYN6geLrdvbYHVRgPJ7"
-export STARKNET_KEYSTORE_PASSWORD='L!nux123'
+: "${STARKNET_KEYSTORE_PASSWORD:?Set STARKNET_KEYSTORE_PASSWORD in env (do not commit)}"
 
 ADMIN="0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
 TOKEN="0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"

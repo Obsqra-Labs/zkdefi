@@ -29,7 +29,7 @@ KEYSTORE_JSON = Path("/root/.starkli-wallets/deployer/keystore.json")
 ACCOUNT_JSON = Path("/root/.starkli-wallets/deployer/account.json")
 STARKLI_ACCOUNT = ZKDEFI / "contracts" / "starkli_config" / "account.json"
 STARKLI_KEY = ZKDEFI / "contracts" / "starkli_config" / "private_key.txt"
-KEYSTORE_PASSWORD = os.getenv("STARKNET_KEYSTORE_PASSWORD", "L!nux123")
+KEYSTORE_PASSWORD = os.getenv("STARKNET_KEYSTORE_PASSWORD")  # Required for keystore; set in env, do not commit
 
 # Contracts (Starknet Sepolia)
 CONFIDENTIAL_TRANSFER = "0x07fdc7c21ab074e7e1afe57edfcb818be183ab49f4bf31f9bf86dd052afefaa4"
@@ -52,6 +52,8 @@ def load_account_and_key():
 
     # Private key: prefer deployer keystore (matches deployer account.json), then deployer_key.txt, then starkli
     if KEYSTORE_JSON.exists() and ACCOUNT_JSON.exists():
+        if not KEYSTORE_PASSWORD:
+            raise SystemExit("Set STARKNET_KEYSTORE_PASSWORD in env to use keystore (do not commit passwords)")
         try:
             key_pair = KeyPair.from_keystore(str(KEYSTORE_JSON), KEYSTORE_PASSWORD)
             return address, key_pair
