@@ -1,0 +1,46 @@
+# Cairo / Scarb
+target/
+**/*.rs
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+.venv_py311/
+.env
+.env.local
+*.egg-info/
+.eggs/
+
+# Node
+node_modules/
+.next/
+out/
+.npm
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / deploy
+*.env
+!.env.example
+.env.*
+!.env.example
+
+# Archived status/fix docs (keep locally, do not push)
+archive/
+
+# Deployment tarballs
+*.tar.gz
+*.zip

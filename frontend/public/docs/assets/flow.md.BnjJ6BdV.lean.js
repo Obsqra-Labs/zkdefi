@@ -1,0 +1,1 @@
+import{_ as t,o,c as a,ag as i}from"./chunks/framework.wGDfT7ie.js";const u=JSON.parse('{"title":"How it works (user flow)","description":"","frontmatter":{},"headers":[],"relativePath":"flow.md","filePath":"flow.md"}'),r={name:"flow.md"};function n(s,e,l,c,d,h){return o(),a("div",null,[...e[0]||(e[0]=[i("",11)])])}const f=t(r,[["render",n]]);export{u as __pageData,f as default};

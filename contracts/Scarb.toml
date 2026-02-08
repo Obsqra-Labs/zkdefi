@@ -1,0 +1,25 @@
+[package]
+name = "zkdefi_contracts"
+version = "0.1.0"
+edition = "2024_07"
+
+[dependencies]
+starknet = ">=2.0.0"
+garaga_verifier = { path = "src/garaga_verifier" }
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+allowed-libfuncs = true
+allowed-libfuncs-deny = false
+
+[tool.sncast.my_testnet]
+account = "my_testnet"
+accounts-file = "~/.starknet_accounts/starknet_open_zeppelin_accounts.json"
+network = "alpha-sepolia"
+
+[tool.sncast.deployer]
+account = "deployer"
+accounts-file = "~/.starknet_accounts/starknet_open_zeppelin_accounts.json"
+url = "https://starknet-sepolia.public.rdx.works"
+network = "alpha-sepolia"

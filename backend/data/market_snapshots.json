@@ -1,0 +1,21 @@
+{
+  "snapshots": [
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 780,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1770153499,
+      "datetime": "2026-02-03T21:18:19"
+    }
+  ],
+  "updated_at": "2026-02-03T21:18:19.878745"
+}
