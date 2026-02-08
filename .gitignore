@@ -1,6 +1,7 @@
 # Cairo / Scarb
 target/
 **/*.rs
+circuits/contracts/src/scarb-*/
 
 # Python
 __pycache__/
