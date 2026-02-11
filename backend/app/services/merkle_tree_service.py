@@ -173,22 +173,96 @@ class MerkleTreeService:
     
     def get_merkle_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
         """
-        Get merkle proof for a leaf.
-        
-        NOTE: Uses stored proof from insertion if available.
-        Falls back to reconstruction (may not work for all indices).
+        Get merkle proof for a leaf valid against the CURRENT root.
+
+        Rebuilds the full tree to compute correct sibling paths.
+        This is the only reliable way to get a proof when multiple
+        leaves have been inserted after the target leaf.
         """
         if leaf_index >= len(self.leaves):
             raise ValueError(f"Leaf index {leaf_index} out of range")
-        
-        # Try stored proof first
-        stored = self.get_stored_proof(leaf_index)
-        if stored:
-            return stored["path_elements"], stored["path_indices"]
-        
-        # Fall back to reconstruction (WARNING: may produce invalid proofs)
-        # This only works correctly for the LAST inserted leaf
-        return self._reconstruct_proof(leaf_index)
+        path_elements, path_indices = self._compute_current_proof(leaf_index)
+        # Sanity check: verify the proof against the current root
+        if not self.verify_proof(self.leaves[leaf_index], path_elements, path_indices, self.root):
+            import logging
+            _log = logging.getLogger(__name__)
+            _log.error(
+                "CRITICAL: computed proof for leaf %d does not verify against root %s",
+                leaf_index, hex(self.root),
+            )
+            raise ValueError(
+                f"Internal error: proof for leaf {leaf_index} is inconsistent "
+                f"with current root {hex(self.root)}"
+            )
+        return path_elements, path_indices
+
+    def _compute_current_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
+        """
+        Compute a proof for `leaf_index` valid against `self.root`.
+
+        Instead of building the entire 2^depth tree (which would be 1M+ nodes),
+        we use a sparse approach: replay all insertions using the incremental
+        algorithm, tracking filled_subtrees at each step.  After processing
+        ALL leaves, the filled_subtrees represent the final tree state.
+        Then we extract the sibling path for the target leaf from those subtrees.
+        """
+        n = len(self.leaves)
+        # Replay all insertions to reconstruct the final filled_subtrees
+        final_filled = [0] * self.depth
+        for i in range(n):
+            current_hash = self.leaves[i]
+            current_index = i
+            for level in range(self.depth):
+                if current_index % 2 == 0:
+                    final_filled[level] = current_hash
+                    # Pair with zero (right sibling hasn't been inserted)
+                    current_hash = poseidon_hash(current_hash, self.zeros[level])
+                else:
+                    # Pair with the stored left subtree
+                    current_hash = poseidon_hash(final_filled[level], current_hash)
+                current_index = current_index // 2
+
+        # Now replay insertions AGAIN, but this time with the knowledge of
+        # the final tree.  Actually, the simpler correct approach is to
+        # rebuild only the path for leaf_index from the fully-computed tree.
+        #
+        # The cleanest approach: build a sparse dictionary of nodes.
+        # node[(level, index)] = hash
+        nodes: dict[tuple[int, int], int] = {}
+        # Insert all leaves at level 0
+        for i in range(n):
+            nodes[(0, i)] = self.leaves[i]
+
+        # For each level, compute parent nodes bottom-up (only for populated pairs)
+        for level in range(self.depth):
+            # Gather all indices at this level that have real values
+            indices_at_level = sorted(set(
+                idx for (lv, idx) in nodes if lv == level
+            ))
+            for idx in indices_at_level:
+                pair_idx = idx ^ 1  # sibling
+                left_idx = min(idx, pair_idx)
+                right_idx = max(idx, pair_idx)
+                left_val = nodes.get((level, left_idx), self.zeros[level])
+                right_val = nodes.get((level, right_idx), self.zeros[level])
+                parent_idx = left_idx // 2
+                nodes[(level + 1, parent_idx)] = poseidon_hash(left_val, right_val)
+
+        # Extract proof for leaf_index
+        path_elements = []
+        path_indices = []
+        idx = leaf_index
+        for level in range(self.depth):
+            if idx % 2 == 0:
+                sibling = nodes.get((level, idx + 1), self.zeros[level])
+                path_indices.append(0)
+            else:
+                sibling = nodes.get((level, idx - 1), self.zeros[level])
+                path_indices.append(1)
+            path_elements.append(sibling)
+            idx = idx // 2
+
+        return path_elements, path_indices
     
     def _reconstruct_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
         """

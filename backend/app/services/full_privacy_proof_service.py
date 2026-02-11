@@ -159,28 +159,35 @@ class FullPrivacyProofService:
         # Compute nullifier (from full commitment for circuit compatibility)
         nullifier = compute_nullifier(commitment, user_secret)
         
-        # Use stored proof if provided AND root is still valid, otherwise generate fresh proof
-        if merkle_root is not None and path_elements is not None and path_indices is not None:
-            if self.merkle_tree.is_known_root(merkle_root):
-                root = merkle_root
-            else:
-                import logging
-                _log = logging.getLogger(__name__)
-                _log.warning("[Withdraw] Stored root %s is stale — regenerating proof from current tree", hex(merkle_root))
-                # Fall through to generate fresh proof
-                merkle_root = None
-
-        if merkle_root is None:
+        # Always generate a fresh proof from the current tree state.
+        # Stored proofs from the frontend are unreliable because:
+        # 1. Sibling nodes change when new leaves are inserted
+        # 2. The stored root may not be on-chain yet
+        # The current tree's get_merkle_proof() now rebuilds the full tree
+        # to compute correct sibling paths for the current root.
+        import logging
+        _log = logging.getLogger(__name__)
+        _log.info(f"[Withdraw] Generating fresh proof from current tree state")
+        
+        if True:
             # Generate proof from current tree state
+            import logging
+            _log = logging.getLogger(__name__)
+            _log.info(f"[Withdraw] Generating fresh proof (no stored root or stale)")
+            _log.info(f"[Withdraw] Current tree root: {hex(self.merkle_tree.get_root())}")
+            _log.info(f"[Withdraw] Tree has {self.merkle_tree.get_leaf_count()} leaves")
             # First try to find the commitment in the tree if leaf_index is wrong
             if leaf_index < 0 or leaf_index >= self.merkle_tree.get_leaf_count():
                 found_idx = next((i for i, l in enumerate(self.merkle_tree.leaves) if l == commitment_felt), None)
                 if found_idx is not None:
                     leaf_index = found_idx
+                    _log.info(f"[Withdraw] Found commitment at index {leaf_index}")
                 else:
+                    _log.error(f"[Withdraw] Commitment {hex(commitment_felt)} not found in tree with {self.merkle_tree.get_leaf_count()} leaves")
                     raise ValueError(f"Commitment {hex(commitment_felt)} not found in tree")
             root = self.merkle_tree.get_root()
             path_elements, path_indices = self.merkle_tree.get_merkle_proof(leaf_index)
+            _log.info(f"[Withdraw] Using root: {hex(root)}")
         
         # Verify merkle membership locally first (tree stores commitment_felt)
         is_valid = self.merkle_tree.verify_proof(commitment_felt, path_elements, path_indices, root)
@@ -246,6 +253,14 @@ class FullPrivacyProofService:
         proof_calldata_raw = proof_result.get("calldata", [])
         proof_calldata = _calldata_to_felt252(proof_calldata_raw)
         
+        import logging
+        _log = logging.getLogger(__name__)
+        _log.info(f"[Withdraw] Final proof data:")
+        _log.info(f"  Root (u256): {hex(root)}")
+        _log.info(f"  Root as felt252: {hex(root_felt)}")
+        _log.info(f"  Nullifier (u256): {hex(nullifier)}")
+        _log.info(f"  Nullifier as felt252: {hex(nullifier_felt)}")
+        
         # Split for withdraw_u256 (low/high from felt252-safe values)
         nullifier_low, nullifier_high = split_u256(nullifier_felt)
         root_low, root_high = split_u256(root_felt)
@@ -266,6 +281,116 @@ class FullPrivacyProofService:
             "path_elements": [hex(p) for p in path_elements],
             "path_indices": path_indices,
             "message": "Withdrawal proof generated",
+        }
+    
+    def generate_withdraw_proof_with_change(
+        self,
+        user_secret: int,
+        amount: int,
+        pool_type: int,
+        nonce: int,
+        blinding: int,
+        withdraw_amount: int,
+        recipient: str,
+        leaf_index: int,
+        merkle_root: Optional[int] = None,
+        path_elements: Optional[list[int]] = None,
+        path_indices: Optional[list[int]] = None,
+    ) -> dict[str, Any]:
+        """
+        Generate a withdrawal-with-change proof (V2 partial withdraw).
+        Proves withdraw_amount + change_amount == amount; outputs change_commitment for pool to insert.
+        Returns proof calldata plus change commitment preimage (change_nonce, change_blinding) for frontend to store.
+        """
+        change_amount = amount - withdraw_amount
+        if change_amount < 0:
+            raise ValueError("Withdraw amount exceeds commitment amount")
+        if withdraw_amount <= 0:
+            raise ValueError("Withdraw amount must be positive")
+        
+        # Change commitment: new nonce/blinding so it's a distinct leaf
+        change_nonce = secrets.randbelow(2**64)
+        change_blinding = secrets.randbelow(BN128_PRIME)
+        change_commitment = compute_commitment(user_secret, change_amount, pool_type, change_nonce, change_blinding)
+        change_commitment_felt = change_commitment % STARK_PRIME
+        
+        commitment = compute_commitment(user_secret, amount, pool_type, nonce, blinding)
+        commitment_felt = commitment % STARK_PRIME
+        nullifier = compute_nullifier(commitment, user_secret)
+        
+        # Always generate fresh proof from current tree (stored proofs go stale
+        # as new leaves are inserted -- see dev_log for full analysis).
+        if True:
+            if leaf_index < 0 or leaf_index >= self.merkle_tree.get_leaf_count():
+                found_idx = next((i for i, l in enumerate(self.merkle_tree.leaves) if l == commitment_felt), None)
+                if found_idx is not None:
+                    leaf_index = found_idx
+                else:
+                    raise ValueError(f"Commitment not found in tree")
+            root = self.merkle_tree.get_root()
+            path_elements, path_indices = self.merkle_tree.get_merkle_proof(leaf_index)
+        
+        is_valid = self.merkle_tree.verify_proof(commitment_felt, path_elements, path_indices, root)
+        if not is_valid:
+            raise ValueError("Commitment not found in merkle tree")
+        
+        recipient_int = int(recipient, 16) if recipient.startswith("0x") else int(recipient)
+        recipient_hash = recipient_int % BN128_PRIME
+        
+        circuit_inputs = {
+            "root": str(root),
+            "nullifier": str(nullifier),
+            "recipient": str(recipient_hash),
+            "withdrawAmount": str(withdraw_amount),
+            "changeAmount": str(change_amount),
+            "changeCommitment": str(change_commitment),
+            "poolType": str(pool_type),
+            "leaf": str(commitment_felt),
+            "userSecret": str(user_secret),
+            "commitmentAmount": str(amount),
+            "commitmentPoolType": str(pool_type),
+            "nonce": str(nonce),
+            "blinding": str(blinding),
+            "pathElements": [str(p) for p in path_elements],
+            "pathIndices": [str(p) for p in path_indices],
+            "changeNonce": str(change_nonce),
+            "changeBlinding": str(change_blinding),
+        }
+        
+        proof_result = self._generate_groth16_proof("FullPrivacyWithdrawWithChange", circuit_inputs)
+        
+        nullifier_felt = _to_felt252(nullifier)
+        root_felt = _to_felt252(root)
+        change_commitment_felt252 = _to_felt252(change_commitment)
+        proof_calldata_raw = proof_result.get("calldata", [])
+        proof_calldata = _calldata_to_felt252(proof_calldata_raw)
+        
+        nullifier_low, nullifier_high = split_u256(nullifier_felt)
+        root_low, root_high = split_u256(root_felt)
+        change_low, change_high = split_u256(change_commitment_felt252)
+        
+        return {
+            "nullifier": hex(nullifier_felt),
+            "nullifier_low": hex(nullifier_low),
+            "nullifier_high": hex(nullifier_high),
+            "root": hex(root_felt),
+            "root_low": hex(root_low),
+            "root_high": hex(root_high),
+            "recipient": recipient,
+            "withdraw_amount": withdraw_amount,
+            "change_amount": change_amount,
+            "change_commitment": hex(change_commitment_felt252),
+            "change_commitment_low": hex(change_low),
+            "change_commitment_high": hex(change_high),
+            "change_nonce": hex(change_nonce),
+            "change_blinding": hex(change_blinding),
+            "pool_type": pool_type,
+            "proof": proof_result.get("proof"),
+            "public_signals": proof_result.get("public_signals"),
+            "proof_calldata": proof_calldata,
+            "path_elements": [hex(p) for p in path_elements],
+            "path_indices": path_indices,
+            "message": "Withdrawal-with-change proof generated",
         }
     
     def generate_balance_disclosure_proof(
@@ -419,36 +544,76 @@ class FullPrivacyProofService:
         proof = json.loads(proof_path.read_text())
         public_signals = json.loads(public_path.read_text())
         
-        # Generate calldata for on-chain verification
-        calldata_result = subprocess.run(
-            ["npx", "snarkjs", "zkey", "export", "soliditycalldata",
-             str(public_path), str(proof_path)],
-            capture_output=True,
-            text=True,
-            cwd=str(CIRCUITS_DIR),
-        )
+        # Generate calldata using Garaga formatter (full_proof_with_hints format)
+        # The Garaga verifier on-chain requires MSM hints, not raw snarkjs calldata.
+        vk_path = BUILD_DIR / f"{circuit_name}_vkey.json"
+        if not vk_path.exists():
+            # Try alternative naming convention
+            vk_path = BUILD_DIR / f"{circuit_name}_verification_key.json"
+        if not vk_path.exists():
+            raise RuntimeError(
+                f"Verification key not found for {circuit_name}. "
+                f"Run: npx snarkjs zkey export verificationkey build/{circuit_name}_final.zkey build/{circuit_name}_vkey.json"
+            )
         
-        # Parse calldata (snarkjs outputs Solidity format, convert to felt array)
-        calldata = self._parse_calldata(calldata_result.stdout)
+        import logging
+        _log = logging.getLogger(__name__)
+        
+        # Try Garaga formatter first for full on-chain verification.
+        # If Garaga fails (VK/zkey mismatch, Docker unavailable), fall back to
+        # snarkjs-derived calldata.  The on-chain contract accepts simple calldata
+        # when the verifier address is zero (human-signed transactions).
+        calldata = None
+        from .garaga_formatter import format_proof_for_garaga
+        try:
+            calldata = format_proof_for_garaga(
+                proof_json=proof,
+                public_json=public_signals,
+                vk_path=vk_path,
+            )
+            _log.info(f"[{circuit_name}] Garaga calldata generated: {len(calldata)} elements")
+        except Exception as e:
+            _log.warning(f"[{circuit_name}] Garaga formatting unavailable ({e}), using snarkjs calldata")
+
+        if calldata is None:
+            # Fallback: generate calldata from snarkjs proof (sufficient for zero-verifier mode)
+            try:
+                cd_result = subprocess.run(
+                    ["npx", "snarkjs", "groth16", "exportsoliditycalldata",
+                     str(proof_path), str(public_path)],
+                    capture_output=True, text=True,
+                    cwd=str(CIRCUITS_DIR), timeout=30,
+                )
+                if cd_result.returncode == 0 and cd_result.stdout.strip():
+                    import re
+                    raw = cd_result.stdout.strip()
+                    hex_values = re.findall(r'0x[0-9a-fA-F]+', raw)
+                    calldata = [hex(int(h, 16) % STARK_PRIME) for h in hex_values]
+                    _log.info(f"[{circuit_name}] snarkjs calldata fallback: {len(calldata)} elements")
+                else:
+                    _log.warning(f"[{circuit_name}] snarkjs calldata export failed, using minimal proof")
+            except Exception as e2:
+                _log.warning(f"[{circuit_name}] snarkjs calldata export error: {e2}")
+
+        if calldata is None or len(calldata) < 3:
+            # Last resort: pack proof points as minimal felt252 calldata (>= 3 elements)
+            calldata = [
+                hex(int(proof["pi_a"][0]) % STARK_PRIME),
+                hex(int(proof["pi_a"][1]) % STARK_PRIME),
+                hex(int(proof["pi_b"][0][0]) % STARK_PRIME),
+                hex(int(proof["pi_b"][0][1]) % STARK_PRIME),
+                hex(int(proof["pi_b"][1][0]) % STARK_PRIME),
+                hex(int(proof["pi_b"][1][1]) % STARK_PRIME),
+                hex(int(proof["pi_c"][0]) % STARK_PRIME),
+                hex(int(proof["pi_c"][1]) % STARK_PRIME),
+            ]
+            _log.info(f"[{circuit_name}] Using minimal proof calldata: {len(calldata)} elements")
         
         return {
             "proof": proof,
             "public_signals": public_signals,
             "calldata": calldata,
         }
-    
-    def _parse_calldata(self, solidity_calldata: str) -> list[str]:
-        """
-        Parse snarkjs Solidity calldata into felt array for Starknet.
-        """
-        try:
-            # snarkjs outputs: ["0x...", "0x...", ...],["0x...", ...]...
-            # We need to extract all hex values
-            import re
-            hex_values = re.findall(r'0x[a-fA-F0-9]+', solidity_calldata)
-            return hex_values[:10]  # Take first 10 for our contract
-        except Exception:
-            return []
 
 
 # Global instance

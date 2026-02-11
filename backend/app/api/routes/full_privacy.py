@@ -16,9 +16,15 @@ from ...services.merkle_tree_service import (
     get_merkle_tree,
     find_commitment_in_tree,
     compute_commitment,
+    compute_nullifier,
 )
 from ...services.circomlib_poseidon import STARK_PRIME
-from ...services.merkle_tree_onchain_sync import schedule_register_root_on_chain
+from ...services.merkle_tree_onchain_sync import (
+    register_root_on_chain,
+    reconcile_all_roots,
+    check_nullifier_used_on_chain,
+    verify_root_on_chain,
+)
 
 
 router = APIRouter(tags=["Full Privacy"])
@@ -70,12 +76,45 @@ class WithdrawProofRequest(BaseModel):
 
 class WithdrawProofResponse(BaseModel):
     nullifier: str
+    nullifier_low: Optional[str] = None
+    nullifier_high: Optional[str] = None
     root: str
+    root_low: Optional[str] = None
+    root_high: Optional[str] = None
     recipient: str
     amount: int
     pool_type: int
     proof_calldata: List[str]
     message: str
+
+
+class WithdrawProofWithChangeResponse(BaseModel):
+    nullifier: str
+    nullifier_low: Optional[str] = None
+    nullifier_high: Optional[str] = None
+    root: str
+    root_low: Optional[str] = None
+    root_high: Optional[str] = None
+    recipient: str
+    withdraw_amount: int
+    change_amount: int
+    change_commitment: str
+    change_commitment_low: str
+    change_commitment_high: str
+    change_nonce: str
+    change_blinding: str
+    pool_type: int
+    proof_calldata: List[str]
+    path_elements: Optional[List[str]] = None
+    path_indices: Optional[List[int]] = None
+    message: str
+
+
+class RegisterChangeCommitmentRequest(BaseModel):
+    """Register change commitment after withdraw_with_change tx. Inserts into tree and syncs new root on-chain."""
+    change_commitment: Optional[str] = None  # hex (single felt)
+    change_commitment_low: Optional[str] = None
+    change_commitment_high: Optional[str] = None
 
 
 class BalanceDisclosureRequest(BaseModel):
@@ -141,18 +180,47 @@ async def register_commitment(request: RegisterCommitmentRequest):
     
     Should be called after the deposit transaction is confirmed.
     Returns merkle proof data for future withdrawals.
-    If FULL_PRIVACY_MERKLE_TREE_ADDRESS and admin key are set, schedules
-    add_known_root(root_felt) on the pool's merkle tree so withdrawals are accepted.
+
+    IMPORTANT: This endpoint WAITS for add_known_root() to confirm on-chain
+    before returning success. If root registration fails after retries,
+    returns 503 so the frontend knows to retry.
     """
+    import logging
+    _log = logging.getLogger(__name__)
+
     try:
         svc = get_full_privacy_service()
         commitment = int(request.commitment, 16) if request.commitment.startswith("0x") else int(request.commitment)
         result = svc.register_commitment(commitment)
         root_int = int(result["merkle_root"], 16) if result["merkle_root"].startswith("0x") else int(result["merkle_root"])
-        schedule_register_root_on_chain(root_int)
+
+        # SYNCHRONOUS: wait for on-chain root registration with retries
+        _log.info("Registering root on-chain (synchronous): %s", hex(root_int)[:30])
+        registered = await register_root_on_chain(root_int, max_retries=3)
+
+        if not registered:
+            _log.error("FAILED to register root on-chain: %s", hex(root_int))
+            raise HTTPException(
+                status_code=503,
+                detail="Merkle root registration failed on-chain after retries. Commitment saved locally. Try again or wait."
+            )
+
+        _log.info("Root registered on-chain successfully: %s", hex(root_int)[:30])
         return RegisterCommitmentResponse(**result)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/merkle/reconcile")
+async def reconcile_merkle_roots_endpoint():
+    """
+    Compare all backend roots against on-chain state and register any missing ones.
+    Can be called manually or triggered by monitoring.
+    """
+    result = await reconcile_all_roots()
+    return result
 
 
 @router.post("/merkle/reset")
@@ -167,6 +235,77 @@ async def reset_merkle_tree_endpoint():
     reset_full_privacy_service()  # Also clear the service singleton so it picks up the new tree
     tree = get_merkle_tree()
     return {"message": "Merkle tree reset", "root": hex(tree.get_root()), "leaf_count": tree.get_leaf_count()}
+
+
+class VerifyRootRequest(BaseModel):
+    merkle_root: str
+
+
+class EnsureRootRequest(BaseModel):
+    """Root (hex) from the proof - will be registered on-chain if missing."""
+    root: str
+
+
+@router.post("/merkle/ensure_root")
+async def ensure_root_on_chain(request: EnsureRootRequest):
+    """
+    Ensure the given merkle root is registered on-chain before the user signs a withdraw tx.
+    Call this with commitmentData.root right before account.execute(withdraw).
+    Returns 200 with { "ok": true, "root": "0x...", "was_already_known": bool }.
+    Returns 503 if registration failed after retries.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        root_int = int(request.root, 16) if request.root.startswith("0x") else int(request.root)
+        is_known = await verify_root_on_chain(root_int)
+        if is_known:
+            return {"ok": True, "root": request.root, "was_already_known": True}
+        logger.info("[EnsureRoot] Root %s not on-chain, registering...", request.root[:24])
+        registered = await register_root_on_chain(root_int, max_retries=5)
+        if not registered:
+            raise HTTPException(
+                status_code=503,
+                detail="Merkle root could not be registered on-chain. Try again in a few seconds."
+            )
+        return {"ok": True, "root": request.root, "was_already_known": False}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("ensure_root error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/merkle/verify_root")
+async def verify_merkle_root(request: VerifyRootRequest):
+    """
+    Check if merkle root is registered on-chain.
+    Polls MerkleTree contract's is_known_root function.
+    """
+    import os
+    from starknet_py.net.full_node_client import FullNodeClient
+    from starknet_py.contract import Contract
+    
+    try:
+        root_int = int(request.merkle_root, 16) if request.merkle_root.startswith("0x") else int(request.merkle_root)
+        from ...services.circomlib_poseidon import STARK_PRIME
+        root_felt = root_int % STARK_PRIME
+        
+        merkle_tree_addr = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADDRESS")
+        if not merkle_tree_addr:
+            raise HTTPException(status_code=500, detail="FULL_PRIVACY_MERKLE_TREE_ADDRESS not configured")
+        
+        rpc_url = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7")
+        client = FullNodeClient(node_url=rpc_url)
+        contract = await Contract.from_address(address=merkle_tree_addr, provider=client)
+        result = await contract.functions["is_known_root"].call(root_felt)
+        is_known = result[0] == 1
+        
+        return {"is_known": is_known, "root_felt": hex(root_felt)}
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"verify_root error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/withdraw/generate_proof", response_model=WithdrawProofResponse)
@@ -185,6 +324,14 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
     """
     import logging
     logger = logging.getLogger(__name__)
+    
+    logger.info("=== WITHDRAW PROOF REQUEST ===")
+    logger.info(f"User secret (len): {len(request.user_secret)}")
+    logger.info(f"Amount: {request.amount}")
+    logger.info(f"Pool type: {request.pool_type}")
+    logger.info(f"Withdraw amount: {request.withdraw_amount}")
+    logger.info(f"Leaf index: {request.leaf_index}")
+    logger.info(f"Using stored proof: {request.merkle_root is not None}")
     
     try:
         svc = get_full_privacy_service()
@@ -225,6 +372,18 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
                 )
             leaf_index = found_index
             logger.warning(f"[Withdraw] Found at leaf_index={leaf_index}")
+
+        # --- Pre-flight: check if nullifier is already used on-chain ---
+        # This catches the case where a previous withdrawal succeeded on-chain
+        # but the frontend didn't remove the commitment from localStorage.
+        commitment_for_null = compute_commitment(user_secret, amount, request.pool_type, nonce, blinding)
+        nullifier_precheck = compute_nullifier(commitment_for_null, user_secret)
+        is_used = await check_nullifier_used_on_chain(nullifier_precheck)
+        if is_used:
+            raise HTTPException(
+                status_code=409,
+                detail="Nullifier already used on-chain. This commitment was already withdrawn. Remove it from your wallet."
+            )
         
         # Parse stored proof if provided
         stored_root = None
@@ -249,20 +408,169 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
             path_elements=stored_path_elements,
             path_indices=stored_path_indices,
         )
-        
+
+        # Ensure the proof's root is on-chain before returning
+        proof_root = int(result["root"], 16) if result["root"].startswith("0x") else int(result["root"])
+        root_on_chain = await verify_root_on_chain(proof_root)
+        if not root_on_chain:
+            logger.warning("[Withdraw] Root %s not on-chain, registering now...", result["root"][:20])
+            registered = await register_root_on_chain(proof_root, max_retries=3)
+            if not registered:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Merkle root not confirmed on-chain. Try again in a few seconds."
+                )
+
         return WithdrawProofResponse(
             nullifier=result["nullifier"],
+            nullifier_low=result.get("nullifier_low"),
+            nullifier_high=result.get("nullifier_high"),
             root=result["root"],
+            root_low=result.get("root_low"),
+            root_high=result.get("root_high"),
             recipient=result["recipient"],
             amount=result["amount"],
             pool_type=result["pool_type"],
             proof_calldata=result["proof_calldata"],
             message=result["message"],
         )
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/withdraw/generate_proof_with_change", response_model=WithdrawProofWithChangeResponse)
+async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
+    """
+    Generate a withdrawal-with-change proof (V2 partial withdraw).
+    Proves withdraw_amount + change_amount == commitment amount; returns change commitment for pool to insert.
+    Frontend should store change_nonce, change_blinding, change_amount, change_commitment for the new commitment.
+    """
+    try:
+        svc = get_full_privacy_service()
+        user_secret = int(request.user_secret, 16) if request.user_secret.startswith("0x") else int(request.user_secret)
+        nonce = int(request.nonce, 16) if request.nonce.startswith("0x") else int(request.nonce)
+        blinding = int(request.blinding, 16) if request.blinding.startswith("0x") else int(request.blinding)
+        amount = int(request.amount) if isinstance(request.amount, str) else request.amount
+        withdraw_amount = int(request.withdraw_amount) if isinstance(request.withdraw_amount, str) else request.withdraw_amount
+
+        leaf_index = request.leaf_index
+        if leaf_index < 0:
+            commitment = compute_commitment(user_secret, amount, request.pool_type, nonce, blinding)
+            commitment_felt = commitment % STARK_PRIME
+            found_index = find_commitment_in_tree(commitment_felt)
+            if found_index is None:
+                raise ValueError("Commitment not found in merkle tree")
+            leaf_index = found_index
+
+        # --- Pre-flight: check if nullifier is already used on-chain ---
+        commitment_for_null = compute_commitment(user_secret, amount, request.pool_type, nonce, blinding)
+        nullifier_precheck = compute_nullifier(commitment_for_null, user_secret)
+        is_used = await check_nullifier_used_on_chain(nullifier_precheck)
+        if is_used:
+            raise HTTPException(
+                status_code=409,
+                detail="Nullifier already used on-chain. This commitment was already withdrawn. Remove it from your wallet."
+            )
+
+        stored_root = None
+        stored_path_elements = None
+        stored_path_indices = None
+        if request.merkle_root and request.path_elements and request.path_indices:
+            stored_root = int(request.merkle_root, 16) if request.merkle_root.startswith("0x") else int(request.merkle_root)
+            stored_path_elements = [int(p, 16) if p.startswith("0x") else int(p) for p in request.path_elements]
+            stored_path_indices = request.path_indices
+
+        result = svc.generate_withdraw_proof_with_change(
+            user_secret=user_secret,
+            amount=amount,
+            pool_type=request.pool_type,
+            nonce=nonce,
+            blinding=blinding,
+            withdraw_amount=withdraw_amount,
+            recipient=request.recipient,
+            leaf_index=leaf_index,
+            merkle_root=stored_root,
+            path_elements=stored_path_elements,
+            path_indices=stored_path_indices,
+        )
+
+        # Ensure the proof's root is on-chain before returning
+        proof_root = int(result["root"], 16) if result["root"].startswith("0x") else int(result["root"])
+        root_on_chain = await verify_root_on_chain(proof_root)
+        if not root_on_chain:
+            logger.warning("[Withdraw] Root %s not on-chain, registering now...", result["root"][:20])
+            registered = await register_root_on_chain(proof_root, max_retries=3)
+            if not registered:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Merkle root not confirmed on-chain. Try again in a few seconds."
+                )
+
+        return WithdrawProofWithChangeResponse(
+            nullifier=result["nullifier"],
+            nullifier_low=result.get("nullifier_low"),
+            nullifier_high=result.get("nullifier_high"),
+            root=result["root"],
+            root_low=result.get("root_low"),
+            root_high=result.get("root_high"),
+            recipient=result["recipient"],
+            withdraw_amount=result["withdraw_amount"],
+            change_amount=result["change_amount"],
+            change_commitment=result["change_commitment"],
+            change_commitment_low=result["change_commitment_low"],
+            change_commitment_high=result["change_commitment_high"],
+            change_nonce=result["change_nonce"],
+            change_blinding=result["change_blinding"],
+            pool_type=result["pool_type"],
+            proof_calldata=result["proof_calldata"],
+            path_elements=result.get("path_elements"),
+            path_indices=result.get("path_indices"),
+            message=result["message"],
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/merkle/register_change_commitment")
+async def register_change_commitment(request: RegisterChangeCommitmentRequest):
+    """
+    After a successful withdraw_with_change tx, register the change commitment in the backend tree
+    and sync the new root on-chain. Call this so future withdrawals using the new root succeed.
+    """
+    from ...services.merkle_tree_service import combine_u256
+    try:
+        if request.change_commitment:
+            commitment_int = int(request.change_commitment, 16) if request.change_commitment.startswith("0x") else int(request.change_commitment)
+        elif request.change_commitment_low is not None and request.change_commitment_high is not None:
+            low = int(request.change_commitment_low, 16) if request.change_commitment_low.startswith("0x") else int(request.change_commitment_low)
+            high = int(request.change_commitment_high, 16) if request.change_commitment_high.startswith("0x") else int(request.change_commitment_high)
+            commitment_int = combine_u256(low, high)
+        else:
+            raise HTTPException(status_code=400, detail="Provide change_commitment or change_commitment_low and change_commitment_high")
+        commitment_felt = commitment_int % STARK_PRIME
+        tree = get_merkle_tree()
+        leaf_index, path_elements, path_indices = tree.insert(commitment_felt)
+        root = tree.get_root()
+        registered = await register_root_on_chain(root, max_retries=3)
+        if not registered:
+            raise HTTPException(status_code=503, detail="Merkle root registration failed")
+        return {
+            "leaf_index": leaf_index,
+            "merkle_root": hex(root),
+            "path_elements": [hex(p) for p in path_elements],
+            "path_indices": path_indices,
+            "message": "Change commitment registered; root synced on-chain",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/disclosure/balance_above", response_model=DisclosureResponse)

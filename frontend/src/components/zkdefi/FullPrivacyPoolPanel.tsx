@@ -6,16 +6,18 @@ import { useWalletSettled } from "@/lib/useWalletSettled";
 import { ProofVisualizer } from "./ProofVisualizer";
 import { ConnectButton } from "./ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { useApp } from "@/lib/AppContext";
+import { addActivityEvent } from "./ActivityLog";
 import {
   Lock, Shield, Eye, ArrowDownToLine, ArrowUpFromLine, Key, Download,
   FileCheck, AlertTriangle, Fingerprint, CheckCircle2, Send,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const FULLY_SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS || "";
-const EXPLORER_STARKSCAN = "https://sepolia.starkscan.co";
-const EXPLORER_VOYAGER = "https://sepolia.voyager.online";
+const FULL_PRIVACY_POOL_V2_ADDRESS = process.env.NEXT_PUBLIC_FULL_PRIVACY_POOL_V2_ADDRESS || "";
 // Token for Full Privacy Pool must implement ERC20 (approve + transfer_from). Must NOT be the pool address.
 const SEPOLIA_ETH = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 const _rawToken = process.env.NEXT_PUBLIC_FULL_PRIVACY_TOKEN_ADDRESS || SEPOLIA_ETH;
@@ -46,6 +48,13 @@ interface CommitmentData {
   root?: string;
   recipient?: string;
   proof_calldata?: string[];
+  change_commitment?: string;
+  change_commitment_low?: string;
+  change_commitment_high?: string;
+  change_amount?: number | string;
+  change_nonce?: string;
+  change_blinding?: string;
+  withdraw_amount?: number | string;
 }
 
 const POOL_INFO: Record<PoolType, { name: string; allocation: string }> = {
@@ -75,9 +84,14 @@ const ethToWei = (ethAmount: string): string => {
   return (integerWei + decimalWei).toString();
 };
 
-export function FullPrivacyPoolPanel() {
+interface FullPrivacyPoolPanelProps {
+  onCommitmentsChange?: () => void;
+}
+
+export function FullPrivacyPoolPanel({ onCommitmentsChange }: FullPrivacyPoolPanelProps = {}) {
   const { address, account, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
+  const { setActivityFeed } = useApp();
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<Mode>("deposit");
   const [selectedPool, setSelectedPool] = useState<PoolType>(1);
@@ -94,13 +108,14 @@ export function FullPrivacyPoolPanel() {
   const [useRelayer, setUseRelayer] = useState(false);
   const [relayerDestination, setRelayerDestination] = useState("");
   const [depositSubmitting, setDepositSubmitting] = useState(false);
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (mounted && address) {
-      // Version check: Clear old commitments from before Feb 4, 2026 merkle tree reset
-      const MERKLE_TREE_RESET_DATE = "2026-02-04";
+      // Version check: Clear old commitments from before V2 deployment (Feb 10, 2026)
+      const MERKLE_TREE_RESET_DATE = "2026-02-10";
       const versionKey = `zkdefi_fullprivacy_version`;
       const currentVersion = localStorage.getItem(versionKey);
       
@@ -125,6 +140,8 @@ export function FullPrivacyPoolPanel() {
       localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(updated));
       return updated;
     });
+    // Defer so dashboard reads localStorage after write
+    setTimeout(() => onCommitmentsChange?.(), 0);
   };
 
   const resetFlow = () => { setStep(1); setCommitmentData(null); setTxHash(null); setAmount(""); setSelectedCommitment(null); setDisclosureResult(null); setUseRelayer(false); setRelayerDestination(""); };
@@ -164,8 +181,10 @@ export function FullPrivacyPoolPanel() {
       toastError("No commitment data");
       return;
     }
-    if (!FULLY_SHIELDED_POOL_ADDRESS) {
-      toastError("Full Privacy Pool not configured. Check NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS");
+    // Use V2 pool if configured, otherwise V1
+    const depositPoolAddress = FULL_PRIVACY_POOL_V2_ADDRESS || FULLY_SHIELDED_POOL_ADDRESS;
+    if (!depositPoolAddress) {
+      toastError("Full Privacy Pool not configured. Check NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS or NEXT_PUBLIC_FULL_PRIVACY_POOL_V2_ADDRESS");
       return;
     }
     if (depositSubmitting) return;
@@ -173,7 +192,7 @@ export function FullPrivacyPoolPanel() {
 
     console.log("=== FULL PRIVACY POOL DEPOSIT ===");
     console.log("About to call account.execute - wallet signature should appear...");
-    console.log("Pool address:", FULLY_SHIELDED_POOL_ADDRESS);
+    console.log("Pool address:", depositPoolAddress, FULL_PRIVACY_POOL_V2_ADDRESS ? "(V2)" : "(V1)");
     console.log("Commitment:", commitmentData.commitment);
     console.log("Account:", account);
     
@@ -199,12 +218,12 @@ export function FullPrivacyPoolPanel() {
 
       const poolCall = useFeltDeposit
         ? {
-            contractAddress: FULLY_SHIELDED_POOL_ADDRESS as `0x${string}`,
+            contractAddress: depositPoolAddress as `0x${string}`,
             entrypoint: "deposit",
             calldata: [commitmentBigInt.toString(), amountLow.toString(), amountHigh.toString()],
           }
         : {
-            contractAddress: FULLY_SHIELDED_POOL_ADDRESS as `0x${string}`,
+            contractAddress: depositPoolAddress as `0x${string}`,
             entrypoint: "deposit_u256",
             calldata: [
               commitmentLow.toString(),
@@ -218,7 +237,7 @@ export function FullPrivacyPoolPanel() {
         {
           contractAddress: FULL_PRIVACY_TOKEN_ADDRESS as `0x${string}`,
           entrypoint: "approve",
-          calldata: [FULLY_SHIELDED_POOL_ADDRESS, amountLow.toString(), amountHigh.toString()],
+          calldata: [depositPoolAddress, amountLow.toString(), amountHigh.toString()],
         },
         poolCall,
       ]);
@@ -234,31 +253,61 @@ export function FullPrivacyPoolPanel() {
       toastSuccess("Deposit transaction submitted!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`${EXPLORER_STARKSCAN}/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
       });
 
-      // Register commitment in off-chain merkle tree (updates list with leaf_index when done)
-      const regRes = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commitment: commitmentData.commitment }),
+      addActivityEvent(setActivityFeed, {
+        type: "deposit",
+        pool: "full_privacy",
+        text: "Full Privacy Pool deposit",
+        txHash: result.transaction_hash,
+        details: `Deposited ${amount} ETH. Private commitment registered. Amount hidden on-chain.`,
       });
-      const regData = await regRes.json();
-      if (regData.leaf_index !== undefined) {
-        const fullData: CommitmentData = {
-          ...commitmentData,
-          leaf_index: regData.leaf_index,
-          merkle_root: regData.merkle_root,
-          path_elements: regData.path_elements,
-          path_indices: regData.path_indices,
-        };
-        setSavedCommitments((prev) => {
-          const idx = prev.findIndex((c) => c.commitment === commitmentData.commitment);
-          const next = idx >= 0 ? prev.map((c, i) => (i === idx ? fullData : c)) : [...prev, fullData];
-          if (address) localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(next));
-          return next;
-        });
-        setMerkleRoot(regData.merkle_root);
+
+      // Register commitment in off-chain merkle tree with retries
+      // This also registers the merkle root on-chain (can take 10-15s per attempt)
+      const MAX_REG_RETRIES = 3;
+      let regSuccess = false;
+      for (let attempt = 0; attempt < MAX_REG_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`[Register] Retry ${attempt + 1}/${MAX_REG_RETRIES}...`);
+            await new Promise(r => setTimeout(r, 3000 * attempt));
+          }
+          const regRes = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ commitment: commitmentData.commitment }),
+          });
+          if (regRes.status === 503 && attempt < MAX_REG_RETRIES - 1) {
+            console.warn(`[Register] Got 503 (root not confirmed on-chain). Retrying...`);
+            continue;
+          }
+          const regData = await regRes.json();
+          if (regData.leaf_index !== undefined) {
+            const fullData: CommitmentData = {
+              ...commitmentData,
+              leaf_index: regData.leaf_index,
+              merkle_root: regData.merkle_root,
+              path_elements: regData.path_elements,
+              path_indices: regData.path_indices,
+            };
+            setSavedCommitments((prev) => {
+              const idx = prev.findIndex((c) => c.commitment === commitmentData.commitment);
+              const next = idx >= 0 ? prev.map((c, i) => (i === idx ? fullData : c)) : [...prev, fullData];
+              if (address) localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(next));
+              return next;
+            });
+            setMerkleRoot(regData.merkle_root);
+            regSuccess = true;
+            break;
+          }
+        } catch (regErr) {
+          console.warn(`[Register] Attempt ${attempt + 1} failed:`, regErr);
+        }
+      }
+      if (!regSuccess) {
+        console.warn("[Register] All retries failed. Use 'Sync with Merkle Tree' button later.");
       }
     } catch (e: unknown) {
       console.error("DEPOSIT FAILED:", e);
@@ -272,43 +321,105 @@ export function FullPrivacyPoolPanel() {
   };
 
   const handleGenerateWithdrawProof = async () => {
-    if (!selectedCommitment || !amount || !address) return;
+    if (!selectedCommitment || !address) return;
     if (useRelayer && !relayerDestination?.trim()) return;
+
+    const commitmentAmountStr = typeof selectedCommitment.amount === "string"
+      ? selectedCommitment.amount
+      : selectedCommitment.amount.toString();
+    const commitmentAmountWei = BigInt(commitmentAmountStr);
+    const fullAmountEth = amountToEth(selectedCommitment.amount).toString();
+
+    // V2 partial: use user-entered amount if valid and less than commitment
+    const useV2Partial = Boolean(FULL_PRIVACY_POOL_V2_ADDRESS);
+    const withdrawEthStr = amount?.trim() || fullAmountEth;
+    const withdrawEth = parseFloat(withdrawEthStr) || 0;
+    const maxEth = amountToEth(selectedCommitment.amount);
+    const isPartial = useV2Partial && withdrawEth > 0 && withdrawEth < maxEth;
+    const withdrawAmountWei = isPartial ? BigInt(ethToWei(withdrawEthStr)) : commitmentAmountWei;
+    if (isPartial) setAmount(withdrawEthStr);
+    else setAmount(fullAmountEth);
+
     setStep(2);
     const recipient = useRelayer ? relayerDestination.trim() : address;
+    const leafIndex = selectedCommitment.leaf_index ?? -1;
+    const commitmentAmount = typeof selectedCommitment.amount === "number"
+      ? selectedCommitment.amount.toString()
+      : selectedCommitment.amount;
+    const body: Record<string, unknown> = {
+      user_secret: selectedCommitment.user_secret,
+      amount: commitmentAmount,
+      pool_type: selectedCommitment.pool_type,
+      nonce: selectedCommitment.nonce,
+      blinding: selectedCommitment.blinding,
+      withdraw_amount: withdrawAmountWei.toString(),
+      recipient,
+      leaf_index: leafIndex,
+    };
+    if (selectedCommitment.merkle_root && selectedCommitment.path_elements?.length && selectedCommitment.path_indices?.length) {
+      body.merkle_root = selectedCommitment.merkle_root;
+      body.path_elements = selectedCommitment.path_elements;
+      body.path_indices = selectedCommitment.path_indices;
+    }
+
     try {
-      // Use pure BigInt math to avoid precision loss (same as deposit)
-      const withdrawAmount = ethToWei(amount);
-      console.log(`[FullPrivacy] Withdraw: converting ${amount} ETH to ${withdrawAmount} wei`);
-      // Use leaf_index if available, otherwise send -1 for auto-find
-      const leafIndex = selectedCommitment.leaf_index ?? -1;
-      // Send amount as string to preserve precision
-      const commitmentAmount = typeof selectedCommitment.amount === 'number' 
-        ? selectedCommitment.amount.toString() 
-        : selectedCommitment.amount;
-      const body: Record<string, unknown> = {
-        user_secret: selectedCommitment.user_secret,
-        amount: commitmentAmount,
-        pool_type: selectedCommitment.pool_type,
-        nonce: selectedCommitment.nonce,
-        blinding: selectedCommitment.blinding,
-        withdraw_amount: withdrawAmount,
-        recipient,
-        leaf_index: leafIndex,
-      };
-      if (selectedCommitment.merkle_root && selectedCommitment.path_elements?.length && selectedCommitment.path_indices?.length) {
-        body.merkle_root = selectedCommitment.merkle_root;
-        body.path_elements = selectedCommitment.path_elements;
-        body.path_indices = selectedCommitment.path_indices;
-      }
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const endpoint = isPartial
+        ? `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
+        : `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (data.nullifier) { setCommitmentData({ ...selectedCommitment, ...data }); setStep(3); toastSuccess("Withdrawal proof generated!"); }
-      else { toastError(data.detail || "Failed to generate proof"); setStep(1); }
-    } catch (e) { toastError(`Error: ${e}`); setStep(1); }
+      // Handle 409 = nullifier already used (commitment was already withdrawn)
+      if (res.status === 409) {
+        toastError(data.detail || "This commitment was already withdrawn.");
+        // Auto-remove the spent commitment from localStorage
+        if (address && selectedCommitment) {
+          const cleaned = savedCommitments.filter((c) => c.commitment !== selectedCommitment.commitment);
+          setSavedCommitments(cleaned);
+          localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(cleaned));
+          onCommitmentsChange?.();
+        }
+        setStep(1);
+        return;
+      }
+      if (data.nullifier) {
+        const merged = isPartial
+          ? {
+              ...selectedCommitment,
+              ...data,
+              withdraw_amount: data.withdraw_amount,
+              change_commitment: data.change_commitment,
+              change_commitment_low: data.change_commitment_low,
+              change_commitment_high: data.change_commitment_high,
+              change_amount: data.change_amount,
+              change_nonce: data.change_nonce,
+              change_blinding: data.change_blinding,
+            }
+          : { ...selectedCommitment, ...data };
+        setCommitmentData(merged);
+        setStep(3);
+        toastSuccess(isPartial ? "Partial withdrawal proof generated!" : "Withdrawal proof generated!");
+      } else {
+        toastError(data.detail || "Failed to generate proof");
+        setStep(1);
+      }
+    } catch (e) {
+      toastError(`Error: ${e}`);
+      setStep(1);
+    }
+  };
+
+  const handleRemoveCommitment = (commitment: CommitmentData) => {
+    if (!address) return;
+    const updated = savedCommitments.filter((c) => c.commitment !== commitment.commitment);
+    setSavedCommitments(updated);
+    localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(updated));
+    if (selectedCommitment?.commitment === commitment.commitment) setSelectedCommitment(null);
+    onCommitmentsChange?.();
+    toastSuccess("Commitment removed from wallet.");
   };
 
   const handleSyncCommitment = async (commitment: CommitmentData) => {
@@ -334,6 +445,7 @@ export function FullPrivacyPoolPanel() {
         );
         setSavedCommitments(updated);
         if (address) localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(updated));
+        onCommitmentsChange?.();
         toastSuccess(`Commitment synced! Leaf index: ${data.leaf_index}`);
       } else {
         toastError(data.message || "Commitment not found in tree");
@@ -344,6 +456,7 @@ export function FullPrivacyPoolPanel() {
   };
 
   const handleWithdraw = async () => {
+    if (withdrawSubmitting) return;
     if (!account) {
       toastError("Wallet not connected or still loading. Use Connect Wallet in the header or refresh the page.");
       return;
@@ -352,51 +465,165 @@ export function FullPrivacyPoolPanel() {
       toastError("No commitment data");
       return;
     }
-    if (!FULLY_SHIELDED_POOL_ADDRESS) {
-      toastError("Full Privacy Pool not configured");
+    setWithdrawSubmitting(true);
+    // Route to correct pool: V2 if configured (all new deposits go to V2), otherwise V1
+    // This ensures withdrawals go to the same pool where the deposit was made
+    const poolAddress = FULL_PRIVACY_POOL_V2_ADDRESS || FULLY_SHIELDED_POOL_ADDRESS;
+    if (!poolAddress) {
+      toastError("Full Privacy Pool not configured (check NEXT_PUBLIC_FULL_PRIVACY_POOL_V2_ADDRESS or NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS)");
       return;
     }
+    
+    // Check if this is a V2 partial withdrawal (has change commitment)
+    const isV2Partial = Boolean(
+      commitmentData.change_commitment &&
+      commitmentData.change_amount != null &&
+      FULL_PRIVACY_POOL_V2_ADDRESS,
+    );
     if (!commitmentData.nullifier || !commitmentData.root || !commitmentData.proof_calldata) {
       toastError("Missing proof data. Generate withdrawal proof first.");
       return;
     }
-    
-    console.log("=== FULL PRIVACY POOL WITHDRAW ===");
-    console.log("About to call account.execute - wallet signature should appear...");
-    console.log("Nullifier:", commitmentData.nullifier);
-    console.log("Account:", account);
-    
+
+    const nullifierBigInt = commitmentData.nullifier.startsWith("0x")
+      ? BigInt(commitmentData.nullifier)
+      : BigInt("0x" + commitmentData.nullifier);
+    const rootBigInt = commitmentData.root.startsWith("0x")
+      ? BigInt(commitmentData.root)
+      : BigInt("0x" + commitmentData.root);
+    const recipientAddr = commitmentData.recipient || address || "";
+    const poolTypeNum = selectedCommitment?.pool_type ?? 1;
+    const proofFelts = commitmentData.proof_calldata.map((p) => {
+      const v = BigInt(p.startsWith("0x") ? p : "0x" + p);
+      return (v % STARK_PRIME).toString();
+    });
+    console.log("=== WITHDRAWAL DEBUG ===");
+    console.log("Pool address:", poolAddress);
+    console.log("Is V2 Partial:", isV2Partial);
+    console.log("Proof elements:", proofFelts.length);
+    console.log("First 3 proof felts:", proofFelts.slice(0, 3));
+
     try {
-      const nullifierBigInt = commitmentData.nullifier.startsWith("0x")
-        ? BigInt(commitmentData.nullifier)
-        : BigInt("0x" + commitmentData.nullifier);
-      const rootBigInt = commitmentData.root.startsWith("0x")
-        ? BigInt(commitmentData.root)
-        : BigInt("0x" + commitmentData.root);
-      const recipientAddr = commitmentData.recipient || address || "";
-
-      const withdrawAmountWei = BigInt(ethToWei(amount));
-      const amountLow = withdrawAmountWei % BigInt(2 ** 128);
-      const amountHigh = withdrawAmountWei / BigInt(2 ** 128);
-      const poolTypeNum = selectedCommitment?.pool_type ?? 1;
-
-      const proofFelts = commitmentData.proof_calldata.map((p) => {
-        const v = BigInt(p.startsWith("0x") ? p : "0x" + p);
-        return (v % STARK_PRIME).toString();
+      // Ensure merkle root is on-chain before submitting (handles stale proofs)
+      const ensureRes = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/merkle/ensure_root`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ root: commitmentData.root }),
       });
+      const ensureData = await ensureRes.json();
+      if (!ensureRes.ok) {
+        toastError(ensureData.detail || "Merkle root not ready. Try again in a few seconds.");
+        return;
+      }
+      if (!ensureData.ok) {
+        toastError("Could not confirm merkle root on-chain.");
+        return;
+      }
 
+      if (isV2Partial) {
+        const withdrawAmountWei = BigInt(
+          typeof commitmentData.withdraw_amount === "string"
+            ? commitmentData.withdraw_amount
+            : String(commitmentData.withdraw_amount ?? 0),
+        );
+        const changeAmountWei = BigInt(
+          typeof commitmentData.change_amount === "string"
+            ? commitmentData.change_amount
+            : String(commitmentData.change_amount ?? 0),
+        );
+        const changeCommitmentLow = commitmentData.change_commitment_low
+          ? BigInt(commitmentData.change_commitment_low.startsWith("0x") ? commitmentData.change_commitment_low : "0x" + commitmentData.change_commitment_low)
+          : BigInt(0);
+        const changeCommitmentHigh = commitmentData.change_commitment_high
+          ? BigInt(commitmentData.change_commitment_high.startsWith("0x") ? commitmentData.change_commitment_high : "0x" + commitmentData.change_commitment_high)
+          : BigInt(0);
+        const withdrawLow = withdrawAmountWei % BigInt(2 ** 128);
+        const withdrawHigh = withdrawAmountWei / BigInt(2 ** 128);
+        const changeLow = changeAmountWei % BigInt(2 ** 128);
+        const changeHigh = changeAmountWei / BigInt(2 ** 128);
+
+        const calldata = [
+          (nullifierBigInt % BigInt(2 ** 128)).toString(),
+          (nullifierBigInt / BigInt(2 ** 128)).toString(),
+          (rootBigInt % BigInt(2 ** 128)).toString(),
+          (rootBigInt / BigInt(2 ** 128)).toString(),
+          recipientAddr,
+          withdrawLow.toString(),
+          withdrawHigh.toString(),
+          poolTypeNum.toString(),
+          (changeCommitmentLow % BigInt(2 ** 128)).toString(),
+          (changeCommitmentHigh % BigInt(2 ** 128)).toString(),
+          changeLow.toString(),
+          changeHigh.toString(),
+          proofFelts.length.toString(),
+          ...proofFelts,
+        ];
+        console.log("V2 Partial Calldata (first 15):", calldata.slice(0, 15));
+        const result = await account.execute({
+          contractAddress: poolAddress as `0x${string}`,
+          entrypoint: "withdraw_with_change_u256",
+          calldata,
+        });
+
+        setStep(4);
+        setTxHash(result.transaction_hash);
+        toastSuccess("Partial withdrawal successful!", {
+          action: {
+            label: "View on explorer",
+            onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
+          },
+        });
+        addActivityEvent(setActivityFeed, {
+          type: "withdraw",
+          pool: "full_privacy",
+          text: "Full Privacy Pool partial withdrawal (V2)",
+          txHash: result.transaction_hash,
+          details: `Withdrew ${amountToEth(withdrawAmountWei.toString()).toFixed(6)} ETH; ${amountToEth(changeAmountWei.toString()).toFixed(6)} ETH remains as new commitment.`,
+        });
+
+        if (address && selectedCommitment && commitmentData.change_commitment) {
+          const updated = savedCommitments.filter((c) => c.commitment !== selectedCommitment.commitment);
+          const newCommitment: CommitmentData = {
+            commitment: commitmentData.change_commitment,
+            user_secret: selectedCommitment.user_secret,
+            amount: commitmentData.change_amount ?? "0",
+            pool_type: selectedCommitment.pool_type,
+            nonce: commitmentData.change_nonce ?? "",
+            blinding: commitmentData.change_blinding ?? "",
+            change_commitment_low: commitmentData.change_commitment_low,
+            change_commitment_high: commitmentData.change_commitment_high,
+          };
+          setSavedCommitments([...updated, newCommitment]);
+          localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify([...updated, newCommitment]));
+          onCommitmentsChange?.();
+
+          try {
+            await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/merkle/register_change_commitment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                change_commitment_low: commitmentData.change_commitment_low,
+                change_commitment_high: commitmentData.change_commitment_high,
+              }),
+            });
+          } catch (_) {
+            toastError("Withdrawal succeeded but root sync failed. Retry sync or use Merkle reconcile.");
+          }
+        }
+        return;
+      }
+
+      const commitmentWei = selectedCommitment
+        ? BigInt(typeof selectedCommitment.amount === "string" ? selectedCommitment.amount : selectedCommitment.amount.toString())
+        : BigInt(ethToWei(amount));
+      const amountLow = commitmentWei % BigInt(2 ** 128);
+      const amountHigh = commitmentWei / BigInt(2 ** 128);
       const useFeltWithdraw = USE_FELT_WITHDRAW && nullifierBigInt < STARK_PRIME && rootBigInt < STARK_PRIME;
       const nullifierStr = nullifierBigInt.toString();
       const rootStr = rootBigInt.toString();
 
-      if (useFeltWithdraw) {
-        console.log("Using withdraw(felt252) entrypoint");
-      } else {
-        console.log("Using withdraw_u256 entrypoint");
-      }
-
       const result = await account.execute({
-        contractAddress: FULLY_SHIELDED_POOL_ADDRESS as `0x${string}`,
+        contractAddress: poolAddress as `0x${string}`,
         entrypoint: useFeltWithdraw ? "withdraw" : "withdraw_u256",
         calldata: useFeltWithdraw
           ? [nullifierStr, rootStr, recipientAddr, amountLow.toString(), amountHigh.toString(), poolTypeNum.toString(), proofFelts.length.toString(), ...proofFelts]
@@ -413,32 +640,44 @@ export function FullPrivacyPoolPanel() {
               ...proofFelts,
             ],
       });
-      
-      console.log("SUCCESS! Transaction submitted:", result.transaction_hash);
-      console.log("==================================");
 
-      // Only set step 4 AFTER transaction succeeds
       setStep(4);
       setTxHash(result.transaction_hash);
       toastSuccess("Withdrawal successful!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`${EXPLORER_STARKSCAN}/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
       });
+      addActivityEvent(setActivityFeed, {
+        type: "withdraw",
+        pool: "full_privacy",
+        text: "Full Privacy Pool withdrawal",
+        txHash: result.transaction_hash,
+        details: `Withdrew ${selectedCommitment ? amountToEth(selectedCommitment.amount).toFixed(6) : amount} ETH. Private withdrawal completed. Amount hidden on-chain.`,
+      });
 
-      // Remove the spent commitment from saved list
       if (address && selectedCommitment) {
-        const updated = savedCommitments.filter(c => c.commitment !== selectedCommitment.commitment);
+        const updated = savedCommitments.filter((c) => c.commitment !== selectedCommitment.commitment);
         setSavedCommitments(updated);
         localStorage.setItem(`zkdefi_fullprivacy_${address}`, JSON.stringify(updated));
+        onCommitmentsChange?.();
       }
     } catch (e: unknown) {
       console.error("WITHDRAW FAILED:", e);
       const err = e && typeof e === "object" && "message" in e ? (e as { message: string }).message : String(e);
-      toastError(`Withdrawal failed: ${err}`);
-      // Stay on step 3 so user can try again
+      // Check if this is a user rejection (wallet cancelled) vs a broadcast error
+      const isUserRejection = err.toLowerCase().includes("reject") || err.toLowerCase().includes("cancel") || err.toLowerCase().includes("abort");
+      if (isUserRejection) {
+        toastError("Transaction cancelled by user.");
+      } else {
+        // The transaction may have been broadcast even though the wallet threw.
+        // Don't reset to step 3 -- warn the user to check the explorer.
+        toastError(`Withdrawal may have failed: ${err}. Check Starkscan before retrying.`);
+      }
       setStep(3);
+    } finally {
+      setWithdrawSubmitting(false);
     }
   };
 
@@ -522,7 +761,7 @@ export function FullPrivacyPoolPanel() {
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {savedCommitments.map((c, i) => (
                     <div key={i} className={`p-4 rounded-lg border transition-all ${selectedCommitment?.commitment === c.commitment ? "border-violet-500 bg-violet-950/30" : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"}`}>
-                      <button onClick={() => setSelectedCommitment(c)} className="w-full text-left">
+                      <button onClick={() => { setSelectedCommitment(c); if (mode === "withdraw") setAmount(amountToEth(c.amount).toString()); }} className="w-full text-left">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-mono text-sm text-zinc-200">{c.commitment.slice(0, 10)}...{c.commitment.slice(-6)}</p>
@@ -537,23 +776,62 @@ export function FullPrivacyPoolPanel() {
                           </div>
                         </div>
                       </button>
-                      {c.leaf_index === undefined && (
+                      <div className="mt-2 flex gap-2">
+                        {c.leaf_index === undefined && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSyncCommitment(c); }}
+                            className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-amber-600/50 text-amber-400 hover:bg-amber-950/30"
+                          >
+                            Sync with Merkle Tree
+                          </button>
+                        )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleSyncCommitment(c); }}
-                          className="mt-2 w-full px-3 py-1.5 text-xs rounded-lg border border-amber-600/50 text-amber-400 hover:bg-amber-950/30"
+                          onClick={(e) => { e.stopPropagation(); if (confirm("Remove this commitment? Only do this if it was already withdrawn.")) handleRemoveCommitment(c); }}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-red-800/40 text-red-400/70 hover:bg-red-950/30 hover:text-red-300"
+                          title="Remove commitment (only if already withdrawn)"
                         >
-                          Sync with Merkle Tree
+                          Remove
                         </button>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             {selectedCommitment && (
-              <div><label className="block text-sm font-medium text-zinc-300 mb-2">Withdraw Amount (ETH)</label>
-                <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-lg font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
-                <p className="mt-1 text-xs text-zinc-500">Max: {amountToEth(selectedCommitment.amount).toFixed(4)} ETH</p>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Withdraw Amount</label>
+                {FULL_PRIVACY_POOL_V2_ADDRESS ? (
+                  <>
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder={amountToEth(selectedCommitment.amount).toFixed(6)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-lg font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                    <p className="mt-1.5 text-xs text-zinc-500">
+                      Max {amountToEth(selectedCommitment.amount).toFixed(6)} ETH. Partial withdraw creates a new commitment for the remainder (V2).
+                    </p>
+                    {amount && (() => {
+                      const maxEth = amountToEth(selectedCommitment.amount);
+                      const withdrawEth = parseFloat(amount) || 0;
+                      const remains = maxEth - withdrawEth;
+                      if (remains > 0 && withdrawEth > 0) {
+                        return <p className="mt-1 text-xs text-violet-400">Withdraw {withdrawEth.toFixed(6)} ETH; {remains.toFixed(6)} ETH remains (new commitment)</p>;
+                      }
+                      return null;
+                    })()}
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 flex items-baseline justify-between">
+                      <span className="text-lg font-medium text-white">{amountToEth(selectedCommitment.amount).toFixed(6)}</span>
+                      <span className="text-sm text-zinc-400">ETH</span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-zinc-500">Full commitment withdrawal. Each commitment uses a unique nullifier -- partial withdrawals would lock the remainder.</p>
+                  </>
+                )}
               </div>
             )}
 
@@ -598,7 +876,19 @@ export function FullPrivacyPoolPanel() {
               </div>
             )}
 
-            <button onClick={handleGenerateWithdrawProof} disabled={!selectedCommitment || !amount || (useRelayer && !relayerDestination?.trim())} className="w-full px-6 py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 rounded-lg font-semibold text-white flex items-center justify-center gap-2"><Lock className="w-5 h-5" />Generate Withdrawal Proof</button>
+            <button
+              onClick={handleGenerateWithdrawProof}
+              disabled={
+                !selectedCommitment ||
+                (useRelayer && !relayerDestination?.trim()) ||
+                (Boolean(FULL_PRIVACY_POOL_V2_ADDRESS) &&
+                  Boolean(amount?.trim()) &&
+                  (parseFloat(amount) <= 0 || parseFloat(amount) > (selectedCommitment ? amountToEth(selectedCommitment.amount) : 0)))
+              }
+              className="w-full px-6 py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 rounded-lg font-semibold text-white flex items-center justify-center gap-2"
+            >
+              <Lock className="w-5 h-5" />Generate Withdrawal Proof
+            </button>
           </motion.div>
         )}
         {mode === "withdraw" && step === 3 && commitmentData && (
@@ -606,10 +896,9 @@ export function FullPrivacyPoolPanel() {
             <div className="p-4 rounded-lg bg-emerald-950/20 border border-emerald-800/30"><div className="flex items-start gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" /><div className="text-sm"><p className="text-emerald-300 font-medium mb-1">Proof Generated</p><p className="text-zinc-400">Your withdrawal proof is ready. Sign to complete.</p></div></div></div>
             <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700 space-y-3">
               <div><p className="text-xs text-zinc-500">Nullifier (prevents double-spend)</p><p className="font-mono text-xs text-zinc-200 break-all">{(commitmentData as any).nullifier || "N/A"}</p></div>
-              <div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-zinc-500">Amount</p><p className="text-sm">{amount} ETH</p></div><div><p className="text-xs text-zinc-500">Pool</p><p className="text-sm">{selectedCommitment ? POOL_INFO[selectedCommitment.pool_type as PoolType].name : ""}</p></div><div className="col-span-2"><p className="text-xs text-zinc-500">Destination</p><p className="text-sm">{useRelayer ? "Fresh address (unlinkable)" : "Your wallet"}</p></div></div>
+              <div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-zinc-500">Amount</p><p className="text-sm">{commitmentData.withdraw_amount != null ? `${amountToEth(commitmentData.withdraw_amount).toFixed(6)} ETH withdraw` : selectedCommitment ? amountToEth(selectedCommitment.amount).toFixed(6) : amount} ETH</p></div><div><p className="text-xs text-zinc-500">Pool</p><p className="text-sm">{selectedCommitment ? POOL_INFO[selectedCommitment.pool_type as PoolType].name : ""}</p></div>{commitmentData.change_amount != null && <div><p className="text-xs text-zinc-500">Remains</p><p className="text-sm text-violet-400">{amountToEth(commitmentData.change_amount).toFixed(6)} ETH (new commitment)</p></div>}<div className="col-span-2"><p className="text-xs text-zinc-500">Destination</p><p className="text-sm">{useRelayer ? "Fresh address (unlinkable)" : "Your wallet"}</p></div></div>
             </div>
-            <button onClick={handleWithdraw} className="w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold text-white flex items-center justify-center gap-2"><ArrowUpFromLine className="w-5 h-5" />Sign & Withdraw</button>
-            <p className="text-xs text-zinc-500 text-center">If you see &quot;Unknown merkle root&quot;, wait 30–60s after deposit for root sync, or ensure backend has <code className="text-zinc-400">FULL_PRIVACY_MERKLE_TREE_*</code> set (see docs Wallet Troubleshooting).</p>
+            <button onClick={handleWithdraw} disabled={withdrawSubmitting || !account} className="w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:pointer-events-none rounded-lg font-semibold text-white flex items-center justify-center gap-2"><ArrowUpFromLine className="w-5 h-5" />{withdrawSubmitting ? "Submitting…" : "Sign & Withdraw"}</button>
           </motion.div>
         )}
         {mode === "disclose" && (
@@ -627,8 +916,7 @@ export function FullPrivacyPoolPanel() {
             <div className="flex justify-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-full bg-violet-500/20 flex items-center justify-center"><CheckCircle2 className="w-10 h-10 text-violet-400" /></motion.div></div>
             <div><p className="text-xl font-semibold text-violet-400 mb-2">Transaction Complete</p><p className="text-sm text-zinc-400">Your position is now fully private</p></div>
             <div className="flex flex-wrap justify-center gap-3">
-              <a href={`${EXPLORER_STARKSCAN}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">View on Starkscan</a>
-              <a href={`${EXPLORER_VOYAGER}/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">View on Voyager</a>
+              <a href={sepoliaStarkscanTxUrl(txHash)} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">View on Starkscan</a>
             </div>
             <button onClick={resetFlow} className="px-6 py-3 border border-zinc-600 hover:bg-zinc-800 rounded-lg">New Transaction</button>
           </motion.div>
