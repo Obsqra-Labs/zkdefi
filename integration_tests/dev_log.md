@@ -1,5 +1,103 @@
 # Development Log - Integration Tests & Findings
 
+## Finding: Profile refactor (hooks, journey, protocol, deep links)
+
+**Date**: 2026-02-07
+
+**Issue**: Profile was a mix of inline cards with no journey or protocol summary; links to agent used `?tab=onboarding` / `?tab=privacy` but Agent did not read URL; no shared data layer.
+
+**Root Cause**: Single long page; duplicate fetches; no URL state for tabs; Agent tab state was internal only.
+
+**Solution**: (1) **Data layer**: Added `useProfileReputation`, `useOnboardingStatus`, `useRiskPassport`, `useLinkedAddresses` in `frontend/src/hooks/useProfile.ts`; profile page uses them; stake/upgrade call refetch; linked-addresses save via hook. (2) **Agent deep links**: Agent reads `?tab=onboarding|disclosure|privacy|models` and shows onboarding or sets mainTab. (3) **Profile URL state**: Profile reads/writes `?tab=overview|collateral|relayer|agents|compliance` via useSearchParams + router.replace. (4) **Journey + Protocol**: ProfileJourneyBanner (Connect > Onboard > Build passport > Use protocol) and ProfileProtocolStatus (tier, collateral, relayer, upgrade) at top of Overview. (5) **Compliance**: "Generate Compliance Proof" → `/agent?tab=disclosure`; Pool Safety block replaced with copy + "Open Agent" link. (6) **Pool Safety link**: ChevronRight icon. Docs: PROFILE_REFACTOR_PLAN.md Section 6 (Done); BUILD_IMPACT_AND_NEXT item 7.
+
+**Files Modified**: frontend/src/hooks/useProfile.ts (new), frontend/src/app/profile/page.tsx, frontend/src/app/agent/page.tsx, frontend/src/components/zkdefi/ProfileJourneyBanner.tsx (new), frontend/src/components/zkdefi/ProfileProtocolStatus.tsx (new), docs/PROFILE_REFACTOR_PLAN.md, docs/BUILD_IMPACT_AND_NEXT.md, integration_tests/dev_log.md.
+
+**Tests**: Frontend build passes. Backend pytest: 46 passed; 8 errors in test_model_marketplace.py (async fixture `client` — known pytest-asyncio issue, deferred).
+
+**Status**: Fixed.
+
+---
+
+## Finding: BUILD_PLAN 1–7 implemented; Link addresses UI; impact doc and tests
+
+**Date**: 2026-02-07
+
+**Issue**: User requested build of all seven BUILD_PLAN items plus Link addresses UI, tests, and a deep dive into impacted code and next steps.
+
+**Root Cause**: BUILD_PLAN was documented but not yet implemented.
+
+**Solution**: (1) **Snapshot binding**: Oracle snapshot_hash passed into zkML (risk/anomaly) and append_proof_receipt; rebalancer gets snapshot before check and passes through. (2) **Proof timeline**: New ProofTimeline.tsx (receipts with model hash, threshold, snapshot, Starkscan link); used on Profile Risk Passport and AgentRebalancer “Why did this execute?”. (3) **Policy engine**: policy_engine.check(user, action_type, proposal) for rebalance; rebalancer delegates check_zkml_gates to it. (4) **Real execution**: submit_rebalance in zkdefi_agent_service invokes execute_with_proofs when REBALANCER_SIGNER_* set; execute_rebalance uses real tx_hash or simulated fallback. (5) **Privacy UX**: TierBadge component; visibility copy in AgentRebalancer; per-proposal lock for check/prepare with 503 when busy. (6) **Linked addresses**: linked_addresses_store.py + GET/PUT API; reputation GET uses get_linked and fetch_combined_history(starknet, eth, arb, base). (7) **Profile Link addresses UI**: card with eth/arb/base/opt inputs and Save; GET on load, PUT on save. Added BUILD_IMPACT_AND_NEXT.md (impact map, critical paths, UI optimizations, next steps). Added test_linked_addresses_get_put to test_risk_passport_api.py; all smoke tests pass.
+
+**Files Modified**: Backend: mainnet_oracle, zkml, zkml_risk_service, zkml_anomaly_service, receipt_service (params), agent_rebalancer, policy_engine (new), zkdefi_agent_service, rebalancer, reputation, linked_addresses_store (new), linked_addresses API (new), main. Frontend: ProofTimeline (new), TierBadge (new), profile/page (ProofTimeline, Link addresses card), AgentRebalancer (ProofTimeline, TierBadge, userTier, visibility copy), agent/page (userTier prop). Docs: REPUTATION_BASELINE, ENV, BUILD_IMPACT_AND_NEXT (new). Tests: test_risk_passport_api (linked_addresses test).
+
+**Status**: Fixed.
+
+---
+
+## Finding: Reputation baseline from chain + onboarding persistence
+
+**Date**: 2026-02-07
+
+**Issue**: Reputation showed all zeros for new users; intent was to establish a baseline from on-chain (and cross-chain) activity. Onboarding “completed” state was lost on backend restart so Profile showed “Complete onboarding” even after user finished.
+
+**Root Cause**: Reputation API only used in-memory app data (stake, record-transaction); no chain lookup. Onboarding state was in-memory only (`_user_onboarding_state`).
+
+**Solution**: (1) Documented baseline in [zkdefi/docs/REPUTATION_BASELINE.md](zkdefi/docs/REPUTATION_BASELINE.md): factors (tenure_days, successful_txns from chain), use of CrossChainFetcher, link to product scope. (2) GET /reputation/user/{address} now calls `fetch_combined_history(starknet_address, None, None, None)` and merges: tenure_days = max(in_app_tenure, chain account_age_days), successful_txns and transaction_count = in_app + chain total_transactions. Tier and collateral remain in-app only. (3) Onboarding state persisted to `backend/data/onboarding_state.json` on submit_agent; loaded at module load so completed onboarding survives restart. Credit tier on Profile resolves via onboarding → identity_commitment → GET identity/commitment.
+
+**Files Modified**: zkdefi/docs/REPUTATION_BASELINE.md (new), zkdefi/docs/RISK_PASSPORT_PRODUCT_SCOPE.md (link), zkdefi/backend/app/api/reputation.py (baseline merge), zkdefi/backend/app/api/routes/onboarding.py (load/save state to file).
+
+**Status**: Fixed.
+
+---
+
+## Finding: Profile proofs not showing; wallet re-sign on nav; credit tier and onboarding wiring
+
+**Date**: 2026-02-07
+
+**Issue**: (1) Proof receipts did not show in profile history. (2) Clicking "Run proofs", "Get Credit Tier", or other profile/agent links caused full page load and wallet appeared disconnected (user had to sign in again when switching between dashboard and profile). (3) Credit tier on profile called identity API with wallet address; backend identity/commitment expects commitment hash from onboarding, not address. (4) No onboarding/proof status visible on profile.
+
+**Root Cause**: (1) Receipt service keyed receipts by raw user_address; GET risk_passport/user/{address} uses address as given—Starknet addresses can differ in casing, so lookup failed. (2) Profile and agent used `<a href="...">` for internal routes, causing full page navigation and loss of client-side wallet state. (3) Profile fetched GET /identity/commitment/{address}; correct flow is onboarding/status -> identity_commitment -> GET /identity/commitment/{commitment}. (4) No fetch or UI for onboarding status.
+
+**Solution**: (1) Normalize address to lowercase in receipt_service (create_receipt, append_proof_receipt, get_user_receipts) and when calling get_user_receipts from risk_passport. (2) Replaced internal `<a href="...">` with Next.js `<Link href="...">` on profile and agent pages (logo, nav Dashboard/Profile, Run proofs, Get Credit Tier, Model Composer, Compliance Proof, Manage Tier) so navigation is client-side and wallet persists. (3) Profile credit tier already used onboarding/status then identity/commitment; left as-is. (4) Added onboarding status fetch and "Onboarding & proofs" card on Profile Overview: status (Completed/In progress), identity commitment (masked), fact hash (masked), link to agent?tab=onboarding.
+
+**Files Modified**: backend/app/services/receipt_service.py (address normalization), backend/app/api/risk_passport.py (normalize address for get_user_receipts), frontend/src/app/profile/page.tsx (Link imports and usage, onboardingStatus state and card), frontend/src/app/agent/page.tsx (Link imports and usage).
+
+**Status**: Fixed.
+
+---
+
+## Finding: Risk Passport Phase 1 implemented (user + pool, receipts, snapshot_hash)
+
+**Date**: 2026-02-07
+
+**Issue**: No single "Risk Passport" object for users or pools; no proof receipts; no snapshot binding for oracle.
+
+**Root Cause**: Scope had been written (RISK_PASSPORT_PRODUCT_SCOPE.md) but implementation was not done. Receipt service existed but was not called from zkML or rebalancer; no risk_passport API.
+
+**Solution**: Implemented Phase 1 per plan: (1) Oracle: added snapshot_hash to MarketSnapshot and to_dict(). (2) Receipts: append_proof_receipt and get_receipts_by_pool in receipt_service. (3) Pool store: pool_passport_store save/get. (4) Risk passport router: GET /risk_passport/user/{address} (composes reputation, onboarding, identity, receipts, composite+letter) and GET /risk_passport/pool/{pool_id}. (5) zkML: append receipt and save pool passport on risk_score and anomaly success. (6) Rebalancer: append receipts on check_zkml_gates and execute_rebalance. (7) Profile: Risk Passport card in Overview with fetch. (8) AgentRebalancer: "Proof verified" line and pool passport in propose modal.
+
+**Files Modified**: backend/app/api/risk_passport.py (new), backend/app/services/pool_passport_store.py (new), backend/app/main.py, backend/app/services/receipt_service.py, backend/app/services/mainnet_oracle.py, backend/app/api/zkml.py, backend/app/services/agent_rebalancer.py, frontend/src/app/profile/page.tsx, frontend/src/components/zkdefi/AgentRebalancer.tsx. Docs: RISK_PASSPORT_IMPLEMENTATION.md (new), OPS_RUNBOOK.md (health check curl for risk passport).
+
+**Status**: Fixed. Documented in zkdefi/docs/RISK_PASSPORT_IMPLEMENTATION.md; health checks in OPS_RUNBOOK §6.
+
+---
+
+## Finding: DEX swap untested on-chain / Router ABI placeholder
+
+**Date**: 2026-02-13
+
+**Issue**: Swaps (quote + swap-calldata) are implemented in backend and frontend but have not been tested end-to-end on-chain. It is unclear whether a user-signed swap would succeed on Ekubo Sepolia.
+
+**Root Cause**: Backend returns `entrypoint="swap"` and a placeholder calldata shape. Ekubo’s flow is **lock + locked callback** (see viability report); the Router may not expose a single `swap` entrypoint or may expect different calldata. No E2E test submits a real tx.
+
+**Solution**: Added API smoke test `test_dex_quote_and_swap_calldata` in e2e suite (GET pairs, POST quote, POST swap-calldata; no on-chain execution). Documented status in `zkdefi/docs/DEX_SWAP_STATUS.md`. For real swaps: align backend with Ekubo Router ABI (entrypoint + calldata) and test one swap on Sepolia.
+
+**Files Modified**: `tests/e2e_test_suite.py`, `zkdefi/docs/DEX_SWAP_STATUS.md`, `integration_tests/dev_log.md`
+
+**Status**: Known issue; API smoke test added.
+
+---
+
 ## Finding: 5-Bug Withdrawal Failure Chain + Poseidon 3000x Speedup
 
 **Date**: 2026-02-11

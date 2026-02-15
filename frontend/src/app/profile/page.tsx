@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useAccount } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { useProfileReputation, useOnboardingStatus, useRiskPassport, useLinkedAddresses } from "@/hooks/useProfile";
-import { Shield, TrendingUp, Lock, Coins, ArrowUp, Send, Clock, CheckCircle, AlertTriangle, Brain, FileCheck, Star, Award, Link2, Info } from "lucide-react";
+import { Shield, TrendingUp, Lock, Coins, ArrowUp, Send, Clock, CheckCircle, AlertTriangle, Brain, FileCheck, Star, Award, Link2, Info, ChevronRight } from "lucide-react";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { ProofTimeline } from "@/components/zkdefi/ProofTimeline";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -763,7 +763,7 @@ export default function ProfilePage() {
                     Pool safety is checked when you run rebalances on the Agent. zkML anomaly detection analyzes pools before execution.
                   </p>
                   <Link href="/agent" className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300">
-                    Open Agent <ArrowUp className="w-4 h-4 rotate-90" />
+                    Open Agent <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>

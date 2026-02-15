@@ -138,3 +138,14 @@ Optional: `ProfileProvider` that fetches once and provides to all profile primit
 ## 5. Summary
 
 Current: one long profile page, mixed cards, onboarding and protocol not first-class, broken agent links, duplicated data. Direction: make profile onboarding-aware (next step), protocol-aware (one status block), mission-aware (journey at top); extract primitives and shared data; fix deep links on Profile and Agent; clean Compliance tab. Implement in order above after review.
+
+---
+
+## 6. Done (2026-02-07)
+
+- [x] Data layer: hooks in `frontend/src/hooks/useProfile.ts`; profile uses them; stake/upgrade refetch; linked save via hook.
+- [x] Agent deep links: `?tab=onboarding|disclosure|privacy|models`; Profile links to `/agent?tab=onboarding` and `/agent?tab=disclosure`.
+- [x] Profile URL state: `?tab=` read/write via useSearchParams + router.replace.
+- [x] Journey and Protocol: ProfileJourneyBanner and ProfileProtocolStatus at top of Overview.
+- [x] Compliance: pool safety copy + link; Compliance Proof link to disclosure.
+- [ ] Extract primitives (deferred). Optional: use hooks on Agent (deferred).
