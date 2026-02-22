@@ -105,67 +105,27 @@ async def execute_strategy(request: ExecuteStrategyRequest):
     Execute a strategy deployment on Sepolia
     
     This endpoint:
-    1. Analyzes available pools using REAL Ekubo + AVNU liquidity
+    1. Analyzes available pools using REAL Ekubo + AVNU liquidity (or uses provided allocations)
     2. Generates risk-optimized allocations
     3. Creates positions on Starknet smart contracts
     4. Returns transaction hashes and proof
     """
-    
     logger.info(f"Executing strategy for {request.user_address}, amount: {request.deposit_amount}, profile: {request.risk_profile}")
-    
     try:
-        # Get real pools from aggregator
-        if aggregator:
-            pool_data = await aggregator.aggregate_pools(
-                request.risk_profile,
-                request.deposit_amount
-            )
-            logger.info(f"Found {pool_data['total_pools_found']} liquidity pools on Sepolia")
-        else:
-            # Fallback if aggregator unavailable
-            pool_data = {
-                "status": "success",
-                "total_pools_found": 0,
-                "pools": [],
-                "allocations": [],
-                "total_expected_apy": 0.0
-            }
-        
-        # Create positions from allocations
-        positions = []
-        if pool_data.get("allocations"):
-            for i, alloc in enumerate(pool_data["allocations"]):
-                # In production: call actual Starknet smart contracts
-                positions.append(
-                    DeploymentPosition(
-                        strategy=alloc["pool"],
-                        pool_id=f"pool_{i}_{uuid.uuid4().hex[:8]}",
-                        amount=alloc["amount"],
-                        tx_hash=f"0x{uuid.uuid4().hex}",  # Would be real tx hash
-                        status="pending",  # Real: "confirmed" after block confirmation
-                        expected_apy=(alloc["expected_apy_min"] + alloc["expected_apy_max"]) / 2,
-                        pool_name=alloc["pool"]
-                    )
-                )
-        
-        # Generate audit trail and zkML proof
-        deployment_id = f"deploy_{uuid.uuid4().hex[:12]}"
-        audit_entry_id = f"audit_{uuid.uuid4().hex[:12]}"
-        
-        response = ExecuteStrategyResponse(
-            deployment_id=deployment_id,
-            user_address=request.user_address,
-            total_amount=request.deposit_amount,
+        from app.services.vault_execute_service import execute_strategy_impl
+        req_dict = request.model_dump()
+        result = await execute_strategy_impl(req_dict)
+        positions = [DeploymentPosition(**p) for p in result["positions"]]
+        return ExecuteStrategyResponse(
+            deployment_id=result["deployment_id"],
+            user_address=result["user_address"],
+            total_amount=result["total_amount"],
             positions=positions,
-            total_expected_apy=pool_data.get("total_expected_apy", 0.0),
-            audit_trail_entry_id=audit_entry_id,
-            zkml_proof_hash=f"0x{uuid.uuid4().hex}",  # Would be real STARK proof
-            timestamp=datetime.utcnow().isoformat() + "Z"
+            total_expected_apy=result["total_expected_apy"],
+            audit_trail_entry_id=result["audit_trail_entry_id"],
+            zkml_proof_hash=result["zkml_proof_hash"],
+            timestamp=result["timestamp"],
         )
-        
-        logger.info(f"Strategy executed: {deployment_id}, {len(positions)} positions created")
-        return response
-        
     except Exception as e:
         logger.error(f"Strategy execution failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
