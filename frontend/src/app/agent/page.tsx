@@ -24,8 +24,9 @@ import { ModelComposer } from "@/components/zkdefi/ModelComposer";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
 import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
 import { DexPanel } from "@/components/zkdefi/DexPanel";
+import { DeployToEkuboCard } from "@/components/zkdefi/DeployToEkuboCard";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003").replace(/\/api\/v[0-9]+\/?$/, "");
 const FETCH_TIMEOUT_MS = 15000;
 
 type MainTab = "dashboard" | "pools" | "dex" | "agent" | "models" | "disclosure";
@@ -102,10 +103,11 @@ export default function AgentPage() {
     return () => clearTimeout(t);
   }, [showLoading]);
 
-  // Deep link: ?tab=onboarding -> show onboarding; ?tab=disclosure|privacy -> Disclosure tab; ?tab=models -> Models tab
+  // Deep link: ?tab=onboarding -> show onboarding; ?tab=disclosure|privacy -> Disclosure tab; ?tab=models -> Models tab; ?highlight=deploy -> Dashboard + scroll to Deploy card
   useEffect(() => {
     if (!mounted) return;
     const tab = searchParams.get("tab");
+    const highlight = searchParams.get("highlight");
     if (tab === "onboarding") {
       setShowOnboarding(true);
       setHasOnboarded(false);
@@ -113,8 +115,24 @@ export default function AgentPage() {
       setMainTab("disclosure");
     } else if (tab === "models") {
       setMainTab("models");
+    } else if (highlight === "deploy") {
+      setMainTab("dashboard");
+      setTimeout(() => {
+        document.getElementById("deploy-to-ekubo")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
     }
   }, [mounted, searchParams]);
+
+  // Hash #deploy-to-ekubo: switch to dashboard and scroll to card
+  useEffect(() => {
+    if (!mounted || !hasAccount) return;
+    if (typeof window !== "undefined" && window.location.hash === "#deploy-to-ekubo") {
+      setMainTab("dashboard");
+      setTimeout(() => {
+        document.getElementById("deploy-to-ekubo")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [mounted, hasAccount]);
 
   // Check if user has completed onboarding (when no ?tab=onboarding)
   useEffect(() => {
@@ -483,6 +501,11 @@ export default function AgentPage() {
                     <AllocationPools currentPool={selectedPool} onSelectPool={(p) => setSelectedPool(p as PoolType)} />
                   </div>
 
+                  {/* Deploy to Ekubo (orchestration: recommend → execute → receipt) */}
+                  {address && (
+                    <DeployToEkuboCard userAddress={address} />
+                  )}
+
                   {/* Private Transfer */}
                   <div className="glass rounded-xl border border-violet-800/50 p-6">
                     <div className="flex items-center gap-2 mb-4">
@@ -586,6 +609,14 @@ export default function AgentPage() {
 
                 {/* Pool B - Full Privacy (note unlinkability + Merkle tree) */}
                 <FullPrivacyPoolPanel onCommitmentsChange={onCommitmentsChange} />
+                <div className="flex justify-center">
+                  <a
+                    href="/agent?highlight=deploy#deploy-to-ekubo"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-600/50 text-emerald-400 hover:bg-emerald-600/10 text-sm transition-colors"
+                  >
+                    Deploy from Full Privacy → Ekubo
+                  </a>
+                </div>
 
                 {/* Pool C - Tornado-style compliant (same API, relayer emphasized) */}
                 <FullPrivacyPoolPanel onCommitmentsChange={onCommitmentsChange} variant="pool_c" />

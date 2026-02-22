@@ -136,6 +136,7 @@ ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, GaragaVerifier,
 | [README.md](../README.md) | Overview, quick start, API, doc index. |
 | [plans/2026-02-19-privacy-ekubo-orchestration-design.md](plans/2026-02-19-privacy-ekubo-orchestration-design.md) | Privacy → Ekubo orchestration (personal v1; Ekubo Sepolia realistic methods; shared Phase 2). |
 | [plans/2026-02-19-privacy-ekubo-orchestration-implementation.md](plans/2026-02-19-privacy-ekubo-orchestration-implementation.md) | Implementation plan (tasks 1–6) for orchestration. |
+| [plans/2026-02-19-agent-deploy-to-ekubo-ux.md](plans/2026-02-19-agent-deploy-to-ekubo-ux.md) | Agent / Deploy to Ekubo holistic UX plan and implementation. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Proof system, components, agent flow. |
 | [WORKING_STATE_DEPOSIT_WITHDRAW.md](WORKING_STATE_DEPOSIT_WITHDRAW.md) | Full Privacy critical path and env. |
 | [PRIVACY_TIERS.md](PRIVACY_TIERS.md) | Tiers 1–4; relayer Tier 2/3. |

@@ -8,7 +8,7 @@ import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { RiskProfileForm } from "./components/RiskProfileForm";
 import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003").replace(/\/api\/v[0-9]+\/?$/, "");
 
 /** Turn API error detail (string | array of { msg } | object) into a single string for display. */
 function detailToString(detail: unknown): string {
@@ -121,11 +121,19 @@ export default function MVPPage() {
           token_pair: p.pair,
         })),
       };
-      const res = await fetch(`${API_BASE}/api/v2/strategies/execute-advanced`, {
+      let res = await fetch(`${API_BASE}/api/v1/strategies/execute-advanced`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 404) {
+        // Backward compatibility with older backend deployments.
+        res = await fetch(`${API_BASE}/api/v2/strategies/execute-advanced`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
       const text = await res.text();
       let json: Record<string, unknown>;
       try {
@@ -172,6 +180,51 @@ export default function MVPPage() {
     }
   };
 
+  const handleDeployOrchestration = async () => {
+    if (!address || !recommendation) return;
+    setDeployResult(null);
+    setDeployLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/orchestration/deploy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          deployable_amount: recommendation.total_amount,
+          risk_profile: recommendation.risk_profile,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeployResult({
+          ok: false,
+          message: typeof data.detail === "string" ? data.detail : "Orchestration deploy failed",
+        });
+        setDeployLoading(false);
+        return;
+      }
+      const positions = (data.positions ?? []).map((p: { strategy: string; amount: number; status: string }) => ({
+        strategy: p.strategy,
+        amount: p.amount,
+        status: p.status,
+        pool_name: p.strategy,
+      }));
+      setDeployResult({
+        ok: true,
+        message: `Deployed to Ekubo. Receipt: ${data.receipt_id ?? "—"}.`,
+        positions,
+      });
+      setStep("deploy");
+    } catch (e) {
+      setDeployResult({
+        ok: false,
+        message: e instanceof Error ? e.message : "Request failed",
+      });
+    } finally {
+      setDeployLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
       <header className="border-b border-zinc-800 px-6 py-4">
@@ -183,12 +236,12 @@ export default function MVPPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold">zkde.fi</h1>
-                <p className="text-xs text-zinc-400">MVP — Yield Optimization</p>
+                <p className="text-xs text-zinc-400">MVP Lab (Experimental)</p>
               </div>
             </Link>
             <nav className="hidden md:flex items-center gap-1 ml-4">
               <Link href="/agent" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Dashboard</Link>
-              <Link href="/mvp" className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">MVP</Link>
+              <Link href="/mvp" className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">MVP Lab</Link>
               <Link href="/profile" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Profile</Link>
             </nav>
           </div>
@@ -255,7 +308,7 @@ export default function MVPPage() {
             <p className="text-sm text-zinc-500">
               Deploy sends capital to the vault (wallet may prompt to sign). If the backend only records, sign on the Dashboard to execute.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleDeploy}
@@ -263,6 +316,14 @@ export default function MVPPage() {
                 className="px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium"
               >
                 {deployLoading ? "Deploying…" : "Deploy"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeployOrchestration}
+                disabled={deployLoading}
+                className="px-6 py-3 rounded-lg border border-emerald-600/60 text-emerald-400 hover:bg-emerald-600/10 disabled:opacity-50 font-medium"
+              >
+                Or deploy via Ekubo (orchestration)
               </button>
               <button
                 type="button"
