@@ -4,7 +4,7 @@ POST /api/v1/strategies/recommend - Get AI allocation recommendation
 POST /api/v1/strategies/analyze - Get zkML pool analysis
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel, validator
 import logging
@@ -129,6 +129,17 @@ class StrategyRecommendationResponse(BaseModel):
     # Audit trail
     recommendation_id: str  # For tracking decisions
     timestamp: str
+
+
+# Compatibility request model used by `/mvp` execution flow.
+class ExecuteAdvancedRequest(BaseModel):
+    user_address: str
+    risk_profile: str
+    total_amount: Optional[float] = None
+    deposit_amount: Optional[float] = None
+    recommendation_id: Optional[str] = None
+    allocations: Optional[List[Dict[str, Any]]] = None
+    recommended_pools: Optional[List[Dict[str, Any]]] = None
 
 
 # ============================================================================
@@ -264,76 +275,117 @@ async def recommend_strategy(
         }
     """
     try:
-        # Simple deterministic recommendation for MVP
-        # Real implementation would call heavy LLM analysis
-        
-        # Generate consistent recommendation based on risk profile
-        if request.risk_profile.lower() == "conservative":
-            allocation_pct1, allocation_pct2 = 0.7, 0.3
-        elif request.risk_profile.lower() == "aggressive":
-            allocation_pct1, allocation_pct2 = 0.3, 0.7
-        else:  # balanced
-            allocation_pct1, allocation_pct2 = 0.6, 0.4
-        
-        recommended_pools = [
-            PoolRecommendation(
-                pool_id="ekubo_eth_usdc",
-                protocol="Ekubo",
-                pair="ETH/USDC",
-                allocation_percent=allocation_pct1 * 100,
-                allocation_amount=request.amount * allocation_pct1,
-                expected_apy=27.5,
-                risk_score=30.0,
-                risk_flags=[]
-            ),
-            PoolRecommendation(
-                pool_id="ekubo_strk_usdc",
-                protocol="Ekubo",
-                pair="STRK/USDC",
-                allocation_percent=allocation_pct2 * 100,
-                allocation_amount=request.amount * allocation_pct2,
-                expected_apy=26.5,
-                risk_score=40.0,
-                risk_flags=[]
-            )
-        ]
-        
-        expected_apy = (27.5 * allocation_pct1) + (26.5 * allocation_pct2)
-        
-        import hashlib
-        import time
-        recommendation_id = hashlib.sha256(
-            f"{request.user_address}_{time.time()}".encode()
-        ).hexdigest()[:12]
-
-        from datetime import datetime
-        
-        return StrategyRecommendationResponse(
-            user_address=request.user_address,
-            risk_profile=request.risk_profile,
-            total_amount=request.amount,
-            recommended_pools=recommended_pools,
-            ai_reasoning=f"Based on your {request.risk_profile} risk profile, we recommend allocating {allocation_pct1*100:.0f}% to ETH/USDC and {allocation_pct2*100:.0f}% to STRK/USDC for optimal yield. Expected portfolio APY is {expected_apy:.1f}%.",
-            ai_confidence=0.85,
-            expected_portfolio_apy=expected_apy,
-            portfolio_risk_assessment=f"This {request.risk_profile} allocation balances your risk tolerance with yield optimization.",
-            recommendation_id=recommendation_id,
-            timestamp=datetime.utcnow().isoformat(),
+        from app.services.strategy_recommendation_service import get_recommendation
+        result = await get_recommendation(
+            request.user_address,
+            request.amount,
+            request.risk_profile,
         )
-
+        recommended_pools = [
+            PoolRecommendation(**p) for p in result["recommended_pools"]
+        ]
+        return StrategyRecommendationResponse(
+            user_address=result["user_address"],
+            risk_profile=result["risk_profile"],
+            total_amount=result["total_amount"],
+            recommended_pools=recommended_pools,
+            ai_reasoning=result["ai_reasoning"],
+            ai_confidence=result["ai_confidence"],
+            expected_portfolio_apy=result["expected_portfolio_apy"],
+            portfolio_risk_assessment=result["portfolio_risk_assessment"],
+            recommendation_id=result["recommendation_id"],
+            timestamp=result["timestamp"],
+        )
     except Exception as e:
         logger.error(f"Strategy recommendation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/execute-advanced")
+async def execute_advanced_strategy(request: ExecuteAdvancedRequest):
+    """
+    Execute recommended strategy via the canonical vault execution engine.
+
+    Accepts legacy `/mvp` payloads and maps them to `vault_execute` request
+    shape. This keeps `/agent` and `/mvp` on one backend execution path.
+    """
+    deposit_amount = float(
+        request.deposit_amount
+        if request.deposit_amount is not None
+        else (request.total_amount if request.total_amount is not None else 0.0)
+    )
+    if deposit_amount <= 0:
+        raise HTTPException(status_code=400, detail="deposit_amount or total_amount must be positive")
+
+    raw_allocations = request.allocations or []
+    if not raw_allocations and request.recommended_pools:
+        for pool in request.recommended_pools:
+            raw_allocations.append(
+                {
+                    "strategy": pool.get("pool_id") or "ekubo_lp",
+                    "percentage": float(pool.get("allocation_percent") or 0.0),
+                    "amount": float(pool.get("allocation_amount") or 0.0),
+                    "expected_apy": float(pool.get("expected_apy") or 0.0),
+                    "pool_id": pool.get("pool_id"),
+                    "protocol": pool.get("protocol"),
+                    "token_pair": pool.get("pair"),
+                    "pool_name": pool.get("pair"),
+                }
+            )
+
+    if not raw_allocations:
+        raise HTTPException(status_code=400, detail="No allocations provided")
+
+    try:
+        # Import at call-time to keep startup resilient during partial deployments.
+        from app.api.routes.vault_execute import (
+            AllocationDetail as VaultAllocationDetail,
+            ExecuteStrategyRequest as VaultExecuteStrategyRequest,
+            execute_strategy as vault_execute_strategy,
+        )
+    except Exception as exc:
+        logger.error("Vault execution route unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Vault execution engine unavailable")
+
+    allocations: list[VaultAllocationDetail] = []
+    for alloc in raw_allocations:
+        allocations.append(
+            VaultAllocationDetail(
+                strategy=str(alloc.get("strategy") or alloc.get("pool_id") or "allocation"),
+                percentage=float(alloc.get("percentage") or 0.0),
+                amount=float(alloc.get("amount") or 0.0),
+                expected_apy=float(alloc.get("expected_apy") or 0.0),
+                pool_id=alloc.get("pool_id"),
+                pool_name=alloc.get("pool_name"),
+                protocol=alloc.get("protocol"),
+                token_pair=alloc.get("token_pair"),
+            )
+        )
+
+    vault_request = VaultExecuteStrategyRequest(
+        user_address=request.user_address,
+        risk_profile=request.risk_profile,
+        deposit_amount=deposit_amount,
+        allocations=allocations,
+    )
+    return await vault_execute_strategy(vault_request)
+
+
 @router.get("/health")
 async def health_check():
     """Health check for strategies endpoint"""
+    zkml_pools = 0
+    if pool_collector:
+        try:
+            lp_pools, _ = await pool_collector.get_all_pools()
+            zkml_pools = len(lp_pools)
+        except Exception:
+            pass
     return {
         "status": "healthy",
         "llm_available": llm_engine.use_llm,
         "fallback_available": True,
-        "zkml_pools_available": len(pool_collector.get_all_pools()[0]) if pool_collector else 0,
+        "zkml_pools_available": zkml_pools,
     }
 
 
