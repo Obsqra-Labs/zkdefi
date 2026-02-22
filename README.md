@@ -1,117 +1,91 @@
-# zkde.fi — Privacy-First Autonomous DeFi Agent
+# zkde.fi
 
-**Built by [Obsqra Labs](https://obsqra.xyz)**
+**Privacy-first DeFi agent on Starknet.**  
+By [Obsqra Labs](https://obsqra.xyz).
 
-zkde.fi is the first **GATE-compatible** app: a privacy-preserving autonomous agent for DeFi on Starknet, built on **zkDE (Zero-Knowledge Deterministic Engine)** and **GATE (Governed Autonomous Trustless Execution)**. The agent manages positions on your behalf using AI-driven allocation; you control it via constraints (max position, allowed protocols); every action is proof-gated and privacy-preserving.
+**Live:** [zkde.fi](https://zkde.fi) · **Docs:** [docs.zkde.fi](https://docs.zkde.fi)
 
-**Live:** [zkde.fi](https://zkde.fi) | **Docs:** [docs.zkde.fi](https://docs.zkde.fi)
+---
 
-## Privacy Architecture
+## What it is
 
-zkde.fi uses a **hybrid proof system** for maximum privacy:
+zkde.fi is an open-source app for private, proof-gated DeFi on Starknet (Sepolia):
 
-| Layer | Proof System | Use Case |
-|-------|--------------|----------|
-| **Privacy** | Garaga (Groth16/SNARK) | zkML models, confidential transfers |
-| **Execution** | Integrity (STARK) | Constraint proofs, slippage bounds |
-
-### zkML Models
-
-Two privacy-preserving ML models gate agent decisions:
-
-1. **Risk Score Model** — Proves `risk_score <= threshold` without revealing actual score
-2. **Anomaly Detector** — Proves `anomaly_flag == 0` without revealing analysis
-
-Both use Groth16 proofs verified on-chain via Garaga.
-
-## Key Features
-
-- **Proof-gated execution** — Intent hidden until execution; no proof, no execution
-- **zkML-gated rebalancing** — ML models gate decisions (risk + anomaly)
-- **Session keys** — Native Starknet AA for delegated execution with constraints
-- **Intent commitments** — Replay-safe and fork-safe execution
-- **Constraint receipts** — On-chain audit trail without revealing strategy
-- **Compliance profiles** — Productized selective disclosure
-- **Confidential transfers** — Amount-hiding via Garaga (Sepolia demo)
+- **Full Privacy Pool** — Deposit and withdraw with note unlinkability; Merkle tree + Garaga SNARK proofs; root synced on-chain so withdrawals verify.
+- **MVP yield flow** — Connect → risk profile (Conservative / Balanced / Aggressive) → recommendation → deploy (or sign on Dashboard). Enable **AI rebalancing** on the Dashboard so the agent monitors and rebalances when conditions change.
+- **Agent & session keys** — Delegate execution with constraints (max position, protocols, expiry). Rebalancer: propose → zkML gate checks → execute. Autonomous mode runs the agent on an interval.
+- **Hybrid proofs** — Garaga (SNARK) for zkML and confidential transfers; Integrity (STARK) for execution. Proof-gated: no proof, no execution.
 
 ## Architecture
 
 ```
-User -> Session Key -> Agent -> zkML Proofs (Garaga) + Execution Proofs (Integrity) -> Combined Verification -> Execute
+User → Wallet → Frontend (:3001) → Backend (:8003) → Proofs (Garaga / obsqra.fi) → Starknet Sepolia
+                                                      ├─ Full privacy: merkle + withdraw proof
+                                                      ├─ zkML: risk + anomaly
+                                                      └─ Rebalancer: propose → check → execute
 ```
-
-### Components
 
 | Component | Port | Role |
 |-----------|------|------|
-| Frontend | 3001 | Next.js app with agent dashboard |
-| Backend | 8003 | FastAPI: zkML, session keys, rebalancing |
-| Contracts | Sepolia | Cairo contracts with proof verification |
-
-### Contracts
-
-- `proof_gated_yield_agent.cairo` — Main agent with combined proof verification
-- `zkml_verifier.cairo` — Garaga-based zkML verifier
-- `session_key_manager.cairo` — Session key management
-- `intent_commitment.cairo` — Replay-safe commitments
-- `constraint_receipt.cairo` — On-chain receipts
-- `compliance_profile.cairo` — Selective disclosure profiles
-- `confidential_transfer.cairo` — Amount-hiding transfers
+| Frontend | 3001 | Next.js: / (landing), /agent (dashboard, pools, rebalancer), /mvp (risk → recommend → deploy), /profile. |
+| Backend | 8003 | FastAPI: full_privacy (deposit/withdraw), zkML, session keys, rebalancer, strategies (recommend), relayer, onboarding. |
+| Contracts | Sepolia | ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, Garaga verifier, Merkle tree; see [docs/CONTRACTS.md](docs/CONTRACTS.md). |
 
 ## Quick Start
 
+**Backend**
+
 ```bash
-# Backend
 cd backend
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --port 8003
+# Set .env (STARKNET_RPC_URL, FULL_PRIVACY_*, etc.; see docs)
+uvicorn app.main:app --host 0.0.0.0 --port 8003
+```
 
-# Frontend
+If `app.main` is missing, the runnable app may be in `app.main.py.bak` or your deployment; see [docs/SETUP.md](docs/SETUP.md).
+
+**Frontend**
+
+```bash
 cd frontend
 npm install
+# Set .env.local (NEXT_PUBLIC_API_URL=http://localhost:8003, NEXT_PUBLIC_RPC_URL, etc.)
 npm run dev
 ```
 
-## API Endpoints
+Open [http://localhost:3001](http://localhost:3001). Use **/agent** for dashboard and rebalancer, **/mvp** for risk → recommend → deploy.
 
-### zkML
-- `POST /api/v1/zkdefi/zkml/risk_score` — Generate risk score proof
-- `POST /api/v1/zkdefi/zkml/anomaly` — Generate anomaly detection proof
-- `POST /api/v1/zkdefi/zkml/combined` — Generate both proofs
+## API (overview)
 
-### Session Keys
-- `POST /api/v1/zkdefi/session_keys/grant` — Grant session key
-- `POST /api/v1/zkdefi/session_keys/revoke` — Revoke session key
-- `GET /api/v1/zkdefi/session_keys/list/{address}` — List sessions
-
-### Rebalancer
-- `POST /api/v1/zkdefi/rebalancer/propose` — Propose rebalancing
-- `POST /api/v1/zkdefi/rebalancer/check` — Run zkML gate checks
-- `POST /api/v1/zkdefi/rebalancer/execute` — Execute rebalancing
-
-## Standards
-
-- **zkDE** — Zero-Knowledge Deterministic Engine: the infrastructure for proof-gated, delegated execution on Starknet. Strong Starknet fit (AA, session keys, Integrity).
-- **GATE-1** — Governed Autonomous Trustless Execution: the agent standard for zkDE ([docs/AEGIS-1.md](docs/AEGIS-1.md) - file contains GATE-1 spec)
+| Area | Examples |
+|------|----------|
+| **Full privacy** | `POST /api/v1/zkdefi/full_privacy/deposit/register_commitment`, `.../withdraw/generate_proof` |
+| **Strategies** | `POST /api/v1/strategies/recommend` (risk + amount → allocation); deploy via vault/execute where mounted |
+| **zkML** | `POST /api/v1/zkdefi/zkml/risk_score`, `.../anomaly`, `.../combined` |
+| **Session keys** | `POST /api/v1/zkdefi/session_keys/grant`, `.../revoke`, `GET .../list/{address}` |
+| **Rebalancer** | `POST /api/v1/zkdefi/rebalancer/propose`, `.../check`, `.../execute`; `.../autonomous/start`, `.../status/{address}` |
 
 ## Documentation
 
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture
-- [PROOF_SYSTEM_ARCHITECTURE.md](docs/PROOF_SYSTEM_ARCHITECTURE.md) — Hybrid proof system
-- [FOR_JUDGES.md](docs/FOR_JUDGES.md) — Privacy track submission
-- [ADVERSARIAL_DEMOS.md](docs/ADVERSARIAL_DEMOS.md) — Attack prevention demos
-- [GATE-1 Standard](docs/AEGIS-1.md) — Governed Autonomous Trustless Execution
-- [dev_log/](dev_log/) — Chronological progress log
+| Doc | Description |
+|-----|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, proof flow, components. |
+| [docs/WORKING_STATE_DEPOSIT_WITHDRAW.md](docs/WORKING_STATE_DEPOSIT_WITHDRAW.md) | Why full-privacy deposit/withdraw works; root sync, critical files. |
+| [docs/PRIVACY_TIERS.md](docs/PRIVACY_TIERS.md) | Tiers 1–4 (on-chain visibility); relayer flows. |
+| [docs/PROOF_FLOWS.md](docs/PROOF_FLOWS.md) | Private transfer, shielded, Pool B/C, zkML flows. |
+| [docs/CONTRACTS.md](docs/CONTRACTS.md) | Sepolia contract addresses and main functions. |
+| [docs/SETUP.md](docs/SETUP.md) | Prerequisites, deploy contracts, backend/frontend env. |
+| [docs/AGENT_FLOW.md](docs/AGENT_FLOW.md) | Session keys, delegation, proof-gated execution UX. |
+| [docs/DEV_LOG.md](docs/DEV_LOG.md) | Fixes and findings (merkle root, wallet, etc.). |
 
-## Privacy Track Fit
+More planning and specs: `docs/`, root (e.g. BUILD_SUMMARY_FEB18.md, QUICK_START.md).
 
-- Privacy-preserving applications using STARKs and zero-knowledge proofs
-- Proof-gated execution (verifiable constraints)
-- zkML-gated decisions (hidden model outputs)
-- Confidential transfers (Garaga on Sepolia)
-- Selective disclosure (compliance profiles)
+## Standards
+
+- **zkDE** — Zero-Knowledge Deterministic Engine (proof-gated, delegated execution on Starknet).
+- **GATE-1** — Governed Autonomous Trustless Execution; see [docs/AEGIS-1.md](docs/AEGIS-1.md).
 
 ## License
 
