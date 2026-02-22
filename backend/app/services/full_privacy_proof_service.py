@@ -11,6 +11,7 @@ Uses snarkjs for proof generation with the compiled circuits.
 import json
 import secrets
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
@@ -23,7 +24,7 @@ from .merkle_tree_service import (
     FELT_PRIME,
     split_u256,
 )
-from .circomlib_poseidon import BN128_PRIME, STARK_PRIME
+from .circomlib_poseidon import BN128_PRIME, STARK_PRIME, poseidon_hash_many
 
 
 def _to_felt252(value: int | str) -> int:
@@ -222,6 +223,7 @@ class FullPrivacyProofService:
         recipient_int = int(recipient, 16) if recipient.startswith("0x") else int(recipient)
         recipient_hash = recipient_int % BN128_PRIME
         
+        # Public input order must match FullPrivacyWithdraw.circom and withdraw_relayed_u256: root, nullifier, recipient, withdrawAmount, poolType (0-4)
         # Prepare circuit inputs (leaf = commitment_felt for merkle path; circuit may use this)
         circuit_inputs = {
             # Public inputs
@@ -245,9 +247,8 @@ class FullPrivacyProofService:
         # Generate proof using snarkjs
         proof_result = self._generate_groth16_proof("FullPrivacyWithdraw", circuit_inputs)
         
-        # Reduce to felt252 so Starknet RPC accepts calldata (avoids "felt overflow").
-        # If the verifier rejects the proof ("Invalid withdrawal proof") after fixing Unknown merkle root,
-        # see docs/FULL_PRIVACY_MERKLE_ROOT_SYNC.md (Garaga proof encoding / felt252 reduction).
+        # Compute felt252 versions for compatibility (e.g. ensure_root/is_known_root),
+        # but keep full u256 values for calldata and nullifier tracking.
         nullifier_felt = _to_felt252(nullifier)
         root_felt = _to_felt252(root)
         proof_calldata_raw = proof_result.get("calldata", [])
@@ -261,15 +262,15 @@ class FullPrivacyProofService:
         _log.info(f"  Nullifier (u256): {hex(nullifier)}")
         _log.info(f"  Nullifier as felt252: {hex(nullifier_felt)}")
         
-        # Split for withdraw_u256 (low/high from felt252-safe values)
-        nullifier_low, nullifier_high = split_u256(nullifier_felt)
-        root_low, root_high = split_u256(root_felt)
+        # Split for withdraw_u256 (full u256, not reduced) to match proof public inputs.
+        nullifier_low, nullifier_high = split_u256(nullifier)
+        root_low, root_high = split_u256(root)
         
         return {
-            "nullifier": hex(nullifier_felt),
+            "nullifier": hex(nullifier),
             "nullifier_low": hex(nullifier_low),
             "nullifier_high": hex(nullifier_high),
-            "root": hex(root_felt),
+            "root": hex(root),
             "root_low": hex(root_low),
             "root_high": hex(root_high),
             "recipient": recipient,
@@ -281,6 +282,113 @@ class FullPrivacyProofService:
             "path_elements": [hex(p) for p in path_elements],
             "path_indices": path_indices,
             "message": "Withdrawal proof generated",
+        }
+
+    def generate_withdraw_claim_proof(
+        self,
+        user_secret: int,
+        amount: int,
+        pool_type: int,
+        nonce: int,
+        blinding: int,
+        withdraw_amount: int,
+        recipient: str,
+        leaf_index: int,
+        claim_salt: Optional[int] = None,
+        merkle_root: Optional[int] = None,
+        path_elements: Optional[list[int]] = None,
+        path_indices: Optional[list[int]] = None,
+    ) -> dict[str, Any]:
+        """
+        Generate a Tier-2H withdrawal claim proof.
+
+        Public inputs: root, nullifier, claimHash, poolType
+        Private: recipient, withdrawAmount, claimSalt
+        """
+        # Recompute commitment (same as deposit)
+        commitment = compute_commitment(user_secret, amount, pool_type, nonce, blinding)
+        commitment_felt = commitment % STARK_PRIME
+
+        # Compute nullifier (from full commitment for circuit compatibility)
+        nullifier = compute_nullifier(commitment, user_secret)
+
+        # Generate merkle proof from current tree state
+        import logging
+        _log = logging.getLogger(__name__)
+        _log.info("[WithdrawClaim] Generating fresh proof from current tree state")
+
+        if True:
+            _log.info(f"[WithdrawClaim] Current tree root: {hex(self.merkle_tree.get_root())}")
+            _log.info(f"[WithdrawClaim] Tree has {self.merkle_tree.get_leaf_count()} leaves")
+            if leaf_index < 0 or leaf_index >= self.merkle_tree.get_leaf_count():
+                found_idx = next((i for i, l in enumerate(self.merkle_tree.leaves) if l == commitment_felt), None)
+                if found_idx is not None:
+                    leaf_index = found_idx
+                    _log.info(f"[WithdrawClaim] Found commitment at index {leaf_index}")
+                else:
+                    _log.error(
+                        f"[WithdrawClaim] Commitment {hex(commitment_felt)} not found in tree with "
+                        f"{self.merkle_tree.get_leaf_count()} leaves"
+                    )
+                    raise ValueError(f"Commitment {hex(commitment_felt)} not found in tree")
+            root = self.merkle_tree.get_root()
+            path_elements, path_indices = self.merkle_tree.get_merkle_proof(leaf_index)
+
+        is_valid = self.merkle_tree.verify_proof(commitment_felt, path_elements, path_indices, root)
+        if not is_valid:
+            raise ValueError("Commitment not found in merkle tree")
+
+        # Claim hash (BN254 field)
+        recipient_int = int(recipient, 16) if recipient.startswith("0x") else int(recipient)
+        recipient_field = recipient_int % BN128_PRIME
+        if claim_salt is None:
+            claim_salt = secrets.randbelow(BN128_PRIME)
+        claim_hash = poseidon_hash_many([recipient_field, withdraw_amount, claim_salt])
+
+        circuit_inputs = {
+            # Public inputs
+            "root": str(root),
+            "nullifier": str(nullifier),
+            "claimHash": str(claim_hash),
+            "poolType": str(pool_type),
+            # Leaf in tree is commitment_felt (felt252-safe)
+            "leaf": str(commitment_felt),
+            # Private inputs
+            "userSecret": str(user_secret),
+            "commitmentAmount": str(amount),
+            "commitmentPoolType": str(pool_type),
+            "nonce": str(nonce),
+            "blinding": str(blinding),
+            "recipient": str(recipient_field),
+            "withdrawAmount": str(withdraw_amount),
+            "claimSalt": str(claim_salt),
+            "pathElements": [str(p) for p in path_elements],
+            "pathIndices": [str(p) for p in path_indices],
+        }
+
+        proof_result = self._generate_groth16_proof("FullPrivacyWithdrawHashed", circuit_inputs)
+
+        proof_calldata_raw = proof_result.get("calldata", [])
+        proof_calldata = _calldata_to_felt252(proof_calldata_raw)
+
+        nullifier_low, nullifier_high = split_u256(nullifier)
+        root_low, root_high = split_u256(root)
+        claim_low, claim_high = split_u256(claim_hash)
+
+        return {
+            "nullifier": hex(nullifier),
+            "nullifier_low": hex(nullifier_low),
+            "nullifier_high": hex(nullifier_high),
+            "root": hex(root),
+            "root_low": hex(root_low),
+            "root_high": hex(root_high),
+            "claim_hash": hex(claim_hash),
+            "claim_low": hex(claim_low),
+            "claim_high": hex(claim_high),
+            "claim_salt": hex(claim_salt),
+            "pool_type": pool_type,
+            "proof_calldata": proof_calldata,
+            "message": "Withdrawal claim proof generated",
         }
     
     def generate_withdraw_proof_with_change(
@@ -359,21 +467,24 @@ class FullPrivacyProofService:
         
         proof_result = self._generate_groth16_proof("FullPrivacyWithdrawWithChange", circuit_inputs)
         
+        # Compute felt252 versions for compatibility (e.g. ensure_root/is_known_root),
+        # but keep full u256 values for calldata and nullifier tracking.
         nullifier_felt = _to_felt252(nullifier)
         root_felt = _to_felt252(root)
         change_commitment_felt252 = _to_felt252(change_commitment)
         proof_calldata_raw = proof_result.get("calldata", [])
         proof_calldata = _calldata_to_felt252(proof_calldata_raw)
-        
-        nullifier_low, nullifier_high = split_u256(nullifier_felt)
-        root_low, root_high = split_u256(root_felt)
+
+        # Split for withdraw_with_change_u256 (full u256, not reduced).
+        nullifier_low, nullifier_high = split_u256(nullifier)
+        root_low, root_high = split_u256(root)
         change_low, change_high = split_u256(change_commitment_felt252)
         
         return {
-            "nullifier": hex(nullifier_felt),
+            "nullifier": hex(nullifier),
             "nullifier_low": hex(nullifier_low),
             "nullifier_high": hex(nullifier_high),
-            "root": hex(root_felt),
+            "root": hex(root),
             "root_low": hex(root_low),
             "root_high": hex(root_high),
             "recipient": recipient,
@@ -505,115 +616,121 @@ class FullPrivacyProofService:
                 f"Run: cd circuits && npm run build:{circuit_name.lower()}"
             )
         
-        # Write input file
-        input_path = BUILD_DIR / f"{circuit_name}_input.json"
-        input_path.write_text(json.dumps(inputs))
-        
-        # Generate witness
-        witness_path = BUILD_DIR / f"{circuit_name}_witness.wtns"
-        witness_result = subprocess.run(
-            ["node", str(BUILD_DIR / f"{circuit_name}_js" / "generate_witness.js"),
-             str(wasm_path), str(input_path), str(witness_path)],
-            capture_output=True,
-            text=True,
-            cwd=str(BUILD_DIR),
-            env={"PATH": "/usr/bin:/usr/local/bin:/bin", "HOME": "/root"},
-            timeout=60,
-        )
-        if witness_result.returncode != 0:
-            raise RuntimeError(
-                f"Witness generation failed (exit={witness_result.returncode}): {witness_result.stderr or witness_result.stdout}"
-            )
-        
-        # Generate proof
-        proof_path = BUILD_DIR / f"{circuit_name}_proof.json"
-        public_path = BUILD_DIR / f"{circuit_name}_public.json"
-        proof_result = subprocess.run(
-            ["npx", "snarkjs", "groth16", "prove",
-             str(zkey_path), str(witness_path), str(proof_path), str(public_path)],
-            capture_output=True,
-            text=True,
-            cwd=str(CIRCUITS_DIR),
-        )
-        if proof_result.returncode != 0:
-            raise RuntimeError(
-                f"Proof generation failed: {proof_result.stderr or proof_result.stdout}"
-            )
-        
-        # Read proof and public signals
-        proof = json.loads(proof_path.read_text())
-        public_signals = json.loads(public_path.read_text())
-        
-        # Generate calldata using Garaga formatter (full_proof_with_hints format)
-        # The Garaga verifier on-chain requires MSM hints, not raw snarkjs calldata.
-        vk_path = BUILD_DIR / f"{circuit_name}_vkey.json"
-        if not vk_path.exists():
-            # Try alternative naming convention
-            vk_path = BUILD_DIR / f"{circuit_name}_verification_key.json"
-        if not vk_path.exists():
-            raise RuntimeError(
-                f"Verification key not found for {circuit_name}. "
-                f"Run: npx snarkjs zkey export verificationkey build/{circuit_name}_final.zkey build/{circuit_name}_vkey.json"
-            )
-        
-        import logging
-        _log = logging.getLogger(__name__)
-        
-        # Try Garaga formatter first for full on-chain verification.
-        # If Garaga fails (VK/zkey mismatch, Docker unavailable), fall back to
-        # snarkjs-derived calldata.  The on-chain contract accepts simple calldata
-        # when the verifier address is zero (human-signed transactions).
-        calldata = None
-        from .garaga_formatter import format_proof_for_garaga
-        try:
-            calldata = format_proof_for_garaga(
-                proof_json=proof,
-                public_json=public_signals,
-                vk_path=vk_path,
-            )
-            _log.info(f"[{circuit_name}] Garaga calldata generated: {len(calldata)} elements")
-        except Exception as e:
-            _log.warning(f"[{circuit_name}] Garaga formatting unavailable ({e}), using snarkjs calldata")
+        # Use per-request temp files to avoid concurrent proof clobbering.
+        with tempfile.TemporaryDirectory(prefix=f"{circuit_name}_", dir=str(BUILD_DIR)) as tmpdir:
+            tmp_path = Path(tmpdir)
 
-        if calldata is None:
-            # Fallback: generate calldata from snarkjs proof (sufficient for zero-verifier mode)
-            try:
-                cd_result = subprocess.run(
-                    ["npx", "snarkjs", "groth16", "exportsoliditycalldata",
-                     str(proof_path), str(public_path)],
-                    capture_output=True, text=True,
-                    cwd=str(CIRCUITS_DIR), timeout=30,
+            input_path = tmp_path / f"{circuit_name}_input.json"
+            input_path.write_text(json.dumps(inputs))
+
+            # Generate witness
+            witness_path = tmp_path / f"{circuit_name}_witness.wtns"
+            witness_result = subprocess.run(
+                ["node", str(BUILD_DIR / f"{circuit_name}_js" / "generate_witness.js"),
+                 str(wasm_path), str(input_path), str(witness_path)],
+                capture_output=True,
+                text=True,
+                cwd=str(BUILD_DIR),
+                env={"PATH": "/usr/bin:/usr/local/bin:/bin", "HOME": "/root"},
+                timeout=60,
+            )
+            if witness_result.returncode != 0:
+                raise RuntimeError(
+                    f"Witness generation failed (exit={witness_result.returncode}): {witness_result.stderr or witness_result.stdout}"
                 )
-                if cd_result.returncode == 0 and cd_result.stdout.strip():
-                    import re
-                    raw = cd_result.stdout.strip()
-                    hex_values = re.findall(r'0x[0-9a-fA-F]+', raw)
-                    calldata = [hex(int(h, 16) % STARK_PRIME) for h in hex_values]
-                    _log.info(f"[{circuit_name}] snarkjs calldata fallback: {len(calldata)} elements")
-                else:
-                    _log.warning(f"[{circuit_name}] snarkjs calldata export failed, using minimal proof")
-            except Exception as e2:
-                _log.warning(f"[{circuit_name}] snarkjs calldata export error: {e2}")
 
-        if calldata is None or len(calldata) < 3:
-            # Last resort: pack proof points as minimal felt252 calldata (>= 3 elements)
-            calldata = [
-                hex(int(proof["pi_a"][0]) % STARK_PRIME),
-                hex(int(proof["pi_a"][1]) % STARK_PRIME),
-                hex(int(proof["pi_b"][0][0]) % STARK_PRIME),
-                hex(int(proof["pi_b"][0][1]) % STARK_PRIME),
-                hex(int(proof["pi_b"][1][0]) % STARK_PRIME),
-                hex(int(proof["pi_b"][1][1]) % STARK_PRIME),
-                hex(int(proof["pi_c"][0]) % STARK_PRIME),
-                hex(int(proof["pi_c"][1]) % STARK_PRIME),
-            ]
-            _log.info(f"[{circuit_name}] Using minimal proof calldata: {len(calldata)} elements")
-        
-        return {
-            "proof": proof,
-            "public_signals": public_signals,
-            "calldata": calldata,
-        }
+            # Generate proof
+            proof_path = tmp_path / f"{circuit_name}_proof.json"
+            public_path = tmp_path / f"{circuit_name}_public.json"
+            proof_result = subprocess.run(
+                ["npx", "snarkjs", "groth16", "prove",
+                 str(zkey_path), str(witness_path), str(proof_path), str(public_path)],
+                capture_output=True,
+                text=True,
+                cwd=str(CIRCUITS_DIR),
+            )
+            if proof_result.returncode != 0:
+                raise RuntimeError(
+                    f"Proof generation failed: {proof_result.stderr or proof_result.stdout}"
+                )
+
+            # Read proof and public signals
+            proof = json.loads(proof_path.read_text())
+            public_signals = json.loads(public_path.read_text())
+
+            # Generate calldata using Garaga formatter (full_proof_with_hints format)
+            # The Garaga verifier on-chain requires MSM hints, not raw snarkjs calldata.
+            vk_path = BUILD_DIR / f"{circuit_name}_vkey.json"
+            if not vk_path.exists():
+                # Try alternative naming convention
+                vk_path = BUILD_DIR / f"{circuit_name}_verification_key.json"
+            if not vk_path.exists():
+                raise RuntimeError(
+                    f"Verification key not found for {circuit_name}. "
+                    f"Run: npx snarkjs zkey export verificationkey build/{circuit_name}_final.zkey build/{circuit_name}_vkey.json"
+                )
+
+            import logging
+            _log = logging.getLogger(__name__)
+
+            # Try Garaga formatter first for full on-chain verification.
+            # If Garaga fails (VK/zkey mismatch, Docker unavailable), fall back to
+            # snarkjs-derived calldata.  The on-chain contract accepts simple calldata
+            # when the verifier address is zero (human-signed transactions).
+            calldata = None
+            from .garaga_formatter import format_proof_for_garaga
+            try:
+                calldata = format_proof_for_garaga(
+                    proof_json=proof,
+                    public_json=public_signals,
+                    vk_path=vk_path,
+                )
+                _log.info(f"[{circuit_name}] Garaga calldata generated: {len(calldata)} elements")
+            except Exception as e:
+                _log.warning(f"[{circuit_name}] Garaga formatting unavailable ({e}), using snarkjs calldata")
+
+            if calldata is None:
+                # Fallback: generate calldata from snarkjs proof (sufficient for zero-verifier mode)
+                try:
+                    cd_result = subprocess.run(
+                        ["npx", "snarkjs", "groth16", "exportsoliditycalldata",
+                         str(proof_path), str(public_path)],
+                        capture_output=True, text=True,
+                        cwd=str(CIRCUITS_DIR), timeout=30,
+                    )
+                    if cd_result.returncode == 0 and cd_result.stdout.strip():
+                        import re
+                        raw = cd_result.stdout.strip()
+                        hex_values = re.findall(r'0x[0-9a-fA-F]+', raw)
+                        calldata = [hex(int(h, 16) % STARK_PRIME) for h in hex_values]
+                        _log.info(f"[{circuit_name}] snarkjs calldata fallback: {len(calldata)} elements")
+                    else:
+                        _log.warning(f"[{circuit_name}] snarkjs calldata export failed, using minimal proof")
+                except Exception as e2:
+                    _log.warning(f"[{circuit_name}] snarkjs calldata export error: {e2}")
+
+            if calldata is None or len(calldata) < 3:
+                # Last resort: pack proof points as minimal felt252 calldata (>= 3 elements).
+                # BN254 proof points are reduced mod STARK_PRIME so they fit felt252; the Garaga
+                # verifier contract must expect this encoding. Do not reduce public inputs (root,
+                # nullifier) modulo STARK_PRIME if the verifier expects raw BN254 field elements.
+                calldata = [
+                    hex(int(proof["pi_a"][0]) % STARK_PRIME),
+                    hex(int(proof["pi_a"][1]) % STARK_PRIME),
+                    hex(int(proof["pi_b"][0][0]) % STARK_PRIME),
+                    hex(int(proof["pi_b"][0][1]) % STARK_PRIME),
+                    hex(int(proof["pi_b"][1][0]) % STARK_PRIME),
+                    hex(int(proof["pi_b"][1][1]) % STARK_PRIME),
+                    hex(int(proof["pi_c"][0]) % STARK_PRIME),
+                    hex(int(proof["pi_c"][1]) % STARK_PRIME),
+                ]
+                _log.info(f"[{circuit_name}] Using minimal proof calldata: {len(calldata)} elements")
+
+            return {
+                "proof": proof,
+                "public_signals": public_signals,
+                "calldata": calldata,
+            }
 
 
 # Global instance

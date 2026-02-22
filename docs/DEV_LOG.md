@@ -271,6 +271,47 @@
 
 ---
 
+### Finding: "Unknown merkle root" resurfaced - historical roots not registered on-chain
+
+**Date**: 2026-02-08 (evening)
+
+**Issue**: Full Privacy Pool withdrawal failed with "Unknown merkle root" error, even though the merkle tree contract has `add_known_root` functionality and backend has persistence enabled.
+
+**Root Cause**: The backend's async `schedule_register_root_on_chain()` calls were not executing successfully for historical deposits. Investigation revealed:
+1. Backend merkle tree had 11 leaves (12 roots including empty tree)
+2. Backend persisted tree state correctly to `data/merkle_tree.json` (survived restarts)
+3. Only the **latest root** (root[11]) was registered on-chain via `add_known_root`
+4. All **earlier roots** (root[0] through root[10]) were NOT registered on-chain
+5. Users withdrawing with commitments from earlier deposits had proofs using old roots that the on-chain contract rejected
+
+The backend's `merkle_tree_onchain_sync.py` is configured with correct env vars (`FULL_PRIVACY_MERKLE_TREE_ADDRESS`, `FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY`), but the async tasks either:
+- Failed silently (starkli errors not logged at INFO level)
+- Were cancelled when backend restarted before completion
+- Never ran due to event loop issues
+
+**Solution**: Manually registered all 11 historical roots on-chain:
+```bash
+# Created script to iterate through all roots in data/merkle_tree.json
+# For each root: compute root_felt = root % STARK_PRIME
+# Call: starkli invoke MERKLE_TREE add_known_root <root_felt>
+# All 11 roots submitted and confirmed on-chain
+```
+
+**Verification**: After registration, `is_known_root(root[0])` returned `true` (was `false` before). Withdrawal now succeeds.
+
+**Files Modified**:
+- None (manual on-chain registration only)
+
+**Status**: ✅ Fixed
+
+**Follow-up Actions**:
+1. **Investigate why async add_known_root tasks are not executing reliably** - check backend logs at DEBUG/INFO level, add explicit success/failure logging in `merkle_tree_onchain_sync.py`
+2. **Add startup check**: on backend restart, compare backend roots against on-chain known roots and auto-register any missing roots
+3. **Add monitoring**: alert if register_commitment succeeds but add_known_root task fails
+4. **Consider synchronous registration** (trade API latency for reliability) or use a separate worker process for root registration
+
+---
+
 ### Finding: u256_to_felt hashing bug caused all withdrawals to fail with "Unknown merkle root"
 
 **Date**: 2026-02-08
@@ -314,3 +355,156 @@ This computes `(low + high * 2^128) % STARK_PRIME` which equals `root % STARK_PR
 - Class hash (MerkleTree): `0x037a552e0e86c353dcf778af236d126bdbf14d020e11b4ab0d0a392eec1fc026`
 
 **Status**: FIXED - Contracts redeployed, backend + frontend updated
+
+---
+
+### Finding: Backend .env Not Loaded → Roots Not Registered → "Unknown merkle root"
+
+**Date**: 2026-02-09
+
+**Issue**: User getting "Unknown merkle root" error during withdrawal after deposit, even though withdrawal worked previously.
+
+**Root Cause**: 
+- Backend restarted without loading `.env` file, so `FULL_PRIVACY_MERKLE_TREE_ADDRESS`, `FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY`, and `FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS` were all empty
+- `schedule_register_root_on_chain()` was silently returning early because of missing env vars:
+  ```python
+  if not MERKLE_TREE_ADDRESS or ...:
+      logger.info("skipping add_known_root")  # ← Silent failure!
+      return
+  ```
+- So deposits added commitments to backend tree, but roots were **never registered on-chain**
+- When user tried to withdraw, contract's `is_known_root()` returned false → "Unknown merkle root"
+- Backend had 20 roots (19 leaves), but only 15 were registered on-chain (roots #1, #8, #13, #14, #19 were missing)
+
+**Solution**:
+1. Restarted backend with `.env` properly loaded
+2. Manually registered all 5 missing roots using `starkli invoke add_known_root`:
+   - Root #1 (empty tree): `0x134e76ac5d21a67186c2be1dd8f84ee880a1e46eaf712f9d371b6df22191f3a`
+   - Root #8: `0x736b2349063c077bc3f72d6267d914ef44fd883492ea2783d07aee6ec9f62d9`
+   - Root #13: `0x29b7a6e03fa745c48e4cc081f9b4cb8d4bc2a6abb1646cbb3d5dd9f62ad5a50`
+   - Root #14: `0x30124ae8600eeadc46907c822e77d7fb3f3cda8497384d779e1d7844e36e2a1`
+   - Root #19: `0x394ac5800bb7f2ccac358d183f4779137d7c79e6da0c2fe2dd71144c4c15a60`
+3. Changed log level from `logger.info` to `logger.error` with "CRITICAL" prefix so missing env vars are obvious in logs
+4. Verified all 20 roots are now registered on-chain
+
+**Files Modified**:
+- `backend/app/services/merkle_tree_onchain_sync.py` (line 137: `logger.info` → `logger.error`)
+
+**Status**: ✅ Fixed - all 20 roots now registered on-chain, withdrawals should work
+
+**Prevention**:
+- Added loud ERROR logging when env vars are missing  
+- TODO: Add startup check to compare backend roots vs on-chain roots and auto-register missing
+- TODO: Consider failing startup if critical env vars are missing
+
+---
+
+### Finding: Witness generation fails - "Assert Failed" at line 145 (amount check)
+
+**Date**: 2026-02-09
+
+**Issue**: Withdrawal witness generation fails with `Error: Assert Failed. Error in template FullPrivacyWithdraw_152 line: 145`
+
+**Root Cause**: 
+- Circuit line 145: `amountCheck.out === 1` enforces `withdrawAmount <= commitmentAmount`
+- User deposited **0.2 STRK** but tried to withdraw **2.0 STRK** (10x more!)
+- Frontend shows "Max: X ETH" hint but **had NO validation** preventing user from typing larger amounts
+- User could enter any amount in the input field, even exceeding their balance
+
+**Solution**:
+1. Added validation in `handleGenerateWithdrawProof()` to check `withdrawAmount <= commitmentAmount` before generating proof
+2. Show error toast: "Cannot withdraw more than deposited. Max: X ETH"
+3. Prevents wasted proof generation attempts
+
+**Files Modified**:
+- `frontend/src/components/zkdefi/FullPrivacyPoolPanel.tsx` (lines 334-350: added amount validation)
+
+**Status**: ✅ Fixed - Frontend now validates withdraw amount before proof generation
+
+**Prevention**:
+- Consider adding HTML `max` attribute to input field
+- Consider auto-filling "Max" button to withdraw full balance
+- Add UI warning when amount approaches max
+
+---
+
+### Finding: ChunkLoadError after deploy - old Next.js process not killed
+
+**Date**: 2026-02-09
+
+**Issue**: After deploying new frontend build, browser shows `ChunkLoadError: Loading chunk 60 failed` with 404 for new chunk hashes like `page-79815ed46a562ca1.js`.
+
+**Root Cause**: 
+- Deploy script builds new `.next` directory with new chunk hashes
+- But OLD Next.js process (serving OLD chunks) is still running on port 3001
+- Deploy script tries to start new Next.js → gets `EADDRINUSE` error
+- Script doesn't notice failure, reports "success", but old server still running
+- Browser requests new chunk hash (from new HTML) → old server returns 404 (doesn't have it)
+
+**Why process killing failed:**
+- Script killed `next-server` child processes but not `npm start` parent process
+- PID extraction from `ss -tlnp` only got first PID when multiple existed
+- No verification that port was actually free before starting new server
+
+**Solution**:
+1. Enhanced deploy script to kill:
+   - `npm start` parent processes (not just `next-server` children)
+   - ALL PIDs on port 3001 (loop through all, not just first)
+2. Added verification: check if port 3001 is free, exit with error if not
+3. Manually killed old processes and started new Next.js with fresh build
+4. Added `-- -H 0.0.0.0 -p 3001` flags to `npm start` command
+
+**Files Modified**:
+- `deploy_production.sh` (lines 14-48: improved process killing, added port verification)
+
+**Status**: ✅ Fixed - New chunks now served correctly, deploy script improved
+
+**Prevention**:
+- Deploy script now fails fast if port cleanup doesn't work
+- Consider using PM2 or systemd for more robust process management
+- Add health check that verifies new chunks are actually accessible before reporting success
+
+---
+
+### 2026-02-10: Full Privacy Pool Deposit + Withdraw E2E SUCCESS
+
+**Status**: CONFIRMED WORKING
+
+**Working Configuration (lock this in)**:
+- Pool contract: `0x07fed6973cfc23b031c0476885ec87a401f1006bdc8ba58df2bd8611b38b5ff5`
+- Merkle tree contract: `0x03659ca95ebe890741ca68dd84945716ca9e40baa6650d81f977466726370947`
+- Admin account: `0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d`
+- Token: Sepolia STRK/ETH (`0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d`)
+- Backend: port 8003, `.env` has `FULL_PRIVACY_MERKLE_TREE_ADDRESS`, `FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY`, `FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS`
+- Frontend: `NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS=0x07fed6973cfc23b031c0476885ec87a401f1006bdc8ba58df2bd8611b38b5ff5`
+- Frontend env vars: `NEXT_PUBLIC_FULL_PRIVACY_USE_FELT_DEPOSIT=true`, `NEXT_PUBLIC_FULL_PRIVACY_USE_FELT_WITHDRAW=true`
+- PM2 manages both `zkdefi-frontend` (port 3001) and `zkdefi-backend` (port 8003)
+
+**Root cause of recurring "Unknown merkle root" failures**:
+The `deploy_production.sh` script had an OLD pool address hardcoded: `0x0700376443e295f33dda9ac2721a95d601f6b7c38719d58077049de357d3b85f`. This old pool references a completely different on-chain merkle tree. The backend was correctly registering roots on `0x03659...` (associated with the correct pool `0x07fed...`), but the frontend was sending deposits and withdrawals to the wrong pool. Every on-chain withdrawal call checked `is_known_root` against a different tree that had none of the registered roots.
+
+**What was fixed (in this session)**:
+1. `deploy_production.sh`: Updated pool address from `0x0700...` to `0x07fed...`
+2. `merkle_tree_onchain_sync.py`: Complete rewrite:
+   - Env vars read fresh each call (not cached at module import time)
+   - `register_root_on_chain()` is now synchronous with 3-retry exponential backoff
+   - Removed fire-and-forget `schedule_register_root_on_chain()`
+   - Added `reconcile_all_roots()` to check and register missing roots
+   - Fixed `verify_root_on_chain()` zero-padded hex parsing bug
+3. `full_privacy.py` (endpoint): `register_commitment` now awaits root registration; returns 503 on failure instead of silently losing the root. Removed duplicate `verify_merkle_root` endpoint.
+4. `main.py`: Added `@app.on_event("startup")` to run `reconcile_all_roots()` on every backend restart.
+5. `FullPrivacyPoolPanel.tsx`: Removed the convoluted root verification polling layer (rootVerified state, pollRootVerification, "Check Root Now" button, verification gate blocking withdrawals). The deposit step now guarantees the root is on-chain before returning success.
+
+**How to reproduce the working state**:
+1. Backend running on port 8003 with correct `.env` vars
+2. Frontend built with `NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS=0x07fed6973cfc23b031c0476885ec87a401f1006bdc8ba58df2bd8611b38b5ff5`
+3. Deposit: generates commitment, signs on-chain, backend registers root synchronously
+4. Withdraw: select commitment, enter amount, generate proof, sign -- no extra verification steps
+5. Hard refresh browser after any frontend rebuild
+
+**Files modified**:
+- `deploy_production.sh` (pool address fix)
+- `backend/app/services/merkle_tree_onchain_sync.py` (complete rewrite)
+- `backend/app/api/routes/full_privacy.py` (synchronous registration, cleanup)
+- `backend/app/main.py` (startup reconciliation)
+- `frontend/src/components/zkdefi/FullPrivacyPoolPanel.tsx` (removed verification layer)

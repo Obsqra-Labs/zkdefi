@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import { ClientApp } from "@/components/ClientApp";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import "@/app/globals.css";
+import { StarknetProvider } from "@/components/zkdefi/StarknetProvider";
+import { AppProvider } from "@/lib/AppContext";
 
 export const metadata: Metadata = {
-  title: "zkde.fi by Obsqra Labs | zkDE + GATE",
-  description: "zkde.fi — First GATE-compatible app. Zero-Knowledge Deterministic Engine (zkDE) + Governed Autonomous Trustless Execution (GATE). Trustless AI execution on Starknet. Proof-gated autonomous agent for private DeFi. Starknet Re{define} Hackathon (Privacy track). Open source.",
+  title: "zkde.fi — Obsqra Labs",
+  description: "Private strategy. Provable execution. Reputation-tiered private DeFi on Starknet.",
 };
 
 export default function RootLayout({
@@ -14,19 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
-      <body
-        className="min-h-screen bg-zinc-950 text-zinc-100"
-        style={{
-          backgroundColor: "#09090b",
-          color: "#f4f4f5",
-          minHeight: "100vh",
-          WebkitFontSmoothing: "antialiased",
-        }}
-      >
-        <ErrorBoundary>
-          <ClientApp>{children}</ClientApp>
-        </ErrorBoundary>
+    <html lang="en">
+      <body className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
+        <StarknetProvider>
+          <AppProvider>{children}</AppProvider>
+        </StarknetProvider>
       </body>
     </html>
   );

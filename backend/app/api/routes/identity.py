@@ -78,11 +78,28 @@ async def generate_credit_proof(req: CreditProofRequest):
     4. Return tier + proof for on-chain registration
     """
     try:
+        # 0. If only Starknet provided, fill linked addresses from store (Profile GET/PUT linked_addresses)
+        has_others = bool(
+            req.addresses.ethereum or req.addresses.arbitrum
+            or req.addresses.base or req.addresses.optimism
+        )
+        if req.addresses.starknet and not has_others:
+            from app.services.linked_addresses_store import get_linked
+            linked = get_linked(req.addresses.starknet)
+            if not req.addresses.ethereum and linked.get("eth"):
+                req.addresses.ethereum = linked.get("eth")
+            if not req.addresses.arbitrum and linked.get("arb"):
+                req.addresses.arbitrum = linked.get("arb")
+            if not req.addresses.base and linked.get("base"):
+                req.addresses.base = linked.get("base")
+            if not req.addresses.optimism and linked.get("opt"):
+                req.addresses.optimism = linked.get("opt")
+
         # 1. Import RISC Zero service
         from app.services.risc_zero_credit_service import get_risc_zero_credit_service
-        
+
         risc_zero = get_risc_zero_credit_service()
-        
+
         # 2. Fetch cross-chain history
         eth_history = await _fetch_ethereum_history(req.addresses.ethereum) if req.addresses.ethereum else None
         starknet_history = await _fetch_starknet_history(req.addresses.starknet)

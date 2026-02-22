@@ -129,7 +129,8 @@ class ZkmlRiskService:
         user_address: str,
         portfolio_features: list[int],
         threshold: int,
-        commitment_hash: str | None = None
+        commitment_hash: str | None = None,
+        snapshot_hash: str | None = None,
     ) -> dict[str, Any]:
         """
         Generate Groth16 proof that risk_score <= threshold.

@@ -112,26 +112,48 @@ async def get_tier_info(tier_id: int):
 
 @router.get("/user/{address}", response_model=UserReputationResponse)
 async def get_user_reputation(address: str):
-    """Get reputation info for a specific user."""
+    """Get reputation info for a specific user. Merges in-app data with on-chain (and cross-chain) baseline."""
     import time
-    
+
     user = get_user_data(address)
     tier = user.get("tier", 0)
     tier_name = TIER_INFO[tier].tier_name
-    
+
     first_interaction = user.get("first_interaction", 0)
-    tenure_days = 0
+    in_app_tenure_days = 0
     if first_interaction > 0:
-        tenure_days = int((time.time() - first_interaction) / 86400)
+        in_app_tenure_days = int((time.time() - first_interaction) / 86400)
+
+    # Baseline from on-chain / cross-chain (Starknet + linked eth/arb/base from store)
+    chain_tenure_days = 0
+    chain_tx_count = 0
+    try:
+        from app.services.cross_chain_fetcher import fetch_combined_history
+        from app.services.linked_addresses_store import get_linked
+        linked = get_linked(address)
+        combined = await fetch_combined_history(
+            address,
+            linked.get("eth"),
+            linked.get("arb"),
+            linked.get("base"),
+        )
+        chain_tenure_days = combined.get("account_age_days", 0) or 0
+        chain_tx_count = combined.get("total_transactions", 0) or 0
+    except Exception:
+        pass
+
+    tenure_days = max(in_app_tenure_days, chain_tenure_days)
+    in_app_txns = user.get("successful_txns", 0)
+    successful_txns = in_app_txns + chain_tx_count if chain_tx_count > 0 else in_app_txns
     
     # Check upgrade eligibility
     upgrade_eligible = False
     upgrade_requirements = None
     
     if tier == 0:
-        # Check Tier 0 -> 1 requirements
+        # Check Tier 0 -> 1 requirements (use merged tenure and successful_txns including chain baseline)
         needs_tenure = 30 - tenure_days
-        needs_txns = 5 - user.get("successful_txns", 0)
+        needs_txns = 5 - successful_txns
         
         if needs_tenure <= 0 and needs_txns <= 0:
             upgrade_eligible = True
@@ -157,14 +179,17 @@ async def get_user_reputation(address: str):
                 "needs_collateral_eth": max(0, needs_collateral),
             }
     
+    in_app_tx_count = user.get("transaction_count", 0)
+    transaction_count = in_app_tx_count + chain_tx_count if chain_tx_count > 0 else in_app_tx_count
+
     return UserReputationResponse(
         address=address,
         tier=tier,
         tier_name=tier_name,
-        transaction_count=user.get("transaction_count", 0),
+        transaction_count=transaction_count,
         total_volume_eth=user.get("total_volume", 0) / 1e18,
         tenure_days=tenure_days,
-        successful_txns=user.get("successful_txns", 0),
+        successful_txns=successful_txns,
         collateral_eth=user.get("collateral", 0) / 1e18,
         upgrade_eligible=upgrade_eligible,
         upgrade_requirements=upgrade_requirements,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, Shield, ArrowRight } from "lucide-react";
@@ -26,7 +26,12 @@ const PROTOCOL_COLORS: Record<string, string> = {
   private: "#f59e0b", // amber for private/shielded
 };
 
-export function PositionChart() {
+export interface PositionChartProps {
+  refreshTrigger?: number;
+}
+
+export function PositionChart(props: PositionChartProps = {}) {
+  const { refreshTrigger } = props;
   const { address, isConnected } = useAccount();
   const [positions, setPositions] = useState<Position[]>([]);
   const [totalValue, setTotalValue] = useState<number>(0);
@@ -73,6 +78,7 @@ export function PositionChart() {
           `zkdefi_commitments_${address}`,   // Stealth Transfer
           `zkdefi_shielded_${address}`,      // Shielded Pool
           `zkdefi_fullprivacy_${address}`,   // Full Privacy Pool
+          `zkdefi_poold_${address}`,         // Pool D (Tier-2H)
         ];
         
         for (const key of COMMITMENT_KEYS) {
@@ -120,7 +126,7 @@ export function PositionChart() {
     fetchPositions();
     const interval = setInterval(fetchPositions, 10000); // Poll every 10s
     return () => clearInterval(interval);
-  }, [isConnected, address]);
+  }, [isConnected, address, refreshTrigger]);
 
   // Fetch aggregated position when privacy mode is enabled
   useEffect(() => {
@@ -313,7 +319,7 @@ export function PositionChart() {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-2xl font-bold">{totalValue.toFixed(2)}</p>
+              <p className="text-2xl font-bold">{(totalValue / 1e18).toFixed(4)}</p>
               <p className="text-xs text-zinc-400">Total Value</p>
             </div>
           </div>

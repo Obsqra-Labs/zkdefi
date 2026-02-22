@@ -41,6 +41,7 @@ export function ProfileJourneyBanner({ hasOnboarded, hasPassport, canUseRelayer 
           {nextStep.label === "Onboard" && (
             <Link
               href="/agent?tab=onboarding"
+              prefetch={false}
               className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium text-sm text-white transition-colors"
             >
               <Shield className="w-4 h-4" /> Complete onboarding
@@ -49,6 +50,7 @@ export function ProfileJourneyBanner({ hasOnboarded, hasPassport, canUseRelayer 
           {nextStep.label === "Build passport" && (
             <Link
               href="/agent"
+              prefetch={false}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium text-sm text-white transition-colors"
             >
               <Shield className="w-4 h-4" /> Run proofs

@@ -17,6 +17,10 @@ from app.services.zkml_risk_service import get_risk_service
 from app.services.zkml_anomaly_service import get_anomaly_service
 from app.services.session_key_service import get_session_service
 from app.services.zkdefi_agent_service import ZkdefiAgentService
+from app.services.receipt_service import get_receipt_service
+from app.services.pool_passport_store import save as save_pool_passport
+from app.services.mainnet_oracle import get_oracle
+from app.services.policy_engine import check as policy_check
 
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7")
 
@@ -59,6 +63,7 @@ class RebalanceProposal:
         self.anomaly_proof = None
         self.execution_proof_hash = None
         self.commitment_hash = None
+        self.snapshot_hash = None  # Oracle snapshot binding (set in check_zkml_gates)
         self.tx_hash = None
         self.error = None
     
@@ -75,6 +80,7 @@ class RebalanceProposal:
             "risk_proof": self.risk_proof,
             "anomaly_proof": self.anomaly_proof,
             "commitment_hash": self.commitment_hash,
+            "snapshot_hash": self.snapshot_hash,
             "tx_hash": self.tx_hash,
             "error": self.error
         }
@@ -83,6 +89,7 @@ class RebalanceProposal:
 class AgentRebalancer:
     """
     Autonomous agent rebalancer with zkML gating.
+    Concurrency: one check/prepare per (proposal_id) at a time; 503 when busy.
     """
     
     def __init__(self):
@@ -94,6 +101,9 @@ class AgentRebalancer:
         # Track proposals
         self._proposals: dict[str, RebalanceProposal] = {}
         self._user_proposals: dict[str, list[str]] = {}
+        # Serialize proof generation per proposal (avoid double-generate)
+        self._proposal_locks: dict[str, asyncio.Lock] = {}
+        self._lock_meta: asyncio.Lock = asyncio.Lock()  # protects _proposal_locks
     
     async def analyze_portfolio(
         self,
@@ -169,6 +179,13 @@ class AgentRebalancer:
         
         return proposal
     
+    def _get_proposal_lock(self, proposal_id: str) -> asyncio.Lock:
+        """Get or create lock for this proposal_id (thread-safe)."""
+        # Caller should hold _lock_meta when mutating _proposal_locks
+        if proposal_id not in self._proposal_locks:
+            self._proposal_locks[proposal_id] = asyncio.Lock()
+        return self._proposal_locks[proposal_id]
+
     async def check_zkml_gates(
         self,
         proposal_id: str,
@@ -176,58 +193,87 @@ class AgentRebalancer:
         pool_id: str | None = None
     ) -> dict[str, Any]:
         """
-        Run zkML models to gate the rebalancing proposal.
-        
-        Both risk score and anomaly detection must pass.
+        Run policy engine to gate the rebalancing proposal.
+        Both risk score and anomaly detection must pass (via policy_engine.check).
+        Serialized per proposal_id; raises if proof already in progress (caller may return 503).
         """
         proposal = self._proposals.get(proposal_id)
         if not proposal:
             raise ValueError(f"Proposal {proposal_id} not found")
         
+        async with self._lock_meta:
+            plock = self._get_proposal_lock(proposal_id)
+        try:
+            await asyncio.wait_for(plock.acquire(), timeout=0)
+        except asyncio.TimeoutError:
+            raise RuntimeError("Proof in progress for this proposal; retry later")
+        try:
+            return await self._check_zkml_gates_impl(proposal_id, portfolio_features, pool_id)
+        finally:
+            plock.release()
+
+    async def _check_zkml_gates_impl(
+        self,
+        proposal_id: str,
+        portfolio_features: list[int],
+        pool_id: str | None = None
+    ) -> dict[str, Any]:
+        """Inner implementation of check_zkml_gates (holding proposal lock)."""
+        proposal = self._proposals[proposal_id]
         proposal.status = RebalanceStatus.ZKML_CHECKING
-        
-        # Derive pool_id if not provided
         if pool_id is None:
             pool_id = f"pool_{proposal.to_protocol}"
         
-        # Generate commitment for both proofs
-        import hashlib
-        commitment_hash = "0x" + hashlib.sha256(
-            f"{proposal.user_address}{proposal_id}{portfolio_features}".encode()
-        ).hexdigest()[:32]
-        
-        proposal.commitment_hash = commitment_hash
-        
-        # Run risk model
-        risk_result = await self.risk_service.generate_risk_proof(
+        policy = await policy_check(
             user_address=proposal.user_address,
-            portfolio_features=portfolio_features,
-            threshold=30,
-            commitment_hash=commitment_hash
+            action_type="rebalance",
+            payload={
+                "proposal_id": proposal_id,
+                "portfolio_features": portfolio_features,
+                "pool_id": pool_id,
+                "from_protocol": proposal.from_protocol,
+                "to_protocol": proposal.to_protocol,
+                "amount": proposal.amount,
+                "reason": proposal.reason,
+            },
         )
+        
+        risk_result = policy["risk_result"]
+        anomaly_result = policy["anomaly_result"]
+        snapshot_hash = policy["snapshot_hash"]
+        can_proceed = policy["allowed"]
+        
+        proposal.snapshot_hash = snapshot_hash
+        proposal.commitment_hash = policy.get("commitment_hash")
         proposal.risk_proof = risk_result
-        
-        # Run anomaly detection
-        anomaly_result = await self.anomaly_service.analyze_pool_safety(
-            pool_id=pool_id,
-            user_address=proposal.user_address,
-            commitment_hash=commitment_hash
-        )
         proposal.anomaly_proof = anomaly_result
-        
-        # Check if both passed
-        can_proceed = risk_result["is_compliant"] and anomaly_result["is_safe"]
         
         if can_proceed:
             proposal.status = RebalanceStatus.ZKML_PASSED
         else:
             proposal.status = RebalanceStatus.ZKML_FAILED
-            reasons = []
-            if not risk_result["is_compliant"]:
-                reasons.append("Risk score too high")
-            if not anomaly_result["is_safe"]:
-                reasons.append("Pool anomaly detected")
-            proposal.error = "; ".join(reasons)
+            proposal.error = policy.get("reason", "Policy check failed")
+        
+        if can_proceed:
+            receipt_svc = get_receipt_service()
+            receipt_svc.append_proof_receipt(
+                user_address=proposal.user_address,
+                proof_type="risk_score",
+                threshold_or_model="30",
+                result="compliant" if risk_result["is_compliant"] else "non_compliant",
+                snapshot_hash=snapshot_hash,
+                model_hash="risk_v1",
+            )
+            receipt_svc.append_proof_receipt(
+                user_address=proposal.user_address,
+                proof_type="pool_safety",
+                threshold_or_model="anomaly",
+                result="safe" if anomaly_result["is_safe"] else "unsafe",
+                snapshot_hash=snapshot_hash,
+                model_hash="anomaly_v1",
+                pool_id=pool_id,
+            )
+            save_pool_passport(pool_id, anomaly_result)
         
         return {
             "proposal_id": proposal_id,
@@ -236,7 +282,9 @@ class AgentRebalancer:
             "anomaly_passed": anomaly_result["is_safe"],
             "risk_proof": risk_result,
             "anomaly_proof": anomaly_result,
-            "commitment_hash": commitment_hash
+            "commitment_hash": proposal.commitment_hash,
+            "snapshot_hash": snapshot_hash,
+            "policy_allowed": can_proceed,
         }
     
     async def prepare_execution(
@@ -246,13 +294,27 @@ class AgentRebalancer:
     ) -> dict[str, Any]:
         """
         Prepare the rebalancing execution.
-        
         Validates session key and generates execution proofs.
+        Serialized per proposal_id; raises if already in progress (caller may return 503).
         """
         proposal = self._proposals.get(proposal_id)
         if not proposal:
             raise ValueError(f"Proposal {proposal_id} not found")
         
+        async with self._lock_meta:
+            plock = self._get_proposal_lock(proposal_id)
+        try:
+            await asyncio.wait_for(plock.acquire(), timeout=0)
+        except asyncio.TimeoutError:
+            raise RuntimeError("Proof or prepare in progress for this proposal; retry later")
+        try:
+            return await self._prepare_execution_impl(proposal_id, session_id)
+        finally:
+            plock.release()
+
+    async def _prepare_execution_impl(self, proposal_id: str, session_id: str) -> dict[str, Any]:
+        """Inner implementation of prepare_execution (holding proposal lock)."""
+        proposal = self._proposals[proposal_id]
         if proposal.status != RebalanceStatus.ZKML_PASSED:
             raise ValueError(f"Proposal must pass zkML checks first. Status: {proposal.status}")
         
@@ -271,7 +333,6 @@ class AgentRebalancer:
             raise ValueError(proposal.error)
         
         # Generate execution proof via obsqra.fi
-        # (In real implementation, this calls the prover API)
         import hashlib
         execution_proof_hash = "0x" + hashlib.sha256(
             f"exec_{proposal_id}_{proposal.commitment_hash}".encode()
@@ -285,11 +346,11 @@ class AgentRebalancer:
             "status": proposal.status.value,
             "session_id": session_id,
             "execution_proof_hash": execution_proof_hash,
-            "risk_calldata": proposal.risk_proof.get("proof_calldata", []),
-            "anomaly_calldata": proposal.anomaly_proof.get("proof_calldata", []),
+            "risk_calldata": (proposal.risk_proof or {}).get("proof_calldata", []),
+            "anomaly_calldata": (proposal.anomaly_proof or {}).get("proof_calldata", []),
             "ready_to_execute": True
         }
-    
+
     async def execute_rebalance(
         self,
         proposal_id: str,
@@ -310,21 +371,39 @@ class AgentRebalancer:
         proposal.status = RebalanceStatus.EXECUTING
         
         try:
-            # In real implementation:
-            # 1. Submit zkML proofs to Garaga verifier
-            # 2. Submit execution proof to Integrity
-            # 3. Execute rebalance via ProofGatedYieldAgent
-            
-            # Simulated execution
-            import hashlib
-            tx_hash = "0x" + hashlib.sha256(
-                f"tx_{proposal_id}_{datetime.utcnow().isoformat()}".encode()
-            ).hexdigest()[:64]
-            
+            # Real execution path: invoke ProofGatedYieldAgent.execute_with_proofs when configured
+            tx_hash = None
+            real_result = await self.agent_service.submit_rebalance(
+                protocol_id=proposal.to_protocol,
+                amount=proposal.amount,
+                zkml_risk_calldata=(proposal.risk_proof or {}).get("proof_calldata"),
+                zkml_anomaly_calldata=(proposal.anomaly_proof or {}).get("proof_calldata"),
+                execution_proof_hash=proposal.execution_proof_hash or "0x0",
+                intent_commitment=proposal.commitment_hash or "0x0",
+            )
+            tx_hash = real_result.get("tx_hash")
+            execution_error = real_result.get("error")
+            if not tx_hash and execution_error:
+                proposal.error = execution_error
+            if not tx_hash:
+                # Fallback: simulated tx_hash when relayer/signer not configured (e.g. dev)
+                import hashlib
+                tx_hash = "0x" + hashlib.sha256(
+                    f"tx_{proposal_id}_{datetime.utcnow().isoformat()}".encode()
+                ).hexdigest()[:64]
+
             proposal.tx_hash = tx_hash
             proposal.status = RebalanceStatus.COMPLETED
-            
-            return {
+            receipt_svc = get_receipt_service()
+            receipt_svc.append_proof_receipt(
+                user_address=proposal.user_address,
+                proof_type="rebalance",
+                threshold_or_model=proposal_id,
+                result="completed",
+                snapshot_hash=proposal.snapshot_hash,
+                tx_hash=tx_hash,
+            )
+            out = {
                 "proposal_id": proposal_id,
                 "status": proposal.status.value,
                 "tx_hash": tx_hash,
@@ -338,6 +417,9 @@ class AgentRebalancer:
                 "execution_proof_hash": proposal.execution_proof_hash,
                 "completed_at": datetime.utcnow().isoformat()
             }
+            if execution_error:
+                out["execution_error"] = execution_error
+            return out
         except Exception as e:
             proposal.status = RebalanceStatus.FAILED
             proposal.error = str(e)

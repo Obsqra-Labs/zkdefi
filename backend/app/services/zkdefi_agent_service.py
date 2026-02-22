@@ -21,6 +21,37 @@ PROOF_GATED_AGENT_ADDRESS = os.getenv("PROOF_GATED_AGENT_ADDRESS", "")
 SELECTIVE_DISCLOSURE_ADDRESS = os.getenv("SELECTIVE_DISCLOSURE_ADDRESS", "")
 CONFIDENTIAL_TRANSFER_ADDRESS = os.getenv("CONFIDENTIAL_TRANSFER_ADDRESS", "")
 GARAGA_VERIFIER_ADDRESS = os.getenv("GARAGA_VERIFIER_ADDRESS", "")
+REBALANCER_SIGNER_PRIVATE_KEY = os.getenv("REBALANCER_SIGNER_PRIVATE_KEY", "")
+REBALANCER_SIGNER_ADDRESS = os.getenv("REBALANCER_SIGNER_ADDRESS", "")
+
+# Starknet felt252: 0 <= x < 2^251 + 17*2^192
+_FELT252_MAX = (1 << 251) + 17 * (1 << 192)
+
+
+def _validate_execute_with_proofs_calldata(calldata: list[int]) -> str | None:
+    """
+    Validate calldata shape and felt252 bounds for ProofGatedYieldAgent.execute_with_proofs.
+    ABI: protocol_id (u8), amount (u256 = 2 felt), action_type, zkml_proof_calldata (len + span), execution_proof_hash, intent_commitment.
+    Returns error message or None if valid.
+    """
+    if not isinstance(calldata, list) or len(calldata) < 7:
+        return "execute_with_proofs calldata: expected at least 7 elements (protocol_id, amount_low, amount_high, action_type, zkml_len, execution_proof_hash, intent_commitment)"
+    protocol_id, amount_low, amount_high, action_type, zkml_len = (
+        calldata[0], calldata[1], calldata[2], calldata[3], calldata[4]
+    )
+    if not (0 <= protocol_id <= 0xFF):
+        return "execute_with_proofs calldata: protocol_id must be u8 (0-255)"
+    if not (0 <= amount_low < _FELT252_MAX and 0 <= amount_high < _FELT252_MAX):
+        return "execute_with_proofs calldata: amount (u256) must be non-negative and within felt252"
+    if not (0 <= action_type < _FELT252_MAX):
+        return "execute_with_proofs calldata: action_type must be valid felt252"
+    expected_len = 7 + zkml_len
+    if len(calldata) != expected_len:
+        return f"execute_with_proofs calldata: length mismatch (got {len(calldata)}, expected {expected_len} for zkml_len={zkml_len})"
+    for i, v in enumerate(calldata):
+        if not isinstance(v, int) or v < 0 or v >= _FELT252_MAX:
+            return f"execute_with_proofs calldata: element {i} must be felt252 (0 <= x < P)"
+    return None
 
 
 class ZkdefiAgentService:
@@ -270,6 +301,92 @@ class ZkdefiAgentService:
             }
         except Exception as e:
             return {"position": "0", "error": str(e)}
+
+    async def submit_rebalance(
+        self,
+        protocol_id: int,
+        amount: int,
+        zkml_risk_calldata: list[int] | None = None,
+        zkml_anomaly_calldata: list[int] | None = None,
+        execution_proof_hash: str = "0x0",
+        intent_commitment: str = "0x0",
+    ) -> dict[str, Any]:
+        """
+        Submit rebalance to ProofGatedYieldAgent.execute_with_proofs when configured.
+        Returns {"tx_hash": str} on success, {"tx_hash": None, "error": str} when not configured or on failure.
+        """
+        if not self.agent_address or not REBALANCER_SIGNER_PRIVATE_KEY:
+            return {"tx_hash": None, "error": "PROOF_GATED_AGENT_ADDRESS or REBALANCER_SIGNER_PRIVATE_KEY not set"}
+        try:
+            from starknet_py.hash.selector import get_selector_from_name
+            from starknet_py.net.client_models import Call
+            from starknet_py.net.models import StarknetChainId
+            from starknet_py.net.account.account import Account
+            from starknet_py.net.signer.stark_curve_signer import KeyPair
+
+            key = int(REBALANCER_SIGNER_PRIVATE_KEY, 16) if isinstance(REBALANCER_SIGNER_PRIVATE_KEY, str) and REBALANCER_SIGNER_PRIVATE_KEY.startswith("0x") else int(REBALANCER_SIGNER_PRIVATE_KEY or "0", 16)
+            if key == 0:
+                return {"tx_hash": None, "error": "REBALANCER_SIGNER_PRIVATE_KEY invalid"}
+            signer_address = REBALANCER_SIGNER_ADDRESS or ""
+            if not signer_address:
+                return {"tx_hash": None, "error": "REBALANCER_SIGNER_ADDRESS not set (required for rebalance execution)"}
+
+            # Flatten zkML calldata: contract expects Span<felt252> = risk + anomaly concatenated
+            risk_calldata = zkml_risk_calldata or []
+            anomaly_calldata = zkml_anomaly_calldata or []
+            zkml_flat = list(risk_calldata) + list(anomaly_calldata)
+
+            # u256 amount = (low, high)
+            amount_low = amount & ((1 << 128) - 1)
+            amount_high = amount >> 128
+            # action_type "rebalance" as short string felt
+            action_rebalance = int.from_bytes(b"rebalance", "big")
+            exec_hash_int = int(execution_proof_hash, 16) if isinstance(execution_proof_hash, str) else execution_proof_hash
+            intent_int = int(intent_commitment, 16) if isinstance(intent_commitment, str) else intent_commitment
+
+            # execute_with_proofs(protocol_id, amount, action_type, zkml_proof_calldata, execution_proof_hash, intent_commitment)
+            # Calldata: protocol_id (1), amount (2), action_type (1), len(zkml_flat) (1), ...zkml_flat, execution_proof_hash (1), intent_commitment (1)
+            calldata = [
+                protocol_id & 0xFF,
+                amount_low,
+                amount_high,
+                action_rebalance,
+                len(zkml_flat),
+                *zkml_flat,
+                exec_hash_int,
+                intent_int,
+            ]
+
+            # Validate calldata shape and felt252 bounds before sending (Garaga / ProofGatedYieldAgent ABI)
+            err = _validate_execute_with_proofs_calldata(calldata)
+            if err:
+                return {"tx_hash": None, "error": err}
+
+            client = FullNodeClient(node_url=self.rpc_url)
+            key_pair = KeyPair.from_private_key(key)
+            account = Account(
+                address=int(signer_address, 16),
+                client=client,
+                key_pair=key_pair,
+                chain=StarknetChainId.SEPOLIA,
+            )
+            call = Call(
+                to_addr=int(self.agent_address, 16),
+                selector=get_selector_from_name("execute_with_proofs"),
+                calldata=calldata,
+            )
+            from starknet_py.net.client_models import ResourceBounds, ResourceBoundsMapping
+            resp = await account.execute_v3(
+                calls=call,
+                auto_estimate=True,
+            )
+            tx_hash_hex = hex(resp.transaction_hash) if resp.transaction_hash else None
+            return {"tx_hash": tx_hash_hex, "error": None}
+        except Exception as e:
+            msg = str(e)
+            if "revert" in msg.lower() or "assert" in msg.lower() or "invalid" in msg.lower():
+                msg = f"Execution reverted: {msg}"
+            return {"tx_hash": None, "error": msg}
 
     def _u256_to_int(self, val: Any) -> int:
         """Normalize Cairo u256 (low/high or single int) to Python int."""

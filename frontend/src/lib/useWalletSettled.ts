@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 
-const WALLET_SETTLE_MS = 1600;
-const MAX_SETTLE_TIMEOUT_MS = 5000; // When disconnected: show Connect Gate after this
-const HARD_TIMEOUT_MS = 15000;      // When reconnecting: never spin longer than this
+const WALLET_SETTLE_MS = 800;
+const MAX_SETTLE_TIMEOUT_MS = 3000; // When disconnected: show Connect Gate after this
+const HARD_TIMEOUT_MS = 3000;      // When reconnecting: bail out after this so we never spin forever
 const LAST_CONNECTOR_KEY = "lastUsedConnector";
 
 /**

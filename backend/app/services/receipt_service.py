@@ -59,10 +59,11 @@ class ReceiptService:
         # Store locally
         self._receipts[receipt_id] = receipt
         
-        if user_address not in self._user_receipts:
-            self._user_receipts[user_address] = []
-        self._user_receipts[user_address].append(receipt_id)
-        
+        key = (user_address or "").strip().lower()
+        if key not in self._user_receipts:
+            self._user_receipts[key] = []
+        self._user_receipts[key].append(receipt_id)
+
         return receipt
     
     async def confirm_receipt(
@@ -88,9 +89,58 @@ class ReceiptService:
         return self._receipts.get(receipt_id)
     
     async def get_user_receipts(self, user_address: str) -> list[dict[str, Any]]:
-        """Get all receipts for a user."""
-        receipt_ids = self._user_receipts.get(user_address, [])
+        """Get all receipts for a user. Address is normalized to lowercase for lookup."""
+        key = (user_address or "").strip().lower()
+        receipt_ids = self._user_receipts.get(key, [])
         return [self._receipts[rid] for rid in receipt_ids if rid in self._receipts]
+
+    def append_proof_receipt(
+        self,
+        user_address: str,
+        proof_type: str,
+        threshold_or_model: str,
+        result: str,
+        snapshot_hash: str | None = None,
+        tx_hash: str | None = None,
+        fact_hash: str | None = None,
+        model_hash: str | None = None,
+        pool_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Append a proof-oriented receipt (risk_score, pool_safety, rebalance, etc.).
+        Used by zkML and rebalancer; readable by risk passport and proof timeline.
+        """
+        timestamp = datetime.utcnow().isoformat()
+        receipt_id = "0x" + hashlib.sha256(
+            f"{user_address}{proof_type}{threshold_or_model}{result}{timestamp}".encode()
+        ).hexdigest()[:64]
+        receipt = {
+            "receipt_id": receipt_id,
+            "user": user_address,
+            "proof_type": proof_type,
+            "threshold_or_model": threshold_or_model,
+            "result": result,
+            "timestamp": timestamp,
+            "snapshot_hash": snapshot_hash,
+            "tx_hash": tx_hash,
+            "fact_hash": fact_hash,
+            "model_hash": model_hash,
+            "pool_id": pool_id,
+            "on_chain": False,
+        }
+        self._receipts[receipt_id] = receipt
+        key = (user_address or "").strip().lower()
+        if key not in self._user_receipts:
+            self._user_receipts[key] = []
+        self._user_receipts[key].append(receipt_id)
+        return receipt
+
+    def get_receipts_by_pool(self, pool_id: str) -> list[dict[str, Any]]:
+        """Get all receipts that have this pool_id (e.g. pool_safety runs)."""
+        return [
+            r for r in self._receipts.values()
+            if r.get("pool_id") == pool_id
+        ]
     
     async def generate_constraints_hash(
         self,

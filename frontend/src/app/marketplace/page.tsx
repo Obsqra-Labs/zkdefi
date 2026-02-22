@@ -19,10 +19,12 @@ interface Model {
 
 export default function MarketplacePage() {
   const { address, isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<"browse" | "compose" | "agents">("browse");
 
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     fetchModels();
   }, []);

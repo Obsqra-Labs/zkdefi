@@ -2,20 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Critical: ensure body is visible even if Tailwind is slow or fails */
+/* Critical: ensure root is visible even if Tailwind is slow or fails */
 html {
   background-color: #09090b;
 }
-body {
-  background-color: #09090b;
-  color: #f4f4f5;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased;
+    @apply min-h-screen bg-zinc-950 text-zinc-100 antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 

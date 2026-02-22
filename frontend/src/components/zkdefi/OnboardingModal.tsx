@@ -200,7 +200,7 @@ export function OnboardingModal() {
                   className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="dont-show" className="text-xs text-zinc-400 cursor-pointer">
-                  Don't show this again
+                  Don&#39;t show this again
                 </label>
               </div>
             </div>

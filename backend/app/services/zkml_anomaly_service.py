@@ -162,7 +162,8 @@ class ZkmlAnomalyService:
         deployer_age_days: int | None = None,
         volume_anomaly: int | None = None,
         contract_risk_score: int | None = None,
-        commitment_hash: str | None = None
+        commitment_hash: str | None = None,
+        snapshot_hash: str | None = None,
     ) -> dict[str, Any]:
         """
         Analyze pool safety and generate proof.

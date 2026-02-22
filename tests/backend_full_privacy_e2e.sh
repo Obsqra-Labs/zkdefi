@@ -28,4 +28,11 @@ root=$(python3 -c "import json; print(json.load(open('/tmp/reg.json')).get('merk
 if [ -z "$root" ]; then echo "FAIL no merkle_root"; exit 1; fi
 echo "OK merkle_root=${root:0:30}..."
 
-echo "=== All Full Privacy paths OK ==="
+echo "=== 4. Pool C (alias): generate_commitment ==="
+code=$(curl -s -o /tmp/pool_c_gen.json -w "%{http_code}" -X POST "$BASE/api/v1/zkdefi/pool_c/deposit/generate_commitment" \
+  -H "Content-Type: application/json" \
+  -d '{"user_address":"0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d","amount":"1000000000000000000","pool_type":0}')
+if [ "$code" != "200" ]; then echo "FAIL pool_c generate_commitment: $code"; cat /tmp/pool_c_gen.json 2>/dev/null; exit 1; fi
+echo "OK pool_c commitment"
+
+echo "=== All Full Privacy and Pool C paths OK ==="

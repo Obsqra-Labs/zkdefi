@@ -279,8 +279,9 @@ export class UniversalIdentity {
 let _identityService: UniversalIdentity | null = null;
 
 export function getIdentityService(apiBaseUrl?: string): UniversalIdentity {
+  const base = apiBaseUrl && apiBaseUrl.trim().length > 0 ? apiBaseUrl : undefined;
   if (!_identityService) {
-    _identityService = new UniversalIdentity(apiBaseUrl);
+    _identityService = new UniversalIdentity(base);
   }
   return _identityService;
 }

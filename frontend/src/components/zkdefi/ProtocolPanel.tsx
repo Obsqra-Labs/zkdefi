@@ -7,6 +7,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { Shield, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ConnectButton } from "./ConnectButton";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const AGENT_ADDRESS = process.env.NEXT_PUBLIC_PROOF_GATED_AGENT_ADDRESS || "";
@@ -28,7 +29,7 @@ const PROTOCOL_IDS: Record<ProtocolId, number> = {
 const PROTOCOL_NAMES: Record<ProtocolId, string> = {
   pools: "Pools",
   ekubo: "Ekubo",
-  jediswap: "JediSwap",
+  jediswap: "JediSwap (legacy)",
 };
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -179,7 +180,7 @@ export function ProtocolPanel({ protocolId }: { protocolId: ProtocolId }) {
       toastSuccess(`${mode === "deposit" ? "Deposit" : "Withdrawal"} successful!`, {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
       });
       
@@ -504,7 +505,7 @@ export function ProtocolPanel({ protocolId }: { protocolId: ProtocolId }) {
                     Your {mode} is verified on-chain
                   </p>
                   <a
-                    href={`https://sepolia.starkscan.co/tx/${txHash}`}
+                    href={sepoliaStarkscanTxUrl(txHash)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-emerald-400 hover:text-emerald-300 text-sm font-medium inline-flex items-center gap-1"

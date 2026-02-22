@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
 import { ConnectButton } from "./ConnectButton";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const CONFIDENTIAL_TRANSFER_ADDRESS =
@@ -24,7 +25,11 @@ interface Commitment {
   nonce?: number;
 }
 
-export function PrivateTransferPanel() {
+interface PrivateTransferPanelProps {
+  onCommitmentsChange?: () => void;
+}
+
+export function PrivateTransferPanel({ onCommitmentsChange }: PrivateTransferPanelProps = {}) {
   const { address, account, isConnected } = useAccount();
   const { setActivityFeed } = useApp();
   const [mounted, setMounted] = useState(false);
@@ -170,12 +175,13 @@ export function PrivateTransferPanel() {
       toastSuccess("Stealth deposit successful!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
       });
 
       addActivityEvent(setActivityFeed, {
         type: "private",
+        pool: "stealth",
         text: `Stealth deposit: commitment ${commitment.slice(0, 10)}...`,
         txHash: result.transaction_hash,
         details: `Amount hidden. Only commitment visible on-chain.`,
@@ -194,6 +200,7 @@ export function PrivateTransferPanel() {
           };
           existing.push(newCommitment);
           localStorage.setItem(`zkdefi_commitments_${address}`, JSON.stringify(existing));
+          onCommitmentsChange?.();
         } catch (e) {
           console.error("Failed to store commitment locally:", e);
         }
@@ -284,12 +291,13 @@ export function PrivateTransferPanel() {
       toastSuccess("Stealth withdrawal successful!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
       });
 
       addActivityEvent(setActivityFeed, {
         type: "private",
+        pool: "stealth",
         text: `Stealth withdrawal: nullifier ${nullifier.slice(0, 10)}...`,
         txHash: result.transaction_hash,
         details: `Amount hidden. Funds withdrawn privately.`,
@@ -311,6 +319,7 @@ export function PrivateTransferPanel() {
               return c;
             }).filter((c: Commitment) => BigInt(c.balance) > 0); // Remove depleted commitments
             localStorage.setItem(`zkdefi_commitments_${address}`, JSON.stringify(updated));
+            setTimeout(() => onCommitmentsChange?.(), 0);
           }
         } catch (e) {
           console.error("Failed to update commitment balance:", e);
@@ -686,7 +695,7 @@ export function PrivateTransferPanel() {
                     No amount revealed on-chain
                   </p>
                   <a
-                    href={`https://sepolia.starkscan.co/tx/${txHash}`}
+                    href={sepoliaStarkscanTxUrl(txHash)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1"

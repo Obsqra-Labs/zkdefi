@@ -18,6 +18,22 @@
 
 ---
 
+## Finding: ChunkLoadError and React 423 on /agent after deploy
+
+**Date**: 2026-02-07
+
+**Issue**: After deploy, users saw ChunkLoadError (Loading chunk 60 failed — old chunk URL 404) and React minified error #423 (hydration recovery) when opening /agent on zkde.fi.
+
+**Root Cause**: (1) Cached HTML or CDN served old document that references old chunk hashes (e.g. page-4e4e88343fa1c705.js); after new deploy those chunks no longer exist (new build = new hashes). Single auto-reload could leave users stuck if second load still had cached HTML. (2) useSearchParams() on agent page can contribute to hydration mismatch (React 423 = "error while hydrating but recovered by client rendering root").
+
+**Solution**: (1) ChunkLoadErrorHandler: on first chunk error, set sessionStorage key and reload once; if chunk error happens again (key already set), show full-page "A new version is available. Please refresh the page." with a Refresh button instead of looping reloads. Button clears key and reloads. (2) app/agent/layout.tsx: wrap agent page in Suspense with a loading fallback so useSearchParams and dynamic route content don't cause hydration issues.
+
+**Files Modified**: frontend/src/components/ChunkLoadErrorHandler.tsx (showRefreshUI state, fallback UI after one reload), frontend/src/app/agent/layout.tsx (new, Suspense + fallback).
+
+**Status**: Fixed.
+
+---
+
 ## Finding: BUILD_PLAN 1–7 implemented; Link addresses UI; impact doc and tests
 
 **Date**: 2026-02-07

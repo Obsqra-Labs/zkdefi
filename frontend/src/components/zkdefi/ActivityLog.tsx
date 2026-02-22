@@ -2,36 +2,76 @@
 
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
-import { Shield, Eye, Lock, ArrowRight, ExternalLink } from "lucide-react";
+import { Shield, Eye, Lock, ArrowRight, ExternalLink, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
+import { ActivityEvent, PoolSource } from "@/lib/AppContext";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
-import { ActivityEvent } from "@/lib/AppContext";
+interface ActivityLogProps {
+  title?: string;
+  /** Lock to a single pool -- hides pool filter row */
+  poolFilter?: PoolSource;
+}
 
-export function ActivityLog() {
+type ActionFilter = "all" | "deposits" | "withdrawals" | "proofs";
+type PoolFilter = "all" | PoolSource;
+
+const POOL_LABELS: Record<PoolSource, string> = {
+  full_privacy: "Pool B",
+  shielded: "Shielded",
+  pool_c: "Pool C",
+  pool_d: "Pool D",
+  stealth: "Stealth",
+  compliance: "Compliance",
+  system: "System",
+};
+
+const POOL_COLORS: Record<PoolSource, string> = {
+  full_privacy: "bg-orange-500/15 text-orange-400 border-orange-500/25",
+  shielded: "bg-violet-500/15 text-violet-400 border-violet-500/25",
+  pool_c: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  pool_d: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25",
+  stealth: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
+  compliance: "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  system: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
+};
+
+export function ActivityLog({ title = "Activity Feed", poolFilter: lockedPool }: ActivityLogProps = {}) {
   const { address, isConnected } = useAccount();
-  const { activityFeed, setActivityFeed } = useApp();
+  const { activityFeed, syncActivityForAddress } = useApp();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
+  const [poolFilterState, setPoolFilterState] = useState<PoolFilter>("all");
 
+  // If parent locked the pool, use that
+  const activePool = lockedPool || poolFilterState;
+
+  // Sync persisted activity when wallet address changes
   useEffect(() => {
-    if (!isConnected || !address) {
-      setActivityFeed([]);
-      return;
-    }
+    syncActivityForAddress(isConnected ? address : undefined);
+  }, [isConnected, address, syncActivityForAddress]);
 
-    // Poll for activity updates every 5 seconds
-    const interval = setInterval(() => {
-      // In a real implementation, this would fetch from backend
-      // For now, we'll track events from localStorage or context
-    }, 5000);
+  // Derive which pools have events (for showing pool filter tabs)
+  const activePools = Array.from(new Set(activityFeed.map((e) => e.pool).filter(Boolean))) as PoolSource[];
 
-    return () => clearInterval(interval);
-  }, [isConnected, address, setActivityFeed]);
+  const filteredFeed = activityFeed.filter((e) => {
+    // Pool filter
+    if (activePool !== "all" && e.pool !== activePool) return false;
+    // Action filter
+    if (actionFilter === "all") return true;
+    if (actionFilter === "deposits") return e.type === "deposit";
+    if (actionFilter === "withdrawals") return e.type === "withdraw";
+    if (actionFilter === "proofs") return e.type === "proof" || e.type === "disclosure" || e.type === "private";
+    return true;
+  });
 
   const getEventIcon = (type: ActivityEvent["type"]) => {
     switch (type) {
       case "deposit":
-        return <Shield className="w-4 h-4 text-proof-valid" />;
+        return <ArrowDownToLine className="w-4 h-4 text-proof-valid" />;
+      case "withdraw":
+        return <ArrowUpFromLine className="w-4 h-4 text-amber-400" />;
       case "proof":
         return <Shield className="w-4 h-4 text-proof-generating" />;
       case "private":
@@ -47,6 +87,8 @@ export function ActivityLog() {
     switch (type) {
       case "deposit":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "withdraw":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
       case "proof":
         return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
       case "private":
@@ -72,7 +114,7 @@ export function ActivityLog() {
   if (!isConnected) {
     return (
       <div className="glass rounded-2xl border border-zinc-800 p-8">
-        <h2 className="text-xl font-semibold mb-4">Activity Feed</h2>
+        <h2 className="text-xl font-semibold mb-4">{title}</h2>
         <div className="text-center py-12">
           <p className="text-zinc-400 mb-2">Connect wallet to see your activity</p>
           <p className="text-sm text-zinc-500">
@@ -85,38 +127,80 @@ export function ActivityLog() {
 
   return (
     <div className="glass rounded-2xl border border-zinc-800 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Activity Feed</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">{title}</h2>
         {activityFeed.length > 0 && (
-          <div className="flex gap-2">
-            <button className="px-3 py-1 text-xs rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">
-              All
-            </button>
-            <button className="px-3 py-1 text-xs rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">
-              Deposits
-            </button>
-            <button className="px-3 py-1 text-xs rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">
-              Proofs
-            </button>
-          </div>
+          <span className="text-xs text-zinc-500">{activityFeed.length} events</span>
         )}
       </div>
 
+      {/* Pool filter row (only if multiple pools have events and not locked) */}
+      {!lockedPool && activePools.length > 1 && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <button
+            onClick={() => setPoolFilterState("all")}
+            className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+              poolFilterState === "all"
+                ? "bg-zinc-700 text-white border-zinc-600"
+                : "bg-zinc-800/50 hover:bg-zinc-700 text-zinc-400 border-zinc-700"
+            }`}
+          >
+            All Pools
+          </button>
+          {activePools.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPoolFilterState(p)}
+              className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                poolFilterState === p
+                  ? POOL_COLORS[p]
+                  : "bg-zinc-800/50 hover:bg-zinc-700 text-zinc-400 border-zinc-700"
+              }`}
+            >
+              {POOL_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Action filter row */}
+      {activityFeed.length > 0 && (
+        <div className="flex gap-2 mb-4">
+          {(["all", "deposits", "withdrawals", "proofs"] as ActionFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setActionFilter(f)}
+              className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                actionFilter === f
+                  ? "bg-zinc-700 text-white border-zinc-600"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border-zinc-700"
+              }`}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-3">
         <AnimatePresence>
-          {activityFeed.length === 0 ? (
+          {filteredFeed.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
-              <p className="text-zinc-400 mb-2">No activity yet</p>
+              <p className="text-zinc-400 mb-2">
+                {activityFeed.length === 0 ? "No activity yet" : "No matching activity"}
+              </p>
               <p className="text-sm text-zinc-500">
-                Your deposits, proofs, and private transfers will appear here
+                {activityFeed.length === 0
+                  ? "Your deposits, withdrawals, and proofs will appear here"
+                  : "Try a different filter"}
               </p>
             </motion.div>
           ) : (
-            activityFeed.map((event: ActivityEvent) => (
+            filteredFeed.map((event: ActivityEvent) => (
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -131,7 +215,14 @@ export function ActivityLog() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-zinc-200">{event.text}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-medium text-zinc-200 truncate">{event.text}</p>
+                        {event.pool && (
+                          <span className={`px-1.5 py-0.5 text-[10px] rounded border shrink-0 ${POOL_COLORS[event.pool]}`}>
+                            {POOL_LABELS[event.pool]}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-zinc-500 shrink-0">
                         {formatTimeAgo(event.time)}
                       </span>
@@ -148,7 +239,7 @@ export function ActivityLog() {
                         )}
                         {event.txHash && (
                           <a
-                            href={`https://sepolia.starkscan.co/tx/${event.txHash}`}
+                            href={sepoliaStarkscanTxUrl(event.txHash)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300"
@@ -183,5 +274,5 @@ export function addActivityEvent(
       time: new Date(),
     },
     ...prev,
-  ].slice(0, 50)); // Keep last 50 events
+  ].slice(0, 100)); // Keep last 100 events
 }

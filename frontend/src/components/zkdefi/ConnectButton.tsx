@@ -5,6 +5,7 @@ import { useAccount, useDisconnect } from "@starknet-react/core";
 import { Wallet, ChevronDown, ExternalLink, Copy, LogOut } from "lucide-react";
 import { WalletModal } from "./WalletModal";
 import { toastSuccess } from "@/lib/toast";
+import { sepoliaStarkscanContractUrl } from "@/lib/explorer";
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -28,7 +29,7 @@ export function ConnectButton() {
 
   const viewOnExplorer = () => {
     if (address) {
-      window.open(`https://sepolia.starkscan.co/contract/${address}`, "_blank");
+      window.open(sepoliaStarkscanContractUrl(address), "_blank");
       setIsDropdownOpen(false);
     }
   };

@@ -5,6 +5,9 @@ import { useAccount } from "@starknet-react/core";
 import { ProofVisualizer } from "./ProofVisualizer";
 import { ConnectButton } from "./ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { useApp } from "@/lib/AppContext";
+import { addActivityEvent } from "./ActivityLog";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 import { 
   Lock, Shield, Eye, EyeOff, ArrowRight, CheckCircle2, 
   ArrowDownToLine, ArrowUpFromLine, Send, Info, AlertTriangle 
@@ -41,8 +44,9 @@ interface UserTier {
   relayer_delay_seconds: number;
 }
 
-export function ShieldedPoolPanel() {
+export function ShieldedPoolPanel({ onCommitmentsChange }: { onCommitmentsChange?: () => void }) {
   const { address, account, isConnected } = useAccount();
+  const { setActivityFeed } = useApp();
   const [mounted, setMounted] = useState(false);
   
   // Mode and pool selection
@@ -88,7 +92,7 @@ export function ShieldedPoolPanel() {
   const fetchUserTier = async () => {
     if (!address) return;
     try {
-      const res = await fetch(`${API_BASE}/api/v1/reputation/${address}`);
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/user/${address}`);
       const data = await res.json();
       setUserTier({
         tier: data.tier || 0,
@@ -228,8 +232,16 @@ export function ShieldedPoolPanel() {
       toastSuccess("Private deposit successful!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
         },
+      });
+
+      addActivityEvent(setActivityFeed, {
+        type: "deposit",
+        pool: "shielded",
+        text: "Shielded Pool deposit",
+        txHash: result.transaction_hash,
+        details: `Private deposit to ${selectedPool} pool. Amount hidden on-chain.`,
       });
 
       // Store commitment locally
@@ -244,6 +256,7 @@ export function ShieldedPoolPanel() {
           timestamp: Date.now(),
         });
         localStorage.setItem(`zkdefi_shielded_${address}`, JSON.stringify(existing));
+        onCommitmentsChange?.();
       }
     } catch (e: unknown) {
       const err = e && typeof e === "object" && "message" in e ? (e as { message: string }).message : String(e);
@@ -342,7 +355,7 @@ export function ShieldedPoolPanel() {
         toastSuccess("Relayed withdrawal requested!", {
           action: {
             label: "View on explorer",
-            onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+            onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
           },
         });
       } else {
@@ -365,12 +378,20 @@ export function ShieldedPoolPanel() {
         toastSuccess("Private withdrawal successful!", {
           action: {
             label: "View on explorer",
-            onClick: () => window.open(`https://sepolia.starkscan.co/tx/${result.transaction_hash}`, "_blank"),
+            onClick: () => window.open(sepoliaStarkscanTxUrl(result.transaction_hash), "_blank"),
           },
         });
       }
 
       setTxHash(result.transaction_hash);
+
+      addActivityEvent(setActivityFeed, {
+        type: "withdraw",
+        pool: "shielded",
+        text: "Shielded Pool withdrawal",
+        txHash: result.transaction_hash,
+        details: "Private withdrawal completed. Amount hidden on-chain.",
+      });
 
       // Update local commitment balance
       if (address && selectedCommitment) {
@@ -385,6 +406,7 @@ export function ShieldedPoolPanel() {
             return c;
           }).filter((c: Commitment) => BigInt(c.balance) > 0);
           localStorage.setItem(`zkdefi_shielded_${address}`, JSON.stringify(updated));
+          setTimeout(() => onCommitmentsChange?.(), 0);
         }
       }
     } catch (e: unknown) {
@@ -705,7 +727,7 @@ export function ShieldedPoolPanel() {
                         <p>✓ Amount: Hidden</p>
                         <p>✓ Pool choice: Hidden</p>
                         {useRelayer && <p>✓ Destination: Unlinkable via relayer</p>}
-                        <p className="text-emerald-400">✓ No execution proof needed (you're signing)</p>
+                        <p className="text-emerald-400">✓ No execution proof needed (you&#39;re signing)</p>
                       </div>
                     </div>
                   </div>
@@ -740,7 +762,7 @@ export function ShieldedPoolPanel() {
                   <p className="text-sm text-zinc-400 mb-4">
                     {useRelayer ? "Funds will be sent to fresh address after delay" : "Amount hidden on-chain"}
                   </p>
-                  <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">
+                  <a href={sepoliaStarkscanTxUrl(txHash)} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-medium inline-flex items-center gap-1">
                     View on explorer <ArrowRight className="w-4 h-4" />
                   </a>
                 </div>

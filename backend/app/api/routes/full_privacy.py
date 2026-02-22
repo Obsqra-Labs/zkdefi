@@ -88,6 +88,37 @@ class WithdrawProofResponse(BaseModel):
     message: str
 
 
+class WithdrawClaimProofRequest(BaseModel):
+    user_secret: str
+    amount: str | int
+    pool_type: int
+    nonce: str
+    blinding: str
+    withdraw_amount: str | int
+    recipient: str
+    claim_salt: Optional[str] = None
+    leaf_index: int = -1
+    merkle_root: Optional[str] = None
+    path_elements: Optional[List[str]] = None
+    path_indices: Optional[List[int]] = None
+
+
+class WithdrawClaimProofResponse(BaseModel):
+    nullifier: str
+    nullifier_low: Optional[str] = None
+    nullifier_high: Optional[str] = None
+    root: str
+    root_low: Optional[str] = None
+    root_high: Optional[str] = None
+    claim_hash: str
+    claim_low: Optional[str] = None
+    claim_high: Optional[str] = None
+    claim_salt: str
+    pool_type: int
+    proof_calldata: List[str]
+    message: str
+
+
 class WithdrawProofWithChangeResponse(BaseModel):
     nullifier: str
     nullifier_low: Optional[str] = None
@@ -439,6 +470,73 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.exception("withdraw proof error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/withdraw/generate_claim_proof", response_model=WithdrawClaimProofResponse)
+async def generate_withdraw_claim_proof(request: WithdrawClaimProofRequest):
+    """
+    Generate a Tier-2H withdrawal claim proof.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info("=== WITHDRAW CLAIM PROOF REQUEST ===")
+    logger.info(f"Amount: {request.amount}")
+    logger.info(f"Pool type: {request.pool_type}")
+    logger.info(f"Withdraw amount: {request.withdraw_amount}")
+    logger.info(f"Leaf index: {request.leaf_index}")
+
+    try:
+        svc = get_full_privacy_service()
+
+        user_secret = int(request.user_secret, 16) if request.user_secret.startswith("0x") else int(request.user_secret)
+        nonce = int(request.nonce, 16) if request.nonce.startswith("0x") else int(request.nonce)
+        blinding = int(request.blinding, 16) if request.blinding.startswith("0x") else int(request.blinding)
+        claim_salt = None
+        if request.claim_salt:
+            claim_salt = int(request.claim_salt, 16) if request.claim_salt.startswith("0x") else int(request.claim_salt)
+
+        amount = int(request.amount) if isinstance(request.amount, str) else request.amount
+        withdraw_amount = int(request.withdraw_amount) if isinstance(request.withdraw_amount, str) else request.withdraw_amount
+
+        proof_data = svc.generate_withdraw_claim_proof(
+            user_secret=user_secret,
+            amount=amount,
+            pool_type=request.pool_type,
+            nonce=nonce,
+            blinding=blinding,
+            withdraw_amount=withdraw_amount,
+            recipient=request.recipient,
+            leaf_index=request.leaf_index,
+            claim_salt=claim_salt,
+            merkle_root=int(request.merkle_root, 16) if request.merkle_root else None,
+            path_elements=[int(p, 16) for p in request.path_elements] if request.path_elements else None,
+            path_indices=request.path_indices,
+        )
+
+        return WithdrawClaimProofResponse(
+            nullifier=proof_data["nullifier"],
+            nullifier_low=proof_data["nullifier_low"],
+            nullifier_high=proof_data["nullifier_high"],
+            root=proof_data["root"],
+            root_low=proof_data["root_low"],
+            root_high=proof_data["root_high"],
+            claim_hash=proof_data["claim_hash"],
+            claim_low=proof_data["claim_low"],
+            claim_high=proof_data["claim_high"],
+            claim_salt=proof_data["claim_salt"],
+            pool_type=proof_data["pool_type"],
+            proof_calldata=proof_data["proof_calldata"],
+            message=proof_data["message"],
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("withdraw claim proof error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

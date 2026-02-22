@@ -1,8 +1,10 @@
-# Proof Flows: Private Transfer, Shielded, Full Privacy, zkML
+# Proof Flows: Private Transfer, Shielded, Pool B, Pool C, zkML
 
 This doc describes how privacy proof flows fit together, what unlocks what, and deposit/withdraw semantics so one flow is not broken while fixing another.
 
-**Smoke testing:** Use the **Full Privacy** (merkle tree) flow; Private Transfer and Shielded Pool have not been the recent focus. Ensure the frontend Full Privacy panel honors the backend flow that succeeds (deposit → register_commitment → withdraw with stored merkle proof).
+**Terminology:** **Shielded** = as-is pool (balance-style, relayer option). **Pool B (Full Privacy)** = note-unlinkable Merkle pool. **Pool C** = Tornado-style compliant (same backend as B initially; roadmap: private recipient, association set). Privacy tiers (Tier 1–4 by on-chain visibility): [PRIVACY_TIERS.md](PRIVACY_TIERS.md). See [POOL_TYPES_AND_ROADMAP.md](POOL_TYPES_AND_ROADMAP.md).
+
+**Smoke testing:** Use the **Pool B (Full Privacy)** (merkle tree) flow; Private Transfer and Shielded Pool have not been the recent focus. Ensure the frontend Pool B panel honors the backend flow that succeeds (deposit → register_commitment → withdraw with stored merkle proof).
 
 ## Flows overview
 
@@ -10,7 +12,8 @@ This doc describes how privacy proof flows fit together, what unlocks what, and 
 |------|----------|----------|-----------------|--------|
 | **Private Transfer** | ConfidentialTransfer | PrivateDeposit, PrivateWithdraw | Groth16Prover | Confidential balances, private send |
 | **Shielded Pool** | ShieldedPool or ConfidentialTransfer | Same: PrivateDeposit, PrivateWithdraw | Groth16Prover | Pool deposits/withdrawals with privacy |
-| **Full Privacy** | FullyShieldedPool | FullPrivacyWithdraw | full_privacy_proof_service | Full privacy pool withdraw (merkle membership) |
+| **Pool B (Full Privacy)** | FullyShieldedPool | FullPrivacyWithdraw | full_privacy_proof_service | Full privacy pool withdraw (merkle membership) |
+| **Pool C (Tornado-style)** | Same as Pool B initially | FullPrivacyWithdraw | full_privacy_proof_service | Compliant Tornado-style; relayer emphasized |
 | **zkML / AI rebalancing** | Proof-gated agent | RiskScore, AnomalyDetector | proof_pipeline, zkml_risk_service, zkml_anomaly_service | Proof-gated rebalancing |
 | **Onboarding** | ProofGatedYieldAgent, AgentIdentity, ValidationProofRegistry | None (STARK/obsqra) | onboarding routes | Agent initialization |
 
@@ -19,9 +22,9 @@ This doc describes how privacy proof flows fit together, what unlocks what, and 
 - **Private Transfer** (`/api/v1/zkdefi/private_deposit`, `private_withdraw`) and **Shielded Pool** (`/api/v1/zkdefi/shielded_deposit`, `shielded_withdraw`) share the **same circuits** (PrivateDeposit.circom, PrivateWithdraw.circom) and the same **Groth16Prover**. No merkle tree; only commitment_balance and nullifiers on-chain.
 - Shielded deposit/withdraw are wrappers that call `Groth16Prover.generate_private_deposit_proof` and `generate_private_withdraw_proof`. Fixing circuits/build and commitment in the prover fixes both flows.
 
-## Full Privacy (separate) — flow to use for smoke testing
+## Pool B (Full Privacy) — flow to use for smoke testing
 
-- **Full Privacy** uses FullPrivacyWithdraw.circom and a **merkle tree** (backend BN254 tree + on-chain add_known_root sync). It does **not** use PrivateDeposit/PrivateWithdraw. No change to Private Transfer or Shielded when fixing Full Privacy, and vice versa.
+- **Pool B (Full Privacy)** uses FullPrivacyWithdraw.circom and a **merkle tree** (backend BN254 tree + on-chain add_known_root sync). It does **not** use PrivateDeposit/PrivateWithdraw. No change to Private Transfer or Shielded when fixing Pool B, and vice versa.
 - **Backend flow (working):** (1) `POST /full_privacy/deposit/generate_commitment` → returns commitment, user_secret, amount, pool_type, nonce, blinding. (2) User submits on-chain deposit. (3) `POST /full_privacy/deposit/register_commitment` with commitment → returns leaf_index, merkle_root, **path_elements**, **path_indices**. (4) `POST /full_privacy/withdraw/generate_proof` with user_secret, amount, pool_type, nonce, blinding, withdraw_amount, recipient, leaf_index, and **optionally merkle_root, path_elements, path_indices** (stored proof from registration).
 - **Frontend must match:** Save **path_elements** and **path_indices** from the register_commitment response (not just leaf_index and merkle_root). When calling withdraw/generate_proof, send **merkle_root, path_elements, path_indices** from the saved commitment when present. The backend uses this stored proof to bypass `get_merkle_proof` (which cannot reliably reconstruct proofs for the incremental tree). Without sending the stored proof, withdraw can fail with "Commitment not found in merkle tree" or invalid proof.
 

@@ -41,7 +41,11 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const tabFromUrl = searchParams.get("tab") as ProfileTab | null;
   const [activeTabState, setActiveTabState] = useState<ProfileTab>("overview");
-  const activeTab: ProfileTab = (tabFromUrl && ["overview", "collateral", "relayer", "agents", "compliance"].includes(tabFromUrl) ? tabFromUrl : activeTabState);
+  const VALID_TABS: ProfileTab[] = ["overview", "collateral", "relayer", "agents", "compliance"];
+  // Use URL tab only after mount to avoid React hydration #418 (server/client searchParams mismatch).
+  const activeTab: ProfileTab = !mounted
+    ? "overview"
+    : (tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : activeTabState);
   const setActiveTab = (t: ProfileTab) => {
     setActiveTabState(t);
     router.replace(`/profile?tab=${t}`, { scroll: false });
@@ -201,7 +205,7 @@ export default function ProfilePage() {
               <span className="font-semibold text-lg">zkde.fi</span>
             </Link>
             <nav className="hidden md:flex items-center gap-1">
-              <Link href="/agent" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Dashboard</Link>
+              <Link href="/agent" prefetch={false} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Dashboard</Link>
               <Link href="/profile" className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">Profile</Link>
             </nav>
           </div>
@@ -355,7 +359,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="flex items-center justify-between text-zinc-400">
                       <p>No passport data yet. Run proofs on the Agent page to build your passport.</p>
-                      <Link href="/agent" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all flex items-center gap-2 text-white text-sm">
+                      <Link href="/agent" prefetch={false} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all flex items-center gap-2 text-white text-sm">
                         <Shield className="w-4 h-4" /> Run proofs
                       </Link>
                     </div>
@@ -395,7 +399,7 @@ export default function ProfilePage() {
                         <p>Complete onboarding to generate your credit tier.</p>
                         <p className="text-sm text-zinc-500">Private proof of your cross-chain DeFi history.</p>
                       </div>
-                      <Link href="/agent?tab=onboarding" className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium transition-all flex items-center gap-2">
+                      <Link href="/agent?tab=onboarding" prefetch={false} className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium transition-all flex items-center gap-2">
                         <Star className="w-4 h-4" /> Get Credit Tier
                       </Link>
                     </div>
@@ -497,7 +501,7 @@ export default function ProfilePage() {
                         </div>
                       )}
                       {!onboardingStatus.has_agent && (
-                        <Link href="/agent?tab=onboarding" className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium text-sm">
+                        <Link href="/agent?tab=onboarding" prefetch={false} className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium text-sm">
                           <Star className="w-4 h-4" /> Complete onboarding
                         </Link>
                       )}
@@ -505,7 +509,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="text-zinc-400 text-sm">
                       <p>Onboarding status is loaded from the agent flow.</p>
-                      <Link href="/agent?tab=onboarding" className="mt-2 inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm">
+                      <Link href="/agent?tab=onboarding" prefetch={false} className="mt-2 inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm">
                         Open onboarding <Star className="w-3 h-3" />
                       </Link>
                     </div>
@@ -671,6 +675,7 @@ export default function ProfilePage() {
                   </p>
                   <Link 
                     href="/agent?tab=models" 
+                    prefetch={false}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-medium transition-all"
                   >
                     <Brain className="w-4 h-4" />
@@ -712,7 +717,7 @@ export default function ProfilePage() {
                     <div className="text-center py-8">
                       <FileCheck className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
                       <p className="text-zinc-400 mb-4">No compliance profiles generated yet.</p>
-                      <Link href="/agent?tab=disclosure" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all inline-flex items-center gap-2">
+                      <Link href="/agent?tab=disclosure" prefetch={false} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all inline-flex items-center gap-2">
                         <Shield className="w-4 h-4" /> Generate Compliance Proof
                       </Link>
                     </div>
@@ -762,7 +767,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-zinc-400 mb-4">
                     Pool safety is checked when you run rebalances on the Agent. zkML anomaly detection analyzes pools before execution.
                   </p>
-                  <Link href="/agent" className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300">
+                  <Link href="/agent" prefetch={false} className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300">
                     Open Agent <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>

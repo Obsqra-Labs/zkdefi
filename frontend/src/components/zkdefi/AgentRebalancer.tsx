@@ -18,6 +18,9 @@ import {
   Clock,
   Zap
 } from "lucide-react";
+import { ProofTimeline } from "@/components/zkdefi/ProofTimeline";
+import { TierBadge } from "@/components/zkdefi/TierBadge";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 
@@ -33,6 +36,7 @@ interface Proposal {
   risk_proof?: any;
   anomaly_proof?: any;
   commitment_hash?: string;
+  snapshot_hash?: string | null;
   tx_hash?: string;
   error?: string;
 }
@@ -60,14 +64,17 @@ interface AgentRebalancerProps {
   userAddress: string;
   sessionId?: string;
   positions?: { [key: string]: number };
+  /** User tier (0=Strict, 1=Standard, 2=Express) for badge and visibility copy */
+  userTier?: number;
 }
 
-const PROTOCOL_NAMES = ["Pools", "Ekubo", "JediSwap"];
+const PROTOCOL_NAMES = ["Pools", "Ekubo", "JediSwap (legacy)"];
 
 export function AgentRebalancer({ 
   userAddress, 
   sessionId,
-  positions = {}
+  positions = {},
+  userTier = 0,
 }: AgentRebalancerProps) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -85,6 +92,7 @@ export function AgentRebalancer({
   const [autonomousLoading, setAutonomousLoading] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState(15);
   const [showAutonomousSettings, setShowAutonomousSettings] = useState(false);
+  const [poolPassport, setPoolPassport] = useState<{ safe: boolean | null; health_score?: number } | null>(null);
   
   // Fetch autonomous status
   const fetchAutonomousStatus = useCallback(async () => {
@@ -105,6 +113,20 @@ export function AgentRebalancer({
       fetchAutonomousStatus();
     }
   }, [userAddress, fetchAutonomousStatus]);
+
+  // Fetch pool passport when propose modal is open and To protocol is selected
+  useEffect(() => {
+    if (!showPropose) {
+      setPoolPassport(null);
+      return;
+    }
+    const poolId = `pool_${toProtocol}`;
+    setPoolPassport(null);
+    fetch(`${API_BASE}/api/v1/zkdefi/risk_passport/pool/${poolId}`)
+      .then(r => r.json())
+      .then(data => setPoolPassport({ safe: data.safe ?? null, health_score: data.health_score }))
+      .catch(() => setPoolPassport(null));
+  }, [showPropose, toProtocol]);
   
   const fetchProposals = async () => {
     setLoading(true);
@@ -236,60 +258,89 @@ export function AgentRebalancer({
     }
   };
   
-  const runZkmlChecks = async (proposalId: string) => {
+  const runZkmlChecks = async (proposalId: string, retryOnce = true) => {
     setProcessing(proposalId);
     try {
-      // Generate portfolio features
       const portfolioFeatures = Object.values(positions).length > 0
         ? generatePortfolioFeatures(positions)
         : [50, 30, 20, 20, 50, 30, 10, 20];
-      
-      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/check`, {
+      const body = JSON.stringify({
+        proposal_id: proposalId,
+        portfolio_features: portfolioFeatures,
+        pool_id: `pool_${toProtocol}`
+      });
+      let response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proposal_id: proposalId,
-          portfolio_features: portfolioFeatures,
-          pool_id: `pool_${toProtocol}`
-        })
+        body
       });
-      
+      if (response.status === 503 && retryOnce) {
+        const data = await response.json().catch(() => ({}));
+        const detail = (data.detail || "").toLowerCase();
+        if (detail.includes("retry")) {
+          toastSuccess("Proof in progress, retrying…");
+          await new Promise(r => setTimeout(r, 2500));
+          return runZkmlChecks(proposalId, false);
+        }
+      }
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        toastError(data.detail || "zkML check failed");
+      }
       await fetchProposals();
     } catch (error) {
       console.error("Failed to run zkML checks:", error);
+      toastError("Failed to run zkML checks");
     } finally {
       setProcessing(null);
     }
   };
   
-  const prepareAndExecute = async (proposalId: string) => {
+  const prepareAndExecute = async (proposalId: string, retryOnce = true) => {
     if (!sessionId) {
       alert("Session key required for execution");
       return;
     }
-    
     setProcessing(proposalId);
     try {
-      // Prepare
-      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/prepare`, {
+      const prepareBody = JSON.stringify({ proposal_id: proposalId, session_id: sessionId });
+      let prepRes = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/prepare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proposal_id: proposalId,
-          session_id: sessionId
-        })
+        body: prepareBody
       });
-      
-      // Execute
-      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/execute`, {
+      if (prepRes.status === 503 && retryOnce) {
+        const data = await prepRes.json().catch(() => ({}));
+        if ((data.detail || "").toLowerCase().includes("retry")) {
+          toastSuccess("Proof in progress, retrying…");
+          await new Promise(r => setTimeout(r, 2500));
+          return prepareAndExecute(proposalId, false);
+        }
+      }
+      if (!prepRes.ok) {
+        const data = await prepRes.json().catch(() => ({}));
+        toastError(data.detail || "Prepare failed");
+        return;
+      }
+      let execRes = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proposal_id: proposalId,
-          session_id: sessionId
-        })
+        body: prepareBody
       });
-      
+      if (execRes.status === 503 && retryOnce) {
+        toastSuccess("Proof in progress, retrying…");
+        await new Promise(r => setTimeout(r, 2500));
+        return prepareAndExecute(proposalId, false);
+      }
+      if (!execRes.ok) {
+        const data = await execRes.json().catch(() => ({}));
+        toastError(data.detail || "Execution failed");
+      } else {
+        const result = await execRes.json().catch(() => ({}));
+        if (result.execution_error) {
+          toastError(`Execution failed: ${result.execution_error}`);
+        }
+      }
       await fetchProposals();
     } catch (error) {
       console.error("Failed to execute:", error);
@@ -348,7 +399,10 @@ export function AgentRebalancer({
           </div>
           <div>
             <h3 className="font-semibold text-white">Agent Rebalancer</h3>
-            <p className="text-xs text-zinc-500">zkML-gated autonomous execution</p>
+            <p className="text-xs text-zinc-500 flex items-center gap-2">
+              zkML-gated autonomous execution
+              <TierBadge tier={userTier} showVisibilityHint />
+            </p>
           </div>
         </div>
         
@@ -547,7 +601,13 @@ export function AgentRebalancer({
               </div>
               
               <p className="text-xs text-zinc-500 mb-3">{proposal.reason}</p>
-              
+              {proposal.snapshot_hash && (
+                <p className="text-xs text-zinc-500 font-mono mb-2" title={proposal.snapshot_hash}>
+                  snap {typeof proposal.snapshot_hash === "string" && proposal.snapshot_hash.length > 14
+                    ? `${proposal.snapshot_hash.slice(0, 8)}…${proposal.snapshot_hash.slice(-6)}`
+                    : proposal.snapshot_hash}
+                </p>
+              )}
               {/* zkML Results */}
               {(proposal.risk_proof || proposal.anomaly_proof) && (
                 <div className="flex gap-2 mb-3">
@@ -576,13 +636,55 @@ export function AgentRebalancer({
               
               {proposal.error && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 mb-3">
-                  <p className="text-xs text-red-400">{proposal.error}</p>
+                  <p className="text-xs text-red-400">Execution failed: {proposal.error}</p>
                 </div>
               )}
               
-              {proposal.tx_hash && (
+              {proposal.tx_hash && !proposal.error && (
                 <div className="text-xs text-zinc-500">
                   TX: <span className="font-mono">{proposal.tx_hash.slice(0, 10)}...{proposal.tx_hash.slice(-8)}</span>
+                </div>
+              )}
+              
+              {/* Why did this execute? — Proof timeline from proposal proofs + receipt */}
+              {(proposal.risk_proof || proposal.anomaly_proof || (proposal.tx_hash && !proposal.error)) && (
+                <div className="mt-2 p-3 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
+                  <ProofTimeline
+                    receipts={[
+                      ...(proposal.risk_proof
+                        ? [{
+                            proof_type: "risk_score",
+                            threshold_or_model: "30",
+                            result: proposal.risk_proof.is_compliant ? "compliant" : "non_compliant",
+                            timestamp: proposal.created_at,
+                            model_hash: "risk_v1",
+                            snapshot_hash: proposal.snapshot_hash ?? undefined,
+                          }]
+                        : []),
+                      ...(proposal.anomaly_proof
+                        ? [{
+                            proof_type: "pool_safety",
+                            threshold_or_model: "anomaly",
+                            result: proposal.anomaly_proof.is_safe ? "safe" : "unsafe",
+                            timestamp: proposal.created_at,
+                            model_hash: "anomaly_v1",
+                            snapshot_hash: proposal.snapshot_hash ?? undefined,
+                          }]
+                        : []),
+                      ...(proposal.tx_hash && !proposal.error
+                        ? [{
+                            proof_type: "rebalance",
+                            threshold_or_model: proposal.proposal_id,
+                            result: "completed",
+                            timestamp: proposal.created_at,
+                            tx_hash: proposal.tx_hash,
+                            snapshot_hash: proposal.snapshot_hash ?? undefined,
+                          }]
+                        : []),
+                    ]}
+                    compact={true}
+                    title="Why did this execute?"
+                  />
                 </div>
               )}
               
@@ -604,18 +706,25 @@ export function AgentRebalancer({
                 )}
                 
                 {(proposal.status === "zkml_passed" || proposal.status === "ready_to_execute") && (
-                  <button
-                    onClick={() => prepareAndExecute(proposal.proposal_id)}
-                    disabled={processing === proposal.proposal_id || !sessionId}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
-                  >
-                    {processing === proposal.proposal_id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Check className="w-3 h-3" />
+                  <>
+                    {userTier >= 1 && (
+                      <p className="text-xs text-amber-400/90 mb-2">
+                        Recipient and amount may be visible on-chain for your tier.
+                      </p>
                     )}
-                    Execute
-                  </button>
+                    <button
+                      onClick={() => prepareAndExecute(proposal.proposal_id)}
+                      disabled={processing === proposal.proposal_id || !sessionId}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    >
+                      {processing === proposal.proposal_id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                      Execute
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -691,6 +800,23 @@ export function AgentRebalancer({
                   This proposal will be checked by zkML models (risk score + anomaly detection) before execution.
                 </p>
               </div>
+              
+              {/* Pool passport for selected To pool */}
+              {showPropose && (
+                <div className="rounded-lg border border-zinc-700 p-3 text-xs">
+                  <span className="text-zinc-400">Pool passport ({PROTOCOL_NAMES[toProtocol]}): </span>
+                  {poolPassport === null ? (
+                    <span className="text-zinc-500">Loading...</span>
+                  ) : poolPassport.safe === null ? (
+                    <span className="text-zinc-500">Not analyzed yet</span>
+                  ) : (
+                    <span className={poolPassport.safe ? "text-emerald-400" : "text-amber-400"}>
+                      {poolPassport.safe ? "Safe" : "Not safe"}
+                      {poolPassport.health_score != null && ` (${poolPassport.health_score})`}
+                    </span>
+                  )}
+                </div>
+              )}
               
               <button
                 onClick={handlePropose}

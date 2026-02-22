@@ -1,0 +1,10 @@
+{
+  "plugins": {
+    "parallel": {
+      "enabled": true
+    },
+    "superpowers": {
+      "enabled": true
+    }
+  }
+}

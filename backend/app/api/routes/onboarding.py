@@ -14,11 +14,12 @@ Flow:
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import hashlib
+import json
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import httpx
 import os
-import json
 
 # Obsqra Stone prover API. Liveness: GET {base}/ → 200. Proofs: POST {base}/proofs/generate
 OBSQRA_PROVER_API_URL = (os.getenv("OBSQRA_PROVER_API_URL", "https://starknet.obsqra.fi/api/v1")).rstrip("/")
@@ -30,9 +31,41 @@ AGENT_IDENTITY_ADDRESS = os.getenv("AGENT_IDENTITY_ADDRESS", "")
 VALIDATION_PROOF_REGISTRY_ADDRESS = os.getenv("VALIDATION_PROOF_REGISTRY_ADDRESS", "")
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia-rpc.publicnode.com")
 
-# In-memory storage for user onboarding state (would be DB in production)
+# Onboarding state: in-memory, persisted to file so it survives restart
+_ONBOARDING_STATE_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "onboarding_state.json"
 _user_onboarding_state: Dict[str, Dict[str, Any]] = {}
 
+
+def _load_onboarding_state() -> None:
+    global _user_onboarding_state
+    if not _ONBOARDING_STATE_FILE.exists():
+        return
+    try:
+        data = json.loads(_ONBOARDING_STATE_FILE.read_text())
+        if isinstance(data, dict):
+            _user_onboarding_state = {k: v for k, v in data.items() if isinstance(v, dict)}
+    except Exception:
+        pass
+
+
+def _save_onboarding_state() -> None:
+    try:
+        _ONBOARDING_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        out = {
+            k: {
+                "fact_hash": v.get("fact_hash"),
+                "identity_commitment": v.get("identity_commitment"),
+                "timestamp": v.get("timestamp"),
+                "agent_initialized": v.get("agent_initialized", False),
+            }
+            for k, v in _user_onboarding_state.items()
+        }
+        _ONBOARDING_STATE_FILE.write_text(json.dumps(out, indent=0))
+    except Exception:
+        pass
+
+
+_load_onboarding_state()
 router = APIRouter()
 
 
@@ -215,7 +248,7 @@ async def submit_agent(req: SubmitAgentRequest):
         if not req.risk_signature or not req.risk_signature.get("r") or not req.risk_signature.get("s"):
             raise HTTPException(status_code=400, detail="Invalid risk signature format")
         
-        # 2. Store onboarding state
+        # 2. Store onboarding state and persist so it survives restart
         _user_onboarding_state[req.user_address.lower()] = {
             "fact_hash": req.fact_hash,
             "identity_commitment": req.identity_commitment,
@@ -223,7 +256,8 @@ async def submit_agent(req: SubmitAgentRequest):
             "risk_signature": req.risk_signature,
             "agent_initialized": True,
         }
-        
+        _save_onboarding_state()
+
         # 3. Prepare contract calldata for ProofGatedYieldAgent.set_constraints
         # This would be executed by the frontend using the user's wallet
         set_constraints_calldata = await _prepare_set_constraints_calldata(

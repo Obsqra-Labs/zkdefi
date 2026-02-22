@@ -92,6 +92,34 @@ pub trait IFullyShieldedPoolU256<TContractState> {
         zk_proof: Span<felt252>
     );
     
+    /// Tier 2: Withdraw via relayer; recipient and amount are read from proof public inputs (not calldata).
+    fn withdraw_relayed_u256(
+        ref self: TContractState,
+        nullifier_low: u128,
+        nullifier_high: u128,
+        root_low: u128,
+        root_high: u128,
+        pool_type: u8,
+        zk_proof: Span<felt252>
+    );
+
+    /// Withdraw partial amount and insert change commitment (V2 partial withdraw)
+    /// Proof proves withdraw_amount + change_amount = commitment_amount; contract transfers withdraw_amount and inserts change_commitment into tree
+    fn withdraw_with_change_u256(
+        ref self: TContractState,
+        nullifier_low: u128,
+        nullifier_high: u128,
+        root_low: u128,
+        root_high: u128,
+        recipient: ContractAddress,
+        withdraw_amount: u256,
+        pool_type: u8,
+        change_commitment_low: u128,
+        change_commitment_high: u128,
+        change_amount: u256,
+        zk_proof: Span<felt252>
+    );
+    
     // ==================== SELECTIVE DISCLOSURE ====================
     
     fn verify_balance_above(
@@ -146,6 +174,7 @@ mod FullyShieldedPool {
         // Core contracts
         merkle_tree: ContractAddress,
         withdraw_verifier: ContractAddress,
+        withdraw_with_change_verifier: ContractAddress,
         balance_disclosure_verifier: ContractAddress,
         pool_disclosure_verifier: ContractAddress,
         tenure_disclosure_verifier: ContractAddress,
@@ -172,6 +201,7 @@ mod FullyShieldedPool {
         Deposit: Deposit,
         WithdrawalU256: WithdrawalU256,
         Withdrawal: Withdrawal,
+        WithdrawalWithChangeU256: WithdrawalWithChangeU256,
         DisclosureVerified: DisclosureVerified,
     }
     
@@ -210,6 +240,19 @@ mod FullyShieldedPool {
     }
     
     #[derive(Drop, starknet::Event)]
+    struct WithdrawalWithChangeU256 {
+        #[key]
+        nullifier_low: u128,
+        #[key]
+        nullifier_high: u128,
+        #[key]
+        change_commitment_low: u128,
+        #[key]
+        change_commitment_high: u128,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
     struct DisclosureVerified {
         disclosure_type: felt252,
         timestamp: u64,
@@ -225,6 +268,7 @@ mod FullyShieldedPool {
     ) {
         self.merkle_tree.write(merkle_tree);
         self.withdraw_verifier.write(withdraw_verifier);
+        self.withdraw_with_change_verifier.write(Zero::zero());
         self.token.write(token);
         self.admin.write(admin);
         self.deposit_count.write(0);
@@ -235,7 +279,36 @@ mod FullyShieldedPool {
         fn verify_withdraw_proof(self: @ContractState, proof: Span<felt252>) -> bool {
             let verifier_addr = self.withdraw_verifier.read();
             if verifier_addr.is_zero() {
-                // No verifier set - accept proof structure check only (dev mode)
+                return proof.len() >= 3;
+            }
+            
+            let verifier = IGaragaVerifierDispatcher {
+                contract_address: verifier_addr
+            };
+            let result = verifier.verify_groth16_proof_bn254(proof);
+            result.is_ok()
+        }
+        
+        /// Verify withdraw proof and return public_inputs (root, nullifier, recipient, withdrawAmount, poolType). Caller must ensure verifier is set.
+        fn verify_withdraw_proof_and_get_public_inputs(
+            self: @ContractState,
+            zk_proof: Span<felt252>
+        ) -> Span<u256> {
+            let verifier_addr = self.withdraw_verifier.read();
+            assert(!verifier_addr.is_zero(), 'Verifier required');
+            let verifier = IGaragaVerifierDispatcher {
+                contract_address: verifier_addr
+            };
+            let result = verifier.verify_groth16_proof_bn254(zk_proof);
+            match result {
+                Result::Ok(public_inputs) => public_inputs,
+                Result::Err(_) => panic!("Invalid withdrawal proof"),
+            }
+        }
+        
+        fn verify_withdraw_with_change_proof(self: @ContractState, proof: Span<felt252>) -> bool {
+            let verifier_addr = self.withdraw_with_change_verifier.read();
+            if verifier_addr.is_zero() {
                 return proof.len() >= 3;
             }
             
@@ -260,6 +333,13 @@ mod FullyShieldedPool {
             };
             let result = verifier.verify_groth16_proof_bn254(proof);
             result.is_ok()
+        }
+
+        fn u256_to_felt(self: @ContractState, low: u128, high: u128) -> felt252 {
+            let low_felt: felt252 = low.into();
+            let high_felt: felt252 = high.into();
+            // 2^128 = 340282366920938463463374607431768211456
+            low_felt + high_felt * 340282366920938463463374607431768211456
         }
         
         fn nullifier_key(self: @ContractState, low: u128, high: u128) -> felt252 {
@@ -376,6 +456,98 @@ mod FullyShieldedPool {
             self.withdraw_u256(null_low, null_high, root_low, root_high, recipient, amount, pool_type, zk_proof);
         }
         
+        fn withdraw_relayed_u256(
+            ref self: ContractState,
+            nullifier_low: u128,
+            nullifier_high: u128,
+            root_low: u128,
+            root_high: u128,
+            pool_type: u8,
+            zk_proof: Span<felt252>
+        ) {
+            let public_inputs = self.verify_withdraw_proof_and_get_public_inputs(zk_proof);
+            assert(public_inputs.len() >= 5, 'Invalid public inputs');
+            let pi_root = public_inputs.at(0);
+            let pi_nullifier = public_inputs.at(1);
+            let pi_recipient = public_inputs.at(2);
+            let pi_amount = public_inputs.at(3);
+            assert(*pi_root.low == root_low && *pi_root.high == root_high, 'Root mismatch');
+            assert(*pi_nullifier.low == nullifier_low && *pi_nullifier.high == nullifier_high, 'Nullifier mismatch');
+            let recipient_felt: felt252 = self.u256_to_felt(*pi_recipient.low, *pi_recipient.high);
+            let recipient: ContractAddress = recipient_felt.try_into().unwrap();
+            let amount: u256 = u256 { low: *pi_amount.low, high: *pi_amount.high };
+            assert(amount > 0, 'Amount must be positive');
+            let null_key = self.nullifier_key(nullifier_low, nullifier_high);
+            assert(!self.nullifiers.read(null_key), 'Nullifier already used');
+            let timestamp = get_block_timestamp();
+            let tree = IMerkleTreeU256Dispatcher {
+                contract_address: self.merkle_tree.read()
+            };
+            assert(tree.is_known_root_u256(root_low, root_high), 'Unknown merkle root');
+            self.nullifiers.write(null_key, true);
+            self.nullifiers_low.write(null_key, nullifier_low);
+            self.nullifiers_high.write(null_key, nullifier_high);
+            let token = IERC20Dispatcher { contract_address: self.token.read() };
+            let ok = token.transfer(recipient, amount);
+            assert(ok, 'Transfer failed');
+            let total = self.total_withdrawn.read();
+            self.total_withdrawn.write(total + amount);
+            self.emit(WithdrawalU256 { nullifier_low, nullifier_high, timestamp });
+        }
+        
+        fn withdraw_with_change_u256(
+            ref self: ContractState,
+            nullifier_low: u128,
+            nullifier_high: u128,
+            root_low: u128,
+            root_high: u128,
+            recipient: ContractAddress,
+            withdraw_amount: u256,
+            pool_type: u8,
+            change_commitment_low: u128,
+            change_commitment_high: u128,
+            change_amount: u256,
+            zk_proof: Span<felt252>
+        ) {
+            assert(withdraw_amount > 0, 'Withdraw amt positive');
+            
+            let null_key = self.nullifier_key(nullifier_low, nullifier_high);
+            assert(!self.nullifiers.read(null_key), 'Nullifier already used');
+            
+            let timestamp = get_block_timestamp();
+            
+            let tree = IMerkleTreeU256Dispatcher {
+                contract_address: self.merkle_tree.read()
+            };
+            assert(tree.is_known_root_u256(root_low, root_high), 'Unknown merkle root');
+            
+            assert(self.verify_withdraw_with_change_proof(zk_proof), 'Invalid proof');
+            
+            self.nullifiers.write(null_key, true);
+            self.nullifiers_low.write(null_key, nullifier_low);
+            self.nullifiers_high.write(null_key, nullifier_high);
+            
+            let token = IERC20Dispatcher { contract_address: self.token.read() };
+            let ok = token.transfer(recipient, withdraw_amount);
+            assert(ok, 'Transfer failed');
+            
+            // Insert change commitment into same merkle tree (no token transfer - remainder stays in pool)
+            if change_commitment_low != 0 || change_commitment_high != 0 {
+                tree.insert_u256(change_commitment_low, change_commitment_high);
+            }
+            
+            let total = self.total_withdrawn.read();
+            self.total_withdrawn.write(total + withdraw_amount);
+            
+            self.emit(WithdrawalWithChangeU256 {
+                nullifier_low,
+                nullifier_high,
+                change_commitment_low,
+                change_commitment_high,
+                timestamp,
+            });
+        }
+        
         fn verify_balance_above(
             self: @ContractState,
             root: felt252,
@@ -479,5 +651,11 @@ mod FullyShieldedPool {
     fn set_withdraw_verifier(ref self: ContractState, verifier: ContractAddress) {
         assert(get_caller_address() == self.admin.read(), 'Only admin');
         self.withdraw_verifier.write(verifier);
+    }
+    
+    #[external(v0)]
+    fn set_withdraw_with_change_verifier(ref self: ContractState, verifier: ContractAddress) {
+        assert(get_caller_address() == self.admin.read(), 'Only admin');
+        self.withdraw_with_change_verifier.write(verifier);
     }
 }

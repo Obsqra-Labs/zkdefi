@@ -8,6 +8,7 @@ import { Eye, Shield, CheckCircle2, ArrowRight, Copy, HelpCircle, TrendingUp, Al
 import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
+import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const DISCLOSURE_ADDRESS = process.env.NEXT_PUBLIC_SELECTIVE_DISCLOSURE_ADDRESS || "";
@@ -233,12 +234,13 @@ export function CompliancePanel() {
       toastSuccess("Disclosure registered!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(`https://sepolia.starkscan.co/tx/${transaction_hash}`, "_blank"),
+          onClick: () => window.open(sepoliaStarkscanTxUrl(transaction_hash), "_blank"),
         },
       });
 
       addActivityEvent(setActivityFeed, {
         type: "disclosure",
+        pool: "compliance",
         text: `Selective disclosure: ${selectedType.label}`,
         txHash: transaction_hash,
         details: `Proved ${selectedType.label.toLowerCase()} without revealing full history.`,
@@ -548,7 +550,7 @@ export function CompliancePanel() {
                       </p>
                     </div>
                     <a
-                      href={`https://sepolia.starkscan.co/tx/${txHash}`}
+                      href={sepoliaStarkscanTxUrl(txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"

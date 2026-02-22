@@ -86,9 +86,11 @@ const ethToWei = (ethAmount: string): string => {
 
 interface FullPrivacyPoolPanelProps {
   onCommitmentsChange?: () => void;
+  /** e.g. "pool_c" for Pool C (Tornado-style) variant */
+  variant?: string;
 }
 
-export function FullPrivacyPoolPanel({ onCommitmentsChange }: FullPrivacyPoolPanelProps = {}) {
+export function FullPrivacyPoolPanel({ onCommitmentsChange, variant }: FullPrivacyPoolPanelProps = {}) {
   const { address, account, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
   const { setActivityFeed } = useApp();

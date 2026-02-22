@@ -1,6 +1,6 @@
-# Working State: Full Privacy Deposit & Withdraw (zkde.fi)
+# Working State: Full Privacy (Pool B) Deposit & Withdraw (zkde.fi)
 
-**Status:** Deposit and withdraw flow works end-to-end on zkde.fi. This doc explains why and how to preserve it.
+**Status:** Deposit and withdraw flow works end-to-end on zkde.fi for **Pool B (Full Privacy)**. This doc explains why and how to preserve it.
 
 ---
 
@@ -55,8 +55,8 @@
 | Withdraw API | `backend/app/api/routes/full_privacy.py` | After `generate_withdraw_proof`, verify proof’s root with `verify_root_on_chain`; if not known, call `register_root_on_chain` before returning |
 | Tree proofs | `backend/app/services/merkle_tree_service.py` | `get_merkle_proof` uses `_compute_current_proof` and sanity-checks with `verify_proof` |
 | Proof service | `backend/app/services/full_privacy_proof_service.py` | Always uses current tree root and `get_merkle_proof(leaf_index)` (no stale stored proof) |
-| Frontend deposit | `frontend/.../FullPrivacyPoolPanel.tsx` | After successful deposit tx, call `register_commitment` and (optional) retry on 503 |
-| Frontend withdraw | `frontend/.../FullPrivacyPoolPanel.tsx` | Use proof from backend (root already ensured on-chain); optional pre-submit `ensure_root` |
+| Frontend deposit | `frontend/.../FullPrivacyPoolPanel.tsx` (Pool B) | After successful deposit tx, call `register_commitment` and (optional) retry on 503 |
+| Frontend withdraw | `frontend/.../FullPrivacyPoolPanel.tsx` (Pool B) | Use proof from backend (root already ensured on-chain); optional pre-submit `ensure_root` |
 
 ---
 

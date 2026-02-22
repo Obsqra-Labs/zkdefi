@@ -7,6 +7,7 @@ Stores snapshots for testnet app to react to real market conditions.
 Cron: Every 15 minutes
 """
 import asyncio
+import hashlib
 import json
 import os
 import time
@@ -49,11 +50,17 @@ class MarketSnapshot:
         self,
         jediswap: dict[str, Any],
         ekubo: dict[str, Any],
-        timestamp: int | None = None
+        timestamp: int | None = None,
+        snapshot_hash: str | None = None,
     ):
         self.jediswap = jediswap
         self.ekubo = ekubo
         self.timestamp = timestamp or int(time.time())
+        if snapshot_hash is not None:
+            self.snapshot_hash = snapshot_hash
+        else:
+            payload = f"{self.timestamp}{json.dumps(self.jediswap, sort_keys=True)}{json.dumps(self.ekubo, sort_keys=True)}"
+            self.snapshot_hash = "0x" + hashlib.sha256(payload.encode()).hexdigest()[:32]
     
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -61,6 +68,7 @@ class MarketSnapshot:
             "ekubo": self.ekubo,
             "timestamp": self.timestamp,
             "datetime": datetime.fromtimestamp(self.timestamp).isoformat(),
+            "snapshot_hash": self.snapshot_hash,
         }
     
     @classmethod
@@ -69,6 +77,7 @@ class MarketSnapshot:
             jediswap=data["jediswap"],
             ekubo=data["ekubo"],
             timestamp=data.get("timestamp"),
+            snapshot_hash=data.get("snapshot_hash"),
         )
     
     def get_recommended_allocation(self, risk_tolerance: int) -> dict[str, int]:

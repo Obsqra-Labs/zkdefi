@@ -88,6 +88,7 @@ class E2ETestSuite:
         await self.test_private_deposit_proof()
         await self.test_private_withdraw_proof()
         await self.test_full_privacy_deposit_register_flow()
+        await self.test_full_privacy_withdraw_proof_with_change()
         await self.test_deposit_proof()
         await self.test_zkml_risk_score_proof()
         await self.test_zkml_anomaly_proof()
@@ -109,6 +110,9 @@ class E2ETestSuite:
         await self.test_identity_service()
         await self.test_onboarding_flow()
         await self.test_agent_marketplace()
+        
+        # Test 8: DEX API (quote + swap-calldata) — smoke only; no on-chain execution
+        await self.test_dex_quote_and_swap_calldata()
         
         # Print summary
         self.print_summary()
@@ -290,6 +294,78 @@ class E2ETestSuite:
                     if not result.passed:
                         result.error = "register_commitment response missing merkle_root or leaf_index"
                     result.details = {"merkle_root": reg_data.get("merkle_root", "")[:30] + "...", "leaf_index": reg_data.get("leaf_index")}
+        except Exception as e:
+            result.error = str(e)
+        result.duration_ms = int((time.time() - start) * 1000)
+        self.results.append(result)
+        print(result)
+
+    async def test_full_privacy_withdraw_proof_with_change(self):
+        """Test Full Privacy V2: generate_commitment, register, then generate_proof_with_change (partial withdraw). Use BACKEND_URL pointing at zkdefi backend (e.g. http://localhost:8004)."""
+        result = E2ETestResult("Full Privacy withdraw proof with change (V2)")
+        start = time.time()
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                gen = await client.post(
+                    f"{BACKEND_URL}/api/v1/zkdefi/full_privacy/deposit/generate_commitment",
+                    json={
+                        "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+                        "amount": "1000000000000000000",
+                        "pool_type": 1,
+                    },
+                )
+                if gen.status_code != 200:
+                    result.error = f"generate_commitment: {gen.status_code} {gen.text[:200]}"
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                data = gen.json()
+                reg = await client.post(
+                    f"{BACKEND_URL}/api/v1/zkdefi/full_privacy/deposit/register_commitment",
+                    json={"commitment": data["commitment"]},
+                )
+                if reg.status_code != 200:
+                    result.error = f"register_commitment: {reg.status_code} {reg.text[:200]}"
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                reg_data = reg.json()
+                leaf_index = reg_data.get("leaf_index", 0)
+                proof_resp = await client.post(
+                    f"{BACKEND_URL}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change",
+                    json={
+                        "user_secret": data["user_secret"],
+                        "amount": data["amount"],
+                        "pool_type": data["pool_type"],
+                        "nonce": data["nonce"],
+                        "blinding": data["blinding"],
+                        "withdraw_amount": "300000000000000000",
+                        "recipient": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+                        "leaf_index": leaf_index,
+                        "merkle_root": reg_data.get("merkle_root"),
+                        "path_elements": reg_data.get("path_elements"),
+                        "path_indices": reg_data.get("path_indices"),
+                    },
+                )
+                if proof_resp.status_code != 200:
+                    result.error = f"generate_proof_with_change: {proof_resp.status_code} {proof_resp.text[:300]}"
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                proof_data = proof_resp.json()
+                result.passed = (
+                    "nullifier" in proof_data
+                    and "change_commitment" in proof_data
+                    and "change_amount" in proof_data
+                    and "proof_calldata" in proof_data
+                    and len(proof_data.get("proof_calldata", [])) >= 8
+                )
+                if not result.passed:
+                    result.error = "proof_with_change missing expected fields or empty proof_calldata"
+                result.details = {"withdraw_amount": proof_data.get("withdraw_amount"), "change_amount": proof_data.get("change_amount")}
         except Exception as e:
             result.error = str(e)
         result.duration_ms = int((time.time() - start) * 1000)
@@ -802,6 +878,98 @@ class E2ETestSuite:
         self.results.append(result)
         print(result)
 
+    async def test_dex_quote_and_swap_calldata(self):
+        """DEX API smoke: quote + swap-calldata. No on-chain execution. Requires EKUBO_CHAIN_ID and pools for pair."""
+        result = E2ETestResult("DEX Quote + Swap-Calldata API")
+        start = time.time()
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                pairs_resp = await client.get(
+                    f"{BACKEND_URL}/api/v1/zkdefi/dex/pairs",
+                    params={"min_tvl_usd": 0},
+                )
+                if pairs_resp.status_code == 503:
+                    result.passed = True
+                    result.details = {"skipped": "EKUBO_CHAIN_ID not set; DEX pair endpoints return 503"}
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                if pairs_resp.status_code != 200:
+                    result.error = f"pairs {pairs_resp.status_code} {pairs_resp.text[:120]}"
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                data = pairs_resp.json()
+                pairs = data.get("topPairs") or data.get("pairs") or data.get("topPools") or (data if isinstance(data, list) else [])
+                if not pairs:
+                    result.passed = True
+                    result.details = {"skipped": "No pairs returned; cannot test quote/swap-calldata"}
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                first = pairs[0]
+                token0 = str(first.get("token0") or first.get("token_0") or "")
+                token1 = str(first.get("token1") or first.get("token_1") or "")
+                if not token0 or not token1:
+                    result.error = "Pair missing token0/token1"
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                amount_in = "1000000000000000000"
+                quote_resp = await client.post(
+                    f"{BACKEND_URL}/api/v1/zkdefi/dex/quote",
+                    json={"token_in": token0, "token_out": token1, "amount_in": amount_in},
+                )
+                if quote_resp.status_code == 503:
+                    result.passed = True
+                    result.details = {"skipped": "EKUBO_CHAIN_ID not set"}
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                quote_ok = quote_resp.status_code == 200
+                quote_data = quote_resp.json() if quote_resp.headers.get("content-type", "").startswith("application/json") else {}
+                has_quote = "amount_out" in quote_data and "amount_out_min" in quote_data
+
+                swap_resp = await client.post(
+                    f"{BACKEND_URL}/api/v1/zkdefi/dex/swap-calldata",
+                    json={
+                        "token_in": token0,
+                        "token_out": token1,
+                        "amount_in": amount_in,
+                        "slippage_bps": 50,
+                    },
+                )
+                if swap_resp.status_code == 503:
+                    result.passed = True
+                    result.details = {"skipped": "EKUBO_CHAIN_ID not set"}
+                    result.duration_ms = int((time.time() - start) * 1000)
+                    self.results.append(result)
+                    print(result)
+                    return
+                swap_ok = swap_resp.status_code == 200
+                swap_data = swap_resp.json() if swap_resp.headers.get("content-type", "").startswith("application/json") else {}
+                has_calldata = "contract_address" in swap_data and "entrypoint" in swap_data and isinstance(swap_data.get("calldata"), list)
+
+                result.passed = quote_ok and has_quote and swap_ok and has_calldata
+                if not result.passed:
+                    result.error = f"quote_ok={quote_ok} has_quote={has_quote} swap_ok={swap_ok} has_calldata={has_calldata}"
+                result.details = {
+                    "quote_status": quote_resp.status_code,
+                    "swap_status": swap_resp.status_code,
+                    "entrypoint": swap_data.get("entrypoint"),
+                    "calldata_len": len(swap_data.get("calldata") or []),
+                }
+        except Exception as e:
+            result.error = str(e)
+        result.duration_ms = int((time.time() - start) * 1000)
+        self.results.append(result)
+        print(result)
+
     def print_summary(self):
         """Print test summary."""
         print("\n" + "=" * 60)
@@ -830,6 +998,11 @@ class E2ETestSuite:
 
 async def main():
     suite = E2ETestSuite()
+    if len(sys.argv) > 1 and sys.argv[1] == "--full-privacy-with-change-only":
+        suite = E2ETestSuite()
+        await suite.test_full_privacy_withdraw_proof_with_change()
+        suite.print_summary()
+        sys.exit(0 if all(r.passed for r in suite.results) else 1)
     if len(sys.argv) > 1 and sys.argv[1] == "--full-privacy-only":
         # Quick backend path check: health + Full Privacy generate_commitment + register_commitment
         await suite.test_backend_health()
@@ -839,6 +1012,10 @@ async def main():
         # Deterministic: run only Garaga on-chain verification (test 15). Requires backend + GARAGA_VERIFIER_ADDRESS if not default.
         await suite.test_backend_health()
         await suite.test_garaga_verify_proof_onchain()
+        suite.print_summary()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--dex-only":
+        await suite.test_backend_health()
+        await suite.test_dex_quote_and_swap_calldata()
         suite.print_summary()
     else:
         await suite.run_all_tests()

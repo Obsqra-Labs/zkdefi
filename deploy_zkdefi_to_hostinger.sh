@@ -37,7 +37,7 @@ else
     echo "Warning: docs-site/ not found, skipping docs build"
 fi
 
-# Create deployment archive
+# Create deployment archive (NEXT_PUBLIC_* are baked in at build time; set NEXT_PUBLIC_API_URL before npm run build when building on server)
 echo "Creating deployment archive..."
 cd "$FRONTEND_DIR"
 

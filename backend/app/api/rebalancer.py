@@ -129,6 +129,10 @@ async def check_zkml_gates(data: CheckZkmlRequest):
             pool_id=data.pool_id
         )
         return result
+    except RuntimeError as e:
+        if "retry later" in str(e).lower():
+            raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -147,6 +151,10 @@ async def prepare_execution(data: PrepareRequest):
             session_id=data.session_id
         )
         return result
+    except RuntimeError as e:
+        if "retry later" in str(e).lower():
+            raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

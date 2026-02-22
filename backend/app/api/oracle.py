@@ -16,6 +16,7 @@ class MarketDataResponse(BaseModel):
     ekubo: dict
     timestamp: int
     datetime: str
+    snapshot_hash: str | None = None
 
 
 class RecommendationResponse(BaseModel):
@@ -38,14 +39,23 @@ class PoolAPYResponse(BaseModel):
 
 @router.get("/market-data", response_model=MarketDataResponse)
 async def get_market_data():
-    """Get latest market data snapshot."""
+    """Get latest market data snapshot. Returns fallback if sync fails."""
+    from app.services.mainnet_oracle import FALLBACK_DATA
     oracle = get_oracle()
     snapshot = oracle.get_latest_snapshot()
-    
     if not snapshot:
-        # Trigger a sync if no data
-        snapshot = await oracle.sync_market_data()
-    
+        try:
+            snapshot = await oracle.sync_market_data()
+        except Exception:
+            snapshot = MarketSnapshot(
+                jediswap=FALLBACK_DATA["jediswap"].copy(),
+                ekubo=FALLBACK_DATA["ekubo"].copy(),
+            )
+    if not snapshot:
+        snapshot = MarketSnapshot(
+            jediswap=FALLBACK_DATA["jediswap"].copy(),
+            ekubo=FALLBACK_DATA["ekubo"].copy(),
+        )
     return snapshot.to_dict()
 
 
@@ -66,13 +76,23 @@ async def get_recommendation(risk_tolerance: int = 50):
 
 @router.get("/pool-apys", response_model=PoolAPYResponse)
 async def get_pool_apys():
-    """Get projected APYs for each pool type."""
+    """Get projected APYs for each pool type. Returns fallback if sync fails."""
+    from app.services.mainnet_oracle import FALLBACK_DATA
     oracle = get_oracle()
     snapshot = oracle.get_latest_snapshot()
-    
     if not snapshot:
-        snapshot = await oracle.sync_market_data()
-    
+        try:
+            snapshot = await oracle.sync_market_data()
+        except Exception:
+            snapshot = MarketSnapshot(
+                jediswap=FALLBACK_DATA["jediswap"].copy(),
+                ekubo=FALLBACK_DATA["ekubo"].copy(),
+            )
+    if not snapshot:
+        snapshot = MarketSnapshot(
+            jediswap=FALLBACK_DATA["jediswap"].copy(),
+            ekubo=FALLBACK_DATA["ekubo"].copy(),
+        )
     return {
         "conservative": snapshot.get_pool_apy("conservative"),
         "neutral": snapshot.get_pool_apy("neutral"),
