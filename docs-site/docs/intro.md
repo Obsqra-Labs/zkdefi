@@ -9,7 +9,7 @@
 - **Selective disclosure** — Prove statements (e.g. "my agent followed the rules" or "yield above X") without revealing your full strategy or history.
 - **Confidential positions** — Private transfers use commitments: amounts and balances stay off the public ledger. On Sepolia we use Garaga (Groth16 verifier); on mainnet the stack can use MIST.cash.
 
-The app is **open source** and lives at [zkde.fi](https://zkde.fi). You connect your Starknet wallet (e.g. ArgentX, Braavos), set constraints (max position, allowed protocols), and grant session keys for autonomous execution.
+The app is **open source** and lives at [zkde.fi](https://zkde.fi). Full documentation: **zkde.fi/docs**. You connect your Starknet wallet (e.g. ArgentX, Braavos), set constraints (max position, allowed protocols), and grant session keys for autonomous execution.
 
 ## Hybrid Proof System
 

@@ -1,5 +1,9 @@
 # FAQ
 
+## Where is the documentation?
+
+At **zkde.fi/docs**. You're reading it when you're on the docs site at zkde.fi/docs.
+
 ## Who is zkde.fi for?
 
 Users who want DeFi allocation (e.g. across pools or protocols) with **privacy** and **verifiability**: intent-hiding, confidential balances, and the ability to prove compliance or eligibility without revealing their full history. Suited for DAOs, funds, and individuals who care about MEV protection and selective disclosure.
