@@ -1,14 +1,16 @@
 # Docs Deployment
 
-Docs are available at two locations:
-- **Primary:** `https://docs.zkde.fi` (subdomain)
-- **Fallback:** `https://zkde.fi/docs/` (always works when frontend is deployed)
+**Canonical docs URL: zkde.fi/docs.** Nginx serves `frontend/public/docs/` at that path. The subdomain **docs.zkde.fi** is optional; document it only if you re-enable it.
 
-## Fallback: zkde.fi/docs (Recommended)
+## zkde.fi/docs (canonical)
 
-The deploy script (`deploy_zkdefi_to_hostinger.sh`) now builds the docs and bundles them into `frontend/public/docs/`. When the frontend is deployed, docs are automatically available at `https://zkde.fi/docs/`.
+Build the docs-site, then copy output into the frontend so the app (or nginx) serves docs at **zkde.fi/docs**:
 
-No extra configuration is needed for the fallback.
+```bash
+./scripts/sync-docs.sh
+```
+
+From repo root: builds `docs-site`, copies `docs-site/docs/.vitepress/dist/*` to `frontend/public/docs/`. When the frontend is deployed, docs are at `https://zkde.fi/docs/`. On servers using nginx, configure `location /docs/` with alias to `frontend/public/docs/` (see ops runbooks).
 
 ## Subdomain: docs.zkde.fi
 
