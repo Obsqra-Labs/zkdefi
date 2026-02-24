@@ -12,10 +12,10 @@ Deploy capital to Ekubo pools on **Starknet Sepolia** from the live app.
 
 5. **Sign in your wallet** — Approve the token approval and swap (or add-liquidity) transactions. Confirm in your wallet.
 
-6. **Receipt and deployment ID** — After the transaction is broadcast, you’ll see a deployment ID and a receipt hash. Positions may show as "pending" until the chain and Ekubo indexer confirm. If you see **Ekubo API unavailable**, positions may stay pending until the backend can reach Ekubo; see [FAQ](/faq) for support (Troubleshooting page coming in docs).
+6. **Receipt and deployment ID** — After the transaction is broadcast, you’ll see a deployment ID and a receipt hash. Positions may show as "pending" until the chain and Ekubo indexer confirm. If you see **Ekubo API unavailable**, positions may stay pending until the backend can reach Ekubo; see [Troubleshooting](/troubleshooting) or [FAQ](/faq) for support.
 
 **Note:** Deploy to Ekubo is **Ekubo Sepolia only**. Ensure your wallet is on Starknet Sepolia.
 
-See [Agent dashboard](/agent-dashboard) for the full flow. For common errors see [FAQ](/faq).
+See [Agent dashboard](/agent-dashboard) for the full flow. For common errors see [Troubleshooting](/troubleshooting) or [FAQ](/faq).
 
-Next: [Agent dashboard](/agent-dashboard) | [FAQ](/faq)
+Next: [Agent dashboard](/agent-dashboard) | [Troubleshooting](/troubleshooting)
