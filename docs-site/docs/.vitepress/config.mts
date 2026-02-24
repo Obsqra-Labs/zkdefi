@@ -77,6 +77,8 @@ export default defineConfig({
         items: [
           { text: 'API overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
+          { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' },
           { text: 'FAQ', link: '/faq' }
         ]
       }
