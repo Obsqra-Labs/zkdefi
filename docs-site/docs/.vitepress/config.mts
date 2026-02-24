@@ -53,7 +53,9 @@ export default defineConfig({
         text: 'User guides',
         items: [
           { text: 'First-time setup (live app)', link: '/guide-first-time-setup' },
-          { text: 'Deploy to Ekubo', link: '/guide-deploy-to-ekubo' }
+          { text: 'Deploy to Ekubo', link: '/guide-deploy-to-ekubo' },
+          { text: 'Profile and reputation', link: '/profile-and-identity' },
+          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' }
         ]
       },
       {
