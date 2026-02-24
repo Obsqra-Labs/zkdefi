@@ -60,8 +60,53 @@
 
 ---
 
-## 5. References
+## 5. Verification checklist (UI)
+
+Run through with backend (`:8003`) and frontend (`:3001`) up. Wallet connected (Starknet Sepolia).
+
+| # | Step | Expected |
+|---|------|----------|
+| 1 | Go to `/agent` → **Dashboard** tab | See "Deploy to Ekubo" card between Current Allocation and Private Transfer. |
+| 2 | Enter amount (e.g. `100`), select risk (e.g. Balanced), click **Deploy** | Loading → success: deployment_id, positions list, receipt_id; "Deploy again" appears. |
+| 3 | Go to **Allocation Pools** tab → scroll to Full Privacy (Pool B) | See CTA "Deploy from Full Privacy → Ekubo". |
+| 4 | Click "Deploy from Full Privacy → Ekubo" | Navigate to `/agent` with Dashboard active and view scrolls to "Deploy to Ekubo" card. |
+| 5 | Go to `/agent` then append `?highlight=deploy` or `#deploy-to-ekubo` | Dashboard tab active; scroll to Deploy card. |
+| 6 | Go to `/mvp` → complete risk + recommendation step | See "Deploy" and "Or deploy via Ekubo (orchestration)" buttons. |
+| 7 | Click "Or deploy via Ekubo (orchestration)" | Loading → success: message with receipt_id; positions list; "When does the AI redeploy?" + link to /agent. |
+
+**Backend:** `POST /api/v1/zkdefi/orchestration/deploy` must be mounted (orchestration router in `main.py`). If 404, check backend mounts `app.api.routes.orchestration`.
+
+---
+
+## 6. Extension: real Ekubo execution
+
+**Current state:** Orchestration and vault_execute return placeholder tx hashes; no on-chain swap/LP yet.
+
+**To wire real execution:**
+
+1. **Config / env**
+   - Set `EKUBO_CHAIN_ID` for Starknet Sepolia in backend env (see [ENV.md](../ENV.md)). Used by `ekubo_client`, `real_pool_aggregator`, DEX routes.
+   - Addresses are in `backend/app/services/ekubo_config.py` (Core, Router, Positions).
+
+2. **Swap path (Router or Core#lock)**
+   - Use Ekubo Router V3.0.13 for swaps: build calldata (route from `/pair/.../pools`, amounts, slippage), invoke Router entrypoint from a funded account (user or relayer).
+   - Alternative: implement a Cairo contract with `locked` callback that performs approve + swap; call Core#lock from that contract.
+   - Wire: `vault_execute_service` or a dedicated `ekubo_swap_executor` → build Router (or lock) calldata → return tx payload for frontend to sign, or use relayer/session key to submit.
+
+3. **LP path (Positions)**
+   - `ekubo_executor.EkuboContractExecutor` has `create_lp_position`, `collect_fees`, `remove_liquidity`; currently mock. Replace with real calls: approve token(s), call Positions.mint_and_deposit (pool key, tick range, amounts). Use `ekubo_config.EKUBO_POSITIONS_SEPOLIA` and Core address.
+   - Wire: when orchestration/vault_execute allocation is "LP" (e.g. strategy indicates add liquidity), call executor with pool params from API (`/pair/.../pools`); return tx for sign or submit via relayer.
+
+4. **Receipt / proof**
+   - Keep orchestration receipt (receipt_id, proof_hash) as-is. When real tx is submitted, optionally update receipt with `tx_hash` via existing receipt confirm flow.
+
+**References:** [EKUBO_SEPOLIA_INTEGRATION_SCOPE.md](../EKUBO_SEPOLIA_INTEGRATION_SCOPE.md), [design §2.3–2.4](2026-02-19-privacy-ekubo-orchestration-design.md), `ekubo_executor.py`, `ekubo_config.py`.
+
+---
+
+## 7. References
 
 - Backend orchestration: `docs/plans/2026-02-19-privacy-ekubo-orchestration-implementation.md`
 - Design: `docs/plans/2026-02-19-privacy-ekubo-orchestration-design.md`
 - PROJECT_STATUS: `docs/PROJECT_STATUS.md`
+- Env vars (including EKUBO_CHAIN_ID): `docs/ENV.md`

@@ -1,5 +1,7 @@
 # For developers
 
+Documentation lives at **zkde.fi/docs** (this site when viewing on zkde.fi).
+
 ## Quick Links
 
 - **[Smart Contracts](/contracts)** - Deployed addresses and contract details
@@ -37,50 +39,11 @@ curl https://zkde.fi/api/v1/zkdefi/contracts
 
 Full API documentation coming soon.
 
-## Local Development
+## Self-hosting / contributors
 
-### Prerequisites
+For contributors: clone the repo, install dependencies (frontend, backend, contracts), set env (see [ENV.md](https://github.com/obsqra-labs/zkdefi/blob/main/docs/ENV.md)). Run backend on :8003 and frontend on :3001. SDK and CLI for integration are on the roadmap; most users use the live app at zkde.fi.
 
-- Node.js 18+
-- Python 3.10+
-- Scarb (Cairo compiler)
-- Starknet wallet with Sepolia testnet funds
-
-### Quick Start
-
-1. Clone the repository:
-```bash
-git clone https://github.com/obsqra-labs/zkdefi.git
-cd zkdefi
-```
-
-2. Install dependencies:
-```bash
-# Frontend
-cd frontend && npm install
-
-# Backend
-cd ../backend && python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Contracts
-cd ../contracts && scarb build
-```
-
-3. Configure environment variables (see [ENV.md](https://github.com/obsqra-labs/zkdefi/blob/main/docs/ENV.md))
-
-4. Start services:
-```bash
-# Use the convenience script
-./start_zkdefi_services.sh
-
-# Or manually:
-# Backend: cd backend && uvicorn app.main:app --reload --port 8003
-# Frontend: cd frontend && npm run dev
-```
-
-Visit `http://localhost:3000` to see the app.
+Visit `http://localhost:3001` to see the app when running locally.
 
 ## Contributing
 
