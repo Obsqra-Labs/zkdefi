@@ -75,6 +75,7 @@ export default defineConfig({
       {
         text: 'Resources',
         items: [
+          { text: 'API overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
           { text: 'FAQ', link: '/faq' }
         ]
