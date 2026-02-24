@@ -25,7 +25,8 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: '/intro' },
           { text: 'Why zkde.fi?', link: '/why' },
-          { text: 'Concepts', link: '/concepts' }
+          { text: 'Concepts', link: '/concepts' },
+          { text: 'Quick start (live app)', link: '/quick-start' }
         ]
       },
       {
@@ -35,6 +36,17 @@ export default defineConfig({
           { text: 'zkML Models', link: '/zkml-models' },
           { text: 'Session Keys', link: '/session-keys' },
           { text: 'Rebalancing', link: '/rebalancing' }
+        ]
+      },
+      {
+        text: 'How the app works',
+        items: [
+          { text: 'App overview and routes', link: '/app-overview' },
+          { text: 'Agent dashboard', link: '/agent-dashboard' },
+          { text: 'Profile and identity', link: '/profile-and-identity' },
+          { text: 'Reputation system', link: '/reputation-system' },
+          { text: 'Risk Passport', link: '/risk-passport' },
+          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' }
         ]
       },
       {
