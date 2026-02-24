@@ -61,6 +61,7 @@ export default defineConfig({
       {
         text: 'Architecture',
         items: [
+          { text: 'Summary', link: '/architecture-summary' },
           { text: 'Flow', link: '/flow' },
           { text: 'Contracts', link: '/contracts' },
           { text: 'Innovation', link: '/innovation' }
