@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { ArrowUpFromLine, Clock, Loader2, AlertTriangle, Trash2 } from "lucide-react";
@@ -133,7 +133,7 @@ interface WithdrawPanelProps {
   commitments: VaultCommitment[];
   removeCommitment: (id: string) => void;
   withdrawSteps: ProofStep[];
-  setWithdrawSteps: (steps: ProofStep[]) => void;
+  setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   selectedCommitmentId?: string | null;
 }
@@ -235,7 +235,7 @@ export function WithdrawPanel({
   ) {
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
-    setWithdrawSteps(updateStep(withdrawSteps, 0, "active", "Verifying..."));
+    setWithdrawSteps((prev) => updateStep(prev, 0, "active", "Verifying..."));
     const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_withdraw`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -256,33 +256,29 @@ export function WithdrawPanel({
 
     const parseFelt = (v: string) => BigInt(v.startsWith("0x") ? v : "0x" + v);
 
-    const nullBig = parseFelt(data.nullifier);
-    const { low: nullLow, high: nullHigh } = splitU256(nullBig.toString());
+    const nullifierFelt = parseFelt(data.nullifier).toString();
 
-    const commitFelt = data.commitment_felt || data.commitment || commitment.commitment_hash;
-    const commitBig = parseFelt(commitFelt);
-    const { low: cLow, high: cHigh } = splitU256(commitBig.toString());
+    const commitFeltRaw = data.commitment_felt || data.commitment || commitment.commitment_hash;
+    const commitmentFelt = parseFelt(commitFeltRaw).toString();
 
     const recipient = data.recipient || address;
 
-    setWithdrawSteps(
-      updateStep(withdrawSteps, 1, "active", "Sign in wallet..."),
+    setWithdrawSteps((prev) =>
+      updateStep(prev, 1, "active", "Sign in wallet..."),
     );
     if (!account) throw new Error("Wallet not connected");
 
     const entrypoint = useRelayer
       ? "request_relayed_withdraw"
-      : "private_withdraw_u256";
+      : "private_withdraw";
 
     const result = await account.execute([
       {
         contractAddress: SHIELDED_POOL_ADDRESS as `0x${string}`,
         entrypoint,
         calldata: [
-          nullLow,
-          nullHigh,
-          cLow,
-          cHigh,
+          nullifierFelt,
+          commitmentFelt,
           amountLow,
           amountHigh,
           proofFelts.length.toString(),
@@ -293,7 +289,7 @@ export function WithdrawPanel({
     ]);
     const txHash = result.transaction_hash;
 
-    setWithdrawSteps(updateStep(withdrawSteps, 2, "done", "Confirmed"));
+    setWithdrawSteps((prev) => updateStep(prev, 2, "done", "Confirmed"));
     return txHash;
   }
 
@@ -306,16 +302,16 @@ export function WithdrawPanel({
     if (!poolAddr)
       throw new Error("Full Privacy Pool address not configured");
 
-    setWithdrawSteps(
-      updateStep(withdrawSteps, 0, "active", "Verifying commitment..."),
+    setWithdrawSteps((prev) =>
+      updateStep(prev, 0, "active", "Verifying commitment..."),
     );
 
     const endpoint = isPartial
       ? `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
       : `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`;
 
-    setWithdrawSteps(
-      updateStep(withdrawSteps, 1, "active", "Generating nullifier..."),
+    setWithdrawSteps((prev) =>
+      updateStep(prev, 1, "active", "Generating nullifier..."),
     );
 
     const userSecret = commitment.user_secret ?? commitment.secret;
@@ -393,8 +389,8 @@ export function WithdrawPanel({
     const { low: wAmtLow, high: wAmtHigh } = splitU256(amountWei);
 
     if (useRelayer) {
-      setWithdrawSteps(
-        updateStep(withdrawSteps, 2, "active", "Queuing via relayer..."),
+      setWithdrawSteps((prev) =>
+        updateStep(prev, 2, "active", "Queuing via relayer..."),
       );
 
       const relayData = await queueRelayerWithdraw(
@@ -406,13 +402,13 @@ export function WithdrawPanel({
         proofFelts,
       );
 
-      setWithdrawSteps(
-        updateStep(withdrawSteps, 3, "done", `Queued (relay #${relayData.request_id})`),
+      setWithdrawSteps((prev) =>
+        updateStep(prev, 3, "done", `Queued (relay #${relayData.request_id})`),
       );
       return relayData.request_id?.toString() || "";
     } else {
-      setWithdrawSteps(
-        updateStep(withdrawSteps, 2, "active", "Sign in wallet..."),
+      setWithdrawSteps((prev) =>
+        updateStep(prev, 2, "active", "Sign in wallet..."),
       );
       if (!account) throw new Error("Wallet not connected");
 
@@ -459,7 +455,7 @@ export function WithdrawPanel({
       ]);
       const txHash = result.transaction_hash;
 
-      setWithdrawSteps(updateStep(withdrawSteps, 3, "done", "Confirmed"));
+      setWithdrawSteps((prev) => updateStep(prev, 3, "done", "Confirmed"));
       return txHash;
     }
   }
@@ -495,8 +491,8 @@ export function WithdrawPanel({
   async function withdrawDarkLedger(amountWei: string, asset: string) {
     if (!address) throw new Error("Wallet not connected");
 
-    setWithdrawSteps(
-      updateStep(withdrawSteps, 0, "active", "Queuing withdrawal..."),
+    setWithdrawSteps((prev) =>
+      updateStep(prev, 0, "active", "Queuing withdrawal..."),
     );
 
     const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_out/request`, {
@@ -514,7 +510,7 @@ export function WithdrawPanel({
     if (!res.ok)
       throw new Error(data.detail || "Ledger transfer-out failed");
 
-    setWithdrawSteps(updateStep(withdrawSteps, 1, "done", `Queued (request #${data.request_id ?? ""})`));
+    setWithdrawSteps((prev) => updateStep(prev, 1, "done", `Queued (request #${data.request_id ?? ""})`));
     return data.receipt_id || "";
   }
 
@@ -617,12 +613,10 @@ export function WithdrawPanel({
           : String(err);
       toastError(`Withdraw failed: ${msg}`);
 
-      const failedIdx = withdrawSteps.findIndex(
-        (s) => s.status === "active",
-      );
-      if (failedIdx >= 0) {
-        setWithdrawSteps(markError(withdrawSteps, failedIdx));
-      }
+      setWithdrawSteps((prev) => {
+        const failedIdx = prev.findIndex((s) => s.status === "active");
+        return failedIdx >= 0 ? markError(prev, failedIdx) : prev;
+      });
     } finally {
       setBusy(false);
     }
