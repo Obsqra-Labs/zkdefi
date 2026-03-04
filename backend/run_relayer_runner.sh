@@ -11,19 +11,25 @@ if [ -f "$BACKEND_DIR/.env" ]; then
   set +a
 fi
 
-OWNER_INFO="$ROOT_DIR/OWNER_WALLET_INFO.md"
-if [ ! -f "$OWNER_INFO" ]; then
-  FALLBACK_OWNER_INFO="/opt/obsqra.starknet/OWNER_WALLET_INFO.md"
-  if [ -f "$FALLBACK_OWNER_INFO" ]; then
-    OWNER_INFO="$FALLBACK_OWNER_INFO"
-  else
-    echo "OWNER_WALLET_INFO.md not found at $OWNER_INFO or $FALLBACK_OWNER_INFO" >&2
+if [ -z "${RELAYER_ADDRESS:-}" ] || [ -z "${RELAYER_PRIVATE_KEY:-}" ]; then
+  if [ "${RELAYER_ALLOW_OWNER_WALLET:-false}" != "true" ]; then
+    echo "RELAYER_ADDRESS/RELAYER_PRIVATE_KEY not set. Refusing OWNER_WALLET_INFO fallback unless RELAYER_ALLOW_OWNER_WALLET=true." >&2
     exit 1
   fi
-fi
 
-read -r RELAYER_ADDRESS RELAYER_PRIVATE_KEY < <(
-  python3 - "$OWNER_INFO" <<'PY'
+  OWNER_INFO="$ROOT_DIR/OWNER_WALLET_INFO.md"
+  if [ ! -f "$OWNER_INFO" ]; then
+    FALLBACK_OWNER_INFO="/opt/obsqra.starknet/OWNER_WALLET_INFO.md"
+    if [ -f "$FALLBACK_OWNER_INFO" ]; then
+      OWNER_INFO="$FALLBACK_OWNER_INFO"
+    else
+      echo "OWNER_WALLET_INFO.md not found at $OWNER_INFO or $FALLBACK_OWNER_INFO" >&2
+      exit 1
+    fi
+  fi
+
+  read -r RELAYER_ADDRESS RELAYER_PRIVATE_KEY < <(
+    python3 - "$OWNER_INFO" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -45,7 +51,8 @@ if not addr or not pk:
     raise SystemExit("Could not parse owner wallet info")
 print(addr, pk)
 PY
-)
+  )
+fi
 
 export RELAYER_RUNNER_ENABLED="true"
 export RELAYER_DRY_RUN="${RELAYER_DRY_RUN:-false}"
@@ -55,7 +62,9 @@ export RELAYER_POLL_SECONDS="${RELAYER_POLL_SECONDS:-10}"
 export RELAYER_CHAIN_ID="${RELAYER_CHAIN_ID:-sepolia}"
 export RELAYER_RPC_URL="${RELAYER_RPC_URL:-https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/EvhYN6geLrdvbYHVRgPJ7}"
 export RELAYER_RUNNER_USE_CLI="${RELAYER_RUNNER_USE_CLI:-true}"
-if [ -z "${RELAYER_STARKLI_ACCOUNT:-}" ] && [ -f "/root/.starkli/accounts/deployer_starkli.json" ]; then
+if [ -z "${RELAYER_STARKLI_ACCOUNT:-}" ] && [ -f "/root/.starkli/accounts/relayer_account.json" ]; then
+  export RELAYER_STARKLI_ACCOUNT="/root/.starkli/accounts/relayer_account.json"
+elif [ -z "${RELAYER_STARKLI_ACCOUNT:-}" ] && [ -f "/root/.starkli/accounts/deployer_starkli.json" ]; then
   export RELAYER_STARKLI_ACCOUNT="/root/.starkli/accounts/deployer_starkli.json"
 fi
 export RELAYER_ADDRESS
