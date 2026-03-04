@@ -639,7 +639,7 @@ export function WithdrawPanel({
     !selectedIsStale &&
     !!amount &&
     parseFloat(amount) > 0 &&
-    (!useRelayer || (recipientAddress.length > 0 && recipientAddress.startsWith("0x")));
+    (!useRelayer || /^0x[0-9a-fA-F]{50,64}$/.test(recipientAddress));
 
   return (
     <motion.div
@@ -809,7 +809,7 @@ export function WithdrawPanel({
       </div>
 
       {/* Relayer toggle */}
-      {userTier >= 1 && method !== "dark_ledger" && (
+      {userTier >= 1 && (method === "nullifier_set" || method === "hashed_proof") && (
         <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
