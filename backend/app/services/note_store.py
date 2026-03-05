@@ -18,7 +18,7 @@ class NoteStore:
                 nullifier_hash TEXT,
                 pool_address   TEXT NOT NULL,
                 token          TEXT NOT NULL,
-                amount_wei     INTEGER NOT NULL,
+                amount_wei     TEXT NOT NULL,
                 custody        TEXT NOT NULL,
                 status         TEXT NOT NULL DEFAULT 'OPEN',
                 created_at     REAL NOT NULL,
@@ -45,16 +45,22 @@ class NoteStore:
                 token, amount_wei, custody, status, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?)""",
             (note_id, vault_id, rail_type, commitment_hash, pool_address,
-             token, amount_wei, custody, now),
+             token, str(amount_wei), custody, now),
         )
         self._conn.commit()
         return self.get_note(note_id)
+
+    @staticmethod
+    def _row_to_dict(row) -> dict:
+        d = dict(row)
+        d["amount_wei"] = int(d["amount_wei"])
+        return d
 
     def get_note(self, note_id: str) -> Optional[dict]:
         row = self._conn.execute(
             "SELECT * FROM notes WHERE note_id = ?", (note_id,)
         ).fetchone()
-        return dict(row) if row else None
+        return self._row_to_dict(row) if row else None
 
     def list_notes(self, vault_id: str, status: Optional[str] = None) -> list[dict]:
         if status:
@@ -67,7 +73,7 @@ class NoteStore:
                 "SELECT * FROM notes WHERE vault_id = ? ORDER BY created_at DESC",
                 (vault_id,),
             ).fetchall()
-        return [dict(r) for r in rows]
+        return [self._row_to_dict(r) for r in rows]
 
     def _set_status(self, note_id: str, status: str):
         self._conn.execute(

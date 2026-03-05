@@ -184,6 +184,16 @@ class VaultDeployService:
         )
         self._conn.commit()
 
+    def list_by_status(self, status: str) -> List[Dict[str, Any]]:
+        """List all proposals with a given status."""
+        cursor = self._conn.execute(
+            "SELECT * FROM deploy_proposals WHERE status = ? ORDER BY created_at DESC",
+            (status,),
+        )
+        rows = cursor.fetchall()
+        cols = [d[0] for d in cursor.description]
+        return [dict(zip(cols, row)) for row in rows]
+
     def get_status(self, proposal_hash: str) -> Dict[str, Any]:
         row = self._conn.execute(
             "SELECT * FROM deploy_proposals WHERE proposal_hash = ?",
