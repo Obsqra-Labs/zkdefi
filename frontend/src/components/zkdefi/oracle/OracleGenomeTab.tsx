@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity } from "@/components/zkdefi/oracle/types";
+import { Shield } from "lucide-react";
 
 interface OracleGenomeTabProps {
   address: string | undefined;
