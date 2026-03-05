@@ -1885,6 +1885,56 @@ async def get_opportunities(req: OpportunitiesRequest):
     )
 
 
+@router.get("/strategies/{strategy_id}")
+async def get_strategy_detail(strategy_id: str):
+    """Get detailed strategy information including genome and performance history."""
+    from fastapi import HTTPException
+    from app.services.strategy_intelligence_service import get_strategy_intelligence_service
+    
+    svc = get_strategy_intelligence_service()
+    strategy = svc.repo.get_strategy(strategy_id)
+    
+    if not strategy:
+        raise HTTPException(status_code=404, detail="Strategy not found")
+    
+    # Get performance history
+    history = svc.repo.get_performance_history(strategy_id, limit=30)
+    
+    return {
+        "strategy": strategy.model_dump(mode="json"),
+        "performance_history": [h.model_dump(mode="json") for h in history],
+    }
+
+
+@router.get("/strategies")
+async def list_strategies(
+    protocol: Optional[str] = None,
+    min_tvl: float = 0,
+    max_risk: float = 100,
+    user_profile: str = "BALANCED",
+    limit: int = 20,
+):
+    """List and rank strategies using Strategy Intelligence Service."""
+    from app.services.strategy_intelligence_service import get_strategy_intelligence_service
+    
+    svc = get_strategy_intelligence_service()
+    strategies = svc.rank_strategies(
+        user_profile=user_profile,
+        min_tvl=min_tvl,
+        max_risk=max_risk,
+        limit=limit,
+    )
+    
+    # Apply protocol filter if specified
+    if protocol:
+        strategies = [s for s in strategies if s.protocol.lower() == protocol.lower()]
+    
+    return {
+        "strategies": [s.model_dump(mode="json") for s in strategies],
+        "total_count": len(strategies),
+    }
+
+
 # ============================================================================
 # Limit Orders — Create
 # ============================================================================
