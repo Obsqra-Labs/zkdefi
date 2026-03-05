@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 export interface VaultHealthMeterProps {
   adapters: Array<{ name: string; health: string; value: number }>;
@@ -54,6 +54,12 @@ export function VaultHealthMeter({
   cooldownRemaining,
   riskBoundUsed = 0,
 }: VaultHealthMeterProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const allocationSegments = useMemo(() => {
     const total = adapters.reduce((s, a) => s + a.value, 0);
     const idle = Math.max(0, 100 - total);
@@ -70,16 +76,34 @@ export function VaultHealthMeter({
     return segments;
   }, [adapters]);
 
+  if (adapters.length === 0) {
+    return (
+      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg p-3">
+        <p className="text-xs text-zinc-500 text-center py-2">No adapters configured</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg p-3">
-      <div className="flex flex-wrap items-center gap-4 md:gap-6">
+    <div
+      className={`bg-zinc-900/30 border border-zinc-800/50 rounded-lg p-3 transition-all duration-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}
+      aria-label="Vault health overview"
+    >
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 md:gap-6">
         {/* 1. Risk Bound Used */}
         <div className="flex flex-col gap-1 min-w-0">
           <span className="text-xs text-white/40">Risk Bound</span>
           <div className="flex items-center gap-2">
-            <div className="w-16 h-2 rounded-full bg-zinc-800 overflow-hidden">
+            <div
+              className="w-16 h-2 rounded-full bg-zinc-800 overflow-hidden"
+              role="meter"
+              aria-valuenow={riskBoundUsed}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Risk bound usage: ${riskBoundUsed}%`}
+            >
               <div
-                className={`h-full rounded-full transition-colors ${riskBoundColor(riskBoundUsed)}`}
+                className={`h-full rounded-full transition-all duration-500 ${riskBoundColor(riskBoundUsed)}`}
                 style={{ width: `${Math.min(100, Math.max(0, riskBoundUsed))}%` }}
               />
             </div>
@@ -92,11 +116,11 @@ export function VaultHealthMeter({
         {/* 2. Allocation Distribution */}
         <div className="flex flex-col gap-1 min-w-0 flex-1">
           <span className="text-xs text-white/40">Allocation</span>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5" role="img" aria-label={`Allocation: ${allocationSegments.map(s => `${s.name} ${s.pct.toFixed(0)}%`).join(", ")}`}>
             {allocationSegments.map((s) => (
               <div
                 key={s.name}
-                className={`h-2 rounded-sm min-w-[2px] ${s.color}`}
+                className={`h-2 rounded-sm min-w-[2px] transition-all duration-500 ${s.color}`}
                 style={{ width: `${s.pct}%` }}
                 title={`${s.name}: ${s.pct.toFixed(0)}%`}
               />
@@ -118,6 +142,7 @@ export function VaultHealthMeter({
                 <div
                   className={`w-1.5 h-1.5 rounded-full shrink-0 ${healthDotColor(a.health)}`}
                   title={a.health}
+                  aria-label={`${a.name}: ${a.health}`}
                 />
                 <span className="text-xs text-white/70 truncate max-w-16">
                   {a.name}
@@ -134,6 +159,7 @@ export function VaultHealthMeter({
             className={`text-xs font-medium ${
               cooldownRemaining <= 0 ? "text-emerald-400" : "text-amber-400"
             }`}
+            aria-label={`Cooldown: ${formatCooldown(cooldownRemaining)}`}
           >
             {formatCooldown(cooldownRemaining)}
           </span>

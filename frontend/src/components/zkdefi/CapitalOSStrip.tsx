@@ -5,7 +5,7 @@
  * Replaces CapitalFlowStrip + AIZkmlBanner. No data fetching; parent supplies all data.
  */
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 
 export interface CapitalOSStripIdentity {
   addressOrId: string;
@@ -75,6 +75,12 @@ export function CapitalOSStrip({
   onLedgerClick,
   onNextStepClick,
 }: CapitalOSStripProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const handleIdentity = useCallback(() => {
     onIdentityClick?.();
   }, [onIdentityClick]);
@@ -99,9 +105,12 @@ export function CapitalOSStrip({
   const hasRightHalf = nextStep || aiInsight;
 
   return (
-    <div className={`rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 ${hasRightHalf ? "grid grid-cols-1 lg:grid-cols-2 gap-4" : ""}`}>
+    <div
+      className={`rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 transition-all duration-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${hasRightHalf ? "grid grid-cols-1 lg:grid-cols-2 gap-4" : ""}`}
+      aria-label="Capital OS status strip"
+    >
       {/* LEFT HALF: Identity | Gate | Ledger */}
-      <div className="flex flex-wrap items-center gap-2 min-w-0 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 min-w-0 overflow-x-auto">
         {isDemo && (
           <span className="px-2 py-0.5 text-xs font-medium rounded bg-amber-600/20 text-amber-400 border border-amber-600/30">
             Demo
@@ -111,7 +120,8 @@ export function CapitalOSStrip({
         <button
           type="button"
           onClick={handleIdentity}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-left hover:bg-zinc-800/60 transition-colors min-w-0"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-left hover:bg-zinc-800/60 transition-colors min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label={`Identity: ${identity.addressOrId}, tier ${identity.tier}, ${identity.proofCount} proofs`}
         >
           <span className="text-xs font-medium text-zinc-300 truncate" title={identity.addressOrId}>
             {displayAddress}
@@ -119,25 +129,30 @@ export function CapitalOSStrip({
           <span className="text-xs text-emerald-400/90 shrink-0">{identity.tier}</span>
           <span className="text-xs text-zinc-500 shrink-0">{identity.proofCount} proofs</span>
         </button>
-        <span className="text-zinc-600" aria-hidden>|</span>
+        <span className="text-zinc-600 hidden sm:inline" aria-hidden="true">|</span>
         {/* Gate */}
         <button
           type="button"
           onClick={handleGate}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-zinc-800/60 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-zinc-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label={`Risk gate: ${gate.riskTolerance}, ${gate.allowedCount} of ${gate.totalCount} strategies allowed, status ${gate.status}`}
         >
-          <span className={`w-2 h-2 rounded-full shrink-0 ${gateStatusColor(gate.status)}`} aria-hidden />
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${gateStatusColor(gate.status)}`}
+            aria-hidden="true"
+          />
           <span className="text-xs text-zinc-300">{gate.riskTolerance}</span>
           <span className="text-xs text-zinc-500">
             {gate.allowedCount}/{gate.totalCount} strategies
           </span>
         </button>
-        <span className="text-zinc-600" aria-hidden>|</span>
+        <span className="text-zinc-600 hidden sm:inline" aria-hidden="true">|</span>
         {/* Ledger */}
         <button
           type="button"
           onClick={handleLedger}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-zinc-800/60 transition-colors min-w-0 text-left"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-zinc-800/60 transition-colors min-w-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label={`Ledger: ${ledger.lastEntryLabel}, ${ledger.receiptCount} receipts`}
         >
           <span className="text-xs text-zinc-400 truncate" title={ledger.lastEntryLabel}>
             {ledger.lastEntryLabel}
@@ -156,7 +171,8 @@ export function CapitalOSStrip({
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="px-2 py-1 text-xs font-medium rounded bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-colors shrink-0"
+                  className="px-2 py-1 text-xs font-medium rounded bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label={nextStep.actionLabel}
                 >
                   {nextStep.actionLabel}
                 </button>
@@ -164,13 +180,13 @@ export function CapitalOSStrip({
             </div>
           )}
           {aiInsight && (
-            <div className="px-3 py-1.5 rounded-md bg-blue-900/20 border border-blue-700/30">
+            <div className="px-3 py-1.5 rounded-md bg-blue-900/20 border border-blue-700/30" role="status">
               <div className="flex items-start gap-2">
-                <span className="text-blue-400 shrink-0" aria-hidden>✨</span>
+                <span className="text-blue-400 shrink-0" aria-hidden="true">✨</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-blue-200">{aiInsight.message}</p>
+                  <p className="text-xs font-medium text-blue-200 break-words">{aiInsight.message}</p>
                   {aiInsight.reasoning && (
-                    <p className="text-xs text-blue-400/70 mt-0.5">{aiInsight.reasoning}</p>
+                    <p className="text-xs text-blue-400/70 mt-0.5 break-words">{aiInsight.reasoning}</p>
                   )}
                 </div>
               </div>

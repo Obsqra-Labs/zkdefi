@@ -16,11 +16,21 @@ export interface ProofStepperProps {
 }
 
 export function ProofStepper({ steps }: ProofStepperProps) {
-  if (steps.length === 0) return null;
+  if (steps.length === 0) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+        <p className="text-xs text-zinc-500 text-center">No proof steps available</p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2 overflow-x-auto pb-2"
+        role="list"
+        aria-label="Proof pipeline steps"
+      >
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
 
@@ -47,9 +57,17 @@ export function ProofStepper({ steps }: ProofStepperProps) {
           }
 
           return (
-            <div key={index} className="flex items-center gap-2 shrink-0">
+            <div
+              key={index}
+              className="flex sm:flex-row items-center gap-2 shrink-0"
+              role="listitem"
+              aria-current={step.status === "active" ? "step" : undefined}
+              aria-label={`${step.label}: ${step.status}${step.description ? ` — ${step.description}` : ""}`}
+            >
               <div className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor}`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${iconColor}`}
+                >
                   {icon}
                 </div>
                 <span className="text-xs text-zinc-400 whitespace-nowrap">{step.label}</span>
@@ -58,7 +76,12 @@ export function ProofStepper({ steps }: ProofStepperProps) {
                 )}
               </div>
               {!isLast && (
-                <div className={`h-0.5 w-8 ${lineColor}`} aria-hidden />
+                <>
+                  {/* Horizontal line for sm+ */}
+                  <div className={`hidden sm:block h-0.5 w-8 transition-colors duration-300 ${lineColor}`} aria-hidden="true" />
+                  {/* Vertical line for mobile */}
+                  <div className={`sm:hidden w-0.5 h-4 mx-auto transition-colors duration-300 ${lineColor}`} aria-hidden="true" />
+                </>
               )}
             </div>
           );

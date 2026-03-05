@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Brain, TrendingUp, Shield, Users, Zap, AlertTriangle } from "lucide-react";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 
@@ -30,10 +31,20 @@ function formatBps(bps: number): string {
 
 export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
   const credit = profileV2?.predictive_credit ?? null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-violet-700/30 bg-gradient-to-br from-violet-950/30 to-zinc-900/60 p-6 animate-pulse">
+      <div
+        className="rounded-xl border border-violet-700/30 bg-gradient-to-br from-violet-950/30 to-zinc-900/60 p-6 animate-pulse"
+        aria-busy="true"
+        aria-label="Loading AI credit insights"
+      >
         <div className="flex items-center gap-2 mb-4">
           <div className="h-5 w-5 bg-zinc-700/50 rounded" />
           <div className="h-6 w-40 bg-zinc-700/50 rounded" />
@@ -51,12 +62,12 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
     return (
       <div className="rounded-xl border border-violet-700/20 bg-violet-950/10 p-6">
         <div className="flex items-center gap-2 mb-3">
-          <Brain className="w-5 h-5 text-violet-400" />
+          <Brain className="w-5 h-5 text-violet-400" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-white">AI Credit Insights</h3>
           <span className="text-[10px] font-mono text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">zkML</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-zinc-400">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
           <p>Predictive credit scoring requires on-chain history. Keep transacting to unlock your AI-powered credit grade.</p>
         </div>
       </div>
@@ -71,11 +82,14 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
   const collabMult = typeof credit.collaborative_multiplier === "number" ? credit.collaborative_multiplier : 1;
 
   return (
-    <div className="rounded-xl border border-violet-700/30 bg-gradient-to-br from-violet-950/30 to-zinc-900/60 p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div
+      className={`rounded-xl border border-violet-700/30 bg-gradient-to-br from-violet-950/30 to-zinc-900/60 p-4 sm:p-6 transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
+      aria-label="AI Credit Insights"
+    >
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-violet-400" />
-          <h3 className="text-lg font-semibold text-white">AI Credit Insights</h3>
+          <Brain className="w-5 h-5 text-violet-400" aria-hidden="true" />
+          <h3 className="text-base sm:text-lg font-semibold text-white">AI Credit Insights</h3>
           <span className="text-[10px] font-mono text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">zkML</span>
         </div>
         <span className="text-[10px] text-zinc-500 font-mono">{credit.model_name ?? "—"}</span>
@@ -85,14 +99,21 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
         {/* Predictive Grade */}
         <div className="rounded-lg bg-zinc-800/60 border border-zinc-700/50 p-3">
           <div className="flex items-center gap-1.5 mb-1">
-            <Shield className="w-3.5 h-3.5 text-violet-400" />
+            <Shield className="w-3.5 h-3.5 text-violet-400" aria-hidden="true" />
             <p className="text-xs text-zinc-500">Predicted Grade</p>
           </div>
           <p className={`text-2xl font-bold ${gradeColor(grade)}`}>{grade}</p>
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+            <div
+              className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden"
+              role="progressbar"
+              aria-valuenow={Math.round(confidence * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Grade confidence: ${Math.round(confidence * 100)}%`}
+            >
               <div
-                className={`h-full rounded-full transition-all ${confidenceBar(confidence)}`}
+                className={`h-full rounded-full transition-all duration-700 ${confidenceBar(confidence)}`}
                 style={{ width: `${Math.round(confidence * 100)}%` }}
               />
             </div>
@@ -103,7 +124,7 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
         {/* Credit Line */}
         <div className="rounded-lg bg-zinc-800/60 border border-zinc-700/50 p-3">
           <div className="flex items-center gap-1.5 mb-1">
-            <Zap className="w-3.5 h-3.5 text-cyan-400" />
+            <Zap className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
             <p className="text-xs text-zinc-500">Credit Line</p>
           </div>
           <p className="text-xl font-bold text-white">{creditLineEth.toFixed(3)}</p>
@@ -113,7 +134,7 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
         {/* Max LTV & Rate */}
         <div className="rounded-lg bg-zinc-800/60 border border-zinc-700/50 p-3">
           <div className="flex items-center gap-1.5 mb-1">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
             <p className="text-xs text-zinc-500">Max LTV · Rate</p>
           </div>
           <p className="text-xl font-bold text-white">{Math.round(maxLtv * 100)}%</p>
@@ -123,7 +144,7 @@ export function AIInsightsCard({ profileV2, loading }: AIInsightsCardProps) {
         {/* Collaborative Multiplier */}
         <div className="rounded-lg bg-zinc-800/60 border border-zinc-700/50 p-3">
           <div className="flex items-center gap-1.5 mb-1">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
+            <Users className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
             <p className="text-xs text-zinc-500">Co-op Multiplier</p>
           </div>
           <p className={`text-xl font-bold ${collabMult > 1 ? "text-amber-400" : "text-zinc-300"}`}>

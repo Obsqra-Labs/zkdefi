@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_RECOMMENDATIONS, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity, OracleRecommendation } from "@/components/zkdefi/oracle/types";
-import { Check, AlertTriangle, Shield } from "lucide-react";
+import { Check, AlertTriangle, Shield, Loader2 } from "lucide-react";
 
 interface OracleSignalsTabProps {
   address: string | undefined;
@@ -35,6 +35,7 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
   const [recommendations, setRecommendations] = useState<OracleRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [executingRec, setExecutingRec] = useState<string | null>(null);
 
   const isDemo = address === DEMO_ADDRESS;
 
@@ -90,6 +91,91 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       setRecommendations([]);
     }
   }, [isDemo]);
+
+  const handleApproveRecommendation = useCallback(async (rec: OracleRecommendation) => {
+    if (!address || isDemo) {
+      alert(`Demo mode: Would execute ${rec.label}\nStrategy: ${rec.strategyName}\nAllocation: ${rec.allocationPct}%`);
+      return;
+    }
+
+    const confirmed = confirm(
+      `Execute this recommendation?\n\n` +
+      `${rec.label}\n` +
+      `Strategy: ${rec.strategyName}\n` +
+      `Allocation: ${rec.allocationPct}%\n\n` +
+      `This will allocate capital to the vault.`
+    );
+
+    if (!confirmed) return;
+
+    setExecutingRec(rec.strategyName);
+    try {
+      // Step 1: Get allocation plan
+      const allocRes = await fetch(`${API_BASE}/api/v1/strategies/allocate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          risk_profile: "balanced",
+          deposit_amount: 100, // TODO: Get from user input
+          time_horizon_days: 30,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!allocRes.ok) {
+        const errData = await allocRes.json();
+        throw new Error(errData.detail || "Allocation planning failed");
+      }
+
+      const allocData = await allocRes.json();
+
+      // Step 2: Execute the allocation
+      const execRes = await fetch(`${API_BASE}/api/v1/vault/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          risk_profile: "balanced",
+          deposit_amount: 100, // TODO: Get from user input
+          allocations: allocData.allocations?.map((a: any) => ({
+            strategy: "ekubo_lp",
+            percentage: (a.pct_of_capital || 0) * 100,
+            amount: a.amount_usd || 0,
+            expected_apy: a.estimated_apy_pct || 0,
+            pool_id: a.pool_id,
+            pool_name: a.pair,
+            protocol: "ekubo",
+            token_pair: a.pair,
+          })),
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!execRes.ok) {
+        const errData = await execRes.json();
+        throw new Error(errData.detail || "Execution failed");
+      }
+
+      const execData = await execRes.json();
+
+      alert(
+        `✅ Allocation executed!\n\n` +
+        `Deployment ID: ${execData.deployment_id}\n` +
+        `Positions: ${execData.positions?.length || 0}\n` +
+        `Expected APY: ${execData.total_expected_apy?.toFixed(2)}%\n` +
+        `Proof: ${execData.zkml_proof_hash?.slice(0, 12)}...`
+      );
+
+      // Refresh data
+      await Promise.all([fetchOpportunities(), fetchRecommendations()]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`❌ Execution failed: ${msg}`);
+    } finally {
+      setExecutingRec(null);
+    }
+  }, [address, isDemo, fetchOpportunities, fetchRecommendations]);
 
   useEffect(() => {
     if (isDemo) {
@@ -240,12 +326,18 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-xs rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-colors"
-                  onClick={() => {
-                    alert(`Approving: ${rec.label}\nStrategy: ${rec.strategyName}\nAllocation: ${rec.allocationPct}%\n\nVault execution wiring: TODO`);
-                  }}
+                  disabled={!!executingRec}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  onClick={() => handleApproveRecommendation(rec)}
                 >
-                  Approve
+                  {executingRec === rec.strategyName ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Executing...
+                    </>
+                  ) : (
+                    "Approve"
+                  )}
                 </button>
                 <button type="button" className="px-3 py-1.5 text-xs rounded-lg bg-zinc-700 text-zinc-300 hover:bg-zinc-600">Modify</button>
               </div>

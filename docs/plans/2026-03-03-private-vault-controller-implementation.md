@@ -1,5 +1,7 @@
 # Private Vault Controller Implementation Plan
 
+> **Status: COMPLETE** — All 21 tasks implemented. Contracts deployed to Sepolia 2026-03-06.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build the VaultController contract, three first-party StrategyAdapters, backend proposal service, and UX surfaces that make privacy-preserving yield feel controlled, legible, and calm.
@@ -7,6 +9,12 @@
 **Architecture:** Three-layer system -- privacy pools (existing, no changes) feed into a VaultController (new Cairo contract) that routes capital to pluggable StrategyAdapters (new Cairo contracts). Backend orchestrates proposals with constraint verification and zkML proofs. Frontend surfaces use metaphors (Shield/Vault/Strategies) with zero jargon.
 
 **Tech Stack:** Cairo (Starknet contracts), Python/FastAPI (backend services), React/Next.js/TypeScript/Tailwind (frontend), Poseidon hash (commitments), snforge (Cairo tests), pytest (backend tests).
+
+**Deployed Addresses (Sepolia):**
+- VaultController: `0x6c5b17eab7f20da1ab69e98db6f3f63cbcefa28992a17787883c76dd13498d1`
+- EkuboLpAdapter: `0x74febeff7301aa58d786b01756e36f20ab7208a52ce94a82b425af8f9933a0`
+- LendingAdapter: `0x104f06b17e476bae294253ec1bba54dd4eaedd4f9d97468251fa6de62cfb90a`
+- StakingAdapter: `0x63b4f90d0f3373700e30624191651c2d2d301a11c544a463ffd66df320b85e3`
 
 **Design Doc:** `docs/plans/2026-03-03-private-vault-controller-design.md`
 

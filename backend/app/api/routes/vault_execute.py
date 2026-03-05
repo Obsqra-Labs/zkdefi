@@ -279,6 +279,80 @@ async def get_user_positions(user_address: str):
     )
 
 
+class WithdrawRequest(BaseModel):
+    """Request to withdraw from vault"""
+    user_address: str
+    amount: float
+    destination: Optional[str] = None
+
+
+class WithdrawResponse(BaseModel):
+    """Response from withdraw operation"""
+    withdrawal_id: str
+    user_address: str
+    amount: float
+    tx_hash: Optional[str] = None
+    receipt_id: str
+    zkml_proof_hash: str
+    timestamp: str
+
+
+@router.post("/withdraw", response_model=WithdrawResponse)
+async def withdraw_from_vault(request: WithdrawRequest):
+    """
+    Withdraw funds from vault
+    
+    This endpoint:
+    1. Removes liquidity from active LP positions
+    2. Generates execution proof for withdrawal
+    3. Returns funds to user wallet (or specified destination)
+    4. Creates audit trail receipt
+    """
+    
+    logger.info(
+        "Withdrawing from vault user=%s amount=%s",
+        request.user_address,
+        request.amount,
+    )
+    
+    try:
+        from app.services.vault_execute_service import withdraw_from_vault as execute_withdraw
+        
+        # Execute withdrawal (generates proof internally)
+        result = await execute_withdraw(
+            user_address=request.user_address,
+            amount_wei=int(request.amount * 1e18),
+            use_relayer=False,
+        )
+        
+        if not result.get("success"):
+            logger.error(f"Withdrawal failed: {result.get('error')}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Withdrawal failed: {result.get('error', 'Unknown error')}"
+            )
+        
+        logger.info(f"✅ Withdrawal executed: {result.get('withdrawal_id')}")
+        
+        return WithdrawResponse(
+            withdrawal_id=result.get("withdrawal_id", f"withdraw_{uuid.uuid4().hex[:12]}"),
+            user_address=request.user_address,
+            amount=request.amount,
+            tx_hash=result.get("tx_hash"),
+            receipt_id=result.get("receipt_id", ""),
+            zkml_proof_hash=result.get("zkml_proof_hash", "0x" + hashlib.sha256(
+                f"withdraw:{request.user_address}:{request.amount}".encode()
+            ).hexdigest()),
+            timestamp=datetime.utcnow().isoformat() + "Z",
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Withdrawal failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Withdrawal failed: {str(e)}")
+
+
 @router.post("/rebalance", response_model=ExecuteStrategyResponse)
 async def rebalance_positions(request: RebalanceRequest):
     """

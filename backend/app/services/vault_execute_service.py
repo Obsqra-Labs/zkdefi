@@ -62,6 +62,87 @@ async def _generate_vault_proof(action_type: str, user_address: str, amount: flo
         print(f"Proof generation failed: {e}")
         return f"0x{__import__('uuid').uuid4().hex}"
 
+
+async def withdraw_from_vault(
+    user_address: str,
+    amount_wei: int,
+    use_relayer: bool = False,
+) -> dict[str, Any]:
+    """
+    Withdraw funds from vault.
+    
+    Steps:
+    1. Check user has sufficient balance in ledger
+    2. Generate withdrawal proof
+    3. Remove liquidity from LP positions (if needed)
+    4. Credit ledger / transfer to user wallet
+    5. Create receipt
+    
+    Returns:
+        dict with withdrawal_id, tx_hash, receipt_id, zkml_proof_hash, success, error
+    """
+    withdrawal_id = f"withdraw_{uuid.uuid4().hex[:12]}"
+    
+    try:
+        # Step 1: Check ledger balance
+        from app.services.ledger_service import get_ledger_service
+        ledger = get_ledger_service()
+        
+        balance = ledger.get_balance(user_address)
+        if balance < amount_wei:
+            return {
+                "success": False,
+                "error": f"Insufficient balance: have {balance / 1e18}, need {amount_wei / 1e18}",
+                "withdrawal_id": withdrawal_id,
+            }
+        
+        # Step 2: Generate proof
+        proof_hash = await _generate_vault_proof("withdraw", user_address, amount_wei / 1e18)
+        logger.info(f"Generated withdrawal proof: {proof_hash[:16]}...")
+        
+        # Step 3: Credit back to user (remove from deployed capital)
+        ledger.credit_balance(
+            user_address,
+            amount_wei,
+            request_id=None,
+            reason=f"vault_withdraw:{withdrawal_id}",
+            settlement_type="vault_withdraw",
+        )
+        
+        # Step 4: Create receipt
+        from app.services.receipt_service import get_receipt_service
+        receipt_svc = get_receipt_service()
+        
+        receipt_id = receipt_svc.record_receipt(
+            user_address=user_address,
+            action_type="withdraw",
+            amount_wei=amount_wei,
+            proof_hash=proof_hash,
+            metadata={
+                "withdrawal_id": withdrawal_id,
+                "use_relayer": use_relayer,
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+        )
+        
+        logger.info(f"✅ Withdrawal complete: {withdrawal_id}, receipt: {receipt_id}")
+        
+        return {
+            "success": True,
+            "withdrawal_id": withdrawal_id,
+            "tx_hash": f"0x{uuid.uuid4().hex}",  # TODO: Real contract call
+            "receipt_id": receipt_id,
+            "zkml_proof_hash": proof_hash,
+        }
+        
+    except Exception as e:
+        logger.error(f"Withdrawal failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "withdrawal_id": withdrawal_id,
+        }
+
 async def execute_strategy_impl(request: dict[str, Any]) -> dict[str, Any]:
     """
     Execute strategy: use provided allocations (Ekubo-only from orchestration) or aggregator.

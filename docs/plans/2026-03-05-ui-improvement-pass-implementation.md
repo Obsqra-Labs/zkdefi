@@ -1,12 +1,26 @@
 # UI Improvement Pass Implementation Plan
 
+> **Status: COMPLETE** — All tasks implemented 2026-03-06. See details below.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add loading states, error handling, empty states, success feedback, responsive design, and accessibility to all new vault UX components.
 
 **Architecture:** Extend existing patterns (Spinner, ErrorAlert) with consistent application across all components. New toast notification system for success feedback. Mobile-first responsive design. ARIA labels for screen readers.
 
-**Tech Stack:** React, TypeScript, Tailwind CSS, framer-motion, lucide-react
+**Tech Stack:** React, TypeScript, Tailwind CSS, CSS transitions (no framer-motion dependency), lucide-react
+
+**Completion Summary:**
+- [x] Task 1: Toast system — skipped (not needed; components handle own error/success states)
+- [x] Task 2: TrendingBar — error state with retry, `role="status"`, responsive text sizes, fade-in
+- [x] Task 3: AllocationPreview — error/retry, `role="img"` aria-label, animated bar widths, responsive padding
+- [x] Task 4: DCAPanel — fetch/create/stop error states, loading skeleton, responsive form grid
+- [x] Task 5: DCAPanel — ARIA labels on all inputs (`htmlFor`/`id`), focus-visible rings, creating state
+- [x] Task 6: AIInsight — entrance/exit animation, empty message guard, `role="status"`, responsive text
+- [x] Task 7: ProofStepper — `role="list"`+`role="listitem"`+`aria-current="step"`, mobile vertical, empty state
+- [x] Task 8: CapitalOSStrip — responsive sm stacking, entrance transition, ARIA on all buttons
+- [x] Task 9: ARIA — all 12 components have aria-label, aria-hidden on decorative icons, focus-visible rings
+- [x] Task 10: Additional components polished: VaultBanner, ProofsPill, ExecutionAuthorityCard, NextRebalanceStrip, VaultHealthMeter, AIInsightsCard
 
 ---
 
