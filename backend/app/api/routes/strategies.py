@@ -1914,6 +1914,32 @@ async def list_strategies(
     }
 
 
+@router.get("/recommendations")
+async def get_recommendations(
+    user_address: Optional[str] = None,
+    user_profile: str = "BALANCED",
+    limit: int = 3,
+):
+    """Generate personalized recommendations using Oracle Recommendation Service (GET /api/v1/strategies/recommendations)."""
+    from app.services.oracle_recommendation_service import get_oracle_recommendation_service
+    
+    # TODO: Fetch user's current allocation from vault if user_address provided
+    current_allocation = None  # For now, assume fresh allocation
+    
+    svc = get_oracle_recommendation_service()
+    recommendations = svc.generate_recommendations(
+        user_profile=user_profile,
+        current_allocation=current_allocation,
+        limit=limit,
+    )
+    
+    return {
+        "recommendations": [r.model_dump(mode="json") for r in recommendations],
+        "total_count": len(recommendations),
+        "user_profile": user_profile,
+    }
+
+
 @router.get("/{strategy_id}")
 async def get_strategy_detail(strategy_id: str):
     """Get detailed strategy information including genome and performance history (GET /api/v1/strategies/{id})."""
