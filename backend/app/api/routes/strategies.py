@@ -290,6 +290,8 @@ async def analyze_strategy(request: PoolAnalysisRequest):
             analysis_proof_hash=analysis_proof,
             pool_evaluations_proof=pool_evals_proof,
             confidence_score=confidence,
+            proof_id=f"pool-{analysis_proof[:16]}",
+            proof_status="generated",
             summary_text=summary,
         )
     
@@ -450,6 +452,8 @@ async def analyze_live(request: AnalyzeLiveRequest):
             expected_blended_apy=blended_apy,
             pool_count=len(recommendations),
             proof_hash=proof_hash,
+            proof_id=f"anlz-{proof_hash[:16]}",
+            proof_status="generated",
         )
 
     except HTTPException:
@@ -598,6 +602,8 @@ async def allocate(request: AllocateRequest):
             confidence=decision.confidence,
             source=decision.source,
             attestation_hash=decision.attestation_hash,
+            proof_id=f"alloc-{decision.attestation_hash[:16]}",
+            proof_status="generated",
         )
 
     except HTTPException:
@@ -759,6 +765,8 @@ async def execute_allocation_endpoint(http_request: Request, request: ExecuteAll
             live_submitted=False,
             allocation_summary=alloc_summary,
             timestamp=decision.timestamp,
+            proof_id=f"exec-{decision.attestation_hash[:16]}",
+            proof_status="generated",
         )
 
     try:
@@ -829,6 +837,8 @@ async def execute_allocation_endpoint(http_request: Request, request: ExecuteAll
             live_submitted=batch.live_submitted,
             allocation_summary=alloc_summary,
             timestamp=batch.timestamp,
+            proof_id=f"exec-{batch.attestation_hash[:16]}",
+            proof_status="submitted" if batch.live_submitted else "generated",
         )
 
     except HTTPException:
@@ -1695,6 +1705,7 @@ async def get_opportunities(req: OpportunitiesRequest):
     from app.services.vault_policy_service import get_vault_policy_service
     from app.services.zkml.pool_evaluator import PoolRiskEvaluator, PoolMetrics
     from app.services.signal_pass_service import compute_signals
+    from app.services.strategy_intelligence_service import get_strategy_intelligence_service
     from datetime import datetime as _dt
 
     try:
@@ -1727,6 +1738,9 @@ async def get_opportunities(req: OpportunitiesRequest):
     # ── Phase 1B: Initialize PoolRiskEvaluator ──
     evaluator = PoolRiskEvaluator()
     evaluations: dict[str, Any] = {}  # pool_id -> evaluation result
+    
+    # ── Phase 2: Initialize Strategy Intelligence Service ──
+    intelligence_svc = get_strategy_intelligence_service()
 
     scored: list[dict] = []
     for opp in opps:
@@ -1739,44 +1753,46 @@ async def get_opportunities(req: OpportunitiesRequest):
         if tvl < req.min_tvl_usd:
             continue
 
-        # ── Phase 1B: Run PoolRiskEvaluator ──
+        # ── Phase 2: Create/update strategy with intelligence ──
         zkml_risk_score = None
         zkml_flags: list[str] = []
         try:
-            metrics = PoolMetrics(
+            strategy = intelligence_svc.create_or_update_strategy(
                 pool_id=opp.get("pair", "unknown"),
-                name=opp.get("pair", ""),
                 protocol=opp.get("best_venue", "ekubo"),
-                liquidity_usd=tvl,
-                volume_24h_usd=float(opp.get("volume_24h_usd", 0)),
-                fee_tier=float(opp.get("spread_bps", 0)) / 10000.0,  # bps -> decimal
-                price_std_dev_24h=abs(float(opp.get("change_24h_pct", 0)) / 100.0),  # use 24h change as proxy
-                slippage_at_1000usd=0.01,  # default 1% if not in surface
                 token0=opp.get("token0", ""),
                 token1=opp.get("token1", ""),
-                current_apy=float(opp.get("estimated_apy_pct", 0)),
-                timestamp=_dt.utcnow(),
+                fee_tier=float(opp.get("spread_bps", 0)) / 10000.0,
+                apy=float(opp.get("estimated_apy_pct", 0)),
+                tvl_usd=tvl,
+                volume_24h_usd=float(opp.get("volume_24h_usd", 0)),
+                confidence=conf,
+                zkml_risk_score=None,  # Will be filled by circuits later
+                zkml_flags=[],
+                volatility_pct=abs(float(opp.get("change_24h_pct", 0))),
             )
-            evaluation = evaluator.evaluate_pool(metrics)
-            evaluations[opp.get("pair", "")] = evaluation
-            risk = evaluation.risk_score
-            zkml_risk_score = risk
-            zkml_flags = evaluation.flags
+            
+            risk = strategy.genome.risk_score
+            zkml_risk_score = int(risk)
+            zkml_flags = strategy.zkml_flags
+            
+            # Use genome composite score for ranking (not just APY * risk)
+            opp_score = strategy.genome.composite_score
+            
         except Exception as exc:
-            logger.warning("evaluator failed for %s: %s", opp.get("pair"), exc)
-            # Fallback to simple scoring
+            logger.warning("intelligence service failed for %s: %s", opp.get("pair"), exc)
+            # Fallback to basic scoring
             risk = 20 if conf == "high" else (40 if conf == "medium" else 60)
             if tvl < 10_000:
                 risk += 15
             elif tvl < 50_000:
                 risk += 5
+            zkml_risk_score = int(risk)
+            apy = float(opp.get("estimated_apy_pct", 0))
+            opp_score = apy * (1.0 - risk / 200.0)
 
         if risk > max_risk:
             continue
-
-        # Compute opportunity score for ranking
-        apy = float(opp.get("estimated_apy_pct", 0))
-        opp_score = apy * (1.0 - risk / 200.0)  # higher APY, lower risk → better
 
         flags: list[str] = []
         if conf == "low":
