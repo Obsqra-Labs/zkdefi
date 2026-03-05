@@ -38,3 +38,12 @@ pub mod tiered_agent_controller;
 pub mod validation_proof_registry;
 pub mod vault_controller;
 pub mod zkml_verifier;
+
+// Garaga verifiers for reputation circuits
+pub mod verifiers {
+    pub mod ExecutionIntegrityVerifier;
+    pub mod RiskPassportTierVerifier;
+    pub mod SolvencyProofVerifier;
+    pub mod StrategyIntegrityVerifier;
+    pub mod TraderPerformanceVerifier;
+}

@@ -25,5 +25,6 @@ dependencies = [
 name = "zkdefi_contracts"
 version = "0.1.0"
 dependencies = [
+ "garaga",
  "garaga_verifier",
 ]

@@ -5,6 +5,7 @@ edition = "2024_07"
 
 [dependencies]
 starknet = ">=2.0.0"
+garaga = { git = "https://github.com/keep-starknet-strange/garaga.git", branch = "main" }
 garaga_verifier = { path = "src/garaga_verifier" }
 
 [[target.starknet-contract]]
