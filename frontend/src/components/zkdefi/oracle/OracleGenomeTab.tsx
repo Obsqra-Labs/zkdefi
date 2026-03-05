@@ -12,7 +12,24 @@ interface OracleGenomeTabProps {
 
 const FACTORS = ["Yield", "Risk", "Volatility", "Liquidity", "Efficiency"] as const;
 
-function factorValue(opp: OracleOpportunity, factor: (typeof FACTORS)[number]): number {
+function factorValue(opp: any, factor: (typeof FACTORS)[number]): number {
+  // Phase 2: Use backend-computed genome if available
+  if (opp.genome_factors) {
+    switch (factor) {
+      case "Yield":
+        return opp.genome_factors.yield_score;
+      case "Risk":
+        return opp.genome_factors.risk_score;
+      case "Volatility":
+        return opp.genome_factors.volatility_score;
+      case "Liquidity":
+        return opp.genome_factors.liquidity_score;
+      case "Efficiency":
+        return opp.genome_factors.efficiency_score;
+    }
+  }
+  
+  // Fallback to frontend computation (for demo mode)
   const apy = opp.estimated_apy_pct ?? opp.apy ?? 0;
   const risk = opp.risk_score ?? 0;
   const vol = opp.volatility ?? 30;
