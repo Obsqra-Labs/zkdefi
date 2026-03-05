@@ -1679,6 +1679,8 @@ async def get_opportunities(req: OpportunitiesRequest):
     """
     from app.services.market_surface_service import get_market_surface
     from app.services.vault_policy_service import get_vault_policy_service
+    from app.services.zkml.pool_evaluator import PoolRiskEvaluator, PoolMetrics
+    from datetime import datetime as _dt
 
     try:
         surface = await get_market_surface()
@@ -1707,6 +1709,10 @@ async def get_opportunities(req: OpportunitiesRequest):
     confidence_levels = {"low": 0, "medium": 1, "high": 2}
     min_conf_val = confidence_levels.get(req.min_confidence or "low", 0)
 
+    # ── Phase 1B: Initialize PoolRiskEvaluator ──
+    evaluator = PoolRiskEvaluator()
+    evaluations: dict[str, Any] = {}  # pool_id -> evaluation result
+
     scored: list[dict] = []
     for opp in opps:
         conf = opp.get("confidence", "low")
@@ -1718,12 +1724,37 @@ async def get_opportunities(req: OpportunitiesRequest):
         if tvl < req.min_tvl_usd:
             continue
 
-        # Simple risk score from TVL + confidence
-        risk = 20 if conf == "high" else (40 if conf == "medium" else 60)
-        if tvl < 10_000:
-            risk += 15
-        elif tvl < 50_000:
-            risk += 5
+        # ── Phase 1B: Run PoolRiskEvaluator ──
+        zkml_risk_score = None
+        zkml_flags: list[str] = []
+        try:
+            metrics = PoolMetrics(
+                pool_id=opp.get("pair", "unknown"),
+                name=opp.get("pair", ""),
+                protocol=opp.get("best_venue", "ekubo"),
+                liquidity_usd=tvl,
+                volume_24h_usd=float(opp.get("volume_24h_usd", 0)),
+                fee_tier=float(opp.get("spread_bps", 0)) / 10000.0,  # bps -> decimal
+                price_std_dev_24h=abs(float(opp.get("change_24h_pct", 0)) / 100.0),  # use 24h change as proxy
+                slippage_at_1000usd=0.01,  # default 1% if not in surface
+                token0=opp.get("token0", ""),
+                token1=opp.get("token1", ""),
+                current_apy=float(opp.get("estimated_apy_pct", 0)),
+                timestamp=_dt.utcnow(),
+            )
+            evaluation = evaluator.evaluate_pool(metrics)
+            evaluations[opp.get("pair", "")] = evaluation
+            risk = evaluation.risk_score
+            zkml_risk_score = risk
+            zkml_flags = evaluation.flags
+        except Exception as exc:
+            logger.warning("evaluator failed for %s: %s", opp.get("pair"), exc)
+            # Fallback to simple scoring
+            risk = 20 if conf == "high" else (40 if conf == "medium" else 60)
+            if tvl < 10_000:
+                risk += 15
+            elif tvl < 50_000:
+                risk += 5
 
         if risk > max_risk:
             continue
@@ -1744,6 +1775,8 @@ async def get_opportunities(req: OpportunitiesRequest):
             **opp,
             "risk_score": risk,
             "flags": flags,
+            "zkml_risk_score": zkml_risk_score,
+            "zkml_flags": zkml_flags,
             "data_source": data_source,
             "_score": opp_score,
         })
