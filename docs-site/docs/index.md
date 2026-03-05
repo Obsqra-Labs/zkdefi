@@ -16,7 +16,9 @@ hero:
 
 ## What Is zkde.fi?
 
-zkde.fi is an AI-driven capital allocator for DeFi on Starknet. Every risk assessment, anomaly detection, and strategy signal is backed by a cryptographic proof of the computation that produced it. Built on Obsqra's verifiable AI infrastructure.
+zkde.fi is an **AI-powered Capital OS** for DeFi on Starknet. Every risk assessment, anomaly detection, and strategy signal is backed by a cryptographic proof. Built on Obsqra's verifiable AI infrastructure.
+
+**New in 2026:** Real-time WebSocket updates, one-click execution from Oracle recommendations, and autonomous position monitoring.
 
 ## The Problem It Solves
 

@@ -23,6 +23,7 @@ class RecommendedAction(BaseModel):
     reasoning: str  # Why this recommendation
     confidence: str  # "high" | "medium" | "low"
     genome_composite: float  # For sorting
+    historical_context: Optional[str] = None  # zkRAG attested historical pattern
 
 
 class OracleRecommendationService:
@@ -56,7 +57,42 @@ class OracleRecommendationService:
         if not strategies:
             logger.warning("No strategies available for recommendations")
             return []
-        
+
+        # zkRAG enrichment: fetch historical patterns (non-blocking, sync wrapper)
+        _zkrag_patterns: dict[str, str] = {}
+        try:
+            import os
+            if os.getenv("ZKGRAPH_ENABLED", "true").lower() in ("true", "1"):
+                import asyncio
+                from app.services.zkgraph_client import get_zkgraph_client
+                zk = get_zkgraph_client()
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    # Already inside an async context — schedule as task
+                    import concurrent.futures
+                    # Can't await here from sync method; use cached data if available
+                    cached = zk._get_cached("patterns:general", zk.cache_ttl_historical)
+                    if cached:
+                        for p in cached[:3]:
+                            _zkrag_patterns[p.pattern_type] = (
+                                f"{p.description} (blocks {p.block_range}, "
+                                f"confidence {p.confidence:.0%})"
+                            )
+                else:
+                    patterns = asyncio.run(
+                        zk.query_historical_patterns("general", limit=3)
+                    )
+                    for p in patterns:
+                        _zkrag_patterns[p.pattern_type] = (
+                            f"{p.description} (blocks {p.block_range}, "
+                            f"confidence {p.confidence:.0%})"
+                        )
+        except Exception as exc:
+            logger.debug("zkRAG oracle enrichment skipped: %s", exc)
+
         recommendations = []
         
         # Rule 1: If no current allocation, suggest diversified start
@@ -74,6 +110,7 @@ class OracleRecommendationService:
                     reasoning=f"High genome composite ({strategy.genome.composite_score:.1f}), {strategy.confidence} confidence",
                     confidence=strategy.confidence,
                     genome_composite=strategy.genome.composite_score,
+                    historical_context=_zkrag_patterns.get("general"),
                 ))
         
         # Rule 2: If allocated, suggest rebalance to higher-scoring strategies
@@ -91,6 +128,7 @@ class OracleRecommendationService:
                         reasoning=f"Better risk-adjusted yield than current allocation",
                         confidence=strategy.confidence,
                         genome_composite=strategy.genome.composite_score,
+                        historical_context=_zkrag_patterns.get("general"),
                     ))
                     if len(recommendations) >= limit:
                         break

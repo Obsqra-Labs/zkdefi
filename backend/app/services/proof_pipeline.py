@@ -120,6 +120,22 @@ class ProofPipeline:
             constraints=constraints or {},
             commitment_hash=commitment_hash
         )
+
+        # zkRAG enrichment: attach attested provenance to proof metadata
+        zkrag_meta: dict[str, Any] = {}
+        try:
+            if os.getenv("ZKGRAPH_ENABLED", "true").lower() in ("true", "1"):
+                from app.services.zkgraph_client import get_zkgraph_client
+                zk = get_zkgraph_client()
+                ctx = await zk.query_market_context(pool_id)
+                if ctx.source == "zkrag" and ctx.provenance:
+                    zkrag_meta = {
+                        "zkrag_fact_hash": ctx.provenance.fact_hash,
+                        "zkrag_block_range": ctx.provenance.block_range,
+                        "zkrag_source_count": ctx.provenance.source_count,
+                    }
+        except Exception as exc:
+            logger.debug("zkGraph proof enrichment skipped: %s", exc)
         
         # Check if all proofs pass
         zkml_passed = risk_proof["is_compliant"] and anomaly_proof["is_safe"]
@@ -139,6 +155,7 @@ class ProofPipeline:
                 "zkml_calldata": risk_proof["proof_calldata"] + anomaly_proof["proof_calldata"],
                 "execution_proof_hash": execution_proof["proof_hash"]
             },
+            "zkrag": zkrag_meta,
             "generated_at": datetime.utcnow().isoformat()
         }
         

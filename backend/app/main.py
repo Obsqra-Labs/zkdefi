@@ -266,6 +266,9 @@ if vault_v2_router:
 batch_verification_router = _optional_router("app.api.routes.batch_verification")
 if batch_verification_router:
     app.include_router(batch_verification_router, prefix="/api/v1/zkdefi", tags=["batch"])
+zkgraph_router = _optional_router("app.api.routes.zkgraph")
+if zkgraph_router:
+    app.include_router(zkgraph_router, prefix="/api/v1/zkdefi/zkgraph", tags=["zkgraph"])
 
 
 # -----------------------------------------------------------------------------

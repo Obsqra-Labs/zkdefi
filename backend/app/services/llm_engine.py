@@ -7,7 +7,8 @@ import os
 import json
 import logging
 from typing import List, Dict, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
+from typing import Optional as _Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class AllocationRecommendation:
     confidence: float  # 0.0-1.0
     expected_apy: float  # 0.0-1.0
     risk_assessment: str
+    zkrag_provenance: _Optional[Dict] = field(default=None)  # attested context from proven-index
 
 
 class LLMEngine:
@@ -86,25 +88,52 @@ Return ONLY valid JSON, no markdown or extra text:
             AllocationRecommendation with allocation percentages and reasoning
         """
 
+        # zkGraph enrichment: inject attested on-chain context into LLM prompt
+        zkrag_context = ""
+        zkrag_provenance = None
+        try:
+            if os.getenv("ZKGRAPH_ENABLED", "true").lower() in ("true", "1"):
+                from app.services.zkgraph_client import get_zkgraph_client
+                zk = get_zkgraph_client()
+                # Fetch context for the first pool as representative sample
+                if pools:
+                    ctx = await zk.query_market_context(pools[0].get("pool_id", ""))
+                    if ctx.source == "zkrag" and ctx.context_text:
+                        zkrag_context = ctx.context_text
+                        zkrag_provenance = ctx.provenance.to_dict() if ctx.provenance else None
+        except Exception as exc:
+            logger.debug("zkGraph enrichment skipped: %s", exc)
+
         if self.use_llm and self.client:
-            return await self._get_llm_recommendation(user_risk_profile, pools, user_amount)
+            rec = await self._get_llm_recommendation(user_risk_profile, pools, user_amount, zkrag_context)
         else:
-            return self._get_fallback_recommendation(user_risk_profile, pools, user_amount)
+            rec = self._get_fallback_recommendation(user_risk_profile, pools, user_amount)
+        rec.zkrag_provenance = zkrag_provenance
+        return rec
 
     async def _get_llm_recommendation(
         self,
         user_risk_profile: str,
         pools: List[Dict],
         user_amount: float,
+        zkrag_context: str = "",
     ) -> AllocationRecommendation:
         """Get recommendation using ChatGPT-mini"""
         try:
             prompt = self._format_prompt(user_risk_profile, pools, user_amount)
 
+            system = self.system_prompt
+            if zkrag_context:
+                system += (
+                    "\n\nYou also have access to attested on-chain data from the "
+                    "obsqra proven-index (zkRAG). Use it to ground your recommendation "
+                    "in real on-chain activity:\n" + zkrag_context
+                )
+
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": self.system_prompt},
+                    {"role": "system", "content": system},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,  # Low randomness = consistent decisions
