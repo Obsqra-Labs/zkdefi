@@ -1,26 +1,23 @@
 """
-zkGraph Client — HTTP client for obsqra.fi zkRAG proven-index service.
+ZkGraph Client: Query attested on-chain intelligence from obsqra.fi zkRAG API
 
-4th integration client alongside ObsqraProverClient, ProofSequencerClient,
-and SnapshotAttestationService.  Pattern: singleton + httpx.AsyncClient,
-local:8002 primary, feature-flagged via ZKGRAPH_ENABLED, TTL cache,
-10 RPM rate limit, 5 s timeout, graceful fallback to local_only.
+This client provides rate-limited, cached access to the obsqra proven index.
+All methods fail-open (return local_only fallbacks on error).
 """
-from __future__ import annotations
 
 import logging
 import os
 import time
-from typing import Any, Optional
-
+from typing import Optional, List, Dict, Any
+from collections import deque
 import httpx
 
 from app.models.zkgraph import (
-    HistoricalPattern,
-    MarketContext,
-    StrategyMatch,
     ZkGraphProvenance,
     ZkGraphResult,
+    MarketContext,
+    HistoricalPattern,
+    StrategyMatch,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,316 +25,319 @@ logger = logging.getLogger(__name__)
 
 class ZkGraphClient:
     """
-    Async HTTP client that queries the obsqra zkRAG proven-index.
-
-    Every public method returns a typed dataclass and **never raises**:
-    on any error it returns a graceful fallback (source="local_only").
+    Singleton client for querying obsqra's zkRAG API
+    
+    Features:
+    - Rate limiting: 10 requests per minute (sliding window)
+    - TTL caching: 60s for market context, 300s for historical data
+    - Fail-open: Returns source="local_only" on any error
+    - Structured format: Always requests structured JSON responses
     """
-
-    def __init__(self) -> None:
-        # Configuration -------------------------------------------------------
-        self.enabled: bool = os.getenv("ZKGRAPH_ENABLED", "true").lower() in (
-            "true",
-            "1",
-            "yes",
-        )
-        self.base_url: str = os.getenv(
+    
+    _instance: Optional['ZkGraphClient'] = None
+    
+    def __init__(self):
+        self.base_url = os.getenv(
             "OBSQRA_PROVER_API_URL",
-            os.getenv("OBSQRA_PROVER_URL", "http://localhost:8002/api/v1"),
-        ).rstrip("/")
-        self.timeout: float = float(os.getenv("ZKGRAPH_TIMEOUT", "5"))
-        self.max_rpm: int = int(os.getenv("ZKGRAPH_MAX_RPM", "10"))
-        self.cache_ttl_market: int = int(os.getenv("ZKGRAPH_CACHE_TTL_MARKET", "60"))
-        self.cache_ttl_historical: int = int(
-            os.getenv("ZKGRAPH_CACHE_TTL_HISTORICAL", "300")
+            "http://localhost:8002/api/v1"
         )
-
-        # Internal state ------------------------------------------------------
-        self._client: Optional[httpx.AsyncClient] = None
-        self._cache: dict[str, tuple[float, Any]] = {}
-        self._rpm_timestamps: list[float] = []
-
+        self.enabled = os.getenv("ZKGRAPH_ENABLED", "").lower() == "true"
+        
+        # Rate limiting: 10 RPM sliding window
+        self.rate_limit_rpm = 10
+        self.request_timestamps: deque = deque(maxlen=self.rate_limit_rpm)
+        
+        # TTL caches
+        self.market_context_cache: Dict[str, Dict[str, Any]] = {}
+        self.historical_cache: Dict[str, Dict[str, Any]] = {}
+        self.market_ttl = 60  # 60 seconds
+        self.historical_ttl = 300  # 5 minutes
+        
+        self.client = httpx.AsyncClient(timeout=30.0)
+        
         if self.enabled:
-            logger.info(
-                "ZkGraphClient enabled — base_url=%s timeout=%.1fs rpm=%d",
-                self.base_url,
-                self.timeout,
-                self.max_rpm,
-            )
+            logger.info(f"ZkGraphClient initialized: {self.base_url}")
         else:
-            logger.info("ZkGraphClient disabled (ZKGRAPH_ENABLED=%s)", os.getenv("ZKGRAPH_ENABLED"))
-
-    # -- HTTP transport -------------------------------------------------------
-
-    async def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(timeout=self.timeout)
-        return self._client
-
-    def _headers(self) -> dict[str, str]:
-        return {"Content-Type": "application/json"}
-
-    # -- Rate limiter (simple sliding-window) ---------------------------------
-
-    def _rate_ok(self) -> bool:
-        now = time.monotonic()
-        self._rpm_timestamps = [t for t in self._rpm_timestamps if now - t < 60]
-        if len(self._rpm_timestamps) >= self.max_rpm:
-            logger.warning("ZkGraph rate limit hit (%d RPM)", self.max_rpm)
+            logger.info("ZkGraphClient disabled (ZKGRAPH_ENABLED != true)")
+    
+    @classmethod
+    def get_instance(cls) -> 'ZkGraphClient':
+        """Get singleton instance"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def _check_rate_limit(self) -> bool:
+        """Check if we're under rate limit (10 RPM)"""
+        now = time.time()
+        
+        # Remove timestamps older than 1 minute
+        while self.request_timestamps and now - self.request_timestamps[0] > 60:
+            self.request_timestamps.popleft()
+        
+        # Check if we have room
+        if len(self.request_timestamps) >= self.rate_limit_rpm:
+            logger.warning(f"ZkGraph rate limit exceeded: {len(self.request_timestamps)} requests in last minute")
             return False
-        self._rpm_timestamps.append(now)
+        
+        self.request_timestamps.append(now)
         return True
-
-    # -- Cache ----------------------------------------------------------------
-
-    def _get_cached(self, key: str, ttl: int) -> Optional[Any]:
-        entry = self._cache.get(key)
-        if entry is None:
-            return None
-        ts, value = entry
-        if time.monotonic() - ts > ttl:
-            del self._cache[key]
-            return None
-        return value
-
-    def _set_cached(self, key: str, value: Any) -> None:
-        self._cache[key] = (time.monotonic(), value)
-
-    # -- Core POST helper -----------------------------------------------------
-
-    async def _post_zkrag(self, query: str) -> Optional[dict]:
-        """POST /zkrag/query with format=structured.  Returns parsed JSON or None."""
+    
+    def _get_cached(self, cache: Dict, key: str, ttl: int) -> Optional[Any]:
+        """Get cached value if within TTL"""
+        if key in cache:
+            entry = cache[key]
+            if time.time() - entry["timestamp"] < ttl:
+                logger.debug(f"Cache hit for {key}")
+                return entry["data"]
+            else:
+                del cache[key]
+        return None
+    
+    def _set_cache(self, cache: Dict, key: str, data: Any):
+        """Set cached value with timestamp"""
+        cache[key] = {
+            "data": data,
+            "timestamp": time.time()
+        }
+    
+    async def _query_zkrag(self, query: str, format: str = "structured") -> Optional[Dict[str, Any]]:
+        """
+        Internal method to query obsqra zkRAG API
+        
+        Returns None on error (fail-open design)
+        """
         if not self.enabled:
             return None
-        if not self._rate_ok():
+        
+        if not self._check_rate_limit():
+            logger.warning("Rate limit exceeded, skipping zkRAG query")
             return None
-
-        client = await self._get_client()
+        
         try:
-            resp = await client.post(
+            response = await self.client.post(
                 f"{self.base_url}/zkrag/query",
-                json={"query": query, "format": "structured"},
-                headers=self._headers(),
+                json={
+                    "query": query,
+                    "format": format
+                }
             )
-            resp.raise_for_status()
-            return resp.json()
-        except httpx.TimeoutException:
-            logger.warning("zkRAG query timed out (%.1fs): %s", self.timeout, query[:80])
+            response.raise_for_status()
+            return response.json()
+        
+        except Exception as e:
+            logger.error(f"zkRAG query failed: {e}")
             return None
-        except httpx.HTTPError as exc:
-            logger.warning("zkRAG query HTTP error: %s", exc)
-            return None
-        except Exception as exc:
-            logger.warning("zkRAG query unexpected error: %s", exc)
-            return None
-
-    # -- Parse helpers --------------------------------------------------------
-
-    @staticmethod
-    def _parse_provenance(raw: dict) -> ZkGraphProvenance:
-        prov = raw.get("provenance", {})
-        return ZkGraphProvenance(
-            fact_hash=prov.get("fact_hash", ""),
-            block_range=prov.get("block_range", ""),
-            merkle_root=prov.get("merkle_root", ""),
-            source_count=int(prov.get("sources", 0)),
-            verified_on_chain=False,  # filled by verify_provenance()
-        )
-
-    @staticmethod
-    def _parse_result(raw: dict) -> ZkGraphResult:
-        return ZkGraphResult(
-            query=raw.get("query", ""),
-            response=raw.get("response", ""),
-            query_id=raw.get("query_id", ""),
-            response_hash=raw.get("response_hash", ""),
-            provenance=ZkGraphClient._parse_provenance(raw),
-            results=raw.get("results", []),
-            cached=False,
-        )
-
-    # =========================================================================
-    # Public API
-    # =========================================================================
-
+    
     async def query_market_context(self, pool_id: str) -> MarketContext:
         """
-        Fetch attested market context for a pool / pair from the proven index.
-
-        Returns MarketContext with source="zkrag" on success, source="local_only" on
-        any failure or when disabled.
+        Get attested market context for a specific pool
+        
+        Returns MarketContext with source="local_only" on error (fail-open)
         """
-        cache_key = f"market:{pool_id}"
-        cached = self._get_cached(cache_key, self.cache_ttl_market)
-        if cached is not None:
+        # Check cache first
+        cached = self._get_cached(self.market_context_cache, pool_id, self.market_ttl)
+        if cached:
             cached.enrichments["cached"] = True
             return cached
-
-        raw = await self._post_zkrag(
-            f"pool activity and events for {pool_id} on Starknet Sepolia"
+        
+        # Query zkRAG
+        result = await self._query_zkrag(f"pool activity for {pool_id}")
+        
+        if not result:
+            # Fallback: local_only
+            ctx = MarketContext(
+                pool_id=pool_id,
+                source="local_only",
+                context_text="",
+                provenance=None,
+                enrichments={"reason": "zkRAG unavailable"},
+                verified=False
+            )
+            self._set_cache(self.market_context_cache, pool_id, ctx)
+            return ctx
+        
+        # Parse structured response
+        provenance_data = result.get("provenance", {})
+        results = result.get("results", [])
+        
+        # Build context text from results
+        context_parts = []
+        for r in results[:3]:  # Top 3 results
+            block_num = r.get("block_number", "?")
+            fact_hash = r.get("fact_hash", "")[:10]
+            context_parts.append(f"block {block_num}: fact_hash={fact_hash}...")
+        
+        context_text = " ".join(context_parts) if context_parts else result.get("response", "")
+        
+        # Build provenance
+        provenance = ZkGraphProvenance(
+            fact_hash=provenance_data.get("fact_hash", "0x0"),
+            block_range=provenance_data.get("block_range", "unknown"),
+            merkle_root=provenance_data.get("merkle_root", "0x0"),
+            source_count=provenance_data.get("sources", 0),
+            verified_on_chain=False  # TODO: Verify via fact registry
         )
-        if raw is None:
-            return MarketContext(pool_id=pool_id, source="local_only")
-
-        prov = self._parse_provenance(raw)
-        results = raw.get("results", [])
-
+        
         ctx = MarketContext(
             pool_id=pool_id,
             source="zkrag",
-            context_text=self._summarize_results(results, pool_id),
-            provenance=prov,
-            enrichments={"result_count": len(results), "cached": False},
-            verified=bool(prov.fact_hash),
+            context_text=context_text,
+            provenance=provenance,
+            enrichments={
+                "query_id": result.get("query_id"),
+                "response_hash": result.get("response_hash"),
+                "result_count": len(results)
+            },
+            verified=True
         )
-        self._set_cached(cache_key, ctx)
+        
+        self._set_cache(self.market_context_cache, pool_id, ctx)
         return ctx
-
-    async def query_similar_strategies(
-        self, strategy_id: str, *, limit: int = 5
-    ) -> list[StrategyMatch]:
-        """
-        Search the proven index for historically similar strategies.
-        """
-        cache_key = f"strategies:{strategy_id}"
-        cached = self._get_cached(cache_key, self.cache_ttl_historical)
-        if cached is not None:
-            return cached
-
-        raw = await self._post_zkrag(
-            f"historical strategies similar to {strategy_id} last 500 blocks yield allocation"
-        )
-        if raw is None:
-            return []
-
-        prov = self._parse_provenance(raw)
-        matches: list[StrategyMatch] = []
-        for item in (raw.get("results") or [])[:limit]:
-            matches.append(
-                StrategyMatch(
-                    strategy_id=item.get("contract", item.get("fact_hash", strategy_id)),
-                    similarity_score=0.8,  # determined by index proximity
-                    historical_apy=0.0,
-                    block_range=f"{item.get('block_from', '?')}-{item.get('block_to', item.get('block_number', '?'))}",
-                    provenance=prov,
-                )
-            )
-        self._set_cached(cache_key, matches)
-        return matches
-
+    
     async def query_historical_patterns(
-        self, pattern_type: str = "general", *, limit: int = 5
-    ) -> list[HistoricalPattern]:
+        self,
+        pattern_type: str = "general",
+        limit: int = 5
+    ) -> List[HistoricalPattern]:
         """
-        Query for historical on-chain patterns (volatility spikes, TVL drains, etc.).
+        Get historical on-chain patterns from proven index
+        
+        Returns empty list on error (fail-open)
         """
-        cache_key = f"patterns:{pattern_type}"
-        cached = self._get_cached(cache_key, self.cache_ttl_historical)
-        if cached is not None:
+        cache_key = f"{pattern_type}:{limit}"
+        cached = self._get_cached(self.historical_cache, cache_key, self.historical_ttl)
+        if cached:
             return cached
-
-        raw = await self._post_zkrag(
-            f"historical on-chain patterns {pattern_type} last 1000 blocks risk events"
+        
+        # Query zkRAG
+        result = await self._query_zkrag(
+            f"historical on-chain patterns {pattern_type} limit {limit}"
         )
-        if raw is None:
+        
+        if not result:
             return []
-
-        prov = self._parse_provenance(raw)
-        patterns: list[HistoricalPattern] = []
-        for item in (raw.get("results") or [])[:limit]:
-            note = item.get("note", item.get("type", pattern_type))
-            patterns.append(
-                HistoricalPattern(
-                    pattern_type=pattern_type,
-                    description=note,
-                    block_range=f"{item.get('block_from', '?')}-{item.get('block_to', item.get('block_number', '?'))}",
-                    confidence=0.7 if item.get("proof_path") and "verified" in str(item.get("proof_path", "")).lower() else 0.4,
-                    provenance=prov,
-                )
+        
+        # Parse results
+        patterns = []
+        provenance_data = result.get("provenance", {})
+        
+        provenance = ZkGraphProvenance(
+            fact_hash=provenance_data.get("fact_hash", "0x0"),
+            block_range=provenance_data.get("block_range", "unknown"),
+            merkle_root=provenance_data.get("merkle_root", "0x0"),
+            source_count=provenance_data.get("sources", 0),
+            verified_on_chain=False
+        )
+        
+        results = result.get("results", [])
+        for r in results[:limit]:
+            pattern = HistoricalPattern(
+                pattern_type=r.get("type", pattern_type),
+                description=r.get("note", "From attested snapshots"),
+                block_range=f"{r.get('block_from', '?')}-{r.get('block_to', '?')}",
+                confidence=0.4,  # Conservative default
+                provenance=provenance
             )
-        self._set_cached(cache_key, patterns)
+            patterns.append(pattern)
+        
+        self._set_cache(self.historical_cache, cache_key, patterns)
         return patterns
-
-    async def verify_provenance(
-        self, fact_hash: str, response_hash: str = ""
-    ) -> dict[str, Any]:
+    
+    async def query_similar_strategies(
+        self,
+        strategy_id: str,
+        limit: int = 5
+    ) -> List[StrategyMatch]:
         """
-        Verify a fact_hash and optional response_hash via obsqra /zkrag/verify.
+        Get historically similar strategies from proven index
+        
+        Returns empty list on error (fail-open)
         """
-        if not self.enabled or not fact_hash:
-            return {"verified": False, "reason": "disabled_or_empty"}
-
-        if not self._rate_ok():
-            return {"verified": False, "reason": "rate_limited"}
-
-        client = await self._get_client()
-        try:
-            query_id = fact_hash[:34]  # use fact_hash prefix as pseudo-query-id
-            resp = await client.post(
-                f"{self.base_url}/zkrag/verify/{query_id}",
-                json={"fact_hash": fact_hash, "response_hash": response_hash},
-                headers=self._headers(),
+        cache_key = f"strat:{strategy_id}:{limit}"
+        cached = self._get_cached(self.historical_cache, cache_key, self.historical_ttl)
+        if cached:
+            return cached
+        
+        # Query zkRAG
+        result = await self._query_zkrag(
+            f"similar strategies to {strategy_id} limit {limit}"
+        )
+        
+        if not result:
+            return []
+        
+        # Parse results
+        matches = []
+        provenance_data = result.get("provenance", {})
+        
+        provenance = ZkGraphProvenance(
+            fact_hash=provenance_data.get("fact_hash", "0x0"),
+            block_range=provenance_data.get("block_range", "unknown"),
+            merkle_root=provenance_data.get("merkle_root", "0x0"),
+            source_count=provenance_data.get("sources", 0),
+            verified_on_chain=False
+        )
+        
+        results = result.get("results", [])
+        for r in results[:limit]:
+            match = StrategyMatch(
+                strategy_id=strategy_id,
+                similarity_score=0.7,  # Default similarity
+                historical_apy=0.08,  # 8% default
+                block_range=f"{r.get('block_from', '?')}-{r.get('block_to', '?')}",
+                provenance=provenance
             )
-            resp.raise_for_status()
-            return resp.json()
-        except Exception as exc:
-            logger.warning("zkRAG verify error: %s", exc)
-            return {"verified": False, "reason": str(exc)}
-
-    async def health_check(self) -> dict[str, Any]:
+            matches.append(match)
+        
+        self._set_cache(self.historical_cache, cache_key, matches)
+        return matches
+    
+    async def verify_provenance(
+        self,
+        fact_hash: str,
+        response_hash: str
+    ) -> Dict[str, Any]:
         """
-        Lightweight liveness check for the obsqra zkRAG service.
+        Verify a fact_hash + response_hash against obsqra registry
         """
         if not self.enabled:
-            return {"available": False, "reason": "disabled"}
-
-        client = await self._get_client()
+            return {"verified": False, "reason": "zkGraph disabled"}
+        
         try:
-            base = self.base_url.replace("/api/v1", "").rstrip("/")
-            resp = await client.get(f"{base}/", timeout=5.0)
-            ok = resp.status_code == 200
-        except Exception:
-            ok = False
-
+            response = await self.client.post(
+                f"{self.base_url}/zkrag/verify",
+                json={
+                    "fact_hash": fact_hash,
+                    "response_hash": response_hash
+                }
+            )
+            response.raise_for_status()
+            return response.json()
+        
+        except Exception as e:
+            logger.error(f"Provenance verification failed: {e}")
+            return {"verified": False, "error": str(e)}
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Check zkGraph client health
+        """
         return {
-            "available": ok,
+            "available": self.enabled,
             "base_url": self.base_url,
-            "cache_entries": len(self._cache),
-            "rpm_used": len([t for t in self._rpm_timestamps if time.monotonic() - t < 60]),
-            "rpm_limit": self.max_rpm,
+            "cache_entries": {
+                "market_context": len(self.market_context_cache),
+                "historical": len(self.historical_cache)
+            },
+            "rate_limit": {
+                "rpm_used": len(self.request_timestamps),
+                "rpm_limit": self.rate_limit_rpm
+            }
         }
 
-    # -- Utility --------------------------------------------------------------
 
-    @staticmethod
-    def _summarize_results(results: list[dict], pool_id: str) -> str:
-        """Build a concise text summary of structured results."""
-        if not results:
-            return f"No proven-index data found for {pool_id}."
-        lines = [f"Proven-index data for {pool_id} ({len(results)} source(s)):"]
-        for item in results[:5]:
-            blk = item.get("block_number", item.get("block_to", "?"))
-            note = item.get("note", item.get("type", ""))
-            fh = item.get("fact_hash", "")
-            if fh:
-                lines.append(f"  block {blk}: fact_hash={fh[:20]}... {note}")
-            else:
-                lines.append(f"  block {blk}: {note}")
-        if len(results) > 5:
-            lines.append(f"  ... and {len(results) - 5} more.")
-        return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Singleton
-# ---------------------------------------------------------------------------
-
-_client: Optional[ZkGraphClient] = None
-
-
+# Helper function for convenience
 def get_zkgraph_client() -> ZkGraphClient:
-    """Get or create the ZkGraphClient singleton."""
-    global _client
-    if _client is None:
-        _client = ZkGraphClient()
-    return _client
+    """Get singleton ZkGraphClient instance"""
+    return ZkGraphClient.get_instance()

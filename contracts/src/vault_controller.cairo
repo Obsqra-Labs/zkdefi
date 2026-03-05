@@ -28,6 +28,13 @@ pub trait IVaultController<TContractState> {
         amounts: Span<u256>,
         salt: felt252,
     );
+    fn execute_proposal_with_proof(  // NEW: Require STARK proof
+        ref self: TContractState,
+        adapters: Span<ContractAddress>,
+        amounts: Span<u256>,
+        salt: felt252,
+        proof_hash: felt252,
+    );
     fn emergency_withdraw(ref self: TContractState, adapter: ContractAddress);
     fn total_value(self: @TContractState) -> u256;
     fn get_adapter_config(self: @TContractState, adapter: ContractAddress) -> AdapterConfig;
@@ -36,12 +43,16 @@ pub trait IVaultController<TContractState> {
     fn get_last_rebalance_ts(self: @TContractState) -> u64;
     fn get_admin(self: @TContractState) -> ContractAddress;
     fn get_vault_state(self: @TContractState) -> felt252;
+    fn get_fact_registry(self: @TContractState) -> ContractAddress;
+    fn get_receipt_registry(self: @TContractState) -> ContractAddress;
+    fn set_fact_registry(ref self: TContractState, new_address: ContractAddress);  // NEW: Admin setter
+    fn set_receipt_registry(ref self: TContractState, new_address: ContractAddress);  // NEW: Admin setter
 }
 
 #[starknet::contract]
 mod VaultController {
     use starknet::{
-        ContractAddress, get_caller_address, get_block_timestamp, get_block_info,
+        ContractAddress, get_caller_address, get_block_timestamp, get_block_info, get_tx_info,
     };
     use starknet::storage::{
         Map, StoragePointerReadAccess, StoragePointerWriteAccess,
@@ -51,6 +62,8 @@ mod VaultController {
 
     use super::{AdapterConfig, VaultState};
     use crate::strategy_adapter::{IStrategyAdapterDispatcher, IStrategyAdapterDispatcherTrait};
+    use crate::obsqra_fact_registry::{IObsqraFactRegistryDispatcher, IObsqraFactRegistryDispatcherTrait};
+    use crate::receipt_registry::{IReceiptRegistryDispatcher, IReceiptRegistryDispatcherTrait};
 
     #[storage]
     struct Storage {
@@ -66,6 +79,8 @@ mod VaultController {
         zkml_verifier: ContractAddress,
         eth_token: ContractAddress,
         constraint_hashes: Map<felt252, felt252>,
+        fact_registry: ContractAddress,  // ERC-8004 proof registry
+        receipt_registry: ContractAddress,  // NEW: On-chain receipt storage
     }
 
     #[event]
@@ -78,6 +93,7 @@ mod VaultController {
         PolicyRootUpdated: PolicyRootUpdated,
         ProposalCommitted: ProposalCommitted,
         ProposalExecuted: ProposalExecuted,
+        ProofVerified: ProofVerified,  // NEW
         EmergencyWithdraw: EmergencyWithdraw,
     }
 
@@ -130,6 +146,15 @@ mod VaultController {
     }
 
     #[derive(Drop, starknet::Event)]
+    struct ProofVerified {
+        #[key]
+        proof_hash: felt252,
+        security_bits: u128,
+        proposal_hash: felt252,
+        timestamp: u64,
+    }
+
+    #[derive(Drop, starknet::Event)]
     struct EmergencyWithdraw {
         #[key]
         adapter: ContractAddress,
@@ -143,11 +168,15 @@ mod VaultController {
         zkml_verifier: ContractAddress,
         min_cooldown_seconds: u64,
         eth_token: ContractAddress,
+        fact_registry: ContractAddress,
+        receipt_registry: ContractAddress,  // NEW
     ) {
         self.admin.write(admin);
         self.zkml_verifier.write(zkml_verifier);
         self.min_cooldown_seconds.write(min_cooldown_seconds);
         self.eth_token.write(eth_token);
+        self.fact_registry.write(fact_registry);
+        self.receipt_registry.write(receipt_registry);  // NEW
         self.adapter_count.write(0);
         self.pending_proposal.write(0);
         self.proposal_block.write(0);
@@ -330,6 +359,119 @@ mod VaultController {
             });
         }
 
+        fn execute_proposal_with_proof(
+            ref self: ContractState,
+            adapters: Span<ContractAddress>,
+            amounts: Span<u256>,
+            salt: felt252,
+            proof_hash: felt252,
+        ) {
+            assert_admin(@self);
+
+            // STEP 1: Verify STARK proof via Obsqra Fact Registry
+            let registry = IObsqraFactRegistryDispatcher {
+                contract_address: self.fact_registry.read()
+            };
+            
+            // Check proof exists and is valid
+            assert(registry.is_valid(proof_hash), 'proof not verified');
+            
+            // Get proof verification details
+            let verifications = registry.get_all_verifications_for_fact_hash(proof_hash);
+            assert(verifications.len() > 0, 'no verifications found');
+            
+            // Verify security threshold (require >= 100 bits)
+            let first_verification = verifications.at(0);
+            let security_bits = *first_verification.security_bits;
+            assert(security_bits >= 100, 'proof security too low');
+
+            // Emit proof verification event
+            let pending = self.pending_proposal.read();
+            let now = get_block_timestamp();
+            self.emit(ProofVerified {
+                proof_hash,
+                security_bits,
+                proposal_hash: pending,
+                timestamp: now,
+            });
+
+            // STEP 2: Execute proposal (same logic as execute_proposal)
+            assert(pending != 0, 'no pending proposal');
+
+            // Verify cooldown
+            let last = self.last_rebalance_ts.read();
+            let cooldown = self.min_cooldown_seconds.read();
+            if last > 0 {
+                assert(now >= last + cooldown, 'cooldown not elapsed');
+            }
+
+            // Verify commit-reveal
+            assert(adapters.len() == amounts.len(), 'length mismatch');
+            let mut hash_input: Array<felt252> = array![salt];
+            let adapter_len = adapters.len();
+            let mut i: u32 = 0;
+            while i < adapter_len {
+                let addr: ContractAddress = *adapters.at(i);
+                let amt: u256 = *amounts.at(i);
+                hash_input.append(addr.into());
+                hash_input.append(amt.low.into());
+                hash_input.append(amt.high.into());
+                i += 1;
+            };
+            let computed_hash = poseidon_hash_span(hash_input.span());
+            assert(computed_hash == pending, 'proposal hash mismatch');
+
+            // Execute deploys
+            let mut j: u32 = 0;
+            while j < adapter_len {
+                let adapter_addr: ContractAddress = *adapters.at(j);
+                let amount: u256 = *amounts.at(j);
+
+                let cfg = self.adapters.read(adapter_addr);
+                assert(cfg.max_allocation_bps > 0, 'adapter not registered');
+                assert(cfg.enabled, 'adapter disabled');
+                assert(!cfg.circuit_breaker, 'circuit breaker active');
+
+                let dispatcher = IStrategyAdapterDispatcher { contract_address: adapter_addr };
+                let empty_params: Array<felt252> = array![];
+                dispatcher.deploy(amount, empty_params.span());
+
+                j += 1;
+            };
+
+            self.pending_proposal.write(0);
+            self.proposal_block.write(0);
+            self.last_rebalance_ts.write(now);
+
+            // Create on-chain receipt (NEW)
+            let receipt_registry = IReceiptRegistryDispatcher {
+                contract_address: self.receipt_registry.read()
+            };
+            
+            // Calculate total amount allocated
+            let mut total_amount: u256 = 0;
+            let mut k: u32 = 0;
+            while k < adapter_len {
+                total_amount += *amounts.at(k);
+                k += 1;
+            };
+            
+            let tx_info = get_tx_info().unbox();
+            let _receipt_id = receipt_registry.create_receipt(
+                get_caller_address(),
+                'allocate',
+                total_amount,
+                proof_hash,
+                tx_info.transaction_hash,
+            );
+
+            self.emit(ProposalExecuted {
+                proposal_hash: pending,
+                adapter_count: adapter_len,
+                timestamp: now,
+            });
+        }
+
         fn emergency_withdraw(ref self: ContractState, adapter: ContractAddress) {
             assert_admin(@self);
             let mut cfg = self.adapters.read(adapter);
@@ -394,6 +536,24 @@ mod VaultController {
                 VaultState::PendingProposal => 'pending_proposal',
                 VaultState::CircuitBreakerActive => 'circuit_breaker',
             }
+        }
+
+        fn get_fact_registry(self: @ContractState) -> ContractAddress {
+            self.fact_registry.read()
+        }
+
+        fn get_receipt_registry(self: @ContractState) -> ContractAddress {
+            self.receipt_registry.read()
+        }
+
+        fn set_fact_registry(ref self: ContractState, new_address: ContractAddress) {
+            assert_admin(@self);
+            self.fact_registry.write(new_address);
+        }
+
+        fn set_receipt_registry(ref self: ContractState, new_address: ContractAddress) {
+            assert_admin(@self);
+            self.receipt_registry.write(new_address);
         }
     }
 }

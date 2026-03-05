@@ -508,6 +508,37 @@ class ProofPipeline:
         """Cache proof result."""
         self._cache[key] = result
 
+    async def generate_reputation_passport(
+        self,
+        badge_fact_hashes: dict[str, str],
+        tier_thresholds: list[int] | None = None,
+        timestamp: int | None = None,
+    ) -> dict[str, Any]:
+        """
+        Generate a STARK-proven reputation passport by aggregating badge fact-hashes.
+
+        This calls the obsqra backend's POST /api/v1/aggregation/passport endpoint,
+        which runs the reputation_passport Cairo0 program through Stone prover.
+
+        Args:
+            badge_fact_hashes: Map of badge_type → fact_hash (hex string).
+            tier_thresholds: Override tier thresholds [bronze, silver, gold, diamond].
+            timestamp: Unix epoch. Defaults to server time.
+
+        Returns:
+            Dict with passport result including STARK proof details.
+        """
+        from app.services.reputation_passport_client import get_reputation_passport_client
+
+        client = get_reputation_passport_client()
+        result = await client.aggregate_passport(
+            badge_fact_hashes=badge_fact_hashes,
+            tier_thresholds=tier_thresholds,
+            timestamp=timestamp,
+        )
+
+        return result.to_dict()
+
 
 # Singleton instance
 _pipeline: ProofPipeline | None = None

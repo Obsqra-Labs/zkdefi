@@ -70,7 +70,7 @@ export function useWebSocket(
       if (callbacks) {
         callbacks.forEach((callback) => {
           try {
-            callback(message.data);
+            callback("data" in message ? message.data : message);
           } catch (err) {
             console.error(`Error in WebSocket callback for ${message.type}:`, err);
           }

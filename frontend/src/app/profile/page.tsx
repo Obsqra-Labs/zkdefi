@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAccount, useSignTypedData } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { useRiskProfile, useRiskProfileV2 } from "@/hooks/useProfile";
-import { Shield, TrendingUp, Lock, Coins, ArrowUp, Send, Clock, CheckCircle, AlertTriangle, FileCheck, Star, Award, Link2, Info, ChevronRight, Fingerprint, Download, ExternalLink } from "lucide-react";
+import { Shield, TrendingUp, Lock, Coins, ArrowUp, Send, Clock, CheckCircle, AlertTriangle, FileCheck, Star, Award, Link2, Info, ChevronRight, Fingerprint, Download, ExternalLink, Loader2 } from "lucide-react";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { ProofTimeline } from "@/components/zkdefi/ProofTimeline";
 import { toastSuccess, toastError, toastInfo } from "@/lib/toast";
@@ -52,7 +52,17 @@ function shortHex(value: string | undefined): string {
   return `${value.slice(0, 8)}...${value.slice(-4)}`;
 }
 
-export default function ProfilePage() {
+function toFiniteNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatFixed(value: unknown, digits: number, fallback = "0"): string {
+  const parsed = toFiniteNumber(value);
+  return parsed == null ? fallback : parsed.toFixed(digits);
+}
+
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { address, isConnected, chainId } = useAccount();
@@ -60,7 +70,7 @@ export default function ProfilePage() {
   const { settled: walletSettled } = useWalletSettled();
 
   // Paper/demo mode: ?mode=demo bypasses wallet requirement
-  const demoMode = searchParams.get("mode") === "demo";
+  const demoMode = searchParams?.get("mode") === "demo";
   const effectiveAddress = address || (demoMode ? DEMO_FALLBACK_ADDRESS : undefined);
   const effectiveConnected = isConnected || demoMode;
 
@@ -409,7 +419,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [onChainRep, setOnChainRep] = useState<OnChainReputation | null>(null);
   const [onChainRepLoading, setOnChainRepLoading] = useState(false);
-  const tabFromUrl = searchParams.get("tab") as ProfileTab | null;
+  const tabFromUrl = (searchParams?.get("tab") as ProfileTab | null) ?? null;
   const [activeTabState, setActiveTabState] = useState<ProfileTab>("trust");
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -427,7 +437,7 @@ export default function ProfilePage() {
   const [loadingBailout, setLoadingBailout] = useState(false);
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
+    const tab = searchParams?.get("tab");
     // Backwards compat: map old tab names
     const TAB_COMPAT: Record<string, ProfileTab> = { overview: "trust", collateral: "reputation", relayer: "connections", agents: "trust", compliance: "compliance" };
     const resolved = TAB_COMPAT[tab ?? ""] ?? tab;
@@ -614,31 +624,31 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-3">
                           <p className="text-xs text-zinc-500">Agent</p>
-                          <p className="text-sm font-mono text-zinc-200 truncate">{portableIdentity.identity_card.name}</p>
+                          <p className="text-sm font-mono text-zinc-200 truncate">{portableIdentity.identity_card?.name ?? "Unnamed agent"}</p>
                         </div>
                         <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-3">
                           <p className="text-xs text-zinc-500">Reputation Score</p>
-                          <p className="text-xl font-bold text-emerald-400">{portableIdentity.reputation.overall_score}</p>
+                          <p className="text-xl font-bold text-emerald-400">{portableIdentity.reputation?.overall_score ?? 0}</p>
                         </div>
                         <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-3">
                           <p className="text-xs text-zinc-500">Privacy Tier</p>
-                          <p className="text-sm font-medium text-zinc-200">{portableIdentity.reputation.privacy_tier}</p>
+                          <p className="text-sm font-medium text-zinc-200">{portableIdentity.reputation?.privacy_tier ?? "Unknown"}</p>
                         </div>
                         <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-3">
                           <p className="text-xs text-zinc-500">Active Sessions</p>
-                          <p className="text-xl font-bold text-cyan-400">{portableIdentity.session_summary.active_count}</p>
+                          <p className="text-xl font-bold text-cyan-400">{portableIdentity.session_summary?.active_count ?? 0}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {portableIdentity.identity_card.capabilities.map((cap) => (
+                        {(portableIdentity.identity_card?.capabilities ?? []).map((cap) => (
                           <span key={cap} className="px-2 py-0.5 text-[10px] font-medium rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
                             {cap}
                           </span>
                         ))}
                       </div>
-                      {portableIdentity.reputation.attestations.length > 0 && (
+                      {(portableIdentity.reputation?.attestations?.length ?? 0) > 0 && (
                         <div className="text-xs text-zinc-500">
-                          {portableIdentity.reputation.verified_receipt_count} verified proofs · {portableIdentity.reputation.attestations.length} attestations
+                          {portableIdentity.reputation?.verified_receipt_count ?? 0} verified proofs · {portableIdentity.reputation?.attestations?.length ?? 0} attestations
                         </div>
                       )}
                     </div>
@@ -982,7 +992,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
                     <div className="text-sm text-zinc-400 mb-1">Collateral</div>
-                    <div className="text-2xl font-bold">{userRep?.collateral_eth?.toFixed(3) || 0} ETH</div>
+                    <div className="text-2xl font-bold">{formatFixed(userRep?.collateral_eth, 3)} ETH</div>
                   </div>
                 </div>
 
@@ -1009,7 +1019,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="bg-zinc-800/50 rounded-lg p-3">
                           <div className="text-xs text-zinc-500 mb-1">Collateral (Contract)</div>
-                          <div className="text-xl font-bold">{onChainRep.collateral_eth.toFixed(4)} ETH</div>
+                          <div className="text-xl font-bold">{formatFixed(onChainRep?.collateral_eth, 4)} ETH</div>
                         </div>
                         <div className="bg-zinc-800/50 rounded-lg p-3">
                           <div className="text-xs text-zinc-500 mb-1">Collaborative Score</div>
@@ -1027,7 +1037,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="bg-zinc-800/50 rounded-lg p-3">
                           <div className="text-xs text-zinc-500 mb-1">Total Volume</div>
-                          <div className="text-sm font-mono">{onChainRep.total_volume_eth.toFixed(4)} ETH</div>
+                          <div className="text-sm font-mono">{formatFixed(onChainRep?.total_volume_eth, 4)} ETH</div>
                         </div>
                         <div className="bg-zinc-800/50 rounded-lg p-3">
                           <div className="text-xs text-zinc-500 mb-1">Relayer Access</div>
@@ -1044,11 +1054,11 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="text-xs text-zinc-600 flex items-center gap-2">
-                        <span>Contract: <span className="font-mono">{onChainRep.contract.slice(0, 12)}…{onChainRep.contract.slice(-6)}</span></span>
+                        <span>Contract: <span className="font-mono">{shortHex(onChainRep?.contract)}</span></span>
                         <span>·</span>
-                        <span>{onChainRep.chain}</span>
+                        <span>{onChainRep?.chain ?? "starknet"}</span>
                         <span>·</span>
-                        <span>Source: {onChainRep.source}</span>
+                        <span>Source: {onChainRep?.source ?? "unknown"}</span>
                       </div>
                     </div>
                   ) : (
@@ -1063,7 +1073,7 @@ export default function ProfilePage() {
                   
                   <div className="bg-zinc-800/50 rounded-lg p-4 mb-4">
                     <div className="text-sm text-zinc-400 mb-1">Current Collateral</div>
-                    <div className="text-3xl font-bold">{userRep?.collateral_eth?.toFixed(4) || 0} ETH</div>
+                    <div className="text-3xl font-bold">{formatFixed(userRep?.collateral_eth, 4)} ETH</div>
                   </div>
 
                   <div className="flex gap-4">
@@ -1449,7 +1459,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
                           <span className="text-sm text-zinc-400">Relay Fee ({userRep?.tier === 1 ? "1%" : "0.5%"})</span>
-                          <span className="font-medium">{(parseFloat(relayAmount || "0") * (userRep?.tier === 1 ? 0.01 : 0.005)).toFixed(4)} ETH</span>
+                          <span className="font-medium">{formatFixed(parseFloat(relayAmount || "0") * (userRep?.tier === 1 ? 0.01 : 0.005), 4)} ETH</span>
                         </div>
                         <button onClick={handleRelayRequest} disabled={isLoading || !relayDestination} className="w-full py-3 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2">
                           <Send className="w-4 h-4" /> {isLoading ? "Requesting..." : "Request Relay"}
@@ -1466,7 +1476,7 @@ export default function ProfilePage() {
                             <div key={r.request_id} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
                               <div>
                                 <div className="font-mono text-sm">{r.destination.slice(0, 10)}...{r.destination.slice(-8)}</div>
-                                <div className="text-xs text-zinc-500">{(parseInt(r.amount_wei) / 1e18).toFixed(4)} ETH</div>
+                                <div className="text-xs text-zinc-500">{formatFixed((parseInt(String(r.amount_wei ?? "0"), 10) || 0) / 1e18, 4)} ETH</div>
                               </div>
                               <span className={`px-2 py-1 text-xs rounded ${r.status === "pending" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                                 {r.status}
@@ -1576,5 +1586,18 @@ export default function ProfilePage() {
         )}
       </div>
     </main>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

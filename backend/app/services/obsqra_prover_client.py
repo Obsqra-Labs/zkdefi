@@ -184,6 +184,96 @@ class ObsqraProverClient:
         except Exception:
             return {"available": False, "credits": 0}
 
+    # ── v2 Generic Prover API ────────────────────────────────────────────────
+
+    async def list_programs(self) -> Dict[str, Any]:
+        """
+        v2 — List available Cairo programs on the obsqra cloud prover.
+
+        Returns:
+            {"programs": [{"name": str, "description": str, "layout": str, ...}, ...]}
+        """
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.prover_url}/proofs/v2/programs",
+                headers=self._headers(),
+                timeout=15.0,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.warning("Failed to list obsqra programs: %s", e)
+            return {"programs": [], "error": str(e)}
+
+    async def generate_generic_proof(
+        self,
+        program_name: str,
+        program_input: Dict[str, Any],
+        layout: Optional[str] = None,
+        timeout_seconds: int = 300,
+    ) -> Dict[str, Any]:
+        """
+        v2 — Generate a STARK proof for any registered Cairo program.
+
+        Unlike generate_stone_proof() (v1) which posts to the risk-specific
+        /proofs/generate endpoint, this calls the generic /proofs/v2/generate
+        which accepts any program_name + arbitrary inputs.
+
+        Args:
+            program_name: Registered program name on the obsqra side
+            program_input: Arbitrary JSON dict — program's hint input
+            layout: Optional layout override (default: from program registry)
+            timeout_seconds: Max proof generation time
+
+        Returns:
+            {
+                "success": bool,
+                "program_name": str,
+                "proof_hash": str,
+                "fact_hash": str,
+                "proof_size_kb": float,
+                "generation_time_ms": float,
+                "layout": str,
+                "n_steps": int,
+                "program_output": str,
+                "error": str | None
+            }
+        """
+        client = await self._get_client()
+
+        payload: Dict[str, Any] = {
+            "program_name": program_name,
+            "program_input": program_input,
+            "timeout_seconds": timeout_seconds,
+        }
+        if layout:
+            payload["layout"] = layout
+
+        try:
+            response = await client.post(
+                f"{self.prover_url}/proofs/v2/generate",
+                json=payload,
+                headers=self._headers(),
+            )
+
+            if response.status_code == 401:
+                raise Exception("Obsqra prover authentication failed")
+            if response.status_code == 402:
+                raise Exception("Obsqra prover credits exhausted")
+            if response.status_code == 429:
+                raise Exception("Obsqra prover rate limit exceeded")
+
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.TimeoutException:
+            logger.error("Generic proof generation timed out for %s", program_name)
+            return {"success": False, "program_name": program_name, "error": "Proof generation timed out"}
+        except httpx.HTTPError as e:
+            logger.error("Obsqra v2 prover error: %s", e)
+            return {"success": False, "program_name": program_name, "error": f"Obsqra prover error: {e}"}
+
 
 # Singleton
 _prover_client: Optional[ObsqraProverClient] = None

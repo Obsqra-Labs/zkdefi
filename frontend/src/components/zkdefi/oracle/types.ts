@@ -19,6 +19,25 @@ export interface OracleOpportunity {
   confidence?: string;
   proof_status?: string;
   flags?: string[];
+  zkml_risk_score?: number;
+  zkml_confidence?: number;
+  zkml_flags?: string[];
+  zkml_proof_hash?: string;
+  zkml_signals?: {
+    il_acceptable?: boolean;
+    yield_near_optimal?: boolean;
+    slippage_ok?: boolean;
+    gates_passed?: number;
+    gates_total?: number;
+    proof_hash?: string;
+  };
+  genome_factors?: {
+    yield_score?: number;
+    risk_score?: number;
+    volatility_score?: number;
+    liquidity_score?: number;
+    efficiency_score?: number;
+  };
 }
 
 export interface OracleRecommendation {

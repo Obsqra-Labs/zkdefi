@@ -23,7 +23,7 @@ const nextConfig = {
   // Serve VitePress docs at /docs: /docs and /docs/ -> docs index (Next does not serve public dir index).
   async rewrites() {
     return [
-      { source: "/favicon.ico", destination: "/icon" },
+      { source: "/favicon.ico", destination: "/icon.svg" },
       { source: "/docs", destination: "/docs/index.html" },
       { source: "/docs/", destination: "/docs/index.html" },
     ];

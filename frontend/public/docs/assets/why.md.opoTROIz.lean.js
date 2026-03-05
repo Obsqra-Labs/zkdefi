@@ -1,1 +1,0 @@
-import{_ as e,o,c as a,ag as i}from"./chunks/framework.wGDfT7ie.js";const d=JSON.parse('{"title":"Why it matters","description":"","frontmatter":{},"headers":[],"relativePath":"why.md","filePath":"why.md"}'),r={name:"why.md"};function s(n,t,l,c,h,p){return o(),a("div",null,[...t[0]||(t[0]=[i("",10)])])}const y=e(r,[["render",s]]);export{d as __pageData,y as default};

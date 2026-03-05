@@ -6,7 +6,7 @@
     "dev": "next dev -p 3001",
     "dev:build": "next build && next dev -p 3001",
     "build": "next build",
-    "start": "sh -c '(test -f .next/BUILD_ID && test -f .next/prerender-manifest.json || next build) && next start -H 0.0.0.0 -p 3001'",
+    "start": "sh -c '(node scripts/check-next-build.js || next build) && next start -H 0.0.0.0 -p 3001'",
     "lint": "next lint"
   },
   "dependencies": {

@@ -77,7 +77,7 @@ Return ONLY valid JSON, no markdown or extra text:
         user_amount: float = 1000,
     ) -> AllocationRecommendation:
         """
-        Get recommendation for capital allocation
+        Get recommendation for capital allocation (with zkRAG enrichment)
         
         Args:
             user_risk_profile: "conservative", "balanced", or "aggressive"
@@ -100,7 +100,12 @@ Return ONLY valid JSON, no markdown or extra text:
                     ctx = await zk.query_market_context(pools[0].get("pool_id", ""))
                     if ctx.source == "zkrag" and ctx.context_text:
                         zkrag_context = ctx.context_text
-                        zkrag_provenance = ctx.provenance.to_dict() if ctx.provenance else None
+                        zkrag_provenance = {
+                            "fact_hash": ctx.provenance.fact_hash,
+                            "block_range": ctx.provenance.block_range,
+                            "merkle_root": ctx.provenance.merkle_root,
+                            "source_count": ctx.provenance.source_count,
+                        } if ctx.provenance else None
         except Exception as exc:
             logger.debug("zkGraph enrichment skipped: %s", exc)
 

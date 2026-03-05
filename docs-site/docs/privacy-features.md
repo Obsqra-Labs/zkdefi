@@ -1,28 +1,67 @@
 # Privacy Features
 
-This page explains privacy capabilities in the current zkde.fi product surface.
+zkde.fi is built on **zero-knowledge cryptography** to keep your financial data private while proving everything is correct. Every privacy feature uses zero-knowledge proofs (zkSNARKs/zkSTARKs) to verify computation without revealing inputs.
 
-## The Problem This Solves
+## The Privacy Problem in DeFi
 
-DeFi users often need to prove bounded claims while keeping strategy and allocation details private. Most products force an all-or-nothing disclosure choice.
+Traditional DeFi exposes **everything**:
+- Your wallet balance is public
+- Every trade is linked to your address
+- AI services require sending private data to centralized servers
+- Risk scores reveal your portfolio composition
+- Strategy preferences are visible to MEV bots
 
-## Why This Matters
+You're forced to choose: **privacy** (hide your data, lose verification) OR **transparency** (prove correctness, expose everything).
 
-Practical privacy is not just cryptography. It is about giving users selective control over what becomes visible to counterparties, partners, and auditors.
+## Why Zero-Knowledge Privacy Matters
 
-## Privacy Capability Families
+zkde.fi eliminates this tradeoff. Zero-knowledge proofs let you **prove a computation was done correctly WITHOUT revealing the inputs**. You can verify AI decisions, risk calculations, and strategy recommendations while keeping your data completely private.
 
-### 1) Selective disclosure
+**Real-world impact:**
+- Institutional users can prove compliance without exposing trading strategies to competitors
+- Retail users can get personalized recommendations without data harvesting
+- DAO treasuries can prove risk management without revealing portfolio positions
+- Protocols can verify agent behavior without accessing user secrets
 
-Users can expose scoped claims through compliance-oriented profiles without publishing full trade history.
+## Core Privacy Technologies
 
-### 2) Privacy-aware operational flows
+### 1) Private Deposits & Withdrawals (Shielded Pools)
 
-Certain vault and withdrawal routes support privacy-preserving settlement patterns and post-action verification artifacts.
+**What it does:** Deposit/withdraw funds without linking transactions to your identity.
 
-### 3) Aggregated posture presentation
+**How it works:**
+- Deposits create a **Poseidon commitment** (cryptographic hash) stored on-chain
+- Your deposit amount and nullifier stay private (stored locally)
+- Withdrawals use a **zero-knowledge proof** to show you own a valid commitment
+- No on-chain link between deposit and withdrawal addresses
 
-User-facing views can focus on compositional trust and total posture rather than leaking unnecessary strategy detail.
+**Circuits:** `private_deposit.cairo`, `private_withdraw.cairo`, `full_privacy_withdraw.cairo`
+
+**Contracts:** `ConfidentialTransfer`, `FullyShieldedPool`, `HashedWithdrawPool`
+
+### 2) Privacy-Preserving AI Risk Scoring (zkML)
+
+**What it does:** AI models analyze your portfolio and generate risk scores **without seeing your data**.
+
+**How it works:**
+- zkML circuits run machine learning inference **inside a zero-knowledge proof**
+- Input: Your private positions, balances, risk tolerance
+- Output: Risk score + proof that the score was computed correctly
+- Smart contracts verify proofs before allowing capital movement
+
+**Circuits:** `pool_risk_evaluator.cairo`, `yield_predictor.cairo`, `il_estimator.cairo`, `liquidation_risk.cairo`
+
+**Privacy guarantee:** The AI never sees your raw data. You get a proven risk score without revealing portfolio details.
+
+### 3) Confidential Strategy Recommendations
+
+**What it does:** Get personalized DeFi strategy suggestions without exposing preferences.
+
+**How it works:**
+- Your risk profile, capital allocation, and preferences stay on your device
+- Strategy Intelligence Service computes recommendations using **homomorphic properties** of Poseidon hashes
+- Proofs verify the strategy was computed using real market data + your hidden profile
+- Oracle recommendations are proven without revealing your targets
 
 ## Capability Map
 

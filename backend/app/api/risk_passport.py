@@ -514,3 +514,60 @@ async def get_pool_passport(pool_id: str):
         "proof_receipts": pool_receipts,
         "snapshot_hash": entry.get("snapshot_hash"),
     }
+
+
+# ── STARK-Proven Reputation Passport ────────────────────────────────────────
+
+@router.post("/user/{address}/stark-passport")
+async def generate_stark_passport(address: str, request: Request):
+    """
+    Generate a STARK-proven reputation passport for a user.
+
+    Collects the user's recent proof fact-hashes, sends them to the obsqra
+    coprocessor (Stone prover + reputation_passport Cairo0 program), and
+    returns a single aggregated STARK proof + tier.
+
+    This is the coprocessor pattern:
+      off-chain compute → Stone prove → Integrity fact → Starknet gates on fact
+    """
+    from app.services.reputation_passport_client import get_reputation_passport_client
+
+    # Collect badge fact_hashes from the user's proof receipts
+    receipt_svc = get_receipt_service()
+    receipts = await receipt_svc.get_user_receipts((address or "").strip().lower())
+
+    badge_fact_hashes: dict[str, str] = {}
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            continue
+        proof_type = str(receipt.get("proof_type") or "")
+        fact_hash = str(receipt.get("fact_hash") or receipt.get("proof_hash") or "")
+        if proof_type and fact_hash and fact_hash.startswith("0x") and len(fact_hash) > 10:
+            # Use the most recent receipt per proof_type
+            if proof_type not in badge_fact_hashes:
+                badge_fact_hashes[proof_type] = fact_hash
+
+    if not badge_fact_hashes:
+        return {
+            "success": False,
+            "error": "No proof receipts with fact hashes found for this address.",
+            "address": address,
+            "badge_count": 0,
+        }
+
+    client = get_reputation_passport_client()
+    result = await client.aggregate_passport(badge_fact_hashes=badge_fact_hashes)
+
+    return {
+        "address": address,
+        "chain_id": _passport_chain_id(),
+        **result.to_dict(),
+    }
+
+
+@router.get("/stark-passport/config")
+async def stark_passport_config():
+    """Return STARK passport aggregation configuration (badge weights, tier thresholds)."""
+    from app.services.reputation_passport_client import get_reputation_passport_client
+    client = get_reputation_passport_client()
+    return await client.get_passport_config()

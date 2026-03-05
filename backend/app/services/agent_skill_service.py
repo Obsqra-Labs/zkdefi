@@ -36,6 +36,11 @@ from .zkml.circuit_scanner import (
     build_correlation_risk_inputs,
     build_twap_position_inputs,
     build_safety_diversification_inputs,
+    build_solvency_proof_inputs,
+    build_risk_passport_tier_inputs,
+    build_trader_performance_inputs,
+    build_strategy_integrity_inputs,
+    build_execution_integrity_inputs,
 )
 
 logger = logging.getLogger(__name__)
@@ -259,6 +264,116 @@ SKILL_DEFINITIONS: dict[str, SkillDefinition] = {
         input_builder="build_anomaly_detector_inputs",
         requires_reputation_tier=0,
     ),
+    # ── Reputation / Financial Passport Skills ───────────────────────────────
+    "solvency_proof": SkillDefinition(
+        skill_id="solvency_proof",
+        name="Solvency Proof",
+        description="Prove total assets exceed liabilities by a minimum ratio without revealing "
+                   "individual position values. Returns a solvency tier bucket (0-4).",
+        category="reputation",
+        parameters={
+            "type": "object",
+            "properties": {
+                "asset_positions": {"type": "array", "items": {"type": "integer"}, "description": "Asset values (up to 8)"},
+                "debt_positions": {"type": "array", "items": {"type": "integer"}, "description": "Debt values (up to 8)"},
+                "min_solvency_ratio_bps": {"type": "integer", "description": "Minimum asset/liability ratio in bps (default 10000 = 1:1)"},
+            },
+            "required": [],
+        },
+        circuit_name="SolvencyProof",
+        input_builder="build_solvency_proof_inputs",
+        requires_reputation_tier=0,
+    ),
+    "risk_passport": SkillDefinition(
+        skill_id="risk_passport",
+        name="Risk Passport Tier",
+        description="Assign a 1-5 risk tier from weighted risk metrics (volatility, drawdown, concentration, "
+                   "leverage, liquidation history, tenure). Proves tier compliance without revealing metrics.",
+        category="reputation",
+        parameters={
+            "type": "object",
+            "properties": {
+                "volatility_bps": {"type": "integer", "description": "Portfolio volatility in bps"},
+                "max_drawdown_bps": {"type": "integer", "description": "Maximum drawdown in bps"},
+                "concentration_bps": {"type": "integer", "description": "Position concentration in bps"},
+                "effective_leverage_bps": {"type": "integer", "description": "Effective leverage in bps"},
+                "liquidation_events_lookback": {"type": "integer", "description": "Liquidation events in lookback"},
+                "tenure_days": {"type": "integer", "description": "Days active (max 365)"},
+                "required_tier": {"type": "integer", "description": "Required risk tier 1-5 (default 3)"},
+            },
+            "required": [],
+        },
+        circuit_name="RiskPassportTier",
+        input_builder="build_risk_passport_tier_inputs",
+        requires_reputation_tier=0,
+    ),
+    "trader_performance": SkillDefinition(
+        skill_id="trader_performance",
+        name="Trader Performance Proof",
+        description="Prove Sharpe ratio, max drawdown, and win-rate thresholds are met over 30 periods "
+                   "without revealing raw returns or equity curve.",
+        category="reputation",
+        parameters={
+            "type": "object",
+            "properties": {
+                "returns_bps": {"type": "array", "items": {"type": "integer"}, "description": "Period returns in bps (30 elements)"},
+                "equity_curve": {"type": "array", "items": {"type": "integer"}, "description": "Equity values per period (30 elements)"},
+                "wins_count": {"type": "integer", "description": "Number of winning trades"},
+                "trades_count": {"type": "integer", "description": "Total number of trades"},
+                "min_sharpe_x100": {"type": "integer", "description": "Minimum Sharpe * 100 (default 50 = 0.50)"},
+                "max_drawdown_bps": {"type": "integer", "description": "Max acceptable drawdown in bps (default 2000)"},
+                "min_win_rate_bps": {"type": "integer", "description": "Min win rate in bps (default 5000 = 50%)"},
+            },
+            "required": [],
+        },
+        circuit_name="TraderPerformanceProof",
+        input_builder="build_trader_performance_inputs",
+        requires_reputation_tier=1,
+    ),
+    "strategy_integrity": SkillDefinition(
+        skill_id="strategy_integrity",
+        name="Strategy Integrity Check",
+        description="Prove position concentration, leverage, slippage, and exposure all comply with "
+                   "strategy policy constraints. Verifies normalized weights and exposures.",
+        category="strategy_integrity",
+        parameters={
+            "type": "object",
+            "properties": {
+                "position_weights_bps": {"type": "array", "items": {"type": "integer"}, "description": "Position weights in bps (8 slots, must sum to scale)"},
+                "effective_leverage_bps": {"type": "integer", "description": "Effective leverage in bps"},
+                "observed_slippage_bps": {"type": "array", "items": {"type": "integer"}, "description": "Observed slippage per route (8 slots)"},
+                "max_position_weight_bps": {"type": "integer", "description": "Max single position weight (default 3000)"},
+                "max_leverage_bps": {"type": "integer", "description": "Max leverage in bps (default 30000 = 3x)"},
+                "max_slippage_bps": {"type": "integer", "description": "Max slippage per route in bps (default 100)"},
+            },
+            "required": [],
+        },
+        circuit_name="StrategyIntegrity",
+        input_builder="build_strategy_integrity_inputs",
+        requires_reputation_tier=0,
+    ),
+    "execution_integrity": SkillDefinition(
+        skill_id="execution_integrity",
+        name="Execution Integrity Check",
+        description="Prove a trade or rebalance execution met delay, price deviation, and fair routing "
+                   "constraints. Verifies no sandwich or frontrunning occurred.",
+        category="execution_quality",
+        parameters={
+            "type": "object",
+            "properties": {
+                "submission_block": {"type": "integer", "description": "Block when tx was submitted"},
+                "inclusion_block": {"type": "integer", "description": "Block when tx was included"},
+                "expected_price": {"type": "integer", "description": "Expected execution price"},
+                "actual_price": {"type": "integer", "description": "Actual execution price"},
+                "max_delay_blocks": {"type": "integer", "description": "Max acceptable block delay (default 5)"},
+                "max_price_deviation_bps": {"type": "integer", "description": "Max price deviation in bps (default 50)"},
+            },
+            "required": ["submission_block", "inclusion_block", "expected_price", "actual_price"],
+        },
+        circuit_name="ExecutionIntegrity",
+        input_builder="build_execution_integrity_inputs",
+        requires_reputation_tier=0,
+    ),
 }
 
 # Map input builder names to functions
@@ -276,6 +391,11 @@ INPUT_BUILDERS: dict[str, Any] = {
     "build_correlation_risk_inputs": build_correlation_risk_inputs,
     "build_twap_position_inputs": build_twap_position_inputs,
     "build_safety_diversification_inputs": build_safety_diversification_inputs,
+    "build_solvency_proof_inputs": build_solvency_proof_inputs,
+    "build_risk_passport_tier_inputs": build_risk_passport_tier_inputs,
+    "build_trader_performance_inputs": build_trader_performance_inputs,
+    "build_strategy_integrity_inputs": build_strategy_integrity_inputs,
+    "build_execution_integrity_inputs": build_execution_integrity_inputs,
 }
 
 
@@ -309,6 +429,7 @@ class AgentSkillService:
                 "name": skill.name,
                 "description": skill.description,
                 "category": skill.category,
+                "circuit_name": skill.circuit_name,
                 "parameters": skill.parameters,
                 "requires_tier": skill.requires_reputation_tier,
                 "circuit_ready": ready,

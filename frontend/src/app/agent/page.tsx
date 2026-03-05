@@ -13,7 +13,7 @@
  * the surface containers under components/zkdefi/surfaces/.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -21,7 +21,7 @@ import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
 import { useAccount } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
-import { Shield, Brain, ArrowDownUp, Wallet, Activity } from "lucide-react";
+import { Shield, Brain, ArrowDownUp, Wallet, Activity, Loader2 } from "lucide-react";
 import { CapitalOSStrip } from "@/components/zkdefi/CapitalOSStrip";
 import type { CapitalOSStripIdentity, CapitalOSStripGate, CapitalOSStripLedger, CapitalOSStripNextStep, CapitalOSStripAIInsight } from "@/components/zkdefi/CapitalOSStrip";
 import { useVaultController } from "@/hooks/useVaultController";
@@ -71,7 +71,7 @@ const LEGACY_TAB_MAP: Record<string, { surface: Surface; sub?: string }> = {
 // Shell
 // ---------------------------------------------------------------------------
 
-export default function AgentPage() {
+function AgentPageContent() {
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
@@ -99,7 +99,7 @@ export default function AgentPage() {
 
   useEffect(() => setMounted(true), []);
 
-  const demoMode = searchParams.get("mode") === "demo";
+  const demoMode = searchParams?.get("mode") === "demo";
   const demoAddress = DEMO_ADDRESS_CONST;
   const hasAccount = isConnected && !!address;
   const showLoading = !demoMode && (!mounted || (!hasAccount && !walletSettled && !loadingBailout));
@@ -125,19 +125,19 @@ export default function AgentPage() {
   useEffect(() => {
     if (!mounted) return;
     // Canonical: ?v=vault|oracle|brain (v=trade redirects to oracle)
-    const v = searchParams.get("v");
+    const v = searchParams?.get("v");
     if (v === "trade") {
       setSurface("oracle");
-      setSubTabOverride(searchParams.get("sub") ?? "signals");
+      setSubTabOverride(searchParams?.get("sub") ?? "signals");
       return;
     }
     if (v && ["vault", "oracle", "brain"].includes(v)) {
       setSurface(v as Surface);
-      setSubTabOverride(searchParams.get("sub") ?? undefined);
+      setSubTabOverride(searchParams?.get("sub") ?? undefined);
       return;
     }
     // Legacy: ?tab=*
-    const tab = searchParams.get("tab");
+    const tab = searchParams?.get("tab");
     if (tab === "onboarding") { setShowOnboarding(true); setHasOnboarded(false); return; }
     if (tab && LEGACY_TAB_MAP[tab]) {
       const mapped = LEGACY_TAB_MAP[tab];
@@ -146,7 +146,7 @@ export default function AgentPage() {
       return;
     }
     // Hash #deploy-to-ekubo -> vault dashboard
-    const highlight = searchParams.get("highlight");
+    const highlight = searchParams?.get("highlight");
     if (highlight === "deploy") {
       setSurface("vault");
       setSubTabOverride("deploy");
@@ -192,7 +192,7 @@ export default function AgentPage() {
 
   // Onboarding check
   useEffect(() => {
-    if (mounted && isConnected && address && !searchParams.get("tab") && !searchParams.get("v")) {
+    if (mounted && isConnected && address && !searchParams?.get("tab") && !searchParams?.get("v")) {
       const onboarded = localStorage.getItem(`zkdefi_onboarded_${address}`);
       if (!onboarded) setShowOnboarding(true);
       else setHasOnboarded(true);
@@ -517,5 +517,18 @@ export default function AgentPage() {
         )}
       </div>
     </main>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function AgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      </div>
+    }>
+      <AgentPageContent />
+    </Suspense>
   );
 }

@@ -4,11 +4,13 @@ Agent Rebalancer Service
 Autonomous agent rebalancing gated by zkML proofs.
 - Monitor positions and market conditions
 - Run zkML models (risk + anomaly) to gate decisions
+- Run extended circuit proofs (slippage, liquidation, correlation, IL) for deeper verification
 - Generate rebalancing proposals
 - Execute only if both zkML proofs pass
 """
 import os
 import asyncio
+import logging
 from typing import Any
 from datetime import datetime
 from enum import Enum
@@ -24,8 +26,28 @@ from app.services.policy_engine import check as policy_check
 from app.services import execution_guard
 from app.models.action_intent import ActionIntent
 
+logger = logging.getLogger(__name__)
+
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7")
 PROPOSAL_LOCK_TIMEOUT_SECONDS = float(os.getenv("REBALANCER_LOCK_TIMEOUT_SECONDS", "0.05"))
+
+# Extended circuit proofs to run alongside core risk+anomaly gates.
+# These provide deeper verification signals without blocking execution (mode=signal).
+# Set REBALANCER_EXTENDED_CIRCUITS to comma-separated list to override,
+# or "none" to disable.
+_EXTENDED_CIRCUITS_DEFAULT = [
+    "SlippageBound",
+    "LiquidationRisk",
+    "CorrelationRisk",
+    "ImpermanentLossPredictor",
+]
+_env_circuits = os.getenv("REBALANCER_EXTENDED_CIRCUITS", "").strip()
+if _env_circuits.lower() == "none":
+    EXTENDED_CIRCUITS: list[str] = []
+elif _env_circuits:
+    EXTENDED_CIRCUITS = [c.strip() for c in _env_circuits.split(",") if c.strip()]
+else:
+    EXTENDED_CIRCUITS = _EXTENDED_CIRCUITS_DEFAULT
 
 
 class RebalanceStatus(str, Enum):
@@ -263,6 +285,14 @@ class AgentRebalancer:
             proposal.status = RebalanceStatus.ZKML_FAILED
             proposal.error = policy.get("reason", "Policy check failed")
         
+        # Run extended circuit proofs when core gates pass
+        extended_results = None
+        if can_proceed and EXTENDED_CIRCUITS:
+            extended_results = await self._run_extended_circuit_proofs(
+                proposal=proposal,
+                portfolio_features=portfolio_features,
+            )
+        
         if can_proceed:
             receipt_svc = get_receipt_service()
             receipt_svc.append_proof_receipt(
@@ -291,6 +321,7 @@ class AgentRebalancer:
             "anomaly_passed": anomaly_result["is_safe"],
             "risk_proof": risk_result,
             "anomaly_proof": anomaly_result,
+            "extended_proofs": extended_results,
             "signal_scan": proposal.signal_scan,
             "policy_mode": proposal.policy_mode,
             "commitment_hash": proposal.commitment_hash,
@@ -461,6 +492,64 @@ class AgentRebalancer:
         proposal_ids = self._user_proposals.get(user_address, [])
         return [self._proposals[pid].to_dict() for pid in proposal_ids if pid in self._proposals]
     
+    async def _run_extended_circuit_proofs(
+        self,
+        proposal: "RebalanceProposal",
+        portfolio_features: list[int],
+    ) -> dict[str, Any]:
+        """Run additional Groth16 circuit proofs beyond risk+anomaly.
+
+        These circuits provide deeper verification signals (slippage bounds,
+        liquidation risk, correlation, IL prediction) and are always run in
+        *signal* mode — they do NOT block the rebalance, only enrich the
+        audit trail with verifiable proofs.
+
+        Returns a dict with per-circuit results and summary metrics.
+        """
+        from app.services.zkml.circuit_scanner import run_circuit_scan
+
+        user_int = 0
+        try:
+            addr = proposal.user_address.strip()
+            user_int = int(addr, 16) if addr.startswith("0x") else int(addr)
+        except Exception:
+            pass
+
+        try:
+            scan = await run_circuit_scan(
+                circuits=EXTENDED_CIRCUITS,
+                user_address=user_int,
+                portfolio_features=portfolio_features,
+                mode="signal",
+            )
+            logger.info(
+                "Extended circuit proofs for proposal %s: %d circuits, %d compliant, %dms",
+                proposal.proposal_id,
+                scan.get("circuits_run", 0),
+                scan.get("summary", {}).get("compliant", 0),
+                scan.get("total_duration_ms", 0),
+            )
+            # Record extended proof receipts
+            receipt_svc = get_receipt_service()
+            for result in scan.get("results", []):
+                if result.get("success"):
+                    receipt_svc.append_proof_receipt(
+                        user_address=proposal.user_address,
+                        proof_type=f"extended_{result.get('circuit', 'unknown')}",
+                        threshold_or_model="signal",
+                        result="compliant" if result.get("is_compliant") else "non_compliant",
+                        snapshot_hash=proposal.snapshot_hash,
+                        model_hash=result.get("circuit", "unknown"),
+                    )
+            return scan
+        except Exception as exc:
+            logger.warning(
+                "Extended circuit proofs failed for proposal %s: %s",
+                proposal.proposal_id,
+                exc,
+            )
+            return {"error": str(exc), "circuits_run": 0, "results": []}
+
     def _extract_portfolio_features(
         self,
         positions: dict[int, int],

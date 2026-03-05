@@ -281,9 +281,9 @@ export function YieldTab({ address }: YieldTabProps) {
     : sources.filter((s) => FIRST_PARTY_NAMES.has(s.name) || s.name === "Idle");
 
   const cards = [
-    { icon: Percent, label: "Blended APY", value: blendedApy != null ? blendedApy.toFixed(1) + "%" : "--" },
-    { icon: TrendingUp, label: "Total Earned", value: totalEarned != null ? "+" + totalEarned.toFixed(2) + " ETH" : "--" },
-    { icon: Clock, label: "Next Harvest", value: blendedApy != null && blendedApy > 0 ? `est. ${(blendedApy / 365 * 30).toFixed(2)}% /mo` : "--" },
+    { icon: Percent, label: "Blended APY", value: blendedApy != null ? blendedApy.toFixed(1) + "%" : "0.0%" },
+    { icon: TrendingUp, label: "Total Earned", value: totalEarned != null ? "+" + totalEarned.toFixed(2) + " ETH" : "0.00 ETH" },
+    { icon: Clock, label: "Next Harvest", value: blendedApy != null && blendedApy > 0 ? `est. ${(blendedApy / 365 * 30).toFixed(2)}% /mo` : "No yield" },
   ];
 
   // Show Deploy to Ekubo card if user has vault balance but no active Ekubo position
@@ -372,10 +372,10 @@ export function YieldTab({ address }: YieldTabProps) {
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-right text-emerald-400">
-                  {s.apy > 0 ? s.apy + "%" : "--"}
+                  {s.apy > 0 ? s.apy + "%" : <span className="text-white/20">0.0%</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right text-white/60">
-                  {s.earned > 0 ? "+" + s.earned.toFixed(1) + " STRK" : "--"}
+                  {s.earned > 0 ? "+" + s.earned.toFixed(1) + " STRK" : <span className="text-white/20">0.0 STRK</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <div className="flex items-center justify-end gap-1.5">

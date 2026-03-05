@@ -28,7 +28,9 @@ export default defineConfig({
           { text: 'Why zkde.fi?', link: '/why' },
           { text: 'Concepts', link: '/concepts' },
           { text: 'Quick start (live app)', link: '/quick-start' },
-          { text: 'First-time setup (live app)', link: '/guide-first-time-setup' }
+          { text: 'First-time setup (live app)', link: '/guide-first-time-setup' },
+          { text: 'Real-Time Updates', link: '/real-time-updates' },
+          { text: 'Oracle Execution', link: '/oracle-execution' }
         ]
       },
       {
@@ -50,7 +52,8 @@ export default defineConfig({
           { text: 'Privacy features', link: '/privacy-features' },
           { text: 'Session keys', link: '/session-keys' },
           { text: 'Rebalancing', link: '/rebalancing' },
-          { text: 'zkML models', link: '/zkml-models' }
+          { text: 'zkML models', link: '/zkml-models' },
+          { text: 'zkGraph Integration', link: '/zkgraph-integration' }
         ]
       },
       {
@@ -60,6 +63,7 @@ export default defineConfig({
           { text: 'API overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
           { text: 'Contracts', link: '/contracts' },
+          { text: 'Zero-Knowledge Circuits', link: '/circuits' },
           { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' },
           { text: 'AEGIS-1 (GATE standard)', link: '/aegis' }
         ]
@@ -69,6 +73,7 @@ export default defineConfig({
         items: [
           { text: 'Innovation', link: '/innovation' },
           { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'RPC Compatibility', link: '/rpc-compatibility' },
           { text: 'FAQ', link: '/faq' }
         ]
       }

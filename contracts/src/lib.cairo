@@ -10,6 +10,8 @@ pub mod compliance_profile;
 // pub mod confidential_lp_position; // scarb 2.14 assignment syntax migration pending
 pub mod confidential_transfer;
 pub mod constraint_receipt;
+pub mod receipt_registry;
+pub mod dao_constraint_manager;
 pub mod ekubo_lp_adapter;
 pub mod erc20_interface;
 pub mod fully_shielded_pool;

@@ -221,8 +221,19 @@ export function SessionKeyManager({ userAddress, onSessionGranted, onSessionInfo
   };
   
   const activeSessions = sessions.filter(s => s.is_active && !s.is_expired);
+  const expiredSessions = sessions.filter(s => s.is_expired);
+  const pendingSessions = sessions.filter(s => s.pending_grant || s.pending_revoke);
   const hasActiveSession = activeSessions.length > 0;
   const activeSession = activeSessions[0] ?? null;
+  
+  const totalSessions = sessions.length;
+  const sessionSummary = totalSessions === 0
+    ? "No sessions"
+    : activeSessions.length > 0
+      ? `${activeSessions.length} active`
+      : expiredSessions.length > 0
+        ? `${expiredSessions.length} expired`
+        : `${pendingSessions.length} pending`;
   
   return (
     <div className="glass rounded-2xl border border-zinc-800 p-6">
@@ -234,7 +245,10 @@ export function SessionKeyManager({ userAddress, onSessionGranted, onSessionInfo
           <div>
             <h3 className="font-semibold text-white">Session Keys</h3>
             <p className="text-xs text-zinc-500">
-              {activeSessions.length} active session{activeSessions.length !== 1 ? "s" : ""}
+              {sessionSummary}
+              {totalSessions > 0 && expiredSessions.length > 0 && activeSessions.length === 0 && (
+                <span className="ml-2 text-orange-400">(needs renewal)</span>
+              )}
             </p>
           </div>
         </div>

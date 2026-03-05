@@ -236,19 +236,19 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           <span className="text-white/20">|</span>
           <span className="text-white/40">STRK/ETH</span>
           <span className="text-white">
-            {prices.strk_eth != null ? prices.strk_eth.toFixed(6) : "--"}
+            {prices.strk_eth != null ? prices.strk_eth.toFixed(6) : <span className="text-white/20">Loading...</span>}
           </span>
           <span className="text-white/20">|</span>
           <span className="text-white/40">STRK/USD</span>
           <span className="text-white">
-            {prices.strk_usd != null ? `$${prices.strk_usd.toFixed(4)}` : "--"}
+            {prices.strk_usd != null ? `$${prices.strk_usd.toFixed(4)}` : <span className="text-white/20">Loading...</span>}
           </span>
           <span className="text-white/20">|</span>
           <span className="text-white/40">Top Pool</span>
-          <span className="text-white">{topPool ?? "--"}</span>
+          <span className="text-white">{topPool ?? <span className="text-white/30">None</span>}</span>
           <span className="text-white/20">|</span>
           <span className="text-white/40">TVL</span>
-          <span className="text-white">{vaultTvl ?? "--"}</span>
+          <span className="text-white">{vaultTvl ?? <span className="text-white/30">0 ETH</span>}</span>
         </div>
       </div>
 
@@ -275,7 +275,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
         <div className="border border-white/10 rounded-xl bg-white/[0.02] p-4">
           <p className="text-xs text-white/40">Session Key</p>
           <p className={`text-lg font-semibold ${sessionKeyActive === true ? "text-emerald-400" : sessionKeyActive === false ? "text-rose-400" : "text-white/30"}`}>
-            {sessionKeyActive === true ? "Active" : sessionKeyActive === false ? "Inactive" : "--"}
+            {sessionKeyActive === true ? "Active" : sessionKeyActive === false ? "Inactive" : <span className="text-white/20">Not Set</span>}
           </p>
         </div>
       </div>

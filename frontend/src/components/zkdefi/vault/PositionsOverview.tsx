@@ -215,7 +215,7 @@ export default function PositionsOverview({
           </div>
           <div className="text-white text-sm font-medium">
             {Object.keys(totalByAsset).length === 0
-              ? "--"
+              ? <span className="text-white/30">0.00 STRK</span>
               : Object.entries(totalByAsset).map(([asset, wei]) => (
                   <span key={asset} className="block">
                     {formatWei(wei.toString(), asset as "STRK" | "ETH")}
@@ -230,7 +230,11 @@ export default function PositionsOverview({
             Privacy Coverage
           </div>
           <div className="text-white text-sm font-medium">
-            {commitments.length === 0 ? "--" : `${privacyCoverage}% shielded`}
+            {commitments.length === 0 ? (
+              <span className="text-white/30">No deposits</span>
+            ) : (
+              `${privacyCoverage}% shielded`
+            )}
           </div>
         </div>
 

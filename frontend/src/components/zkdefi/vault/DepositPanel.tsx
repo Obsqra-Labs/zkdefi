@@ -618,7 +618,7 @@ export function DepositPanel({
           </button>
         </div>
         <p className="mt-1 text-xs text-white/30">
-          Balance: {balance !== null ? `${balance} ${selectedAsset}` : `-- ${selectedAsset}`}
+          Balance: {balance !== null ? `${balance} ${selectedAsset}` : <span className="text-white/20">Loading...</span>}
         </p>
       </div>
 

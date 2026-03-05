@@ -1,14 +1,25 @@
-# zkML Models
+# zkML Models: Privacy-Preserving AI
 
-zkde.fi uses zero-knowledge machine learning to turn AI model inference into verifiable computation. Each model runs on real inputs, produces an output, and generates a cryptographic proof that the computation was performed correctly by the specific model claimed.
+zkde.fi uses **zero-knowledge machine learning (zkML)** to run AI inference **on your private data** while generating cryptographic proofs of correctness. Your portfolio positions, risk tolerance, and strategy preferences **never leave your control**, yet you still get proven AI recommendations.
 
-## The Problem This Solves
+## The Privacy Problem with Traditional AI
 
-When an AI model says "this pool is safe" or "this credit grade is AA," there is no way to verify that the model actually ran on real data without trusting the operator. zkML closes this gap — proofs guarantee computation integrity.
+When AI says "this pool is safe for you" or "your risk grade is high," you face a dilemma:
 
-## Why This Matters
+**Centralized AI:** Send your private data to a server, trust they run the right model, no verification
+**On-chain AI:** Publish your data publicly for transparency, expose everything to MEV bots and competitors
 
-This is the **computation oracle** pattern. Data oracles prove what happened on-chain. Computation oracles prove what the data means. zkML models are the computational layer that turns raw metrics into provable risk signals, anomaly classifications, and strategy recommendations.
+Neither option gives you **privacy + verification**.
+
+## Why Privacy-Preserving zkML Matters
+
+zkML **proves the AI model ran correctly WITHOUT revealing your inputs**. The computation oracle pattern means:
+
+- **Privacy-preserving risk scoring:** AI analyzes your hidden positions, outputs a proven risk score
+- **Confidential anomaly detection:** Models check pool health without exposing your stake
+- **Private strategy recommendations:** Personalized suggestions based on your secret risk profile
+
+Smart contracts verify proofs on-chain. You get AI-powered decisions with **mathematical privacy guarantees**.
 
 ## Core Endpoints
 

@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 
 # Load backend-local .env first.
 env_path = Path(__file__).parent.parent / ".env"
@@ -47,6 +48,23 @@ else:
         "http://localhost:3001",
         "http://127.0.0.1:3000",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Prometheus Metrics (Phase 9C/10 Performance Monitoring)
+# ---------------------------------------------------------------------------
+zkgraph_requests = Counter('zkgraph_requests_total', 'Total zkGraph requests', ['pool_id', 'source'])
+zkgraph_cache_hits = Counter('zkgraph_cache_hits_total', 'zkGraph cache hits')
+zkgraph_latency = Histogram('zkgraph_latency_seconds', 'zkGraph API latency', buckets=[0.1, 0.25, 0.5, 1.0, 2.5, 5.0])
+
+proof_generation_time = Histogram('proof_generation_seconds', 'Proof generation time', ['circuit_type'], buckets=[1, 5, 10, 15, 30, 60])
+proof_verification_success = Counter('proof_verification_success_total', 'Proof verifications', ['result'])
+
+receipt_creation_success = Counter('receipt_creation_success_total', 'Receipt creations', ['result'])
+receipt_gas_cost = Histogram('receipt_gas_cost_units', 'Receipt gas cost in units', buckets=[50000, 100000, 150000, 200000, 300000])
+
+dao_proposals = Gauge('dao_proposals_active', 'Active DAO proposals')
+dao_votes = Counter('dao_votes_total', 'DAO votes cast', ['proposal_id', 'direction'])
 
 
 @asynccontextmanager
@@ -269,6 +287,9 @@ if batch_verification_router:
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
 if zkgraph_router:
     app.include_router(zkgraph_router, prefix="/api/v1/zkdefi/zkgraph", tags=["zkgraph"])
+skills_router = _optional_router("app.api.routes.skills")
+if skills_router:
+    app.include_router(skills_router, prefix="/api/v1/zkdefi/agent", tags=["skills"])
 
 
 # -----------------------------------------------------------------------------
@@ -283,6 +304,8 @@ vault_execute_router = _optional_router("app.api.routes.vault_execute")
 vault_execute_live_router = _optional_router("app.api.routes.vault_execute_live")
 vault_router = _optional_router("app.api.routes.vault")
 phase4a_router = _optional_router("app.api.routes.phase4a")
+privacy_vault_router = _optional_router("app.api.routes.privacy_vault")
+dao_governance_router = _optional_router("app.api.routes.dao_governance")
 
 if identity_router:
     app.include_router(identity_router, prefix="/api/v1/identity", tags=["identity"])
@@ -298,6 +321,12 @@ if deployments_router:
     )
 if vault_execute_router:
     app.include_router(vault_execute_router, prefix="/api/v1/vault", tags=["vault"])
+if privacy_vault_router:
+    app.include_router(privacy_vault_router, prefix="/api/v1/vault", tags=["privacy-vault"])
+if zkgraph_router:
+    app.include_router(zkgraph_router, prefix="/api/v1/zkdefi/zkgraph", tags=["zkgraph"])
+if dao_governance_router:
+    app.include_router(dao_governance_router, prefix="/api/v1", tags=["dao-governance"])
 if vault_execute_live_router:
     app.include_router(
         vault_execute_live_router,
@@ -308,6 +337,10 @@ if vault_router:
     app.include_router(vault_router, prefix="/api/v1/zkdefi/vault", tags=["vault-deposit"])
 if phase4a_router:
     app.include_router(phase4a_router, prefix="/api/v1/phase4a", tags=["phase4a"])
+
+# Prometheus metrics endpoint
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 
 # -----------------------------------------------------------------------------

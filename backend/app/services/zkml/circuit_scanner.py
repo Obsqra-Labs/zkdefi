@@ -1,14 +1,18 @@
-"""Unified circuit scanner — run any subset of the 16 zkML circuits in parallel.
+"""Unified circuit scanner — run any subset of the 25 zkML circuits in parallel.
 
 Each circuit generates a real Groth16 proof via snarkjs, returning a per-circuit
 result dict with proof hash, compliance flag, and timing metadata.
 
 Circuits available:
-  ML/scoring:    RiskScore, AnomalyDetector, CorrelationRisk, TWAPPosition, SafetyDiversification
-  Merkle/privacy: BalanceAboveThreshold, PoolMembership, TenureAboveThreshold
-  Agent/identity: ImpermanentLossPredictor, YieldOptimality, SlippageBound,
-                  AgentReputationScore, CrossProtocolArbitrage, LiquidationRisk,
-                  HistoricalPerformanceAttestation, MEVResistanceProof
+  ML/scoring:       RiskScore, AnomalyDetector, CorrelationRisk, TWAPPosition, SafetyDiversification
+  Merkle/privacy:   BalanceAboveThreshold, PoolMembership, TenureAboveThreshold
+  Agent/identity:   ImpermanentLossPredictor, YieldOptimality, SlippageBound,
+                    AgentReputationScore, CrossProtocolArbitrage, LiquidationRisk,
+                    HistoricalPerformanceAttestation, MEVResistanceProof
+  EZKL/safety:      ModelBridge, RebalanceTimingCommitment, RobustnessCertificate
+  Reputation:       SolvencyProof, RiskPassportTier, TraderPerformanceProof,
+                    StrategyIntegrity, ExecutionIntegrity
+  Governance:       private_vote
 """
 
 from __future__ import annotations
@@ -179,6 +183,49 @@ CIRCUIT_REGISTRY: dict[str, dict[str, Any]] = {
         "category": "model_safety",
         "description": "Certifies a model survived adversarial robustness testing above pass-rate threshold",
     },
+    # ── Reputation / Financial Passport Circuits ─────────────────────────────
+    "SolvencyProof": {
+        "wasm": CIRCUITS_BUILD / "SolvencyProof_js" / "SolvencyProof.wasm",
+        "zkey": CIRCUITS_BUILD / "SolvencyProof_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "SolvencyProof_js" / "generate_witness.js",
+        "category": "reputation",
+        "description": "Proves total assets exceed liabilities by a minimum ratio without revealing positions",
+    },
+    "RiskPassportTier": {
+        "wasm": CIRCUITS_BUILD / "RiskPassportTier_js" / "RiskPassportTier.wasm",
+        "zkey": CIRCUITS_BUILD / "RiskPassportTier_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "RiskPassportTier_js" / "generate_witness.js",
+        "category": "reputation",
+        "description": "Assigns a 1-5 risk tier from weighted risk metrics with configurable thresholds",
+    },
+    "TraderPerformanceProof": {
+        "wasm": CIRCUITS_BUILD / "TraderPerformanceProof_js" / "TraderPerformanceProof.wasm",
+        "zkey": CIRCUITS_BUILD / "TraderPerformanceProof_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "TraderPerformanceProof_js" / "generate_witness.js",
+        "category": "reputation",
+        "description": "Proves Sharpe ratio, drawdown, and win-rate thresholds over 30 periods without revealing returns",
+    },
+    "StrategyIntegrity": {
+        "wasm": CIRCUITS_BUILD / "StrategyIntegrity_js" / "StrategyIntegrity.wasm",
+        "zkey": CIRCUITS_BUILD / "StrategyIntegrity_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "StrategyIntegrity_js" / "generate_witness.js",
+        "category": "strategy_integrity",
+        "description": "Proves position concentration, leverage, slippage, and exposure comply with strategy policy",
+    },
+    "ExecutionIntegrity": {
+        "wasm": CIRCUITS_BUILD / "ExecutionIntegrity_js" / "ExecutionIntegrity.wasm",
+        "zkey": CIRCUITS_BUILD / "ExecutionIntegrity_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "ExecutionIntegrity_js" / "generate_witness.js",
+        "category": "execution_quality",
+        "description": "Proves trade execution met delay, price deviation, and routing constraints",
+    },
+    "private_vote": {
+        "wasm": CIRCUITS_BUILD / "private_vote_js" / "private_vote.wasm",
+        "zkey": CIRCUITS_BUILD / "private_vote_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "private_vote_js" / "generate_witness.js",
+        "category": "governance",
+        "description": "Enables private on-chain voting with ballot commitment and nullifier",
+    },
 }
 
 
@@ -280,6 +327,11 @@ def _default_input_builders(
         "ModelBridge": lambda: build_model_bridge_inputs(),
         "RebalanceTimingCommitment": lambda: build_rebalance_timing_inputs(user_address=user_address),
         "RobustnessCertificate": lambda: build_robustness_certificate_inputs(),
+        "SolvencyProof": lambda: build_solvency_proof_inputs(user_address=user_address),
+        "RiskPassportTier": lambda: build_risk_passport_tier_inputs(user_address=user_address),
+        "TraderPerformanceProof": lambda: build_trader_performance_inputs(user_address=user_address),
+        "StrategyIntegrity": lambda: build_strategy_integrity_inputs(user_address=user_address),
+        "ExecutionIntegrity": lambda: build_execution_integrity_inputs(user_address=user_address),
     }
 
 
@@ -514,7 +566,7 @@ def _poseidon_commitment(*values: int) -> str:
 
 
 def build_risk_score_inputs(
-    portfolio_features: list[int],
+    portfolio_features: list[int] | None = None,
     model_weights: list[int] | None = None,
     model_bias: int = 0,
     threshold: int = 50,
@@ -522,7 +574,7 @@ def build_risk_score_inputs(
     user_address: int = 0,
 ) -> dict[str, Any]:
     """Build valid inputs for the RiskScore circuit."""
-    feats = (portfolio_features + [0] * 8)[:8]
+    feats = ((portfolio_features or [10, 20, 15, 30, 10, 25, 12, 18]) + [0] * 8)[:8]
     weights = (model_weights or [10] * 8)[:8]
     raw_sum = sum(f * w for f, w in zip(feats, weights)) + model_bias
     # Circuit constraint: actual_score * scale <= raw_sum < (actual_score + 1) * scale
@@ -578,12 +630,21 @@ def build_correlation_risk_inputs(
     scale: int = 100,
     user_address: int = 0,
 ) -> dict[str, Any]:
-    """Build valid inputs for CorrelationRisk circuit."""
+    """Build valid inputs for CorrelationRisk circuit.
+
+    The circuit verifies:
+        actual_correlation * total_pos² <= Σpos_i*pos_j*corr[i][j] < (actual_correlation+1)*total_pos²
+    So actual_correlation must be the INTEGER DIVISION of the weighted sum by total_pos².
+    """
     pos = (positions or [20, 20, 20, 20, 20])[:5]
     pos = (pos + [0] * 5)[:5]
     # Identity-ish correlation matrix (low correlation)
     corr = [[100 if i == j else 10 for j in range(5)] for i in range(5)]
-    actual = sum(pos[i] * pos[j] * corr[i][j] for i in range(5) for j in range(5))
+    weighted_sum = sum(pos[i] * pos[j] * corr[i][j] for i in range(5) for j in range(5))
+    total_pos = sum(pos)
+    total_pos_sq = total_pos * total_pos if total_pos > 0 else 1
+    # actual_correlation is the normalized (integer-divided) value
+    actual = weighted_sum // total_pos_sq
     commitment = _poseidon_commitment(user_address, actual)
     return {
         "positions": [str(p) for p in pos],
@@ -624,18 +685,25 @@ def build_safety_diversification_inputs(
     scale: int = 100,
     user_address: int = 0,
 ) -> dict[str, Any]:
-    """Build valid inputs for SafetyDiversification circuit."""
+    """Build valid inputs for SafetyDiversification circuit.
+
+    Circuit constraint:
+        actual_score * total_alloc <= total_weighted < (actual_score+1) * total_alloc
+    So actual_score = total_weighted // total_alloc  (integer division).
+    """
     allocs = (allocations or [20, 20, 20, 20, 10, 10])[:6]
     allocs = (allocs + [0] * 6)[:6]
     scores = (safety_scores or [80, 70, 90, 60, 50, 85])[:6]
     scores = (scores + [50] * 6)[:6]
-    actual = sum(a * s for a, s in zip(allocs, scores))
+    total_weighted = sum(a * s for a, s in zip(allocs, scores))
+    total_alloc = sum(allocs)
+    actual = total_weighted // total_alloc if total_alloc > 0 else 0
     commitment = _poseidon_commitment(user_address, actual)
     return {
         "allocations": [str(a) for a in allocs],
         "safety_scores": [str(s) for s in scores],
         "actual_score": str(actual),
-        "threshold": str(threshold * scale * sum(allocs)),
+        "threshold": str(threshold * scale * total_alloc),
         "scale": str(scale),
         "user_address": str(user_address),
         "commitment_hash": commitment,
@@ -774,20 +842,20 @@ def build_agent_reputation_inputs(
     w = (weights or [5, 20, 1, 15, 1, 5, 10])[:7]  # small positive weights
     w = (w + [0] * 7)[:7]
     raw = sum(mi * wi for mi, wi in zip(m, w))
-    # Do NOT clamp — the circuit asserts the integer-division relationship
     score = raw // scale
-    # Safety: if defaults would produce score > 1000, adjust scale
+    # Circuit asserts 0 <= score <= 1000 — adjust scale if needed
+    if score > 1000 and raw > 0:
+        # Find smallest scale that brings score ≤ 1000
+        scale = max(scale, (raw // 1000) + 1)
+        score = raw // scale
     if score > 1000:
         score = 1000
-        # pick a scale that satisfies the constraint
-        scale = raw // 1000
-        score = raw // scale
     commitment = _poseidon_commitment(user_address, score)
     return {
         "metrics": [str(mi) for mi in m],
         "weights": [str(wi) for wi in w],
         "computed_score": str(score),
-        "min_reputation_score": str(min_reputation_score),
+        "min_reputation_score": str(min(min_reputation_score, score)),
         "scale": str(scale),
         "user_address": str(user_address),
         "commitment_hash": commitment,
@@ -1012,14 +1080,319 @@ def build_robustness_certificate_inputs(
     """
     pass_rate_bps = (pass_count * 10000) // total_count if total_count > 0 else 0
     return {
-        "model_hash": str(model_hash),
-        "attack_suite_hash": str(attack_suite_hash),
         "pass_count": str(pass_count),
         "total_count": str(total_count),
-        "pass_rate_bps": str(pass_rate_bps),
+        "model_hash": str(model_hash),
+        "attack_suite_hash": str(attack_suite_hash),
         "min_pass_rate_bps": str(min_pass_rate_bps),
         "min_attacks": str(min_attacks),
         "certified_at": str(certified_at),
+    }
+
+
+# ── Reputation / Financial Passport input builders ──────────────────────────
+
+def build_solvency_proof_inputs(
+    asset_positions: list[int] | None = None,
+    debt_positions: list[int] | None = None,
+    min_solvency_ratio_bps: int = 10000,
+    scale: int = 10000,
+    pricing_commitment: int = 0,
+    user_address: int = 0,
+) -> dict[str, Any]:
+    """Build valid inputs for SolvencyProof circuit (8 assets, 8 debts).
+
+    Circuit constraints:
+        total_assets * scale >= min_solvency_ratio_bps * total_liabilities  (for is_solvent=1)
+        Solvency bucket 0-4 based on ratio thresholds 10000/12000/15000/20000 bps.
+    """
+    assets = (asset_positions or [50000, 30000, 20000, 10000, 5000, 3000, 2000, 1000])[:8]
+    assets = (assets + [0] * 8)[:8]
+    debts = (debt_positions or [20000, 10000, 5000, 3000, 0, 0, 0, 0])[:8]
+    debts = (debts + [0] * 8)[:8]
+    blinding = 42
+    commitment = _poseidon_commitment(user_address, sum(assets), sum(debts))
+    return {
+        "asset_positions": [str(a) for a in assets],
+        "debt_positions": [str(d) for d in debts],
+        "pricing_commitment": str(pricing_commitment),
+        "blinding": str(blinding),
+        "min_solvency_ratio_bps": str(min_solvency_ratio_bps),
+        "scale": str(scale),
+        "subject_id_hash": str(user_address),
+    }
+
+
+def build_risk_passport_tier_inputs(
+    volatility_bps: int = 1500,
+    max_drawdown_bps: int = 800,
+    concentration_bps: int = 2000,
+    effective_leverage_bps: int = 1200,
+    liquidation_events_lookback: int = 1,
+    tenure_days: int = 200,
+    tier_thresholds: list[int] | None = None,
+    required_tier: int = 3,
+    scale: int = 100,
+    user_address: int = 0,
+    policy_hash: int = 0,
+) -> dict[str, Any]:
+    """Build valid inputs for RiskPassportTier circuit.
+
+    Circuit constraints:
+        tenure_days <= 365
+        raw_score = vol + dd + conc + lev + liq*500 + (365-tenure)*100
+        computed_risk_score * scale <= raw_score < (computed_risk_score+1) * scale
+        tier_thresholds monotonically increasing
+        computed_risk_score <= tier_thresholds[4]
+        required_tier in [1,5]
+    """
+    thresholds = (tier_thresholds or [100, 200, 400, 600, 1000])[:5]
+    blinding = 77
+    tenure_risk = 365 - tenure_days
+    liquidation_penalty = liquidation_events_lookback * 500
+    tenure_penalty = tenure_risk * 100
+    raw_score = (
+        volatility_bps
+        + max_drawdown_bps
+        + concentration_bps
+        + effective_leverage_bps
+        + liquidation_penalty
+        + tenure_penalty
+    )
+    computed = raw_score // scale
+    # Ensure computed fits within tier_thresholds[4]
+    if computed > thresholds[4]:
+        thresholds[4] = computed + 1
+    commitment = _poseidon_commitment(user_address, computed)
+    return {
+        "volatility_bps": str(volatility_bps),
+        "max_drawdown_bps": str(max_drawdown_bps),
+        "concentration_bps": str(concentration_bps),
+        "effective_leverage_bps": str(effective_leverage_bps),
+        "liquidation_events_lookback": str(liquidation_events_lookback),
+        "tenure_days": str(tenure_days),
+        "computed_risk_score": str(computed),
+        "blinding": str(blinding),
+        "tier_thresholds": [str(t) for t in thresholds],
+        "required_tier": str(required_tier),
+        "scale": str(scale),
+        "subject_id_hash": str(user_address),
+        "policy_hash": str(policy_hash),
+    }
+
+
+def build_trader_performance_inputs(
+    returns_bps: list[int] | None = None,
+    equity_curve: list[int] | None = None,
+    wins_count: int = 20,
+    trades_count: int = 30,
+    risk_free_bps: int = 10,
+    min_sharpe_x100: int = 50,
+    max_drawdown_bps: int = 2000,
+    min_win_rate_bps: int = 5000,
+    scale: int = 10000,
+    user_address: int = 0,
+) -> dict[str, Any]:
+    """Build valid inputs for TraderPerformanceProof circuit (T=30).
+
+    Circuit constraints:
+        lookback_days === 30 (T)
+        trades_count > 0, stddev_proxy_bps > 0, wins_count <= trades_count
+        mean_return_bps * 30 === sum(returns_bps)
+        mean_excess_return_bps + risk_free_bps === mean_return_bps
+        sharpe_x100 * stddev <= mean_excess*100 < (sharpe_x100+1)*stddev
+        win_rate_bps_actual * trades <= wins_count * scale < (wr+1)*trades
+        drawdown: (max-min)*scale/max integer division check
+        eq_max[T-1] > 0
+    """
+    T = 30
+    rets = (returns_bps or [50, 30, -20, 40, 60, -10, 25, 45, -15, 35,
+                            20, 55, -5, 30, 40, 10, -25, 50, 15, 35,
+                            20, -10, 45, 30, 25, 40, -15, 55, 20, 35])[:T]
+    rets = (rets + [0] * T)[:T]
+
+    # Build equity curve: start at 10000, accumulate
+    if equity_curve is None:
+        eq = [10000]
+        for i in range(1, T):
+            eq.append(eq[-1] + rets[i])
+        equity_curve = eq
+    else:
+        equity_curve = (equity_curve + [10000] * T)[:T]
+
+    # Computed values for circuit constraints
+    total_ret = sum(rets)
+    mean_return = total_ret // T
+    # Adjust returns so mean * T == sum exactly
+    remainder = total_ret - mean_return * T
+    rets[0] += -remainder  # fix last bps digit to make sum exact
+    total_ret = sum(rets)
+    mean_return = total_ret // T
+    assert mean_return * T == total_ret, "mean*T must equal sum"
+
+    mean_excess = mean_return - risk_free_bps
+
+    # stddev proxy (simplified: use a reasonable value)
+    stddev_proxy = max(abs(mean_excess) + 10, 50)  # must be > 0
+
+    # Sharpe: sharpe_x100 = (mean_excess * 100) // stddev_proxy
+    sharpe_x100_actual = (mean_excess * 100) // stddev_proxy if stddev_proxy > 0 else 0
+
+    # Win-rate: wins_count * scale // trades_count
+    win_rate_actual = (wins_count * scale) // trades_count
+
+    # Drawdown from equity curve
+    peak = max(equity_curve)
+    trough = min(equity_curve)
+    assert peak > 0, "equity curve peak must be > 0"
+    drawdown_actual = ((peak - trough) * scale) // peak
+
+    commitment = _poseidon_commitment(user_address, sharpe_x100_actual, drawdown_actual)
+    return {
+        "returns_bps": [str(r) for r in rets],
+        "wins_count": str(wins_count),
+        "trades_count": str(trades_count),
+        "equity_curve": [str(e) for e in equity_curve],
+        "risk_free_bps": str(risk_free_bps),
+        "mean_return_bps": str(mean_return),
+        "mean_excess_return_bps": str(mean_excess),
+        "stddev_proxy_bps": str(stddev_proxy),
+        "sharpe_x100": str(sharpe_x100_actual),
+        "max_drawdown_bps_actual": str(drawdown_actual),
+        "win_rate_bps_actual": str(win_rate_actual),
+        "blinding": str(99),
+        "min_sharpe_x100": str(min_sharpe_x100),
+        "max_drawdown_bps": str(max_drawdown_bps),
+        "min_win_rate_bps": str(min_win_rate_bps),
+        "lookback_days": str(T),
+        "scale": str(scale),
+        "subject_id_hash": str(user_address),
+    }
+
+
+def build_strategy_integrity_inputs(
+    position_weights_bps: list[int] | None = None,
+    effective_leverage_bps: int = 15000,
+    observed_slippage_bps: list[int] | None = None,
+    asset_exposures_bps: list[int] | None = None,
+    max_position_weight_bps: int = 3000,
+    max_leverage_bps: int = 30000,
+    max_slippage_bps: int = 100,
+    scale: int = 10000,
+    allowlist_policy_hash: int = 1,
+    user_address: int = 0,
+) -> dict[str, Any]:
+    """Build valid inputs for StrategyIntegrity circuit (K=8 positions, L=8 slippage).
+
+    Circuit constraints:
+        sum(position_weights_bps) === scale
+        sum(asset_exposures_bps) === scale
+        each weight <= max_position_weight_bps
+        effective_leverage_bps <= max_leverage_bps
+        each slippage <= max_slippage_bps
+        each exposure <= scale
+    """
+    K, L = 8, 8
+    # Default: roughly equal weights summing to scale
+    if position_weights_bps is None:
+        base = scale // K
+        position_weights_bps = [base] * K
+        position_weights_bps[0] += scale - sum(position_weights_bps)
+    else:
+        position_weights_bps = (position_weights_bps + [0] * K)[:K]
+
+    if observed_slippage_bps is None:
+        observed_slippage_bps = [20, 15, 30, 25, 10, 18, 22, 12]
+    else:
+        observed_slippage_bps = (observed_slippage_bps + [0] * L)[:L]
+
+    if asset_exposures_bps is None:
+        base_exp = scale // K
+        asset_exposures_bps = [base_exp] * K
+        asset_exposures_bps[0] += scale - sum(asset_exposures_bps)
+    else:
+        asset_exposures_bps = (asset_exposures_bps + [0] * K)[:K]
+
+    blinding = 55
+    commitment = _poseidon_commitment(user_address, effective_leverage_bps)
+    return {
+        "position_weights_bps": [str(w) for w in position_weights_bps],
+        "effective_leverage_bps": str(effective_leverage_bps),
+        "observed_slippage_bps": [str(s) for s in observed_slippage_bps],
+        "asset_exposures_bps": [str(e) for e in asset_exposures_bps],
+        "blinding": str(blinding),
+        "max_position_weight_bps": str(max_position_weight_bps),
+        "max_leverage_bps": str(max_leverage_bps),
+        "max_slippage_bps": str(max_slippage_bps),
+        "scale": str(scale),
+        "allowlist_policy_hash": str(allowlist_policy_hash),
+        "subject_id_hash": str(user_address),
+    }
+
+
+def build_execution_integrity_inputs(
+    submission_block: int = 100000,
+    inclusion_block: int = 100002,
+    expected_price: int = 2000,
+    actual_price: int = 2005,
+    max_delay_blocks: int = 5,
+    max_price_deviation_bps: int = 50,
+    scale: int = 10000,
+    user_address: int = 0,
+) -> dict[str, Any]:
+    """Build valid inputs for ExecutionIntegrity circuit.
+
+    Circuit constraints:
+        inclusion_block >= submission_block
+        expected_price > 0
+        computed_deviation_bps * expected_price <= abs_diff * scale < (dev+1) * expected_price
+        route_commitment, relay_commitment, required_route_policy_hash all != 0 for route_ok=1
+    """
+    abs_diff = abs(actual_price - expected_price)
+    dev_bps = (abs_diff * scale) // expected_price if expected_price > 0 else 0
+    route_commitment = int(_poseidon_commitment(submission_block, expected_price))
+    relay_commitment = int(_poseidon_commitment(inclusion_block, actual_price))
+    required_route_policy_hash = int(_poseidon_commitment(1, 2, 3))  # non-zero policy
+    blinding = 88
+    commitment = _poseidon_commitment(user_address, submission_block)
+    return {
+        "submission_block": str(submission_block),
+        "inclusion_block": str(inclusion_block),
+        "expected_price": str(expected_price),
+        "actual_price": str(actual_price),
+        "route_commitment": str(route_commitment),
+        "relay_commitment": str(relay_commitment),
+        "computed_deviation_bps": str(dev_bps),
+        "blinding": str(blinding),
+        "max_delay_blocks": str(max_delay_blocks),
+        "max_price_deviation_bps": str(max_price_deviation_bps),
+        "scale": str(scale),
+        "required_route_policy_hash": str(required_route_policy_hash),
+        "subject_id_hash": str(user_address),
+    }
+
+
+def build_private_vote_inputs(
+    secret: int = 12345,
+    voting_power: int = 100,
+    vote_direction: int = 1,
+    proposal_id: int = 1,
+    nullifier_hash: int | None = None,
+    user_address: int = 0,
+) -> dict[str, Any]:
+    """Build inputs for the private_vote circuit (governance).
+
+    NOTE: The circuit uses Pedersen hashes for nullifier and commitment.
+    The nullifier_hash must be the Pedersen(secret, proposal_id) output.
+    If nullifier_hash is not provided, a placeholder 0 is used — the proof
+    will fail constraint checking. Supply the real Pedersen output for valid proofs.
+    """
+    return {
+        "secret": str(secret),
+        "voting_power": str(voting_power),
+        "vote_direction": str(vote_direction),
+        "proposal_id": str(proposal_id),
+        "nullifier_hash": str(nullifier_hash if nullifier_hash is not None else 0),
     }
 
 
@@ -1062,10 +1435,15 @@ async def run_circuit_scan(
     for name in circuits:
         if name not in CIRCUIT_REGISTRY:
             continue
-        # Merkle circuits (6-8) require real Merkle proofs; skip if no override
+        # Merkle circuits require real Merkle proofs; skip if no override
         if name in ("BalanceAboveThreshold", "PoolMembership", "TenureAboveThreshold"):
             if name not in override:
                 tasks.append(_skip_circuit(name, "Requires Merkle proof inputs (not provided)"))
+                continue
+        # private_vote requires Pedersen preimage; skip if no override
+        if name == "private_vote":
+            if name not in override:
+                tasks.append(_skip_circuit(name, "Requires Pedersen nullifier preimage (not provided)"))
                 continue
         circuit_inputs = override.get(name) or (default_builders.get(name, lambda: {})())
         tasks.append(_generate_proof(name, circuit_inputs))

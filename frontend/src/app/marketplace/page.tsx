@@ -8,24 +8,35 @@ import { MyAgents } from "@/components/zkdefi/MyAgents";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { listModels } from "@/lib/api/agents";
 
+// Force dynamic rendering (marketplace is always dynamic)
+export const dynamic = 'force-dynamic';
+
 export default function MarketplacePage() {
   const { address, isConnected } = useAccount();
   const [mounted, setMounted] = useState(false);
   const [models, setModels] = useState<Array<{ id: string; name: string; description?: string; type: string; timeout: number }>>([]);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<"browse" | "compose" | "agents">("browse");
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    fetchModels();
-  }, []);
+    if (mounted) {
+      fetchModels();
+    }
+  }, [mounted]);
 
   const fetchModels = async () => {
+    setLoadingModels(true);
     try {
       const data = await listModels();
+      console.log("Fetched models:", data.models?.length || 0);
       setModels(data.models || []);
     } catch (e) {
       console.error("Failed to fetch models:", e);
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
     }
   };
 
@@ -196,10 +207,23 @@ export default function MarketplacePage() {
               })}
             </div>
             
-            {models.length === 0 && (
+            {loadingModels && models.length === 0 && (
+              <div className="text-center py-16 text-zinc-500">
+                <Boxes className="w-12 h-12 mx-auto mb-3 opacity-50 animate-pulse" />
+                <p>Loading models...</p>
+              </div>
+            )}
+            
+            {!loadingModels && models.length === 0 && (
               <div className="text-center py-16 text-zinc-500">
                 <Boxes className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Loading models...</p>
+                <p className="mb-2">No models available</p>
+                <button
+                  onClick={() => fetchModels()}
+                  className="text-sm text-emerald-400 hover:underline"
+                >
+                  Retry
+                </button>
               </div>
             )}
           </div>

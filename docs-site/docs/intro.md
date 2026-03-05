@@ -1,25 +1,52 @@
 # Introduction
 
-zkde.fi is the first application built on Obsqra's verifiable AI infrastructure. It is an AI-driven capital allocator for DeFi on Starknet, designed for two audiences:
+zkde.fi is the first **privacy-preserving AI capital allocator** built on Obsqra's zero-knowledge infrastructure. It brings AI-powered DeFi to Starknet where **your data stays private** while every decision is cryptographically proven.
 
-- users who want AI-powered yield optimization where every decision is provably computed
-- integrators building on verifiable computation APIs and proof-gated execution patterns
+## Privacy + Verification = zkDeFi
 
-## The Problem This Solves
+Every vault operation carries cryptographic guarantees:
 
-DeFi automation is either fully transparent (leaking strategy alpha) or fully opaque (requiring blind trust). When an AI agent says "this pool is safe" or "rebalance 60/40," there is no way to verify that the algorithm actually ran on real data — or ran at all.
+**Every vault operation now has:**
+- ✅ **STARK proof** — cryptographic correctness guarantee
+- ✅ **On-chain receipt** — immutable audit trail with proof hash  
+- ✅ **Privacy option** — shielded pools hide amounts
 
-## Why This Matters
+**Architecture:** Backend generates proof → Submit to FactRegistry → VaultController verifies → Execute → Create receipt
 
-zkde.fi introduces **verifiable AI agents** — autonomous agents whose critical decisions are backed by cryptographic proofs. Every risk score, anomaly detection, and allocation signal passes through a ZK circuit that proves the computation was performed correctly. Smart contracts verify these proofs before authorizing execution. The result: AI-powered DeFi where trust is replaced by verification.
+---
+
+Designed for two audiences:
+
+- **Users** who want AI-powered yield optimization without exposing portfolio details, risk profiles, or strategy preferences
+- **Integrators** building privacy-preserving computation APIs and proof-gated execution patterns
+
+## The Privacy + Verification Problem
+
+DeFi automation forces an impossible choice:
+
+- **Transparent (public):** Your positions, strategies, and risk tolerance are visible to MEV bots, competitors, and chain analysts
+- **Opaque (centralized):** Send private data to off-chain servers, trust they run the right AI model, no verification
+
+You can't have **privacy + verification** — until now.
+
+## Why Privacy-Preserving Proofs Matter
+
+zkde.fi introduces **zero-knowledge AI agents**: autonomous agents whose decisions are proven correct **without revealing your private data**.
+
+- Every risk score, anomaly detection, and allocation signal passes through a **zkML circuit** (zero-knowledge machine learning)
+- Proofs verify the AI model ran correctly on real inputs **without exposing those inputs**
+- Deposits and withdrawals use **shielded pools** (Poseidon commitments) to hide amounts and break on-chain links
+- Smart contracts verify proofs before authorizing execution
+
+The result: **AI-powered DeFi where you keep your data private AND prove everything is correct**.
 
 ## What zkde.fi Combines
 
-- **Provable skill modules** — AI agent skills backed by ZK circuits (22 Circom + 3 EZKL circuits)
-- **Proof registry as verifiability middleware** — ERC-8004 proof catalog enabling cross-agent trust
-- **Multi-tier privacy** — from deposit-visible to fully shielded, with commit-reveal execution
-- **Session-based delegation** with constraint scoping and proof-gated execution
-- **Computation oracle pattern** — risk analysis that proves interpretation, not just data
+- **Privacy-preserving AI (zkML)** — Machine learning inference inside zero-knowledge proofs (22 Circom + 3 EZKL circuits)
+- **Shielded pools** — Poseidon commitment-based deposits/withdrawals that hide amounts and break address links
+- **Confidential strategy engine** — Risk scoring and recommendations computed on encrypted user profiles
+- **Proof registry (ERC-8004)** — Verifiable computation catalog enabling cross-agent trust without data exposure
+- **Session-based delegation** with privacy-aware constraint scoping and proof-gated execution
 
 ## Flow-Specific Proof Model (Important)
 

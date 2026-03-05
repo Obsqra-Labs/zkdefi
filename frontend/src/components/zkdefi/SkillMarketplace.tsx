@@ -83,6 +83,21 @@ const CATEGORY_CONFIG: Record<string, { icon: React.ReactNode; label: string; co
     label: "Privacy Proofs",
     color: "purple",
   },
+  reputation: {
+    icon: <Shield className="w-4 h-4" />,
+    label: "Reputation",
+    color: "cyan",
+  },
+  strategy_integrity: {
+    icon: <Layers className="w-4 h-4" />,
+    label: "Strategy Integrity",
+    color: "indigo",
+  },
+  execution_quality: {
+    icon: <Cpu className="w-4 h-4" />,
+    label: "Execution Quality",
+    color: "rose",
+  },
 };
 
 function getCategoryColor(category: string): string {

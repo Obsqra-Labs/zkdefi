@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import { Tooltip } from "@/components/zkdefi/Tooltip";
 import {
   getAutoAgentStatus,
   startAutoAgent,
@@ -439,18 +440,23 @@ export function AutomationControlPanel({
       {/* Action buttons */}
       <div className="p-4 flex items-center gap-2">
         {!isRunning && !isPaused && (
-          <button
-            onClick={handleStart}
-            disabled={actionLoading || !activeSessionId}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white px-4 py-2.5 text-sm font-medium transition"
+          <Tooltip 
+            content={!activeSessionId ? "Grant a session key first to enable autonomous mode" : "Start AI-powered autonomous capital management"}
+            position="top"
           >
-            {actionLoading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Play className="w-4 h-4" />
-            )}
-            Start Automation
-          </button>
+            <button
+              onClick={handleStart}
+              disabled={actionLoading || !activeSessionId}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed text-white px-4 py-2.5 text-sm font-medium transition"
+            >
+              {actionLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+              Start Automation
+            </button>
+          </Tooltip>
         )}
         {isRunning && (
           <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ZkGraphWidget } from "@/components/zkdefi/ZkGraphWidget";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_RECOMMENDATIONS, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity, OracleRecommendation } from "@/components/zkdefi/oracle/types";
@@ -88,7 +89,7 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
         setRecommendations([]);
       }
     } catch (e) {
-      logger.debug("Recommendations unavailable:", e);
+      console.debug("Recommendations unavailable:", e);
       setRecommendations([]);
     }
   }, [isDemo]);
@@ -125,7 +126,7 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
 
     if (!confirmed) return;
 
-    setExecutingRec(rec.strategyName);
+    setExecutingRec(rec.strategyName ?? rec.label);
     try {
       // Step 1: Get allocation plan
       const allocRes = await fetch(`${API_BASE}/api/v1/strategies/allocate`, {
@@ -247,6 +248,9 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* zkGraph Intelligence Widget */}
+      <ZkGraphWidget poolId="ekubo_eth_usdc" variant="full" />
+      
       <section>
         <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">Signal stream</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -26,14 +26,54 @@ Route-level errors often trace back to chain mismatch or incorrect contract refe
 
 ## Contract Interaction Topology
 
+### Proof-Gated Execution Flow
+
+```mermaid
+flowchart TD
+  User[User] --> FE[Frontend]
+  FE --> BE[Backend API]
+  
+  BE --> PG{Generate Proof}
+  PG --> FR[ObsqraFactRegistry]
+  FR --> VC[VaultController]
+  
+  VC --> Verify{Verify Proof}
+  Verify -->|Valid| Execute[Execute Allocation]
+  Verify -->|Invalid| Reject[Reject]
+  
+  Execute --> RR[ReceiptRegistry]
+  RR --> Receipt[Create Receipt]
+```
+
+### Privacy Vault Flow
+
 ```mermaid
 flowchart LR
-  UI[Frontend] --> API[Backend orchestration]
-  API --> AG[ProofGatedYieldAgent]
-  API --> SD[SelectiveDisclosure]
-  API --> CT[ConfidentialTransfer]
-  API --> SK[SessionKeyManager]
-  API --> ZV[ZkmlVerifier]
+  User --> FSP[FullyShieldedPool]
+  FSP --> MT[MerkleTree]
+  MT --> Commit[Store Commitment]
+  
+  User2[User Withdraw] --> HWP[HashedWithdrawPool]
+  HWP --> MT2[Verify Merkle Proof]
+  MT2 --> Release[Release Funds]
+```
+
+### DAO Governance Flow
+
+```mermaid
+flowchart TD
+  Proposer --> Create[Create Proposal]
+  Create --> DAO[DAOConstraintManager]
+  
+  Voter --> ZKP{Generate ZK Vote Proof}
+  ZKP --> Vote[Cast Private Vote]
+  Vote --> DAO
+  
+  DAO --> Tally[Tally Votes]
+  Tally -->|Passed| Execute[Execute Proposal]
+  Tally -->|Failed| Archive[Archive]
+  
+  Execute --> VC[Update VaultController]
 ```
 
 ## Problem It Solves For Integrators
