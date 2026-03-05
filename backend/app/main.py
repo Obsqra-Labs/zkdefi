@@ -215,6 +215,8 @@ if ledger_router:
     app.include_router(ledger_router, prefix="/api/v1/zkdefi", tags=["ledger"])
 if auth_session_router:
     app.include_router(auth_session_router, prefix="/api/v1/zkdefi", tags=["auth_session"])
+if notifications_router:
+    app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])
 agent_builder_router = _optional_router("app.api.agent_builder")
 if agent_builder_router:
     app.include_router(
