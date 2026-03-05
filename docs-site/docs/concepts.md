@@ -1,8 +1,16 @@
 # Key concepts
 
+## Verifiable AI agents
+
+A **verifiable AI agent** is an autonomous agent whose critical decisions are backed by cryptographic proofs. The agent's LLM layer reasons about goals and selects strategies (advisory). The agent's ML layer produces risk scores, anomaly classifications, and yield forecasts — each generating a ZK proof. Smart contracts verify these proofs before allowing the agent to act. This is the foundation of Obsqra's infrastructure.
+
+## Computation oracles
+
+**Computation oracles** are the next layer above data oracles. Data oracles (Chainlink, Pyth) prove *what happened* — raw price feeds and state data. Computation oracles prove *what the data means* — risk classifications, safety scores, yield forecasts. zkde.fi's zkML circuits are computation oracles: they prove interpretation, not just data.
+
 ## Proof-gating
 
-**Proof-gating** means: the smart contract only executes an action if a valid proof is provided. The proof attests that the action satisfies your constraints (e.g. max position, allowed protocols). Proofs are verified on-chain via Starknet's **Integrity** fact registry (SHARP). No proof, no execution — so you get MEV protection and verifiable intent.
+**Proof-gating** means: the smart contract only executes an autonomous action if a valid proof is provided. The proof attests that the action satisfies your constraints (e.g. max position, allowed protocols). Proofs are verified on-chain via Starknet's **Integrity** fact registry (SHARP). No proof, no execution — so you get MEV protection and verifiable intent.
 
 ## Session keys
 

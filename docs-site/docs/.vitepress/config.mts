@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'zkde.fi',
-  description: 'Privacy-preserving autonomous DeFi agent on Starknet',
+  description: 'AI capital allocation with verifiable risk analysis — by Obsqra Labs',
   base: '/docs/',  
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }]
@@ -13,73 +13,62 @@ export default defineConfig({
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Docs', link: '/intro' },
-      { text: 'zkML', link: '/zkml-models' },
-      { text: 'AEGIS', link: '/aegis' },
+      { text: 'Start', link: '/intro' },
+      { text: 'Operate', link: '/app-overview' },
+      { text: 'Build (GATE)', link: '/developers' },
+      { text: 'API', link: '/api-overview' },
       { text: 'App', link: 'https://zkde.fi' }
     ],
     
     sidebar: [
       {
-        text: 'Getting Started',
+        text: 'Start Here',
         items: [
           { text: 'Introduction', link: '/intro' },
           { text: 'Why zkde.fi?', link: '/why' },
           { text: 'Concepts', link: '/concepts' },
-          { text: 'Quick start (live app)', link: '/quick-start' }
+          { text: 'Quick start (live app)', link: '/quick-start' },
+          { text: 'First-time setup (live app)', link: '/guide-first-time-setup' }
         ]
       },
       {
-        text: 'Privacy Features',
-        items: [
-          { text: 'Overview', link: '/privacy-features' },
-          { text: 'zkML Models', link: '/zkml-models' },
-          { text: 'Session Keys', link: '/session-keys' },
-          { text: 'Rebalancing', link: '/rebalancing' }
-        ]
-      },
-      {
-        text: 'How the app works',
+        text: 'Operate The App',
         items: [
           { text: 'App overview and routes', link: '/app-overview' },
-          { text: 'Agent dashboard', link: '/agent-dashboard' },
+          { text: 'Agent workspace', link: '/agent-dashboard' },
+          { text: 'Deploy to Ekubo', link: '/guide-deploy-to-ekubo' },
           { text: 'Profile and identity', link: '/profile-and-identity' },
+          { text: 'How execution flows', link: '/flow' }
+        ]
+      },
+      {
+        text: 'Verify And Control Risk',
+        items: [
           { text: 'Reputation system', link: '/reputation-system' },
           { text: 'Risk Passport', link: '/risk-passport' },
-          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' }
+          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' },
+          { text: 'Privacy features', link: '/privacy-features' },
+          { text: 'Session keys', link: '/session-keys' },
+          { text: 'Rebalancing', link: '/rebalancing' },
+          { text: 'zkML models', link: '/zkml-models' }
         ]
       },
       {
-        text: 'User guides',
+        text: 'Build And Integrate (GATE)',
         items: [
-          { text: 'First-time setup (live app)', link: '/guide-first-time-setup' },
-          { text: 'Deploy to Ekubo', link: '/guide-deploy-to-ekubo' },
-          { text: 'Profile and reputation', link: '/profile-and-identity' },
-          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' }
-        ]
-      },
-      {
-        text: 'Architecture',
-        items: [
-          { text: 'Summary', link: '/architecture-summary' },
-          { text: 'Flow', link: '/flow' },
-          { text: 'Contracts', link: '/contracts' },
-          { text: 'Innovation', link: '/innovation' }
-        ]
-      },
-      {
-        text: 'Standards',
-        items: [
-          { text: 'AEGIS-1', link: '/aegis' }
-        ]
-      },
-      {
-        text: 'Resources',
-        items: [
+          { text: 'Architecture summary', link: '/architecture-summary' },
           { text: 'API overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
-          { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'Contracts', link: '/contracts' },
           { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' },
+          { text: 'AEGIS-1 (GATE standard)', link: '/aegis' }
+        ]
+      },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'Innovation', link: '/innovation' },
+          { text: 'Troubleshooting', link: '/troubleshooting' },
           { text: 'FAQ', link: '/faq' }
         ]
       }

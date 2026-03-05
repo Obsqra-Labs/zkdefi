@@ -1,31 +1,55 @@
-# What is zkde.fi?
+# Introduction
 
-**zkde.fi** (by Obsqra Labs) is the first **GATE-compatible** app: a privacy-preserving autonomous agent for DeFi on Starknet, built on **zkDE (Zero-Knowledge Deterministic Engine)** and **GATE (Governed Autonomous Trustless Execution)**. It combines:
+zkde.fi is the first application built on Obsqra's verifiable AI infrastructure. It is an AI-driven capital allocator for DeFi on Starknet, designed for two audiences:
 
-- **zkML-gated decisions** — Two privacy-preserving ML models (risk score, anomaly detection) gate agent actions. Model outputs stay private; only compliance is public.
-- **Proof-gated execution** — Every action requires both zkML proofs (Garaga) and execution proofs (Integrity). No proof, no execution.
-- **Session keys** — Delegate to the agent via Starknet's native account abstraction. Agent acts within your constraints (max position, protocols, duration).
-- **Intent commitments** — Replay-safe and fork-safe execution. Each commitment is single-use.
-- **Selective disclosure** — Prove statements (e.g. "my agent followed the rules" or "yield above X") without revealing your full strategy or history.
-- **Confidential positions** — Private transfers use commitments: amounts and balances stay off the public ledger. On Sepolia we use Garaga (Groth16 verifier); on mainnet the stack can use MIST.cash.
+- users who want AI-powered yield optimization where every decision is provably computed
+- integrators building on verifiable computation APIs and proof-gated execution patterns
 
-The app is **open source** and lives at [zkde.fi](https://zkde.fi). Full documentation: **zkde.fi/docs**. You connect your Starknet wallet (e.g. ArgentX, Braavos), set constraints (max position, allowed protocols), and grant session keys for autonomous execution.
+## The Problem This Solves
 
-## Hybrid Proof System
+DeFi automation is either fully transparent (leaking strategy alpha) or fully opaque (requiring blind trust). When an AI agent says "this pool is safe" or "rebalance 60/40," there is no way to verify that the algorithm actually ran on real data — or ran at all.
 
-| Layer | Proof System | Purpose |
-|-------|--------------|---------|
-| Privacy | Garaga (Groth16/SNARK) | zkML proofs, confidential transfers |
-| Execution | Integrity (STARK) | Constraint proofs, receipts |
+## Why This Matters
 
-## Key Features
+zkde.fi introduces **verifiable AI agents** — autonomous agents whose critical decisions are backed by cryptographic proofs. Every risk score, anomaly detection, and allocation signal passes through a ZK circuit that proves the computation was performed correctly. Smart contracts verify these proofs before authorizing execution. The result: AI-powered DeFi where trust is replaced by verification.
 
-- **zkML risk score** — Proves portfolio risk <= threshold without revealing actual score
-- **zkML anomaly detection** — Proves pool is safe without revealing analysis
-- **Session keys** — Delegated execution with constraints
-- **Intent commitments** — Replay-safe execution
-- **Constraint receipts** — On-chain audit trail
-- **Compliance profiles** — Productized selective disclosure
-- **Private deposits/withdrawals** — Amounts hidden
+## What zkde.fi Combines
 
-Next: [Why it matters](/why) | [zkML Models](/zkml-models) | [Session Keys](/session-keys)
+- **Provable skill modules** — AI agent skills backed by ZK circuits (22 Circom + 3 EZKL circuits)
+- **Proof registry as verifiability middleware** — ERC-8004 proof catalog enabling cross-agent trust
+- **Multi-tier privacy** — from deposit-visible to fully shielded, with commit-reveal execution
+- **Session-based delegation** with constraint scoping and proof-gated execution
+- **Computation oracle pattern** — risk analysis that proves interpretation, not just data
+
+## Flow-Specific Proof Model (Important)
+
+Proof behavior is flow-dependent. zkde.fi does not frame all actions as identical.
+
+- Some paths are fully gate-critical and require strict proof/receipt confirmation before execution acceptance.
+- Some paths are advisory or policy-preview oriented and may return risk signals without hard blocking.
+- Some operational paths rely on wallet-authorized execution with post-action state reconciliation.
+
+This flow-specific model reflects production reality and avoids over-promising a single “one size fits all” proof mode.
+
+```mermaid
+flowchart LR
+  A[User intent] --> B{Execution path}
+  B -->|Gate-critical| C[Proof + policy enforcement]
+  B -->|Advisory| D[Risk signal + recommendation]
+  B -->|Wallet-first| E[Signed execution + reconciliation]
+  C --> F[Receipt trail]
+  D --> F
+  E --> F
+```
+
+## Surfaces You Will Use
+
+- `/agent` for execution surfaces (`vault`, `trade`, `brain`)
+- `/profile` for trust, reputation, compliance, and connections
+- `/docs` for operational and integration references
+
+## Production And Experimental Scope
+
+These docs intentionally include both production and experimental capabilities. Pages identify when a flow is stable versus rapidly evolving so users and integrators can make informed decisions about adoption risk.
+
+Next: [Why zkde.fi?](/why) | [Concepts](/concepts) | [Quick start](/quick-start)

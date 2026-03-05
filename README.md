@@ -1,7 +1,7 @@
 # zkde.fi
 
-**Privacy-first DeFi agent on Starknet.**  
-By [Obsqra Labs](https://obsqra.xyz).
+**AI-powered capital allocation with verifiable risk analysis on Starknet.**  
+By [Obsqra Labs](https://obsqra.fi) — infrastructure for verifiable AI agents.
 
 **Live:** [zkde.fi](https://zkde.fi) · **Docs:** [docs.zkde.fi](https://docs.zkde.fi)
 
@@ -9,12 +9,12 @@ By [Obsqra Labs](https://obsqra.xyz).
 
 ## What it is
 
-zkde.fi is an open-source app for private, proof-gated DeFi on Starknet (Sepolia):
+zkde.fi is an AI-driven capital allocator for DeFi where every risk assessment, pool analysis, and strategy signal is backed by a cryptographic proof. Built on Obsqra's verifiable AI infrastructure on Starknet (Sepolia).
 
-- **Full Privacy Pool** — Deposit and withdraw with note unlinkability; Merkle tree + Garaga SNARK proofs; root synced on-chain so withdrawals verify.
-- **MVP yield flow** — Connect → risk profile (Conservative / Balanced / Aggressive) → recommendation → deploy (or sign on Dashboard). Enable **AI rebalancing** on the Dashboard so the agent monitors and rebalances when conditions change.
-- **Agent & session keys** — Delegate execution with constraints (max position, protocols, expiry). Rebalancer: propose → zkML gate checks → execute. Autonomous mode runs the agent on an interval.
-- **Hybrid proofs** — Garaga (SNARK) for zkML and confidential transfers; Integrity (STARK) for execution. Proof-gated: no proof, no execution.
+- **Verifiable AI agents** — Autonomous agents whose decisions flow through provable skill modules (zkML circuits). The agent recommends; the circuits prove the math; the contracts verify before execution.
+- **Computation oracles** — Risk scores, anomaly detection, and yield forecasts are proven, not just asserted. Smart contracts query the proof registry before authorizing capital movement.
+- **Full privacy stack** — Multi-tier privacy from deposit-visible to fully shielded. Merkle tree + Garaga SNARK proofs. Relayer-mediated execution for gas payer unlinkability.
+- **Agent identity and reputation** — Agents minted as SRC-721 NFTs with bound skills, verifiable proof history, and auditable LLM provider hashes. Proof-gated: no proof, no execution.
 
 ## Architecture
 
@@ -27,9 +27,14 @@ User → Wallet → Frontend (:3001) → Backend (:8003) → Proofs (Garaga / ob
 
 | Component | Port | Role |
 |-----------|------|------|
-| Frontend | 3001 | Next.js: / (landing), /agent (dashboard, pools, rebalancer), /mvp (risk → recommend → deploy), /profile. |
-| Backend | 8003 | FastAPI: full_privacy (deposit/withdraw), zkML, session keys, rebalancer, strategies (recommend), relayer, onboarding. |
+| Frontend | 3001 | Next.js: / (landing), /agent (primary app), /mvp (experimental automation lane), /profile. |
+| Backend | 8003 | FastAPI (`app.main`): unified API surface for /agent + /mvp + /profile. |
 | Contracts | Sepolia | ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, Garaga verifier, Merkle tree; see [docs/CONTRACTS.md](docs/CONTRACTS.md). |
+
+Route ownership:
+- `/agent` is the canonical product surface.
+- `/mvp` is the experimental UX for automation and strategy iteration.
+- Both routes hit the same backend (`zkdefi/backend/app/main.py`), including shared strategy execution (`/api/v1/strategies/execute-advanced`).
 
 ## Quick Start
 
@@ -44,8 +49,6 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8003
 ```
 
-If `app.main` is missing, the runnable app may be in `app.main.py.bak` or your deployment; see [docs/SETUP.md](docs/SETUP.md).
-
 **Frontend**
 
 ```bash
@@ -55,7 +58,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001). Use **/agent** for dashboard and rebalancer, **/mvp** for risk → recommend → deploy.
+Open [http://localhost:3001](http://localhost:3001). Use **/agent** as the primary app and **/mvp** as the experimental automation lane.
 
 ## API (overview)
 

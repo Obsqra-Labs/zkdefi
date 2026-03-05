@@ -1,30 +1,63 @@
-# Innovation and differentiation
+# Innovation
 
-## What's novel
+This page describes where zkde.fi is architecturally distinct — not by marketing claim, but by what the system actually does differently.
 
-- **Privacy-preserving autonomous agent** — Combines AI-driven allocation (deterministic risk engine) with privacy primitives: proof-gating, confidential transactions, and selective disclosure. The agent acts on your behalf; intents stay hidden; actions are verifiable.
-- **Proof-gated session keys (Starknet AA)** — Uses Starknet's native account abstraction (session keys) plus proof verification. The agent needs *both* a valid session *and* a valid proof to execute. That combination is rare: delegation with cryptographic guarantees.
-- **STARKs for execution, Groth16 for privacy** — Execution proofs are verified via Integrity (STARK/SHARP); confidential transfers use a Groth16 verifier (Garaga on Sepolia). One stack for both verifiable execution and confidential balances.
-- **Selective disclosure + confidential on one stack** — You can prove compliance or eligibility (selective disclosure) while also holding confidential positions (private deposits). Same app, same chain, same narrative.
-- **Complete confidential transfer cycle** — Private deposits *and* private withdrawals. Nullifier-based double-spend prevention. Your amounts stay hidden from deposit to withdrawal.
-- **Multi-dimensional selective disclosure** — Beyond basic thresholds: risk compliance (VaR, Sharpe), performance proofs (APY over time), KYC eligibility, and portfolio aggregation across protocols.
-- **Cross-protocol privacy aggregation** — Prove total portfolio value across Ekubo, JediSwap, and private commitments without revealing individual protocol amounts or allocation strategy.
+## The Core Innovation: Computation Oracles
 
-## Privacy features
+Oracle networks today provide raw data — price feeds, block headers, API results. But most DeFi decisions depend on **interpretation** of data: is this pool safe? is this allocation optimal? is this borrower creditworthy?
 
-| Feature | Description |
-|---------|-------------|
-| Private Deposits | Hide deposit amounts using commitments |
-| Private Withdrawals | Withdraw without revealing amounts (nullifier-based) |
-| Risk Compliance | Prove portfolio risk below threshold |
-| Performance Proofs | Prove APY exceeded target over period |
-| KYC Eligibility | Prove financial standing for compliance |
-| Portfolio Aggregation | Prove total value without breakdown |
+That interpretation layer is currently centralized. A server runs a model, posts a score, and users trust it. zkde.fi replaces trust with verification:
 
-## Starknet-native
+```
+Data Oracle (Chainlink, Pyth)     Computation Oracle (Obsqra)
+─────────────────────────────     ───────────────────────────
+Proves: "ETH price is $3,200"     Proves: "This pool scored safe
+                                   based on 8 risk factors,
+                                   computed by this specific model,
+                                   on this specific input data"
+```
 
-- Built for **Starknet** (Sepolia for demo; mainnet-ready). Uses native account abstraction, Integrity fact registry, and existing DeFi protocols (Ekubo, JediSwap).
-- No mock data: real prover on Sepolia, real Integrity, real ERC20 token. Proof-gated deposits and disclosures are fully on-chain and verifiable.
-- **Garaga integration** for on-chain Groth16 verification of privacy proofs.
+The oracle becomes computation, not authority.
 
-Next: [FAQ](/faq)
+## Provable AI Agents
+
+The LLM orchestration layer calls provable skill modules. Each skill maps to a ZK circuit. The circuit proves the computation; the proof registry records it; smart contracts verify before execution.
+
+```mermaid
+flowchart TB
+  A[AI Agent - LLM reasoning] --> B[Provable Skill Modules]
+  B --> C[ZK Proof Generation]
+  C --> D[Proof Registry - ERC-8004]
+  D --> E[Smart Contract Verification]
+  E --> F[Execution]
+```
+
+This means agent decisions are backed by cryptographic evidence. Not "trust the bot" — verify the bot.
+
+## Trust Boundary Separation
+
+The system explicitly separates advisory and proven computation:
+
+| Layer | Trust Model | What It Does |
+|-------|-------------|--------------|
+| LLM reasoning | Advisory (off-chain, auditable via `llm_provider_hash`) | Chooses which skills to invoke, synthesizes results |
+| ML inference | Proven (ZK circuit) | Risk scoring, anomaly detection, yield forecasting |
+| Execution | Verified (on-chain) | Contracts check proofs before capital movement |
+
+Many projects conflate AI reasoning with cryptographic proof. zkde.fi does not — LLM decisions are advisory; ML inference is proven. This is the correct trust boundary.
+
+## Additional Architectural Innovations
+
+### Proof registry as verifiability middleware
+
+The `ValidationProofRegistry` is not a storage table — it is the bridge between off-chain AI and on-chain execution. Contracts query it to check whether an agent's claim is backed by verified computation. This enables cross-agent trust and composable verification.
+
+### Flow-specific verification
+
+Proof behavior varies by execution path: gate-critical (proof required), advisory (risk signal without hard block), and wallet-first (signed execution with post-action reconciliation). This reflects production reality rather than a single rigid proof mode.
+
+### Multi-tier privacy with explicit trust boundaries
+
+Privacy guarantees are stated honestly. Deposit-visible mode means the chain sees amounts but not strategy. Full privacy mode uses relayer-mediated execution. The system does not claim stronger privacy than it provides.
+
+Next: [Architecture summary](/architecture-summary) | [AEGIS-1](/aegis) | [API overview](/api-overview)

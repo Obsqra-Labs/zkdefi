@@ -1,8 +1,41 @@
 # zkde.fi Architecture
 
+## Obsqra Labs — Verifiable AI Infrastructure
+
+```
+┌───────────────────────────────┐
+│        Obsqra Labs            │
+│  Verifiable AI Infrastructure │
+└───────────────┬───────────────┘
+                │
+                ▼
+      Proof Infrastructure Layer
+        ├─ EZKL model circuits (ONNX → ZK)
+        ├─ Circom constraint circuits (22 circuits)
+        ├─ Proof registry (ERC-8004)
+        ├─ Verification contracts (Garaga)
+        └─ Agent identity system (SRC-721)
+                │
+                ▼
+          Agent Runtime
+        ├─ LLM orchestration (advisory reasoning)
+        ├─ Provable skill modules (proven inference)
+        ├─ Proof generation pipeline
+        └─ Receipt and attestation service
+                │
+                ▼
+         Applications
+        └─ zkde.fi — AI capital allocation with
+           verifiable risk analysis on Starknet
+```
+
+**Obsqra** is infrastructure for verifiable AI agents — systems where critical decisions are backed by cryptographic proofs of the computations that produced them.
+
+**zkde.fi** is the first application built on this infrastructure — an AI-driven capital allocator for DeFi whose risk analysis, anomaly detection, and strategy signals are provably computed.
+
 ## Overview
 
-**zkde.fi** (by Obsqra Labs) is an open-source privacy-preserving autonomous agent for DeFi on Starknet. It provides proof-gated execution, zkML-gated rebalancing, confidential transfers, and selective disclosure.
+zkde.fi provides proof-gated execution, zkML-gated rebalancing, confidential transfers, and selective disclosure on Starknet. The system introduces **computation oracles** — where oracle providers prove interpretation of data, not just the data itself.
 
 ## Proof System: Hybrid Architecture
 
@@ -10,11 +43,12 @@ zkde.fi uses a **hybrid proof system** for maximum privacy:
 
 | Layer | Proof System | Use Case |
 |-------|--------------|----------|
-| **Privacy** | Garaga (Groth16/SNARK) | zkML models, confidential transfers |
+| **Privacy + ML** | Garaga (Groth16/SNARK) + EZKL (KZG/Halo2) | zkML models, confidential transfers |
 | **Execution** | Integrity (STARK) | Constraint proofs, slippage bounds |
 
 **Why hybrid?**
 - SNARK proofs hide model outputs (actual scores private)
+- EZKL proofs verify ML inference (model identity + correctness)
 - STARK proofs verify execution (constraints checked)
 - Both are zero-knowledge; both enable privacy
 

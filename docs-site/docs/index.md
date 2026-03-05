@@ -2,11 +2,11 @@
 layout: home
 hero:
   name: zkde.fi
-  text: Privacy-preserving DeFi on Starknet
-  tagline: zkDE + GATE. Proof-gated execution. Selective disclosure. Confidential positions. By Obsqra Labs.
+  text: AI capital allocation with verifiable risk analysis
+  tagline: By Obsqra Labs — infrastructure for verifiable AI agents. Every decision is provably computed.
   actions:
     - theme: brand
-      text: Get started
+      text: Start here
       link: /intro
     - theme: alt
       text: Open app
@@ -14,24 +14,32 @@ hero:
       target: _blank
 ---
 
-## What is zkde.fi?
+## What Is zkde.fi?
 
-**zkde.fi** is the first **GATE-compatible** app: a privacy-preserving autonomous agent for DeFi on Starknet, built on **zkDE (Zero-Knowledge Deterministic Engine)** and **GATE (Governed Autonomous Trustless Execution)**. zkDE is the engine where execution is proof-gated and verification is deterministic; GATE is the standard for how agents operate in that engine. You set constraints; the agent allocates across protocols; every action is **proof-gated** (verified on-chain) and **privacy-preserving** (intent-hiding, confidential balances, selective disclosure).
+zkde.fi is an AI-driven capital allocator for DeFi on Starknet. Every risk assessment, anomaly detection, and strategy signal is backed by a cryptographic proof of the computation that produced it. Built on Obsqra's verifiable AI infrastructure.
 
-### Core Features
+## The Problem It Solves
 
-- **zkML Models** — AI-driven decisions with hidden model outputs. Risk score and anomaly detection gate actions.
-- **Proof-gating** — No proof, no execution. Both zkML (Garaga) and execution (Integrity) proofs required.
-- **Session keys** — Delegate once; agent acts within your limits (max position, protocols, duration).
-- **Intent commitments** — Replay-safe and fork-safe execution.
-- **Selective disclosure** — Prove compliance without revealing your full history.
-- **Confidential transfers** — Amounts and balances stay off the public ledger (Garaga on Sepolia).
+Traditional DeFi automation relies on opaque off-chain bots. Users deposit capital and trust that some server is running the right algorithm on the right data. There is no way to verify that the risk check actually ran, or that the strategy recommendation was computed from real inputs.
 
-### Architecture
+## Why It Matters
 
-| Layer | Proof System | Purpose |
-|-------|--------------|---------|
-| Privacy | Garaga (Groth16) | zkML proofs, confidential transfers |
-| Execution | Integrity (STARK) | Constraint proofs, receipts |
+zkde.fi introduces **computation oracles** — where AI decisions are proven, not just asserted. Risk scores come with mathematical proofs. Anomaly detection produces verifiable evidence. Smart contracts check these proofs before allowing capital to move. The result: AI-powered DeFi where you verify the AI instead of trusting it.
 
-[Read the docs](/intro) | [zkML Models](/zkml-models) | [Session Keys](/session-keys)
+## Core Navigation Model
+
+```mermaid
+flowchart LR
+  A[/agent?v=vault] --> B[/agent?v=trade]
+  B --> C[/agent?v=brain]
+  A --> D[/profile?tab=trust]
+  D --> E[/profile?tab=reputation]
+  D --> F[/profile?tab=compliance]
+```
+
+## Where To Go Next
+
+- [Introduction](/intro)
+- [App overview and routes](/app-overview)
+- [API overview](/api-overview)
+- [Developers](/developers)
