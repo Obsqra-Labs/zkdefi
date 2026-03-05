@@ -36,13 +36,13 @@ export function OracleSurfaceContainer({
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 border-b border-zinc-800 pb-3 flex-wrap">
+      <div className="flex gap-2 border-b border-zinc-800 pb-3 overflow-x-auto min-w-0">
         {SUB_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setSubTab(t.id)}
-            className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
+            className={`shrink-0 px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
               subTab === t.id
                 ? "bg-emerald-600 text-white"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"

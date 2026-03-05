@@ -18,6 +18,9 @@ export interface CapitalOSStripGate {
   allowedCount: number;
   totalCount: number;
   status: "ok" | "warn" | "blocked";
+  /** When set, popover shows these lists; otherwise shows risk tolerance and policy count only. */
+  allowedList?: string[];
+  blockedList?: string[];
 }
 
 export interface CapitalOSStripLedger {
@@ -73,7 +76,7 @@ export function CapitalOSStrip({
       : identity.addressOrId;
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 flex flex-wrap items-center gap-2">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 flex flex-wrap items-center gap-2 min-w-0 overflow-x-auto">
       {isDemo && (
         <span className="px-2 py-0.5 text-xs font-medium rounded bg-amber-600/20 text-amber-400 border border-amber-600/30">
           Demo

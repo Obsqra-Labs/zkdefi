@@ -181,6 +181,15 @@ export default function AgentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- vault/oracle/brain subs are stable
   }, [mounted, surface, subTabOverride]);
 
+  // Ledger click: when switching to vault + activity, scroll to Activity section once mounted
+  useEffect(() => {
+    if (surface !== "vault" || subTabOverride !== "activity") return;
+    const t = setTimeout(() => {
+      document.getElementById("vault-activity-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [surface, subTabOverride]);
+
   // Onboarding check
   useEffect(() => {
     if (mounted && isConnected && address && !searchParams.get("tab") && !searchParams.get("v")) {
@@ -399,8 +408,35 @@ export default function AgentPage() {
                     <p className="text-xs font-medium text-zinc-300 mb-2">Gate</p>
                     {stripData && (
                       <>
-                        <p className="text-xs text-zinc-400">Risk tolerance: {stripData.gate.riskTolerance}</p>
-                        <p className="text-xs text-zinc-400 mt-1">Policy: {stripData.gate.allowedCount}/{stripData.gate.totalCount} strategies allowed</p>
+                        {stripData.gate.allowedList?.length || stripData.gate.blockedList?.length ? (
+                          <>
+                            {stripData.gate.allowedList?.length ? (
+                              <div className="mb-2">
+                                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Allowed strategies</p>
+                                <ul className="text-xs text-zinc-300 space-y-0.5">
+                                  {stripData.gate.allowedList.map((s, i) => (
+                                    <li key={i}>{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                            {stripData.gate.blockedList?.length ? (
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Blocked</p>
+                                <ul className="text-xs text-red-400/90 space-y-0.5">
+                                  {stripData.gate.blockedList.map((s, i) => (
+                                    <li key={i}>{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-zinc-400">Risk tolerance: {stripData.gate.riskTolerance}</p>
+                            <p className="text-xs text-zinc-400 mt-1">Policy: {stripData.gate.allowedCount}/{stripData.gate.totalCount} strategies allowed</p>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

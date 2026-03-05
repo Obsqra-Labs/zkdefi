@@ -17,6 +17,8 @@ export const DEMO_STRIP = {
     allowedCount: 4,
     totalCount: 6,
     status: "ok" as const,
+    allowedList: ["LP Provisioning", "Lending", "Stable Yield"],
+    blockedList: ["High Volatility", "Leverage"],
   } satisfies CapitalOSStripGate,
   ledger: {
     lastEntryLabel: "LP Deploy +2,400 STRK",

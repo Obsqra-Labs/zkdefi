@@ -348,7 +348,11 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle }: Vau
         </div>
       )}
 
-      {tab === "activity" && <ActivityTab address={address} />}
+      {tab === "activity" && (
+        <div id="vault-activity-section" className="scroll-mt-4">
+          <ActivityTab address={address} />
+        </div>
+      )}
     </div>
   );
 }

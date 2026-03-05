@@ -57,9 +57,12 @@ export function OracleRadarTab({ address, onNavigateToVault }: OracleRadarTabPro
 
   if (loading && !isDemo) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-zinc-400">Loading radar…</p>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8">
+        <div className="flex justify-center mb-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-center text-zinc-400 text-sm">Loading radar…</p>
+        <div className="mt-6 h-64 rounded-lg bg-zinc-800/60 animate-pulse" />
       </div>
     );
   }
@@ -74,6 +77,15 @@ export function OracleRadarTab({ address, onNavigateToVault }: OracleRadarTabPro
     );
   }
 
+  if (!loading && !error && opportunities.length === 0) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
+        <p className="text-zinc-400 mb-2">No opportunities right now</p>
+        <button type="button" onClick={fetchOpportunities} className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm">Retry</button>
+      </div>
+    );
+  }
+
   const maxApy = Math.max(1, ...opportunities.map((o) => o.estimated_apy_pct ?? o.apy ?? 0));
   const maxRisk = Math.max(1, ...opportunities.map((o) => o.risk_score ?? 0));
 
@@ -81,8 +93,8 @@ export function OracleRadarTab({ address, onNavigateToVault }: OracleRadarTabPro
     <div className="space-y-6">
       <section>
         <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">Opportunity map (risk vs yield)</h3>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-          <div className="relative w-full h-64 bg-zinc-900/80 rounded-lg">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 min-w-0">
+          <div className="relative w-full min-h-[200px] h-48 sm:h-64 bg-zinc-900/80 rounded-lg">
             {opportunities.map((opp, i) => {
               const apy = opp.estimated_apy_pct ?? opp.apy ?? 0;
               const risk = opp.risk_score ?? 0;

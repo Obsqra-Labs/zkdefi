@@ -85,9 +85,12 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
 
   if (loading && !isDemo) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-zinc-400">Loading strategies…</p>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8">
+        <div className="flex justify-center mb-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-center text-zinc-400 text-sm">Loading strategies…</p>
+        <div className="mt-6 h-10 rounded-lg bg-zinc-800/60 animate-pulse max-w-md mx-auto" />
       </div>
     );
   }
@@ -97,6 +100,16 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
         <p className="text-amber-400 mb-2">Could not load strategies</p>
         <p className="text-sm text-zinc-500 mb-4">{error}</p>
+        <button type="button" onClick={fetchOpportunities} className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm">Retry</button>
+      </div>
+    );
+  }
+
+  if (!loading && !error && opportunities.length === 0) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
+        <p className="text-zinc-400 mb-2">No strategies to compare</p>
+        <p className="text-sm text-zinc-500 mb-4">Load strategies first.</p>
         <button type="button" onClick={fetchOpportunities} className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm">Retry</button>
       </div>
     );
@@ -134,7 +147,7 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
       {selectedOpps.length > 0 && (
         <section>
           <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">Factor bars (0–100)</h3>
-          <div className={`grid gap-6 ${selectedOpps.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+          <div className={`grid gap-6 min-w-0 ${selectedOpps.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
             {selectedOpps.map((opp) => {
               const name = opp.pair || opp.name || "Strategy";
               return (

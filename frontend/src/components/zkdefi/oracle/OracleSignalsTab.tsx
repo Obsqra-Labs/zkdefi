@@ -88,9 +88,16 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
 
   if (loading && !isDemo) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-zinc-400">Loading signals…</p>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8">
+        <div className="flex justify-center mb-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-center text-zinc-400 text-sm">Loading signals…</p>
+        <div className="mt-6 space-y-3 max-w-md mx-auto">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-lg bg-zinc-800/60 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -100,6 +107,17 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
         <p className="text-amber-400 mb-2">No opportunities right now</p>
         <p className="text-sm text-zinc-500 mb-4">{error}</p>
+        <button type="button" onClick={fetchOpportunities} className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!loading && !error && opportunities.length === 0) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center">
+        <p className="text-zinc-400 mb-2">No opportunities right now</p>
         <button type="button" onClick={fetchOpportunities} className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm">
           Retry
         </button>
