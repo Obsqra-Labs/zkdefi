@@ -141,6 +141,7 @@ state_router = _optional_router("app.api.routes.state")
 system_metrics_router = _optional_router("app.api.routes.system_metrics")
 ledger_router = _optional_router("app.api.routes.ledger")
 auth_session_router = _optional_router("app.api.routes.auth_session")
+notifications_router = _optional_router("app.api.routes.notifications")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
