@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
+import { DEMO_OPPORTUNITIES, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity } from "@/components/zkdefi/oracle/types";
-
-const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 interface OracleGenomeTabProps {
   address: string | undefined;
@@ -65,11 +64,7 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
 
   useEffect(() => {
     if (isDemo) {
-      setOpportunities([
-        { pair: "STRK/ETH", estimated_apy_pct: 22, risk_score: 35, volatility: 25, tvl_usd: 120000 },
-        { pair: "ETH/USDC", estimated_apy_pct: 18, risk_score: 28, volatility: 15, tvl_usd: 250000 },
-        { pair: "STRK/USDC", estimated_apy_pct: 15, risk_score: 45, volatility: 30, tvl_usd: 80000 },
-      ]);
+      setOpportunities(DEMO_OPPORTUNITIES);
       setLoading(false);
       setError(null);
       return;

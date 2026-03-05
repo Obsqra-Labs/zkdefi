@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
+import { DEMO_OPPORTUNITIES, DEMO_RECOMMENDATIONS, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity, OracleRecommendation } from "@/components/zkdefi/oracle/types";
-
-const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 interface OracleSignalsTabProps {
   address: string | undefined;
@@ -78,16 +77,8 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
 
   useEffect(() => {
     if (isDemo) {
-      setOpportunities([
-        { pair: "STRK/ETH", estimated_apy_pct: 22, risk_score: 35, volatility: 25, tvl_usd: 120000, confidence: "high", proof_status: "Verified" },
-        { pair: "ETH/USDC", estimated_apy_pct: 18, risk_score: 28, volatility: 15, tvl_usd: 250000, confidence: "high", proof_status: "Verified" },
-        { pair: "STRK/USDC", estimated_apy_pct: 15, risk_score: 45, volatility: 30, tvl_usd: 80000, confidence: "medium", proof_status: "Experimental" },
-        { pair: "ETH/USDT", estimated_apy_pct: 12, risk_score: 22, volatility: 10, tvl_usd: 300000, confidence: "high", proof_status: "Verified" },
-      ]);
-      setRecommendations([
-        { label: "Allocate 12% to STRK/ETH Ekubo LP", strategyName: "STRK/ETH", allocationPct: 12 },
-        { label: "Add 8% to ETH/USDC stable pool", strategyName: "ETH/USDC", allocationPct: 8 },
-      ]);
+      setOpportunities(DEMO_OPPORTUNITIES);
+      setRecommendations(DEMO_RECOMMENDATIONS);
       setLoading(false);
       setError(null);
       return;

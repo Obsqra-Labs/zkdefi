@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
+import { DEMO_OPPORTUNITIES, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity } from "@/components/zkdefi/oracle/types";
-
-const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 interface OracleRadarTabProps {
   address: string | undefined;
@@ -48,12 +47,7 @@ export function OracleRadarTab({ address, onNavigateToVault }: OracleRadarTabPro
 
   useEffect(() => {
     if (isDemo) {
-      setOpportunities([
-        { pair: "STRK/ETH", estimated_apy_pct: 22, risk_score: 35, tvl_usd: 120000, signal_strength: 85 },
-        { pair: "ETH/USDC", estimated_apy_pct: 18, risk_score: 28, tvl_usd: 250000, signal_strength: 90 },
-        { pair: "STRK/USDC", estimated_apy_pct: 15, risk_score: 45, tvl_usd: 80000, signal_strength: 70 },
-        { pair: "ETH/USDT", estimated_apy_pct: 12, risk_score: 22, tvl_usd: 300000, signal_strength: 88 },
-      ]);
+      setOpportunities(DEMO_OPPORTUNITIES);
       setLoading(false);
       setError(null);
       return;

@@ -26,6 +26,7 @@ import { CapitalOSStrip } from "@/components/zkdefi/CapitalOSStrip";
 import type { CapitalOSStripIdentity, CapitalOSStripGate, CapitalOSStripLedger } from "@/components/zkdefi/CapitalOSStrip";
 import { useVaultController } from "@/hooks/useVaultController";
 import { API_BASE } from "@/lib/api/client";
+import { DEMO_STRIP, DEMO_ADDRESS as DEMO_ADDRESS_CONST } from "@/lib/demoCapitalOS";
 
 // Surface containers
 import { VaultSurfaceContainer } from "@/components/zkdefi/surfaces/VaultSurfaceContainer";
@@ -99,7 +100,7 @@ export default function AgentPage() {
   useEffect(() => setMounted(true), []);
 
   const demoMode = searchParams.get("mode") === "demo";
-  const demoAddress = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const demoAddress = DEMO_ADDRESS_CONST;
   const hasAccount = isConnected && !!address;
   const showLoading = !demoMode && (!mounted || (!hasAccount && !walletSettled && !loadingBailout));
   const showConnectGate = !demoMode && mounted && !hasAccount && (walletSettled || loadingBailout);
@@ -151,6 +152,34 @@ export default function AgentPage() {
       setSubTabOverride("deploy");
     }
   }, [mounted, searchParams]);
+
+  // URL sync: reflect surface and sub in ?v= and &sub= (replaceState to avoid history spam)
+  const VAULT_SUBS = ["portfolio", "yield", "trade", "lending", "staking", "activity", "deploy", "performance", "ledger", "private_yield"];
+  const ORACLE_SUBS = ["signals", "radar", "genome"];
+  const BRAIN_SUBS = ["agent", "models", "pipeline", "agents"];
+  useEffect(() => {
+    if (!mounted || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const currentV = params.get("v");
+    const currentSub = params.get("sub");
+    const wantV = surface;
+    const wantSub = subTabOverride;
+    const validSub =
+      wantV === "vault" && wantSub && VAULT_SUBS.includes(wantSub)
+        ? wantSub
+        : wantV === "oracle" && wantSub && ORACLE_SUBS.includes(wantSub)
+          ? wantSub
+          : wantV === "brain" && wantSub && BRAIN_SUBS.includes(wantSub)
+            ? wantSub
+            : undefined;
+    if (currentV === wantV && currentSub === (validSub ?? null)) return;
+    params.set("v", wantV);
+    if (validSub) params.set("sub", validSub);
+    else params.delete("sub");
+    const next = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vault/oracle/brain subs are stable
+  }, [mounted, surface, subTabOverride]);
 
   // Onboarding check
   useEffect(() => {
@@ -204,26 +233,10 @@ export default function AgentPage() {
     return () => { dead = true; };
   }, [effectiveAddress]);
 
-  // Capital OS Strip data: risk passport v2 + receipts/activity. Demo = hardcoded.
+  // Capital OS Strip data: risk passport v2 + receipts/activity. Demo = seeded fixture.
   useEffect(() => {
     if (demoMode) {
-      setStripData({
-        identity: {
-          addressOrId: demoAddress,
-          tier: "Pathfinder",
-          proofCount: 12,
-        },
-        gate: {
-          riskTolerance: "Moderate",
-          allowedCount: 4,
-          totalCount: 6,
-          status: "ok",
-        },
-        ledger: {
-          lastEntryLabel: "LP Deploy +2,400 STRK",
-          receiptCount: 12,
-        },
-      });
+      setStripData(DEMO_STRIP);
       return;
     }
     if (!effectiveAddress) {
@@ -425,6 +438,10 @@ export default function AgentPage() {
                 onNavigateToTrade={(sub) => {
                   setSurface("vault");
                   setSubTabOverride(sub ?? "trade");
+                }}
+                onNavigateToOracle={() => {
+                  setSurface("oracle");
+                  setSubTabOverride(undefined);
                 }}
               />
             )}
