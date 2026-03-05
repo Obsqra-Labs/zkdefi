@@ -23,9 +23,10 @@ class ObsqraProverClient:
     
     def __init__(self):
         # Base URL for Stone prover. Liveness: GET {base}/ → 200. Proofs: POST {base}/proofs/generate
+        # Local: http://localhost:8002/api/v1 (uses OBSQRA_PROVER_API_URL from .env)
         self.prover_url = os.getenv(
-            "OBSQRA_PROVER_URL",
-            "https://starknet.obsqra.fi/api/v1"
+            "OBSQRA_PROVER_API_URL",
+            os.getenv("OBSQRA_PROVER_URL", "http://localhost:8002/api/v1")
         ).rstrip("/")
         self.api_key = os.getenv("OBSQRA_PROVER_API_KEY", "")
         self._client: Optional[httpx.AsyncClient] = None
@@ -66,8 +67,9 @@ class ObsqraProverClient:
         
         try:
             response = await client.post(
-                f"{self.prover_url}/prove/stone",
+                f"{self.prover_url}/proofs/generate",
                 json={
+                    "mode": "stark",  # stark_only mode
                     "program": cairo_program,
                     "input": program_input,
                     "layout": layout
@@ -158,10 +160,12 @@ class ObsqraProverClient:
         }
     
     async def health_check(self) -> bool:
-        """Liveness: GET {base}/ → 200 when API is up (starknet.obsqra.fi contract)."""
+        """Liveness: GET {base}/../ → 200 when API is up."""
         client = await self._get_client()
         try:
-            response = await client.get(self.prover_url, timeout=15.0)
+            # Strip /api/v1 to get base URL, then check root
+            base_url = self.prover_url.replace("/api/v1", "").rstrip("/")
+            response = await client.get(base_url + "/", timeout=15.0)
             return response.status_code == 200
         except Exception:
             return False
