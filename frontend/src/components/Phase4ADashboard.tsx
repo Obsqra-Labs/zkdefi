@@ -152,14 +152,14 @@ export function Phase4ADashboard() {
                     </ul>
                   </div>
 
-                  {/* Starkscan Link */}
+                  {/* Explorer Link */}
                   <a
                     href={contract.starkscan}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded text-center text-sm transition-colors"
                   >
-                    View on Starkscan ↗
+                    View on Explorer ↗
                   </a>
                 </div>
               </div>
@@ -195,20 +195,20 @@ export function Phase4ADashboard() {
         <h3 className="text-lg font-bold text-blue-900 mb-4">Quick Links</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <a
-            href="https://sepolia.starkscan.io/contract/0x012ebbddae869fbcaee91ecaa936649cc0c75756583ae4ef6521742f963562b3"
+            href="https://sepolia.starkscan.co/contract/0x012ebbddae869fbcaee91ecaa936649cc0c75756583ae4ef6521742f963562b3"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-blue-600 hover:text-blue-700 font-semibold"
           >
-            ProofGatedLpAgent on Starkscan ↗
+            ProofGatedLpAgent on Explorer ↗
           </a>
           <a
-            href="https://sepolia.starkscan.io/contract/0x0100e1adbb92bb61bf3338a1da17a1bc31022321df2370f4f24a9120fb0e28b3"
+            href="https://sepolia.starkscan.co/contract/0x0100e1adbb92bb61bf3338a1da17a1bc31022321df2370f4f24a9120fb0e28b3"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-blue-600 hover:text-blue-700 font-semibold"
           >
-            ConfidentialTransfer on Starkscan ↗
+            ConfidentialTransfer on Explorer ↗
           </a>
         </div>
       </div>

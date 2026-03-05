@@ -1,6 +1,11 @@
 """
 Autonomous Rebalancer Monitor
 Monitors positions and triggers rebalancing based on pre-configured constraints
+
+⚠️  DEPRECATED — This module is retained only for backward-compatible imports
+by orchestrator.py and phase4a.py.  The real autonomous agent loop lives in
+app.services.autonomous_agent.AutonomousAgent which uses live positions
+and enforces vault policy constraints.
 """
 
 import asyncio

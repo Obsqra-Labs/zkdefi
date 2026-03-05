@@ -230,12 +230,29 @@ class PerformanceTracker:
             total_fees_earned_commitment="0x...",  # Placeholder
             total_fees_earned_usd_estimate=total_fees,
             apy=apy,
-            apy_30d=None,  # TODO: calculate last 30 days
-            apy_7d=None,   # TODO: calculate last 7 days
+            apy_30d=self._windowed_apy(snapshots, days=30),
+            apy_7d=self._windowed_apy(snapshots, days=7),
             sharpe_ratio=sharpe,
             max_drawdown=max_dd,
             volatility=volatility,
-            total_rebalances=0,  # TODO: count from events
+            total_rebalances=0,  # TODO: count from audit trail events
             tracking_start=timestamps[0],
             tracking_updated_at=datetime.utcnow(),
         )
+
+    def _windowed_apy(self, snapshots: list, days: int) -> float | None:
+        """Calculate APY over the last `days` days from snapshots."""
+        if not snapshots:
+            return None
+        cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
+        window = [s for s in snapshots if s["timestamp"] >= cutoff]
+        if len(window) < 2:
+            return None
+        fees_w = [s["fees_earned"] for s in window]
+        tvls_w = [s["tvl"] for s in window]
+        total_fees_w = fees_w[-1] - fees_w[0]
+        avg_tvl_w = statistics.mean(tvls_w) if tvls_w else 1
+        span_days = (window[-1]["timestamp"] - window[0]["timestamp"]).total_seconds() / 86400
+        if span_days < 0.01 or avg_tvl_w <= 0:
+            return None
+        return (total_fees_w / avg_tvl_w / span_days * 365)

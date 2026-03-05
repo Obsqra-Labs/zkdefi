@@ -1,13 +1,15 @@
 """
 Pool Passport Store
 
-In-memory store for pool/asset risk passport data (last anomaly result per pool_id).
+Persisted store for pool/asset risk passport data (last anomaly result per pool_id).
 Read by GET /risk_passport/pool/{pool_id}; updated when anomaly proof runs.
 """
 from datetime import datetime
 from typing import Any
 
-_store: dict[str, dict[str, Any]] = {}
+from app.services.json_store import JsonStore
+
+_store = JsonStore("pool_passports")
 
 
 def save(pool_id: str, anomaly_result: dict[str, Any], snapshot_hash: str | None = None) -> None:
@@ -23,7 +25,7 @@ def save(pool_id: str, anomaly_result: dict[str, Any], snapshot_hash: str | None
         "timestamp": datetime.utcnow().isoformat(),
         "snapshot_hash": snapshot_hash,
     }
-    _store[pool_id] = entry
+    _store.set(pool_id, entry)
 
 
 def get(pool_id: str) -> dict[str, Any] | None:

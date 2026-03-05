@@ -1,11 +1,20 @@
 """
-Pool Aggregator Service
+Pool Aggregator Service — DEPRECATED
 
-Fetches and caches pool data from multiple DEXs on Starknet Sepolia:
-- Ekubo (LP positions)
-- JediSwap (LP positions)
-- Vesu (Lending)
+This module contains 100% mock/placeholder data. All production callers should
+use ``real_pool_aggregator.EkuboPoolAggregator`` instead, which fetches live
+data from prod-api.ekubo.org.
+
+This file is kept only for backward compatibility during migration.
+Use ``from app.services.real_pool_aggregator import EkuboPoolAggregator``
 """
+
+import warnings as _warnings
+_warnings.warn(
+    "pool_aggregator.py is deprecated -- use real_pool_aggregator.py",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 from typing import List, Dict, Optional
 from datetime import datetime

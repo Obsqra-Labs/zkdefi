@@ -251,6 +251,9 @@ if proofs_router:
 vault_v2_router = _optional_router("app.api.routes.vault_v2")
 if vault_v2_router:
     app.include_router(vault_v2_router, prefix="/api/v1/zkdefi", tags=["vault-v2"])
+batch_verification_router = _optional_router("app.api.routes.batch_verification")
+if batch_verification_router:
+    app.include_router(batch_verification_router, prefix="/api/v1/zkdefi", tags=["batch"])
 
 
 # -----------------------------------------------------------------------------

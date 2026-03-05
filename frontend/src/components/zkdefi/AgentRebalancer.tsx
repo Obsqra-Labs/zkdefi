@@ -18,11 +18,13 @@ import {
   Clock,
   Zap
 } from "lucide-react";
+import { useApp } from "@/lib/AppContext";
 import { ProofTimeline } from "@/components/zkdefi/ProofTimeline";
 import { TierBadge } from "@/components/zkdefi/TierBadge";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { formatGateDenied } from "@/lib/gateCopy";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE, walletAuthHeaders } from "@/lib/api/client";
 
 interface Proposal {
   proposal_id: string;
@@ -76,6 +78,7 @@ export function AgentRebalancer({
   positions = {},
   userTier = 0,
 }: AgentRebalancerProps) {
+  const { hasOnboarded, invalidateTabs } = useApp();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -148,12 +151,15 @@ export function AgentRebalancer({
       alert("Session key required for autonomous mode");
       return;
     }
-    
+    if (userAddress && hasOnboarded === false) {
+      toastError("Complete one-time agent setup to continue. Open Setup from the banner or go to /agent?tab=onboarding");
+      return;
+    }
     setAutonomousLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/autonomous/start`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: walletAuthHeaders(userAddress, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           user_address: userAddress,
           session_id: sessionId,
@@ -178,7 +184,7 @@ export function AgentRebalancer({
     try {
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/autonomous/stop`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: walletAuthHeaders(userAddress, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           user_address: userAddress
         })
@@ -198,7 +204,8 @@ export function AgentRebalancer({
     setAutonomousLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/autonomous/pause/${userAddress}`, {
-        method: "POST"
+        method: "POST",
+        headers: walletAuthHeaders(userAddress),
       });
       
       if (response.ok) {
@@ -215,7 +222,8 @@ export function AgentRebalancer({
     setAutonomousLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/autonomous/resume/${userAddress}`, {
-        method: "POST"
+        method: "POST",
+        headers: walletAuthHeaders(userAddress),
       });
       
       if (response.ok) {
@@ -229,6 +237,10 @@ export function AgentRebalancer({
   };
   
   const handlePropose = async () => {
+    if (userAddress && hasOnboarded === false) {
+      toastError("Complete one-time agent setup to continue. Open Setup from the banner or go to /agent?tab=onboarding");
+      return;
+    }
     setProcessing("proposing");
     try {
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/propose`, {
@@ -247,7 +259,7 @@ export function AgentRebalancer({
         const proposal = await response.json();
         setShowPropose(false);
         await fetchProposals();
-        
+        invalidateTabs();
         // Automatically run zkML checks
         await runZkmlChecks(proposal.proposal_id);
       }
@@ -285,7 +297,7 @@ export function AgentRebalancer({
       }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        toastError(data.detail || "zkML check failed");
+        toastError(formatGateDenied(data.detail || "zkML gate check failed"));
       }
       await fetchProposals();
     } catch (error) {
@@ -299,6 +311,10 @@ export function AgentRebalancer({
   const prepareAndExecute = async (proposalId: string, retryOnce = true) => {
     if (!sessionId) {
       alert("Session key required for execution");
+      return;
+    }
+    if (userAddress && hasOnboarded === false) {
+      toastError("Complete one-time agent setup to continue. Open Setup from the banner or go to /agent?tab=onboarding");
       return;
     }
     setProcessing(proposalId);
@@ -339,6 +355,8 @@ export function AgentRebalancer({
         const result = await execRes.json().catch(() => ({}));
         if (result.execution_error) {
           toastError(`Execution failed: ${result.execution_error}`);
+        } else {
+          invalidateTabs();
         }
       }
       await fetchProposals();
@@ -589,12 +607,12 @@ export function AgentRebalancer({
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-zinc-400">{PROTOCOL_NAMES[proposal.from_protocol]}</span>
+                    <span className="text-zinc-400">{PROTOCOL_NAMES[proposal.from_protocol] ?? "Unknown"}</span>
                     <ArrowRight className="w-4 h-4 text-zinc-600" />
-                    <span className="text-white">{PROTOCOL_NAMES[proposal.to_protocol]}</span>
+                    <span className="text-white">{PROTOCOL_NAMES[proposal.to_protocol] ?? "Unknown"}</span>
                   </div>
                   <span className="text-sm text-zinc-500">
-                    {proposal.amount.toLocaleString()} tokens
+                    {(proposal.amount ?? 0).toLocaleString()} tokens
                   </span>
                 </div>
                 {getStatusBadge(proposal.status)}
@@ -726,6 +744,19 @@ export function AgentRebalancer({
                     </button>
                   </>
                 )}
+              </div>
+              
+              <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 text-zinc-500" />
+                    Execution pipeline
+                  </span>
+                  <span className="text-zinc-300">~15-30s total</span>
+                </div>
+                <div className="text-[11px] text-zinc-500 mt-1">
+                  Commit (MEV-protected) → zkML verify → Groth16 proof → on-chain execute → receipt
+                </div>
               </div>
             </div>
           ))}

@@ -21,8 +21,11 @@ from app.services.receipt_service import get_receipt_service
 from app.services.pool_passport_store import save as save_pool_passport
 from app.services.mainnet_oracle import get_oracle
 from app.services.policy_engine import check as policy_check
+from app.services import execution_guard
+from app.models.action_intent import ActionIntent
 
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7")
+PROPOSAL_LOCK_TIMEOUT_SECONDS = float(os.getenv("REBALANCER_LOCK_TIMEOUT_SECONDS", "0.05"))
 
 
 class RebalanceStatus(str, Enum):
@@ -61,6 +64,8 @@ class RebalanceProposal:
         # Proof data (populated during execution)
         self.risk_proof = None
         self.anomaly_proof = None
+        self.signal_scan = None
+        self.policy_mode = "gate"
         self.execution_proof_hash = None
         self.commitment_hash = None
         self.snapshot_hash = None  # Oracle snapshot binding (set in check_zkml_gates)
@@ -79,6 +84,8 @@ class RebalanceProposal:
             "created_at": self.created_at,
             "risk_proof": self.risk_proof,
             "anomaly_proof": self.anomaly_proof,
+            "signal_scan": self.signal_scan,
+            "policy_mode": self.policy_mode,
             "commitment_hash": self.commitment_hash,
             "snapshot_hash": self.snapshot_hash,
             "tx_hash": self.tx_hash,
@@ -204,7 +211,7 @@ class AgentRebalancer:
         async with self._lock_meta:
             plock = self._get_proposal_lock(proposal_id)
         try:
-            await asyncio.wait_for(plock.acquire(), timeout=0)
+            await asyncio.wait_for(plock.acquire(), timeout=PROPOSAL_LOCK_TIMEOUT_SECONDS)
         except asyncio.TimeoutError:
             raise RuntimeError("Proof in progress for this proposal; retry later")
         try:
@@ -247,6 +254,8 @@ class AgentRebalancer:
         proposal.commitment_hash = policy.get("commitment_hash")
         proposal.risk_proof = risk_result
         proposal.anomaly_proof = anomaly_result
+        proposal.signal_scan = policy.get("signal_scan")
+        proposal.policy_mode = policy.get("policy_mode", "gate")
         
         if can_proceed:
             proposal.status = RebalanceStatus.ZKML_PASSED
@@ -282,6 +291,8 @@ class AgentRebalancer:
             "anomaly_passed": anomaly_result["is_safe"],
             "risk_proof": risk_result,
             "anomaly_proof": anomaly_result,
+            "signal_scan": proposal.signal_scan,
+            "policy_mode": proposal.policy_mode,
             "commitment_hash": proposal.commitment_hash,
             "snapshot_hash": snapshot_hash,
             "policy_allowed": can_proceed,
@@ -304,7 +315,7 @@ class AgentRebalancer:
         async with self._lock_meta:
             plock = self._get_proposal_lock(proposal_id)
         try:
-            await asyncio.wait_for(plock.acquire(), timeout=0)
+            await asyncio.wait_for(plock.acquire(), timeout=PROPOSAL_LOCK_TIMEOUT_SECONDS)
         except asyncio.TimeoutError:
             raise RuntimeError("Proof or prepare in progress for this proposal; retry later")
         try:
@@ -371,6 +382,20 @@ class AgentRebalancer:
         proposal.status = RebalanceStatus.EXECUTING
         
         try:
+            # ── Execution guard pre-check ────────────────────────────────
+            intent = ActionIntent(
+                user_address=proposal.user_address,
+                strategy="rebalance",
+                expected_edge_bps=0,
+                notional_wei=proposal.amount,
+                metadata={"proposal_id": proposal_id},
+            )
+            guard = execution_guard.check(intent)
+            if not guard.allowed:
+                proposal.status = RebalanceStatus.FAILED
+                proposal.error = f"execution_guard blocked: {guard.reason}"
+                return {"proposal_id": proposal_id, "status": "guard_blocked", "reason": guard.reason}
+
             # Real execution path: invoke ProofGatedYieldAgent.execute_with_proofs when configured
             tx_hash = None
             real_result = await self.agent_service.submit_rebalance(
@@ -386,11 +411,12 @@ class AgentRebalancer:
             if not tx_hash and execution_error:
                 proposal.error = execution_error
             if not tx_hash:
-                # Fallback: simulated tx_hash when relayer/signer not configured (e.g. dev)
-                import hashlib
-                tx_hash = "0x" + hashlib.sha256(
-                    f"tx_{proposal_id}_{datetime.utcnow().isoformat()}".encode()
-                ).hexdigest()[:64]
+                # Relayer/signer not configured — record intent without on-chain tx
+                logger.info(
+                    "No tx hash returned (relayer not configured); rebalance recorded, tx_hash=None. "
+                    "Set EXECUTOR_PRIVATE_KEY + EXECUTOR_LIVE_SUBMIT=true to submit on-chain."
+                )
+                tx_hash = None
 
             proposal.tx_hash = tx_hash
             proposal.status = RebalanceStatus.COMPLETED

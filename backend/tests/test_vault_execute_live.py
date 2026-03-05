@@ -22,3 +22,12 @@ def test_execute_with_allocations_returns_positions():
     data = response.json()
     assert data["user_address"] == "0xabc"
     assert len(data["positions"]) == 2
+    for pos in data["positions"]:
+        assert pos["strategy"] in ("ekubo_eth_usdc", "ekubo_strk_usdc")
+        assert "amount" in pos and "status" in pos
+        has_calldata_or_hash_or_error = (
+            pos.get("tx_hash") is not None
+            or pos.get("tx_calldata") is not None
+            or pos.get("tx_calldata_error") is not None
+        )
+        assert has_calldata_or_hash_or_error, f"Position should have tx_hash, tx_calldata, or tx_calldata_error: {pos}"

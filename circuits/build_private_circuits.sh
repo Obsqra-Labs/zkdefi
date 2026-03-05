@@ -45,6 +45,14 @@ npx snarkjs groth16 setup build/FullPrivacyWithdrawWithChange.r1cs "$PTAU" build
 npx snarkjs zkey contribute build/FullPrivacyWithdrawWithChange_0000.zkey build/FullPrivacyWithdrawWithChange_final.zkey --name="Contrib" -e="random-entropy" -v
 npx snarkjs zkey export verificationkey build/FullPrivacyWithdrawWithChange_final.zkey build/FullPrivacyWithdrawWithChange_verification_key.json
 
+echo "=== Compile CreditEligibility ==="
+circom CreditEligibility.circom --r1cs --wasm --sym -o build
+
+echo "=== Groth16 setup: CreditEligibility ==="
+npx snarkjs groth16 setup build/CreditEligibility.r1cs "$PTAU" build/CreditEligibility_0000.zkey
+npx snarkjs zkey contribute build/CreditEligibility_0000.zkey build/CreditEligibility_final.zkey --name="Contrib" -e="random-entropy" -v
+npx snarkjs zkey export verificationkey build/CreditEligibility_final.zkey build/CreditEligibility_verification_key.json
+
 echo "=== Done ==="
 echo "Build contains:"
 ls -la build/PrivateDeposit_js/PrivateDeposit.wasm build/PrivateWithdraw_js/PrivateWithdraw.wasm \

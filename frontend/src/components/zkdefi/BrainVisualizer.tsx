@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Brain, Shield, Zap, Clock, Check, X, Loader2, Play, AlertTriangle } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
 const PERCEPTRON_ADDRESS = process.env.NEXT_PUBLIC_CAIRO_PERCEPTRON_ADDRESS ?? "";
 
 interface TierStatus {
@@ -49,18 +49,52 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
       updateTier(0, { status: "running" });
       const t0Start = Date.now();
       
-      // This would be a call to the contract - for now simulate the check
       const features = [volatility, concentration, age, volume];
-      const sum = features.reduce((a, b) => a + b, 0) + 50; // +50 bias
-      const threshold = 200;
-      const tier0Passed = sum > threshold;
-      
-      const t0Duration = Date.now() - t0Start;
-      updateTier(0, { 
-        status: tier0Passed ? "passed" : "failed", 
-        duration: t0Duration,
-        details: `Sum=${sum}, Threshold=${threshold}`
-      });
+      let tier0Passed = false;
+
+      if (PERCEPTRON_ADDRESS) {
+        try {
+          const percResp = await fetch(`${API_BASE}/api/v1/zkdefi/perceptron/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ features, bias: 50, threshold: 200 }),
+          });
+          if (percResp.ok) {
+            const percData = await percResp.json();
+            tier0Passed = !!percData.passed;
+            const t0Duration = Date.now() - t0Start;
+            updateTier(0, {
+              status: tier0Passed ? "passed" : "failed",
+              duration: t0Duration,
+              details: `Score=${percData.score ?? "?"}, Threshold=${percData.threshold ?? 200}`,
+            });
+          } else {
+            throw new Error(`Perceptron API error ${percResp.status}`);
+          }
+        } catch {
+          // Fallback to local simulation if API unavailable
+          const sum = features.reduce((a, b) => a + b, 0) + 50;
+          const threshold = 200;
+          tier0Passed = sum > threshold;
+          const t0Duration = Date.now() - t0Start;
+          updateTier(0, {
+            status: tier0Passed ? "passed" : "failed",
+            duration: t0Duration,
+            details: `Sum=${sum}, Threshold=${threshold} (local fallback)`,
+          });
+        }
+      } else {
+        // No perceptron address — local simulation
+        const sum = features.reduce((a, b) => a + b, 0) + 50;
+        const threshold = 200;
+        tier0Passed = sum > threshold;
+        const t0Duration = Date.now() - t0Start;
+        updateTier(0, {
+          status: tier0Passed ? "passed" : "failed",
+          duration: t0Duration,
+          details: `Sum=${sum}, Threshold=${threshold} (local)`,
+        });
+      }
       
       if (!tier0Passed) {
         setFinalResult("failed");
@@ -69,66 +103,61 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
         return;
       }
       
-      // === TIER 1a: RiskScore (Groth16) ===
+      // === TIER 1: Circuit Scanner (RiskScore + AnomalyDetector via /scan) ===
       updateTier(1, { status: "running" });
-      const t1aStart = Date.now();
-      
-      const riskResponse = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/risk_score`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_address: userAddress,
-          portfolio_features: [volatility, concentration, age, volume, 65, 55, 45, 75],
-          threshold: 50
-        })
-      });
-      
-      const riskData = await riskResponse.json();
-      const t1aDuration = Date.now() - t1aStart;
-      const tier1aPassed = riskData.proof_calldata?.length > 0;
-      
-      updateTier(1, { 
-        status: tier1aPassed ? "passed" : "failed", 
-        duration: t1aDuration,
-        details: `${riskData.proof_calldata?.length || 0} proof elements`
-      });
-      
-      // === TIER 1b: AnomalyDetector (Groth16) ===
       updateTier(2, { status: "running" });
-      const t1bStart = Date.now();
-      
-      const anomalyResponse = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/anomaly`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_address: userAddress,
-          pool_id: "ekubo_eth_usdc",
-          pool_features: {
-            tvl_volatility: 20,
-            liquidity_concentration: 30,
-            price_impact_score: 15,
-            deployer_age_days: 500,
-            volume_anomaly: 10,
-            contract_risk_score: 25
-          },
-          threshold: 60
-        })
-      });
-      
-      const anomalyData = await anomalyResponse.json();
-      const t1bDuration = Date.now() - t1bStart;
-      const tier1bPassed = anomalyData.is_safe;
-      
-      updateTier(2, { 
-        status: tier1bPassed ? "passed" : "failed", 
-        duration: t1bDuration,
-        details: tier1bPassed ? "Pool is safe" : "Anomaly detected"
-      });
-      
-      // Final result
-      const allPassed = tier0Passed && tier1aPassed && tier1bPassed;
-      setFinalResult(allPassed ? "passed" : "failed");
-      onBrainComplete?.(allPassed);
+      const t1Start = Date.now();
+
+      try {
+        const scanResponse = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_address: userAddress,
+            circuits: ["RiskScore", "AnomalyDetector"],
+            portfolio_features: [volatility, concentration, age, volume, 65, 55, 45, 75],
+          }),
+        });
+
+        const scanData = await scanResponse.json();
+        const scanResults: Record<string, { success: boolean; is_compliant?: boolean; proof_hash?: string; duration_ms?: number; error?: string }> = {};
+        for (const r of scanData.results ?? []) {
+          scanResults[r.circuit] = r;
+        }
+
+        // -- RiskScore --
+        const riskR = scanResults["RiskScore"];
+        const t1aPassed = !!(riskR?.success && riskR?.is_compliant !== false);
+        updateTier(1, {
+          status: t1aPassed ? "passed" : "failed",
+          duration: riskR?.duration_ms ?? (Date.now() - t1Start),
+          details: riskR?.success
+            ? `Proof: ${(riskR.proof_hash ?? "").slice(0, 14)}… (${riskR.is_compliant ? "compliant" : "non-compliant"})`
+            : riskR?.error ?? "Circuit failed",
+        });
+
+        // -- AnomalyDetector --
+        const anomR = scanResults["AnomalyDetector"];
+        const t1bPassed = !!(anomR?.success && anomR?.is_compliant !== false);
+        updateTier(2, {
+          status: t1bPassed ? "passed" : "failed",
+          duration: anomR?.duration_ms ?? (Date.now() - t1Start),
+          details: anomR?.success
+            ? t1bPassed ? "Pool is safe" : "Anomaly detected"
+            : anomR?.error ?? "Circuit failed",
+        });
+
+        // Final result
+        const allPassed = tier0Passed && t1aPassed && t1bPassed;
+        setFinalResult(allPassed ? "passed" : "failed");
+        onBrainComplete?.(allPassed);
+      } catch (scanErr) {
+        console.error("Circuit scan failed:", scanErr);
+        updateTier(1, { status: "failed", details: "Scan request failed" });
+        updateTier(2, { status: "failed", details: "Scan request failed" });
+        setFinalResult("failed");
+        onBrainComplete?.(false);
+      }
       
     } catch (error) {
       console.error("Brain execution failed:", error);
@@ -162,6 +191,9 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
             </>
           )}
         </button>
+        <p className="text-[11px] text-zinc-500 mt-1.5">
+          Runs zkML risk model (Cairo perceptron) · ~3-5s · result feeds agent gate decisions
+        </p>
       </div>
       
       {/* Input Features */}
@@ -298,6 +330,30 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
                 <span className="font-medium text-red-400">Check failed - Action blocked</span>
               </>
             )}
+          </div>
+        </div>
+
+        {/* Model Transparency */}
+        <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/20 px-3 py-2 text-xs space-y-1.5 mt-3">
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-400 font-medium">Model transparency</span>
+            <span className="text-zinc-500 text-[10px]">Deterministic fallback available</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-500">Decision engine</span>
+            <span className="text-zinc-300 font-mono text-[11px]">Onyx (onyx-defi-v1)</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-500">Risk model</span>
+            <span className="text-zinc-300 font-mono text-[11px]">Cairo Perceptron v1 (on-chain)</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-500">Proof system</span>
+            <span className="text-zinc-300 font-mono text-[11px]">Groth16 / BN254 (Circom 2.1.6)</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-500">Verifier</span>
+            <span className="text-zinc-300 font-mono text-[11px]">Garaga (Starknet Sepolia)</span>
           </div>
         </div>
       </div>

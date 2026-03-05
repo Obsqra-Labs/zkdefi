@@ -3,8 +3,16 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Key, Clock, Shield, X, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { useAccount } from "@starknet-react/core";
+import { executeCalls } from "@/lib/tx/executeCalls";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
+
+/** Convert a BigInt-ish value to Starknet u256 calldata [low, high] */
+function toU256Calldata(value: bigint): [string, string] {
+  const U128_MOD = BigInt(1) << BigInt(128);
+  return [(value % U128_MOD).toString(), (value / U128_MOD).toString()];
+}
 
 interface Session {
   session_id: string;
@@ -23,12 +31,16 @@ interface Session {
 interface SessionKeyManagerProps {
   userAddress: string;
   onSessionGranted?: (sessionId: string) => void;
+  /** Lifts active session info to parent for header chip display */
+  onSessionInfo?: (info: { sessionId: string | null; expiresAt: string | null }) => void;
 }
 
-export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyManagerProps) {
+export function SessionKeyManager({ userAddress, onSessionGranted, onSessionInfo }: SessionKeyManagerProps) {
+  const { account } = useAccount();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [granting, setGranting] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
   const [showGrantModal, setShowGrantModal] = useState(false);
   
   // Grant form state
@@ -49,7 +61,14 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/list/${userAddress}`);
       if (response.ok) {
         const data = await response.json();
-        setSessions(data.sessions || []);
+        const list: Session[] = data.sessions || [];
+        setSessions(list);
+        // Lift active session info to parent
+        const active = list.find(s => s.is_active && !s.is_expired);
+        onSessionInfo?.({
+          sessionId: active?.session_id ?? null,
+          expiresAt: active?.expires_at ?? null,
+        });
       }
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
@@ -59,10 +78,11 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   };
   
   const handleGrantSession = async () => {
-    if (!sessionKeyAddress) return;
+    if (!sessionKeyAddress || !account) return;
     
     setGranting(true);
     try {
+      // Step 1: Register session intent with backend → get calldata + contract_address
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/grant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,12 +97,33 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
       
       if (response.ok) {
         const data = await response.json();
-        // TODO: Call account.execute to actually grant session key on-chain
-        // This should trigger wallet signature
-        // await account.execute({ contractAddress: ..., entrypoint: "grant_session", calldata: ... })
-        // For now: simulate for demo (NOT FOR PRODUCTION)
-        await confirmGrant(data.session_id, "0x" + "0".repeat(64));
+        const contractAddress = data.contract_address as string;
+        const calldata = data.calldata;
+
+        // Step 2: Execute on-chain grant_session via wallet
+        // grant_session(session_key, max_position_u256, allowed_protocols, duration_seconds)
+        const [posLow, posHigh] = toU256Calldata(BigInt(calldata.max_position));
+        const result = await executeCalls({
+          account,
+          calls: [
+            {
+              contractAddress: contractAddress as `0x${string}`,
+              entrypoint: "grant_session",
+              calldata: [
+                calldata.session_key,       // session_key: ContractAddress
+                posLow,                     // max_position.low: u128
+                posHigh,                    // max_position.high: u128
+                String(calldata.allowed_protocols), // allowed_protocols: u8
+                String(calldata.duration_seconds),  // duration_seconds: u64
+              ],
+            },
+          ],
+        });
+
+        // Step 3: Confirm with backend using real tx_hash
+        await confirmGrant(data.session_id, result.transaction_hash);
         setShowGrantModal(false);
+        await fetchSessions(); // Refresh session list so new key appears immediately
         onSessionGranted?.(data.session_id);
       }
     } catch (error) {
@@ -106,7 +147,11 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   };
   
   const handleRevokeSession = async (sessionId: string) => {
+    if (!account) return;
+    
+    setRevoking(sessionId);
     try {
+      // Step 1: Register revoke intent with backend → get calldata + contract_address
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/revoke`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,18 +162,39 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
       });
       
       if (response.ok) {
-        // TODO: Call account.execute to revoke session key on-chain
-        // This should trigger wallet signature
-        // For now: simulate for demo (NOT FOR PRODUCTION)
+        const data = await response.json();
+        const contractAddress = data.contract_address as string;
+
+        // Step 2: Execute on-chain revoke_session via wallet
+        // revoke_session(session_id: felt252)
+        // Truncate to felt252 (max 252 bits = 63 hex chars)
+        const sessionIdFelt = sessionId.startsWith("0x")
+          ? "0x" + sessionId.slice(2, 65)
+          : sessionId;
+
+        const result = await executeCalls({
+          account,
+          calls: [
+            {
+              contractAddress: contractAddress as `0x${string}`,
+              entrypoint: "revoke_session",
+              calldata: [sessionIdFelt],
+            },
+          ],
+        });
+
+        // Step 3: Confirm revocation with backend using real tx_hash
         await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/revoke/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: sessionId, tx_hash: "0x" + "0".repeat(64) })
+          body: JSON.stringify({ session_id: sessionId, tx_hash: result.transaction_hash })
         });
         await fetchSessions();
       }
     } catch (error) {
       console.error("Failed to revoke session:", error);
+    } finally {
+      setRevoking(null);
     }
   };
   
@@ -155,6 +221,8 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   };
   
   const activeSessions = sessions.filter(s => s.is_active && !s.is_expired);
+  const hasActiveSession = activeSessions.length > 0;
+  const activeSession = activeSessions[0] ?? null;
   
   return (
     <div className="glass rounded-2xl border border-zinc-800 p-6">
@@ -179,6 +247,45 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
           Grant Session
         </button>
       </div>
+
+      {hasActiveSession && activeSession && (
+        <div className="rounded-lg border border-emerald-700/30 bg-emerald-950/10 px-3 py-2 text-xs flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-emerald-400/80">
+            <Key className="w-3.5 h-3.5" />
+            <span>Session active — agent can execute within your constraints</span>
+          </div>
+          <span className="text-zinc-500">
+            Expires: {activeSession.expires_at ? new Date(activeSession.expires_at).toLocaleString() : "—"}
+          </span>
+        </div>
+      )}
+
+      {!hasActiveSession && !loading && (
+        <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/20 p-4 space-y-3 mb-4">
+          <h4 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+            <Key className="w-4 h-4 text-cyan-400" />
+            What you&apos;re granting
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="rounded-lg bg-zinc-900/50 border border-zinc-700 p-3">
+              <p className="text-zinc-400 mb-1 font-medium">Scope</p>
+              <p className="text-zinc-300">The agent can execute rebalances and yield actions within your vault — it cannot withdraw to external addresses or change your risk profile.</p>
+            </div>
+            <div className="rounded-lg bg-zinc-900/50 border border-zinc-700 p-3">
+              <p className="text-zinc-400 mb-1 font-medium">Duration</p>
+              <p className="text-zinc-300">Session keys expire after the duration you set (default: 24 hours). You can revoke at any time from this panel.</p>
+            </div>
+            <div className="rounded-lg bg-zinc-900/50 border border-zinc-700 p-3">
+              <p className="text-zinc-400 mb-1 font-medium">Constraints</p>
+              <p className="text-zinc-300">Max position size, risk profile, and allowed adapters are enforced on-chain. Every action requires a zkML proof that satisfies these bounds.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+            <Shield className="w-3 h-3 flex-shrink-0" />
+            <span>Session keys use Starknet&apos;s native account abstraction — no separate approval transaction needed.</span>
+          </div>
+        </div>
+      )}
       
       {loading ? (
         <div className="flex items-center justify-center py-8">
@@ -230,7 +337,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
                   </div>
                   
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {session.allowed_protocols.map((protocol) => (
+                    {(session.allowed_protocols ?? []).map((protocol) => (
                       <span
                         key={protocol}
                         className="px-2 py-0.5 bg-zinc-700/50 rounded text-xs text-zinc-300"
@@ -241,17 +348,22 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
                   </div>
                   
                   <div className="text-xs text-zinc-500">
-                    Max position: {session.max_position.toLocaleString()} • Duration: {session.duration_hours}h
+                    Max position: {(session.max_position ?? 0).toLocaleString()} • Duration: {session.duration_hours ?? 0}h
                   </div>
                 </div>
                 
                 {session.is_active && !session.is_expired && (
                   <button
                     onClick={() => handleRevokeSession(session.session_id)}
-                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                    disabled={revoking === session.session_id}
+                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400 disabled:opacity-50"
                     title="Revoke session"
                   >
-                    <X className="w-4 h-4" />
+                    {revoking === session.session_id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
                   </button>
                 )}
               </div>
@@ -299,7 +411,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">Allowed Protocols</label>
                 <div className="flex gap-2">
-                  {["pools", "ekubo", "jediswap"].map((protocol) => (
+                  {["pools", "ekubo", "jediswap", "lending"].map((protocol) => (
                     <button
                       key={protocol}
                       onClick={() => toggleProtocol(protocol)}
@@ -339,7 +451,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
               
               <button
                 onClick={handleGrantSession}
-                disabled={granting || !sessionKeyAddress || allowedProtocols.length === 0}
+                disabled={granting || !sessionKeyAddress || allowedProtocols.length === 0 || !account}
                 className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {granting ? (

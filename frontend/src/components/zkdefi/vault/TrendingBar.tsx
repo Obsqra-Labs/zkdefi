@@ -23,6 +23,14 @@ interface TrendingData {
   avgApy: number;
 }
 
+const DEFAULT_TRENDING: TrendingData = {
+  strkEth24h: 0,
+  topPool: { name: "Unknown", apy: 0 },
+  vaultTvl: 0,
+  activeDepositors: 0,
+  avgApy: 0,
+};
+
 function formatLargeNumber(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
@@ -30,7 +38,15 @@ function formatLargeNumber(num: number): string {
 }
 
 export function TrendingBar({ isDemo }: TrendingBarProps) {
-  const [data, setData] = useState<TrendingData | null>(isDemo ? DEMO_TRENDING : null);
+  const [data, setData] = useState<TrendingData>(
+    isDemo
+      ? {
+          ...DEFAULT_TRENDING,
+          ...DEMO_TRENDING,
+          topPool: DEMO_TRENDING.topPool ?? DEFAULT_TRENDING.topPool,
+        }
+      : DEFAULT_TRENDING
+  );
   const [loading, setLoading] = useState(!isDemo);
 
   useEffect(() => {
@@ -66,8 +82,17 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
           }
         }
 
-        if (!dead && Object.keys(trending).length > 0) {
-          setData(trending as TrendingData);
+        if (!dead) {
+          if (Object.keys(trending).length > 0) {
+            setData((prev) => {
+              const base = prev ?? DEFAULT_TRENDING;
+              return {
+                ...base,
+                ...trending,
+                topPool: trending.topPool ?? base.topPool ?? DEFAULT_TRENDING.topPool,
+              };
+            });
+          }
           setLoading(false);
         }
       } catch {
@@ -83,7 +108,7 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
     };
   }, [isDemo]);
 
-  if (loading && !data) {
+  if (loading) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-2">
         <div className="flex gap-4 overflow-x-auto">
@@ -97,8 +122,6 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
       </div>
     );
   }
-
-  if (!data) return null;
 
   const changeColor = data.strkEth24h >= 0 ? "text-emerald-400" : "text-red-400";
   const ChangeIcon = data.strkEth24h >= 0 ? TrendingUp : TrendingDown;

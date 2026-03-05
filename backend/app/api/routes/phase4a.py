@@ -31,7 +31,7 @@ PROOF_GATED_LP_AGENT = os.getenv(
 )
 CONFIDENTIAL_TRANSFER = os.getenv(
     "CONFIDENTIAL_TRANSFER_ADDRESS",
-    "0x0100e1adbb92bb61bf3338a1da17a1bc31022321df2370f4f24a9120fb0e28b3"
+    "0x07fdc7c21ab074e7e1afe57edfcb818be183ab49f4bf31f9bf86dd052afefaa4"
 )
 GARAGA_VERIFIER = os.getenv(
     "GARAGA_VERIFIER_ADDRESS",
@@ -125,7 +125,7 @@ async def get_available_functions():
             "create_lp_position_with_proofs ❌",
         ],
         "docs": "https://github.com/obsqra/zkdefi/tree/main/contracts",
-        "starkscan": f"https://sepolia.starkscan.io/contract/{PROOF_GATED_LP_AGENT}",
+        "starkscan": f"https://sepolia.starkscan.co/contract/{PROOF_GATED_LP_AGENT}",
     }
 
 
@@ -145,7 +145,7 @@ async def get_contracts():
                     "Integrity fact registry checks",
                     "Multi-position management",
                 ],
-                "starkscan": f"https://sepolia.starkscan.io/contract/{PROOF_GATED_LP_AGENT}",
+                "starkscan": f"https://sepolia.starkscan.co/contract/{PROOF_GATED_LP_AGENT}",
             },
             {
                 "id": "confidential_transfer",
@@ -157,17 +157,17 @@ async def get_contracts():
                     "Selective reveal verification",
                     "Full composability",
                 ],
-                "starkscan": f"https://sepolia.starkscan.io/contract/{CONFIDENTIAL_TRANSFER}",
+                "starkscan": f"https://sepolia.starkscan.co/contract/{CONFIDENTIAL_TRANSFER}",
             },
         ],
         "dependencies": {
             "garaga_verifier": {
                 "address": GARAGA_VERIFIER,
-                "starkscan": f"https://sepolia.starkscan.io/contract/{GARAGA_VERIFIER}",
+                "starkscan": f"https://sepolia.starkscan.co/contract/{GARAGA_VERIFIER}",
             },
             "integrity_registry": {
                 "address": INTEGRITY_REGISTRY,
-                "starkscan": f"https://sepolia.starkscan.io/contract/{INTEGRITY_REGISTRY}",
+                "starkscan": f"https://sepolia.starkscan.co/contract/{INTEGRITY_REGISTRY}",
             },
         },
     }
@@ -211,7 +211,7 @@ async def deposit_with_proof(request: CreateLPPositionRequest):
                 "registry": INTEGRITY_REGISTRY,
                 "docs": "https://starkscan.co/contract/0x012ebbddae869fbcaee91ecaa936649cc0c75756583ae4ef6521742f963562b3"
             },
-            "starkscan": f"https://sepolia.starkscan.io/contract/{PROOF_GATED_LP_AGENT}",
+            "starkscan": f"https://sepolia.starkscan.co/contract/{PROOF_GATED_LP_AGENT}",
         }
     except Exception as e:
         logger.error(f"Error preparing deposit: {e}")
@@ -244,7 +244,7 @@ async def create_confidential_transfer(request: ConfidentialTransferRequest):
                 "commitment_scheme": "Pedersen",
                 "amount_visibility": "hidden" if request.amount_hidden else "visible",
             },
-            "starkscan": f"https://sepolia.starkscan.io/contract/{CONFIDENTIAL_TRANSFER}",
+            "starkscan": f"https://sepolia.starkscan.co/contract/{CONFIDENTIAL_TRANSFER}",
         }
     except Exception as e:
         logger.error(f"Error creating confidential transfer: {e}")

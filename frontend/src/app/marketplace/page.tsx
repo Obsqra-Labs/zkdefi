@@ -6,21 +6,12 @@ import { Brain, Boxes, Sparkles, Shield, Zap, ArrowRight, ExternalLink } from "l
 import { ModelComposer } from "@/components/zkdefi/ModelComposer";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
-
-interface Model {
-  id: string;
-  name: string;
-  description?: string;
-  type: string;
-  timeout: number;
-}
+import { listModels } from "@/lib/api/agents";
 
 export default function MarketplacePage() {
   const { address, isConnected } = useAccount();
   const [mounted, setMounted] = useState(false);
-  const [models, setModels] = useState<Model[]>([]);
+  const [models, setModels] = useState<Array<{ id: string; name: string; description?: string; type: string; timeout: number }>>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<"browse" | "compose" | "agents">("browse");
 
@@ -31,11 +22,8 @@ export default function MarketplacePage() {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/models/list`);
-      if (res.ok) {
-        const data = await res.json();
-        setModels(data.models || []);
-      }
+      const data = await listModels();
+      setModels(data.models || []);
     } catch (e) {
       console.error("Failed to fetch models:", e);
     }

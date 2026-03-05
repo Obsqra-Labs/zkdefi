@@ -1,24 +1,29 @@
-# zkde.fi — Verifiable AI for DeFi
+# zkde.fi — Verifiable AI Infrastructure for DeFi
 
-## A Technical Primer on Zero-Knowledge Machine Learning, LLM Agents, and On-Chain Proof Verification
+## A Technical Primer on Provable AI Agents, Zero-Knowledge Machine Learning, and On-Chain Proof Verification
+
+> *Built on [Obsqra](https://obsqra.fi) — infrastructure for verifiable AI agents whose decisions are backed by cryptographic proofs of the computations that produced them.*
 
 ---
 
 ## Table of Contents
 
 1. [The Core Concept](#1-the-core-concept)
-2. [Why Zero-Knowledge Proofs for ML?](#2-why-zero-knowledge-proofs-for-ml)
-3. [System Architecture Overview](#3-system-architecture-overview)
-4. [The ML Models — What Gets Proven](#4-the-ml-models--what-gets-proven)
-5. [From PyTorch to ZK Circuit — The EZKL Pipeline](#5-from-pytorch-to-zk-circuit--the-ezkl-pipeline)
-6. [Cairo Contracts — On-Chain Verification](#6-cairo-contracts--on-chain-verification)
-7. [Onyx and the LLM Layer](#7-onyx-and-the-llm-layer)
-8. [How It All Connects — The Full Pipeline](#8-how-it-all-connects--the-full-pipeline)
-9. [The Three Circuits in Detail](#9-the-three-circuits-in-detail)
-10. [The Proof Registry — Tracking Everything](#10-the-proof-registry--tracking-everything)
-11. [Security Model](#11-security-model)
-12. [Current Limitations and How We Can Improve](#12-current-limitations-and-how-we-can-improve)
-13. [Glossary](#13-glossary)
+2. [Why This Matters](#2-why-this-matters)
+3. [Why Zero-Knowledge Proofs for ML?](#3-why-zero-knowledge-proofs-for-ml)
+4. [System Architecture Overview](#4-system-architecture-overview)
+5. [The ML Models — What Gets Proven](#5-the-ml-models--what-gets-proven)
+6. [From PyTorch to ZK Circuit — The EZKL Pipeline](#6-from-pytorch-to-zk-circuit--the-ezkl-pipeline)
+7. [Cairo Contracts — On-Chain Verification](#7-cairo-contracts--on-chain-verification)
+8. [Onyx and the LLM Layer](#8-onyx-and-the-llm-layer)
+9. [Agent Trust Architecture — Guardrails and Constraints](#9-agent-trust-architecture--guardrails-and-constraints)
+10. [How It All Connects — The Full Pipeline](#10-how-it-all-connects--the-full-pipeline)
+11. [The Three Circuits in Detail](#11-the-three-circuits-in-detail)
+12. [The Proof Registry — Verifiability Middleware](#12-the-proof-registry--verifiability-middleware)
+13. [MEV Resistance — Commit-Reveal Execution](#13-mev-resistance--commit-reveal-execution)
+14. [Security Model](#14-security-model)
+15. [Current Limitations and How We Can Improve](#15-current-limitations-and-how-we-can-improve)
+16. [Glossary](#16-glossary)
 
 ---
 
@@ -26,13 +31,85 @@
 
 Traditional DeFi protocols make decisions using code that runs on a server somewhere. You deposit funds, and an algorithm decides where to place your liquidity, what credit score to assign you, or whether a pool is safe. But here's the problem: **you have no way to verify that the algorithm actually ran, or that it ran on your real data, without trusting the operator.**
 
-zkde.fi solves this by using **zero-knowledge machine learning (ZKML)**. Every time an ML model makes a decision that affects your funds — "this user's credit grade is AA," "this pool's yield is growing," "this pool has no anomalies" — the system generates a **cryptographic proof** that the model ran correctly on the exact inputs claimed. That proof can be:
+zkde.fi solves this by building **provable AI agents** — autonomous systems whose critical decisions are backed by cryptographic proofs of the computations that produced them. The architecture is:
+
+```
+AI Agent (LLM orchestration)
+       │
+       ▼
+Provable Skill Modules (EZKL ML circuits)
+       │
+       ▼
+Proof Registry (ERC-8004 on-chain catalog)
+       │
+       ▼
+Smart Contracts (verify proofs before allowing DeFi operations)
+```
+
+Every time an ML model makes a decision that affects your funds — "this user's credit grade is AA," "this pool's yield is growing," "this pool has no anomalies" — the system generates a **cryptographic proof** that the model ran correctly on the exact inputs claimed. That proof can be:
 
 - **Verified locally** by anyone, instantly
 - **Submitted on-chain** to a Starknet smart contract
-- **Checked by other smart contracts** before they allow DeFi operations to proceed
+- **Checked by other smart contracts** before they allow DeFi operations to proceed (e.g., you cannot borrow without a valid credit proof attestation)
+- **Accumulated into agent reputation** — a verifiable track record of correct computation
 
-The result: AI-powered DeFi where you don't need to trust the operator. The math proves it.
+The result is not just "AI-powered DeFi." It's **verifiable AI-driven capital allocation infrastructure** — the first system where AI agents build cryptographic evidence for every decision they make.
+
+---
+
+## 2. Why This Matters
+
+Traditional DeFi automation relies on opaque off-chain bots. A vault strategy bot might claim to run sophisticated risk analysis, but users have no way to verify that claim. The bot could be running a coin flip for all they know.
+
+zkde.fi introduces a fundamentally different trust model:
+
+| Traditional DeFi Bot | zkde.fi Provable Agent |
+|---------------------|----------------------|
+| "Trust me, I ran the analysis" | "Here's a cryptographic proof I ran the analysis" |
+| Strategy is a black box | Every ML inference produces a verifiable proof |
+| No audit trail | On-chain proof registry with full history |
+| Operator can lie about inputs | Inputs are public in the proof's instances |
+| No reputation system | Agent reputation built from verified proof count |
+
+This enables:
+
+- **Provable risk checks** — credit assessments backed by ZK proofs, not just API responses
+- **Provable pool analysis** — yield forecasts and anomaly scans with cryptographic receipts
+- **Auditable AI agents** — every decision an agent makes is traceable to a specific proof
+- **Proof-gated DeFi operations** — smart contracts that refuse to execute without valid proof attestations
+- **Agent reputation systems** — on-chain track records that can't be fabricated
+
+### Obsqra Labs — The Framework Layer
+
+zkde.fi is the first application built on the **Obsqra** framework for verifiable AI agents.
+
+```
+┌───────────────────────────────┐
+│        Obsqra Labs            │
+│  Verifiable AI Infrastructure │
+└───────────────┬───────────────┘
+                │
+      Proof Infrastructure Layer
+        ├─ EZKL model circuits
+        ├─ Proof registry (ERC-8004)
+        ├─ Verification contracts (Garaga)
+        └─ Agent identity system
+                │
+          Agent Runtime
+        ├─ LLM orchestration
+        ├─ Skill execution
+        ├─ Policy engine + constraint gates
+        ├─ Proof generation + recording
+        └─ Commit-reveal execution
+                │
+         Applications
+        ├─ zkde.fi (DeFi capital allocation)
+        ├─ Risk oracles
+        ├─ Trading agents
+        └─ Governance advisors
+```
+
+The separation is deliberate: **Obsqra** is the infrastructure for building any verifiable AI agent. **zkde.fi** is the flagship product — an AI-driven capital allocator for DeFi whose risk analysis and strategy signals are provably computed.
 
 ### Why This Matters
 
@@ -48,7 +125,7 @@ The broader implication: this is infrastructure for **computation oracles** — 
 
 ---
 
-## 2. Why Zero-Knowledge Proofs for ML?
+## 3. Why Zero-Knowledge Proofs for ML?
 
 ### The Problem with "Trust Me" AI
 
@@ -75,7 +152,7 @@ More specifically, we use a **KZG polynomial commitment scheme** (via EZKL) that
 
 ---
 
-## 3. System Architecture Overview
+## 4. System Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -128,11 +205,11 @@ The system has four layers:
 
 ---
 
-## 4. The ML Models — What Gets Proven
+## 5. The ML Models — What Gets Proven
 
-We have three production ML models. Each is a **Multi-Layer Perceptron (MLP)** — a type of neural network made of only `Linear` and `ReLU` layers. This constraint is critical because EZKL can only generate ZK proofs for operations it knows how to arithmetize (more on this in Section 5).
+We have three production ML models. Each is a **Multi-Layer Perceptron (MLP)** — a type of neural network made of only `Linear` and `ReLU` layers. This constraint is critical because EZKL can only generate ZK proofs for operations it knows how to arithmetize (more on this in Section 6).
 
-### 4.1 Creditworthiness Model
+### 5.1 Creditworthiness Model
 
 **Purpose**: Assigns a credit grade to a wallet address based on its on-chain history.
 
@@ -148,7 +225,7 @@ We have three production ML models. Each is a **Multi-Layer Perceptron (MLP)** �
 
 **How it's used**: When a user requests a credit assessment (`/api/v1/zkdefi/risk_profile/v2/{address}`), the model runs their on-chain features through the MLP, produces a grade, and generates an EZKL proof that the grade was computed correctly. That proof hash is returned to the frontend and stored in the proof registry.
 
-### 4.2 Yield Forecast Model
+### 5.2 Yield Forecast Model
 
 **Purpose**: Predicts the yield trajectory of a DeFi liquidity pool.
 
@@ -164,7 +241,7 @@ We have three production ML models. Each is a **Multi-Layer Perceptron (MLP)** �
 
 **How it's used**: Before the system allocates liquidity to a pool, it runs the yield forecast. The proof guarantees the system actually analyzed the pool's metrics and didn't just pick a pool arbitrarily.
 
-### 4.3 Anomaly Detector Model
+### 5.3 Anomaly Detector Model
 
 **Purpose**: Classifies whether a DeFi pool is safe, suspicious, or dangerous.
 
@@ -187,16 +264,26 @@ EZKL needs to convert every operation in a neural network into arithmetic constr
 Operations common in larger models — attention mechanisms, layer normalization, softmax, tree ensembles — are either unsupported or produce circuits so large that proving takes minutes or hours. By constraining ourselves to `Linear + ReLU` only, we achieve:
 
 - Proof generation in < 2 seconds
-- Proof size of exactly 3,072 bytes
+- Proof size of ~3 KB
 - Circuit size of 2^15 (32,768) rows — manageable for real-time operation
+
+### 5.4 Training Data Status
+
+All three models are currently trained on **synthetic data** — 200 samples per model, generated with `np.random.seed(42)` for reproducibility. Labels are assigned by heuristic scoring rules, not ground truth classifications.
+
+This is intentional for the current phase. The purpose of the synthetic models is to **validate the ZK proof pipeline end-to-end**: confirm that EZKL can compile, prove, and verify real neural network inference, and that proofs flow correctly through the registry to on-chain contracts.
+
+The models demonstrate the complete proof lifecycle. Real-world training on mainnet data (Starknet wallet histories, Ekubo pool metrics, historical exploit patterns) is the next milestone — see Section 15.
+
+> **Note on proof size**: All three models produce ~3 KB proofs. The proof size is determined by the KZG polynomial commitment parameters and SRS configuration, not model complexity. All models share the same proof system parameters (logrows=15). Circom/Groth16 proofs for other circuits may differ.
 
 ---
 
-## 5. From PyTorch to ZK Circuit — The EZKL Pipeline
+## 6. From PyTorch to ZK Circuit — The EZKL Pipeline
 
 This section explains the most complex part of the system: how a regular neural network becomes a zero-knowledge circuit.
 
-### 5.1 The Pipeline Steps
+### 6.1 The Pipeline Steps
 
 ```
  PyTorch Model (.pt)
@@ -227,7 +314,7 @@ This section explains the most complex part of the system: how a regular neural 
        └──► verify(proof)           ← Checks proof validity
 ```
 
-### 5.2 Step by Step
+### 6.2 Step by Step
 
 #### Step 1: ONNX Export
 
@@ -291,14 +378,14 @@ The proving key is large because it encodes the full circuit structure pre-compu
 1. The prover feeds input data through the compiled circuit to produce a **witness** — the complete execution trace (every intermediate value).
 2. The prover commits to the witness using KZG commitments.
 3. The prover generates opening proofs that the commitments satisfy the circuit constraints.
-4. The output is a **3,072-byte proof** containing the KZG commitments and opening evaluations.
+4. The output is a **~3 KB proof** containing the KZG commitments and opening evaluations.
 
 **Verification** (the cheap part, ~0.4s locally, milliseconds on-chain):
 1. The verifier checks that the commitments in the proof are consistent with the verification key.
 2. This involves a small number of elliptic curve pairing checks.
 3. No re-execution of the neural network is needed.
 
-### 5.3 Artifacts on Disk
+### 6.3 Artifacts on Disk
 
 For each model, the EZKL pipeline produces these files:
 
@@ -317,13 +404,13 @@ backend/app/data/ezkl_models/<model_name>/
 
 ---
 
-## 6. Cairo Contracts — On-Chain Verification
+## 7. Cairo Contracts — On-Chain Verification
 
-### 6.1 What is Cairo?
+### 7.1 What is Cairo?
 
 Cairo is the programming language for Starknet smart contracts. Unlike Solidity (Ethereum), Cairo compiles to a provable VM — every computation on Starknet is itself proven with a STARK proof. This makes Starknet a natural home for proof verification because the verification computation is itself verified by the L1.
 
-### 6.2 The ZkmlVerifier Contract
+### 7.2 The ZkmlVerifier Contract
 
 The `ZkmlVerifier` is the on-chain entry point for verifying ZKML proofs. It delegates the heavy cryptographic verification to a **Garaga verifier** — a precompiled contract optimized for BN254 elliptic curve pairing operations (the curve used by our KZG proofs).
 
@@ -367,7 +454,7 @@ Each function:
 2. Stores the result in a `ZkmlProofRecord` (proof type, user address, validity, timestamp)
 3. Emits an event for off-chain indexing
 
-### 6.3 The ValidationProofRegistry Contract
+### 7.3 The ValidationProofRegistry Contract
 
 The `ValidationProofRegistry` is a **catalog of all verified proofs**, aligned with the ERC-8004 standard for Validation Proofs. It enables:
 
@@ -390,7 +477,7 @@ struct ProofRecord {
 }
 ```
 
-### 6.4 Other On-Chain Contracts
+### 7.4 Other On-Chain Contracts
 
 | Contract | Address (Sepolia) | Purpose |
 |----------|-------------------|---------|
@@ -401,13 +488,13 @@ struct ProofRecord {
 
 ---
 
-## 7. Onyx and the LLM Layer
+## 8. Onyx and the LLM Layer
 
-### 7.1 What is Onyx?
+### 8.1 What is Onyx?
 
 Onyx is the name we give to our **LLM provider routing system**. It's not a model — it's a registry that manages which Large Language Model (LLM) the system uses for "thinking" tasks. Currently, Onyx routes to **OpenAI's GPT-4o-mini** as the default backend.
 
-### 7.2 Why Do We Need an LLM at All?
+### 8.2 Why Do We Need an LLM at All?
 
 The ML models (CreditMLP, YieldForecastMLP, AnomalyDetectorMLP) are specialized classifiers — they answer specific numerical questions. But DeFi agents need to make **strategic decisions** that combine multiple signals:
 
@@ -417,7 +504,7 @@ The ML models (CreditMLP, YieldForecastMLP, AnomalyDetectorMLP) are specialized 
 
 These require **reasoning**, not just classification. That's where the LLM comes in.
 
-### 7.3 The LLM Provider Registry
+### 8.3 The LLM Provider Registry
 
 The system supports multiple LLM providers with automatic failover:
 
@@ -432,7 +519,7 @@ Priority Order:
 
 **Key principle**: The system **never fails** because the LLM is down. If all AI providers are unavailable, the deterministic fallback uses rule-based logic (e.g., equal-weight allocation, score-based credit grades) to keep the system running. This decision is transparently reported to the user via `llm_provider_used` and `llm_fallback_reason`.
 
-### 7.4 Where the LLM is Used
+### 8.4 Where the LLM is Used
 
 | Use Case | What the LLM Does | What Gets Proven |
 |----------|--------------------|------------------|
@@ -443,7 +530,7 @@ Priority Order:
 
 **Important**: The LLM itself is **not** proven with ZK. It's too large (billions of parameters) and uses operations (attention, layer norm, softmax) that can't be efficiently arithmetized. Instead, the LLM is an **orchestrator** that decides which ZK-proven operations to run. The proofs cover the critical decisions (credit grade, pool safety, yield forecast), and the LLM provides the glue logic and natural language.
 
-### 7.5 Identity Binding
+### 8.5 Identity Binding
 
 Each AI agent in the system has an **identity-bound LLM configuration**:
 
@@ -458,7 +545,93 @@ When an agent runs, only its bound LLM provider can be used for reasoning, and o
 
 ---
 
-## 8. How It All Connects — The Full Pipeline
+## 9. Agent Trust Architecture — Guardrails and Constraints
+
+The LLM is powerful but untrusted. It can hallucinate, be prompt-injected, or simply make poor decisions. The system addresses this with **four layers of constraint enforcement** that bound what agents can actually do — regardless of what the LLM suggests.
+
+### 9.1 Policy Engine
+
+The policy engine operates in two modes:
+
+| Mode | Behavior |
+|------|----------|
+| **Gate** | Hard block — risk score AND anomaly check must pass before any rebalance is allowed. Pool stress check (volatility > 500 bps) blocks execution unconditionally. |
+| **Signal** | Advisory — risk and anomaly results are logged and surfaced to the user, but execution isn't blocked. Used for monitoring without intervention. |
+
+In gate mode, proof calldata is cryptographically bound to the oracle snapshot hash — the system can prove that the risk assessment was based on a specific market state, not stale data.
+
+### 9.2 Constraint Gate
+
+Before any capital moves, six checks must pass:
+
+1. **Identity verification** — user must have completed onboarding (no bypass in production)
+2. **Session expiry** — sessions have a configurable `session_duration` limit
+3. **Profile escalation block** — a user onboarded as `"balanced"` cannot request `"aggressive"` operations without re-onboarding
+4. **Amount cap** — hard `max_position_usd` limit per operation
+5. **ZKML risk score check** — the creditworthiness model must have produced a sufficiently high score for the requested operation
+6. **Vault policy bounds** — the operation must fall within the vault's configured risk parameters
+
+### 9.3 Deterministic Fallback as a Provable Guardrail
+
+The deterministic fallback model is not just a backup for when the LLM is offline. It's a **conservative safety layer** that runs in parallel with more permissive thresholds:
+
+| Parameter | ZK Circuit Threshold | Deterministic Fallback |
+|-----------|---------------------|----------------------|
+| Max risk score | 30 | **25** (stricter) |
+| Max anomaly score | 50 | **40** (stricter) |
+| Max action value | — | **20 ETH** (hard cap) |
+
+Three possible outcomes: `execute` (proceed), `reject` (block), `defer_to_human` (require manual approval).
+
+The key insight: **even if the LLM is compromised or hallucinating, the deterministic fallback must agree before funds move.** And because the fallback model is a simple MLP exportable to ONNX, it is itself provable via EZKL — the guardrail generates its own ZK proof.
+
+### 9.4 Orchestrator-Level Controls
+
+| Control | Enforcement |
+|---------|------------|
+| **Proof TTL** | Proofs older than 300 seconds (5 minutes) are rejected as stale |
+| **Skill binding** | Agent can only execute skills listed in its `bound_skills` set; all others are blocked |
+| **LLM binding** | Each agent is locked to a specific LLM provider via `bind_agent()`; silent provider swaps are impossible |
+
+### 9.5 Trust Summary
+
+```
+LLM says: "Rebalance $50K into pool X"
+                    │
+  ┌─────────────────▼──────────────────┐
+  │         Constraint Gate            │
+  │  ✗ Amount exceeds max_position_usd │
+  │         → BLOCKED                  │
+  └────────────────────────────────────┘
+
+LLM says: "Run yield_analysis on pool Y, then rebalance $5K"
+                    │
+  ┌─────────────────▼──────────────────┐
+  │         Constraint Gate            │
+  │  ✓ Amount within bounds            │
+  │  ✓ User onboarded as balanced      │
+  │  ✓ Session not expired             │
+  └─────────────────┬──────────────────┘
+                    │
+  ┌─────────────────▼──────────────────┐
+  │         Policy Engine (Gate)       │
+  │  ✓ Risk score proof valid          │
+  │  ✓ Anomaly scan: safe             │
+  │  ✓ Pool volatility < 500 bps      │
+  └─────────────────┬──────────────────┘
+                    │
+  ┌─────────────────▼──────────────────┐
+  │     Deterministic Fallback         │
+  │  ✓ Risk ≤ 25                       │
+  │  ✓ Anomaly ≤ 40                    │
+  │  ✓ Value ≤ 20 ETH                  │
+  │  → EXECUTE (with ZK proof)         │
+  └────────────────────────────────────┘
+```
+
+---
+
+## 10. How It All Connects — The Full Pipeline
 
 Here is what happens when a user clicks "Check My Credit" on the frontend:
 
@@ -486,7 +659,7 @@ Here is what happens when a user clicks "Check My Credit" on the frontend:
        ├── prove(witness, proving_key, srs)
        │     Commits to the witness polynomials using KZG
        │     Generates opening proofs (pairing-based)
-       │     Output: 3,072-byte proof
+       │     Output: ~3 KB proof
        │
        ├── verify(proof, settings, verification_key, srs)
        │     Checks KZG commitments against verification key
@@ -551,9 +724,9 @@ The LLM is not directly in the credit check flow. But when the **Agent Orchestra
 
 ---
 
-## 9. The Three Circuits in Detail
+## 11. The Three Circuits in Detail
 
-### 9.1 Creditworthiness Circuit
+### 11.1 Creditworthiness Circuit
 
 **What it proves**: "I ran a neural network with 18 on-chain behavioral features as input and got a specific 5-class credit grade."
 
@@ -584,7 +757,7 @@ The LLM is not directly in the credit check flow. But when the **Agent Orchestra
 
 **Circuit stats**: 114 KB compiled, ~5,200 constraints, 32,768 rows
 
-### 9.2 Yield Forecast Circuit
+### 11.2 Yield Forecast Circuit
 
 **What it proves**: "I analyzed 12 pool performance metrics and predicted the yield trajectory."
 
@@ -609,7 +782,7 @@ The LLM is not directly in the credit check flow. But when the **Agent Orchestra
 
 **Circuit stats**: 36 KB compiled, ~2,800 constraints, 32,768 rows
 
-### 9.3 Anomaly Detector Circuit
+### 11.3 Anomaly Detector Circuit
 
 **What it proves**: "I scanned 8 risk signals for a pool and classified it as safe, warning, or critical."
 
@@ -632,11 +805,31 @@ The LLM is not directly in the credit check flow. But when the **Agent Orchestra
 
 ---
 
-## 10. The Proof Registry — AI Verifiability Middleware
+## 12. The Proof Registry — Verifiability Middleware
 
 The proof registry is not just a storage table. It is the architectural layer that turns AI agents into **accountable entities**. The registry enables a new pattern: any smart contract can query whether an AI agent's claim is backed by verified computation, before allowing that agent to act on-chain. This makes the registry the trust bridge between off-chain AI and on-chain execution.
 
-The registry enables:
+The critical example: in the lending pool contract, **you cannot borrow without a valid proof attestation**:
+
+```cairo
+// Inside _borrow_internal() — lending_pool.cairo
+let vpr = IValidationProofRegistryDispatcher {
+    contract_address: self.validation_registry.read(),
+};
+assert(vpr.has_proof(attestation_hash), 'no valid attestation');
+```
+
+The proof registry is a **prerequisite gate** for capital operations, not just a log.
+
+Three consumption interfaces:
+
+| Interface | Purpose | Used By |
+|-----------|---------|--------|
+| `has_proof(fact_hash)` | Boolean existence check | Lending pool borrow gate |
+| `is_proof_valid(fact_hash)` | Existence + validity check | Credit eligibility verifier |
+| `get_proof_by_hash(fact_hash)` | Full proof record retrieval | Audit, reputation scoring |
+
+The registry also enables:
 - **AI agents** to generate proofs and build verifiable track records
 - **Smart contracts** to query proofs before authorizing capital movement
 - **Users** to audit every decision their agent made, with cryptographic evidence
@@ -644,7 +837,7 @@ The registry enables:
 
 This pattern — where AI decisions flow through a proof pipeline before reaching execution — is essentially a **computation oracle**. Unlike data oracles that attest to raw facts, computation oracles prove interpretation: "this pool scored safe," "this allocation is near-optimal," "this risk level is within bounds."
 
-### 10.1 Local Registry (Backend)
+### 12.1 Local Registry (Backend)
 
 Every proof generated is stored in a local SQLite database with full metadata:
 
@@ -656,7 +849,7 @@ CREATE TABLE proofs (
     user_address     TEXT,             -- Starknet address
     proof_type       TEXT,             -- "ezkl_kzg"
     action_type      TEXT,             -- "credit_check" | "yield_estimate" | "anomaly_scan"
-    proof_size_bytes INTEGER,          -- Always 3,072
+    proof_size_bytes INTEGER,          -- ~3 KB (KZG proof)
     inference_output TEXT,             -- JSON array of probabilities
     verified_locally INTEGER,          -- 1 if verified before storing
     created_at       REAL,             -- Unix timestamp
@@ -666,7 +859,7 @@ CREATE TABLE proofs (
 );
 ```
 
-### 10.2 On-Chain Registry
+### 12.2 On-Chain Registry
 
 When a proof is submitted on-chain, it's recorded in the `ValidationProofRegistry` contract. This enables:
 
@@ -674,7 +867,7 @@ When a proof is submitted on-chain, it's recorded in the `ValidationProofRegistr
 - **Users** to verify their proofs exist on-chain via Voyager or any Starknet block explorer
 - **Agents** to build reputation based on how many valid proofs they've generated
 
-### 10.3 API Endpoints
+### 12.3 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -689,7 +882,77 @@ When a proof is submitted on-chain, it's recorded in the `ValidationProofRegistr
 
 ---
 
-## 11. Security Model
+## 13. MEV Resistance — Commit-Reveal Execution
+
+One insight that almost nobody building ZKML + agents has connected yet: **provable AI + commit-reveal vault execution is a new primitive for MEV-resistant AI capital allocation.**
+
+Traditional DeFi vaults broadcast their rebalance transactions openly. MEV bots see these pending transactions and sandwich them — buying before the vault's trade and selling after, extracting value from vault depositors. An AI agent that broadcasts its intent to rebalance is even more predictable than a timer-based strategy.
+
+zkde.fi solves this with three mechanisms:
+
+### 13.1 Vault Controller Commit-Reveal
+
+The vault controller uses a two-phase execution model:
+
+```
+Phase 1: COMMIT
+  Agent computes: proposal_hash = poseidon(salt, adapters, amounts)
+  Agent submits:  commit_proposal(proposal_hash)
+  Contract stores: hash + block number
+                   (nothing about the actual trade is revealed)
+
+Phase 2: EXECUTE (after cooldown)
+  Agent submits:  execute_proposal(adapters, amounts, salt)
+  Contract verifies: poseidon(salt, adapters, amounts) == stored hash
+  Contract enforces: current_block >= commit_block + cooldown
+  Contract executes: the actual capital movement
+```
+
+Between commit and execute, nobody knows what the agent intends to do. The proposal hash is opaque. MEV bots cannot sandwich what they cannot see.
+
+Additional protections:
+- **Cooldown enforcement** — prevents flash-commit-execute in the same block
+- **Circuit breaker per adapter** — if an adapter (DEX connector) behaves anomalously, it's automatically disabled
+
+### 13.2 Intent Commitment Contract
+
+For operations beyond vault rebalancing, a dedicated intent commitment contract provides replay-safe, fork-safe execution:
+
+| Property | Value |
+|----------|-------|
+| Validity window | 100 blocks (~200 seconds) |
+| Chain ID verification | Prevents cross-chain replay attacks |
+| Single-use semantics | Each commitment can only be consumed once |
+| Lifecycle | `submit_commitment` → (wait) → `use_commitment` |
+
+### 13.3 Timing Predictor with Pre-Commitment
+
+The timing predictor model (LSTM-based) predicts the optimal block window for rebalancing. It creates a **Poseidon pre-commitment** before the target block:
+
+```
+commitment = poseidon(target_block, action_type, user_address, nonce)
+```
+
+The commitment must be published on-chain **before** the target block arrives. This prevents the agent from front-running its own users — it cannot see the future block state and retroactively claim it predicted the optimal timing.
+
+### 13.4 Why This Combination Is Novel
+
+Most MEV protection focuses on transaction ordering (Flashbots, MEV-Share, encrypted mempools). zkde.fi's approach is different:
+
+1. **AI computes the optimal action** (yield forecast, anomaly check) → proof generated
+2. **Commitment published** (opaque hash, no information leakage)
+3. **Cooldown period** (time lock prevents same-block exploitation)
+4. **Execution with proof** (contract verifies both the commitment match AND the proof attestation)
+
+The result: an AI agent that is simultaneously:
+- **Intelligent** (LLM + ML models choose the best action)
+- **Verifiable** (every ML computation has a ZK proof)
+- **MEV-resistant** (commit-reveal prevents front-running)
+- **Bounded** (policy engine + constraint gate limit what actions are possible)
+
+---
+
+## 14. Security Model
 
 ### What is Guaranteed by the Proofs
 
@@ -712,20 +975,37 @@ When a proof is submitted on-chain, it's recorded in the `ValidationProofRegistr
 4. **The ONNX model is the one claimed** — verified by `model_hash` matching on-chain registry
 5. **Input data is authentic** — **this is the biggest unsolved problem in ZKML systems**. The current trust chain is: Starknet state → backend data fetch → ML inference → proof. The operator could theoretically feed fake inputs. The proof guarantees the model ran correctly *on whatever inputs were provided*, but does not independently attest that those inputs came from on-chain state. The planned fix is Starknet storage proofs (or Herodotus-style cross-chain proofs) that cryptographically bind input data to on-chain state before it enters the circuit.
 
+### Current Input Data Mitigations
+
+While full storage proof integration is still ahead, the system already has partial mitigations:
+
+| Mitigation | What It Does |
+|------------|-------------|
+| **Market snapshot hashing** | The mainnet oracle service creates a `MarketSnapshot` with a SHA-256 `snapshot_hash`. Proof calldata is bound to this hash — the proof is tied to a specific market state. |
+| **Direct DEX API fetching** | Input data comes directly from JediSwap and Ekubo mainnet APIs, not from a third-party oracle. No Chainlink/Pragma dependency. |
+| **Staleness threshold** | Market data older than 1 hour is rejected. The oracle service enforces `ORACLE_STALE_THRESHOLD_SEC`. |
+| **VWAP fallback chain** | Ekubo adapter fetches VWAP prices from HTTP API, with fallback to on-chain `Core.get_pool_price` via Starknet RPC. |
+
+The gap that remains: these mitigations reduce the attack surface but don't eliminate it. An operator controlling the backend could still substitute fake data before it reaches the ML model. Only cryptographic binding (storage proofs) closes this completely.
+
 ### LLM Orchestration Trust Model
 
-The LLM layer (GPT-4o-mini) chooses which skills to invoke and with what parameters. The architecture implicitly trusts the LLM to make reasonable decisions. This is acceptable for V1 because:
-- ZK circuits enforce hard bounds regardless of what the LLM chooses (risk threshold violations are blocked)
-- The deterministic fallback provides a safety net when the LLM is unavailable
-- The `llm_provider_hash` provides auditability of which model made each decision
+The LLM layer (GPT-4o-mini) chooses which skills to invoke and with what parameters. This is bounded by the four-layer trust architecture described in Section 9:
 
-For V2, the planned mitigations are: agent policy bounds (configurable guardrails per agent), deterministic pre-checks before LLM skill invocation, and reproducibility logging of LLM decisions for post-hoc audit.
+- **Policy engine** hard-blocks operations that fail risk or anomaly checks (gate mode)
+- **Constraint gate** enforces 6 deterministic checks (identity, session, escalation, amount cap, risk score, vault bounds)
+- **Deterministic fallback** must independently agree before funds move (with provably stricter thresholds)
+- **Orchestrator-level controls** enforce skill binding, LLM binding, and proof TTL
+
+The LLM is free to reason and recommend — but every recommendation passes through these layers before capital moves. The trust model is: **the LLM is untrusted, but the system around it is verified.**
+
+For reproducibility, the system logs `llm_provider_used` and `llm_provider_hash` with every decision, enabling post-hoc audit of which model made each choice.
 
 ---
 
-## 12. Current Limitations and How We Can Improve
+## 15. Current Limitations and How We Can Improve
 
-### 12.1 Current Limitations
+### 15.1 Current Limitations
 
 | Limitation | Impact | Root Cause |
 |-----------|--------|------------|
@@ -735,7 +1015,7 @@ For V2, the planned mitigations are: agent policy bounds (configurable guardrail
 | Training uses synthetic data | Model accuracy on real data untested | Mainnet data pipeline not yet built |
 | Input data authenticity not proven | Could theoretically feed fake inputs | No Starknet state proofs integrated yet |
 
-### 12.2 Improvement Roadmap
+### 15.2 Improvement Roadmap
 
 #### Near-Term (Next 3 Months)
 
@@ -775,13 +1055,32 @@ Submit proof verification results from Starknet to Ethereum L1 or other L2s, ena
 **10. Decentralized Proving Network**
 Move proving from a centralized server to a network of provers who compete to generate proofs, with economic incentives for correctness.
 
-### 12.3 What Would Make the Biggest Impact Today
+### 15.3 What Would Make the Biggest Impact Today
 
 If we could only do one thing, it would be **input attestation via storage proofs** (#2). The proofs currently guarantee the computation was correct, but not that the inputs were authentic. Closing this gap turns the system from "provably correct if inputs are honest" to "provably correct, period."
 
+### 15.4 The Bigger Picture: Computation Oracles
+
+The system already operates without traditional oracle networks (no Chainlink, no Pragma). Price data comes directly from DEX APIs and on-chain pool state. The ML models process this data and generate provable assessments.
+
+This points to a larger architectural shift:
+
+| Traditional Oracle | Computation Oracle (zkde.fi) |
+|-------------------|-----------------------------|
+| Reports raw data: "ETH price is $3,200" | Reports interpreted signal: "This pool's yield is growing" + proof |
+| Attests to facts | Proves computation over facts |
+| Trust the oracle operator | Verify the cryptographic proof |
+| One data point per query | Full ML inference with confidence distribution |
+| Cannot express nuance | Can express multi-class risk assessments |
+
+The traditional flow: **Oracle → price feed → contract**
+The zkde.fi flow: **DEX state → ML model → ZK proof → contract**
+
+This is strictly more powerful: instead of "the price is X," you get "the risk assessment is Y, and here's a proof that this computation was correct." Provable AI agents don't just replace oracle networks — they make oracles a subset of a broader capability.
+
 ---
 
-## 13. Glossary
+## 16. Glossary
 
 | Term | Definition |
 |------|-----------|
@@ -805,8 +1104,15 @@ If we could only do one thing, it would be **input attestation via storage proof
 | **Circuit** | The arithmetic representation of a computation as polynomial constraints — what the prover/verifier operate on |
 | **logrows** | Circuit size parameter: 2^logrows = number of rows in the constraint table (ours: 2^15 = 32,768) |
 | **input_scale** | Quantization parameter: floating-point values are multiplied by 2^scale and rounded to integers (ours: 2^13 = 8,192) |
+| **Provable AI Agent** | An autonomous system whose critical decisions are backed by cryptographic proofs of the computations that produced them |
+| **Computation Oracle** | A service that proves what data *means*, not just what the data *is* — ML inference with ZK proof, as opposed to traditional data feeds |
+| **Commit-Reveal** | A two-phase execution pattern where an opaque commitment is published first, and the actual operation is revealed later — prevents front-running |
+| **Policy Engine** | Backend service that gates agent actions based on configurable rules (risk thresholds, anomaly checks, pool stress tests) |
+| **Constraint Gate** | Pre-execution check layer enforcing identity, session, amount, and risk bounds before any capital movement |
+| **Obsqra** | The parent framework for verifiable AI agents; zkde.fi is the first application built on Obsqra infrastructure |
 
 ---
 
 *Last updated: March 2026*
 *Protocol: zkde.fi — Verifiable AI for DeFi on Starknet*
+*Built on Obsqra — infrastructure for verifiable AI agents*

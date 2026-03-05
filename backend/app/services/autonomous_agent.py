@@ -2,7 +2,9 @@
 Autonomous Agent Service
 
 Background service that monitors user positions and autonomously triggers
-rebalancing actions when conditions are met. All actions are gated by zkML proofs.
+rebalancing actions when conditions are met. All actions are gated by zkML proofs
+and constrained by the user's vault policy (risk budget, strategy permissions,
+execution policy).
 
 Trigger mechanisms:
 1. Timer-based: Periodic portfolio checks
@@ -12,7 +14,7 @@ Trigger mechanisms:
 import asyncio
 import logging
 from typing import Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from app.services.agent_rebalancer import get_rebalancer, RebalanceStatus
@@ -34,12 +36,14 @@ class MonitoringConfig:
     
     def __init__(
         self,
-        interval_seconds: int = 900,  # 15 minutes default
+        interval_seconds: int = 900,
         risk_threshold: int = 50,
-        min_rebalance_amount: int = 100000000000000000,  # 0.1 ETH in wei
+        min_rebalance_amount: int = 100000000000000000,
         max_actions_per_hour: int = 4,
         enable_oracle_triggers: bool = True,
         price_change_threshold_pct: float = 5.0,
+        strategy_type: str = "rebalance",
+        metadata: dict | None = None,
     ):
         self.interval_seconds = interval_seconds
         self.risk_threshold = risk_threshold
@@ -47,6 +51,8 @@ class MonitoringConfig:
         self.max_actions_per_hour = max_actions_per_hour
         self.enable_oracle_triggers = enable_oracle_triggers
         self.price_change_threshold_pct = price_change_threshold_pct
+        self.strategy_type = strategy_type
+        self.metadata = metadata or {}
 
 
 class AutonomousAgent:
@@ -61,10 +67,17 @@ class AutonomousAgent:
     """
     
     def __init__(self):
-        self._agents: dict[str, dict[str, Any]] = {}  # user_address -> agent state
-        self._tasks: dict[str, asyncio.Task] = {}  # user_address -> background task
+        from app.services.json_store import JsonStore
+        self._store = JsonStore("autonomous_agents")
+        self._agents: dict[str, dict[str, Any]] = self._store.all()  # restore from disk
+        self._tasks: dict[str, asyncio.Task] = {}  # runtime only (not persisted)
         self._rebalancer = get_rebalancer()
         self._oracle = MainnetOracle()
+
+    def _persist(self, user_address: str) -> None:
+        """Flush current agent state to disk."""
+        if user_address in self._agents:
+            self._store.set(user_address, self._agents[user_address])
     
     def get_agent_state(self, user_address: str) -> dict[str, Any]:
         """Get the state of an autonomous agent for a user."""
@@ -113,7 +126,7 @@ class AutonomousAgent:
                 "min_rebalance_amount": config.min_rebalance_amount,
                 "max_actions_per_hour": config.max_actions_per_hour,
             },
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "last_check": None,
             "checks_count": 0,
             "actions_taken": 0,
@@ -127,6 +140,7 @@ class AutonomousAgent:
             self._monitor_loop(user_address, session_id, config)
         )
         self._tasks[user_address] = task
+        self._persist(user_address)
         
         logger.info(f"Started autonomous agent for {user_address[:10]}...")
         
@@ -156,7 +170,8 @@ class AutonomousAgent:
         # Update state
         self._agents[user_address]["state"] = AgentState.STOPPED.value
         self._agents[user_address]["running"] = False
-        self._agents[user_address]["stopped_at"] = datetime.utcnow().isoformat()
+        self._agents[user_address]["stopped_at"] = datetime.now(timezone.utc).isoformat()
+        self._persist(user_address)
         
         logger.info(f"Stopped autonomous agent for {user_address[:10]}...")
         
@@ -172,6 +187,7 @@ class AutonomousAgent:
             return {"success": False, "error": "Agent not found"}
         
         self._agents[user_address]["state"] = AgentState.PAUSED.value
+        self._persist(user_address)
         
         return {
             "success": True,
@@ -185,6 +201,7 @@ class AutonomousAgent:
             return {"success": False, "error": "Agent not found"}
         
         self._agents[user_address]["state"] = AgentState.RUNNING.value
+        self._persist(user_address)
         
         return {
             "success": True,
@@ -222,7 +239,7 @@ class AutonomousAgent:
                 await self._perform_check(user_address, session_id, config)
                 
                 # Update last check time
-                self._agents[user_address]["last_check"] = datetime.utcnow().isoformat()
+                self._agents[user_address]["last_check"] = datetime.now(timezone.utc).isoformat()
                 self._agents[user_address]["checks_count"] += 1
                 
                 # Wait for next interval
@@ -235,7 +252,7 @@ class AutonomousAgent:
                 logger.error(f"Error in monitoring loop: {e}")
                 if user_address in self._agents:
                     self._agents[user_address]["errors"].append({
-                        "time": datetime.utcnow().isoformat(),
+                        "time": datetime.now(timezone.utc).isoformat(),
                         "error": str(e)
                     })
                     # Keep only last 10 errors
@@ -251,46 +268,137 @@ class AutonomousAgent:
         """
         Perform a single monitoring check.
         
-        1. Analyze portfolio
-        2. If thresholds breached, propose rebalance
-        3. Run zkML gates
-        4. If passed, execute
+        1. Load vault policy and check permissions
+        2. Fetch real positions from ekubo_lp_service
+        3. Analyze portfolio against current market
+        4. If thresholds breached, propose rebalance
+        5. Run zkML gates
+        6. If passed + policy allows, execute
         """
         logger.debug(f"Performing check for {user_address[:10]}...")
         
         try:
-            # 1. Analyze portfolio
+            # ── 0. Load and enforce vault policy ──────────────────────────
+            from app.services.vault_policy_service import get_vault_policy_service
+            policy_svc = get_vault_policy_service()
+            policy = policy_svc.get_policy(user_address, create_if_missing=False)
+
+            if policy:
+                exec_policy = policy.get("execution_policy", {})
+                strat_perms = policy.get("strategy_permissions", {})
+
+                # Respect execution mode
+                mode = exec_policy.get("mode", "assist")
+                if mode == "monitor":
+                    logger.debug("Policy mode=monitor → skip execution")
+                    return
+                if exec_policy.get("emergency_pause"):
+                    logger.info("Emergency pause active → skip execution")
+                    return
+
+                # Respect cooldown
+                cooldown_sec = exec_policy.get("cooldown_seconds", 300)
+                last_action = self._agents.get(user_address, {}).get("last_action")
+                if last_action:
+                    last_ts = last_action.get("timestamp")
+                    if last_ts:
+                        try:
+                            since = (datetime.now(timezone.utc) - datetime.fromisoformat(last_ts)).total_seconds()
+                            if since < cooldown_sec:
+                                logger.debug(f"Cooldown: {cooldown_sec - since:.0f}s remaining")
+                                return
+                        except Exception:
+                            pass
+
+                # Check if rebalance is permitted
+                if not strat_perms.get("enable_rebalance", True):
+                    logger.debug("strategy_permissions.enable_rebalance=False → skip")
+                    return
+
+                # Use policy risk threshold if available
+                risk_budget = policy.get("risk_budget", {})
+                max_drawdown = risk_budget.get("max_drawdown_bps", 1500)
+                config.risk_threshold = min(config.risk_threshold, int(max_drawdown / 30))
+
+            # ── DCA strategy branch ────────────────────────────────────────
+            if config.strategy_type == "dca":
+                from app.services.dca_service import execute_dca_step
+                dca_config = config.metadata.get("dca_config", {})
+                dca_state = self._agents.get(user_address, {}).get("dca_state", {})
+                result = await execute_dca_step(user_address, dca_config, dca_state)
+                if not result.get("skipped"):
+                    agent_state = self._agents.setdefault(user_address, {})
+                    agent_state["dca_state"] = dca_state
+                logger.info("DCA for %s: %s", user_address[:10], result)
+                return
+
+            # ── 1. Fetch real positions ───────────────────────────────────
+            from app.services.ekubo_lp_service import list_positions
+            positions_list = list_positions(user_address)
+
+            if not positions_list:
+                logger.debug(f"No positions for {user_address[:10]} → skip")
+                return
+
+            # Build positions dict: id → allocation estimate
+            total_value = sum(
+                float(p.get("amount0_wei", 0)) + float(p.get("amount1_wei", 0))
+                for p in positions_list
+            )
+            if total_value <= 0:
+                logger.debug("Position total value ≤ 0 → skip")
+                return
+
+            positions_map: dict[int, float] = {}
+            for i, pos in enumerate(positions_list):
+                val = float(pos.get("amount0_wei", 0)) + float(pos.get("amount1_wei", 0))
+                pct = (val / total_value) * 100 if total_value > 0 else 0
+                positions_map[i + 1] = round(pct, 1)
+
+            # ── 2. Analyze portfolio ──────────────────────────────────────
             analysis = await self._rebalancer.analyze_portfolio(
                 user_address=user_address,
-                positions={1: 50, 2: 30, 3: 20}  # Default positions for demo
+                positions=positions_map,
             )
             
-            # 2. Check if rebalancing is needed
+            # 3. Check if rebalancing is needed
             if not analysis.get("should_rebalance", False):
                 logger.debug(f"No rebalance needed for {user_address[:10]}")
                 return
             
             logger.info(f"Rebalance suggested for {user_address[:10]}: {analysis.get('suggestions', [])}")
             
-            # 3. Create proposal
+            # 4. Create proposal
             suggestions = analysis.get("suggestions", [])
             if not suggestions:
                 return
             
             suggestion = suggestions[0]  # Take first suggestion
-            
+
+            # ── Enforce max position size from policy ─────────────────────
+            if policy:
+                max_pos_pct = policy.get("risk_budget", {}).get("max_position_pct", 35)
+                amount = suggestion.get("amount", config.min_rebalance_amount)
+                if total_value > 0:
+                    pct_of_total = (amount / total_value) * 100
+                    if pct_of_total > max_pos_pct:
+                        amount = int(total_value * max_pos_pct / 100)
+                        logger.info(f"Clamped amount to {max_pos_pct}% of portfolio")
+            else:
+                amount = suggestion.get("amount", config.min_rebalance_amount)
+
             proposal = await self._rebalancer.propose_rebalance(
                 user_address=user_address,
                 from_protocol=suggestion.get("from_protocol", 1),
                 to_protocol=suggestion.get("to_protocol", 2),
-                amount=suggestion.get("amount", config.min_rebalance_amount),
+                amount=amount,
                 reason=f"Autonomous: {suggestion.get('reason', 'threshold breach')}"
             )
             
             proposal_id = proposal.proposal_id
             logger.info(f"Created proposal {proposal_id} for {user_address[:10]}")
             
-            # 4. Run zkML gates
+            # 5. Run zkML gates
             portfolio_features = analysis.get("portfolio_features", [0] * 8)
             zkml_result = await self._rebalancer.check_zkml_gates(
                 proposal_id=proposal_id,
@@ -302,8 +410,21 @@ class AutonomousAgent:
                 return
             
             logger.info(f"zkML gate passed for proposal {proposal_id}")
+
+            # ── Check execution mode before executing ─────────────────────
+            if policy:
+                mode = policy.get("execution_policy", {}).get("mode", "assist")
+                if mode == "assist":
+                    logger.info(f"Policy mode=assist → proposal {proposal_id} ready but not auto-executing")
+                    if user_address in self._agents:
+                        self._agents[user_address]["pending_proposal"] = {
+                            "proposal_id": proposal_id,
+                            "suggestion": suggestion,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                    return
             
-            # 5. Prepare execution
+            # 6. Prepare execution (autonomous mode)
             prep_result = await self._rebalancer.prepare_execution(
                 proposal_id=proposal_id,
                 session_id=session_id
@@ -313,22 +434,22 @@ class AutonomousAgent:
                 logger.warning(f"Preparation failed for proposal {proposal_id}")
                 return
             
-            # 6. Execute
+            # 7. Execute
             exec_result = await self._rebalancer.execute_rebalance(
                 proposal_id=proposal_id,
                 session_id=session_id
             )
             
-            # 7. Update agent state
+            # 8. Update agent state
             if user_address in self._agents:
                 self._agents[user_address]["actions_taken"] += 1
                 self._agents[user_address]["last_action"] = {
                     "proposal_id": proposal_id,
                     "tx_hash": exec_result.get("tx_hash"),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "from_protocol": suggestion.get("from_protocol"),
                     "to_protocol": suggestion.get("to_protocol"),
-                    "amount": suggestion.get("amount"),
+                    "amount": amount,
                 }
             
             logger.info(f"Executed rebalance {proposal_id}: tx={exec_result.get('tx_hash')}")

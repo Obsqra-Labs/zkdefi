@@ -697,6 +697,13 @@ class ZkdefiAgentService:
         Query aggregated position across all protocols + private commitments.
         Returns total value without revealing individual protocol amounts.
         """
+        import json
+        canonical_user = str(user_address or "").strip().lower()
+        try:
+            canonical_user = hex(int(canonical_user, 16))
+        except Exception:
+            canonical_user = str(user_address or "").strip()
+
         total_value = 0
         public_positions_count = 0
         private_commitments_count = 0
@@ -704,25 +711,72 @@ class ZkdefiAgentService:
         # Query public positions from ProofGatedYieldAgent
         for protocol_id in range(3):  # pools, ekubo, jediswap
             try:
-                position = await self.get_user_position(user_address, protocol_id)
+                position = await self.get_user_position(canonical_user, protocol_id)
                 pos_value = int(position.get("position", "0"))
                 if pos_value > 0:
                     total_value += pos_value
                     public_positions_count += 1
-            except:
+            except Exception:
                 pass
         
         # Query private commitments
         try:
-            commitments = await self.get_user_commitments(user_address)
+            commitments = await self.get_user_commitments(canonical_user)
             for c in commitments:
                 total_value += int(c.get("balance", "0"))
                 private_commitments_count += 1
-        except:
+        except Exception:
+            pass
+
+        # Include manual wallet privacy actions recorded in receipts timeline
+        # (e.g. Vault Funding full-privacy deposits).
+        try:
+            from app.services.receipt_service import get_receipt_service
+
+            receipts = await get_receipt_service().get_user_receipts(canonical_user)
+            net_manual_private = 0
+            open_manual_count = 0
+            for row in receipts:
+                if not isinstance(row, dict):
+                    continue
+                if str(row.get("proof_type") or "") != "manual_wallet_action":
+                    continue
+                raw_result = str(row.get("result") or "")
+                detail_blob = raw_result[len("event:") :] if raw_result.startswith("event:") else raw_result
+                try:
+                    payload = json.loads(detail_blob) if detail_blob else {}
+                except Exception:
+                    payload = {}
+                execution_path = str(payload.get("execution_path") or "")
+                action_type = str(payload.get("action_type") or "").strip().lower()
+                amount_wei_text = str(payload.get("amount_wei") or "").strip()
+                if execution_path not in {
+                    "shielded_pool",
+                    "full_privacy_pool",
+                    "hashed_withdraw_pool",
+                    "internal_ledger",
+                }:
+                    continue
+                try:
+                    amount_wei = int(amount_wei_text) if amount_wei_text else 0
+                except Exception:
+                    amount_wei = 0
+                if amount_wei <= 0:
+                    continue
+                if action_type == "deposit":
+                    net_manual_private += amount_wei
+                    open_manual_count += 1
+                elif action_type == "withdraw":
+                    net_manual_private -= amount_wei
+                    open_manual_count = max(0, open_manual_count - 1)
+            if net_manual_private > 0:
+                total_value += net_manual_private
+                private_commitments_count += open_manual_count
+        except Exception:
             pass
         
         return {
-            "user_address": user_address,
+            "user_address": canonical_user,
             "total_value": str(total_value),
             "public_positions_count": public_positions_count,
             "private_commitments_count": private_commitments_count,

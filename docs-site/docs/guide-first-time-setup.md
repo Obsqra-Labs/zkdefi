@@ -1,36 +1,66 @@
-# First-time setup (live app)
+# First-Time Setup (Live App)
 
-Use the **live app** at [zkde.fi](https://zkde.fi) — no local setup required.
+This guide expands on quick start and is meant to prevent the most common first-day misconfigurations.
 
-## Wallet
+## The Problem This Solves
 
-Choose a Starknet wallet that supports Sepolia testnet:
+Users often fail early because of network mismatch, missing testnet funds, or opening the wrong UI context from stale links.
 
-- **ArgentX** — [argent.xyz/argent-x](https://www.argent.xyz/argent-x/)
-- **Braavos** — [braavos.app](https://braavos.app/)
+## Why This Matters
 
-Install the extension, create or import a wallet, and switch the network to **Starknet Sepolia** in the wallet settings.
+If setup is correct once, later flows such as deployment, disclosure, and automation become predictable and reproducible.
 
-## Testnet funds
+## Step 1: Wallet And Network
 
-zkde.fi runs on **Starknet Sepolia**. You may need:
+Use a Starknet wallet and set network to **Starknet Sepolia**.
 
-- **ETH** — for gas (transaction fees)
-- **STRK** — for some actions (e.g. Deploy to Ekubo)
+- ArgentX: <https://www.argent.xyz/argent-x/>
+- Braavos: <https://braavos.app/>
 
-Get testnet tokens from a Sepolia faucet or via the app if a swap/faucet is available. Without funds, you can still connect and browse; transactions will fail until you have gas.
+## Step 2: Funding Context
 
-## Connect at zkde.fi
+You may need testnet funds for gas and certain execution paths.
 
-1. Open [zkde.fi](https://zkde.fi).
-2. Click **Connect** (top right or in the hero).
-3. Select your wallet (ArgentX or Braavos) and approve the connection.
-4. Your address appears when connected; you can disconnect anytime.
+- ETH for transaction gas
+- STRK for relevant operations in current testnet flows
 
-## After connect
+## Step 3: Connect And Confirm Route State
 
-- **Landing** — You’ll see the main value prop and links. Use the nav or buttons to go to **Agent** or **Profile**.
-- **Agent** — Main workspace: Deploy to Ekubo, pools, DEX, rebalancer, session keys, compliance. See [Agent dashboard](/agent-dashboard) and [Deploy to Ekubo](/guide-deploy-to-ekubo).
-- **Profile** — Your reputation, collateral, relayer status, Risk Passport, linked addresses, compliance. See [Profile and identity](/profile-and-identity) and [Reputation system](/reputation-system).
+After connecting at `https://zkde.fi`, open canonical routes:
 
-Next: [Quick start (live app)](/quick-start) | [Agent dashboard](/agent-dashboard) | [Deploy to Ekubo guide](/guide-deploy-to-ekubo)
+- `/agent?v=vault`
+- `/profile?tab=trust`
+
+Avoid starting from legacy deep links that use old `/agent?tab=` conventions.
+
+## Step 4: Complete First Operational Loop
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant A as Agent surface
+  participant P as Profile surface
+
+  U->>A: Open /agent?v=vault
+  U->>A: Review deploy + portfolio context
+  U->>A: Move to /agent?v=oracle
+  U->>A: Review market signal controls
+  U->>A: Open /agent?v=vault&sub=trade for execution
+  U->>P: Open /profile?tab=trust
+  U->>P: Verify trust and readiness state
+```
+
+## What This Setup Sequence Solves
+
+- Prevents route confusion from stale docs links
+- Establishes production path before experimental features
+- Gives users a clear trust/risk checkpoint before automation
+
+## Key Fixtures (Verified 2026-03-05)
+
+- `/agent?v=vault`
+- `/agent?v=oracle`
+- `/agent?v=vault&sub=trade`
+- `/profile?tab=trust`
+
+Next: [Deploy to Ekubo](/guide-deploy-to-ekubo) | [Agent workspace](/agent-dashboard) | [Troubleshooting](/troubleshooting)

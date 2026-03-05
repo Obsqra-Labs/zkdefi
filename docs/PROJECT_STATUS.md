@@ -113,6 +113,7 @@ ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, GaragaVerifier,
 - **zkML + rebalancer:** risk_score, anomaly, combined; agent_rebalancer (propose → check → prepare → execute; autonomous start/stop/status). Execute can be simulated or wired to contract.
 - **Contracts:** Deployed on Sepolia (see CONTRACTS.md).
 - **Privacy → Ekubo orchestration (personal v1):** Implemented per [plans/2026-02-19-privacy-ekubo-orchestration-design.md](plans/2026-02-19-privacy-ekubo-orchestration-design.md) and [plans/2026-02-19-privacy-ekubo-orchestration-implementation.md](plans/2026-02-19-privacy-ekubo-orchestration-implementation.md): deployable amount → recommend (Ekubo-only) → vault execute → receipt; API `POST /api/v1/zkdefi/orchestration/deploy`.
+- **Frontend runtime sync guard:** `deploy_production.sh` now enforces build/runtime integrity (clean `.next`, restart `zkdefi-frontend`, verify local+live `/agent` chunk URLs resolve, and ensure live agent chunk matches built chunk) to prevent `ChunkLoadError` drift.
 
 ---
 
@@ -134,6 +135,7 @@ ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, GaragaVerifier,
 | Doc | Content |
 |-----|--------|
 | [README.md](../README.md) | Overview, quick start, API, doc index. |
+| [ENV.md](ENV.md) | Backend/frontend env (including EKUBO_CHAIN_ID). |
 | [plans/2026-02-19-privacy-ekubo-orchestration-design.md](plans/2026-02-19-privacy-ekubo-orchestration-design.md) | Privacy → Ekubo orchestration (personal v1; Ekubo Sepolia realistic methods; shared Phase 2). |
 | [plans/2026-02-19-privacy-ekubo-orchestration-implementation.md](plans/2026-02-19-privacy-ekubo-orchestration-implementation.md) | Implementation plan (tasks 1–6) for orchestration. |
 | [plans/2026-02-19-agent-deploy-to-ekubo-ux.md](plans/2026-02-19-agent-deploy-to-ekubo-ux.md) | Agent / Deploy to Ekubo holistic UX plan and implementation. |
@@ -144,6 +146,7 @@ ProofGatedYieldAgent, SelectiveDisclosure, ConfidentialTransfer, GaragaVerifier,
 | [PROOF_FLOWS.md](PROOF_FLOWS.md) | Private transfer, shielded, B/C, zkML. |
 | [CONTRACTS.md](CONTRACTS.md) | Sepolia addresses and functions. |
 | [SETUP.md](SETUP.md) | Prerequisites, deploy, env. |
+| [../deploy_production.sh](../deploy_production.sh) | Production frontend deploy with post-restart local/live chunk integrity checks. |
 | [AGENT_FLOW.md](AGENT_FLOW.md) | Session keys, delegation UX. |
 | [DEV_LOG.md](DEV_LOG.md) | Fixes and findings. |
 | [RISK_PASSPORT_IMPLEMENTATION.md](RISK_PASSPORT_IMPLEMENTATION.md) | Risk Passport API. |

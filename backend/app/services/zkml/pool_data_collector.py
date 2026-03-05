@@ -26,10 +26,40 @@ class PoolDataCollector:
     
     async def get_ekubo_pools(self) -> List[PoolMetrics]:
         """
-        Fetch Ekubo pools and their current metrics
-        For MVP: Mock data, real data can come from Ekubo subgraph or RPC
+        Fetch Ekubo pools and their current metrics from live pool_metrics.
+        Falls back to mock data if the live fetch fails.
         """
-        # Known Ekubo pools on Sepolia
+        try:
+            from app.services.pool_metrics import fetch_pool_metrics
+            live_pools = await fetch_pool_metrics(min_tvl_usd=0.0, limit=30)
+            if live_pools:
+                pools = []
+                for p in live_pools:
+                    tokens = [t.strip() for t in p.pair.split("/")]
+                    t0 = tokens[0] if tokens else "TOKEN0"
+                    t1 = tokens[1] if len(tokens) > 1 else "TOKEN1"
+                    pools.append(
+                        PoolMetrics(
+                            pool_id=p.pool_id,
+                            name=f"Ekubo {p.pair} {p.fee_ratio*100:.2f}%",
+                            protocol="ekubo",
+                            liquidity_usd=p.tvl_usd,
+                            volume_24h_usd=p.volume_24h_usd,
+                            fee_tier=p.fee_ratio,
+                            price_std_dev_24h=0.08,  # TODO: compute from price history
+                            slippage_at_1000usd=0.015,  # TODO: compute from pool depth
+                            token0=t0,
+                            token1=t1,
+                            current_apy=p.apy_pct / 100.0,  # PoolMetric is %, PoolMetrics expects decimal
+                            timestamp=datetime.now(),
+                        )
+                    )
+                logger.info(f"Fetched {len(pools)} live Ekubo pools")
+                return pools
+        except Exception as exc:
+            logger.warning(f"Live Ekubo pool fetch failed, using mock: {exc}")
+
+        # Fallback mock data
         pools = [
             PoolMetrics(
                 pool_id="ekubo_eth_usdc_003",
@@ -75,7 +105,7 @@ class PoolDataCollector:
             ),
         ]
         
-        logger.info(f"Fetched {len(pools)} Ekubo pools")
+        logger.info(f"Fetched {len(pools)} Ekubo pools (mock fallback)")
         return pools
     
     async def get_jediswap_pools(self) -> List[PoolMetrics]:

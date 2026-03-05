@@ -99,53 +99,55 @@ class AVNUIntegrator:
         - Other DEXs
         """
         
-        logger.info(f"🔁 Finding best swap route: {token_in} → {token_out} ({amount})")
-        
-        # Mock routes - in production would call AVNU router contract
-        simulated_routes = {
-            "0x049d36570d4e46f48e99674bd3fcc84644dff0880f2f7e50e193e8a45f368e45": {  # ETH
-                "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d": {  # STRK
-                    "route": "ETH/USDC (Ekubo) → USDC/STRK (Ekubo)",
-                    "output_amount": amount * 2500,  # ~2500 STRK per ETH
-                    "price_impact": 0.001,
-                    "protocol": "Ekubo",
-                    "liquidity": 500000
-                }
-            },
-            "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8": {  # USDC
-                "0x049d36570d4e46f48e99674bd3fcc84644dff0880f2f7e50e193e8a45f368e45": {  # ETH
-                    "route": "USDC/ETH (Ekubo)",
-                    "output_amount": amount / 3000,  # ~3000 USDC per ETH
-                    "price_impact": 0.001,
-                    "protocol": "Ekubo",
-                    "liquidity": 1000000
-                }
+        logger.info("Finding best swap route: %s -> %s (%s)", token_in, token_out, amount)
+
+        avnu_base = "https://sepolia.api.avnu.fi"
+        # AVNU expects amounts in the base token unit (wei for ETH = 18 decimals)
+        # We accept float ETH-scale amounts here and convert to integer wei
+        WEI = 10 ** 18
+        amount_wei = int(amount * WEI)
+
+        try:
+            import httpx
+            params = {
+                "sellTokenAddress": token_in,
+                "buyTokenAddress": token_out,
+                "sellAmount": hex(amount_wei),
+                "size": 1,
             }
-        }
-        
-        # Get the simulated route
-        route = simulated_routes.get(token_in, {}).get(token_out)
-        
-        if route:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(f"{avnu_base}/swap/v2/quotes", params=params)
+                resp.raise_for_status()
+                quotes = resp.json()
+                if isinstance(quotes, dict):
+                    quotes = quotes.get("quotes", [quotes])
+
+            if not quotes:
+                return {"success": False, "error": f"No route found for {token_in} → {token_out}"}
+
+            best = quotes[0]
+            buy_amount_raw = best.get("buyAmount") or best.get("buyTokenAmount") or 0
+            buy_amount = int(buy_amount_raw, 16) / WEI if isinstance(buy_amount_raw, str) else buy_amount_raw / WEI
+            routes_list = best.get("routes") or []
+            route_str = " → ".join(r.get("name", "") for r in routes_list) or "AVNU"
+            price_impact = best.get("priceImpact", 0.0)
+
             return {
                 "success": True,
                 "token_in": token_in,
                 "token_out": token_out,
                 "amount_in": amount,
-                "amount_out": route["output_amount"],
-                "route": route["route"],
-                "price_impact": route["price_impact"],
-                "primary_protocol": route["protocol"],
-                "available_liquidity": route["liquidity"],
-                "slippage": f"{route['price_impact']*100:.2f}%"
+                "amount_out": buy_amount,
+                "route": route_str,
+                "price_impact": price_impact,
+                "primary_protocol": "AVNU",
+                "quote_id": best.get("quoteId"),
             }
-        else:
-            return {
-                "success": False,
-                "error": f"No route found for {token_in} → {token_out}",
-                "recommendation": "Try swapping through USDC or ETH as intermediary"
-            }
-    
+
+        except Exception as exc:
+            logger.warning("AVNU quote fetch failed: %s", exc)
+            return {"success": False, "error": str(exc)}
+
     async def get_aggregator_stats(self) -> Dict:
         """Get stats on AVNU aggregator availability"""
         
@@ -216,7 +218,7 @@ async def main():
         print(f"Route: {route['route']}")
         print(f"Input: {route['amount_in']} ETH")
         print(f"Output: {route['amount_out']:.2f} STRK")
-        print(f"Slippage: {route['slippage']}")
+        print(f"Price impact: {route['price_impact']}")
     else:
         print(f"Error: {route['error']}")
     

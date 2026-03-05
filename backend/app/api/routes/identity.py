@@ -85,15 +85,22 @@ async def generate_credit_proof(req: CreditProofRequest):
         )
         if req.addresses.starknet and not has_others:
             from app.services.linked_addresses_store import get_linked
+            from app.services.linked_address_verification_service import (
+                get_linked_address_verification_service,
+            )
             linked = get_linked(req.addresses.starknet)
-            if not req.addresses.ethereum and linked.get("eth"):
-                req.addresses.ethereum = linked.get("eth")
-            if not req.addresses.arbitrum and linked.get("arb"):
-                req.addresses.arbitrum = linked.get("arb")
-            if not req.addresses.base and linked.get("base"):
-                req.addresses.base = linked.get("base")
-            if not req.addresses.optimism and linked.get("opt"):
-                req.addresses.optimism = linked.get("opt")
+            verified = get_linked_address_verification_service().filter_verified(
+                req.addresses.starknet,
+                linked,
+            )
+            if not req.addresses.ethereum and verified.get("eth"):
+                req.addresses.ethereum = verified.get("eth")
+            if not req.addresses.arbitrum and verified.get("arb"):
+                req.addresses.arbitrum = verified.get("arb")
+            if not req.addresses.base and verified.get("base"):
+                req.addresses.base = verified.get("base")
+            if not req.addresses.optimism and verified.get("opt"):
+                req.addresses.optimism = verified.get("opt")
 
         # 1. Import RISC Zero service
         from app.services.risc_zero_credit_service import get_risc_zero_credit_service

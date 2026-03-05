@@ -177,7 +177,7 @@ class ObsqraProverClient:
             )
             response.raise_for_status()
             return response.json()
-        except:
+        except Exception:
             return {"available": False, "credits": 0}
 
 

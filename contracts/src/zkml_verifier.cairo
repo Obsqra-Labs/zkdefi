@@ -57,6 +57,30 @@ pub trait IZkmlVerifier<TContractState> {
     
     // Get Garaga verifier address
     fn get_garaga_verifier(self: @TContractState) -> ContractAddress;
+    
+    // v6: Verify ModelBridge proof (EZKL → Groth16 bridge)
+    fn verify_model_bridge_proof(
+        ref self: TContractState,
+        proof_calldata: Span<felt252>,
+        model_hash: felt252,
+        output_commitment: felt252,
+        bridge_commitment: felt252,
+    ) -> bool;
+    
+    // v6: Verify robustness certificate proof
+    fn verify_robustness_certificate(
+        ref self: TContractState,
+        proof_calldata: Span<felt252>,
+        model_hash: felt252,
+        certificate_hash: felt252,
+    ) -> bool;
+    
+    // v6: Verify timing commitment proof
+    fn verify_timing_proof(
+        ref self: TContractState,
+        proof_calldata: Span<felt252>,
+        timing_hash: felt252,
+    ) -> bool;
 }
 
 #[starknet::contract]
@@ -87,6 +111,9 @@ mod ZkmlVerifier {
         RiskScoreVerified: RiskScoreVerified,
         AnomalyProofVerified: AnomalyProofVerified,
         CombinedProofsVerified: CombinedProofsVerified,
+        ModelBridgeVerified: ModelBridgeVerified,
+        RobustnessCertVerified: RobustnessCertVerified,
+        TimingProofVerified: TimingProofVerified,
     }
     
     #[derive(Drop, starknet::Event)]
@@ -117,6 +144,36 @@ mod ZkmlVerifier {
         pool_id: felt252,
         commitment_hash: felt252,
         can_proceed: bool,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct ModelBridgeVerified {
+        #[key]
+        user: ContractAddress,
+        model_hash: felt252,
+        output_commitment: felt252,
+        bridge_commitment: felt252,
+        is_valid: bool,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct RobustnessCertVerified {
+        #[key]
+        user: ContractAddress,
+        model_hash: felt252,
+        certificate_hash: felt252,
+        is_valid: bool,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct TimingProofVerified {
+        #[key]
+        user: ContractAddress,
+        timing_hash: felt252,
+        is_valid: bool,
         timestamp: u64,
     }
     
@@ -278,6 +335,128 @@ mod ZkmlVerifier {
         
         fn get_garaga_verifier(self: @ContractState) -> ContractAddress {
             self.garaga_verifier.read()
+        }
+        
+        // ──── v6: ModelBridge Proof Verification ────────────────────────
+        
+        fn verify_model_bridge_proof(
+            ref self: ContractState,
+            proof_calldata: Span<felt252>,
+            model_hash: felt252,
+            output_commitment: felt252,
+            bridge_commitment: felt252,
+        ) -> bool {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            // Call Garaga verifier for ModelBridge Groth16 proof
+            let garaga = IGaragaVerifierDispatcher {
+                contract_address: self.garaga_verifier.read()
+            };
+            let is_valid = garaga.verify_groth16_proof_bn254(proof_calldata);
+            
+            // Store proof record
+            let record = ZkmlProofRecord {
+                proof_type: 'model_bridge',
+                user: caller,
+                commitment_hash: bridge_commitment,
+                is_valid,
+                timestamp,
+            };
+            self.proof_records.write(bridge_commitment, record);
+            self.verified_proofs.write(bridge_commitment, is_valid);
+            
+            // Track
+            let count = self.user_proof_count.read(caller);
+            self.user_proofs.write((caller, count), bridge_commitment);
+            self.user_proof_count.write(caller, count + 1);
+            
+            self.emit(ModelBridgeVerified {
+                user: caller,
+                model_hash,
+                output_commitment,
+                bridge_commitment,
+                is_valid,
+                timestamp,
+            });
+            
+            is_valid
+        }
+        
+        fn verify_robustness_certificate(
+            ref self: ContractState,
+            proof_calldata: Span<felt252>,
+            model_hash: felt252,
+            certificate_hash: felt252,
+        ) -> bool {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            let garaga = IGaragaVerifierDispatcher {
+                contract_address: self.garaga_verifier.read()
+            };
+            let is_valid = garaga.verify_groth16_proof_bn254(proof_calldata);
+            
+            let record = ZkmlProofRecord {
+                proof_type: 'robustness_cert',
+                user: caller,
+                commitment_hash: certificate_hash,
+                is_valid,
+                timestamp,
+            };
+            self.proof_records.write(certificate_hash, record);
+            self.verified_proofs.write(certificate_hash, is_valid);
+            
+            let count = self.user_proof_count.read(caller);
+            self.user_proofs.write((caller, count), certificate_hash);
+            self.user_proof_count.write(caller, count + 1);
+            
+            self.emit(RobustnessCertVerified {
+                user: caller,
+                model_hash,
+                certificate_hash,
+                is_valid,
+                timestamp,
+            });
+            
+            is_valid
+        }
+        
+        fn verify_timing_proof(
+            ref self: ContractState,
+            proof_calldata: Span<felt252>,
+            timing_hash: felt252,
+        ) -> bool {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            let garaga = IGaragaVerifierDispatcher {
+                contract_address: self.garaga_verifier.read()
+            };
+            let is_valid = garaga.verify_groth16_proof_bn254(proof_calldata);
+            
+            let record = ZkmlProofRecord {
+                proof_type: 'timing',
+                user: caller,
+                commitment_hash: timing_hash,
+                is_valid,
+                timestamp,
+            };
+            self.proof_records.write(timing_hash, record);
+            self.verified_proofs.write(timing_hash, is_valid);
+            
+            let count = self.user_proof_count.read(caller);
+            self.user_proofs.write((caller, count), timing_hash);
+            self.user_proof_count.write(caller, count + 1);
+            
+            self.emit(TimingProofVerified {
+                user: caller,
+                timing_hash,
+                is_valid,
+                timestamp,
+            });
+            
+            is_valid
         }
     }
 }

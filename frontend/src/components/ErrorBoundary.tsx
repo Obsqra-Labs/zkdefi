@@ -12,6 +12,10 @@ interface State {
   error: Error | null;
 }
 
+const CHUNK_RELOAD_KEY = "__zkdefi_chunk_reload_state__";
+const CHUNK_RELOAD_WINDOW_MS = 2 * 60 * 1000;
+const CHUNK_RELOAD_MAX_ATTEMPTS = 3;
+
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -22,13 +26,82 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  private static isChunkLoadError(error: Error): boolean {
+    const s = String(error?.message ?? "");
+    const lower = s.toLowerCase();
+    return (
+      s.includes("ChunkLoadError") ||
+      s.includes("Loading chunk") ||
+      /chunk\s+\d+\s+failed/i.test(s) ||
+      (s.includes("/_next/static/chunks/") && s.includes("failed")) ||
+      (s.includes("423") && s.includes("react.dev/errors")) ||
+      lower.includes("older or newer deployment")
+    );
+  }
+
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    if (ErrorBoundary.isChunkLoadError(error)) {
+      this.tryAutoRecoverChunkError();
+      return;
+    }
   }
+
+  private readChunkReloadState(): { ts: number; attempts: number } | null {
+    try {
+      const raw = window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { ts?: number; attempts?: number };
+      if (typeof parsed.ts !== "number") return null;
+      return {
+        ts: parsed.ts,
+        attempts: typeof parsed.attempts === "number" ? parsed.attempts : 1,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private canAutoReloadChunkError(): boolean {
+    const state = this.readChunkReloadState();
+    if (!state) return true;
+    if (Date.now() - state.ts > CHUNK_RELOAD_WINDOW_MS) return true;
+    return state.attempts < CHUNK_RELOAD_MAX_ATTEMPTS;
+  }
+
+  private markChunkReload(): void {
+    try {
+      const prev = this.readChunkReloadState();
+      const now = Date.now();
+      const withinWindow = prev ? now - prev.ts <= CHUNK_RELOAD_WINDOW_MS : false;
+      const attempts = withinWindow ? Math.min(prev!.attempts + 1, CHUNK_RELOAD_MAX_ATTEMPTS) : 1;
+      window.sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify({ ts: now, attempts }));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  private tryAutoRecoverChunkError = async () => {
+    if (!this.canAutoReloadChunkError()) return;
+    this.markChunkReload();
+    try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch {
+      // ignore cache purge failures
+    }
+    const q = window.location.search ? "&" : "?";
+    const u = `${window.location.pathname}${window.location.search}${q}_r=${Date.now()}${window.location.hash}`;
+    window.location.replace(u);
+  };
 
   private handleRetry = () => {
     this.setState({ hasError: false, error: null });
-    window.location.reload();
+    const q = window.location.search ? "&" : "?";
+    const u = `${window.location.pathname}${window.location.search}${q}_r=${Date.now()}${window.location.hash}`;
+    window.location.replace(u);
   };
 
   public render() {

@@ -16,6 +16,8 @@ pub struct AgentMetadata {
     pub identity_commitment: felt252,  // Links to Universal Identity
     pub reputation_tier: u8,           // 0=Strict, 1=Standard, 2=Express
     pub model_count: u8,
+    pub skill_count: u8,               // Number of bound ZK circuit skills
+    pub llm_provider_hash: felt252,    // Hash of LLM provider config (0 = none)
     pub active: bool,
     pub last_execution: u64,
     pub total_executions: u64,
@@ -47,6 +49,10 @@ pub trait IAgentIdentity<TContractState> {
     fn record_execution(ref self: TContractState, token_id: u256);
     fn deactivate_agent(ref self: TContractState, token_id: u256);
     fn activate_agent(ref self: TContractState, token_id: u256);
+    
+    // Skill & LLM binding (identity-bound agent extensions)
+    fn update_skill_count(ref self: TContractState, token_id: u256, skill_count: u8);
+    fn set_llm_provider(ref self: TContractState, token_id: u256, llm_provider_hash: felt252);
     
     // Discovery functions (ERC-8004 alignment)
     fn get_agents_by_owner(self: @TContractState, owner: ContractAddress) -> Array<u256>;
@@ -302,6 +308,8 @@ mod AgentIdentity {
                 identity_commitment,
                 reputation_tier: 0,  // Start at Strict
                 model_count,
+                skill_count: 0,      // No skills bound yet
+                llm_provider_hash: 0, // No LLM provider yet
                 active: true,
                 last_execution: 0,
                 total_executions: 0,
@@ -454,6 +462,28 @@ mod AgentIdentity {
                 reputation_tier: metadata.reputation_tier, 
                 active: true 
             });
+        }
+        
+        // ===== Skill & LLM Binding =====
+        
+        fn update_skill_count(ref self: ContractState, token_id: u256, skill_count: u8) {
+            let caller = get_caller_address();
+            let mut metadata = self.agent_metadata.read(token_id);
+            assert(metadata.owner.is_non_zero(), 'Agent does not exist');
+            assert(caller == metadata.owner || caller == self.admin.read(), 'Not authorized');
+            
+            metadata.skill_count = skill_count;
+            self.agent_metadata.write(token_id, metadata);
+        }
+        
+        fn set_llm_provider(ref self: ContractState, token_id: u256, llm_provider_hash: felt252) {
+            let caller = get_caller_address();
+            let mut metadata = self.agent_metadata.read(token_id);
+            assert(metadata.owner.is_non_zero(), 'Agent does not exist');
+            assert(caller == metadata.owner || caller == self.admin.read(), 'Not authorized');
+            
+            metadata.llm_provider_hash = llm_provider_hash;
+            self.agent_metadata.write(token_id, metadata);
         }
         
         // ===== Discovery Functions =====

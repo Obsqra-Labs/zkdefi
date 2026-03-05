@@ -1,0 +1,148 @@
+{
+  "periods": {
+    "edb2b67dad11de76": [
+      {
+        "period_id": "period_1",
+        "agent_id": "edb2b67dad11de76",
+        "return_bps": 85,
+        "volume": 20000,
+        "proof_count": 3,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "max_drawdown_bps": 50,
+        "timestamp": 1772546156.0323808
+      },
+      {
+        "period_id": "period_1",
+        "agent_id": "edb2b67dad11de76",
+        "return_bps": 85,
+        "volume": 20000,
+        "proof_count": 3,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "max_drawdown_bps": 50,
+        "timestamp": 1772549298.8772755
+      },
+      {
+        "period_id": "period_1",
+        "agent_id": "edb2b67dad11de76",
+        "return_bps": 85,
+        "volume": 20000,
+        "proof_count": 3,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "max_drawdown_bps": 50,
+        "timestamp": 1772554609.357846
+      },
+      {
+        "period_id": "period_1",
+        "agent_id": "edb2b67dad11de76",
+        "return_bps": 85,
+        "volume": 20000,
+        "proof_count": 3,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "max_drawdown_bps": 50,
+        "timestamp": 1772558766.0003972
+      }
+    ],
+    "274758f7345bf7bb": [
+      {
+        "period_id": "e2e_period_1",
+        "agent_id": "274758f7345bf7bb",
+        "return_bps": 120,
+        "volume": 50000,
+        "proof_count": 6,
+        "successful_actions": 8,
+        "failed_actions": 1,
+        "max_drawdown_bps": 75,
+        "timestamp": 1772554587.2598817
+      },
+      {
+        "period_id": "e2e_period_1",
+        "agent_id": "274758f7345bf7bb",
+        "return_bps": 120,
+        "volume": 50000,
+        "proof_count": 6,
+        "successful_actions": 8,
+        "failed_actions": 1,
+        "max_drawdown_bps": 75,
+        "timestamp": 1772558787.767109
+      }
+    ],
+    "545a0390d769553a": [
+      {
+        "period_id": "indep_1",
+        "agent_id": "545a0390d769553a",
+        "return_bps": 200,
+        "volume": 10000,
+        "proof_count": 3,
+        "successful_actions": 5,
+        "failed_actions": 0,
+        "max_drawdown_bps": 30,
+        "timestamp": 1772554596.050948
+      },
+      {
+        "period_id": "indep_1",
+        "agent_id": "545a0390d769553a",
+        "return_bps": 200,
+        "volume": 10000,
+        "proof_count": 3,
+        "successful_actions": 5,
+        "failed_actions": 0,
+        "max_drawdown_bps": 30,
+        "timestamp": 1772558796.297124
+      }
+    ]
+  },
+  "summaries": {
+    "edb2b67dad11de76": {
+      "agent_id": "edb2b67dad11de76",
+      "total_periods": 4,
+      "total_volume": 80000,
+      "total_proofs": 12,
+      "total_successful": 16,
+      "total_failed": 0,
+      "cumulative_return_bps": 340,
+      "mean_return_bps": 85,
+      "max_drawdown_bps": 50,
+      "peak_balance": 10343,
+      "current_balance": 10343,
+      "sharpe_estimate": 0.0,
+      "win_rate": 1.0,
+      "last_updated": 1772558766.0004086
+    },
+    "274758f7345bf7bb": {
+      "agent_id": "274758f7345bf7bb",
+      "total_periods": 2,
+      "total_volume": 100000,
+      "total_proofs": 12,
+      "total_successful": 16,
+      "total_failed": 2,
+      "cumulative_return_bps": 240,
+      "mean_return_bps": 120,
+      "max_drawdown_bps": 75,
+      "peak_balance": 10241,
+      "current_balance": 10241,
+      "sharpe_estimate": 0.0,
+      "win_rate": 0.8888888888888888,
+      "last_updated": 1772558787.7671237
+    },
+    "545a0390d769553a": {
+      "agent_id": "545a0390d769553a",
+      "total_periods": 2,
+      "total_volume": 20000,
+      "total_proofs": 6,
+      "total_successful": 10,
+      "total_failed": 0,
+      "cumulative_return_bps": 400,
+      "mean_return_bps": 200,
+      "max_drawdown_bps": 30,
+      "peak_balance": 10404,
+      "current_balance": 10404,
+      "sharpe_estimate": 0.0,
+      "win_rate": 1.0,
+      "last_updated": 1772558796.297139
+    }
+  }
+}

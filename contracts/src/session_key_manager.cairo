@@ -8,7 +8,7 @@ pub struct SessionConfig {
     pub session_key: ContractAddress,     // Public key for session
     pub owner: ContractAddress,           // Account owner
     pub max_position: u256,               // Max position size allowed
-    pub allowed_protocols: u8,            // Bitmap: 1=Pools, 2=Ekubo, 4=JediSwap
+    pub allowed_protocols: u8,            // Bitmap: 1=Pools, 2=Ekubo, 4=JediSwap, 8=Lending
     pub expiry: u64,                      // Unix timestamp expiry
     pub is_active: bool,                  // Whether session is active
     pub created_at: u64,                  // Creation timestamp

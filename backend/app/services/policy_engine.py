@@ -4,15 +4,27 @@ Policy Engine (v1)
 Evaluates whether an action (e.g. rebalance) is allowed based on zkML proofs
 (risk score, anomaly detection). Returns allowed + proof calldata for execution.
 """
+import os
 from typing import Any
 
 from app.services.zkml_risk_service import get_risk_service
 from app.services.zkml_anomaly_service import get_anomaly_service
 from app.services.mainnet_oracle import get_oracle
+from app.services.zkml.circuit_scanner import run_circuit_scan
 
 
 # Volatility (bps) above which pool is considered stressed; 500 bps = 5%
 STRESS_VOLATILITY_BPS_THRESHOLD = 500
+
+
+def _parse_user_address_int(raw: str | None) -> int:
+    if not raw:
+        return 0
+    try:
+        value = raw.strip()
+        return int(value, 16) if value.startswith("0x") else int(value)
+    except Exception:
+        return 0
 
 
 def _check_pool_stress(
@@ -78,6 +90,19 @@ async def check(
     to_protocol = payload.get("to_protocol", 0)
     if pool_id is None:
         pool_id = f"pool_{to_protocol}"
+    policy_mode = str(
+        payload.get("policy_mode") or os.getenv("ZKDEFI_CIRCUIT_POLICY_MODE", "signal")
+    ).strip().lower()
+    if policy_mode not in ("gate", "signal"):
+        policy_mode = "gate"
+    raw_signal_scan = payload.get("include_signal_scan", policy_mode == "signal")
+    if isinstance(raw_signal_scan, bool):
+        include_signal_scan = raw_signal_scan
+    elif isinstance(raw_signal_scan, str):
+        include_signal_scan = raw_signal_scan.strip().lower() in ("1", "true", "yes", "on")
+    else:
+        include_signal_scan = bool(raw_signal_scan)
+    signal_circuits = payload.get("signal_circuits")
 
     # Bind to latest oracle snapshot
     oracle = get_oracle()
@@ -106,17 +131,29 @@ async def check(
         commitment_hash=commitment_hash,
         snapshot_hash=snapshot_hash,
     )
+    signal_scan: dict[str, Any] | None = None
+    if include_signal_scan:
+        signal_scan = await run_circuit_scan(
+            circuits=signal_circuits,
+            user_address=_parse_user_address_int(user_address),
+            portfolio_features=portfolio_features,
+            mode="signal",
+        )
 
     risk_ok = risk_result.get("is_compliant", False)
     anomaly_ok = anomaly_result.get("is_safe", False)
     stress_result = _check_pool_stress(pool_id, snapshot_hash, snapshot)
     stress_ok = stress_result.get("stress_ok", True)
-    allowed = risk_ok and anomaly_ok and stress_ok
+    if policy_mode == "signal":
+        # Signal mode: circuit outputs are indicators, not hard execution blocks.
+        allowed = stress_ok
+    else:
+        allowed = risk_ok and anomaly_ok and stress_ok
 
     missing = []
-    if not risk_ok:
+    if policy_mode == "gate" and not risk_ok:
         missing.append("risk_score")
-    if not anomaly_ok:
+    if policy_mode == "gate" and not anomaly_ok:
         missing.append("pool_safety")
     if not stress_ok:
         missing.append("pool_stress")
@@ -124,9 +161,9 @@ async def check(
     reason = ""
     if not allowed:
         reasons = []
-        if not risk_ok:
+        if policy_mode == "gate" and not risk_ok:
             reasons.append("Risk score too high")
-        if not anomaly_ok:
+        if policy_mode == "gate" and not anomaly_ok:
             reasons.append("Pool anomaly detected")
         if not stress_ok:
             reasons.append("Pool stress too high")
@@ -147,6 +184,8 @@ async def check(
         "anomaly_result": anomaly_result,
         "stress_result": stress_result,
         "commitment_hash": commitment_hash,
+        "policy_mode": policy_mode,
+        "signal_scan": signal_scan,
         "reason": reason,
         "missing": missing,
     }

@@ -15,7 +15,7 @@ export type PrivacyMethod =
 export interface VaultCommitment {
   id: string;
   method: PrivacyMethod;
-  asset: "STRK" | "ETH";
+  asset: "STRK" | "ETH" | "strkBTC";
   amount_wei: string;
   commitment_hash: string;
   // Legacy field (historically used to store nonce in some flows).
@@ -180,7 +180,7 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
         newEntries.push({
           id: crypto.randomUUID(),
           method,
-          asset: (rec.asset as "STRK" | "ETH") ?? "STRK",
+          asset: (rec.asset as "STRK" | "ETH" | "strkBTC") ?? "STRK",
           amount_wei: String(rec.amount_wei ?? rec.amount ?? "0"),
           commitment_hash: hash,
           nullifier: rec.nullifier != null ? String(rec.nullifier) : undefined,

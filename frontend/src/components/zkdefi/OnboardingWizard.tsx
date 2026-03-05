@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAccount, useConnect, useSignTypedData } from "@starknet-react/core";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ChevronRight, ChevronLeft, Check, Loader2, Wallet, Settings, FileCheck, Zap, Lock, AlertTriangle } from "lucide-react";
+import { Shield, ChevronRight, ChevronLeft, Check, Loader2, Wallet, Settings, FileCheck, Zap, Lock, AlertTriangle, Scale } from "lucide-react";
 import Link from "next/link";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { ProofVisualizer } from "./ProofVisualizer";
@@ -12,8 +12,10 @@ import {
   RISK_DISCLOSURE_STATEMENT,
 } from "@/lib/riskDisclosureTypedData";
 import { getIdentityService } from "@/services/identity";
+import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
+import { VaultConstitution } from "@/components/zkdefi/vault/VaultConstitution";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
 
 // Initialize identity service
 const identityService = getIdentityService(API_BASE);
@@ -22,16 +24,17 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const STEPS = [
   { id: 1, title: "Connect", icon: Wallet },
-  { id: 2, title: "Configure", icon: Settings },
+  { id: 2, title: "Constraints", icon: Settings },
   { id: 3, title: "Claims", icon: FileCheck },
-  { id: 4, title: "Authorize", icon: Shield },
+  { id: 4, title: "Prove", icon: Shield },
   { id: 5, title: "Review", icon: AlertTriangle },
-  { id: 6, title: "Submit", icon: Zap },
-  { id: 7, title: "Complete", icon: Check },
+  { id: 6, title: "Vault Rules", icon: Scale },
+  { id: 7, title: "Submit", icon: Zap },
+  { id: 8, title: "Profile Ready", icon: Check },
 ];
 
 const RISK_LEVELS = [
@@ -44,6 +47,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors } = useConnect();
   const { signTypedDataAsync } = useSignTypedData({});
+  const safeConnectors = useMemo(
+    () => (Array.isArray(connectors) ? connectors.filter((connector) => connector && typeof connector.id === "string") : []),
+    [connectors],
+  );
   
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +84,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   }, [isConnected, step]);
 
   const handleConnect = async (connectorId: string) => {
-    const connector = connectors.find((c) => c.id === connectorId);
+    const connector = safeConnectors.find((c) => c.id === connectorId);
     if (connector) {
       try {
         await connect({ connector });
@@ -93,11 +100,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     setProofState("generating");
     
     try {
-      console.log("🔐 Generating REAL authorization proof...");
-      console.log("User:", address);
-      console.log("Constraints:", constraints);
-      console.log("Claims:", claims.filter(c => c.enabled).map(c => c.id));
-      
       const enabledClaims = claims.filter(c => c.enabled).map(c => c.id);
       const maxPositionWei = (parseFloat(constraints.maxPosition) * 1e18).toString();
       
@@ -115,13 +117,38 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         }),
       });
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Authorization failed");
+      const responseText = await response.text();
+      const contentType = response.headers.get("content-type") || "";
+      let data: any = null;
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          if (response.ok) {
+            throw new Error("Authorization endpoint returned non-JSON response");
+          }
+          const sanitized = responseText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+          throw new Error(sanitized || `Authorization failed (${response.status})`);
+        }
       }
-      
-      const data = await response.json();
-      console.log("✅ Authorization proof generated:", data);
+
+      if (!response.ok) {
+        const detail =
+          (typeof data?.detail === "string" && data.detail) ||
+          (typeof data?.message === "string" && data.message) ||
+          `Authorization failed (${response.status})`;
+        throw new Error(detail);
+      }
+
+      if (!data || typeof data !== "object") {
+        throw new Error(
+          contentType
+            ? `Authorization endpoint returned invalid payload (${contentType})`
+            : "Authorization endpoint returned invalid payload"
+        );
+      }
+
       
       setFactHash(data.fact_hash);
       setIdentityCommitment(data.identity_commitment);
@@ -141,10 +168,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           const creditData = await creditResponse.json();
           setCreditTier(creditData.tier);
           setCreditScore(creditData.score);
-          console.log("📊 Credit tier:", creditData.tier, "Score:", creditData.score);
         }
-      } catch (e) {
-        console.warn("Credit tier fetch skipped:", e);
+      } catch {
+        /* credit tier fetch is optional */
       }
       
       setProofState("valid");
@@ -152,7 +178,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       setStep(5); // Move to Review & Sign Risk Disclosure
       
     } catch (e: any) {
-      console.error("❌ Authorization generation failed:", e);
       toastError(`Failed: ${e.message}`);
       setProofState("idle");
     } finally {
@@ -170,12 +195,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         chainId ? `0x${chainId.toString(16)}` : undefined
       );
       
-      console.log("Requesting wallet signature for risk disclosure...", typedData);
-      
-      // Request wallet signature
       const signature = await signTypedDataAsync(typedData);
-      
-      console.log("Wallet signature received:", signature);
       
       // Parse signature - it could be an array or object
       let r: string, s: string;
@@ -193,14 +213,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         s = "0x0";
       }
       
-      console.log("Risk disclosure signed:", { address, factHash, r, s });
-      
       setRiskSignature({ r, s });
-      localStorage.setItem("risk-acknowledged", "true");
-      localStorage.setItem(
-        `zkdefi_risk_sig_${address.toLowerCase()}`,
-        JSON.stringify({ signature: { r, s }, signedAt: new Date().toISOString(), factHash })
-      );
       
       toastSuccess("Risk disclosure signed");
       setStep(6);
@@ -210,7 +223,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       const isRejected =
         /reject|denied|cancel|declined/i.test(msg) ||
         (typeof e === "object" && e !== null && "code" in e && (e as { code?: number }).code === 5001);
-      console.error("Wallet signing failed:", e);
       if (isRejected) {
         toastError("Signature declined. You can try again when ready.");
       } else {
@@ -226,10 +238,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     setIsLoading(true);
     
     try {
-      console.log("🚀 Submitting agent on-chain...");
-      console.log("Fact Hash:", factHash);
-      console.log("Identity Commitment:", identityCommitment);
-      
       const response = await fetch(`${API_BASE}/api/v1/zkdefi/onboarding/submit_agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -247,26 +255,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       }
       
       const data = await response.json();
-      console.log("✅ Agent initialized:", data);
-      
       setAgentTxHash(data.tx_hash);
       
-      // Mark onboarding complete
-      localStorage.setItem("onboarding-complete", "true");
-      localStorage.setItem(
-        `zkdefi_agent_${address.toLowerCase()}`,
-        JSON.stringify({
-          fact_hash: factHash,
-          identity_commitment: identityCommitment,
-          initialized_at: new Date().toISOString()
-        })
-      );
-      
       toastSuccess("Agent initialized successfully!");
-      setStep(7);
+      setStep(8);
       
     } catch (e: any) {
-      console.error("❌ Agent submission failed:", e);
       toastError(`Failed: ${e.message}`);
     } finally {
       setIsLoading(false);
@@ -297,16 +291,21 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <p className="text-sm text-zinc-400 text-center">
                   Connect your Starknet wallet to initialize your autonomous agent
                 </p>
-                {connectors.map((c) => (
+                {safeConnectors.map((c) => (
                   <button 
                     key={c.id} 
                     onClick={() => handleConnect(c.id)} 
                     className="w-full p-4 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 rounded-lg flex justify-between items-center transition-colors"
                   >
-                    <span>{c.name}</span>
+                    <span>{typeof c.name === "string" && c.name.trim().length > 0 ? c.name : "Starknet wallet"}</span>
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 ))}
+                {safeConnectors.length === 0 && (
+                  <p className="text-sm text-zinc-500 text-center">
+                    No Starknet wallet connector detected. Install Argent X or Braavos, then refresh.
+                  </p>
+                )}
               </div>
             )}
 
@@ -315,7 +314,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-center">Configure Constraints</h2>
                 <p className="text-sm text-zinc-400 text-center">
-                  Set guardrails for your autonomous agent
+                  Set guardrails for your autonomous agent. These constraints will appear on your Risk Profile.
                 </p>
                 
                 <div>
@@ -428,7 +427,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-center">Generate Authorization</h2>
                 <p className="text-sm text-zinc-400 text-center">
-                  Creating privacy-preserving identity proof (STARK)
+                  Creating the proof that backs your Risk Profile identity (STARK).
                 </p>
                 
                 <ProofVisualizer state={proofState} />
@@ -578,8 +577,35 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 6: Submit Agent On-Chain */}
+            {/* Step 6: Vault Constitution */}
             {step === 6 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-center">Set Your Vault Rules</h2>
+                <p className="text-sm text-zinc-400 text-center">
+                  The AI will operate within these boundaries. You can change them anytime from your Profile.
+                </p>
+
+                <VaultConstitution mode="edit" />
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(5)}
+                    className="px-6 py-3 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setStep(7)}
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 7: Submit Agent On-Chain */}
+            {step === 7 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-center">Initialize Agent</h2>
                 <p className="text-sm text-zinc-400 text-center">
@@ -618,22 +644,22 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Step 7: Complete */}
-            {step === 7 && (
+            {/* Step 8: Complete */}
+            {step === 8 && (
               <div className="space-y-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center mx-auto">
                   <Check className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h2 className="text-2xl font-bold">Agent Initialized</h2>
+                <h2 className="text-2xl font-bold">Your Risk Profile is ready</h2>
                 <p className="text-zinc-400">
-                  Your autonomous agent is now live with privacy-preserving identity
+                  Your identity and constraints are set. View your profile or go to the Dashboard to run proofs and build reputation.
                 </p>
                 
                 {agentTxHash && (
                   <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
                     <p className="text-xs text-zinc-500 uppercase mb-1">Transaction</p>
                     <a 
-                      href={`https://sepolia.starkscan.co/tx/${agentTxHash}`}
+                      href={sepoliaVoyagerTxUrl(agentTxHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-emerald-400 hover:text-emerald-300 font-mono break-all"
@@ -673,12 +699,20 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </ul>
                 </div>
                 
-                <button 
-                  onClick={onComplete} 
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
-                >
-                  Go to Dashboard
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/profile"
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors text-center"
+                  >
+                    View your Risk Profile
+                  </Link>
+                  <button 
+                    onClick={onComplete} 
+                    className="flex-1 py-3 border border-zinc-600 hover:border-zinc-500 rounded-lg font-medium transition-colors"
+                  >
+                    Go to Dashboard
+                  </button>
+                </div>
               </div>
             )}
             

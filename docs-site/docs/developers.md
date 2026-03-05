@@ -1,59 +1,90 @@
-# For developers
+# Developers (Users + GATE Integrators)
 
-Documentation lives at **zkde.fi/docs** (this site when viewing on zkde.fi).
+This section is for builders who need to understand how zkde.fi is wired today and how to integrate responsibly with production and experimental paths.
 
-## Quick Links
+## The Problem This Solves
 
-- **[Smart Contracts](/contracts)** - Deployed addresses and contract details
-- **[Setup Guide](https://github.com/obsqra-labs/zkdefi/blob/main/docs/SETUP.md)** - Deployment, env vars, running services
-- **[Architecture](https://github.com/obsqra-labs/zkdefi/blob/main/docs/ARCHITECTURE.md)** - System components and data flow
-- **[Environment Variables](https://github.com/obsqra-labs/zkdefi/blob/main/docs/ENV.md)** - Backend and frontend configuration
-- **[GitHub Repository](https://github.com/obsqra-labs/zkdefi)** - Full source code
+Most “developer pages” stay too generic and force builders to reverse-engineer behavior from source. That slows delivery and increases integration risk.
 
-## Contract Addresses
+## Why This Matters
 
-All zkde.fi contracts are deployed on **Starknet Sepolia**. See the [Contracts](/contracts) page for all deployed addresses and contract details.
+When builders can see architecture intent, endpoint shape, and auth boundaries in one place, they ship safer clients and maintain cleaner production operations.
 
-### Quick Reference
+## Integration Orientations
 
-- **ProofGatedYieldAgent:** `0x012ebbddae869fbcaee91ecaa936649cc0c75756583ae4ef6521742f963562b3`
-- **SelectiveDisclosure:** `0x00ab6791e84e2d88bf2200c9e1c2fb1caed2eecf5f9ae2989acf1ed3d00a0c77`
-- **Garaga Verifier:** `0x06d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37`
-- **ConfidentialTransfer:** `0x07fdc7c21ab074e7e1afe57edfcb818be183ab49f4bf31f9bf86dd052afefaa4`
+### 1) User-facing product integrations
 
-## API Reference
+Use deep links and route-state conventions to guide users into the correct operational surface.
 
-### Backend API
+### 2) Backend/system integrations
 
-The zkde.fi backend API is available at `https://zkde.fi/api/v1/zkdefi`.
+Use endpoint-level APIs, enforce header discipline, and classify dependencies as production or experimental.
 
-**Health Check:**
-```bash
-curl https://zkde.fi/health
+### 3) GATE-aligned ecosystem integrations
+
+Use AEGIS/GATE semantics where relevant, but keep user UX grounded in current app and API behavior.
+
+## System Shape
+
+```mermaid
+flowchart LR
+  UI[Next.js frontend] --> API[FastAPI backend]
+  API --> SN[Starknet]
+  API --> PX[Proof + policy services]
+  API --> IDX[Indexers and market data]
+  SN --> UI
 ```
 
-**Get Contract Addresses:**
-```bash
-curl https://zkde.fi/api/v1/zkdefi/contracts
-```
+## Practical Starting Points
 
-Full API documentation coming soon.
+- [API overview](/api-overview) for endpoint-level integration map
+- [Architecture summary](/architecture-summary) for service boundaries
+- [Contracts](/contracts) for deployed address references
+- [Deploying zkde.fi](/deploying-zkde-fi) for serving model and docs pipeline
+- [AEGIS-1](/aegis) for GATE standard framing
 
-## Self-hosting / contributors
+## Repository References
 
-For contributors: clone the repo, install dependencies (frontend, backend, contracts), set env (see [ENV.md](https://github.com/obsqra-labs/zkdefi/blob/main/docs/ENV.md)). Run backend on :8003 and frontend on :3001. SDK and CLI for integration are on the roadmap; most users use the live app at zkde.fi.
+- Setup: <https://github.com/obsqra-labs/zkdefi/blob/main/docs/SETUP.md>
+- Environment variables: <https://github.com/obsqra-labs/zkdefi/blob/main/docs/ENV.md>
+- Architecture details: <https://github.com/obsqra-labs/zkdefi/blob/main/docs/ARCHITECTURE.md>
+- Agent flow details: <https://github.com/obsqra-labs/zkdefi/blob/main/docs/AGENT_FLOW.md>
+- Source repository: <https://github.com/obsqra-labs/zkdefi>
 
-Visit `http://localhost:3001` to see the app when running locally.
+## Production Vs Experimental Discipline
 
-## Contributing
+### Problem it solves
 
-We welcome contributions! Please see our [GitHub repository](https://github.com/obsqra-labs/zkdefi) for contribution guidelines.
+Teams often consume experimental endpoints as if they were stable contracts.
 
-## Support
+### Why it matters
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/obsqra-labs/zkdefi/issues)
-- **Twitter:** [@obsqralabs](https://twitter.com/obsqralabs)
+This causes breakage during upgrades and avoidable incident response.
 
----
+### Guidance
 
-[Back to Introduction](/intro)
+- Treat these route families as faster-changing surfaces:
+  - `/api/v1/phase4a/status`, `/api/v1/phase4a/orchestrated/dashboard`
+  - `/api/v1/vault-live/positions/{user_address}`, `/api/v1/vault-live/rebalance`
+  - `/api/v1/zkdefi/sim/health`, `/api/v1/zkdefi/sim/state`
+- Version pin response expectations in your client code.
+- Keep fallback handling explicit for optional fields and async reconciliation states.
+
+## Authentication Ground Rules
+
+For user-protected mutation flows, use `X-Wallet-Address` where required by endpoint policy. For admin-only routes, use `X-Admin-Key`. Do not assume all write routes are identically guarded; verify by endpoint and release.
+
+## Compliance And Legal Boundary
+
+This documentation is technical only. It does not provide legal, tax, or investment advice, and it does not guarantee that any generated disclosure artifact satisfies regulatory obligations in your jurisdiction.
+
+Next: [API overview](/api-overview) | [Architecture summary](/architecture-summary) | [Deploying zkde.fi](/deploying-zkde-fi)
+
+## Key Fixtures (Verified 2026-03-05)
+
+- `GET /api/v1/zkdefi/risk_profile/v2/{address}`
+- `GET /api/v1/zkdefi/risk_passport/v2/user/{address}`
+- `GET /api/v1/zkdefi/session_keys/list/{owner_address}`
+- `POST /api/v1/zkdefi/auth/session/start`
+- `POST /api/v1/zkdefi/lending/proof/credit-eligibility`
+- `POST /api/v1/zkdefi/zkml/scan`

@@ -15,6 +15,8 @@ import { VaultTradeTab } from "./VaultTradeTab";
 import { VaultBanner } from "./VaultBanner";
 import { VaultHealthMeter } from "./VaultHealthMeter";
 import { NextRebalanceStrip } from "./NextRebalanceStrip";
+import { ProofsPill } from "./ProofsPill";
+import { ExecutionAuthorityCard } from "./ExecutionAuthorityCard";
 
 export interface VaultSurfaceProps {
   address: string | undefined;
@@ -57,6 +59,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
     vaultState,
     cooldownRemaining,
     pendingProposal,
+    proofsState,
   } = useVaultController(address);
 
   const { adapters } = useAdapterRegistry();
@@ -229,6 +232,8 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           <h2 className="text-lg font-semibold text-white">Privacy Vault</h2>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
+          <ProofsPill proofsState={proofsState} />
+          <span className="text-white/20">|</span>
           <span className="text-white/40">STRK/ETH</span>
           <span className="text-white">
             {prices.strk_eth != null ? prices.strk_eth.toFixed(6) : "--"}
@@ -274,6 +279,9 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           </p>
         </div>
       </div>
+
+      {/* Execution Authority */}
+      <ExecutionAuthorityCard address={address} />
 
       {/* Tab Navigation */}
       <div className="flex gap-4 border-b border-white/10">

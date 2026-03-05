@@ -1,0 +1,8 @@
+{
+  "name": "Slow Bleed",
+  "description": "Gradual 15% price erosion over an extended period. Tests agent patience and incremental rebalancing.",
+  "scenario": "depeg_down",
+  "severity": 0.15,
+  "duration_ticks": 300,
+  "tags": ["gradual", "depeg", "medium-impact"]
+}

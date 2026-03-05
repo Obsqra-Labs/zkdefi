@@ -6,6 +6,8 @@ Endpoints:
 - /api/v1/zkdefi/zkml/anomaly - Generate anomaly detection proof
 - /api/v1/zkdefi/zkml/combined - Generate both proofs for rebalancing
 """
+import os
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -211,10 +213,17 @@ async def get_zkml_status():
     """
     risk_service = get_risk_service()
     anomaly_service = get_anomaly_service()
+    from app.services.zkml.circuit_scanner import list_available_circuits
+
+    circuits = list_available_circuits()
+    ready_count = sum(1 for c in circuits if c.get("ready"))
     
     return {
         "risk_score_circuit_ready": risk_service.circuits_ready,
         "anomaly_detection_circuit_ready": anomaly_service.circuits_ready,
+        "circuits_available": len(circuits),
+        "circuits_ready": ready_count,
+        "policy_mode": os.getenv("ZKDEFI_CIRCUIT_POLICY_MODE", "signal"),
         "proof_system": "groth16",
         "verifier": "garaga"
     }
@@ -242,4 +251,167 @@ async def get_pool_safety_overview():
         "circuits_ready": anomaly_service.circuits_ready,
         "last_analysis": None,
         "pools_analyzed": 0
+    }
+
+
+# ==================== Unified Circuit Scanner ====================
+
+class CircuitScanRequest(BaseModel):
+    """Request to run multiple circuits in parallel."""
+    user_address: str
+    circuits: list[str] | None = None  # None = all available ML circuits
+    portfolio_features: list[int] | None = None  # 8 features for ML circuits
+    inputs_override: dict[str, dict] | None = None  # per-circuit custom inputs
+    mode: str = "gate"  # gate | signal
+
+
+class CircuitScanResponse(BaseModel):
+    mode: str
+    all_pass: bool
+    circuits_run: int
+    results: list[dict]
+    total_duration_ms: int
+    summary: dict[str, int] | None = None
+
+
+class CircuitRunRequest(BaseModel):
+    """Run one or more circuits and return a full signal readout."""
+    user_address: str
+    circuits: list[str] | None = None
+    portfolio_features: list[int] | None = None
+    inputs_override: dict[str, dict] | None = None
+    mode: str = "signal"  # For readouts, signal mode is usually what users want.
+    include_human_summary: bool = True
+    context_label: str | None = "market_depth"
+
+
+def _parse_user_address_int(raw: str | None) -> int:
+    if not raw:
+        return 0
+    try:
+        value = raw.strip()
+        return int(value, 16) if value.startswith("0x") else int(value)
+    except Exception:
+        return 0
+
+
+def _humanize_scan_result(scan: dict, context_label: str | None = None) -> str:
+    """Create a deterministic, human-readable signal summary."""
+    summary = scan.get("summary") or {}
+    total = int(scan.get("circuits_run") or 0)
+    compliant = int(summary.get("compliant") or 0)
+    non_compliant = int(summary.get("non_compliant") or 0)
+    failed = int(summary.get("failed") or 0)
+    skipped = int(summary.get("skipped") or 0)
+
+    highlights: list[str] = []
+    for row in scan.get("results") or []:
+        if not row.get("success"):
+            continue
+        if row.get("is_compliant") is False:
+            highlights.append(f"{row.get('circuit')}: below threshold")
+        elif row.get("is_compliant") is True:
+            highlights.append(f"{row.get('circuit')}: within bound")
+        if len(highlights) >= 4:
+            break
+
+    label = context_label or "signals"
+    lines = [
+        f"Context: {label}",
+        f"Mode: {scan.get('mode', 'gate')} | Circuits run: {total}",
+        f"Compliant: {compliant}, Non-compliant: {non_compliant}, Failed: {failed}, Skipped: {skipped}",
+    ]
+    if highlights:
+        lines.append("Highlights: " + "; ".join(highlights))
+    if scan.get("mode") == "signal":
+        lines.append("Interpretation: this is an indicator readout, not a hard execution block.")
+    return "\n".join(lines)
+
+
+def _build_skill_map() -> dict[str, list[str]]:
+    """Map circuit_name -> [skill_ids] for composability readouts."""
+    from app.services.agent_skill_service import SKILL_DEFINITIONS
+
+    out: dict[str, list[str]] = {}
+    for skill_id, skill in SKILL_DEFINITIONS.items():
+        out.setdefault(skill.circuit_name, []).append(skill_id)
+    return out
+
+
+@router.post("/scan")
+async def circuit_scan(req: CircuitScanRequest) -> CircuitScanResponse:
+    """Run a parallel scan across all (or selected) zkML circuits.
+
+    Returns per-circuit proof results with compliance flags, proof hashes,
+    and timing metadata. Useful for comprehensive portfolio risk assessment.
+    """
+    from app.services.zkml.circuit_scanner import run_circuit_scan
+
+    user_addr_int = _parse_user_address_int(req.user_address)
+
+    result = await run_circuit_scan(
+        circuits=req.circuits,
+        inputs_override=req.inputs_override,
+        user_address=user_addr_int,
+        portfolio_features=req.portfolio_features,
+        mode=req.mode,
+    )
+    return CircuitScanResponse(**result)
+
+
+@router.get("/circuits")
+async def list_circuits():
+    """List all registered circuits and their readiness status."""
+    from app.services.zkml.circuit_scanner import list_available_circuits
+
+    skill_map = _build_skill_map()
+    circuits = list_available_circuits()
+    for circuit in circuits:
+        circuit["skills"] = skill_map.get(circuit["name"], [])
+    return {"circuits": circuits}
+
+
+@router.get("/readout")
+async def zkml_readout():
+    """Unified stack readout: circuits + skill bindings + ONNX status."""
+    from app.services.zkml.circuit_scanner import list_circuit_readout, get_onnx_runtime_status
+
+    skill_map = _build_skill_map()
+    circuits = list_circuit_readout()
+    for circuit in circuits:
+        circuit["skills"] = skill_map.get(circuit["name"], [])
+        circuit["as_signal"] = True  # indicator-friendly by default
+
+    return {
+        "stack": {
+            "proof_systems": ["cairo", "circom", "groth16"],
+            "llm_skill_orchestration": True,
+            "composition_mode": "composable_signals",
+        },
+        "circuits": circuits,
+        "onnx": get_onnx_runtime_status(),
+        "notes": [
+            "Circuits marked as_signal=true are suitable as indicator inputs.",
+            "Use /zkml/readout/run to execute all/selected circuits and inspect outputs.",
+        ],
+    }
+
+
+@router.post("/readout/run")
+async def zkml_readout_run(req: CircuitRunRequest):
+    """Run composable circuit signals and return full output + readable summary."""
+    from app.services.zkml.circuit_scanner import run_circuit_scan
+
+    user_addr_int = _parse_user_address_int(req.user_address)
+    scan = await run_circuit_scan(
+        circuits=req.circuits,
+        inputs_override=req.inputs_override,
+        user_address=user_addr_int,
+        portfolio_features=req.portfolio_features,
+        mode=req.mode,
+    )
+    readable = _humanize_scan_result(scan, context_label=req.context_label) if req.include_human_summary else None
+    return {
+        **scan,
+        "human_summary": readable,
     }

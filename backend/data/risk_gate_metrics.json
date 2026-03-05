@@ -1,0 +1,92 @@
+{
+  "2026-03-03": {
+    "total": 286,
+    "by_gate": {
+      "relayer": {
+        "allow": 201,
+        "advisory": 85,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 286,
+        "block": 0
+      },
+      "lending": {
+        "allow": 201,
+        "advisory": 85,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "no_active_session": 286,
+      "passport_low_confidence": 20,
+      "passport_letter_below_c": 85,
+      "tier_below_standard": 75,
+      "onboarding_incomplete": 225,
+      "no_credit_line": 75
+    },
+    "updated_at": "2026-03-03T23:57:59.765336+00:00",
+    "last_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "2026-03-04": {
+    "total": 793,
+    "by_gate": {
+      "relayer": {
+        "allow": 113,
+        "advisory": 680,
+        "block": 0
+      },
+      "execution": {
+        "allow": 58,
+        "advisory": 735,
+        "block": 0
+      },
+      "lending": {
+        "allow": 113,
+        "advisory": 680,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "tier_below_standard": 158,
+      "onboarding_incomplete": 474,
+      "no_active_session": 693,
+      "passport_letter_below_c": 680,
+      "no_credit_line": 158,
+      "passport_low_confidence": 1148
+    },
+    "updated_at": "2026-03-04T23:35:30.512400+00:00",
+    "last_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "2026-03-05": {
+    "total": 218,
+    "by_gate": {
+      "relayer": {
+        "allow": 110,
+        "advisory": 108,
+        "block": 0
+      },
+      "execution": {
+        "allow": 110,
+        "advisory": 108,
+        "block": 0
+      },
+      "lending": {
+        "allow": 110,
+        "advisory": 108,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "passport_low_confidence": 100,
+      "passport_letter_below_c": 108,
+      "tier_below_standard": 105,
+      "onboarding_incomplete": 315,
+      "no_active_session": 105,
+      "no_credit_line": 105
+    },
+    "updated_at": "2026-03-05T06:48:40.246993+00:00",
+    "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
+  }
+}

@@ -1,5 +1,6 @@
 """
-Relayer runner: submits Tier-2 withdrawals, Tier-3 deposits, and Tier-2H claim payouts on-chain.
+Relayer runner: submits Tier-2 withdrawals, Tier-3 deposits, Tier-2H payouts,
+ledger shielded payouts, and direct wallet payouts on-chain.
 
 Enable with RELAYER_RUNNER_ENABLED=true. Requires a funded relayer account.
 """
@@ -18,9 +19,11 @@ from typing import Optional
 
 from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account
+from starknet_py.net.client_models import Call, ResourceBoundsMapping
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
 from starknet_py.net.signer.stark_curve_signer import KeyPair
+from starknet_py.hash.selector import get_selector_from_name
 
 from app import config
 from app.api import relayer as relayer_api
@@ -241,6 +244,20 @@ class RelayerRunner:
             key_pair=key_pair,
             chain=self.cfg.chain_id,
         )
+        # Cartridge/public gateways can reject some "pending" class lookups.
+        self._account._cairo_version = 1
+
+    def _token_address_for_asset(self, asset: str) -> Optional[int]:
+        symbol = str(asset or "STRK").strip()
+        env_map = {
+            "STRK": os.getenv("STRK_TOKEN_ADDRESS") or "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+            "zkdETH": os.getenv("ZKDETH_TOKEN_ADDRESS") or "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+            "zkdAI": os.getenv("ZKDAI_TOKEN_ADDRESS") or "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        }
+        raw = env_map.get(symbol)
+        if not raw:
+            return None
+        return _parse_int(raw)
 
     async def _ensure_pool_contract(self) -> None:
         if self.cfg.dry_run:
@@ -517,6 +534,9 @@ class RelayerRunner:
 
     async def _submit_ledger_withdraw(self, req: dict) -> Optional[str]:
         """Submit one ledger-withdraw as ConfidentialTransfer.private_deposit_u256."""
+        asset = str(req.get("asset") or "STRK")
+        if asset != "STRK":
+            raise ValueError(f"Ledger shielded withdraw currently supports STRK only (got {asset})")
         amount = _parse_int(req.get("amount_wei"))
         if amount is None:
             raise ValueError("Invalid amount_wei in ledger withdraw.")
@@ -557,6 +577,62 @@ class RelayerRunner:
             await result.wait_for_acceptance()
         return tx_hash
 
+    async def _submit_wallet_payout(self, req: dict) -> Optional[str]:
+        amount = _parse_int(req.get("amount_wei"))
+        recipient = _parse_int(req.get("recipient"))
+        asset = str(req.get("asset") or "STRK")
+        if amount is None or amount <= 0:
+            raise ValueError("Invalid amount_wei in wallet payout.")
+        if recipient is None or recipient <= 0:
+            raise ValueError("Invalid recipient in wallet payout.")
+        token_address = self._token_address_for_asset(asset)
+        if token_address is None:
+            raise RuntimeError(f"Unsupported wallet payout asset: {asset}")
+
+        if self.cfg.dry_run:
+            _log.info(
+                "DRY RUN wallet payout payout_id=%s asset=%s amount=%s recipient=%s",
+                req.get("payout_id"),
+                asset,
+                amount,
+                hex(recipient),
+            )
+            return None
+
+        amount_low = amount % (2**128)
+        amount_high = amount // (2**128)
+
+        if self.cfg.use_cli:
+            calldata = [str(recipient), str(amount_low), str(amount_high)]
+            return await self._cli_invoke(token_address, "transfer", calldata)
+
+        await self._ensure_account()
+        assert self._account is not None
+
+        transfer_call = Call(
+            to_addr=token_address,
+            selector=get_selector_from_name("transfer"),
+            calldata=[recipient, amount_low, amount_high],
+        )
+
+        nonce = await self._account.get_nonce(block_number="latest")
+        draft = await self._account._prepare_invoke_v3(
+            [transfer_call],
+            resource_bounds=ResourceBoundsMapping.init_with_zeros(),
+            nonce=nonce,
+        )
+        estimated = await self._account.estimate_fee(draft, block_number="latest")
+        rbm = estimated.to_resource_bounds()
+        resp = await self._account.execute_v3(
+            calls=transfer_call,
+            resource_bounds=rbm,
+            nonce=nonce,
+        )
+        tx_hash = hex(resp.transaction_hash)
+        if self.cfg.wait_for_tx:
+            await self._account.client.wait_for_tx(resp.transaction_hash)
+        return tx_hash
+
     async def process_once(self) -> None:
         if not self.cfg.enabled:
             return
@@ -565,8 +641,24 @@ class RelayerRunner:
         ready_deposits = relayer_api.get_ready_deposit_requests(limit=self.cfg.max_batch)
         ready_claims = relayer_api.get_ready_claim_requests(limit=self.cfg.max_batch)
         ready_ledger_withdraws = relayer_api.get_ready_ledger_withdraw_requests(limit=self.cfg.max_batch)
+        ready_wallet_payouts = relayer_api.get_ready_wallet_payout_requests(limit=self.cfg.max_batch)
         stop_after_submit = not self.cfg.wait_for_tx
         submitted = False
+
+        for req in ready_wallet_payouts:
+            payout_id = req.get("payout_id")
+            try:
+                tx_hash = await self._submit_wallet_payout(req)
+                if tx_hash:
+                    _log.info("Wallet payout %s tx=%s", payout_id, tx_hash)
+                if not self.cfg.dry_run:
+                    relayer_api.mark_wallet_payout_executed(int(payout_id), tx_hash=tx_hash)
+                if stop_after_submit and tx_hash:
+                    submitted = True
+            except Exception as exc:
+                _log.error("Wallet payout failed payout_id=%s err=%s", payout_id, exc)
+            if submitted:
+                return
 
         for req in ready_ledger_withdraws:
             withdraw_id = req.get("withdraw_id")

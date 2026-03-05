@@ -22,6 +22,7 @@ import {
 
 export default function Home() {
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
 
   const privacyTiers = [
     {
@@ -135,7 +136,7 @@ export default function Home() {
             <a href="#solution" className="text-sm text-zinc-400 hover:text-white transition-colors">Solution</a>
             <a href="#how-it-works" className="text-sm text-zinc-400 hover:text-white transition-colors">How it works</a>
             <a href="#developers" className="text-sm text-zinc-400 hover:text-white transition-colors">Developers</a>
-            <a href="https://docs.zkde.fi" target="_blank" rel="noopener noreferrer" className="text-sm text-zinc-400 hover:text-white transition-colors">Docs</a>
+            <a href="/docs" className="text-sm text-zinc-400 hover:text-white transition-colors">Docs</a>
           </nav>
           <div className="flex items-center gap-3">
             <Link
@@ -179,7 +180,7 @@ export default function Home() {
               <ArrowRight className="w-5 h-5" />
             </Link>
             <a
-              href="https://docs.zkde.fi"
+              href="/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-4 border border-zinc-700 hover:border-emerald-500/50 rounded-lg font-medium transition-all hover:bg-zinc-900/50 flex items-center gap-2"
@@ -233,6 +234,9 @@ export default function Home() {
                 You choose how much to hide. Escalating tiers from unlinkability (break deposit↔withdraw links) to hashed claims (hidden recipient & amount) to internal accounting (coming soon—private settlement with no public transfers).
               </p>
               <p className="text-emerald-400 text-xs font-semibold">Unlike simple mixers. You get policy, not just pooling.</p>
+              <Link href="/agent?v=vault" prefetch={false} className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-3 transition-colors">
+                Explore in Vault <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             {/* PROOF-GATED EXECUTION */}
@@ -245,6 +249,9 @@ export default function Home() {
                 Execution only happens when a zero-knowledge proof verifies your constraints (risk scores, portfolio rules, policy). If you can prove it, the contract executes. No proof = no execution. Deterministic. Trustless.
               </p>
               <p className="text-violet-400 text-xs font-semibold">Unique among privacy protocols. Privacy + policy enforcement.</p>
+              <Link href="/agent?v=brain&sub=pipeline" prefetch={false} className="inline-flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 font-medium mt-3 transition-colors">
+                View Pipeline <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             {/* RISK PASSPORT */}
@@ -257,6 +264,9 @@ export default function Home() {
                 A portable, cryptographically verifiable proof object summarizing your portfolio health and risk behavior. Other protocols read your score and enforce policy—without accessing sensitive data.
               </p>
               <p className="text-cyan-400 text-xs font-semibold">Beyond dashboards. A programmable constraint primitive.</p>
+              <Link href="/profile" prefetch={false} className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 font-medium mt-3 transition-colors">
+                View Profile <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             {/* STARKNET NATIVE */}
@@ -269,6 +279,9 @@ export default function Home() {
                 Built entirely on Starknet. Integrates with account abstraction, session keys, zkML co-processors, and existing DeFi tools. No bridges. No isolated chains. Full on-chain composability.
               </p>
               <p className="text-emerald-400 text-xs font-semibold">Like Railgun&apos;s on-chain simplicity. For Starknet.</p>
+              <Link href="/agent?v=brain&sub=models" prefetch={false} className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-3 transition-colors">
+                Explore Models <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
           </div>
         </div>
@@ -398,23 +411,76 @@ export default function Home() {
       <section id="how-it-works" className="px-6 py-20 border-t border-zinc-800">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-12 text-center">How it works: Three steps</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center group">
-              <div className="w-14 h-14 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center mx-auto mb-5 font-bold text-xl group-hover:bg-emerald-600/40 transition-colors duration-300">1</div>
-              <h3 className="text-lg font-semibold mb-3 text-white">Set constraints</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Define your risk limits, portfolio rules, and what your agent can do.</p>
-            </div>
-            <div className="text-center group">
-              <div className="w-14 h-14 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center mx-auto mb-5 font-bold text-xl group-hover:bg-emerald-600/40 transition-colors duration-300">2</div>
-              <h3 className="text-lg font-semibold mb-3 text-white">Generate proof</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Off-chain prover runs your logic (STARK + Groth16). Proofs bind via Fact Registry.</p>
-            </div>
-            <div className="text-center group">
-              <div className="w-14 h-14 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center mx-auto mb-5 font-bold text-xl group-hover:bg-emerald-600/40 transition-colors duration-300">3</div>
-              <h3 className="text-lg font-semibold mb-3 text-white">Execute</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Contract verifies proofs. Valid = execution. Invalid = revert. Deterministic.</p>
-            </div>
-          </div>
+          {(() => {
+            const flowSteps = [
+              {
+                title: "Set constraints",
+                short: "Define your risk limits, portfolio rules, and what your agent can do.",
+                detail: "Configure maximum position sizes, risk score thresholds, allowed adapters (Ekubo, Vesu, Staking), and slippage bounds. These constraints are encoded as circuit inputs for your Groth16 proof.",
+                privacy: "Constraints are private witnesses — only the pass/fail result is visible on-chain.",
+                link: "/agent?v=brain&sub=agent",
+                linkText: "Configure in Brain",
+              },
+              {
+                title: "Generate proof",
+                short: "Off-chain prover runs your logic (STARK + Groth16). Proofs bind via Fact Registry.",
+                detail: "The prover evaluates zkML risk models (Cairo perceptron, anomaly detector, slippage bound) against your constraints. A Groth16 proof on BN254 is generated in ~10-15 seconds, attesting all checks passed.",
+                privacy: "Proof reveals nothing about your positions, strategy, or risk profile — only that constraints are satisfied.",
+                link: "/agent?v=brain&sub=pipeline",
+                linkText: "View Pipeline",
+              },
+              {
+                title: "Execute",
+                short: "Contract verifies proofs. Valid = execution. Invalid = revert. Deterministic.",
+                detail: "The Garaga verifier contract checks the proof against the VaultController's policy root. Valid proofs trigger execution through adapters (Ekubo LP, lending, staking). A ConstraintReceipt is produced on-chain.",
+                privacy: "Execution uses shielded vault balances — adapters see a commitment, not a wallet address or balance.",
+                link: "/agent?v=vault&sub=activity",
+                linkText: "View Activity",
+              },
+            ];
+            return (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {flowSteps.map((step, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveStep(idx)}
+                      className={`text-left rounded-2xl border p-6 transition-all duration-300 ${
+                        activeStep === idx
+                          ? "border-emerald-500/50 bg-emerald-950/20 shadow-lg shadow-emerald-500/10"
+                          : "border-zinc-800 bg-zinc-950/50 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5 font-bold text-xl transition-colors duration-300 ${
+                        activeStep === idx ? "bg-emerald-600/40 text-emerald-300" : "bg-emerald-600/20 text-emerald-400"
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <h3 className="text-lg font-semibold mb-3 text-white text-center">{step.title}</h3>
+                      <p className="text-zinc-400 text-sm leading-relaxed text-center">{step.short}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-8 rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-6 max-w-2xl mx-auto">
+                  <p className="text-sm text-zinc-300 leading-relaxed mb-4">{flowSteps[activeStep].detail}</p>
+                  <div className="flex items-start gap-2 mb-4">
+                    <Shield className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-emerald-400/80">{flowSteps[activeStep].privacy}</p>
+                  </div>
+                  <Link
+                    href={flowSteps[activeStep].link}
+                    prefetch={false}
+                    className="inline-flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                  >
+                    {flowSteps[activeStep].linkText}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </section>
 
@@ -577,7 +643,7 @@ export default function Home() {
                 <p className="text-zinc-400 text-sm leading-relaxed mb-4">
                   Complete guides on privacy tiers, risk passports, proof generation, and Starknet composability.
                 </p>
-                <a href="https://docs.zkde.fi" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 text-sm font-semibold inline-flex items-center gap-1">
+                <a href="/docs" className="text-violet-400 hover:text-violet-300 text-sm font-semibold inline-flex items-center gap-1">
                   Read docs <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -586,7 +652,7 @@ export default function Home() {
                 <p className="text-zinc-400 text-sm leading-relaxed mb-4">
                   Build your first proof-gated contract, integrate risk passports, and compose with Starknet DeFi.
                 </p>
-                <a href="https://docs.zkde.fi" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold inline-flex items-center gap-1">
+                <a href="/docs" className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold inline-flex items-center gap-1">
                   Explore tutorials <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -638,7 +704,7 @@ export default function Home() {
           </p>
           <div className="flex items-center justify-center gap-4 pt-4 flex-wrap text-xs text-zinc-500">
             <a href="https://github.com/obsqra-labs/zkdefi" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">GitHub</a>
-            <a href="https://docs.zkde.fi" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">Docs</a>
+            <a href="/docs" className="hover:text-zinc-300 transition-colors">Docs</a>
             <a href="https://zkd.app" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">zkd.app</a>
             <Link href="/privacy" className="hover:text-zinc-300 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-zinc-300 transition-colors">Terms</Link>

@@ -4,7 +4,7 @@
  * Utilities for managing session keys with Starknet account abstraction.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
 
 export interface SessionKeyConfig {
   sessionKeyAddress: string;
@@ -216,6 +216,7 @@ export function protocolsToBitmap(protocols: string[]): number {
     pools: 1,
     ekubo: 2,
     jediswap: 4,
+    lending: 8,
   };
 
   return protocols.reduce((bitmap, protocol) => {
@@ -231,5 +232,6 @@ export function bitmapToProtocols(bitmap: number): string[] {
   if (bitmap & 1) protocols.push("pools");
   if (bitmap & 2) protocols.push("ekubo");
   if (bitmap & 4) protocols.push("jediswap");
+  if (bitmap & 8) protocols.push("lending");
   return protocols;
 }

@@ -1,0 +1,384 @@
+{
+  "0x0": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_a1b96cd2c27ec78ca1ed39c9",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-03T06:18:01.658842+00:00",
+    "user_address": "0x0",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x1": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_b8a3743992ede4a05d93465f",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-02T05:24:31.864193+00:00",
+    "user_address": "0x1",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x111": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_2fdb56740bdb47d19d8da141",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-02-24T04:33:00.051470+00:00",
+    "user_address": "0x111",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x123": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_3d8bd3a77558a469617f75f8",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-04T15:28:34.906638+00:00",
+    "user_address": "0x123",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x222": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_533dbb883bfb5a8926c98784",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-02-24T04:33:00.069708+00:00",
+    "user_address": "0x222",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "autonomous",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 12500.0
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": true,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "hidden_flow",
+      "relay_mode": "required",
+      "settlement_mode": "hashed_claim",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_f61c7c1b5fde8163b9f11da8",
+    "risk_budget": {
+      "max_daily_turnover_bps": 4000,
+      "max_drawdown_bps": 2500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-02T14:27:09.086493+00:00",
+    "user_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0xabc": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_cef4a4acd7d21951857f92c7",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-02-24T04:35:47.948761+00:00",
+    "user_address": "0xabc",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0xuser": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_b14e787abcc4b3d956d1c9c5",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-04T16:15:06.711881+00:00",
+    "user_address": "0xuser",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  }
+}

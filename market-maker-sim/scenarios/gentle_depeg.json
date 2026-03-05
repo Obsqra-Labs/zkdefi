@@ -1,0 +1,8 @@
+{
+  "name": "Gentle Depeg",
+  "description": "Minor 5% deviation below peg for testing normal bot correction behavior.",
+  "scenario": "depeg_down",
+  "severity": 0.05,
+  "duration_ticks": 120,
+  "tags": ["baseline", "depeg", "low-impact"]
+}

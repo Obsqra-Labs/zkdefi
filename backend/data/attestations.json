@@ -1,0 +1,533 @@
+{
+  "0x507fb7905b8d1f94f6942c3aab784a8912ac7be5b83df5e68018324d0484ba3b": {
+    "subject": "0xtest123",
+    "letter_min": "B",
+    "composite_min": 75,
+    "credit_tier": "A",
+    "collateral_wei": 500000000000000000,
+    "unsecured_cap_wei": 1500000000000000000,
+    "total_line_wei": 1900000000000000000,
+    "rate_bps": 620,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T04:40:35.150391+00:00",
+    "expires_at": "2026-03-10T04:40:35.150391+00:00",
+    "attestation_hash": "0x507fb7905b8d1f94f6942c3aab784a8912ac7be5b83df5e68018324d0484ba3b",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x06efefc4f5d8f97e54bee8c3cd5f707e22beebc3271fa69a9f28502a156aa4f3": {
+    "subject": "0x123",
+    "letter_min": "D",
+    "composite_min": 15,
+    "credit_tier": null,
+    "collateral_wei": 0,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 0,
+    "rate_bps": 800,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T05:11:58.753938+00:00",
+    "expires_at": "2026-03-10T05:11:58.753938+00:00",
+    "attestation_hash": "0x06efefc4f5d8f97e54bee8c3cd5f707e22beebc3271fa69a9f28502a156aa4f3",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x1995d3c4707cc7001f9268a6dc2966e32560fbcaffb3f176ff14d7d2af8ff78c": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 88,
+    "credit_tier": null,
+    "collateral_wei": 800000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 640000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T05:17:43.683609+00:00",
+    "expires_at": "2026-03-10T05:17:43.683609+00:00",
+    "attestation_hash": "0x1995d3c4707cc7001f9268a6dc2966e32560fbcaffb3f176ff14d7d2af8ff78c",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x61115b75916fc8575ef12dff32b28e2119b238a4186becc745dff582bd899d20": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 88,
+    "credit_tier": null,
+    "collateral_wei": 800000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 640000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T05:55:26.811488+00:00",
+    "expires_at": "2026-03-10T05:55:26.811488+00:00",
+    "attestation_hash": "0x61115b75916fc8575ef12dff32b28e2119b238a4186becc745dff582bd899d20",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x7044daee51906f593fef42878a38d643c13edd5863e58b559386227efbbe9fd3": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 88,
+    "credit_tier": null,
+    "collateral_wei": 800000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 640000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T05:55:35.866512+00:00",
+    "expires_at": "2026-03-10T05:55:35.866512+00:00",
+    "attestation_hash": "0x7044daee51906f593fef42878a38d643c13edd5863e58b559386227efbbe9fd3",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x91c638c0a6d15b4e4f72103be50a48d04bad41b9d3835a906fa6e85317033278": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:08:39.274862+00:00",
+    "expires_at": "2026-03-10T06:08:39.274862+00:00",
+    "attestation_hash": "0x91c638c0a6d15b4e4f72103be50a48d04bad41b9d3835a906fa6e85317033278",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xb102d2222ab0eb2681988c00562b1d0c6b88e274098ffb7fb5300bc773fdbde6": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:08:56.033856+00:00",
+    "expires_at": "2026-03-10T06:08:56.033856+00:00",
+    "attestation_hash": "0xb102d2222ab0eb2681988c00562b1d0c6b88e274098ffb7fb5300bc773fdbde6",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xe4e986fda2ba36bae0b629fe3fc306a634cfd086f0e7942bebb59ed1bbd9a033": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:19:06.727409+00:00",
+    "expires_at": "2026-03-10T06:19:06.727409+00:00",
+    "attestation_hash": "0xe4e986fda2ba36bae0b629fe3fc306a634cfd086f0e7942bebb59ed1bbd9a033",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x6f70d165f07acefa0ab208a7869b03b3b91fd1ba37de66ce9de427a3daeaf65b": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:22:17.864201+00:00",
+    "expires_at": "2026-03-10T06:22:17.864201+00:00",
+    "attestation_hash": "0x6f70d165f07acefa0ab208a7869b03b3b91fd1ba37de66ce9de427a3daeaf65b",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x6ef6036deb6345f63fe87157dcac931f4485097ed1e9ece39f7ee117e2427728": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:23:02.838839+00:00",
+    "expires_at": "2026-03-10T06:23:02.838839+00:00",
+    "attestation_hash": "0x6ef6036deb6345f63fe87157dcac931f4485097ed1e9ece39f7ee117e2427728",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xb3f9b2f8804bbc40d0d8910b55108c88d6ca5df32b010ad89d96a39608048efb": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:27:02.581960+00:00",
+    "expires_at": "2026-03-10T06:27:02.581960+00:00",
+    "attestation_hash": "0xb3f9b2f8804bbc40d0d8910b55108c88d6ca5df32b010ad89d96a39608048efb",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x461d059dfc830a2f3f076f0bebd8c9b8fd7595ee2248cb522c3a432240b94d3a": {
+    "subject": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "letter_min": "D",
+    "composite_min": 20,
+    "credit_tier": null,
+    "collateral_wei": 0,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 0,
+    "rate_bps": 800,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:30:32.457440+00:00",
+    "expires_at": "2026-03-10T06:30:32.457440+00:00",
+    "attestation_hash": "0x461d059dfc830a2f3f076f0bebd8c9b8fd7595ee2248cb522c3a432240b94d3a",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xfd60434fe70eafb3d5d1c6be1143f59e27da0116f2524baeede1668fdb661031": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:34:21.804507+00:00",
+    "expires_at": "2026-03-10T06:34:21.804507+00:00",
+    "attestation_hash": "0xfd60434fe70eafb3d5d1c6be1143f59e27da0116f2524baeede1668fdb661031",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xdb7402f7a920ee656c3c787a44e512ade655a5378266e00d1924a768ff4c984b": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:53:15.390887+00:00",
+    "expires_at": "2026-03-10T06:53:15.390887+00:00",
+    "attestation_hash": "0xdb7402f7a920ee656c3c787a44e512ade655a5378266e00d1924a768ff4c984b",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x5a4aa6e828b2c7ca57a4c6a6bd3238a2192bd8e029e4ee68a67db76e6785b28c": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:53:26.481689+00:00",
+    "expires_at": "2026-03-10T06:53:26.481689+00:00",
+    "attestation_hash": "0x5a4aa6e828b2c7ca57a4c6a6bd3238a2192bd8e029e4ee68a67db76e6785b28c",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x10ea1d6c5c90b5755f533c106ea57a0752ba825ff2d6db505f06e12e16196764": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:53:48.791797+00:00",
+    "expires_at": "2026-03-10T06:53:48.791797+00:00",
+    "attestation_hash": "0x10ea1d6c5c90b5755f533c106ea57a0752ba825ff2d6db505f06e12e16196764",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x0f04746c18d4f31a6e3d472494f7ea2543f424a38ef5a1410165e325e587db87": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T06:53:48.829512+00:00",
+    "expires_at": "2026-03-10T06:53:48.829512+00:00",
+    "attestation_hash": "0x0f04746c18d4f31a6e3d472494f7ea2543f424a38ef5a1410165e325e587db87",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0x6cc2e4efb162de1ce0c251ceff999b766282d8e048bb25bf6ebe6819745b11bd": {
+    "subject": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "letter_min": "D",
+    "composite_min": 20,
+    "credit_tier": null,
+    "collateral_wei": 0,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 0,
+    "rate_bps": 800,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T07:08:48.464930+00:00",
+    "expires_at": "2026-03-10T07:08:48.464930+00:00",
+    "attestation_hash": "0x6cc2e4efb162de1ce0c251ceff999b766282d8e048bb25bf6ebe6819745b11bd",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xd23e11f0ef30cfa335049b6a352a857e27f803faa2fd04e9ac970c22a47fb793": {
+    "subject": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "letter_min": "D",
+    "composite_min": 20,
+    "credit_tier": null,
+    "collateral_wei": 0,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 0,
+    "rate_bps": 800,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T07:09:07.348833+00:00",
+    "expires_at": "2026-03-10T07:09:07.348833+00:00",
+    "attestation_hash": "0xd23e11f0ef30cfa335049b6a352a857e27f803faa2fd04e9ac970c22a47fb793",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ]
+  },
+  "0xdadc7de09e75de8951ea1997eff60bca96f3287b5ba155cb4e3a347dec26c3d4": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 89,
+    "credit_tier": null,
+    "collateral_wei": 900000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 720000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T13:50:31.439789+00:00",
+    "expires_at": "2026-03-10T13:50:31.439789+00:00",
+    "attestation_hash": "0xdadc7de09e75de8951ea1997eff60bca96f3287b5ba155cb4e3a347dec26c3d4",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ],
+    "input_fingerprint": "0xb04f8016f438bbc70dbfcea2adacdc97758f2efe33942a5560a4506d755d0b04"
+  },
+  "0x366bcbbd89d5f8ed31aaefcaeecb1163976a5cd0d5b6bab69af3e7343810b9f4": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "letter_min": "A",
+    "composite_min": 92,
+    "credit_tier": null,
+    "collateral_wei": 1200000000000000000,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 960000000000000000,
+    "rate_bps": 450,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T20:24:18.077603+00:00",
+    "expires_at": "2026-03-10T20:24:18.077603+00:00",
+    "attestation_hash": "0x366bcbbd89d5f8ed31aaefcaeecb1163976a5cd0d5b6bab69af3e7343810b9f4",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ],
+    "input_fingerprint": "0xf774455f92f5b67d4cf202393041018f2c13c241884141c58099f628338cb2a7"
+  },
+  "0xbb82cee06de41f7649e00f6a947a4ced6ae4757f2dfc592542df68b00355e111": {
+    "subject": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "letter_min": "D",
+    "composite_min": 20,
+    "credit_tier": null,
+    "collateral_wei": 0,
+    "unsecured_cap_wei": 0,
+    "total_line_wei": 0,
+    "rate_bps": 800,
+    "sources": [
+      "reputation",
+      "identity",
+      "proof_receipts"
+    ],
+    "chain_id": "0x534e5f5345504f4c4941",
+    "issued_at": "2026-03-03T22:53:20.587298+00:00",
+    "expires_at": "2026-03-10T22:53:20.587298+00:00",
+    "attestation_hash": "0xbb82cee06de41f7649e00f6a947a4ced6ae4757f2dfc592542df68b00355e111",
+    "stark_id": null,
+    "cross_chain_verified": false,
+    "chains": [
+      "starknet"
+    ],
+    "input_fingerprint": "0x0172307262e1bd4ff2788a4e8e76976ff2a5f42fbb88862314f907710eba2eff"
+  }
+}

@@ -155,16 +155,7 @@ class ZkmlRiskService:
                 "Risk score proof requires built circuits (RiskScore.wasm, RiskScore_final.zkey). "
                 "Run: cd circuits && npm run build:riskscore"
             )
-        
-        # This code was incorrectly left here
-        if False:  # Dead code - should have been removed
-            return self._generate_simulated_proof(
-                user_address=user_address,
-                threshold=threshold,
-                is_compliant=is_compliant,
-                commitment_hash=commitment_hash
-            )
-        
+
         # Generate witness input
         witness_input = self.model.generate_witness_input(
             portfolio_features=portfolio_features,
@@ -217,7 +208,7 @@ class ZkmlRiskService:
             
             # Generate proof
             subprocess.run([
-                "npx", "snarkjs", "groth16", "prove",
+                "/usr/bin/snarkjs", "groth16", "prove",
                 str(RISK_ZKEY),
                 str(witness_path),
                 str(proof_path),

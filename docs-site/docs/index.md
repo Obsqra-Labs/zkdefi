@@ -30,12 +30,14 @@ zkde.fi introduces **computation oracles** — where AI decisions are proven, no
 
 ```mermaid
 flowchart LR
-  A[/agent?v=vault] --> B[/agent?v=trade]
+  A[/agent?v=vault] --> B[/agent?v=oracle]
   B --> C[/agent?v=brain]
   A --> D[/profile?tab=trust]
   D --> E[/profile?tab=reputation]
   D --> F[/profile?tab=compliance]
 ```
+
+Legacy compatibility: `/agent?v=trade` is still accepted and remapped to `v=oracle`.
 
 ## Where To Go Next
 

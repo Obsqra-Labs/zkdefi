@@ -1,287 +1,69 @@
-# Privacy Features Guide
+# Privacy Features
 
-This guide covers zkde.fi's privacy features in detail, with practical examples and use cases.
+This page explains privacy capabilities in the current zkde.fi product surface.
 
-## Overview
+## The Problem This Solves
 
-zkde.fi provides three layers of privacy:
+DeFi users often need to prove bounded claims while keeping strategy and allocation details private. Most products force an all-or-nothing disclosure choice.
 
-1. **Confidential Transfers** — Hide amounts on deposits and withdrawals
-2. **Selective Disclosure** — Prove statements without revealing data
-3. **Position Aggregation** — Prove total value without revealing breakdown
+## Why This Matters
 
----
+Practical privacy is not just cryptography. It is about giving users selective control over what becomes visible to counterparties, partners, and auditors.
 
-## 1. Confidential Transfers
+## Privacy Capability Families
 
-### Private Deposits
+### 1) Selective disclosure
 
-When you make a private deposit, the amount is hidden using a cryptographic commitment.
+Users can expose scoped claims through compliance-oriented profiles without publishing full trade history.
 
-**How it works:**
+### 2) Privacy-aware operational flows
 
-1. Enter the amount you want to deposit
-2. zkde.fi generates a commitment: `commitment = hash(amount, nonce)`
-3. Only the commitment is stored on-chain — not the amount
-4. You keep the nonce privately to later prove ownership
+Certain vault and withdrawal routes support privacy-preserving settlement patterns and post-action verification artifacts.
 
-**What's visible on-chain:**
-- Commitment hash (visible)
-- Amount (hidden)
-- Your balance (hidden)
+### 3) Aggregated posture presentation
 
-**Example:**
+User-facing views can focus on compositional trust and total posture rather than leaking unnecessary strategy detail.
 
-```
-User deposits 1000 USDC privately
+## Capability Map
 
-On-chain record:
-  commitment: 0x7a8b9c...
-  amount: (hidden)
-
-Only the user knows:
-  amount: 1000 USDC
-  nonce: 0x123456...
+```mermaid
+flowchart LR
+  U[User intent] --> D[Disclosure paths]
+  U --> V[Vault privacy paths]
+  U --> P[Profile trust context]
+  D --> C[Compliance artifacts]
+  V --> R[Receipts and reconciled state]
+  P --> C
 ```
 
-### Private Withdrawals
+## Problem It Solves In Real Workflows
 
-To withdraw from a private commitment:
+### For users
 
-1. **Select a commitment** — Choose from your list of commitments
-2. **Enter withdrawal amount** — Must be <= commitment balance
-3. **Generate proof** — Proves ownership and sufficient balance
-4. **Nullifier creation** — Prevents double-spend
+Allows users to share enough information to move forward in integrations without fully disclosing private strategy state.
 
-**What's visible on-chain:**
-- Nullifier (visible, prevents reuse)
-- Commitment being spent (visible)
-- Withdrawal amount (hidden)
-- Remaining balance (hidden)
+### For integrators
 
-**Example:**
+Creates explicit artifact surfaces that can be consumed in policy workflows and verifier dashboards.
 
-```
-User withdraws 300 USDC from commitment 0x7a8b9c...
+## Why It Matters Operationally
 
-On-chain record:
-  nullifier: 0xdef123...
-  commitment: 0x7a8b9c...
-  amount: (hidden)
+Teams can support user privacy while still preserving traceability for action outcomes and verification checkpoints.
 
-The nullifier ensures this commitment portion can't be spent again.
-```
+## API Surfaces (Representative)
 
----
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/zkdefi/compliance/profiles/{user_address}` | Read disclosure/compliance profiles |
+| `POST` | `/api/v1/zkdefi/disclosure/generate` | Generate disclosure artifact |
+| `POST` | `/api/v1/zkdefi/disclosure/risk_compliance` | Risk compliance disclosure flow |
+| `POST` | `/api/v1/zkdefi/disclosure/performance` | Performance disclosure flow |
+| `POST` | `/api/v1/zkdefi/disclosure/aggregation` | Aggregated-value disclosure flow |
+| `POST` | `/api/v1/zkdefi/full_privacy/deposit/generate_commitment` | Privacy commitment generation |
+| `POST` | `/api/v1/zkdefi/full_privacy/withdraw/generate_proof` | Withdrawal proof generation |
 
-## 2. Selective Disclosure
+## Legal Boundary
 
-Prove statements about your portfolio without revealing the underlying data.
+These privacy features are technical capabilities, not legal determinations. They do not constitute legal advice, and they do not guarantee that a specific disclosure artifact satisfies jurisdiction-specific compliance obligations.
 
-### Available Statement Types
-
-#### Yield Above Threshold
-
-Prove your yield exceeds a value.
-
-**Use cases:**
-- Access yield-based protocol tiers
-- Prove performance to investors
-- Qualify for rewards programs
-
-**Example:**
-```
-Statement: "My 30-day yield > 10%"
-Proof registered on-chain
-Actual yield (15.7%) remains private
-```
-
-#### Balance Above Threshold
-
-Prove your balance exceeds a value.
-
-**Use cases:**
-- Access balance-gated features
-- Prove solvency to lenders
-- Qualify for premium tiers
-
-#### Risk Compliance
-
-Prove your portfolio risk is below a threshold.
-
-**Supported metrics:**
-- **Value at Risk (VaR)** — Maximum expected loss
-- **Sharpe Ratio** — Risk-adjusted returns
-- **Max Drawdown** — Largest peak-to-trough decline
-
-**Use cases:**
-- Meet institutional risk limits
-- Prove conservative strategy
-- Regulatory compliance
-
-**Example:**
-```
-Statement: "Portfolio VaR < 20%"
-Proof: Verified
-Actual risk profile remains private
-```
-
-#### Performance Proofs
-
-Prove your APY exceeded a threshold over a period.
-
-**Use cases:**
-- Qualify for advanced protocol features
-- Demonstrate trading skill
-- Access professional tools
-
-**Example:**
-```
-Statement: "30-day APY > 15%"
-Proof: Verified
-Actual APY and trades remain private
-```
-
-#### KYC Eligibility
-
-Prove financial standing for regulatory compliance.
-
-**Use cases:**
-- Accredited investor verification
-- Regulatory compliance
-- Access to restricted protocols
-
-**Example:**
-```
-Statement: "Total holdings > $100,000"
-Proof: Verified
-Exact holdings remain private
-```
-
-#### Portfolio Aggregation
-
-Prove total value across protocols without revealing breakdown.
-
-**Use cases:**
-- Prove total value for protocol access
-- Multi-protocol tier qualification
-- Privacy-preserving wealth attestation
-
-**Example:**
-```
-Statement: "Total across Ekubo + JediSwap + Private > $50,000"
-Proof: Verified
-Individual protocol amounts remain private
-```
-
----
-
-## 3. Position Aggregation
-
-The portfolio view supports a privacy toggle:
-
-### Public View
-- Shows pie chart with protocol breakdown
-- Displays individual protocol amounts
-- Full allocation visibility
-
-### Private View
-- Shows only total aggregated value
-- Displays count of positions (not amounts)
-- No breakdown visible
-- "Generate Aggregation Proof" button
-
-**When to use Private View:**
-- Sharing screen with others
-- Demonstrating total value without strategy
-- Regulatory attestations
-
----
-
-## Privacy Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend                              │
-│  ┌───────────────┐  ┌───────────────┐  ┌─────────────┐ │
-│  │ Private       │  │ Selective     │  │ Position    │ │
-│  │ Transfer      │  │ Disclosure    │  │ Chart       │ │
-│  │ Panel         │  │ Panel         │  │ (Toggle)    │ │
-│  └───────┬───────┘  └───────┬───────┘  └──────┬──────┘ │
-└──────────┼──────────────────┼─────────────────┼────────┘
-           │                  │                 │
-           ▼                  ▼                 ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Backend API                           │
-│  /private_deposit    /disclosure/risk    /position/     │
-│  /private_withdraw   /disclosure/perf    aggregate      │
-│  /private_commitments                                   │
-└──────────────────────────┬──────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                 Starknet Contracts                       │
-│  ┌─────────────────┐  ┌────────────────┐               │
-│  │ Confidential    │  │ Selective      │               │
-│  │ Transfer        │  │ Disclosure     │               │
-│  │ (Garaga)        │  │ (Integrity)    │               │
-│  └─────────────────┘  └────────────────┘               │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Best Practices
-
-### For Maximum Privacy
-
-1. **Use private deposits** for all sensitive amounts
-2. **Enable privacy mode** in portfolio view when sharing
-3. **Use selective disclosure** instead of revealing actual values
-4. **Generate proofs** for third-party verification
-
-### For Compliance
-
-1. **Register disclosures on-chain** for audit trail
-2. **Use KYC eligibility proofs** for regulated access
-3. **Generate risk compliance proofs** for institutional requirements
-4. **Keep shareable proof links** for verifiers
-
-### For DeFi Operations
-
-1. **Check commitment balances** before withdrawing
-2. **Store nonces securely** — needed for withdrawals
-3. **Use aggregation proofs** for multi-protocol tier access
-4. **Monitor nullifiers** to track spent commitments
-
----
-
-## API Reference
-
-### Private Transfers
-
-```
-POST /api/v1/zkdefi/private_deposit
-POST /api/v1/zkdefi/private_withdraw
-GET  /api/v1/zkdefi/private_commitments/{address}
-```
-
-### Selective Disclosure
-
-```
-POST /api/v1/zkdefi/disclosure/generate
-POST /api/v1/zkdefi/disclosure/risk_compliance
-POST /api/v1/zkdefi/disclosure/performance
-POST /api/v1/zkdefi/disclosure/kyc_eligibility
-POST /api/v1/zkdefi/disclosure/aggregation
-```
-
-### Position Aggregation
-
-```
-GET /api/v1/zkdefi/position/aggregate/{address}
-```
-
----
-
-Next: [Contracts](/contracts)
+Next: [Compliance and disclosure](/compliance-and-disclosure) | [Risk Passport](/risk-passport) | [Concepts](/concepts)

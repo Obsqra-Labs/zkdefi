@@ -176,12 +176,32 @@ class EkuboYieldService:
     
     async def get_ekubo_pool_data(self, token0: str, token1: str, fee_tier: int) -> dict[str, Any]:
         """
-        Fetch current pool data from Ekubo.
-        (Assumes ekubo_client.py is available)
+        Fetch current pool data from Ekubo via ekubo_client.
+        Returns: TVL, current price, fee tier, volume, etc.
         """
-        # This would call ekubo_client.get_pool_overview()
-        # Returns: TVL, current price, fee tier, volume, etc.
-        pass
+        try:
+            from app.services.ekubo_client import get_pair_pools
+            from app.services.ekubo_config import get_ekubo_chain_id
+            chain_id = get_ekubo_chain_id() or "0x534e5f4d41494f"
+            data = await get_pair_pools(chain_id, token0, token1, min_tvl_usd=0)
+            pools = data.get("topPools", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+            if pools:
+                # Pick the pool matching fee_tier, or the one with highest TVL
+                best = pools[0]
+                for p in pools:
+                    if p.get("fee") == fee_tier or p.get("fee_tier") == fee_tier:
+                        best = p
+                        break
+                return {
+                    "pool": best,
+                    "tvl0_total": best.get("tvl0_total"),
+                    "tvl1_total": best.get("tvl1_total"),
+                    "fee": best.get("fee") or best.get("fee_tier"),
+                    "volume_24h": best.get("volume0_24h", 0),
+                }
+        except Exception as exc:
+            logger.warning("get_ekubo_pool_data failed: %s", exc)
+        return {}
     
     # Private helpers
     

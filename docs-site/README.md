@@ -26,3 +26,7 @@ Output is in `docs/.vitepress/dist`. Serve that directory as static files.
 3. Point DNS: `docs.zkde.fi` → CNAME to your host (e.g. `your-project.vercel.app`).
 
 Example (Vercel): link this repo or the `docs-site` folder; set root to `docs-site` and build command to `npm run build`; output directory to `docs/.vitepress/dist`.
+
+## Publish at zkde.fi/docs (same origin)
+
+From repo root, run `./scripts/sync-docs.sh`. This builds the docs-site and copies the output to `frontend/public/docs/`, so the Next app serves docs at **zkde.fi/docs**. Before running, any existing `frontend/public/docs` can be backed up (e.g. `mv frontend/public/docs frontend/public/docs_backup_YYYYMMDD`).

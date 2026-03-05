@@ -13,11 +13,12 @@ from typing import Dict, Any, List, Optional
 from dataclasses import asdict
 
 from app.services.local_orchestrator import get_local_orchestrator
+from app.services.json_store import JsonStore
 
 logger = logging.getLogger(__name__)
 
-_agents: Dict[str, Dict] = {}
-_user_agents: Dict[str, List[str]] = {}
+_agent_store = JsonStore("agents")
+_user_agents_store = JsonStore("user_agents")
 
 
 class AgentService:
@@ -54,22 +55,23 @@ class AgentService:
             "active": True
         }
         
-        _agents[agent_id] = agent
-        if user_address not in _user_agents:
-            _user_agents[user_address] = []
-        _user_agents[user_address].append(agent_id)
+        _agent_store.set(agent_id, agent)
+        user_ids = _user_agents_store.get(user_address) or []
+        if agent_id not in user_ids:
+            user_ids.append(agent_id)
+            _user_agents_store.set(user_address, user_ids)
         
         logger.info(f"Created agent {agent_id} for user {user_address[:10]}...")
         return agent
     
     async def get_agent(self, agent_id: str) -> Optional[Dict]:
         """Get agent by ID."""
-        return _agents.get(agent_id)
+        return _agent_store.get(agent_id)
     
     async def get_user_agents(self, user_address: str) -> List[Dict]:
         """Get all agents for a user."""
-        agent_ids = _user_agents.get(user_address, [])
-        return [_agents[aid] for aid in agent_ids if aid in _agents]
+        agent_ids = _user_agents_store.get(user_address) or []
+        return [a for aid in agent_ids if (a := _agent_store.get(aid)) is not None]
     
     async def execute_agent(
         self, 
@@ -128,6 +130,7 @@ class AgentService:
         if agent["owner"] != user_address:
             raise ValueError("Not authorized")
         agent["active"] = False
+        _agent_store.set(agent_id, agent)
         logger.info(f"Deactivated agent {agent_id}")
         return True
     

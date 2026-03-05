@@ -5,7 +5,7 @@ import { useAccount, useDisconnect } from "@starknet-react/core";
 import { Wallet, ChevronDown, ExternalLink, Copy, LogOut } from "lucide-react";
 import { WalletModal } from "./WalletModal";
 import { toastSuccess } from "@/lib/toast";
-import { sepoliaStarkscanContractUrl } from "@/lib/explorer";
+import { sepoliaVoyagerContractUrl } from "@/lib/explorer";
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -29,66 +29,79 @@ export function ConnectButton() {
 
   const viewOnExplorer = () => {
     if (address) {
-      window.open(sepoliaStarkscanContractUrl(address), "_blank");
+      window.open(sepoliaVoyagerContractUrl(address), "_blank");
       setIsDropdownOpen(false);
     }
   };
 
   if (showConnected) {
     return (
-      <div className="relative">
-        <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 glass rounded-lg border border-zinc-700 hover:border-emerald-500/50 transition-all text-sm"
-        >
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-xs sm:text-sm font-medium">
-            {address.slice(0, 4)}...{address.slice(-4)}
-          </span>
-          <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
-            Sepolia
-          </span>
-          <ChevronDown className="w-4 h-4 text-zinc-400" />
-        </button>
+      <>
+        <div className="relative">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 glass rounded-lg border border-zinc-700 hover:border-emerald-500/50 transition-all text-sm"
+          >
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-xs sm:text-sm font-medium">
+              {address.slice(0, 4)}...{address.slice(-4)}
+            </span>
+            <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
+              Sepolia
+            </span>
+            <ChevronDown className="w-4 h-4 text-zinc-400" />
+          </button>
 
-        {isDropdownOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsDropdownOpen(false)}
-            />
-            <div className="absolute right-0 mt-2 w-56 glass rounded-lg border border-zinc-700 shadow-lg z-20">
-              <div className="p-2">
-                <button
-                  onClick={copyAddress}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
-                >
-                  <Copy className="w-4 h-4 text-zinc-400" />
-                  <span>Copy address</span>
-                </button>
-                <button
-                  onClick={viewOnExplorer}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
-                >
-                  <ExternalLink className="w-4 h-4 text-zinc-400" />
-                  <span>View on explorer</span>
-                </button>
-                <div className="h-px bg-zinc-700 my-1" />
-                <button
-                  onClick={() => {
-                    disconnect();
-                    setIsDropdownOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors text-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Disconnect</span>
-                </button>
+          {isDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setIsDropdownOpen(false)}
+              />
+              <div className="absolute right-0 mt-2 w-56 glass rounded-lg border border-zinc-700 shadow-lg z-20">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
+                  >
+                    <Wallet className="w-4 h-4 text-zinc-400" />
+                    <span>Wallet & Dual Login</span>
+                  </button>
+                  <button
+                    onClick={copyAddress}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
+                  >
+                    <Copy className="w-4 h-4 text-zinc-400" />
+                    <span>Copy address</span>
+                  </button>
+                  <button
+                    onClick={viewOnExplorer}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4 text-zinc-400" />
+                    <span>View on explorer</span>
+                  </button>
+                  <div className="h-px bg-zinc-700 my-1" />
+                  <button
+                    onClick={() => {
+                      disconnect();
+                      setIsDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors text-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Disconnect</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+        <WalletModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      </>
     );
   }
 

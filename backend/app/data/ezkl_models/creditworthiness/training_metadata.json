@@ -1,0 +1,61 @@
+{
+  "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+  "onnx_path": "backend/app/data/ezkl_models/creditworthiness/creditworthiness.onnx",
+  "native_path": "backend/app/data/ezkl_models/creditworthiness/creditworthiness_model.json",
+  "model_type": "mlp",
+  "mlp_weights_path": "backend/app/data/ezkl_models/creditworthiness/creditworthiness_mlp.pt",
+  "mlp_accuracy": 1.0,
+  "norm_params_path": "backend/app/data/ezkl_models/creditworthiness/mlp_norm_params.json",
+  "training_samples": 200,
+  "accuracy": 1.0,
+  "class_distribution": {},
+  "observed_class_indices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "observed_classes": [
+    "AAA",
+    "AA",
+    "A",
+    "B",
+    "C"
+  ],
+  "train_to_global_class_index": {
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4
+  },
+  "feature_names": [
+    "chains_active",
+    "total_tx_count",
+    "total_value_usd",
+    "account_age_days",
+    "protocol_diversity",
+    "success_rate",
+    "unique_contracts",
+    "early_exit_rate",
+    "avg_hold_duration_hours",
+    "proof_success_rate",
+    "rebalance_frequency",
+    "avg_action_size_eth",
+    "max_single_loss_pct",
+    "time_since_last_action_hours",
+    "tier",
+    "tenure_days",
+    "collateral_eth",
+    "on_chain_reputation_score"
+  ],
+  "ezkl_setup_complete": true,
+  "test_proof": {
+    "proof_hash": "0xa1c7e45f3c0903d164c634211b524cab39e2cdfa9d9dfae92767d2abc3db1501",
+    "proof_size_bytes": 3072,
+    "proof_time_s": 1.7704012393951416,
+    "verified": true
+  },
+  "trained_at": "2026-03-04T21:52:05.673996"
+}

@@ -233,10 +233,31 @@ class ZkmlAnomalyService:
         contract_risk_score: int | None = None
     ) -> dict[str, int]:
         """
-        Fetch pool data from on-chain sources.
-        For now, returns defaults or provided values.
+        Fetch pool data from live pool metrics, falling back to defaults.
         """
-        # TODO: Integrate with Ekubo/JediSwap APIs for real data
+        # Try to get real data from pool_metrics
+        if any(v is None for v in [tvl_volatility, liquidity_concentration, price_impact_score,
+                                    deployer_age_days, volume_anomaly, contract_risk_score]):
+            try:
+                from app.services.pool_metrics import fetch_pool_metrics
+                live_pools = await fetch_pool_metrics(min_tvl_usd=0.0, limit=50)
+                for p in live_pools:
+                    if p.pool_id == pool_id:
+                        # Derive anomaly features from live pool data
+                        if tvl_volatility is None:
+                            # Higher TVL = lower volatility risk (inverse relationship)
+                            tvl_volatility = max(50, min(500, int(1_000_000 / max(p.tvl_usd, 1))))
+                        if liquidity_concentration is None:
+                            # Use fee ratio as proxy for concentration
+                            liquidity_concentration = int(p.fee_ratio * 10000) if p.fee_ratio else 40
+                        if volume_anomaly is None:
+                            # Volume/TVL ratio as anomaly indicator
+                            ratio = p.volume_24h_usd / max(p.tvl_usd, 1)
+                            volume_anomaly = max(10, min(500, int(ratio * 1000)))
+                        break
+            except Exception as exc:
+                logger.debug("Live pool data fetch for anomaly service failed: %s", exc)
+
         return {
             "tvl_volatility": tvl_volatility if tvl_volatility is not None else 200,
             "liquidity_concentration": liquidity_concentration if liquidity_concentration is not None else 40,

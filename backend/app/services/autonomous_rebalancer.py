@@ -1,6 +1,9 @@
 """
 Autonomous Rebalancer Service
 
+⚠️  DEPRECATED — Use app.services.autonomous_agent instead.
+Retained for backward-compatible imports from services/__init__.py.
+
 Background service that monitors LP positions and triggers autonomous rebalancing.
 - Monitors position state + market data every N minutes
 - Detects drift (fees accumulated or price moved out of range)
@@ -148,9 +151,9 @@ class AutonomousRebalancer:
         proof = await self.proof_service.generate_rebalance_decision_proof(
             position_id=position.position_id,
             current_fee_tier=position.fee_tier,
+            pool_volatility=market_data["volatility"],
             current_lower_tick=position.lower_tick,
             current_upper_tick=position.upper_tick,
-            market_volatility=market_data["volatility"],
             current_price=market_data["price"],
             accumulated_fees=position_state["accumulated_fees"],
             fee_threshold=position.fee_threshold_for_rebalance,
@@ -170,7 +173,12 @@ class AutonomousRebalancer:
         position_state: dict[str, Any],
     ):
         """
-        Execute the rebalance transaction using session key.
+        Execute the rebalance transaction using EkuboContractExecutor.
+
+        Flow:
+        1. Remove liquidity from old tick range (withdraw)
+        2. Create new LP position at new tick range (mint_and_deposit)
+        3. Record tx hashes on the event
         """
         
         logger.info(f"Executing rebalance for position {position.position_id}")
@@ -192,13 +200,59 @@ class AutonomousRebalancer:
             accumulated_fees_usd_estimate=position_state["accumulated_fees"],
         )
         
-        # In production: send transaction via session key
-        # For MVP: simulate (mark as executed)
-        
         event.proof_verified = True
         event.proof_verified_at = datetime.utcnow()
         event.executed_at = datetime.utcnow()
-        event.tx_hash = f"0x{self._generate_event_id()[:16]}"  # Placeholder
+
+        # Attempt on-chain submission via EkuboContractExecutor
+        from app.services.ekubo_executor import EkuboContractExecutor, _PAIR_DEFAULTS
+
+        executor = EkuboContractExecutor()
+        if executor._is_configured():
+            # Resolve pair string from token addresses
+            pair_name = self._resolve_pair(position.token0, position.token1)
+            if pair_name:
+                try:
+                    # Step 1: Remove liquidity from old position
+                    position_id_int = int(position.position_id, 16) if position.position_id.startswith("0x") else int(position.position_id)
+                    remove_result = await executor.remove_liquidity(
+                        position_id=position_id_int,
+                        pair=pair_name,
+                        lower_tick=position.lower_tick,
+                        upper_tick=position.upper_tick,
+                        liquidity=0,  # 0 = remove all
+                        collect_fees_on_withdraw=True,
+                    )
+                    remove_tx = remove_result.get("tx_hash") if remove_result.get("success") else None
+
+                    # Step 2: Create new LP position at new tick range
+                    create_result = await executor.create_lp_position(
+                        pair=pair_name,
+                        amount0_human=0.001,  # Re-enter with same amounts (conservative default)
+                        amount1_human=0.001,
+                        lower_tick=proof["new_lower_tick"],
+                        upper_tick=proof["new_upper_tick"],
+                        min_liquidity=0,
+                    )
+                    create_tx = create_result.get("tx_hash") if create_result.get("success") else None
+
+                    # Record tx hashes
+                    event.tx_hash = create_tx or remove_tx
+                    if remove_tx:
+                        logger.info(f"Rebalance remove liquidity tx: {remove_tx}")
+                    if create_tx:
+                        logger.info(f"Rebalance new position tx: {create_tx}")
+                    if not event.tx_hash:
+                        logger.warning(f"Rebalance on-chain calls returned no tx hash for {position.position_id}")
+                except Exception as exc:
+                    logger.error(f"Rebalance on-chain execution failed for {position.position_id}: {exc}")
+                    event.tx_hash = None
+            else:
+                logger.warning(f"Cannot resolve pair for tokens {position.token0}/{position.token1}; rebalance recorded only.")
+                event.tx_hash = None
+        else:
+            event.tx_hash = None
+            logger.info("EkuboContractExecutor not configured; rebalance recorded without on-chain tx.")
         
         # Update position
         position.status = PositionStatus.ACTIVE  # Rebalance complete
@@ -220,13 +274,55 @@ class AutonomousRebalancer:
         )
     
     # Private helpers
+
+    @staticmethod
+    def _resolve_pair(token0: str, token1: str) -> Optional[str]:
+        """Map token addresses to an _PAIR_DEFAULTS key like 'ETH/USDC'."""
+        from app.services.ekubo_executor import _PAIR_DEFAULTS
+        t0 = (token0 or "").lower()
+        t1 = (token1 or "").lower()
+        for name, info in _PAIR_DEFAULTS.items():
+            if {info["token0"].lower(), info["token1"].lower()} == {t0, t1}:
+                return name
+        return None
     
     async def _fetch_market_state(self, token0: str, token1: str) -> dict[str, Any]:
-        """Fetch current market state (price, volatility)."""
-        # In practice: call Ekubo API
+        """Fetch current market state (price, volatility) from Ekubo oracle.
+
+        Falls back to the market-maker-sim service when the on-chain oracle
+        is unavailable, so the agent always has a price signal."""
+        try:
+            from app.services.ekubo.oracle_adapter import get_spot_price
+            price = await get_spot_price(token0, token1)
+            if price is not None:
+                return {
+                    "price": price,
+                    "volatility": 0.05,  # TODO: compute from price history
+                    "data_quality": "live",
+                }
+        except Exception as exc:
+            logger.warning("_fetch_market_state oracle call failed: %s", exc)
+
+        # Fallback: try market-maker-sim
+        try:
+            import os, httpx
+            sim_url = os.getenv("MM_SIM_URL", "http://localhost:8099")
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{sim_url}/public/state")
+                if resp.status_code == 200:
+                    snap = resp.json()
+                    return {
+                        "price": snap.get("price", 1.0),
+                        "volatility": 0.05,
+                        "data_quality": "simulated",
+                    }
+        except Exception as exc:
+            logger.warning("_fetch_market_state sim fallback failed: %s", exc)
+
         return {
             "price": 1.0,
             "volatility": 0.05,
+            "data_quality": "unavailable",
         }
     
     async def _fetch_position_state(self, position_id: str) -> dict[str, Any]:

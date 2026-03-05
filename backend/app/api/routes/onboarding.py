@@ -17,13 +17,15 @@ import hashlib
 import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import httpx
 import os
+from app.services.vault_policy_service import get_vault_policy_service
 
 # Obsqra Stone prover API. Liveness: GET {base}/ → 200. Proofs: POST {base}/proofs/generate
 OBSQRA_PROVER_API_URL = (os.getenv("OBSQRA_PROVER_API_URL", "https://starknet.obsqra.fi/api/v1")).rstrip("/")
 OBSQRA_API_KEY = os.getenv("OBSQRA_API_KEY", "")
+ONBOARDING_PROVER_TIMEOUT_SECONDS = float(os.getenv("ONBOARDING_PROVER_TIMEOUT_SECONDS", "45"))
 
 # Contract addresses
 PROOF_GATED_AGENT_ADDRESS = os.getenv("PROOF_GATED_AGENT_ADDRESS", "")
@@ -57,6 +59,7 @@ def _save_onboarding_state() -> None:
                 "identity_commitment": v.get("identity_commitment"),
                 "timestamp": v.get("timestamp"),
                 "agent_initialized": v.get("agent_initialized", False),
+                "pending_constraints": v.get("pending_constraints"),
             }
             for k, v in _user_onboarding_state.items()
         }
@@ -69,10 +72,29 @@ _load_onboarding_state()
 router = APIRouter()
 
 
+def clear_onboarding_state(user_address: str) -> bool:
+    """Remove persisted onboarding state for a user (dev/testing reset helper)."""
+    key = (user_address or "").strip().lower()
+    if not key:
+        return False
+    existed = key in _user_onboarding_state
+    if existed:
+        del _user_onboarding_state[key]
+        _save_onboarding_state()
+    return existed
+
+
 class Constraints(BaseModel):
     max_position: str  # Wei string
     risk_tolerance: int  # 30, 50, 70
     session_duration: int  # Hours
+    # Strategy-expansion fields (all optional for backward compat)
+    execution_mode: Optional[str] = None  # "assist" | "autonomous" | "monitor"
+    allowed_strategies: Optional[List[str]] = None  # e.g. ["lp_recenter", "limit_grid"]
+    min_expected_edge_bps: Optional[int] = None  # minimum edge in bps
+    max_oracle_age_sec: Optional[int] = None  # max oracle staleness
+    max_daily_notional: Optional[str] = None  # Wei string
+    max_trade_notional: Optional[str] = None  # Wei string
 
 
 class GenerateAuthorizationRequest(BaseModel):
@@ -100,6 +122,7 @@ class SubmitAgentResponse(BaseModel):
     agent_initialized: bool
     tx_hash: Optional[str] = None
     message: str
+    calldata: Optional[Dict[str, Any]] = None
 
 
 @router.post("/generate_authorization", response_model=GenerateAuthorizationResponse)
@@ -118,7 +141,7 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
     """
     # Compute identity commitment
     # Hash: user_address + constraints + claims + timestamp
-    timestamp = int(datetime.utcnow().timestamp())
+    timestamp = int(datetime.now(timezone.utc).timestamp())
     
     identity_data = (
         f"{req.user_address}"
@@ -130,6 +153,28 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
     )
     
     identity_commitment = "0x" + hashlib.sha256(identity_data.encode()).hexdigest()[:64]
+
+    # Persist onboarding constraints so policy bootstrap can use the same canonical source later.
+    key = req.user_address.lower()
+    previous = _user_onboarding_state.get(key, {})
+    _user_onboarding_state[key] = {
+        **previous,
+        "pending_constraints": {
+            "max_position": req.constraints.max_position,
+            "risk_tolerance": req.constraints.risk_tolerance,
+            "session_duration": req.constraints.session_duration,
+            "claims": sorted(req.claims),
+            # Strategy-expansion fields (propagated to vault_policy_service)
+            "execution_mode": req.constraints.execution_mode,
+            "allowed_strategies": req.constraints.allowed_strategies,
+            "min_expected_edge_bps": req.constraints.min_expected_edge_bps,
+            "max_oracle_age_sec": req.constraints.max_oracle_age_sec,
+            "max_daily_notional": req.constraints.max_daily_notional,
+            "max_trade_notional": req.constraints.max_trade_notional,
+        },
+        "timestamp": int(datetime.now(timezone.utc).timestamp()),
+    }
+    _save_onboarding_state()
     
     # Generate real STARK proof via starknet.obsqra.fi Stone prover
     # This takes 2-3 minutes to generate and register with Integrity FactRegistry
@@ -162,7 +207,7 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
         print(f"[Onboarding] Calling Stone prover API: {prover_url}")
         print(f"[Onboarding] Proof payload: {proof_payload}")
         
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=ONBOARDING_PROVER_TIMEOUT_SECONDS) as client:
             response = await client.post(prover_url, json=proof_payload, headers=headers)
             response.raise_for_status()
             proof_result = response.json()
@@ -204,10 +249,22 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
             detail=f"Stone prover API error: {error_text}"
         )
     except httpx.TimeoutException:
-        print("[Onboarding] Stone prover timed out (expected for STARK proofs)")
-        raise HTTPException(
-            status_code=504,
-            detail="Stone prover timed out. STARK proof generation takes 2-3 minutes - try polling status."
+        print(
+            f"[Onboarding] Stone prover timed out after {ONBOARDING_PROVER_TIMEOUT_SECONDS}s, "
+            "falling back to deterministic hash"
+        )
+        fact_hash = "0x" + hashlib.sha256(
+            f"fact_{identity_commitment}_{timestamp}".encode()
+        ).hexdigest()[:64]
+        return GenerateAuthorizationResponse(
+            fact_hash=fact_hash,
+            identity_commitment=identity_commitment,
+            proof_registered=False,
+            fact_registry_tx=None,
+            message=(
+                f"Stone prover timed out after {int(ONBOARDING_PROVER_TIMEOUT_SECONDS)}s. "
+                "Using deterministic hash for testing."
+            ),
         )
     except Exception as e:
         # Fall back to deterministic hash for testing if prover unavailable
@@ -249,32 +306,47 @@ async def submit_agent(req: SubmitAgentRequest):
             raise HTTPException(status_code=400, detail="Invalid risk signature format")
         
         # 2. Store onboarding state and persist so it survives restart
+        existing = _user_onboarding_state.get(req.user_address.lower(), {})
+        pending_constraints = existing.get("pending_constraints") if isinstance(existing, dict) else None
         _user_onboarding_state[req.user_address.lower()] = {
             "fact_hash": req.fact_hash,
             "identity_commitment": req.identity_commitment,
-            "timestamp": int(datetime.utcnow().timestamp()),
+            "timestamp": int(datetime.now(timezone.utc).timestamp()),
             "risk_signature": req.risk_signature,
             "agent_initialized": True,
+            "pending_constraints": pending_constraints,
         }
         _save_onboarding_state()
 
+        # 2b. Upsert canonical Vault policy from onboarding constraints (backend authority).
+        try:
+            get_vault_policy_service().upsert_from_onboarding(
+                req.user_address,
+                onboarding_hints=pending_constraints if isinstance(pending_constraints, dict) else None,
+            )
+        except Exception as policy_exc:
+            # Log the full traceback so policy bugs surface immediately
+            import traceback
+            print(f"[Onboarding] Vault policy bootstrap ERROR: {policy_exc}")
+            traceback.print_exc()
+
         # 3. Prepare contract calldata for ProofGatedYieldAgent.set_constraints
         # This would be executed by the frontend using the user's wallet
-        set_constraints_calldata = await _prepare_set_constraints_calldata(
+        set_constraints_calldata = _prepare_set_constraints_calldata(
             req.user_address, req.fact_hash, req.identity_commitment
         )
         
         # 4. Prepare AgentIdentity mint calldata (ERC-8004 alignment)
         mint_agent_calldata = None
         if AGENT_IDENTITY_ADDRESS:
-            mint_agent_calldata = await _prepare_mint_agent_calldata(
+            mint_agent_calldata = _prepare_mint_agent_calldata(
                 req.user_address, req.identity_commitment
             )
         
         # 5. Prepare ValidationProofRegistry registration calldata
         register_proof_calldata = None
         if VALIDATION_PROOF_REGISTRY_ADDRESS:
-            register_proof_calldata = await _prepare_register_proof_calldata(
+            register_proof_calldata = _prepare_register_proof_calldata(
                 req.user_address, req.fact_hash, "init"
             )
         
@@ -296,7 +368,7 @@ async def submit_agent(req: SubmitAgentRequest):
         raise HTTPException(status_code=500, detail=f"Agent submission failed: {str(e)}")
 
 
-async def _prepare_set_constraints_calldata(
+def _prepare_set_constraints_calldata(
     user_address: str, fact_hash: str, identity_commitment: str
 ) -> Dict[str, Any]:
     """Prepare calldata for ProofGatedYieldAgent.set_constraints"""
@@ -322,7 +394,7 @@ async def _prepare_set_constraints_calldata(
     }
 
 
-async def _prepare_mint_agent_calldata(
+def _prepare_mint_agent_calldata(
     user_address: str, identity_commitment: str
 ) -> Dict[str, Any]:
     """Prepare calldata for AgentIdentity.mint_agent (ERC-8004 alignment)"""
@@ -341,7 +413,7 @@ async def _prepare_mint_agent_calldata(
     }
 
 
-async def _prepare_register_proof_calldata(
+def _prepare_register_proof_calldata(
     user_address: str, fact_hash: str, action_type: str
 ) -> Dict[str, Any]:
     """Prepare calldata for ValidationProofRegistry.register_proof (ERC-8004 alignment)"""

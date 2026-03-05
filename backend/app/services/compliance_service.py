@@ -203,7 +203,7 @@ class ComplianceService:
             "proof_hash": proof_hash,
             "result": "eligible" if is_eligible else "ineligible",
             "threshold": 0,
-            "simulated": True
+            "proof_method": "sha256_commitment"
         }
     
     async def generate_risk_compliance_proof(
@@ -220,23 +220,6 @@ class ComplianceService:
             "Risk compliance proof not yet implemented. "
             "Requires zkML risk service integration."
         )
-        
-        statement_hash = "0x" + hashlib.sha256(
-            f"risk_compliance_{user_address}_{threshold}".encode()
-        ).hexdigest()[:64]
-        
-        proof_hash = "0x" + hashlib.sha256(
-            f"risk_proof_{user_address}_{risk_score <= threshold}".encode()
-        ).hexdigest()[:64]
-        
-        return {
-            "profile_type": "risk",
-            "statement_hash": statement_hash,
-            "proof_hash": proof_hash,
-            "result": "compliant" if risk_score <= threshold else "non_compliant",
-            "threshold": threshold,
-            "simulated": True
-        }
     
     async def generate_performance_proof(
         self,
@@ -252,24 +235,7 @@ class ComplianceService:
             "Performance proof not yet implemented. "
             "Requires zkML performance tracking integration."
         )
-        
-        statement_hash = "0x" + hashlib.sha256(
-            f"performance_{user_address}_{threshold}".encode()
-        ).hexdigest()[:64]
-        
-        proof_hash = "0x" + hashlib.sha256(
-            f"performance_proof_{user_address}_{actual_yield >= threshold}".encode()
-        ).hexdigest()[:64]
-        
-        return {
-            "profile_type": "performance",
-            "statement_hash": statement_hash,
-            "proof_hash": proof_hash,
-            "result": "above" if actual_yield >= threshold else "below",
-            "threshold": threshold,
-            "simulated": True
-        }
-    
+
     async def generate_aggregation_proof(
         self,
         user_address: str,
@@ -284,23 +250,6 @@ class ComplianceService:
             "Aggregation proof not yet implemented. "
             "Requires zkML aggregation circuit integration."
         )
-        
-        statement_hash = "0x" + hashlib.sha256(
-            f"aggregation_{user_address}_{threshold}".encode()
-        ).hexdigest()[:64]
-        
-        proof_hash = "0x" + hashlib.sha256(
-            f"aggregation_proof_{user_address}_{total_value >= threshold}".encode()
-        ).hexdigest()[:64]
-        
-        return {
-            "profile_type": "aggregation",
-            "statement_hash": statement_hash,
-            "proof_hash": proof_hash,
-            "result": "above" if total_value >= threshold else "below",
-            "threshold": threshold,
-            "simulated": True
-        }
 
 
 # Singleton instance

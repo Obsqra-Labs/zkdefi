@@ -1,24 +1,26 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import { sepoliaStarkscanTxUrl, sepoliaStarkscanContractUrl } from "@/lib/explorer";
+import { voyagerTxUrl, sepoliaVoyagerTxUrl, sepoliaVoyagerContractUrl } from "@/lib/explorer";
 
 interface ExplorerLinkProps {
   /** Transaction hash (for type="tx") */
   txHash?: string;
   /** Contract address (for type="contract") */
   contractAddress?: string;
+  /** Chain id for tx links (e.g. Sepolia vs mainnet). Omit for Sepolia. */
+  chainId?: string | null;
   type: "tx" | "contract";
   children?: React.ReactNode;
   className?: string;
 }
 
-export function ExplorerLink({ txHash, contractAddress, type, children, className = "" }: ExplorerLinkProps) {
+export function ExplorerLink({ txHash, contractAddress, chainId, type, children, className = "" }: ExplorerLinkProps) {
   const href =
     type === "tx" && txHash
-      ? sepoliaStarkscanTxUrl(txHash)
+      ? (chainId != null ? voyagerTxUrl(txHash, chainId) : sepoliaVoyagerTxUrl(txHash))
       : type === "contract" && contractAddress
-        ? sepoliaStarkscanContractUrl(contractAddress)
+        ? sepoliaVoyagerContractUrl(contractAddress)
         : undefined;
   if (!href) return null;
   return (
@@ -31,7 +33,7 @@ export function ExplorerLink({ txHash, contractAddress, type, children, classNam
       {children ?? (
         <>
           <ExternalLink className="w-3 h-3" />
-          View on Starkscan
+          View on Explorer
         </>
       )}
     </a>

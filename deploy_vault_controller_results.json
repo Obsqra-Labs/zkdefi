@@ -1,0 +1,22 @@
+{
+  "VaultController": {
+    "class_hash": "0x386a9192ddf22377e7810c1f05cee12dd45ecaea7c843d53016ca2091381616",
+    "address": "0x6c5b17eab7f20da1ab69e98db6f3f63cbcefa28992a17787883c76dd13498d1",
+    "deployed_at": "2026-03-05 06:56:17"
+  },
+  "EkuboLpAdapter": {
+    "class_hash": "0x647c284019795cf07b83bbd3dbe5bef00dfccd1071d981eb4ca023966c21e2d",
+    "address": "0x74febeff7301aa58d786b01756e36f20ab7208a52ce94a82b425af8f9933a0",
+    "deployed_at": "2026-03-05 06:56:48"
+  },
+  "LendingAdapter": {
+    "class_hash": "0x5c7f5566c4ac2f82f709fa20751075a60b049ae35d45ac9684349188ca06fd7",
+    "address": "0x104f06b17e476bae294253ec1bba54dd4eaedd4f9d97468251fa6de62cfb90a",
+    "deployed_at": "2026-03-05 06:57:22"
+  },
+  "StakingAdapter": {
+    "class_hash": "0x6059e1dd9b26f954331591318aa9f53363a7cd0bfbedfd897f5e18651caf7d7",
+    "address": "0x63b4f90d0f3373700e30624191651c2d2d301a11c544a463ffd66df320b85e3",
+    "deployed_at": "2026-03-05 06:58:13"
+  }
+}

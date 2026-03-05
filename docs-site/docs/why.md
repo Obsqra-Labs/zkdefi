@@ -1,22 +1,35 @@
-# Why it matters
+# Why zkde.fi?
 
-## The problem
+## The Problem
 
-DeFi today forces a choice:
+Many DeFi users face a forced tradeoff:
 
-- **Full transparency** — Everyone can see your positions, sizes, timing, and counterparties. That exposes you to front-running, copy-trading, and loss of edge.
-- **Opaque custody** — You hand over control to a custodian or fund. You get privacy but lose verifiability: you must trust that they followed the rules.
+- full transparency that leaks strategy and timing
+- opaque delegation that weakens user assurance and auditability
 
-We want **privacy-preserving execution that is verifiable**. You keep control; the system proves that it followed your constraints without revealing the details.
+## Why This Matters
 
-## Our approach
+When privacy and trust cannot coexist, users either avoid automation or accept unnecessary risk.
 
-**zkde.fi** gives you:
+## Our Position
 
-1. **Verifiable execution** — Every action is proof-gated. The chain only accepts transactions that come with a valid proof (e.g. that your allocation stayed within limits). No proof, no execution.
-2. **Privacy** — Intent is hidden until execution. Balances can be confidential (commitment-based). You can prove specific statements (compliance, eligibility) without exposing your full history.
-3. **You stay in control** — You set constraints and delegate via session keys. The agent operates within those limits; you can revoke or tighten them anytime.
+zkde.fi focuses on privacy-aware execution with observable control surfaces:
 
-Result: autonomous, privacy-preserving DeFi that stays auditable and trustless.
+- user-owned wallet execution
+- flow-specific verification behavior
+- delegated automation bounded by session constraints
+- trust context through profile and passport views
 
-Next: [Key concepts](/concepts)
+## What Problem This Solves
+
+It removes the false choice between complete exposure and complete opacity by giving users bounded, inspectable, and route-aware controls.
+
+```mermaid
+flowchart LR
+  T1[Full transparency] --> X[User risk]
+  T2[Opaque automation] --> X
+  Z[zkde.fi approach] --> Y[Privacy-aware + observable execution]
+  Y --> O[Better operational trust]
+```
+
+Next: [Concepts](/concepts) | [Quick start](/quick-start)

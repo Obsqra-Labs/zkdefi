@@ -45,3 +45,6 @@ archive/
 # Deployment tarballs
 *.tar.gz
 *.zip
+
+# Git worktrees (isolated branches)
+.worktrees/

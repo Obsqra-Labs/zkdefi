@@ -117,6 +117,8 @@ class PoolAnalysisResponse(BaseModel):
     analysis_proof_hash: str
     pool_evaluations_proof: str
     confidence_score: float
+    proof_id: Optional[str] = None
+    proof_status: str = "generated"  # generated | submitted | verified
     
     # Summary
     summary_text: str
@@ -345,6 +347,8 @@ class AnalyzeLiveResponse(BaseModel):
     pool_count: int
 
     proof_hash: str                 # deterministic hash of the decision
+    proof_id: Optional[str] = None  # receipt registry ID
+    proof_status: str = "generated"  # generated | submitted | verified
 
 
 @router.post("/analyze-live", response_model=AnalyzeLiveResponse)
@@ -506,6 +510,8 @@ class AllocateResponse(BaseModel):
     confidence: float
     source: str                     # "llm" | "deterministic"
     attestation_hash: str
+    proof_id: Optional[str] = None
+    proof_status: str = "generated"  # generated | submitted | verified
 
 
 @router.post("/allocate", response_model=AllocateResponse)
@@ -648,6 +654,8 @@ class ExecuteAllocationResponse(BaseModel):
     live_submitted: bool
     allocation_summary: AllocateResponse
     timestamp: str
+    proof_id: Optional[str] = None
+    proof_status: str = "generated"  # generated | submitted | verified
 
 
 @router.post("/execute-allocation", response_model=ExecuteAllocationResponse)
@@ -1110,6 +1118,8 @@ class YieldSnapshotResponse(BaseModel):
     total_fees_usd: float
     total_positions: int
     harvested_count: int
+    proof_id: Optional[str] = None
+    proof_status: str = "generated"  # generated | submitted | verified
 
 
 @router.get("/yield/{owner_address}", response_model=YieldSnapshotResponse)
@@ -1167,6 +1177,8 @@ class AuditTrailResponse(BaseModel):
     allocations: List[AuditAllocationItem]
     total_deployed_wei: int
     total_yield_wei: int
+    proof_id: Optional[str] = None
+    proof_status: str = "verified"  # audit trail is always verified
 
 
 @router.get("/audit/{user_address}", response_model=AuditTrailResponse)
@@ -1214,6 +1226,8 @@ class VaultSummaryResponse(BaseModel):
     total_withdrawn_wei: int
     active_allocations: int
     net_balance_wei: int
+    proof_id: Optional[str] = None
+    proof_status: str = "verified"  # vault summary is aggregated from verified records
 
 
 @router.get("/vault-summary/{user_address}", response_model=VaultSummaryResponse)

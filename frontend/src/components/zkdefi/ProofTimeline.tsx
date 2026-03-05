@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, FileCheck, Copy, ChevronDown } from "lucide-react";
+import { Shield, FileCheck, Copy, ChevronDown, ExternalLink, Sparkles, Loader2 } from "lucide-react";
 import { ExplorerLink } from "@/components/zkdefi/ExplorerLink";
 import { toastSuccess } from "@/lib/toast";
+import { API_BASE } from "@/lib/api/client";
 
 export interface ProofReceipt {
   receipt_id?: string;
@@ -18,6 +19,7 @@ export interface ProofReceipt {
   model_hash?: string | null;
   pool_id?: string | null;
   on_chain?: boolean;
+  chain_id?: string | null;
 }
 
 function truncateHash(hash: string | null | undefined, head = 6, tail = 4): string {
@@ -43,10 +45,50 @@ interface ProofTimelineProps {
   compact?: boolean;
   /** Optional title above the list */
   title?: string;
+  /** Chain id for explorer links (from risk passport). Omit = Sepolia. */
+  chainId?: string | null;
+  /** Base URL for fact_hash links (e.g. Obsqra fact registry). If set, receipts with fact_hash get a "View fact" link. */
+  factRegistryBaseUrl?: string | null;
 }
 
-export function ProofTimeline({ receipts, compact = false, title }: ProofTimelineProps) {
+export function ProofTimeline({ receipts, compact = false, title, chainId, factRegistryBaseUrl }: ProofTimelineProps) {
   const [showAll, setShowAll] = useState(false);
+  const [narrations, setNarrations] = useState<Record<number, string>>({});
+  const [narrating, setNarrating] = useState<Record<number, boolean>>({});
+
+  const explainReceipt = async (index: number, receipt: ProofReceipt) => {
+    if (narrations[index] || narrating[index]) return;
+    setNarrating((prev) => ({ ...prev, [index]: true }));
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/strategies/llm/narrate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context_type: "proof_receipt",
+          context_data: {
+            proof_type: receipt.proof_type,
+            result: receipt.result,
+            threshold_or_model: receipt.threshold_or_model,
+            model_hash: receipt.model_hash,
+            pool_id: receipt.pool_id,
+            on_chain: receipt.on_chain,
+          },
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNarrations((prev) => ({ ...prev, [index]: data.narration || data.text || "No explanation available." }));
+      } else {
+        setNarrations((prev) => ({ ...prev, [index]: "Explanation unavailable." }));
+      }
+    } catch {
+      setNarrations((prev) => ({ ...prev, [index]: "Failed to get explanation." }));
+    } finally {
+      setNarrating((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+
   if (!receipts?.length) {
     return (
       <div className="text-sm text-zinc-500 py-2">
@@ -124,7 +166,36 @@ export function ProofTimeline({ receipts, compact = false, title }: ProofTimelin
                 <Copy className="w-3 h-3" />
               </button>
             )}
-            {r.tx_hash && <ExplorerLink type="tx" txHash={r.tx_hash} />}
+            {r.tx_hash && <ExplorerLink type="tx" txHash={r.tx_hash} chainId={r.chain_id ?? chainId} />}
+            {r.fact_hash && factRegistryBaseUrl && (
+              <a
+                href={`${factRegistryBaseUrl.replace(/\/$/, "")}/${r.fact_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
+                title="View fact"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View fact
+              </a>
+            )}
+            {!compact && (
+              <button
+                type="button"
+                onClick={() => explainReceipt(i, r)}
+                disabled={!!narrating[i]}
+                className="p-1 rounded text-violet-500 hover:text-violet-300 hover:bg-violet-700/20 transition-colors"
+                title="AI explain this proof"
+              >
+                {narrating[i] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              </button>
+            )}
+            {narrations[i] && (
+              <div className="w-full mt-1 ml-5 text-[11px] text-violet-300/80 bg-violet-950/20 border border-violet-800/20 rounded px-2.5 py-1.5">
+                <Sparkles className="w-3 h-3 inline-block mr-1 text-violet-400" />
+                {narrations[i]}
+              </div>
+            )}
           </li>
         ))}
       </ul>

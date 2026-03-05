@@ -1,0 +1,8 @@
+{
+  "name": "Flash Crash",
+  "description": "Sudden 40% price drop simulating a market-wide liquidity crisis. Tests agent response to rapid devaluation.",
+  "scenario": "depeg_down",
+  "severity": 0.40,
+  "duration_ticks": 30,
+  "tags": ["stress-test", "depeg", "high-impact"]
+}

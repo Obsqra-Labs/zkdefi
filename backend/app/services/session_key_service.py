@@ -4,16 +4,40 @@ Session Key Service
 Manages session keys for proof-gated autonomous agent execution.
 Session key = limited delegation + proof requirement.
 """
+import json
 import os
 import hashlib
 from typing import Any
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.contract import Contract
 
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.public.blastapi.io")
 SESSION_KEY_MANAGER_ADDRESS = os.getenv("SESSION_KEY_MANAGER_ADDRESS", "")
+SESSION_KEYS_FILE = Path(__file__).resolve().parent.parent / "data" / "session_keys.json"
+
+
+def _load_sessions() -> dict[str, dict[str, Any]]:
+    if not SESSION_KEYS_FILE.exists():
+        return {}
+    try:
+        payload = json.loads(SESSION_KEYS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for session_id, row in payload.items():
+        if isinstance(row, dict):
+            out[str(session_id)] = row
+    return out
+
+
+def _save_sessions(sessions: dict[str, dict[str, Any]]) -> None:
+    SESSION_KEYS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SESSION_KEYS_FILE.write_text(json.dumps(sessions, indent=2, sort_keys=True), encoding="utf-8")
 
 
 class SessionKeyService:
@@ -28,9 +52,11 @@ class SessionKeyService:
     ):
         self.rpc_url = rpc_url or STARKNET_RPC_URL
         self.manager_address = manager_address or SESSION_KEY_MANAGER_ADDRESS
-        
-        # In-memory session tracking (for development)
-        self._sessions: dict[str, dict] = {}
+        # File-backed session tracking for deterministic restarts.
+        self._sessions: dict[str, dict] = _load_sessions()
+
+    def _persist(self) -> None:
+        _save_sessions(self._sessions)
     
     async def generate_session_request(
         self,
@@ -38,7 +64,9 @@ class SessionKeyService:
         session_key_address: str,
         max_position: int,
         allowed_protocols: list[str],
-        duration_hours: int = 24
+        duration_hours: int = 24,
+        shared_pool_id: str | None = None,
+        strategy_scope: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Generate a session key grant request.
@@ -46,7 +74,7 @@ class SessionKeyService:
         """
         # Convert protocols to bitmap
         protocol_bitmap = 0
-        protocol_map = {"pools": 1, "ekubo": 2, "jediswap": 4}
+        protocol_map = {"pools": 1, "ekubo": 2, "jediswap": 4, "lending": 8}
         for protocol in allowed_protocols:
             protocol_bitmap |= protocol_map.get(protocol.lower(), 0)
         
@@ -76,13 +104,19 @@ class SessionKeyService:
             "max_position": max_position,
             "allowed_protocols": allowed_protocols,
             "protocol_bitmap": protocol_bitmap,
+            "shared_pool_id": shared_pool_id,
+            "strategy_scope": strategy_scope or [],
             "duration_hours": duration_hours,
             "duration_seconds": duration_seconds,
             "created_at": datetime.utcnow().isoformat(),
             "expires_at": (datetime.utcnow() + timedelta(hours=duration_hours)).isoformat(),
             "is_active": True,
-            "pending_grant": True  # Not yet on-chain
+            "pending_grant": True,  # Not yet on-chain
+            "pending_revoke": False,
+            "grant_tx_hash": None,
+            "revoke_tx_hash": None,
         }
+        self._persist()
         
         return {
             "session_id": session_id,
@@ -91,6 +125,8 @@ class SessionKeyService:
             "max_position": max_position,
             "allowed_protocols": allowed_protocols,
             "protocol_bitmap": protocol_bitmap,
+            "shared_pool_id": shared_pool_id,
+            "strategy_scope": strategy_scope or [],
             "duration_hours": duration_hours,
             "duration_seconds": duration_seconds,
             "calldata": calldata,
@@ -108,7 +144,8 @@ class SessionKeyService:
         """
         if session_id in self._sessions:
             self._sessions[session_id]["pending_grant"] = False
-            self._sessions[session_id]["tx_hash"] = tx_hash
+            self._sessions[session_id]["grant_tx_hash"] = tx_hash
+            self._persist()
         
         return {
             "session_id": session_id,
@@ -131,6 +168,7 @@ class SessionKeyService:
             
             # Mark as pending revocation
             self._sessions[session_id]["pending_revoke"] = True
+            self._persist()
         
         return {
             "session_id": session_id,
@@ -153,6 +191,7 @@ class SessionKeyService:
             self._sessions[session_id]["is_active"] = False
             self._sessions[session_id]["pending_revoke"] = False
             self._sessions[session_id]["revoke_tx_hash"] = tx_hash
+            self._persist()
         
         return {
             "session_id": session_id,
@@ -179,13 +218,17 @@ class SessionKeyService:
                     "session_key": session["session_key"],
                     "max_position": session["max_position"],
                     "allowed_protocols": session["allowed_protocols"],
+                    "shared_pool_id": session.get("shared_pool_id"),
+                    "strategy_scope": session.get("strategy_scope", []),
                     "duration_hours": session["duration_hours"],
                     "created_at": session["created_at"],
                     "expires_at": session["expires_at"],
                     "is_active": session["is_active"] and not is_expired,
                     "is_expired": is_expired,
                     "pending_grant": session.get("pending_grant", False),
-                    "pending_revoke": session.get("pending_revoke", False)
+                    "pending_revoke": session.get("pending_revoke", False),
+                    "grant_tx_hash": session.get("grant_tx_hash"),
+                    "revoke_tx_hash": session.get("revoke_tx_hash"),
                 })
         
         return sessions
@@ -251,6 +294,22 @@ class SessionKeyService:
             "amount": amount,
             "remaining_time_seconds": int((expires_at - datetime.utcnow()).total_seconds())
         }
+
+    def clear_user_sessions(self, owner_address: str) -> int:
+        """
+        Remove all in-memory sessions for an owner (dev/testing reset helper).
+        """
+        owner = (owner_address or "").strip().lower()
+        if not owner:
+            return 0
+        removed = 0
+        for sid, session in list(self._sessions.items()):
+            if str(session.get("owner") or "").strip().lower() == owner:
+                del self._sessions[sid]
+                removed += 1
+        if removed > 0:
+            self._persist()
+        return removed
     
     def _generate_session_id(
         self,

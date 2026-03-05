@@ -1,0 +1,9 @@
+{
+  "model_name": "anomaly_detector",
+  "model_hash": "66a7d0b32179939a630daeaf406a568b4d7b4aef146d6e35d96466e852e3a5a4",
+  "accuracy": 1.0,
+  "n_features": 8,
+  "n_classes": 3,
+  "n_samples": 300,
+  "architecture": "Linear(8\u219224)\u2192ReLU\u2192Linear(24\u219212)\u2192ReLU\u2192Linear(12\u21923)"
+}

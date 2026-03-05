@@ -4,7 +4,7 @@ Mainnet Oracle Service
 Fetches real market data from JediSwap and Ekubo mainnet APIs.
 Stores snapshots for testnet app to react to real market conditions.
 
-Cron: Every 15 minutes
+Auto-refreshes when data is stale (> STALE_THRESHOLD_SEC).
 """
 import asyncio
 import hashlib
@@ -22,9 +22,12 @@ DATA_DIR = Path(__file__).parent.parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 SNAPSHOTS_FILE = DATA_DIR / "market_snapshots.json"
 
-# API endpoints (mainnet)
+# Staleness threshold — data older than this triggers auto-refresh
+STALE_THRESHOLD_SEC = int(os.getenv("ORACLE_STALE_THRESHOLD_SEC", "3600"))  # 1 hour
+
+# API endpoints (mainnet) — use prod-api.ekubo.org (serves all chains)
 JEDISWAP_API = "https://api.jediswap.xyz"
-EKUBO_API = "https://mainnet-api.ekubo.org"
+EKUBO_API = "https://prod-api.ekubo.org"
 
 # Fallback/mock data for when APIs are unavailable
 FALLBACK_DATA = {
@@ -69,7 +72,13 @@ class MarketSnapshot:
             "timestamp": self.timestamp,
             "datetime": datetime.fromtimestamp(self.timestamp).isoformat(),
             "snapshot_hash": self.snapshot_hash,
+            "stale": self.is_stale(),
+            "age_seconds": int(time.time()) - self.timestamp,
         }
+
+    def is_stale(self) -> bool:
+        """Return True if this snapshot is older than the staleness threshold."""
+        return (int(time.time()) - self.timestamp) > STALE_THRESHOLD_SEC
     
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MarketSnapshot":
@@ -139,6 +148,7 @@ class MainnetOracle:
     
     def __init__(self):
         self._snapshots: list[MarketSnapshot] = []
+        self._refresh_in_progress: bool = False
         self._load_snapshots()
     
     def _load_snapshots(self):
@@ -187,17 +197,22 @@ class MainnetOracle:
         return FALLBACK_DATA["jediswap"]
     
     async def fetch_ekubo_data(self) -> dict[str, Any]:
-        """Fetch Ekubo mainnet stats."""
+        """Fetch Ekubo stats via prod-api.ekubo.org."""
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                # Try to get overview data
-                response = await client.get(f"{EKUBO_API}/overview")
+                # /overview/pairs gives TVL + volume across all pairs
+                response = await client.get(f"{EKUBO_API}/overview/pairs")
                 if response.status_code == 200:
                     data = response.json()
+                    pairs = data if isinstance(data, list) else data.get("topPairs", data.get("pairs", []))
+                    total_tvl = sum(float(p.get("tvlUsd", p.get("tvl_usd", 0)) or 0) for p in pairs)
+                    total_vol = sum(float(p.get("volume24hUsd", p.get("volume_24h_usd", 0)) or 0) for p in pairs)
+                    avg_fee = sum(float(p.get("feeApy", p.get("fee_apy", 0)) or 0) for p in pairs)
+                    avg_fee = (avg_fee / len(pairs)) if pairs else 7.8
                     return {
-                        "tvl": int(data.get("tvl_usd", FALLBACK_DATA["ekubo"]["tvl"])),
-                        "apy_bps": int(data.get("avg_fee_apy", 7.8) * 100),
-                        "volume_24h": int(data.get("volume_24h_usd", FALLBACK_DATA["ekubo"]["volume_24h"])),
+                        "tvl": int(total_tvl) or FALLBACK_DATA["ekubo"]["tvl"],
+                        "apy_bps": int(avg_fee * 100),
+                        "volume_24h": int(total_vol) or FALLBACK_DATA["ekubo"]["volume_24h"],
                         "volatility_bps": 430,  # Would need price history
                     }
         except Exception as e:
@@ -230,10 +245,31 @@ class MainnetOracle:
         return snapshot
     
     def get_latest_snapshot(self) -> MarketSnapshot | None:
-        """Get the most recent snapshot."""
+        """Get the most recent snapshot. Triggers async refresh if stale."""
         if not self._snapshots:
             return None
-        return self._snapshots[-1]
+        latest = self._snapshots[-1]
+        if latest.is_stale() and not self._refresh_in_progress:
+            # Fire-and-forget background refresh
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._auto_refresh())
+            except RuntimeError:
+                pass  # No event loop — skip auto-refresh
+        return latest
+
+    async def _auto_refresh(self) -> None:
+        """Background auto-refresh: fetch fresh data if stale. Debounced."""
+        if self._refresh_in_progress:
+            return
+        self._refresh_in_progress = True
+        try:
+            print(f"[MainnetOracle] Auto-refreshing stale data (age: {int(time.time()) - (self._snapshots[-1].timestamp if self._snapshots else 0)}s)")
+            await self.sync_market_data()
+        except Exception as e:
+            print(f"[MainnetOracle] Auto-refresh failed: {e}")
+        finally:
+            self._refresh_in_progress = False
     
     def get_snapshot_history(self, limit: int = 10) -> list[MarketSnapshot]:
         """Get recent snapshot history."""

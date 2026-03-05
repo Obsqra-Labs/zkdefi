@@ -1,42 +1,90 @@
 # Troubleshooting
 
-Common issues and where to get help.
+This page prioritizes practical diagnosis for the most common user and integration failures.
 
-## ChunkLoadError / CSS not loading
+## The Problem This Solves
 
-After a deploy, the app may serve cached old chunks. Try:
+Many failures look similar in the UI but originate from different layers: route mismatch, auth headers, wallet network, backend config, or chain state.
 
-- **Hard refresh:** Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac).
-- **Clear site data:** In browser settings, clear data for zkde.fi (cookies, cache).
-- If chunks return 404, ensure a full frontend rebuild and deploy so chunk filenames match the current build.
+## Why This Matters
 
-## 404 on /docs
+Fast triage depends on identifying the failing layer first, not retrying blindly.
 
-Use **zkde.fi/docs** or **zkde.fi/docs/** (with trailing slash). If you still get 404, the server may not be serving the docs path. On nginx, ensure `location /docs/` is configured with alias to the built docs (see [Deploying zkde.fi](/deploying-zkde-fi)).
+## Quick Triage Map
 
-## Transaction errors
+```mermaid
+flowchart LR
+  I[Issue] --> A{Where it breaks}
+  A -->|Before wallet prompt| B[Frontend route/state]
+  A -->|API error response| C[Backend endpoint/auth]
+  A -->|After signing| D[Chain or contract state]
+  A -->|Pending too long| E[Indexing/reconciliation]
+```
 
-### u256_sub Overflow
+## Route And Surface Mismatch
 
-Usually a balance or amount mismatch (e.g. wrong decimals or trying to spend more than available). Check the amounts you enter and your token balance. Ensure you're on Starknet Sepolia and that the token addresses match the network.
+### Symptom
 
-### NOT_INITIALIZED
+User lands on unexpected UI after following docs/support link.
 
-The pool or contract is not initialized on the network you're using. Ensure you're on **Starknet Sepolia** and that the pool/strategy is active. If you deployed recently, wait for indexing.
+### Fix
 
-### Requested contract address ... is not deployed
+Use canonical links:
 
-The contract at that address is not deployed on the network your wallet is using. Switch to Starknet Sepolia and confirm the app is pointing to Sepolia contracts.
+- `/agent?v=vault|trade|brain`
+- `/profile?tab=trust|reputation|compliance|connections`
 
-## Ekubo API unavailable / EKUBO_CHAIN_ID not set
+## Auth Header Failures
 
-Positions may show "pending" or "Ekubo API unavailable" when the backend cannot reach Ekubo (e.g. for position data). Check backend environment (Ekubo RPC/API config). As a user, you can retry later or check [FAQ](/faq) and support channels.
+### Symptom
 
-## Where to get help
+Mutating requests return `401` or `403` on protected routes.
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/obsqra-labs/zkdefi/issues)
-- **Twitter:** [@obsqralabs](https://twitter.com/obsqralabs)
+### Fix
 
-See also [Developers](/developers), [API overview](/api-overview), and [FAQ](/faq).
+- For user-protected endpoints, include `X-Wallet-Address` and ensure it matches target address.
+- For admin routes, provide valid `X-Admin-Key`.
 
-Next: [FAQ](/faq) | [Developers](/developers)
+## Network/Contract Mismatch
+
+### Symptom
+
+Wallet errors indicate contract not deployed or invalid chain context.
+
+### Fix
+
+Confirm Starknet Sepolia context and verify route-dependent contract configuration.
+
+## Orchestration Or Ekubo Availability Issues
+
+### Symptom
+
+Deploy flow returns unavailable/pending behavior despite valid input.
+
+### Fix
+
+Check backend orchestration and downstream Ekubo/indexing availability. On user side, retry after short interval and verify tx hash status on explorer.
+
+## Chunk/CSS Load Issues After Deploy
+
+### Symptom
+
+UI chunk load error or missing styles.
+
+### Fix
+
+- Hard refresh
+- Clear site cache for `zkde.fi`
+- Validate deployed frontend assets match current build output
+
+## Docs Route Issues
+
+### Symptom
+
+`/docs` or page route returns 404 in deployment.
+
+### Fix
+
+Verify docs static build sync and serving path (`/docs/`) configuration in frontend/reverse proxy.
+
+Next: [FAQ](/faq) | [Deploying zkde.fi](/deploying-zkde-fi) | [API overview](/api-overview)

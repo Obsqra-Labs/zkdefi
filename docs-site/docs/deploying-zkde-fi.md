@@ -1,22 +1,53 @@
 # Deploying zkde.fi
 
-High-level view of how zkde.fi is served. For environment variables and secrets, see the repo (e.g. ENV.md and ops runbooks).
+This page covers the high-level serving model for app + API + docs.
 
-## How the app is served
+## The Problem This Solves
 
-- **Frontend (Next.js)** — Runs on port 3001. Serves the main app (landing, agent, profile, etc.).
-- **Backend (FastAPI)** — Runs on port 8003. Serves `/api/` (zkdefi, health, etc.).
-- **Reverse proxy (e.g. nginx)** — Routes `/` and `/_next/` to the frontend, `/api/` to the backend, and `/docs/` to the static docs.
+Teams often deploy frontend and backend correctly but forget docs static sync or reverse-proxy path routing, resulting in partial outages.
 
-## Serving docs at zkde.fi/docs
+## Why This Matters
 
-1. **Build the docs-site:** From repo root, run `./scripts/sync-docs.sh`. This runs `cd docs-site && npm run build` and copies `docs-site/docs/.vitepress/dist/*` to `frontend/public/docs/`.
-2. **Serve the built files:** When the frontend is deployed, the Next app can serve `public/docs/` at `/docs` (via Next rewrites), or nginx can serve that directory directly at `location /docs/` with an alias to `frontend/public/docs/`.
+A reliable deployment model must treat product app, APIs, and docs as one operational surface.
 
-See **docs/DOCS_DEPLOYMENT.md** and **scripts/sync-docs.sh** in the repo for details. For nginx config, see ops runbooks (e.g. OPS_NGINX_ZKDEFI.md).
+## Runtime Topology
 
-## Environment and secrets
+```mermaid
+flowchart LR
+  U[Users] --> RP[Reverse proxy]
+  RP --> FE[Frontend Next.js :3001]
+  RP --> BE[Backend FastAPI :8003]
+  RP --> DOCS[Static docs /docs]
+```
 
-Not covered here. Use **docs/ENV.md** and your ops runbooks for environment variables and deployment secrets.
+## Serving Responsibilities
 
-Next: [Developers](/developers) | [DOCS_DEPLOYMENT](https://github.com/obsqra-labs/zkdefi/blob/main/docs/DOCS_DEPLOYMENT.md)
+- Frontend serves main web app routes.
+- Backend serves `/api/*` and health endpoints.
+- Docs are built from `docs-site` and synced into public static serving path.
+
+## Docs Build And Sync
+
+Run from repository root:
+
+```bash
+./scripts/sync-docs.sh
+```
+
+This builds VitePress docs and syncs output to `frontend/public/docs/` for serving.
+
+## Operational Problem It Solves
+
+Ensures docs stay version-aligned with deployed application behavior and avoids stale static content.
+
+## Why It Matters For Integrators
+
+Integrators depend on docs route stability for runbooks and onboarding, so deployment must preserve `/docs` availability as a first-class target.
+
+## Additional References
+
+- `docs/DOCS_DEPLOYMENT.md`
+- `docs/ENV.md`
+- `docs/OPS_NGINX_ZKDEFI.md`
+
+Next: [Developers](/developers) | [API overview](/api-overview)

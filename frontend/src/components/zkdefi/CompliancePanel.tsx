@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { ProofVisualizer } from "./ProofVisualizer";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -8,9 +8,10 @@ import { Eye, Shield, CheckCircle2, ArrowRight, Copy, HelpCircle, TrendingUp, Al
 import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
-import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
+import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
+import { ExecutionControlRail } from "./ExecutionControlRail";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
 const DISCLOSURE_ADDRESS = process.env.NEXT_PUBLIC_SELECTIVE_DISCLOSURE_ADDRESS || "";
 
 type Step = 1 | 2 | 3;
@@ -124,9 +125,15 @@ function shortStringToFelt(s: string): string {
   return n.toString();
 }
 
-export function CompliancePanel() {
+interface CompliancePanelProps {
+  initialProfiles?: Array<Record<string, unknown>>;
+}
+
+export function CompliancePanel({ initialProfiles }: CompliancePanelProps = {}) {
   const { address, account, isConnected } = useAccount();
   const { setActivityFeed } = useApp();
+  const [profiles, setProfiles] = useState<Array<Record<string, unknown>>>(initialProfiles ?? []);
+  const [profilesLoading, setProfilesLoading] = useState(!initialProfiles);
   const [selectedType, setSelectedType] = useState<StatementType>(STATEMENT_TYPES[0]);
   const [formData, setFormData] = useState<Record<string, string | string[]>>({});
   const [step, setStep] = useState<Step>(1);
@@ -134,6 +141,43 @@ export function CompliancePanel() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialProfiles && initialProfiles.length > 0) {
+      setProfiles(initialProfiles);
+    }
+  }, [initialProfiles]);
+
+  useEffect(() => {
+    if (!address) {
+      setProfiles(initialProfiles ?? []);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      if (!profilesLoading) setProfilesLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/zkdefi/compliance/profiles/${address}`);
+        const data = res.ok ? ((await res.json()) as Array<Record<string, unknown>>) : [];
+        if (!cancelled) setProfiles(data);
+      } catch {
+        if (!cancelled && profiles.length === 0) setProfiles([]);
+      } finally {
+        if (!cancelled) setProfilesLoading(false);
+      }
+    };
+    if (!initialProfiles || initialProfiles.length === 0) {
+      void load();
+    } else {
+      setProfilesLoading(false);
+    }
+    const interval = window.setInterval(() => void load(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   const handleTypeChange = (value: string) => {
     const type = STATEMENT_TYPES.find((t) => t.value === value);
@@ -234,7 +278,7 @@ export function CompliancePanel() {
       toastSuccess("Disclosure registered!", {
         action: {
           label: "View on explorer",
-          onClick: () => window.open(sepoliaStarkscanTxUrl(transaction_hash), "_blank"),
+          onClick: () => window.open(sepoliaVoyagerTxUrl(transaction_hash), "_blank"),
         },
       });
 
@@ -357,6 +401,35 @@ export function CompliancePanel() {
         <p className="text-sm text-zinc-400">
           Prove compliance without revealing your full history
         </p>
+      </div>
+
+      {address && (
+        <div className="mb-4">
+          <ExecutionControlRail address={address} compact />
+        </div>
+      )}
+
+      <div className="mb-4 rounded-lg border border-zinc-700/60 bg-zinc-900/30 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-zinc-300 font-medium">Generated Profiles</span>
+          <span className="text-xs text-zinc-500">
+            {profilesLoading ? "Loading..." : `${profiles.length} records`}
+          </span>
+        </div>
+        {profiles.length > 0 ? (
+          <div className="space-y-2">
+            {profiles.slice(0, 4).map((profile) => (
+              <div key={String(profile.receipt_id)} className="flex items-center justify-between text-xs border border-zinc-700/50 rounded p-2">
+                <span className="text-zinc-300 capitalize">{String(profile.profile_type || "disclosure").replace(/_/g, " ")}</span>
+                <span className={profile.verified ? "text-emerald-300" : "text-amber-300"}>
+                  {profile.verified ? "Verified" : "Pending"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-500">No generated profiles yet. Create one below to populate this list.</p>
+        )}
       </div>
 
       {!isConnected && (
@@ -550,7 +623,7 @@ export function CompliancePanel() {
                       </p>
                     </div>
                     <a
-                      href={sepoliaStarkscanTxUrl(txHash)}
+                      href={sepoliaVoyagerTxUrl(txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"

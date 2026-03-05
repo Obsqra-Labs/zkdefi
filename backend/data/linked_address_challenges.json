@@ -1,0 +1,160 @@
+{
+  "9214f8c646514822ae97aa3e07e886ea": {
+    "nonce_id": "9214f8c646514822ae97aa3e07e886ea",
+    "starknet_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "chain": "ethereum",
+    "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7\nchain:ethereum\naddress:0x4490a26eB6A0a19d1720866DA5d43f862768110D\nnonce:9214f8c646514822ae97aa3e07e886ea\nissued_at:1772541086",
+    "issued_at": 1772541086,
+    "expires_at": 1772541686,
+    "used": true,
+    "used_at": 1772541086
+  },
+  "49e8e707890843199644a1c70e8cd29e": {
+    "nonce_id": "49e8e707890843199644a1c70e8cd29e",
+    "starknet_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "chain": "ethereum",
+    "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7\nchain:ethereum\naddress:0x4490a26eB6A0a19d1720866DA5d43f862768110D\nnonce:49e8e707890843199644a1c70e8cd29e\nissued_at:1772541133",
+    "issued_at": 1772541133,
+    "expires_at": 1772541733,
+    "used": true,
+    "used_at": 1772541133
+  },
+  "a9b12793b80144a1a94966b45f40a52c": {
+    "nonce_id": "a9b12793b80144a1a94966b45f40a52c",
+    "starknet_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "chain": "ethereum",
+    "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7\nchain:ethereum\naddress:0x4490a26eB6A0a19d1720866DA5d43f862768110D\nnonce:a9b12793b80144a1a94966b45f40a52c\nissued_at:1772541285",
+    "issued_at": 1772541285,
+    "expires_at": 1772541885,
+    "used": true,
+    "used_at": 1772541285
+  },
+  "1453ec23ae9549ed872e4586f16e9032": {
+    "nonce_id": "1453ec23ae9549ed872e4586f16e9032",
+    "starknet_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "chain": "ethereum",
+    "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7\nchain:ethereum\naddress:0x4490a26eB6A0a19d1720866DA5d43f862768110D\nnonce:1453ec23ae9549ed872e4586f16e9032\nissued_at:1772541304",
+    "issued_at": 1772541304,
+    "expires_at": 1772541904,
+    "used": true,
+    "used_at": 1772541304
+  },
+  "a94289832f7c45dabd9ce31117bc0c34": {
+    "nonce_id": "a94289832f7c45dabd9ce31117bc0c34",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:a94289832f7c45dabd9ce31117bc0c34\nissued_at:1772555107",
+    "issued_at": 1772555107,
+    "expires_at": 1772555707,
+    "used": true,
+    "used_at": 1772555114
+  },
+  "f65b3ea20e594a59b9ee77054a44c132": {
+    "nonce_id": "f65b3ea20e594a59b9ee77054a44c132",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:f65b3ea20e594a59b9ee77054a44c132\nissued_at:1772571346",
+    "issued_at": 1772571346,
+    "expires_at": 1772571946,
+    "used": true,
+    "used_at": 1772571350
+  },
+  "062198f5914b4f9f8aaa275f730d7e0c": {
+    "nonce_id": "062198f5914b4f9f8aaa275f730d7e0c",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:062198f5914b4f9f8aaa275f730d7e0c\nissued_at:1772571355",
+    "issued_at": 1772571355,
+    "expires_at": 1772571955,
+    "used": false
+  },
+  "520629e4e302453caf3e76953ef23fe7": {
+    "nonce_id": "520629e4e302453caf3e76953ef23fe7",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:520629e4e302453caf3e76953ef23fe7\nissued_at:1772574530",
+    "issued_at": 1772574530,
+    "expires_at": 1772575130,
+    "used": true,
+    "used_at": 1772574535
+  },
+  "13703cd5ee5b47f591e031e5b70684aa": {
+    "nonce_id": "13703cd5ee5b47f591e031e5b70684aa",
+    "starknet_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "chain": "ethereum",
+    "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7\nchain:ethereum\naddress:0x4490a26eB6A0a19d1720866DA5d43f862768110D\nnonce:13703cd5ee5b47f591e031e5b70684aa\nissued_at:1772661402",
+    "issued_at": 1772661402,
+    "expires_at": 1772662002,
+    "used": true,
+    "used_at": 1772661402
+  },
+  "c7d2420e18fc40c8802de3dfa5df68d0": {
+    "nonce_id": "c7d2420e18fc40c8802de3dfa5df68d0",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:c7d2420e18fc40c8802de3dfa5df68d0\nissued_at:1772661876",
+    "issued_at": 1772661876,
+    "expires_at": 1772662476,
+    "used": false
+  },
+  "e9d5d16f62604e1fb04b0fec0f819ea6": {
+    "nonce_id": "e9d5d16f62604e1fb04b0fec0f819ea6",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:e9d5d16f62604e1fb04b0fec0f819ea6\nissued_at:1772682963",
+    "issued_at": 1772682963,
+    "expires_at": 1772683563,
+    "used": false
+  },
+  "9c24c8441ad04468b45679a8eff787ec": {
+    "nonce_id": "9c24c8441ad04468b45679a8eff787ec",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:9c24c8441ad04468b45679a8eff787ec\nissued_at:1772683317",
+    "issued_at": 1772683317,
+    "expires_at": 1772683917,
+    "used": false
+  },
+  "6d15b40a7f594badafe8f4ebcfbbdca2": {
+    "nonce_id": "6d15b40a7f594badafe8f4ebcfbbdca2",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:6d15b40a7f594badafe8f4ebcfbbdca2\nissued_at:1772683850",
+    "issued_at": 1772683850,
+    "expires_at": 1772684450,
+    "used": false
+  },
+  "1c81b5889dbb4373aa2fc7cacdc20004": {
+    "nonce_id": "1c81b5889dbb4373aa2fc7cacdc20004",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:1c81b5889dbb4373aa2fc7cacdc20004\nissued_at:1772683856",
+    "issued_at": 1772683856,
+    "expires_at": 1772684456,
+    "used": false
+  },
+  "64b1a0308a0049e4b630cabfe3a3fb2a": {
+    "nonce_id": "64b1a0308a0049e4b630cabfe3a3fb2a",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "challenge": "zkde.fi linked address verification\nstarknet:0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d\nchain:ethereum\naddress:0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9\nnonce:64b1a0308a0049e4b630cabfe3a3fb2a\nissued_at:1772683857",
+    "issued_at": 1772683857,
+    "expires_at": 1772684457,
+    "used": false
+  }
+}

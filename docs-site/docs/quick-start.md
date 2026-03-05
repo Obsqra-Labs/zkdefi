@@ -1,17 +1,57 @@
-# Quick start (live app)
+# Quick Start (Live App)
 
-Get going on **zkde.fi** in a few steps. No code — use the live app.
+This quick start is for users who want to move from zero setup to first meaningful execution in the live app.
 
-1. **Get a Starknet wallet** — e.g. [ArgentX](https://www.argent.xyz/argent-x/) or [Braavos](https://braavos.app/). Install the extension and create or import a wallet.
+## The Problem This Solves
 
-2. **Get Sepolia testnet ETH/STRK (if needed)** — zkde.fi runs on Starknet Sepolia. You may need testnet ETH for gas and STRK for some actions. Use a Sepolia faucet or swap on testnet if the app offers it.
+New users frequently connect a wallet but do not know which surface to open first, which route state to use, or how to avoid legacy links.
 
-3. **Go to [zkde.fi](https://zkde.fi) and click Connect** — Choose your wallet and approve the connection.
+## Why This Matters
 
-4. **After connect, open Agent or Profile** — From the landing page you can go to **Agent** (main workspace) or **Profile** (reputation, collateral, compliance).
+A clean first session reduces user error, lowers support load, and makes later automation and compliance flows easier to complete.
 
-5. **On Agent** — You can [Deploy to Ekubo](/agent-dashboard#deploy-to-ekubo-flow) (recommend → execute → receipt) or explore pools, DEX, and rebalancer. See [Agent dashboard](/agent-dashboard) for the full picture.
+## Fast Path
 
-See [Profile and identity](/profile-and-identity) for reputation, Risk Passport, and compliance.
+1. Install a Starknet wallet (ArgentX or Braavos).
+2. Select Starknet Sepolia in wallet settings.
+3. Open `https://zkde.fi` and connect wallet.
+4. Open `/agent?v=vault` for capital and deployment context.
+5. Open `/profile?tab=trust` to verify trust/reputation posture.
 
-Next: [Agent dashboard](/agent-dashboard) | [Profile and identity](/profile-and-identity)
+## First Session Flow
+
+```mermaid
+flowchart LR
+  A[Install wallet] --> B[Switch to Sepolia]
+  B --> C[Connect at zkde.fi]
+  C --> D[/agent?v=vault]
+  D --> E[/agent?v=oracle]
+  D --> F[/agent?v=brain]
+  C --> G[/profile?tab=trust]
+```
+
+## What To Do Next
+
+### Problem it solves
+
+After first connection, users often jump directly into execution without understanding constraints and profile context.
+
+### Why it matters
+
+Working through the intended order improves outcome quality:
+
+- `vault` first for capital posture
+- `oracle` next for signal and market context
+- `vault` trade sub-surface for execution: `/agent?v=vault&sub=trade`
+- `brain` last for automation controls
+- `profile` in parallel for trust/compliance visibility
+
+## Key Fixtures (Verified 2026-03-05)
+
+- `/agent?v=vault`
+- `/agent?v=oracle`
+- `/agent?v=vault&sub=trade`
+- `/agent?v=brain&sub=agent`
+- `/profile?tab=trust`
+
+Next: [First-time setup](/guide-first-time-setup) | [Agent workspace](/agent-dashboard) | [Profile and identity](/profile-and-identity)

@@ -1,26 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAccount } from "@starknet-react/core";
 import { Shield, ArrowRight, ExternalLink, Brain } from "lucide-react";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { RiskProfileForm } from "./components/RiskProfileForm";
-import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
-
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003").replace(/\/api\/v[0-9]+\/?$/, "");
-
-/** Turn API error detail (string | array of { msg } | object) into a single string for display. */
-function detailToString(detail: unknown): string {
-  if (detail == null) return "Request failed";
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    const parts = detail.map((d) => (d && typeof d === "object" && "msg" in d ? String((d as { msg: unknown }).msg) : JSON.stringify(d)));
-    return parts.length ? parts.join(". ") : JSON.stringify(detail);
-  }
-  if (typeof detail === "object" && detail !== null && "msg" in detail) return String((detail as { msg: unknown }).msg);
-  return JSON.stringify(detail);
-}
+import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
+import * as strategies from "@/lib/api/strategies";
+import * as orchestration from "@/lib/api/orchestration";
 
 type Step = "risk" | "recommendation" | "deploy";
 
@@ -44,7 +33,9 @@ interface Recommendation {
   recommendation_id: string;
 }
 
-export default function MVPPage() {
+function MVPPageInner() {
+  const searchParams = useSearchParams();
+  const demoMode = searchParams.get("mode") === "demo";
   const { address, isConnected } = useAccount();
   const [step, setStep] = useState<Step>("risk");
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -66,30 +57,8 @@ export default function MVPPage() {
     setRecommendLoading(true);
     setRecommendation(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_address: address,
-          risk_profile: data.riskProfile,
-          amount: data.amount,
-        }),
-      });
-      const text = await res.text();
-      let json: Recommendation;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        setRecommendError(res.ok ? "Invalid response from server" : `Backend or proxy returned an error page (${res.status}). Check API is up and NEXT_PUBLIC_API_URL is correct.`);
-        setRecommendLoading(false);
-        return;
-      }
-      if (!res.ok) {
-        setRecommendError(detailToString((json as { detail?: unknown }).detail) || `Request failed (${res.status})`);
-        setRecommendLoading(false);
-        return;
-      }
-      setRecommendation(json);
+      const json = await strategies.recommend(address, data.riskProfile, data.amount);
+      setRecommendation(json as unknown as Recommendation);
       setStep("recommendation");
     } catch (e) {
       setRecommendError(e instanceof Error ? e.message : "Request failed");
@@ -103,7 +72,6 @@ export default function MVPPage() {
     setDeployResult(null);
     setDeployLoading(true);
     try {
-      // Backend may expect deposit_amount (vault_execute) and/or total_amount + recommended_pools (execute-advanced)
       const body = {
         user_address: address,
         risk_profile: recommendation.risk_profile,
@@ -121,42 +89,8 @@ export default function MVPPage() {
           token_pair: p.pair,
         })),
       };
-      let res = await fetch(`${API_BASE}/api/v1/strategies/execute-advanced`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.status === 404) {
-        // Backward compatibility with older backend deployments.
-        res = await fetch(`${API_BASE}/api/v2/strategies/execute-advanced`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      }
-      const text = await res.text();
-      let json: Record<string, unknown>;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        setDeployResult({
-          ok: false,
-          message: res.status === 404
-            ? "Deploy endpoint not configured on this backend."
-            : `Server returned non-JSON (${res.status}). Check API.`,
-        });
-        setDeployLoading(false);
-        return;
-      }
-      if (!res.ok) {
-        setDeployResult({
-          ok: false,
-          message: detailToString(json.detail) || `Request failed (${res.status})`,
-        });
-        setDeployLoading(false);
-        return;
-      }
-      const positions = (json.positions as Array<{ strategy?: string; pool_id?: string; amount?: number; tx_hash?: string | null; status?: string; pool_name?: string }>) ?? [];
+      const json = await strategies.executeAdvanced(body, demoMode);
+      const positions = (json.positions ?? []) as Array<{ strategy?: string; pool_id?: string; amount?: number; tx_hash?: string | null; status?: string; pool_name?: string }>;
       const deployed = positions.filter((p) => p.tx_hash && p.status !== "recorded").length;
       const recorded = positions.filter((p) => p.status === "recorded").length;
       const hasTxLinks = positions.some((p) => p.tx_hash);
@@ -185,25 +119,15 @@ export default function MVPPage() {
     setDeployResult(null);
     setDeployLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/orchestration/deploy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await orchestration.deploy(
+        {
           user_address: address,
           deployable_amount: recommendation.total_amount,
           risk_profile: recommendation.risk_profile,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setDeployResult({
-          ok: false,
-          message: typeof data.detail === "string" ? data.detail : "Orchestration deploy failed",
-        });
-        setDeployLoading(false);
-        return;
-      }
-      const positions = (data.positions ?? []).map((p: { strategy: string; amount: number; status: string }) => ({
+        },
+        demoMode,
+      );
+      const positions = (data.positions ?? []).map((p) => ({
         strategy: p.strategy,
         amount: p.amount,
         status: p.status,
@@ -211,7 +135,7 @@ export default function MVPPage() {
       }));
       setDeployResult({
         ok: true,
-        message: `Deployed to Ekubo. Receipt: ${data.receipt_id ?? "—"}.`,
+        message: `Deployed to Ekubo. Receipt: ${(data as any).receipt_id ?? "—"}.`,
         positions,
       });
       setStep("deploy");
@@ -242,6 +166,7 @@ export default function MVPPage() {
             <nav className="hidden md:flex items-center gap-1 ml-4">
               <Link href="/agent" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Dashboard</Link>
               <Link href="/mvp" className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">MVP Lab</Link>
+              <Link href="/mvp/simulator" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Simulator</Link>
               <Link href="/profile" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Profile</Link>
             </nav>
           </div>
@@ -363,12 +288,12 @@ export default function MVPPage() {
                     </div>
                     {p.tx_hash ? (
                       <a
-                        href={sepoliaStarkscanTxUrl(p.tx_hash)}
+                        href={sepoliaVoyagerTxUrl(p.tx_hash)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300 font-medium"
                       >
-                        View on Starkscan <ExternalLink className="w-4 h-4" />
+                        View on Explorer <ExternalLink className="w-4 h-4" />
                       </a>
                     ) : (
                       <span className="text-sm text-zinc-500">Sign on Dashboard to deploy</span>
@@ -413,5 +338,13 @@ export default function MVPPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function MVPPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">Loading…</div>}>
+      <MVPPageInner />
+    </Suspense>
   );
 }

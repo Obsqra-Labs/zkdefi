@@ -8,7 +8,7 @@ Endpoints:
 - /api/v1/zkdefi/session_keys/validate - Validate session key
 """
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services.session_key_service import get_session_service
 
@@ -24,6 +24,8 @@ class GrantSessionRequest(BaseModel):
     max_position: int
     allowed_protocols: list[str]  # ["pools", "ekubo", "jediswap"]
     duration_hours: int = 24
+    shared_pool_id: str | None = None
+    strategy_scope: list[str] = Field(default_factory=list)
 
 
 class ConfirmGrantRequest(BaseModel):
@@ -67,7 +69,9 @@ async def grant_session(data: GrantSessionRequest):
             session_key_address=data.session_key_address,
             max_position=data.max_position,
             allowed_protocols=data.allowed_protocols,
-            duration_hours=data.duration_hours
+            duration_hours=data.duration_hours,
+            shared_pool_id=data.shared_pool_id,
+            strategy_scope=data.strategy_scope,
         )
         return result
     except Exception as e:

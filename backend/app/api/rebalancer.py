@@ -11,12 +11,16 @@ Endpoints:
 - /api/v1/zkdefi/rebalancer/autonomous/stop - Stop autonomous agent
 - /api/v1/zkdefi/rebalancer/autonomous/status - Get agent status
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from typing import Optional
+
+from ..middleware.auth import require_wallet_owner, require_admin
+from typing import Any, Optional, Literal
+import os
 
 from app.services.agent_rebalancer import get_rebalancer
 from app.services.autonomous_agent import get_autonomous_agent, MonitoringConfig
+from app.services.policy_engine import check as policy_check
 
 router = APIRouter()
 
@@ -43,6 +47,15 @@ class CheckZkmlRequest(BaseModel):
     proposal_id: str
     portfolio_features: list[int]
     pool_id: str | None = None
+
+
+class AdvisoryCheckRequest(BaseModel):
+    """Request for non-blocking advisory policy check."""
+    user_address: str
+    action_type: Literal["swap", "lp_add", "lp_remove", "deploy"]
+    pool_id: str
+    portfolio_features: list[int]
+    context: Optional[dict[str, Any]] = None
 
 
 class PrepareRequest(BaseModel):
@@ -137,6 +150,64 @@ async def check_zkml_gates(data: CheckZkmlRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/advisory-check")
+async def advisory_check(data: AdvisoryCheckRequest):
+    """
+    Run a non-blocking policy check for manual actions.
+
+    This endpoint never creates proposals and is intended for
+    post-submit/advisory UX only.
+    """
+    enabled = os.getenv("REBALANCER_ADVISORY_CHECK_ENABLED", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not enabled:
+        return {
+            "advisory_only": True,
+            "can_proceed": True,
+            "risk_passed": True,
+            "anomaly_passed": True,
+            "reason": "advisory check disabled",
+        }
+
+    context = data.context or {}
+    try:
+        payload = {
+            "proposal_id": f"advisory_{data.action_type}",
+            "portfolio_features": data.portfolio_features,
+            "pool_id": data.pool_id,
+            "from_protocol": context.get("from_protocol", 0),
+            "to_protocol": context.get("to_protocol", 1),
+            "amount": context.get("amount", 1),
+            "reason": f"advisory:{data.action_type}",
+        }
+        policy = await policy_check(
+            user_address=data.user_address,
+            action_type="rebalance",
+            payload=payload,
+        )
+        risk_result = policy.get("risk_result") or {}
+        anomaly_result = policy.get("anomaly_result") or {}
+        return {
+            "advisory_only": True,
+            "can_proceed": bool(policy.get("allowed", False)),
+            "risk_passed": bool(risk_result.get("is_compliant", False)),
+            "anomaly_passed": bool(anomaly_result.get("is_safe", False)),
+            "snapshot_hash": policy.get("snapshot_hash"),
+            "commitment_hash": policy.get("commitment_hash"),
+            "reason": policy.get("reason") or None,
+        }
+    except RuntimeError as e:
+        if "retry later" in str(e).lower():
+            raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/prepare")
 async def prepare_execution(data: PrepareRequest):
     """
@@ -160,12 +231,20 @@ async def prepare_execution(data: PrepareRequest):
 
 
 @router.post("/execute")
-async def execute_rebalance(data: ExecuteRequest):
+async def execute_rebalance(http_request: Request, data: ExecuteRequest):
     """
     Execute the rebalancing.
-    
-    Requires valid session key and all proofs.
+
+    In demo mode, returns success without submitting chain transactions.
     """
+    if getattr(http_request.state, "demo_mode", False):
+        return {
+            "success": True,
+            "proposal_id": data.proposal_id,
+            "session_id": data.session_id,
+            "demo": True,
+            "message": "Rebalance recorded (demo); no on-chain transaction.",
+        }
     try:
         rebalancer = get_rebalancer()
         result = await rebalancer.execute_rebalance(
@@ -202,7 +281,7 @@ async def get_user_proposals(user_address: str):
 # ==================== Autonomous Agent Endpoints ====================
 
 @router.post("/autonomous/start")
-async def start_autonomous_agent(data: AutonomousStartRequest):
+async def start_autonomous_agent(data: AutonomousStartRequest, _caller: str = Depends(require_wallet_owner)):
     """
     Start autonomous monitoring for a user.
     
@@ -239,7 +318,7 @@ async def start_autonomous_agent(data: AutonomousStartRequest):
 
 
 @router.post("/autonomous/stop")
-async def stop_autonomous_agent(data: AutonomousStopRequest):
+async def stop_autonomous_agent(data: AutonomousStopRequest, _caller: str = Depends(require_wallet_owner)):
     """
     Stop autonomous monitoring for a user.
     
@@ -266,7 +345,7 @@ async def get_autonomous_status(user_address: str):
 
 
 @router.post("/autonomous/pause/{user_address}")
-async def pause_autonomous_agent(user_address: str):
+async def pause_autonomous_agent(user_address: str, _caller: str = Depends(require_wallet_owner)):
     """Pause the autonomous agent (keeps state)."""
     try:
         agent = get_autonomous_agent()
@@ -277,7 +356,7 @@ async def pause_autonomous_agent(user_address: str):
 
 
 @router.post("/autonomous/resume/{user_address}")
-async def resume_autonomous_agent(user_address: str):
+async def resume_autonomous_agent(user_address: str, _caller: str = Depends(require_wallet_owner)):
     """Resume a paused autonomous agent."""
     try:
         agent = get_autonomous_agent()
@@ -288,7 +367,7 @@ async def resume_autonomous_agent(user_address: str):
 
 
 @router.get("/autonomous/all")
-async def get_all_autonomous_agents():
+async def get_all_autonomous_agents(_admin: str = Depends(require_admin)):
     """Get status of all autonomous agents (admin endpoint)."""
     agent = get_autonomous_agent()
     agents = agent.get_all_agents()

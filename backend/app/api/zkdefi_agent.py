@@ -1,10 +1,12 @@
 """
 zkdefi agent API: proof-gated deposit/withdraw, disclosure, positions.
 """
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.zkdefi_agent_service import ZkdefiAgentService
+from app.services.receipt_service import get_receipt_service
 
 router = APIRouter()
 _service: ZkdefiAgentService | None = None
@@ -15,6 +17,35 @@ def get_service() -> ZkdefiAgentService:
     if _service is None:
         _service = ZkdefiAgentService()
     return _service
+
+
+_COMPLIANCE_PROOF_TYPES = {
+    "disclosure",
+    "disclosure_yield_above",
+    "disclosure_balance_above",
+    "disclosure_risk_compliance",
+    "disclosure_performance",
+    "disclosure_kyc_eligibility",
+    "disclosure_portfolio_aggregation",
+}
+
+
+def _normalize_profile_type(proof_type: str) -> str:
+    mapping = {
+        "disclosure_yield_above": "yield_above",
+        "disclosure_balance_above": "balance_above",
+        "disclosure_risk_compliance": "risk_compliance",
+        "disclosure_performance": "performance",
+        "disclosure_kyc_eligibility": "kyc_eligibility",
+        "disclosure_portfolio_aggregation": "portfolio_aggregation",
+        "disclosure": "generic_disclosure",
+    }
+    return mapping.get(proof_type, proof_type)
+
+
+def _is_verified_result(result: str) -> bool:
+    value = (result or "").strip().lower()
+    return value not in {"failed", "error", "unsafe", "non_compliant", "false", "rejected"}
 
 
 class DepositRequest(BaseModel):
@@ -146,6 +177,13 @@ async def generate_disclosure(data: DisclosureRequest):
             threshold=data.threshold,
             result=data.result,
         )
+        get_receipt_service().append_proof_receipt(
+            user_address=data.user_address,
+            proof_type=f"disclosure_{data.statement_type}",
+            threshold_or_model=str(data.threshold),
+            result=data.result,
+            fact_hash=result.get("proof_hash") or result.get("fact_hash"),
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -227,6 +265,13 @@ async def generate_risk_compliance(data: RiskComplianceRequest):
             max_risk_threshold=data.max_risk_threshold,
             risk_metric=data.risk_metric,
         )
+        get_receipt_service().append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="disclosure_risk_compliance",
+            threshold_or_model=str(data.max_risk_threshold),
+            result=result.get("result", "unknown"),
+            fact_hash=result.get("proof_hash") or result.get("fact_hash"),
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -242,6 +287,13 @@ async def generate_performance(data: PerformanceRequest):
             min_apy=data.min_apy,
             period_days=data.period_days,
         )
+        get_receipt_service().append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="disclosure_performance",
+            threshold_or_model=str(data.min_apy),
+            result=result.get("result", "unknown"),
+            fact_hash=result.get("proof_hash") or result.get("fact_hash"),
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -255,6 +307,13 @@ async def generate_kyc_eligibility(data: KYCRequest):
         result = await svc.generate_kyc_eligibility_proof(
             user_address=data.user_address,
             min_balance=data.min_balance,
+        )
+        get_receipt_service().append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="disclosure_kyc_eligibility",
+            threshold_or_model=str(data.min_balance),
+            result=result.get("result", "unknown"),
+            fact_hash=result.get("proof_hash") or result.get("fact_hash"),
         )
         return result
     except Exception as e:
@@ -284,6 +343,13 @@ async def generate_aggregation_proof(data: AggregationRequest):
             user_address=data.user_address,
             min_total_value=data.min_total_value,
             protocol_ids=data.protocol_ids,
+        )
+        get_receipt_service().append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="disclosure_portfolio_aggregation",
+            threshold_or_model=str(data.min_total_value),
+            result=result.get("result", "unknown"),
+            fact_hash=result.get("proof_hash") or result.get("fact_hash"),
         )
         return result
     except Exception as e:
@@ -350,9 +416,37 @@ async def get_compliance_profiles(user_address: str):
     - Performance Proof
     - Portfolio Aggregation
     """
-    # In production, this would fetch from a database
-    # For now, return an empty list (profiles are generated on-demand)
-    return []
+    enabled = os.getenv("COMPLIANCE_PROFILES_FROM_RECEIPTS", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not enabled:
+        return []
+
+    receipts = await get_receipt_service().get_user_receipts(user_address)
+    profiles = []
+    for receipt in receipts:
+        proof_type = str(receipt.get("proof_type") or "").strip()
+        if proof_type not in _COMPLIANCE_PROOF_TYPES:
+            continue
+        result = str(receipt.get("result") or "")
+        profiles.append(
+            {
+                "receipt_id": receipt.get("receipt_id"),
+                "profile_type": _normalize_profile_type(proof_type),
+                "verified": _is_verified_result(result),
+                "result": result,
+                "tx_hash": receipt.get("tx_hash"),
+                "proof_hash": receipt.get("fact_hash"),
+                "snapshot_hash": receipt.get("snapshot_hash"),
+                "created_at": receipt.get("timestamp"),
+                "proof_type": proof_type,
+            }
+        )
+    profiles.sort(key=lambda row: str(row.get("created_at") or ""), reverse=True)
+    return profiles
 
 
 @router.get("/compliance/profile-types")

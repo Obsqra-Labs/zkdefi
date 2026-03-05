@@ -173,6 +173,65 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
                       );
                     })}
                   </div>
+                  
+                  {/* zkML Intelligence Panel */}
+                  {(opp as any).zkml_risk_score !== undefined && (
+                    <div className="mt-4 pt-4 border-t border-zinc-800/50 rounded-lg border border-blue-700/30 bg-blue-900/10 p-3">
+                      <h4 className="text-xs font-semibold text-blue-200 mb-2 flex items-center gap-2">
+                        <Shield className="w-3.5 h-3.5" />
+                        zkML Verification
+                      </h4>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Proof Status:</span>
+                          <span className={
+                            (opp as any).zkml_signals?.gates_passed === (opp as any).zkml_signals?.gates_total
+                              ? "text-emerald-400"
+                              : "text-amber-400"
+                          }>
+                            {(opp as any).zkml_signals
+                              ? `${(opp as any).zkml_signals.gates_passed}/${(opp as any).zkml_signals.gates_total} gates`
+                              : "Evaluator only"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Risk Score:</span>
+                          <span className={`font-medium ${
+                            (opp as any).zkml_risk_score < 30 ? 'text-emerald-400' :
+                            (opp as any).zkml_risk_score < 60 ? 'text-amber-400' :
+                            'text-red-400'
+                          }`}>{(opp as any).zkml_risk_score}/100</span>
+                        </div>
+                        {(opp as any).zkml_confidence !== undefined && (opp as any).zkml_confidence !== null && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-400">Confidence:</span>
+                            <span className="text-zinc-200">
+                              {((opp as any).zkml_confidence * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        )}
+                        {(opp as any).zkml_flags && (opp as any).zkml_flags.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-zinc-800/30">
+                            <span className="text-xs text-zinc-400 block mb-1">Flags:</span>
+                            <div className="space-y-0.5">
+                              {(opp as any).zkml_flags.map((flag: string, fi: number) => (
+                                <div key={fi} className="text-xs text-amber-400/80">
+                                  • {flag.replace(/_/g, ' ')}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(opp as any).zkml_proof_hash && (
+                          <div className="mt-2 pt-2 border-t border-zinc-800/30">
+                            <div className="p-1.5 rounded bg-zinc-900/50 font-mono text-xs text-zinc-500 break-all">
+                              {(opp as any).zkml_proof_hash}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

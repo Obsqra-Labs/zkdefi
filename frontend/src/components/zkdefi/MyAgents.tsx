@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Brain, Play, Pause, Trash2, Check, X, Clock, Zap, ExternalLink } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE, walletAuthHeaders } from "@/lib/api/client";
 
 interface Agent {
   id: string;
@@ -34,6 +34,62 @@ interface ExecutionResult {
   total_time_ms: number;
 }
 
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeAgent(input: unknown): Agent {
+  const row = toRecord(input);
+  const decisionLogic = toRecord(row.decision_logic);
+  return {
+    id: String(row.id ?? row.agent_id ?? ""),
+    name: String(row.name ?? "Unnamed Agent"),
+    processors: Array.isArray(row.processors) ? row.processors.map((p) => String(p)) : [],
+    decision_logic: {
+      type: decisionLogic.type === "OR" ? "OR" : "AND",
+    },
+    active: typeof row.active === "boolean" ? row.active : true,
+    created_at: toNumber(row.created_at, Math.floor(Date.now() / 1000)),
+  };
+}
+
+function normalizeProcessorResult(input: unknown): ProcessorResult {
+  const row = toRecord(input);
+  const score = row.score == null ? null : toNumber(row.score, 0);
+  const threshold = row.threshold == null ? null : toNumber(row.threshold, 0);
+  return {
+    processor_id: String(row.processor_id ?? "unknown_processor"),
+    passed: Boolean(row.passed),
+    score,
+    threshold,
+    has_proof: Boolean(row.has_proof),
+    error: row.error == null ? null : String(row.error),
+    execution_time_ms: toNumber(row.execution_time_ms, 0),
+  };
+}
+
+function normalizeExecutionResult(input: unknown): ExecutionResult {
+  const row = toRecord(input);
+  return {
+    agent_id: String(row.agent_id ?? ""),
+    agent_name: String(row.agent_name ?? row.name ?? "Agent"),
+    should_execute: Boolean(row.should_execute),
+    decision_logic: String(row.decision_logic ?? "AND"),
+    processor_results: Array.isArray(row.processor_results)
+      ? row.processor_results.map((entry) => normalizeProcessorResult(entry))
+      : [],
+    execution_calldata: Array.isArray(row.execution_calldata)
+      ? row.execution_calldata.map((item) => String(item))
+      : null,
+    total_time_ms: toNumber(row.total_time_ms, 0),
+  };
+}
+
 export function MyAgents({
   userAddress,
   refreshTrigger,
@@ -55,11 +111,15 @@ export function MyAgents({
     try {
       const res = await fetch(`${API_BASE}/api/v1/agents/user/${userAddress}`);
       if (res.ok) {
-        const data = await res.json();
-        setAgents(data.agents || []);
+        const data = toRecord(await res.json());
+        const rows = Array.isArray(data.agents) ? data.agents : [];
+        setAgents(rows.map((entry) => normalizeAgent(entry)));
+      } else {
+        setAgents([]);
       }
     } catch (e) {
       console.error("Failed to fetch agents:", e);
+      setAgents([]);
     }
     setLoading(false);
   };
@@ -91,7 +151,7 @@ export function MyAgents({
       });
 
       if (res.ok) {
-        const result = await res.json();
+        const result = normalizeExecutionResult(await res.json());
         setExecutionResult(result);
       } else {
         const data = await res.json();
@@ -107,6 +167,7 @@ export function MyAgents({
     try {
       const res = await fetch(`${API_BASE}/api/v1/agents/${agentId}?user_address=${userAddress}`, {
         method: "DELETE",
+        headers: walletAuthHeaders(userAddress),
       });
       if (res.ok) {
         fetchAgents();
@@ -251,7 +312,7 @@ export function MyAgents({
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs text-zinc-400">Processor Results ({executionResult.decision_logic} logic):</p>
+              <p className="text-xs text-zinc-400">Processor Results ({executionResult.decision_logic} logic):</p>
             {executionResult.processor_results.map((pr) => (
               <div
                 key={pr.processor_id}

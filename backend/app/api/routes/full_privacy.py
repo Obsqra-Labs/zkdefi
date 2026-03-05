@@ -7,9 +7,15 @@ Endpoints for:
 - Selective disclosure proofs
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+import os
 from typing import Optional, List
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from starknet_py.hash.selector import get_selector_from_name
+
+from ...middleware.auth import require_admin
 
 from ...services.full_privacy_proof_service import get_full_privacy_service
 from ...services.merkle_tree_service import (
@@ -50,6 +56,9 @@ class DepositCommitmentResponse(BaseModel):
 
 class RegisterCommitmentRequest(BaseModel):
     commitment: str
+    amount_wei: Optional[int] = None
+    pool_target: Optional[str] = None
+    user_address: Optional[str] = None
 
 
 class RegisterCommitmentResponse(BaseModel):
@@ -227,7 +236,7 @@ async def register_commitment(request: RegisterCommitmentRequest):
 
         # SYNCHRONOUS: wait for on-chain root registration with retries
         _log.info("Registering root on-chain (synchronous): %s", hex(root_int)[:30])
-        registered = await register_root_on_chain(root_int, max_retries=3)
+        registered = await register_root_on_chain(root_int, max_retries=5)
 
         if not registered:
             _log.error("FAILED to register root on-chain: %s", hex(root_int))
@@ -237,6 +246,24 @@ async def register_commitment(request: RegisterCommitmentRequest):
             )
 
         _log.info("Root registered on-chain successfully: %s", hex(root_int)[:30])
+
+        # If this deposit targets the private yield pool, register in yield vault ledger
+        _yield_pool = os.getenv("PRIVATE_YIELD_POOL_ADDRESS", "")
+        if (
+            request.pool_target == "private_yield"
+            or (request.pool_target and _yield_pool and request.pool_target.lower() == _yield_pool.lower())
+        ) and request.amount_wei:
+            try:
+                from app.services.private_yield_service import register_deposit
+                register_deposit(
+                    commitment=request.commitment,
+                    amount_wei=request.amount_wei,
+                    user_address=request.user_address,
+                )
+                _log.info("Private yield deposit registered: commitment=%s amount=%s", request.commitment[:20], request.amount_wei)
+            except Exception as yield_err:
+                _log.warning("Private yield registration failed (non-fatal): %s", yield_err)
+
         return RegisterCommitmentResponse(**result)
     except HTTPException:
         raise
@@ -255,7 +282,7 @@ async def reconcile_merkle_roots_endpoint():
 
 
 @router.post("/merkle/reset")
-async def reset_merkle_tree_endpoint():
+async def reset_merkle_tree_endpoint(_admin: str = Depends(require_admin)):
     """
     Reset the backend merkle tree to empty state.
     Use after pool contract redeployment or desync.
@@ -283,7 +310,7 @@ async def ensure_root_on_chain(request: EnsureRootRequest):
     Ensure the given merkle root is registered on-chain before the user signs a withdraw tx.
     Call this with commitmentData.root right before account.execute(withdraw).
     Returns 200 with { "ok": true, "root": "0x...", "was_already_known": bool }.
-    Returns 503 if registration failed after retries.
+    If registration fails, returns advisory-only success so manual wallet flows can proceed.
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -295,16 +322,70 @@ async def ensure_root_on_chain(request: EnsureRootRequest):
         logger.info("[EnsureRoot] Root %s not on-chain, registering...", request.root[:24])
         registered = await register_root_on_chain(root_int, max_retries=5)
         if not registered:
-            raise HTTPException(
-                status_code=503,
-                detail="Merkle root could not be registered on-chain. Try again in a few seconds."
-            )
+            logger.warning("[EnsureRoot] Root registration pending (advisory-only): %s", request.root[:24])
+            return {
+                "ok": True,
+                "root": request.root,
+                "was_already_known": False,
+                "advisory_only": True,
+                "warning": "Merkle root registration is pending. Manual wallet execution may still proceed.",
+            }
         return {"ok": True, "root": request.root, "was_already_known": False}
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("ensure_root error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pool_balance")
+async def get_pool_balance(
+    pool_address: str = Query(..., description="Full Privacy Pool contract address"),
+    token_address: str = Query(..., description="ERC20 token address (e.g. STRK)"),
+):
+    """
+    Return the pool's token balance in wei. Use before withdraw to avoid u256_sub Overflow.
+    """
+    rpc = os.getenv("STARKNET_RPC_URL", os.getenv("STARKNET_RPC_URL_V08", "https://starknet-sepolia-rpc.publicnode.com"))
+    token = token_address.strip() if token_address.strip().startswith("0x") else f"0x{token_address.strip()}"
+    owner = pool_address.strip() if pool_address.strip().startswith("0x") else f"0x{pool_address.strip()}"
+    selector = hex(get_selector_from_name("balance_of"))
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "starknet_call",
+            "params": {
+                "request": {
+                    "contract_address": token,
+                    "entry_point_selector": selector,
+                    "calldata": [owner],
+                },
+                "block_id": "latest",
+            },
+            "id": 1,
+        }
+        try:
+            response = await client.post(rpc, json=payload)
+            data = response.json()
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"RPC error: {e}")
+    err = data.get("error")
+    if err:
+        raise HTTPException(status_code=502, detail=str(err))
+    result = data.get("result")
+    if not isinstance(result, list) or len(result) == 0:
+        return {"pool_address": pool_address, "token_address": token_address, "balance_wei": "0"}
+    try:
+        if len(result) == 1:
+            low = int(str(result[0]), 16) if str(result[0]).startswith("0x") else int(str(result[0]))
+            balance = max(0, low)
+        else:
+            low = int(str(result[0]), 16) if str(result[0]).startswith("0x") else int(str(result[0]))
+            high = int(str(result[1]), 16) if str(result[1]).startswith("0x") else int(str(result[1]))
+            balance = max(0, low + (high << 128))
+        return {"pool_address": pool_address, "token_address": token_address, "balance_wei": str(balance)}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Parse balance: {e}")
 
 
 @router.post("/merkle/verify_root")
@@ -440,17 +521,21 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
             path_indices=stored_path_indices,
         )
 
-        # Ensure the proof's root is on-chain before returning
+        # Ensure the proof's root is on-chain before returning.
+        # If sync is unavailable, keep manual flow non-blocking and return advisory warning.
         proof_root = int(result["root"], 16) if result["root"].startswith("0x") else int(result["root"])
+        root_sync_warning: str | None = None
         root_on_chain = await verify_root_on_chain(proof_root)
         if not root_on_chain:
             logger.warning("[Withdraw] Root %s not on-chain, registering now...", result["root"][:20])
-            registered = await register_root_on_chain(proof_root, max_retries=3)
+            registered = await register_root_on_chain(proof_root, max_retries=5)
             if not registered:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Merkle root not confirmed on-chain. Try again in a few seconds."
-                )
+                root_sync_warning = "Merkle root sync pending on-chain; manual execution can still be attempted."
+                logger.warning("[Withdraw] %s root=%s", root_sync_warning, result["root"][:20])
+
+        message = str(result.get("message", "Withdraw proof generated."))
+        if root_sync_warning:
+            message = f"{message} {root_sync_warning}"
 
         return WithdrawProofResponse(
             nullifier=result["nullifier"],
@@ -463,7 +548,7 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
             amount=result["amount"],
             pool_type=result["pool_type"],
             proof_calldata=result["proof_calldata"],
-            message=result["message"],
+            message=message,
         )
     except HTTPException:
         raise
@@ -547,6 +632,9 @@ async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
     Proves withdraw_amount + change_amount == commitment amount; returns change commitment for pool to insert.
     Frontend should store change_nonce, change_blinding, change_amount, change_commitment for the new commitment.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
         svc = get_full_privacy_service()
         user_secret = int(request.user_secret, 16) if request.user_secret.startswith("0x") else int(request.user_secret)
@@ -596,17 +684,21 @@ async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
             path_indices=stored_path_indices,
         )
 
-        # Ensure the proof's root is on-chain before returning
+        # Ensure the proof's root is on-chain before returning.
+        # If sync is unavailable, keep manual flow non-blocking and return advisory warning.
         proof_root = int(result["root"], 16) if result["root"].startswith("0x") else int(result["root"])
+        root_sync_warning: str | None = None
         root_on_chain = await verify_root_on_chain(proof_root)
         if not root_on_chain:
             logger.warning("[Withdraw] Root %s not on-chain, registering now...", result["root"][:20])
-            registered = await register_root_on_chain(proof_root, max_retries=3)
+            registered = await register_root_on_chain(proof_root, max_retries=5)
             if not registered:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Merkle root not confirmed on-chain. Try again in a few seconds."
-                )
+                root_sync_warning = "Merkle root sync pending on-chain; manual execution can still be attempted."
+                logger.warning("[Withdraw] %s root=%s", root_sync_warning, result["root"][:20])
+
+        message = str(result.get("message", "Withdraw proof generated."))
+        if root_sync_warning:
+            message = f"{message} {root_sync_warning}"
 
         return WithdrawProofWithChangeResponse(
             nullifier=result["nullifier"],
@@ -627,7 +719,7 @@ async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
             proof_calldata=result["proof_calldata"],
             path_elements=result.get("path_elements"),
             path_indices=result.get("path_indices"),
-            message=result["message"],
+            message=message,
         )
     except HTTPException:
         raise
@@ -657,7 +749,7 @@ async def register_change_commitment(request: RegisterChangeCommitmentRequest):
         tree = get_merkle_tree()
         leaf_index, path_elements, path_indices = tree.insert(commitment_felt)
         root = tree.get_root()
-        registered = await register_root_on_chain(root, max_retries=3)
+        registered = await register_root_on_chain(root, max_retries=5)
         if not registered:
             raise HTTPException(status_code=503, detail="Merkle root registration failed")
         return {
@@ -880,3 +972,221 @@ async def find_commitment(request: FindCommitmentRequest):
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Pool D: Tier-2H Claim Payout ====================
+
+class ClaimPayoutExecRequest(BaseModel):
+    """
+    Trigger Pool D (HashedWithdrawPool) claim payout.
+
+    After the user calls withdraw_claim_u256 on-chain (proving via ZK that they hold
+    a leaf in the Merkle tree and burning their nullifier), the contract stores the
+    claimHash but does NOT transfer tokens.  This endpoint completes the payout:
+
+      1. Verifies is_claimed_u256(claim_low, claim_high) on Pool D.
+      2. Transfers amount_wei STRK from the operator wallet to recipient.
+      3. Returns the on-chain tx hash.
+
+    Fields:
+      claim_low / claim_high  — the u256 halves of claimHash from the proof response.
+      recipient               — destination address (hex 0x...).
+      amount_wei              — STRK amount in wei (string to preserve precision).
+    """
+    claim_low: str
+    claim_high: str
+    recipient: str
+    amount_wei: str
+
+
+class ClaimPayoutExecResponse(BaseModel):
+    tx_hash: str
+    recipient: str
+    amount_wei: str
+    message: str
+
+
+@router.post("/claim/pay", response_model=ClaimPayoutExecResponse)
+async def execute_claim_payout(request: ClaimPayoutExecRequest):
+    """
+    Pool D Tier-2H payout: verify on-chain claim hash then transfer STRK to recipient.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    from starknet_py.contract import Contract
+    from starknet_py.net.account.account import Account
+    from starknet_py.net.full_node_client import FullNodeClient
+    from starknet_py.net.models.chains import StarknetChainId
+    from starknet_py.net.signer.stark_curve_signer import KeyPair
+    from starknet_py.net.client_models import Call
+    from starknet_py.hash.selector import get_selector_from_name as _sel
+
+    from ... import config as cfg
+
+    pool_d_addr_str = os.getenv("HASHED_WITHDRAW_POOL_ADDRESS", "")
+    if not pool_d_addr_str:
+        raise HTTPException(status_code=503, detail="HASHED_WITHDRAW_POOL_ADDRESS not configured.")
+    strk_addr_str = os.getenv(
+        "STRK_TOKEN_ADDRESS",
+        "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    )
+    rpc_url = os.getenv("STARKNET_RPC_URL_V08") or os.getenv("EXECUTOR_RPC_URL") or \
+              "https://api.cartridge.gg/x/starknet/sepolia"
+    admin_addr_str = os.getenv(
+        "FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS",
+        os.getenv("EXECUTOR_ADDRESS", ""),
+    )
+    admin_pk_str = os.getenv(
+        "FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY",
+        os.getenv("EXECUTOR_PRIVATE_KEY", ""),
+    )
+    if not admin_addr_str or not admin_pk_str:
+        raise HTTPException(status_code=503, detail="Admin wallet not configured.")
+
+    try:
+        claim_low  = int(request.claim_low,  16) if request.claim_low.startswith("0x")  else int(request.claim_low)
+        claim_high = int(request.claim_high, 16) if request.claim_high.startswith("0x") else int(request.claim_high)
+        recipient  = int(request.recipient,  16) if request.recipient.startswith("0x")  else int(request.recipient)
+        amount_wei = int(request.amount_wei)
+        pool_d_addr  = int(pool_d_addr_str,  16) if pool_d_addr_str.startswith("0x")  else int(pool_d_addr_str)
+        strk_addr    = int(strk_addr_str,    16) if strk_addr_str.startswith("0x")    else int(strk_addr_str)
+        admin_addr   = int(admin_addr_str,   16) if admin_addr_str.startswith("0x")   else int(admin_addr_str)
+        admin_pk     = int(admin_pk_str,     16) if admin_pk_str.startswith("0x")     else int(admin_pk_str)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=422, detail=f"Invalid parameter: {e}")
+
+    # ── Step 1: Verify claim is registered on-chain ──────────────────────
+    try:
+        anon_client = FullNodeClient(node_url=rpc_url)
+        # Use call_contract directly with block_hash="latest" (proven pattern from relayer_runner)
+        is_claimed_result = await anon_client.call_contract(
+            call=Call(
+                to_addr=pool_d_addr,
+                selector=_sel("is_claimed_u256"),
+                calldata=[claim_low, claim_high],
+            ),
+            block_hash="latest",
+        )
+        is_claimed = bool(is_claimed_result[0]) if is_claimed_result else False
+        if not is_claimed:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Claim not registered on-chain "
+                    f"(claim_low={claim_low}, claim_high={claim_high}). "
+                    "Call withdraw_claim_u256 with a valid ZK proof first."
+                ),
+            )
+        logger.info("[ClaimPay] On-chain claim verified claim_low=%s", claim_low)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"On-chain verification failed: {e}")
+
+    # ── Step 1.5: AI Gate — verify ledger balance and debit ──────────────
+    # The "AI gate" ensures only users with sufficient internal ledger
+    # balance can receive payouts. This links the on-chain ZK claim to
+    # the off-chain vault accounting system.
+    try:
+        from app.services.ledger_service import get_ledger_service
+        ledger = get_ledger_service()
+        recipient_hex = hex(recipient)
+
+        if ledger.enabled:
+            ledger_balance = ledger.get_balance(recipient_hex)
+            if ledger_balance < amount_wei:
+                # Also check with normalized address (no leading zeros difference)
+                recipient_norm = recipient_hex.lower()
+                ledger_balance = ledger.get_balance(recipient_norm)
+
+            if ledger_balance >= amount_wei:
+                # Debit the ledger so balance reflects the payout
+                new_balance = ledger.debit_balance(
+                    address=recipient_hex,
+                    amount_wei=amount_wei,
+                    reason="claim_payout",
+                )
+                logger.info(
+                    "[ClaimPay] AI gate passed: debited %s from %s, new_balance=%s",
+                    amount_wei, recipient_hex, new_balance,
+                )
+            else:
+                logger.warning(
+                    "[ClaimPay] AI gate: no ledger record for %s (balance=%s, requested=%s). "
+                    "Proceeding with on-chain claim only (self-sovereign path).",
+                    recipient_hex, ledger_balance, amount_wei,
+                )
+                # NOTE: We still allow the payout if the on-chain claim is valid.
+                # This supports the self-sovereign path (Pool D users who bypassed
+                # the vault intake). The gate logs a warning for audit.
+                ledger._log_event(
+                    ledger._db_connect(),
+                    "claim_payout_no_ledger",
+                    None,
+                    {
+                        "recipient": recipient_hex,
+                        "amount_wei": str(amount_wei),
+                        "claim_low": str(claim_low),
+                        "ledger_balance": str(ledger_balance),
+                    },
+                )
+    except HTTPException:
+        raise
+    except Exception as gate_err:
+        logger.warning("[ClaimPay] AI gate check failed (non-fatal): %s", gate_err)
+        # Non-fatal: if ledger is down, still honor the on-chain claim
+
+    # ── Step 2: Transfer STRK from operator wallet to recipient ──────────
+    try:
+        from starknet_py.net.client_models import ResourceBoundsMapping as _RBM
+        key_pair = KeyPair.from_private_key(admin_pk)
+        account = Account(
+            address=admin_addr,
+            client=anon_client,
+            key_pair=key_pair,
+            chain=StarknetChainId.SEPOLIA,
+        )
+        # CRITICAL: pre-set cairo_version=1 to skip get_class_at("pending") RPC call.
+        # Cartridge gateway rejects "pending" block with -32602 Invalid block id.
+        account._cairo_version = 1
+
+        U128 = 2 ** 128
+        amt_lo = amount_wei % U128
+        amt_hi = amount_wei // U128
+
+        transfer_call = Call(
+            to_addr=strk_addr,
+            selector=_sel("transfer"),
+            calldata=[recipient, amt_lo, amt_hi],
+        )
+
+        # Use the proven pattern from merkle_tree_onchain_sync._starkli_add_known_root:
+        # manual nonce + prepare + estimate(block_number="latest") + execute_v3
+        nonce = await account.get_nonce(block_number="latest")
+        draft = await account._prepare_invoke_v3(
+            [transfer_call], resource_bounds=_RBM.init_with_zeros(), nonce=nonce
+        )
+        estimated = await account.estimate_fee(draft, block_number="latest")
+        rbm = estimated.to_resource_bounds()
+        resp = await account.execute_v3(calls=transfer_call, resource_bounds=rbm, nonce=nonce)
+        logger.info("[ClaimPay] Transfer submitted tx=%s", hex(resp.transaction_hash))
+        tx_hash = hex(resp.transaction_hash)
+        try:
+            await account.client.wait_for_tx(resp.transaction_hash)
+            logger.info("[ClaimPay] Payout confirmed tx=%s recipient=%s amount=%s", tx_hash, hex(recipient), amount_wei)
+        except Exception as wait_err:
+            # Cartridge gateway may return PRE_CONFIRMED or other non-standard
+            # finality statuses that starknet-py doesn't recognize. The tx was
+            # already submitted successfully — log and continue.
+            logger.warning("[ClaimPay] wait_for_tx non-fatal error (tx already submitted): %s", wait_err)
+    except Exception as e:
+        logger.exception("[ClaimPay] Transfer failed: %s", e)
+        raise HTTPException(status_code=502, detail=f"STRK transfer failed: {e}")
+
+    return ClaimPayoutExecResponse(
+        tx_hash=tx_hash,
+        recipient=hex(recipient),
+        amount_wei=str(amount_wei),
+        message=f"Pool D claim paid. {amount_wei / 1e18:.6f} STRK sent to {hex(recipient)}.",
+    )

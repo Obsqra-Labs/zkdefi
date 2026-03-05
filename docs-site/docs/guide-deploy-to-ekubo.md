@@ -1,21 +1,85 @@
-# Deploy to Ekubo (end-to-end)
+# Deploy To Ekubo (End-To-End)
 
-Deploy capital to Ekubo pools on **Starknet Sepolia** from the live app.
+This guide documents the current deploy flow for Ekubo from the live app.
 
-1. **Open [zkde.fi/agent](https://zkde.fi/agent) and connect your wallet** — Use the Connect button if you aren’t already connected.
+## The Problem This Solves
 
-2. **Find the "Deploy to Ekubo" card** — On the Dashboard tab, scroll to the Deploy to Ekubo section (you can also use the link from the landing page that scrolls to `#deploy-to-ekubo`).
+Users want an allocation workflow that is opinionated enough to be usable but still transparent enough to verify what is being executed.
 
-3. **Enter the amount you want to deploy** — The backend recommends an allocation (e.g. ETH/USDC, STRK/USDC) based on your risk profile.
+## Why This Matters
 
-4. **Review the suggested positions** — You’ll see how much goes to each pool (e.g. ekubo_eth_usdc, ekubo_strk_usdc). Click **Sign & execute** when ready.
+If deploy UX hides execution structure, users cannot debug failures, and integrators cannot build reliable support or monitoring around deployment outcomes.
 
-5. **Sign in your wallet** — Approve the token approval and swap (or add-liquidity) transactions. Confirm in your wallet.
+## Canonical Entry Point
 
-6. **Receipt and deployment ID** — After the transaction is broadcast, you’ll see a deployment ID and a receipt hash. Positions may show as "pending" until the chain and Ekubo indexer confirm. If you see **Ekubo API unavailable**, positions may stay pending until the backend can reach Ekubo; see [Troubleshooting](/troubleshooting) or [FAQ](/faq) for support.
+Use:
 
-**Note:** Deploy to Ekubo is **Ekubo Sepolia only**. Ensure your wallet is on Starknet Sepolia.
+- `/agent?v=vault&sub=deploy`
 
-See [Agent dashboard](/agent-dashboard) for the full flow. For common errors see [Troubleshooting](/troubleshooting) or [FAQ](/faq).
+Do not rely on legacy “Dashboard tab” language in runbooks.
 
-Next: [Agent dashboard](/agent-dashboard) | [Troubleshooting](/troubleshooting)
+## Step-By-Step User Flow
+
+1. Connect wallet at `https://zkde.fi`.
+2. Open `vault` deploy surface.
+3. Enter deployable amount and risk profile context.
+4. Request deployment orchestration payload.
+5. Sign and submit wallet transaction(s).
+6. Confirm receipt and monitor position status.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as Vault Deploy UI
+  participant API as Orchestration API
+  participant W as Wallet
+  participant CH as Starknet
+
+  U->>UI: Configure amount + profile
+  UI->>API: POST /api/v1/zkdefi/orchestration/deploy
+  API-->>UI: deployment payload + receipt_id
+  U->>W: Sign execution tx
+  W->>CH: Submit tx
+  UI->>API: POST /api/v1/zkdefi/orchestration/receipt/confirm
+  API-->>UI: receipt confirmed with tx_hash
+```
+
+## API Endpoints In This Flow
+
+### 1) Build orchestration payload
+
+- `POST /api/v1/zkdefi/orchestration/deploy`
+
+### 2) Fetch receipt state
+
+- `GET /api/v1/zkdefi/orchestration/receipt/{receipt_id}`
+
+### 3) Confirm chain submission
+
+- `POST /api/v1/zkdefi/orchestration/receipt/confirm`
+
+## Common Failure Modes And What They Solve
+
+### Ekubo API unavailable
+
+Problem: backend cannot complete downstream Ekubo data operations.
+
+Why it matters: execution may have succeeded on-chain while UI state remains “pending” until backend/indexer sync recovers.
+
+### Network mismatch
+
+Problem: wallet chain differs from expected Starknet Sepolia environment.
+
+Why it matters: contract address resolution and transaction calls fail even with valid user inputs.
+
+### Missing gas/token balance
+
+Problem: wallet cannot fund approval/swap/liquidity calls.
+
+Why it matters: orchestration payload generation can succeed while execution fails at wallet submit time.
+
+## Production Vs Experimental Note
+
+This guide covers production deployment behavior while acknowledging that downstream position indexing and some strategy paths can still be marked experimental in active releases.
+
+Next: [Agent workspace](/agent-dashboard) | [Troubleshooting](/troubleshooting) | [API overview](/api-overview)

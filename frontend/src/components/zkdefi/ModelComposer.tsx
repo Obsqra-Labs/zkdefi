@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Brain, Plus, Trash2, Check, AlertCircle, Zap, Shield, TrendingUp } from "lucide-react";
+import { Brain, Plus, Trash2, Check, AlertCircle, Zap, Shield, TrendingUp, FileCode } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { API_BASE } from "@/lib/api/client";
 
 interface Model {
   id: string;
@@ -11,6 +11,16 @@ interface Model {
   type: "groth16" | "risc_zero";
   timeout: number;
   description?: string;
+  circuit?: string;
+  tier?: string;
+  /** ONNX / EZKL metadata (only for credit_scoring) */
+  onnx_hash?: string;
+  onnx_size_bytes?: number;
+  trained_at?: string;
+  training_samples?: number;
+  accuracy?: number;
+  n_features?: number;
+  ezkl_setup?: boolean;
 }
 
 interface ComposedAgent {
@@ -22,6 +32,29 @@ interface ComposedAgent {
   created_at: number;
 }
 
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeModel(input: unknown): Model {
+  const row = toRecord(input);
+  const rawType = String(row.type ?? "groth16").toLowerCase();
+  return {
+    id: String(row.id ?? row.model_id ?? ""),
+    name: String(row.name ?? row.id ?? "Unknown Model"),
+    type: rawType === "risc_zero" ? "risc_zero" : "groth16",
+    timeout: toNumber(row.timeout, 10),
+    description: row.description == null ? undefined : String(row.description),
+    circuit: row.circuit == null ? undefined : String(row.circuit),
+    tier: row.tier == null ? undefined : String(row.tier),
+  };
+}
+
 const MODEL_DESCRIPTIONS: Record<string, string> = {
   risk_scoring: "zkML risk score based on portfolio features",
   correlation_risk: "Proves portfolio correlation is below threshold",
@@ -29,6 +62,13 @@ const MODEL_DESCRIPTIONS: Record<string, string> = {
   safety_diversification: "Proves diversification across safety-rated protocols",
   credit_scoring: "Cross-chain reputation score using RISC Zero",
   anomaly_detection: "Detects suspicious activity patterns",
+  anomaly_detector: "Flags unusual pool behavior (TVL drops, volume spikes, price manipulation)",
+  il_predictor: "Estimates IL risk for a given pool pair based on historical volatility",
+  slippage_bound: "Proves trade execution stays within slippage tolerance without revealing order size",
+  max_drawdown: "Ensures portfolio drawdown stays below threshold before rebalancing",
+  liquidity_depth: "Verifies sufficient pool depth for the intended trade size",
+  volatility_regime: "Classifies current market conditions (low/medium/high vol) for strategy selection",
+  position_concentration: "Prevents over-concentration in a single pool or adapter",
 };
 
 const MODEL_ICONS: Record<string, React.ReactNode> = {
@@ -38,6 +78,13 @@ const MODEL_ICONS: Record<string, React.ReactNode> = {
   safety_diversification: <Shield className="w-4 h-4" />,
   credit_scoring: <Brain className="w-4 h-4" />,
   anomaly_detection: <AlertCircle className="w-4 h-4" />,
+  anomaly_detector: <AlertCircle className="w-4 h-4" />,
+  il_predictor: <TrendingUp className="w-4 h-4" />,
+  slippage_bound: <Shield className="w-4 h-4" />,
+  max_drawdown: <AlertCircle className="w-4 h-4" />,
+  liquidity_depth: <Zap className="w-4 h-4" />,
+  volatility_regime: <TrendingUp className="w-4 h-4" />,
+  position_concentration: <Shield className="w-4 h-4" />,
 };
 
 export function ModelComposer({
@@ -65,26 +112,41 @@ export function ModelComposer({
     try {
       const res = await fetch(`${API_BASE}/api/v1/agents/models/list`);
       if (res.ok) {
-        const data = await res.json();
-        setModels(data.models || []);
+        const data = toRecord(await res.json());
+        const rows = Array.isArray(data.models) ? data.models : [];
+        setModels(rows.map((entry) => normalizeModel(entry)));
       } else {
         // Fallback to hardcoded models if API unavailable
         setModels([
-          { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10 },
-          { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10 },
-          { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10 },
-          { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10 },
-          { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120 },
+          { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10, circuit: "risk_score.circom", tier: "Groth16" },
+          { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10, circuit: "correlation_risk.circom", tier: "Groth16" },
+          { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10, circuit: "twap_position.circom", tier: "Groth16" },
+          { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10, circuit: "safety_diversification.circom", tier: "Groth16" },
+          { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120, circuit: "credit_scoring.circom", tier: "RISC Zero" },
+          { id: "anomaly_detector", name: "Anomaly Detector", type: "groth16", timeout: 10, circuit: "anomaly_detector.circom", tier: "Groth16" },
+          { id: "il_predictor", name: "Impermanent Loss Predictor", type: "groth16", timeout: 10, circuit: "il_predictor.circom", tier: "Groth16" },
+          { id: "slippage_bound", name: "Slippage Bound", type: "groth16", timeout: 10, circuit: "slippage_bound.circom", tier: "Groth16" },
+          { id: "max_drawdown", name: "Max Drawdown Guard", type: "groth16", timeout: 10, circuit: "max_drawdown.circom", tier: "Groth16" },
+          { id: "liquidity_depth", name: "Liquidity Depth", type: "groth16", timeout: 10, circuit: "liquidity_depth.circom", tier: "Groth16" },
+          { id: "volatility_regime", name: "Volatility Regime", type: "groth16", timeout: 10, circuit: "volatility_regime.circom", tier: "Groth16" },
+          { id: "position_concentration", name: "Position Concentration", type: "groth16", timeout: 10, circuit: "position_concentration.circom", tier: "Groth16" },
         ]);
       }
     } catch {
       // Fallback
       setModels([
-        { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10 },
-        { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10 },
-        { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10 },
-        { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10 },
-        { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120 },
+        { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10, circuit: "risk_score.circom", tier: "Groth16" },
+        { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10, circuit: "correlation_risk.circom", tier: "Groth16" },
+        { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10, circuit: "twap_position.circom", tier: "Groth16" },
+        { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10, circuit: "safety_diversification.circom", tier: "Groth16" },
+        { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120, circuit: "credit_scoring.circom", tier: "RISC Zero" },
+        { id: "anomaly_detector", name: "Anomaly Detector", type: "groth16", timeout: 10, circuit: "anomaly_detector.circom", tier: "Groth16" },
+        { id: "il_predictor", name: "Impermanent Loss Predictor", type: "groth16", timeout: 10, circuit: "il_predictor.circom", tier: "Groth16" },
+        { id: "slippage_bound", name: "Slippage Bound", type: "groth16", timeout: 10, circuit: "slippage_bound.circom", tier: "Groth16" },
+        { id: "max_drawdown", name: "Max Drawdown Guard", type: "groth16", timeout: 10, circuit: "max_drawdown.circom", tier: "Groth16" },
+        { id: "liquidity_depth", name: "Liquidity Depth", type: "groth16", timeout: 10, circuit: "liquidity_depth.circom", tier: "Groth16" },
+        { id: "volatility_regime", name: "Volatility Regime", type: "groth16", timeout: 10, circuit: "volatility_regime.circom", tier: "Groth16" },
+        { id: "position_concentration", name: "Position Concentration", type: "groth16", timeout: 10, circuit: "position_concentration.circom", tier: "Groth16" },
       ]);
     }
     setLoading(false);
@@ -192,13 +254,46 @@ export function ModelComposer({
                   <div className="flex-1">
                     <div className="text-sm font-medium">{model.name}</div>
                     <div className="text-xs text-zinc-500">
-                      {model.type === "risc_zero" ? "RISC Zero" : "Groth16"}
+                      {model.tier || (model.type === "risc_zero" ? "RISC Zero" : "Groth16")}
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-zinc-500 mt-1 ml-8">
-                  {MODEL_DESCRIPTIONS[model.id] || "zkML proof model"}
+                  {MODEL_DESCRIPTIONS[model.id] || model.description || "zkML proof model"}
                 </p>
+                {model.circuit && (
+                  <div className="ml-8 mt-1">
+                    <span className="text-[10px] text-zinc-600 font-mono">{model.circuit}</span>
+                  </div>
+                )}
+                {/* ONNX / EZKL metadata strip */}
+                {model.onnx_hash && (
+                  <div className="ml-8 mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-600/20 text-[10px]">
+                      <FileCode className="w-2.5 h-2.5" />
+                      ONNX
+                    </span>
+                    {model.ezkl_setup && (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-600/20 text-[10px]">
+                        EZKL Ready
+                      </span>
+                    )}
+                    {model.accuracy != null && (
+                      <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-600/20 text-[10px]">
+                        {(model.accuracy * 100).toFixed(0)}% acc
+                      </span>
+                    )}
+                    {model.training_samples != null && (
+                      <span className="text-[10px] text-zinc-600">{model.training_samples} samples</span>
+                    )}
+                    {model.n_features != null && (
+                      <span className="text-[10px] text-zinc-600">{model.n_features} features</span>
+                    )}
+                    <span className="text-[10px] text-zinc-700 font-mono truncate max-w-[8rem]" title={model.onnx_hash}>
+                      {model.onnx_hash.slice(0, 12)}…
+                    </span>
+                  </div>
+                )}
               </button>
             ))}
           </div>

@@ -89,6 +89,16 @@ pub trait IReputationRegistry<TContractState> {
     fn get_user_rank(self: @TContractState, user: ContractAddress) -> u64;
     fn get_users_by_tier(self: @TContractState, tier: ProofTier) -> Array<ContractAddress>;
     fn get_total_users(self: @TContractState) -> u64;
+    
+    // v6: Collaborative credit graph
+    fn set_collaborative_score(
+        ref self: TContractState,
+        user: ContractAddress,
+        multiplier_bps: u16,    // 10000 = 1.0x, 20000 = 2.0x
+        graph_hash: felt252,    // Hash of the credit graph snapshot used
+    );
+    fn get_collaborative_score(self: @TContractState, user: ContractAddress) -> u16;
+    fn get_graph_hash(self: @TContractState, user: ContractAddress) -> felt252;
 }
 
 #[starknet::contract]
@@ -150,6 +160,9 @@ mod ReputationRegistry {
         tier_users: Map<(u8, u64), ContractAddress>,
         tier_user_count: Map<u8, u64>,
         user_scores: Map<ContractAddress, u16>,
+        // v6: Collaborative credit multipliers
+        collaborative_multiplier_bps: Map<ContractAddress, u16>,
+        collaborative_graph_hash: Map<ContractAddress, felt252>,
     }
     
     #[event]
@@ -744,6 +757,37 @@ mod ReputationRegistry {
         
         fn get_total_users(self: @ContractState) -> u64 {
             self.total_user_count.read()
+        }
+        
+        // ──── v6: Collaborative Credit Graph ────────────────────────────
+        
+        fn set_collaborative_score(
+            ref self: ContractState,
+            user: ContractAddress,
+            multiplier_bps: u16,
+            graph_hash: felt252,
+        ) {
+            let caller = get_caller_address();
+            assert(caller == self.admin.read(), 'Not admin');
+            
+            // Bounds: 10000 (1.0x) to 20000 (2.0x)
+            assert(multiplier_bps >= 10000 && multiplier_bps <= 20000, 'Invalid multiplier');
+            
+            self.collaborative_multiplier_bps.write(user, multiplier_bps);
+            self.collaborative_graph_hash.write(user, graph_hash);
+        }
+        
+        fn get_collaborative_score(self: @ContractState, user: ContractAddress) -> u16 {
+            let score = self.collaborative_multiplier_bps.read(user);
+            if score == 0 {
+                10000  // Default: 1.0x multiplier
+            } else {
+                score
+            }
+        }
+        
+        fn get_graph_hash(self: @ContractState, user: ContractAddress) -> felt252 {
+            self.collaborative_graph_hash.read(user)
         }
     }
     

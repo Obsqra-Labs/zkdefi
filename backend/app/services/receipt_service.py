@@ -3,25 +3,50 @@ Constraint Receipt Service
 
 Generates and manages on-chain receipts for agent actions.
 Receipts provide transparency without revealing strategy details.
+Persists orchestration receipts to data/orchestration_receipts.json so they survive restart.
 """
 import hashlib
+import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from app.services.zkdefi_agent_service import ZkdefiAgentService
+_RECEIPTS_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "orchestration_receipts.json"
+
+
+def _load_receipts() -> tuple[dict[str, dict], dict[str, list[str]]]:
+    """Load receipts from file if present."""
+    if not _RECEIPTS_FILE.exists():
+        return {}, {}
+    try:
+        raw = _RECEIPTS_FILE.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        return data.get("receipts", {}), data.get("user_receipts", {})
+    except Exception:
+        return {}, {}
+
+
+def _save_receipts(receipts: dict[str, dict], user_receipts: dict[str, list[str]]) -> None:
+    """Persist receipts to file."""
+    _RECEIPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _RECEIPTS_FILE.write_text(
+        json.dumps({"receipts": receipts, "user_receipts": user_receipts}, indent=2),
+        encoding="utf-8",
+    )
 
 
 class ReceiptService:
     """
-    Service for managing constraint receipts.
+    Service for managing constraint receipts. Orchestration receipts are persisted to file.
     """
     
     def __init__(self):
-        self.agent_service = ZkdefiAgentService()
-        
-        # In-memory receipt tracking
-        self._receipts: dict[str, dict] = {}
-        self._user_receipts: dict[str, list[str]] = {}
+        self._receipts: dict[str, dict]
+        self._user_receipts: dict[str, list[str]]
+        self._receipts, self._user_receipts = _load_receipts()
+    
+    def _persist(self) -> None:
+        _save_receipts(self._receipts, self._user_receipts)
     
     async def create_receipt(
         self,
@@ -63,7 +88,7 @@ class ReceiptService:
         if key not in self._user_receipts:
             self._user_receipts[key] = []
         self._user_receipts[key].append(receipt_id)
-
+        self._persist()
         return receipt
     
     async def confirm_receipt(
@@ -77,7 +102,7 @@ class ReceiptService:
         if receipt_id in self._receipts:
             self._receipts[receipt_id]["on_chain"] = True
             self._receipts[receipt_id]["tx_hash"] = tx_hash
-        
+            self._persist()
         return {
             "receipt_id": receipt_id,
             "tx_hash": tx_hash,
@@ -94,6 +119,54 @@ class ReceiptService:
         receipt_ids = self._user_receipts.get(key, [])
         return [self._receipts[rid] for rid in receipt_ids if rid in self._receipts]
 
+    def delete_user_receipts(self, user_address: str) -> dict[str, int]:
+        """
+        Delete all persisted receipts for a user.
+        Useful for deterministic local testing resets.
+        """
+        key = (user_address or "").strip().lower()
+        if not key:
+            return {"removed_receipts": 0, "removed_index_entries": 0}
+
+        removed_receipts = 0
+        removed_index_entries = 0
+
+        direct_ids = list(self._user_receipts.get(key, []))
+        for rid in direct_ids:
+            if rid in self._receipts:
+                del self._receipts[rid]
+                removed_receipts += 1
+
+        if key in self._user_receipts:
+            removed_index_entries += len(self._user_receipts[key])
+            del self._user_receipts[key]
+
+        # Sweep for stale rows where index is missing but receipt.user still matches.
+        stale_ids = [
+            rid for rid, row in self._receipts.items()
+            if str(row.get("user") or "").strip().lower() == key
+        ]
+        for rid in stale_ids:
+            if rid in self._receipts:
+                del self._receipts[rid]
+                removed_receipts += 1
+
+        # Remove deleted IDs from all user indices.
+        existing_ids = set(self._receipts.keys())
+        for ukey, ids in list(self._user_receipts.items()):
+            filtered = [rid for rid in ids if rid in existing_ids]
+            removed_index_entries += max(0, len(ids) - len(filtered))
+            if filtered:
+                self._user_receipts[ukey] = filtered
+            else:
+                del self._user_receipts[ukey]
+
+        self._persist()
+        return {
+            "removed_receipts": removed_receipts,
+            "removed_index_entries": removed_index_entries,
+        }
+
     def append_proof_receipt(
         self,
         user_address: str,
@@ -105,6 +178,7 @@ class ReceiptService:
         fact_hash: str | None = None,
         model_hash: str | None = None,
         pool_id: str | None = None,
+        withdraw_source: str | None = None,
     ) -> dict[str, Any]:
         """
         Append a proof-oriented receipt (risk_score, pool_safety, rebalance, etc.).
@@ -126,6 +200,7 @@ class ReceiptService:
             "fact_hash": fact_hash,
             "model_hash": model_hash,
             "pool_id": pool_id,
+            "withdraw_source": withdraw_source,
             "on_chain": False,
         }
         self._receipts[receipt_id] = receipt
@@ -133,7 +208,62 @@ class ReceiptService:
         if key not in self._user_receipts:
             self._user_receipts[key] = []
         self._user_receipts[key].append(receipt_id)
+        self._persist()
         return receipt
+
+    def append_policy_compile_receipt(
+        self,
+        user_address: str,
+        action_type: str,
+        execution_intent: str,
+        effective_policy_hash: str | None,
+        execution_path: str | None,
+        can_execute: bool,
+        blocking_reasons: list[str] | None = None,
+        warnings: list[str] | None = None,
+        shared_pool_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Append policy compile receipt for Vault OS route decisions."""
+        result = "pass" if can_execute else "blocked"
+        details = {
+            "action_type": action_type,
+            "execution_intent": execution_intent,
+            "execution_path": execution_path,
+            "blocking_reasons": blocking_reasons or [],
+            "warnings": warnings or [],
+            "shared_pool_id": shared_pool_id,
+        }
+        return self.append_proof_receipt(
+            user_address=user_address,
+            proof_type="policy_compile",
+            threshold_or_model="vault_policy_compiler_v1",
+            result=f"{result}:{json.dumps(details, separators=(',', ':'))}",
+            snapshot_hash=effective_policy_hash,
+            pool_id=shared_pool_id,
+        )
+
+    def append_shared_pool_execution_receipt(
+        self,
+        shared_pool_id: str,
+        manager_address: str,
+        member_address: str,
+        proposal_id: str,
+        status: str,
+        compile_hash: str | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Append shared pool execution receipt for manager/member execution timeline."""
+        return self.append_proof_receipt(
+            user_address=member_address,
+            proof_type="shared_pool_execution",
+            threshold_or_model=proposal_id,
+            result=f"{status}:{reason or ''}",
+            snapshot_hash=compile_hash,
+            pool_id=shared_pool_id,
+            tx_hash=None,
+            fact_hash=None,
+            model_hash=manager_address,
+        )
 
     def get_receipts_by_pool(self, pool_id: str) -> list[dict[str, Any]]:
         """Get all receipts that have this pool_id (e.g. pool_safety runs)."""

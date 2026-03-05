@@ -1,130 +1,58 @@
-# Autonomous Rebalancing
+# Rebalancing
 
-zkde.fi's agent can autonomously rebalance your portfolio, gated by zkML proofs.
+Rebalancing in zkde.fi combines proposal logic, model checks, policy context, and execution orchestration.
 
-## Overview
+## The Problem This Solves
 
-The rebalancing flow:
-1. Agent analyzes portfolio
-2. Agent proposes rebalance
-3. zkML models check (risk + anomaly)
-4. Execution proofs generated
-5. Combined verification on-chain
-6. Execute
+Portfolio drift happens continuously. Manual balancing is slow and inconsistent, while blind automation can violate user constraints or risk preferences.
 
-## zkML Gating
+## Why This Matters
 
-Both models must pass for rebalancing to proceed:
+A structured rebalancing pipeline provides controlled automation with observable checkpoints, so users can reason about both safety and execution progress.
 
-| Model | Check | Failure Action |
-|-------|-------|----------------|
-| Risk Score | `risk_score <= threshold` | Block: "Risk too high" |
-| Anomaly Detector | `anomaly_flag == 0` | Block: "Pool anomaly" |
+## Pipeline Overview
 
-## API Flow
-
-### 1. Propose Rebalance
-
-```bash
-POST /api/v1/zkdefi/rebalancer/propose
+```mermaid
+flowchart LR
+  A[Analyze] --> B[Propose]
+  B --> C[Check]
+  C --> D[Prepare]
+  D --> E[Execute]
+  E --> F[Receipt and state update]
 ```
 
-```json
-{
-  "user_address": "0x...",
-  "from_protocol": 0,
-  "to_protocol": 1,
-  "amount": 1000,
-  "reason": "Risk optimization"
-}
-```
+## Endpoint Sequence
 
-### 2. Run zkML Checks
+| Stage | Method | Endpoint | Purpose |
+|---|---|---|---|
+| Analyze | `POST` | `/api/v1/zkdefi/rebalancer/analyze` | Portfolio assessment |
+| Propose | `POST` | `/api/v1/zkdefi/rebalancer/propose` | Create rebalance proposal |
+| Check | `POST` | `/api/v1/zkdefi/rebalancer/check` | Model/policy checks |
+| Advisory | `POST` | `/api/v1/zkdefi/rebalancer/advisory-check` | Non-blocking check mode |
+| Prepare | `POST` | `/api/v1/zkdefi/rebalancer/prepare` | Build execution context |
+| Execute | `POST` | `/api/v1/zkdefi/rebalancer/execute` | Execute rebalance |
 
-```bash
-POST /api/v1/zkdefi/rebalancer/check
-```
+## Autonomous Controls
 
-```json
-{
-  "proposal_id": "abc123",
-  "portfolio_features": [50, 30, 20, 20, 50, 30, 10, 20],
-  "pool_id": "pool_1"
-}
-```
+| Method | Endpoint | Auth expectation |
+|---|---|---|
+| `POST` | `/api/v1/zkdefi/rebalancer/autonomous/start` | `X-Wallet-Address` |
+| `POST` | `/api/v1/zkdefi/rebalancer/autonomous/stop` | `X-Wallet-Address` |
+| `GET` | `/api/v1/zkdefi/rebalancer/autonomous/status/{user_address}` | Public/read |
+| `POST` | `/api/v1/zkdefi/rebalancer/autonomous/pause/{user_address}` | `X-Wallet-Address` |
+| `POST` | `/api/v1/zkdefi/rebalancer/autonomous/resume/{user_address}` | `X-Wallet-Address` |
+| `GET` | `/api/v1/zkdefi/rebalancer/autonomous/all` | `X-Admin-Key` |
 
-**Response:**
-```json
-{
-  "can_proceed": true,
-  "risk_passed": true,
-  "anomaly_passed": true,
-  "risk_proof": { ... },
-  "anomaly_proof": { ... }
-}
-```
+## Problem It Solves For Users
 
-### 3. Prepare Execution
+Users get both manual and autonomous pathways with visible state transitions rather than hidden black-box execution.
 
-```bash
-POST /api/v1/zkdefi/rebalancer/prepare
-```
+## Why It Matters For Integrators
 
-```json
-{
-  "proposal_id": "abc123",
-  "session_id": "0x..."
-}
-```
+Integrators can treat each stage as a checkpointed state machine and attach monitoring, retries, and user messaging to clear transition points.
 
-### 4. Execute
+## Verification Semantics
 
-```bash
-POST /api/v1/zkdefi/rebalancer/execute
-```
+Rebalancing checks can operate in strict or advisory patterns depending on route and context. Integrators should not assume a single global gating mode across all rebalancing endpoints.
 
-```json
-{
-  "proposal_id": "abc123",
-  "session_id": "0x..."
-}
-```
-
-## On-Chain Execution
-
-The contract verifies:
-1. zkML proofs via Garaga
-2. Execution proof via Integrity
-3. Intent commitment (replay-safety)
-4. Session key constraints
-
-```cairo
-fn execute_with_proofs(
-    protocol_id: u8,
-    amount: u256,
-    action_type: felt252,
-    zkml_proof_calldata: Span<felt252>,
-    execution_proof_hash: felt252,
-    intent_commitment: felt252
-)
-```
-
-## Frontend Component
-
-```tsx
-import { AgentRebalancer } from "@/components/zkdefi/AgentRebalancer";
-
-<AgentRebalancer 
-  userAddress={address}
-  sessionId={activeSessionId}
-  positions={positions}
-/>
-```
-
-## Privacy Guarantees
-
-During rebalancing:
-- Intent hidden until execution
-- Actual risk score private
-- Pool analysis private
-- Only compliance visible on-chain
+Next: [Session keys](/session-keys) | [Risk Passport](/risk-passport) | [API overview](/api-overview)
