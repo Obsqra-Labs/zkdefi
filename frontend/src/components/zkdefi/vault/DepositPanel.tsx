@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowDownToLine, Clock, Coins, Loader2 } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
+import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
 import { API_BASE } from "@/lib/api/client";
 import { getOperatorAddress } from "@/lib/api/vault";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -19,6 +20,13 @@ import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
 
 const STRK_TOKEN =
   "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+
+const ETH_TOKEN =
+  "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
+
+const STRKBTC_TOKEN =
+  process.env.NEXT_PUBLIC_STRKBTC_ADDRESS ||
+  "0x0714c3f541490e1847b77d799499ef01af7937ed0182f3b27a5b6226d993ab55";
 
 const SHIELDED_POOL_ADDRESS =
   process.env.NEXT_PUBLIC_SHIELDED_POOL_ADDRESS ||
@@ -51,7 +59,7 @@ const DEFAULT_ALLOCATION_ROWS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-type Asset = "STRK" | "ETH";
+type Asset = "STRK" | "ETH" | "strkBTC";
 type DepositResult = {
   commitmentHash: string;
   txHash: string;
@@ -78,6 +86,12 @@ function splitU256(wei: string): { low: string; high: string } {
     low: (big % TWO_128).toString(),
     high: (big / TWO_128).toString(),
   };
+}
+
+function resolveTokenAddress(asset: Asset): string {
+  if (asset === "ETH") return ETH_TOKEN;
+  if (asset === "strkBTC") return STRKBTC_TOKEN;
+  return STRK_TOKEN;
 }
 
 function updateStep(
@@ -111,6 +125,7 @@ interface DepositPanelProps {
   setDepositSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   addCommitment: (c: VaultCommitment) => void;
   address?: string;
+  isDemo?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +138,7 @@ export function DepositPanel({
   setDepositSteps,
   addCommitment,
   address,
+  isDemo,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
@@ -178,8 +194,10 @@ export function DepositPanel({
     }
     let dead = false;
     const tokenAddr = selectedAsset === "ETH"
-      ? (FULL_PRIVACY_TOKEN || STRK_TOKEN)
-      : STRK_TOKEN;
+      ? ETH_TOKEN
+      : selectedAsset === "strkBTC"
+        ? STRKBTC_TOKEN
+        : STRK_TOKEN;
 
     (async () => {
       try {
@@ -219,7 +237,6 @@ export function DepositPanel({
   async function depositCommitmentShield(amountWei: string): Promise<DepositResult> {
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
-    // Step 1 – generate Pedersen commitment
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
     const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_deposit`, {
       method: "POST",
@@ -236,19 +253,23 @@ export function DepositPanel({
     const commitmentHash: string = data.commitment;
     const proofCalldata: string[] = data.proof_calldata ?? [];
 
-    const commitmentFelt = BigInt(commitmentHash).toString();
-    const proofFelts = proofCalldata.map((p: string) => BigInt(p).toString());
+    // Use commitment_felt (reduced mod Stark prime) to avoid felt252 overflow.
+    // The raw BN254 commitment can exceed the Stark field prime.
+    const STARK_PRIME = BigInt("0x800000000000011000000000000000000000000000000000000000000000001");
+    const commitmentForChain = (BigInt(data.commitment_felt || commitmentHash) % STARK_PRIME).toString();
 
-    // Step 2 – approve + on-chain deposit
+    const proofFelts = proofCalldata.map((p: string) => {
+      const v = BigInt(p);
+      return (v >= STARK_PRIME ? v % STARK_PRIME : v).toString();
+    });
+
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
     if (!account) throw new Error("Wallet not connected");
 
-    // PoolType enum: 0=Conservative, 1=Neutral, 2=Aggressive
-    const poolTypeIndex = "1";
-
+    // Contract sig: private_deposit(commitment: felt252, amount_public: u256, proof_calldata: Span<felt252>)
     const result = await account.execute([
       {
-        contractAddress: STRK_TOKEN as `0x${string}`,
+        contractAddress: resolveTokenAddress(selectedAsset) as `0x${string}`,
         entrypoint: "approve",
         calldata: [SHIELDED_POOL_ADDRESS, amountLow, amountHigh],
       },
@@ -256,8 +277,7 @@ export function DepositPanel({
         contractAddress: SHIELDED_POOL_ADDRESS as `0x${string}`,
         entrypoint: "private_deposit",
         calldata: [
-          commitmentFelt,
-          poolTypeIndex,
+          commitmentForChain,
           amountLow,
           amountHigh,
           proofFelts.length.toString(),
@@ -267,7 +287,6 @@ export function DepositPanel({
     ]);
     const txHash = result.transaction_hash;
 
-    // Step 3 – confirm
     setDepositSteps((prev) => updateStep(prev, 2, "done", "Confirmed"));
     return { commitmentHash, txHash };
   }
@@ -277,7 +296,7 @@ export function DepositPanel({
     poolType: number,
   ): Promise<DepositResult> {
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
-    const tokenAddr = poolType === 0 ? FULL_PRIVACY_TOKEN : STRK_TOKEN;
+    const tokenAddr = resolveTokenAddress(selectedAsset);
     const poolAddr = FULL_PRIVACY_POOL_ADDRESS;
     if (!poolAddr) throw new Error("Full Privacy Pool address not configured");
 
@@ -311,11 +330,10 @@ export function DepositPanel({
       : BigInt("0x" + commitmentHash);
     const { low: cLow, high: cHigh } = splitU256(commitmentBig.toString());
 
-    // Step 2 – approve + on-chain deposit
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
     if (!account) throw new Error("Wallet not connected");
 
-    const result = await account.execute([
+    const calls = [
       {
         contractAddress: tokenAddr as `0x${string}`,
         entrypoint: "approve",
@@ -326,7 +344,20 @@ export function DepositPanel({
         entrypoint: "deposit_u256",
         calldata: [cLow, cHigh, amountLow, amountHigh],
       },
-    ]);
+    ];
+
+    let result: { transaction_hash: string };
+    try {
+      result = await account.execute(calls);
+    } catch (execErr: unknown) {
+      const errMsg = execErr instanceof Error ? execErr.message : String(execErr);
+      if (errMsg.includes("NonceTooOld") || errMsg.includes("nonce")) {
+        await new Promise((r) => setTimeout(r, 2000));
+        result = await account.execute(calls);
+      } else {
+        throw execErr;
+      }
+    }
     const txHash = result.transaction_hash;
 
     // Register commitment with retries
@@ -371,12 +402,10 @@ export function DepositPanel({
       }
     }
 
-    // Step 3 – Groth16 proof (server-side, completed via register)
-    const proofStatus = registered ? "done" : "error";
+    const proofStatus: ProofStep["status"] = registered ? "done" : "error";
     const proofDetail = registered ? "Proof verified" : "Registration pending - retry later";
-    const lastIdx = depositSteps.length - 1;
-    setDepositSteps(
-      updateStep(depositSteps, lastIdx, proofStatus === "done" ? "done" : "error", proofDetail),
+    setDepositSteps((prev) =>
+      updateStep(prev, prev.length - 1, proofStatus, proofDetail),
     );
 
     return {
@@ -406,7 +435,7 @@ export function DepositPanel({
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Sign transfer in wallet..."));
     const result = await account.execute([
       {
-        contractAddress: STRK_TOKEN as `0x${string}`,
+        contractAddress: resolveTokenAddress(selectedAsset) as `0x${string}`,
         entrypoint: "transfer",
         calldata: [operator_address, amountLow, amountHigh],
       },
@@ -552,7 +581,7 @@ export function DepositPanel({
       <div className="flex items-center gap-2">
         <Coins className="w-4 h-4 text-white/40" />
         <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm">
-          {(["STRK", "ETH"] as Asset[]).map((a) => (
+          {(["STRK", "ETH", "strkBTC"] as Asset[]).map((a) => (
             <button
               key={a}
               onClick={() => setSelectedAsset(a)}
@@ -602,32 +631,10 @@ export function DepositPanel({
       )}
 
       {/* Allocation preview */}
-      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-white/50">
-            Capital Allocation Preview
-          </span>
-          <span className="text-xs text-emerald-400 font-medium">
-            APY {blendedApy ?? "--"}
-          </span>
-        </div>
-
-        {allocationRows.map((row) => (
-          <div key={row.label} className="flex items-center gap-2 text-xs">
-            <span className="w-16 text-white/40">{row.label}</span>
-            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-              <div
-                className={`h-full rounded-full ${row.color}`}
-                style={{ width: `${row.pct}%` }}
-              />
-            </div>
-            <span className="w-8 text-right text-white/50">{row.pct}%</span>
-          </div>
-        ))}
-      </div>
+      <AllocationPreview amount={amount} asset={selectedAsset} isDemo={isDemo} />
 
       {/* Proof stepper */}
-      <ProofStepper steps={depositSteps} title="Proof pipeline" />
+      <ProofStepper steps={depositSteps} />
 
       {/* Proof generation info */}
       <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 space-y-1">

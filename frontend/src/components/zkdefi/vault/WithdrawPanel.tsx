@@ -637,6 +637,7 @@ export function WithdrawPanel({
 
   return (
     <motion.div
+      id="withdraw-panel"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
@@ -840,7 +841,7 @@ export function WithdrawPanel({
       )}
 
       {/* Proof stepper */}
-      <ProofStepper steps={withdrawSteps} title="Proof pipeline" />
+      <ProofStepper steps={withdrawSteps} />
 
       {/* Proof generation info */}
       <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 space-y-1">

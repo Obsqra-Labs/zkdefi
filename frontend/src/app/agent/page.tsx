@@ -23,10 +23,10 @@ import { useAccount } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { Shield, Brain, ArrowDownUp, Wallet, Activity } from "lucide-react";
 import { CapitalOSStrip } from "@/components/zkdefi/CapitalOSStrip";
-import type { CapitalOSStripIdentity, CapitalOSStripGate, CapitalOSStripLedger } from "@/components/zkdefi/CapitalOSStrip";
+import type { CapitalOSStripIdentity, CapitalOSStripGate, CapitalOSStripLedger, CapitalOSStripNextStep, CapitalOSStripAIInsight } from "@/components/zkdefi/CapitalOSStrip";
 import { useVaultController } from "@/hooks/useVaultController";
 import { API_BASE } from "@/lib/api/client";
-import { DEMO_STRIP, DEMO_ADDRESS as DEMO_ADDRESS_CONST } from "@/lib/demoCapitalOS";
+import { DEMO_STRIP, DEMO_NEXT_STEP, DEMO_AI_INSIGHT, DEMO_ADDRESS as DEMO_ADDRESS_CONST } from "@/lib/demoCapitalOS";
 
 // Surface containers
 import { VaultSurfaceContainer } from "@/components/zkdefi/surfaces/VaultSurfaceContainer";
@@ -375,19 +375,34 @@ export default function AgentPage() {
           </div>
         ) : (
           <ErrorBoundary fallback={errorFallback}>
-            {/* Capital OS Strip — Identity | Gate | Ledger */}
+            {/* Capital OS Strip — Identity | Gate | Ledger | Next Step | AI Insight */}
             <div className="mb-4 relative">
               {stripData && (
                 <CapitalOSStrip
                   identity={stripData.identity}
                   gate={stripData.gate}
                   ledger={stripData.ledger}
+                  nextStep={demoMode ? DEMO_NEXT_STEP : undefined}
+                  aiInsight={demoMode ? DEMO_AI_INSIGHT : (shellAiInsight ? { message: shellAiInsight } : undefined)}
                   isDemo={demoMode}
                   onIdentityClick={() => router.push("/profile")}
                   onGateClick={() => setGatePopoverOpen((o) => !o)}
                   onLedgerClick={() => {
                     setSurface("vault");
                     setSubTabOverride("activity");
+                  }}
+                  onNextStepClick={() => {
+                    const action = demoMode ? DEMO_NEXT_STEP.action : undefined;
+                    if (action === "oracle") {
+                      setSurface("oracle");
+                      setSubTabOverride("signals");
+                    } else if (action === "vault") {
+                      setSurface("vault");
+                      setSubTabOverride("portfolio");
+                    } else if (action === "brain") {
+                      setSurface("brain");
+                      setSubTabOverride("agent");
+                    }
                   }}
                 />
               )}
@@ -471,6 +486,7 @@ export default function AgentPage() {
               <VaultSurfaceContainer
                 address={address || (demoMode ? demoAddress : undefined)}
                 initialSubTab={subTabOverride ?? undefined}
+                isDemo={demoMode}
                 onNavigateToTrade={(sub) => {
                   setSurface("vault");
                   setSubTabOverride(sub ?? "trade");

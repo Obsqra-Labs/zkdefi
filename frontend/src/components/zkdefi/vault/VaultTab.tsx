@@ -7,6 +7,9 @@ import { TierSelector } from "./TierSelector";
 import { DepositPanel } from "./DepositPanel";
 import { WithdrawPanel } from "./WithdrawPanel";
 import PositionsOverview from "./PositionsOverview";
+import { TrendingBar } from "./TrendingBar";
+import { AIInsight } from "./AIInsight";
+import { DEMO_AI_INSIGHT } from "@/lib/demoCapitalOS";
 
 interface VaultTabProps {
   method: PrivacyMethod;
@@ -19,12 +22,13 @@ interface VaultTabProps {
   setDepositSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
+  isDemo?: boolean;
 }
 
 export function VaultTab(props: VaultTabProps) {
   const {
     method, setMethod, commitments, addCommitment, removeCommitment,
-    depositSteps, withdrawSteps, setDepositSteps, setWithdrawSteps, address,
+    depositSteps, withdrawSteps, setDepositSteps, setWithdrawSteps, address, isDemo,
   } = props;
 
   const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null);
@@ -36,12 +40,27 @@ export function VaultTab(props: VaultTabProps) {
       if (commitment) {
         setMethod(commitment.method);
       }
+      // Scroll to withdraw panel
+      setTimeout(() => {
+        const withdrawPanel = document.getElementById("withdraw-panel");
+        if (withdrawPanel) {
+          withdrawPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
     },
     [commitments, setMethod],
   );
 
   return (
     <div className="space-y-4">
+      <TrendingBar isDemo={isDemo} />
+      {isDemo && (
+        <AIInsight
+          address={address}
+          message={DEMO_AI_INSIGHT.message}
+          reasoning={DEMO_AI_INSIGHT.reasoning}
+        />
+      )}
       <TierSelector selected={method} onSelect={setMethod} commitments={commitments} />
       <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2 text-xs text-emerald-400/80 flex items-center gap-2">
         <Shield className="w-3.5 h-3.5 flex-shrink-0" />

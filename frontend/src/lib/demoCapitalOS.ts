@@ -40,5 +40,41 @@ export const DEMO_RECOMMENDATIONS: OracleRecommendation[] = [
   { label: "Diversify with STRK/USDC", strategyName: "STRK/USDC", allocationPct: 5 },
 ];
 
+export const DEMO_NEXT_STEP = {
+  copy: "Agent running — 3 opportunities in Oracle",
+  action: "oracle" as const,
+  actionLabel: "View Signals",
+};
+
+export const DEMO_AI_INSIGHT = {
+  message: "Ekubo ETH/STRK pool APY jumped 3.2% in 24h",
+  reasoning: "Your reputation qualifies for relayed withdrawals",
+};
+
+export const DEMO_TRENDING = {
+  strkEth24h: 2.4,
+  topPool: { name: "STRK/ETH", apy: 22.0 },
+  vaultTvl: 1200000,
+  activeDepositors: 47,
+  avgApy: 18.5,
+};
+
+export const DEMO_ALLOCATION = {
+  ekubo: 60,
+  lending: 25,
+  staking: 10,
+  idle: 5,
+  blendedApy: 19.2,
+};
+
+export const DEMO_DCA = {
+  pair: "STRK → strkBTC",
+  amountPerInterval: 100,
+  interval: "daily",
+  nextExecution: new Date(Date.now() + 86400000).toISOString(),
+  totalExecuted: 5,
+  totalAmount: 500,
+};
+
 /** Demo address used to detect demo mode in Oracle tabs when strip uses demo. */
 export const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";

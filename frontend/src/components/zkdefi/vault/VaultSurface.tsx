@@ -21,6 +21,7 @@ export interface VaultSurfaceProps {
   initialSubTab?: string;
   onNavigateToTrade?: (sub?: string) => void;
   onNavigateToOracle?: () => void;
+  isDemo?: boolean;
 }
 
 type Tab = "portfolio" | "yield" | "trade" | "lending" | "staking" | "activity";
@@ -38,7 +39,7 @@ function formatWei(wei: string | undefined): string {
   }
 }
 
-export function VaultSurface({ address, initialSubTab, onNavigateToOracle }: VaultSurfaceProps) {
+export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDemo }: VaultSurfaceProps) {
   const {
     method,
     setMethod,
@@ -318,6 +319,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle }: Vau
           setDepositSteps={setDepositSteps}
           setWithdrawSteps={setWithdrawSteps}
           address={address}
+          isDemo={isDemo}
         />
       )}
 
@@ -330,6 +332,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle }: Vau
           address={address}
           initialSubTab={initialSubTab === "trade" ? "swap" : undefined}
           onNavigateToOracle={onNavigateToOracle}
+          isDemo={isDemo}
         />
       )}
 

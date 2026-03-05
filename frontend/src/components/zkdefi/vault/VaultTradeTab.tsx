@@ -6,11 +6,12 @@
  */
 
 import { useState, useCallback } from "react";
-import { ArrowDownUp, Droplets, Clock, Settings2, RotateCcw, ExternalLink } from "lucide-react";
+import { ArrowDownUp, Droplets, Clock, Settings2, RotateCcw, ExternalLink, Repeat } from "lucide-react";
 import { SwapTab } from "@/components/zkdefi/SwapTab";
 import { LiquidityTab } from "@/components/zkdefi/LiquidityTab";
 import { LimitOrdersPanel } from "@/components/zkdefi/LimitOrdersPanel";
 import { DexPanel } from "@/components/zkdefi/DexPanel";
+import { DCAPanel } from "./DCAPanel";
 import {
   TradeContextProvider,
   useTradeContext,
@@ -18,7 +19,7 @@ import {
 } from "@/contexts/TradeContext";
 import { resolveTokenSymbol } from "@/lib/tokens";
 
-type TradeSubTab = "swap" | "lp" | "limits";
+type TradeSubTab = "swap" | "lp" | "limits" | "dca";
 
 const TAB_TO_MODE: Partial<Record<TradeSubTab, TradeMode>> = {
   swap: "swap",
@@ -30,6 +31,7 @@ const TAB_META: { id: TradeSubTab; label: string; icon: React.ReactNode }[] = [
   { id: "swap", label: "Swap", icon: <ArrowDownUp className="w-4 h-4" /> },
   { id: "lp", label: "LP", icon: <Droplets className="w-4 h-4" /> },
   { id: "limits", label: "Limits", icon: <Clock className="w-4 h-4" /> },
+  { id: "dca", label: "DCA", icon: <Repeat className="w-4 h-4" /> },
 ];
 
 function shortSymbol(addr: string): string {
@@ -41,12 +43,14 @@ export interface VaultTradeTabProps {
   address: string | undefined;
   initialSubTab?: TradeSubTab;
   onNavigateToOracle?: () => void;
+  isDemo?: boolean;
 }
 
 function VaultTradeTabInner({
   address,
   initialSubTab = "swap",
   onNavigateToOracle,
+  isDemo,
 }: VaultTradeTabProps) {
   const trade = useTradeContext();
   const [subTab, setSubTab] = useState<TradeSubTab>(initialSubTab);
@@ -232,6 +236,9 @@ function VaultTradeTabInner({
             </div>
           )}
         </div>
+      )}
+      {subTab === "dca" && (
+        <DCAPanel address={address} isDemo={isDemo} />
       )}
     </div>
   );
