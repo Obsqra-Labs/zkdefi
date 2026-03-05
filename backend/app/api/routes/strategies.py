@@ -1680,6 +1680,7 @@ async def get_opportunities(req: OpportunitiesRequest):
     from app.services.market_surface_service import get_market_surface
     from app.services.vault_policy_service import get_vault_policy_service
     from app.services.zkml.pool_evaluator import PoolRiskEvaluator, PoolMetrics
+    from app.services.signal_pass_service import compute_signals
     from datetime import datetime as _dt
 
     try:
@@ -1783,10 +1784,67 @@ async def get_opportunities(req: OpportunitiesRequest):
 
     scored.sort(key=lambda x: x.get("_score", 0), reverse=True)
 
-    # Remove internal scoring key
+    # ── Phase 1B: Run zkML circuits on top 10 candidates ──
+    top_candidates = scored[:10]  # Run circuits on top 10 only (expensive)
+    circuit_reports: dict[str, Any] = {}
+
+    if top_candidates:
+        try:
+            # Build candidate pool list for signal_pass
+            candidate_pools = []
+            for opp in top_candidates:
+                candidate_pools.append({
+                    "pool_id": opp.get("pair", ""),
+                    "pair": opp.get("pair", ""),
+                    "token0": opp.get("token0", ""),
+                    "token1": opp.get("token1", ""),
+                    "apy_pct": opp.get("estimated_apy_pct", 0),
+                    "tvl_usd": opp.get("tvl_usd", 0),
+                    "liquidity_usd": opp.get("tvl_usd", 0),  # use TVL as liquidity proxy
+                })
+            
+            # Run circuits (all available: IL, Yield, Slippage, Liquidation, Correlation)
+            amount_wei = int(10_000 * 1e18)  # Simulate $10k deployment for circuit inputs
+            signals = await compute_signals(
+                candidate_pools,
+                amount_wei=amount_wei,
+                token_decimals=18,
+            )
+            
+            # Index by pool_id
+            for pool_id, report in signals.items():
+                circuit_reports[pool_id] = {
+                    "il_acceptable": report.il_acceptable,
+                    "yield_near_optimal": report.yield_near_optimal,
+                    "slippage_ok": report.slippage_ok,
+                    "gates_passed": report.gates_passed,
+                    "gates_total": report.gates_total,
+                    "proof_hash": report.receipt_id if hasattr(report, "receipt_id") else None,
+                }
+                
+        except Exception as exc:
+            logger.warning("compute_signals failed: %s", exc)
+            # Continue without circuit data
+
+    # Merge zkML circuit signals into final results
     results = []
     for s in scored[: req.limit]:
         s.pop("_score", None)
+        
+        # Merge zkML circuit signals if available
+        pool_id = s.get("pair", "")
+        if pool_id in circuit_reports:
+            report = circuit_reports[pool_id]
+            s["zkml_signals"] = report
+            s["zkml_proof_hash"] = report.get("proof_hash")
+            s["zkml_confidence"] = report["gates_passed"] / report["gates_total"] if report["gates_total"] > 0 else None
+            
+            # Add circuit warning flags
+            if report["gates_passed"] < report["gates_total"]:
+                if not s.get("flags"):
+                    s["flags"] = []
+                s["flags"].append(f"circuit_warnings_{report['gates_passed']}/{report['gates_total']}")
+        
         results.append(s)
 
     return OpportunitiesResponse(
