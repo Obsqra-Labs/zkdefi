@@ -1,315 +1,315 @@
 "use client";
 
+/**
+ * AgentPage — shell router for the three canonical surfaces.
+ *
+ * Responsibilities (and *only* these):
+ * - Surface selection via ?v=vault|oracle|brain (+ legacy ?tab= compat)
+ * - Wallet connection / onboarding guard orchestration
+ * - Surface container mounting inside an error boundary
+ * - Top-level header with navigation
+ *
+ * All business data fetching, polling, and feature rendering lives in
+ * the surface containers under components/zkdefi/surfaces/.
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { ProtocolPanel } from "@/components/zkdefi/ProtocolPanel";
-import { ActivityLog } from "@/components/zkdefi/ActivityLog";
-import { CompliancePanel } from "@/components/zkdefi/CompliancePanel";
-import { PrivateTransferPanel } from "@/components/zkdefi/PrivateTransferPanel";
-import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
-import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
-import { HashedWithdrawPoolPanel } from "@/components/zkdefi/HashedWithdrawPoolPanel";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
-import { PositionChart } from "@/components/zkdefi/PositionChart";
-import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
-import { AgentRebalancer } from "@/components/zkdefi/AgentRebalancer";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
-import { AllocationPools } from "@/components/zkdefi/AllocationPools";
 import { useAccount } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
-import { Shield, Key, Brain, TrendingUp, User, ArrowRight, Zap, Lock, ExternalLink, Boxes, Eye, ArrowDownUp } from "lucide-react";
-import { ModelComposer } from "@/components/zkdefi/ModelComposer";
-import { MyAgents } from "@/components/zkdefi/MyAgents";
-import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
-import { DexPanel } from "@/components/zkdefi/DexPanel";
-import { DeployToEkuboCard } from "@/components/zkdefi/DeployToEkuboCard";
+import { Shield, Brain, ArrowDownUp, Wallet, Activity } from "lucide-react";
+import { CapitalOSStrip } from "@/components/zkdefi/CapitalOSStrip";
+import type { CapitalOSStripIdentity, CapitalOSStripGate, CapitalOSStripLedger } from "@/components/zkdefi/CapitalOSStrip";
+import { useVaultController } from "@/hooks/useVaultController";
+import { API_BASE } from "@/lib/api/client";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003").replace(/\/api\/v[0-9]+\/?$/, "");
-const FETCH_TIMEOUT_MS = 15000;
+// Surface containers
+import { VaultSurfaceContainer } from "@/components/zkdefi/surfaces/VaultSurfaceContainer";
+import { OracleSurfaceContainer } from "@/components/zkdefi/surfaces/OracleSurfaceContainer";
+import { BrainSurfaceContainer } from "@/components/zkdefi/surfaces/BrainSurfaceContainer";
 
-type MainTab = "dashboard" | "pools" | "dex" | "agent" | "models" | "disclosure";
-type PoolType = "conservative" | "neutral" | "aggressive";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-interface UserTier {
-  tier: number;
-  tier_name: string;
-  proof_requirement: string;
-  max_deposits_per_day: number;
-}
+type Surface = "vault" | "oracle" | "brain";
 
-interface MarketData {
-  jediswap: { tvl: number; apy_bps: number };
-  ekubo: { tvl: number; apy_bps: number };
-  timestamp: number;
-}
+/** Map legacy ?tab= values to canonical surfaces. Execution (swap/lp/limits/staking) → vault; discovery (markets) → oracle. */
+const LEGACY_TAB_MAP: Record<string, { surface: Surface; sub?: string }> = {
+  vault: { surface: "vault", sub: "portfolio" },
+  portfolio: { surface: "vault", sub: "portfolio" },
+  dashboard: { surface: "vault", sub: "deploy" },
+  deploy: { surface: "vault", sub: "deploy" },
+  pools: { surface: "vault", sub: "deploy" },
+  yield: { surface: "vault", sub: "performance" },
+  ledger: { surface: "vault", sub: "ledger" },
+  lending: { surface: "vault", sub: "lending" },
+  private_yield: { surface: "vault", sub: "private_yield" },
+  trade: { surface: "oracle", sub: "signals" },
+  markets: { surface: "oracle", sub: "signals" },
+  dex: { surface: "vault", sub: "trade" },
+  swap: { surface: "vault", sub: "trade" },
+  lp: { surface: "vault", sub: "trade" },
+  limits: { surface: "vault", sub: "trade" },
+  staking: { surface: "vault", sub: "staking" },
+  agent: { surface: "brain", sub: "agent" },
+  models: { surface: "brain", sub: "models" },
+  pipeline: { surface: "brain", sub: "pipeline" },
+  agents: { surface: "brain", sub: "agents" },
+  disclosure: { surface: "brain", sub: "pipeline" },
+  privacy: { surface: "brain", sub: "pipeline" },
+  identity: { surface: "brain", sub: "agents" },
+  "my-agents": { surface: "brain", sub: "agents" },
+};
 
-interface RelayerStats {
-  deposit_pending: number;
-  claim_pending: number;
-  relayer_address?: string;
-}
+// ---------------------------------------------------------------------------
+// Shell
+// ---------------------------------------------------------------------------
 
 export default function AgentPage() {
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
+
   const [mounted, setMounted] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [mainTab, setMainTab] = useState<MainTab>("dashboard");
-  const [selectedPool, setSelectedPool] = useState<PoolType>("neutral");
-  const [userTier, setUserTier] = useState<UserTier | null>(null);
-  const [marketData, setMarketData] = useState<MarketData | null>(null);
-  const [marketDataError, setMarketDataError] = useState<string | null>(null);
-  const [totalPosition, setTotalPosition] = useState<string>("0");
-  const [positionError, setPositionError] = useState<string | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [positions, setPositions] = useState<{ [key: string]: number }>({});
-  const [agentStatus, setAgentStatus] = useState<"idle" | "monitoring" | "executing">("idle");
-  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
-  const [positionsRefreshTrigger, setPositionsRefreshTrigger] = useState(0);
+  const [surface, setSurface] = useState<Surface>("vault");
+  const [subTabOverride, setSubTabOverride] = useState<string | undefined>(undefined);
   const [loadingBailout, setLoadingBailout] = useState(false);
-  const [relayerStats, setRelayerStats] = useState<RelayerStats | null>(null);
   const [loadingStuckHint, setLoadingStuckHint] = useState(false);
 
-  const onCommitmentsChange = useCallback(() => {
-    setPositionsRefreshTrigger((t) => t + 1);
-  }, []);
+  const [shellSessionCount, setShellSessionCount] = useState(0);
+  const [shellAgentStatus, setShellAgentStatus] = useState<"idle" | "monitoring" | "executing">("idle");
+  const [shellAiInsight, setShellAiInsight] = useState<string | null>(null);
+  const [shellCommitmentCount, setShellCommitmentCount] = useState(0);
+  const [stripData, setStripData] = useState<{
+    identity: CapitalOSStripIdentity;
+    gate: CapitalOSStripGate;
+    ledger: CapitalOSStripLedger;
+  } | null>(null);
+  const [gatePopoverOpen, setGatePopoverOpen] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => setMounted(true), []);
 
-  // Treat "ready" only when we have address (avoids black/blank when autoConnect lags)
+  const demoMode = searchParams.get("mode") === "demo";
+  const demoAddress = "0x0000000000000000000000000000000000000000000000000000000000000000";
   const hasAccount = isConnected && !!address;
-  const showLoading = !mounted || ((!hasAccount && !walletSettled) && !loadingBailout);
-  const showConnectGate = mounted && !hasAccount && (walletSettled || loadingBailout);
+  const showLoading = !demoMode && (!mounted || (!hasAccount && !walletSettled && !loadingBailout));
+  const showConnectGate = !demoMode && mounted && !hasAccount && (walletSettled || loadingBailout);
 
-  // Bail out of "Connecting to Starknet..." after 1.5s so we never get stuck in a loading loop
+  const effectiveAddress = address || (demoMode ? demoAddress : undefined);
+  const { proofsState, pendingProposal } = useVaultController(effectiveAddress);
+
+  // Loading bailout — prevent permanent spinner
   useEffect(() => {
-    if (!showLoading) {
-      setLoadingBailout(false);
-      setLoadingStuckHint(false);
-      return;
-    }
+    if (!showLoading) { setLoadingBailout(false); setLoadingStuckHint(false); return; }
     const t = setTimeout(() => setLoadingBailout(true), 1500);
     return () => clearTimeout(t);
   }, [showLoading]);
 
-  // If still showing "Connecting to Starknet..." after 5s, show reload hint
   useEffect(() => {
     if (!showLoading) return;
     const t = setTimeout(() => setLoadingStuckHint(true), 5000);
     return () => clearTimeout(t);
   }, [showLoading]);
 
-  // Deep link: ?tab=onboarding -> show onboarding; ?tab=disclosure|privacy -> Disclosure tab; ?tab=models -> Models tab; ?highlight=deploy -> Dashboard + scroll to Deploy card
+  // Deep-link routing: canonical ?v= and legacy ?tab= compat
   useEffect(() => {
     if (!mounted) return;
+    // Canonical: ?v=vault|oracle|brain (v=trade redirects to oracle)
+    const v = searchParams.get("v");
+    if (v === "trade") {
+      setSurface("oracle");
+      setSubTabOverride(searchParams.get("sub") ?? "signals");
+      return;
+    }
+    if (v && ["vault", "oracle", "brain"].includes(v)) {
+      setSurface(v as Surface);
+      setSubTabOverride(searchParams.get("sub") ?? undefined);
+      return;
+    }
+    // Legacy: ?tab=*
     const tab = searchParams.get("tab");
+    if (tab === "onboarding") { setShowOnboarding(true); setHasOnboarded(false); return; }
+    if (tab && LEGACY_TAB_MAP[tab]) {
+      const mapped = LEGACY_TAB_MAP[tab];
+      setSurface(mapped.surface);
+      setSubTabOverride(mapped.sub);
+      return;
+    }
+    // Hash #deploy-to-ekubo -> vault dashboard
     const highlight = searchParams.get("highlight");
-    if (tab === "onboarding") {
-      setShowOnboarding(true);
-      setHasOnboarded(false);
-    } else if (tab === "disclosure" || tab === "privacy") {
-      setMainTab("disclosure");
-    } else if (tab === "models") {
-      setMainTab("models");
-    } else if (highlight === "deploy") {
-      setMainTab("dashboard");
-      setTimeout(() => {
-        document.getElementById("deploy-to-ekubo")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+    if (highlight === "deploy") {
+      setSurface("vault");
+      setSubTabOverride("deploy");
     }
   }, [mounted, searchParams]);
 
-  // Hash #deploy-to-ekubo: switch to dashboard and scroll to card
+  // Onboarding check
   useEffect(() => {
-    if (!mounted || !hasAccount) return;
-    if (typeof window !== "undefined" && window.location.hash === "#deploy-to-ekubo") {
-      setMainTab("dashboard");
-      setTimeout(() => {
-        document.getElementById("deploy-to-ekubo")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-    }
-  }, [mounted, hasAccount]);
-
-  // Check if user has completed onboarding (when no ?tab=onboarding)
-  useEffect(() => {
-    if (mounted && isConnected && address && !searchParams.get("tab")) {
+    if (mounted && isConnected && address && !searchParams.get("tab") && !searchParams.get("v")) {
       const onboarded = localStorage.getItem(`zkdefi_onboarded_${address}`);
-      if (!onboarded) {
-        setShowOnboarding(true);
-      } else {
-        setHasOnboarded(true);
-      }
+      if (!onboarded) setShowOnboarding(true);
+      else setHasOnboarded(true);
     }
   }, [mounted, isConnected, address, searchParams]);
 
-  // Fetch user tier
+  // Shell-level lightweight data for CapitalFlowStrip
   useEffect(() => {
-    if (!mounted || !isConnected || !address) return;
-    fetch(`${API_BASE}/api/v1/zkdefi/reputation/user/${address}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.current_tier !== undefined) {
-          setUserTier({
-            tier: data.current_tier,
-            tier_name: data.current_tier === 0 ? "Strict" : data.current_tier === 1 ? "Standard" : "Express",
-            proof_requirement: data.current_tier === 0 ? "Full proof" : data.current_tier === 1 ? "Constraint proof" : "Batched",
-            max_deposits_per_day: data.current_tier === 0 ? 2 : data.current_tier === 1 ? 10 : 50,
-          });
-        }
-      })
-      .catch(() => {});
-  }, [mounted, isConnected, address]);
+    if (!effectiveAddress) return;
+    let dead = false;
 
-  const fetchMarketData = useCallback(() => {
-    setMarketDataError(null);
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    fetch(`${API_BASE}/api/v1/zkdefi/oracle/market-data`, { signal: ctrl.signal })
-      .then((r) => {
-        clearTimeout(t);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setMarketData(data);
-        setMarketDataError(null);
-      })
-      .catch((e) => {
-        clearTimeout(t);
-        setMarketDataError(e.name === "AbortError" ? "Request timed out." : "Couldn't reach API.");
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    fetchMarketData();
-    const interval = setInterval(fetchMarketData, 30000);
-    return () => clearInterval(interval);
-  }, [mounted, fetchMarketData]);
-
-  const fetchRelayerStats = useCallback(() => {
-    fetch(`${API_BASE}/api/v1/zkdefi/relayer/stats`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data && typeof data.deposit_pending === "number" && typeof data.claim_pending === "number") {
-          setRelayerStats({
-            deposit_pending: data.deposit_pending,
-            claim_pending: data.claim_pending,
-            relayer_address: data.relayer_address,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    fetchRelayerStats();
-    const interval = setInterval(fetchRelayerStats, 30000);
-    return () => clearInterval(interval);
-  }, [mounted, fetchRelayerStats]);
-
-  // Fetch positions with timeout and error handling (includes private commitments)
-  useEffect(() => {
-    if (!mounted || !isConnected || !address) return;
-    setPositionError(null);
-    
-    // Get private commitments from ALL localStorage sources
-    let privateTotal = BigInt(0);
-    let privateCount = 0;
-    const COMMITMENT_KEYS = [
-      `zkdefi_commitments_${address}`,   // Stealth Transfer
-      `zkdefi_shielded_${address}`,      // Shielded Pool
-      `zkdefi_fullprivacy_${address}`,   // Full Privacy Pool
-      `zkdefi_poold_${address}`,         // Pool D (Tier-2H)
-    ];
-    
-    for (const key of COMMITMENT_KEYS) {
+    (async () => {
       try {
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          const commitments = JSON.parse(stored);
-          for (const c of commitments) {
-            // Each commitment stores amount in wei (could be amount or balance field)
-            const amt = BigInt(c.amount || c.balance || "0");
-            privateTotal += amt;
-            privateCount++;
-          }
+        const res = await fetch(
+          `${API_BASE}/api/v1/zkdefi/session_keys/list/${effectiveAddress}`,
+          { signal: AbortSignal.timeout(6000) },
+        );
+        if (res.ok && !dead) {
+          const data = await res.json();
+          const sessions: Array<{ revoked_at?: string | null; expires_at?: string }> =
+            Array.isArray(data?.sessions) ? data.sessions : [];
+          const now = Date.now();
+          const active = sessions.filter((s) => {
+            if (s.revoked_at) return false;
+            if (s.expires_at && new Date(s.expires_at).getTime() < now) return false;
+            return true;
+          });
+          setShellSessionCount(active.length);
         }
-      } catch (e) {
-        console.warn(`Failed to read commitments from ${key}:`, e);
-      }
-    }
-    
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    fetch(`${API_BASE}/api/v1/zkdefi/position/${address}?protocol_id=0`, { signal: ctrl.signal })
-      .then((r) => {
-        clearTimeout(t);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((d) => {
-        const publicPos = BigInt(d.position ?? "0");
-        const totalPos = publicPos + privateTotal;
-        setTotalPosition(totalPos.toString());
-        setPositions({ 
-          pools: parseInt(d.position) || 0,
-          private: Number(privateTotal / BigInt(10**18)), // Convert wei to human-readable
-          privateCount,
+      } catch { /* best effort */ }
+
+      try {
+        const insightRes = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_address: effectiveAddress, risk_profile: "balanced", amount: 1000 }),
+          signal: AbortSignal.timeout(8000),
         });
-        setPositionError(null);
-      })
-      .catch((e) => {
-        clearTimeout(t);
-        // Even if API fails, show private positions if available
-        if (privateTotal > BigInt(0)) {
-          setTotalPosition(privateTotal.toString());
-          setPositions({ pools: 0, private: Number(privateTotal / BigInt(10**18)), privateCount });
-          setPositionError(null);
-        } else {
-          setPositionError(e.name === "AbortError" ? "Request timed out." : "Couldn't reach API.");
+        if (insightRes.ok && !dead) {
+          const data = await insightRes.json();
+          const text = data.ai_reasoning || data.portfolio_risk_assessment || data.recommendation || null;
+          if (text) setShellAiInsight(text);
         }
+      } catch { /* best effort */ }
+    })();
+
+    return () => { dead = true; };
+  }, [effectiveAddress]);
+
+  // Capital OS Strip data: risk passport v2 + receipts/activity. Demo = hardcoded.
+  useEffect(() => {
+    if (demoMode) {
+      setStripData({
+        identity: {
+          addressOrId: demoAddress,
+          tier: "Pathfinder",
+          proofCount: 12,
+        },
+        gate: {
+          riskTolerance: "Moderate",
+          allowedCount: 4,
+          totalCount: 6,
+          status: "ok",
+        },
+        ledger: {
+          lastEntryLabel: "LP Deploy +2,400 STRK",
+          receiptCount: 12,
+        },
       });
-  }, [mounted, address, isConnected, positionsRefreshTrigger]);
+      return;
+    }
+    if (!effectiveAddress) {
+      setStripData(null);
+      return;
+    }
+    let dead = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/zkdefi/risk_passport/user/${effectiveAddress}`, {
+          signal: AbortSignal.timeout(6000),
+        });
+        if (dead) return;
+        const passport = res.ok ? await res.json() : null;
+        const receipts: unknown[] = Array.isArray(passport?.proof_receipts) ? passport.proof_receipts : [];
+        const tierName = passport?.tier_name ?? (passport?.tier !== undefined ? (passport.tier === 0 ? "Strict" : passport.tier === 1 ? "Standard" : "Pathfinder") : "Standard");
+        const lastEntry =
+          receipts.length > 0 && receipts[0] && typeof receipts[0] === "object" && "action_type" in (receipts[0] as object)
+            ? String((receipts[0] as { action_type?: string }).action_type || "Activity")
+            : "No activity yet";
+        setStripData({
+          identity: {
+            addressOrId: effectiveAddress,
+            tier: tierName,
+            proofCount: receipts.length,
+          },
+          gate: {
+            riskTolerance: "Moderate",
+            allowedCount: 4,
+            totalCount: 6,
+            status: "ok",
+          },
+          ledger: {
+            lastEntryLabel: lastEntry,
+            receiptCount: receipts.length,
+          },
+        });
+      } catch {
+        if (!dead) {
+          setStripData({
+            identity: { addressOrId: effectiveAddress, tier: "—", proofCount: 0 },
+            gate: { riskTolerance: "—", allowedCount: 0, totalCount: 0, status: "warn" },
+            ledger: { lastEntryLabel: "Unable to load", receiptCount: 0 },
+          });
+        }
+      }
+    })();
+    return () => { dead = true; };
+  }, [effectiveAddress, demoMode]);
 
   const handleOnboardingComplete = () => {
-    if (address) {
-      localStorage.setItem(`zkdefi_onboarded_${address}`, "true");
-    }
+    if (address) localStorage.setItem(`zkdefi_onboarded_${address}`, "true");
     setShowOnboarding(false);
     setHasOnboarded(true);
   };
 
-  const agentContentErrorFallback = (
+  // -----------------------------------------------------------------------
+  // Error fallback
+  // -----------------------------------------------------------------------
+  const errorFallback = (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6 py-12 bg-zinc-950 text-white">
-      <p className="text-lg font-medium text-zinc-200">Dashboard failed to load</p>
-      <p className="text-sm text-zinc-500 max-w-md text-center">An error occurred while rendering the agent view. Try reloading.</p>
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-      >
+      <p className="text-lg font-medium text-zinc-200">Surface failed to load</p>
+      <p className="text-sm text-zinc-500 max-w-md text-center">An error occurred while rendering. Try reloading.</p>
+      <button type="button" onClick={() => window.location.reload()} className="px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
         Reload page
       </button>
     </div>
   );
 
+  // -----------------------------------------------------------------------
+  // Onboarding gate
+  // -----------------------------------------------------------------------
   if (showOnboarding && hasAccount) {
     return (
-      <ErrorBoundary fallback={agentContentErrorFallback}>
+      <ErrorBoundary fallback={errorFallback}>
         <OnboardingWizard onComplete={handleOnboardingComplete} />
       </ErrorBoundary>
     );
   }
 
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
-      {/* Header - always visible for better UX */}
+      {/* Header */}
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -323,20 +323,11 @@ export default function AgentPage() {
               </div>
             </Link>
             <nav className="hidden md:flex items-center gap-1 ml-4">
-              <Link href="/agent" className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">Dashboard</Link>
-              <Link href="/profile" className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Profile</Link>
+              <Link href="/agent" prefetch={false} className="px-3 py-1.5 text-sm font-medium text-white bg-zinc-800 rounded-lg">App</Link>
+              <Link href="/profile" prefetch={false} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all">Identity</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            {userTier && (
-              <Link href="/profile" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 transition-all">
-                <User className="w-4 h-4 text-zinc-400" />
-                <span className="text-sm font-medium">{userTier.tier_name}</span>
-                <span className={`px-1.5 py-0.5 text-xs rounded ${userTier.tier === 0 ? "bg-blue-500/20 text-blue-400" : userTier.tier === 1 ? "bg-emerald-500/20 text-emerald-400" : "bg-orange-500/20 text-orange-400"}`}>
-                  Tier {userTier.tier}
-                </span>
-              </Link>
-            )}
             <ConnectButton />
           </div>
         </div>
@@ -346,13 +337,9 @@ export default function AgentPage() {
         {showLoading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-zinc-500">Connecting to Starknet...</p>
+            <p className="text-sm text-zinc-500">Connecting to Starknet…</p>
             {loadingStuckHint && (
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="text-sm text-emerald-400 hover:text-emerald-300 underline mt-2"
-              >
+              <button type="button" onClick={() => window.location.reload()} className="text-sm text-emerald-400 hover:text-emerald-300 underline mt-2">
                 Reload the page
               </button>
             )}
@@ -365,401 +352,98 @@ export default function AgentPage() {
             <ConnectButton />
           </div>
         ) : (
-          <ErrorBoundary fallback={agentContentErrorFallback}>
-            <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <div className="glass rounded-xl border border-zinc-800 p-4">
-                <p className="text-xs text-zinc-400 mb-1">Total Position</p>
-                <p className="text-2xl font-bold">
-                  {positionError ? (
-                    <span className="text-amber-500 text-base">Unavailable</span>
-                  ) : totalPosition === "0" ? (
-                    <span className="text-zinc-500">No deposits yet</span>
-                  ) : (
-                    `${(Number(BigInt(totalPosition)) / 1e18).toFixed(4)} ETH`
-                  )}
-                </p>
-                {!positionError && (positions?.privateCount ?? 0) > 0 && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    {(positions?.privateCount ?? 0)} private commitment{(positions?.privateCount ?? 0) > 1 ? "s" : ""}
-                  </p>
-                )}
-                {positionError && <p className="text-xs text-zinc-500 mt-1">{positionError}</p>}
-              </div>
-              <div className="glass rounded-xl border border-zinc-800 p-4">
-                <p className="text-xs text-zinc-400 mb-1">Active Pool</p>
-                <p className="text-2xl font-bold capitalize">{selectedPool}</p>
-              </div>
-              <div className="glass rounded-xl border border-zinc-800 p-4">
-                <p className="text-xs text-zinc-400 mb-1">Agent Status</p>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${agentStatus === "idle" ? "bg-zinc-500" : agentStatus === "monitoring" ? "bg-emerald-500 animate-pulse" : "bg-orange-500 animate-pulse"}`} />
-                  <p className="text-lg font-medium capitalize">{agentStatus}</p>
+          <ErrorBoundary fallback={errorFallback}>
+            {/* Capital OS Strip — Identity | Gate | Ledger */}
+            <div className="mb-4 relative">
+              {stripData && (
+                <CapitalOSStrip
+                  identity={stripData.identity}
+                  gate={stripData.gate}
+                  ledger={stripData.ledger}
+                  isDemo={demoMode}
+                  onIdentityClick={() => router.push("/profile")}
+                  onGateClick={() => setGatePopoverOpen((o) => !o)}
+                  onLedgerClick={() => {
+                    setSurface("vault");
+                    setSubTabOverride("activity");
+                  }}
+                />
+              )}
+              {!stripData && !demoMode && effectiveAddress && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-2.5 text-zinc-500 text-sm">
+                  Loading strip…
                 </div>
-              </div>
-              <div className="glass rounded-xl border border-zinc-800 p-4">
-                <p className="text-xs text-zinc-400 mb-1">Proof Mode</p>
-                <p className="text-lg font-medium">{userTier?.proof_requirement || "Loading..."}</p>
-              </div>
+              )}
+              {gatePopoverOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close gate popover"
+                    className="fixed inset-0 z-10"
+                    onClick={() => setGatePopoverOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-1 z-20 min-w-[220px] rounded-lg border border-zinc-700 bg-zinc-900/95 p-3 shadow-lg">
+                    <p className="text-xs font-medium text-zinc-300 mb-2">Gate</p>
+                    {stripData && (
+                      <>
+                        <p className="text-xs text-zinc-400">Risk tolerance: {stripData.gate.riskTolerance}</p>
+                        <p className="text-xs text-zinc-400 mt-1">Policy: {stripData.gate.allowedCount}/{stripData.gate.totalCount} strategies allowed</p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Navigation Tabs */}
+            {/* Surface tabs: Vault | Oracle | Brain */}
             <div className="flex gap-2 mb-6 border-b border-zinc-800 pb-4">
               <button
-                onClick={() => setMainTab("dashboard")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "dashboard" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+                onClick={() => { setSurface("vault"); setSubTabOverride(undefined); }}
+                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${surface === "vault" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
               >
-                <TrendingUp className="w-4 h-4" />
-                Dashboard
+                <Wallet className="w-4 h-4" /> Vault
               </button>
               <button
-                onClick={() => setMainTab("pools")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "pools" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+                onClick={() => { setSurface("oracle"); setSubTabOverride(undefined); }}
+                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${surface === "oracle" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
               >
-                <Shield className="w-4 h-4" />
-                Allocation Pools
+                <Activity className="w-4 h-4" /> Oracle
               </button>
               <button
-                onClick={() => setMainTab("dex")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "dex" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+                onClick={() => { setSurface("brain"); setSubTabOverride(undefined); }}
+                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${surface === "brain" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
               >
-                <ArrowDownUp className="w-4 h-4" />
-                DEX
-              </button>
-              <button
-                onClick={() => setMainTab("agent")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "agent" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-              >
-                <Brain className="w-4 h-4" />
-                Agent Controls
-              </button>
-              <button
-                onClick={() => setMainTab("models")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "models" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-              >
-                <Boxes className="w-4 h-4" />
-                zkML Models
-              </button>
-              <button
-                onClick={() => setMainTab("disclosure")}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${mainTab === "disclosure" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-              >
-                <Eye className="w-4 h-4" />
-                Disclosure
+                <Brain className="w-4 h-4" /> Brain
               </button>
             </div>
 
-            {/* Dashboard Tab */}
-            {mainTab === "dashboard" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Market Data */}
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-emerald-400" />
-                      Live Market Data
-                      <span className="ml-auto text-xs text-zinc-500">Updates every 30s</span>
-                    </h3>
-                    {marketData ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">JediSwap</span>
-                            <span className="text-emerald-400">{(marketData.jediswap.apy_bps / 100).toFixed(1)}% APY</span>
-                          </div>
-                          <p className="text-sm text-zinc-400">TVL: ${(marketData.jediswap.tvl / 1e6).toFixed(1)}M</p>
-                        </div>
-                        <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">Ekubo</span>
-                            <span className="text-emerald-400">{(marketData.ekubo.apy_bps / 100).toFixed(1)}% APY</span>
-                          </div>
-                          <p className="text-sm text-zinc-400">TVL: ${(marketData.ekubo.tvl / 1e6).toFixed(1)}M</p>
-                        </div>
-                      </div>
-                    ) : marketDataError ? (
-                      <div className="text-center py-4">
-                        <p className="text-amber-500 mb-2">Couldn&apos;t load market data.</p>
-                        <p className="text-sm text-zinc-500 mb-3">{marketDataError} Check backend is up and <code className="text-zinc-400">NEXT_PUBLIC_API_URL</code> points to it.</p>
-                        <button
-                          type="button"
-                          onClick={fetchMarketData}
-                          className="px-3 py-1.5 text-sm rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-zinc-500 text-center py-4">Loading market data...</div>
-                    )}
-                  </div>
-
-                  {/* Current Allocation */}
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <h3 className="font-semibold mb-4">Current Allocation: <span className="text-emerald-400 capitalize">{selectedPool}</span></h3>
-                    <AllocationPools currentPool={selectedPool} onSelectPool={(p) => setSelectedPool(p as PoolType)} />
-                  </div>
-
-                  {/* Deploy to Ekubo (orchestration: recommend → execute → receipt) */}
-                  {address && (
-                    <DeployToEkuboCard userAddress={address} />
-                  )}
-
-                  {/* Private Transfer */}
-                  <div className="glass rounded-xl border border-violet-800/50 p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Lock className="w-5 h-5 text-violet-400" />
-                      <h3 className="font-semibold">Private Transfer</h3>
-                      <span className="ml-auto px-2 py-1 text-xs rounded bg-violet-600/20 text-violet-300 border border-violet-600/30">Fund Agent</span>
-                    </div>
-                    <PrivateTransferPanel onCommitmentsChange={onCommitmentsChange} />
-                  </div>
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  {/* Tier Info */}
-                  {userTier && (
-                    <div className="glass rounded-xl border border-zinc-800 p-6">
-                      <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <User className="w-5 h-5 text-zinc-400" />
-                        Reputation Tier
-                      </h3>
-                      <div className={`rounded-lg p-4 mb-4 ${userTier.tier === 0 ? "bg-blue-500/10 border border-blue-500/30" : userTier.tier === 1 ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-orange-500/10 border border-orange-500/30"}`}>
-                        <div className="text-lg font-bold">{userTier.tier_name}</div>
-                        <div className="text-sm text-zinc-400">{userTier.proof_requirement}</div>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-zinc-400">Max deposits/day</span><span>{userTier.max_deposits_per_day}</span></div>
-                      </div>
-                      <Link href="/profile" className="mt-4 flex items-center justify-center gap-2 w-full py-2 border border-zinc-700 rounded-lg text-sm hover:bg-zinc-800 transition-all">
-                        Manage Tier <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Relayer Health */}
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <ArrowRight className="w-5 h-5 text-zinc-400" />
-                        Relayer Health
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={fetchRelayerStats}
-                        className="px-2 py-1 text-xs rounded-lg border border-zinc-600 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                      >
-                        Refresh
-                      </button>
-                    </div>
-                    {relayerStats !== null ? (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Deposit pending</span>
-                          <span className={relayerStats.deposit_pending > 0 ? "text-amber-400" : "text-zinc-300"}>{relayerStats.deposit_pending}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Claim pending</span>
-                          <span className={relayerStats.claim_pending > 0 ? "text-amber-400" : "text-zinc-300"}>{relayerStats.claim_pending}</span>
-                        </div>
-                        {relayerStats.relayer_address && (
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-zinc-400">Relayer</span>
-                            <span className="text-zinc-500 font-mono text-xs truncate max-w-[140px]" title={relayerStats.relayer_address}>
-                              {relayerStats.relayer_address.slice(0, 10)}…{relayerStats.relayer_address.slice(-6)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500 text-sm">Loading…</p>
-                    )}
-                  </div>
-
-                  <PositionChart refreshTrigger={positionsRefreshTrigger} />
-                  <ActivityLog title="History" />
-                </div>
-              </div>
+            {/* Surface containers */}
+            {surface === "vault" && (
+              <VaultSurfaceContainer
+                address={address || (demoMode ? demoAddress : undefined)}
+                initialSubTab={subTabOverride ?? undefined}
+                onNavigateToTrade={(sub) => {
+                  setSurface("vault");
+                  setSubTabOverride(sub ?? "trade");
+                }}
+              />
             )}
-
-            {/* Disclosure Tab */}
-            {mainTab === "disclosure" && (
-              <div className="max-w-3xl mx-auto">
-                <CompliancePanel />
-              </div>
+            {surface === "oracle" && (
+              <OracleSurfaceContainer
+                address={address || (demoMode ? demoAddress : undefined)}
+                initialSubTab={(subTabOverride as "signals" | "radar" | "genome") ?? "signals"}
+                onNavigateToVault={(sub) => {
+                  setSurface("vault");
+                  setSubTabOverride(sub || "trade");
+                }}
+              />
             )}
-
-            {/* DEX Tab — Ekubo Sepolia */}
-            {mainTab === "dex" && (
-              <div className="max-w-4xl">
-                <DexPanel />
-              </div>
+            {surface === "brain" && (
+              <BrainSurfaceContainer
+                address={address || (demoMode ? demoAddress : undefined)}
+                initialSubTab={subTabOverride as "agent" | "models" | "pipeline" | "agents" | undefined}
+              />
             )}
-
-            {/* Pools Tab */}
-            {mainTab === "pools" && (
-              <div className="space-y-6">
-                <p className="text-sm text-zinc-400">
-                  Pool B/C: amount and recipient on-chain. Pool D: hash-only claim, payout via escrow.
-                </p>
-                {/* Shielded - as-is pool (balance-style, relayer option) */}
-                <ShieldedPoolPanel onCommitmentsChange={onCommitmentsChange} />
-
-                {/* Pool B - Full Privacy (note unlinkability + Merkle tree) */}
-                <FullPrivacyPoolPanel onCommitmentsChange={onCommitmentsChange} />
-                <div className="flex justify-center">
-                  <a
-                    href="/agent?highlight=deploy#deploy-to-ekubo"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-600/50 text-emerald-400 hover:bg-emerald-600/10 text-sm transition-colors"
-                  >
-                    Deploy from Full Privacy → Ekubo
-                  </a>
-                </div>
-
-                {/* Pool C - Tornado-style compliant (same API, relayer emphasized) */}
-                <FullPrivacyPoolPanel onCommitmentsChange={onCommitmentsChange} variant="pool_c" />
-
-                {/* Pool D - Hash-only claims with shielded payout */}
-                <HashedWithdrawPoolPanel onCommitmentsChange={onCommitmentsChange} />
-
-                {/* Info about proof-gating */}
-                <div className="glass rounded-xl border border-zinc-800 p-6">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-emerald-400" />
-                    Human vs Agent: When Proofs Are Required
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-emerald-950/20 border border-emerald-800/30">
-                      <p className="text-sm font-medium text-emerald-300 mb-2">You Sign (Human)</p>
-                      <ul className="text-xs text-zinc-400 space-y-1">
-                        <li>• Privacy proof: Yes (hides amounts)</li>
-                        <li>• Execution proof: <span className="text-emerald-400">No</span> (signature = authorization)</li>
-                        <li>• Result: Fast, simple, private</li>
-                      </ul>
-                    </div>
-                    <div className="p-4 rounded-lg bg-violet-950/20 border border-violet-800/30">
-                      <p className="text-sm font-medium text-violet-300 mb-2">Agent Acts (Session Key)</p>
-                      <ul className="text-xs text-zinc-400 space-y-1">
-                        <li>• Privacy proof: Yes (hides amounts)</li>
-                        <li>• Execution proof: <span className="text-violet-400">Yes</span> (proof = authorization)</li>
-                        <li>• Result: Trustless autonomous execution</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Agent Tab */}
-            {mainTab === "agent" && address && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  <BrainVisualizer 
-                    userAddress={address} 
-                    onBrainComplete={(passed) => {
-                      setAgentStatus(passed ? "executing" : "idle");
-                    }}
-                  />
-                  <SessionKeyManager userAddress={address} onSessionGranted={(sessionId) => setActiveSessionId(sessionId)} />
-                  <AgentRebalancer userAddress={address} sessionId={activeSessionId ?? undefined} positions={positions} userTier={userTier?.tier ?? 0} />
-                </div>
-                <div className="space-y-6">
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-cyan-400" />
-                      How It Works
-                    </h3>
-                    <div className="space-y-3 text-sm text-zinc-400">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">1</div>
-                        <p>Grant session key with constraints (max position, duration)</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">2</div>
-                        <p>Agent monitors market data and your selected pool</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">3</div>
-                        <p>Rebalances are verified by zkML risk models</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">4</div>
-                        <p>Proofs submitted based on your reputation tier</p>
-                      </div>
-                    </div>
-                  </div>
-                  <ActivityLog />
-                </div>
-              </div>
-            )}
-
-            {/* Models Tab - zkML Marketplace */}
-            {mainTab === "models" && address && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <ModelComposer
-                    userAddress={address}
-                    onAgentCreated={() => setAgentRefreshTrigger((t) => t + 1)}
-                  />
-                  
-                  {/* Info Panel */}
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                      <Boxes className="w-5 h-5 text-cyan-400" />
-                      About zkML Models
-                    </h3>
-                    <div className="space-y-3 text-sm text-zinc-400">
-                      <p>
-                        Compose multiple zkML models into a custom agent. Each model generates a 
-                        zero-knowledge proof that verifies a specific constraint without revealing 
-                        your private data.
-                      </p>
-                      <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
-                        <p className="text-xs font-medium text-cyan-400 mb-2">Groth16 Models</p>
-                        <p className="text-xs">Fast (~10s), compact proofs for portfolio constraints like risk scores, correlation, and diversification.</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
-                        <p className="text-xs font-medium text-violet-400 mb-2">RISC Zero Models</p>
-                        <p className="text-xs">Advanced proofs for complex computations like cross-chain credit scoring using neural networks.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-6">
-                  <MyAgents userAddress={address} refreshTrigger={agentRefreshTrigger} />
-                  
-                  {/* Usage Guide */}
-                  <div className="glass rounded-xl border border-zinc-800 p-6">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-emerald-400" />
-                      How to Use
-                    </h3>
-                    <div className="space-y-3 text-sm text-zinc-400">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-cyan-600/20 flex items-center justify-center text-xs font-bold text-cyan-400 flex-shrink-0">1</div>
-                        <p>Select models to combine into your agent</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-cyan-600/20 flex items-center justify-center text-xs font-bold text-cyan-400 flex-shrink-0">2</div>
-                        <p>Choose decision logic (AND = all must pass, OR = any can pass)</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-cyan-600/20 flex items-center justify-center text-xs font-bold text-cyan-400 flex-shrink-0">3</div>
-                        <p>Execute to generate proofs in parallel</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-cyan-600/20 flex items-center justify-center text-xs font-bold text-cyan-400 flex-shrink-0">4</div>
-                        <p>Results include execution proof for on-chain submission</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            </>
           </ErrorBoundary>
         )}
       </div>
