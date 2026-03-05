@@ -46,15 +46,31 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/strategies/opportunities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_address: address || "0x0", risk_profile: "balanced", limit: 20 }),
-        signal: AbortSignal.timeout(10000),
-      });
-      if (!res.ok) throw new Error("Failed to load opportunities");
+      // Phase 2: Fetch from GET /strategies (backend-computed genome)
+      const res = await fetch(
+        `${API_BASE}/api/v1/strategies?user_profile=BALANCED&limit=20`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!res.ok) throw new Error("Failed to load strategies");
       const data = await res.json();
-      setOpportunities(Array.isArray(data?.opportunities) ? data.opportunities : []);
+      
+      // Convert strategies to opportunity format for display
+      const strategies = (data.strategies || []).map((s: any) => ({
+        pair: s.pool_id,
+        name: s.pool_id,
+        best_venue: s.protocol,
+        estimated_apy_pct: s.apy,
+        risk_score: s.genome.risk_score,
+        tvl_usd: s.tvl_usd,
+        volume_24h_usd: s.volume_24h_usd,
+        confidence: s.confidence,
+        zkml_risk_score: s.zkml_risk_score,
+        zkml_flags: s.zkml_flags,
+        // Backend-computed genome factors (Phase 2)
+        genome_factors: s.genome,
+      }));
+      
+      setOpportunities(strategies);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Request failed");
       setOpportunities([]);
