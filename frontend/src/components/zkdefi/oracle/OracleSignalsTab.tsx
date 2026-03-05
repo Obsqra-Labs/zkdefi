@@ -57,16 +57,6 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       const data = await res.json();
       const opps = Array.isArray(data?.opportunities) ? data.opportunities : [];
       setOpportunities(opps);
-      const recs: OracleRecommendation[] = [];
-      if (opps.length >= 1) {
-        const top = opps[0];
-        const name = top?.pair || top?.name || "Top strategy";
-        recs.push({ label: `Allocate 12% to ${name}`, strategyName: name, allocationPct: 12 });
-      }
-      if (opps.length >= 2) {
-        recs.push({ label: `Diversify with ${opps[1]?.pair ?? "second opportunity"}`, allocationPct: 8 });
-      }
-      setRecommendations(recs);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Request failed");
       setOpportunities([]);
@@ -75,6 +65,31 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       setLoading(false);
     }
   }, [address, isDemo]);
+
+  const fetchRecommendations = useCallback(async () => {
+    if (isDemo) return;
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/v1/strategies/recommendations?user_profile=BALANCED&limit=3`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const backendRecs = Array.isArray(data?.recommendations) ? data.recommendations : [];
+        const frontendRecs: OracleRecommendation[] = backendRecs.map((rec: any) => ({
+          label: rec.label,
+          strategyName: rec.strategy_name,
+          allocationPct: rec.allocation_pct,
+        }));
+        setRecommendations(frontendRecs);
+      } else {
+        setRecommendations([]);
+      }
+    } catch (e) {
+      logger.debug("Recommendations unavailable:", e);
+      setRecommendations([]);
+    }
+  }, [isDemo]);
 
   useEffect(() => {
     if (isDemo) {
@@ -85,7 +100,8 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       return;
     }
     fetchOpportunities();
-  }, [isDemo, fetchOpportunities]);
+    fetchRecommendations();
+  }, [isDemo, fetchOpportunities, fetchRecommendations]);
 
   if (loading && !isDemo) {
     return (
@@ -222,7 +238,15 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
             <li key={i} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
               <span className="text-zinc-200">{rec.label}</span>
               <div className="flex gap-2">
-                <button type="button" className="px-3 py-1.5 text-xs rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30">Approve</button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-xs rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-colors"
+                  onClick={() => {
+                    alert(`Approving: ${rec.label}\nStrategy: ${rec.strategyName}\nAllocation: ${rec.allocationPct}%\n\nVault execution wiring: TODO`);
+                  }}
+                >
+                  Approve
+                </button>
                 <button type="button" className="px-3 py-1.5 text-xs rounded-lg bg-zinc-700 text-zinc-300 hover:bg-zinc-600">Modify</button>
               </div>
             </li>
