@@ -136,6 +136,27 @@ class MarketPoller:
             
             logger.debug(f"Updated strategy {pool_id}: genome_composite={genome.composite_score:.2f}")
             
+            # Broadcast strategy update via WebSocket
+            try:
+                from app.websocket.manager import get_connection_manager
+                from app.websocket.events import StrategyUpdateEvent
+                
+                manager = get_connection_manager()
+                event = StrategyUpdateEvent.create(
+                    strategy_id=strategy.strategy_id,
+                    genome_composite=genome.composite_score,
+                    pool_id=pool_id,
+                    pair=opportunity.get("pair", pool_id),
+                    apy=opportunity.get("estimated_apy_pct", 0),
+                    risk_score=opportunity.get("risk_score", 50),
+                )
+                
+                await manager.broadcast("strategy_update", event["data"])
+                logger.debug(f"Broadcast strategy update for {pool_id}")
+                
+            except Exception as ws_err:
+                logger.warning(f"Failed to broadcast strategy update: {ws_err}")
+            
         except Exception as e:
             logger.error(f"Failed to update strategy for {opportunity.get('pair')}: {e}")
     

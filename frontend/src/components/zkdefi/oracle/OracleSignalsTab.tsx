@@ -5,6 +5,7 @@ import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_RECOMMENDATIONS, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity, OracleRecommendation } from "@/components/zkdefi/oracle/types";
 import { Check, AlertTriangle, Shield, Loader2 } from "lucide-react";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface OracleSignalsTabProps {
   address: string | undefined;
@@ -91,6 +92,22 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
       setRecommendations([]);
     }
   }, [isDemo]);
+
+  // WebSocket for real-time updates
+  const { connected: wsConnected, subscribe } = useWebSocket(address, { enabled: !isDemo });
+
+  // Subscribe to strategy updates
+  useEffect(() => {
+    if (isDemo || !wsConnected) return;
+
+    const unsubscribe = subscribe("strategy_update", (data: any) => {
+      console.log("Strategy updated via WebSocket:", data);
+      // Auto-refresh opportunities when strategy updates
+      fetchOpportunities();
+    });
+
+    return unsubscribe;
+  }, [isDemo, wsConnected, subscribe, fetchOpportunities]);
 
   const handleApproveRecommendation = useCallback(async (rec: OracleRecommendation) => {
     if (!address || isDemo) {

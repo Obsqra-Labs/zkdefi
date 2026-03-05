@@ -1411,5 +1411,221 @@
     "risk_score": 50.0,
     "price_change_pct": 0.0,
     "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "e460d975997561c1",
+    "timestamp": "2026-03-05T17:53:37.300424",
+    "apy": 21.5,
+    "tvl_usd": 19944.9,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 27.45
+  },
+  {
+    "strategy_id": "6ce2fad5fd7b3101",
+    "timestamp": "2026-03-05T17:53:37.306818",
+    "apy": 20.75,
+    "tvl_usd": 38.87,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "f0f15955b1d6b6af",
+    "timestamp": "2026-03-05T17:53:37.308903",
+    "apy": 20.75,
+    "tvl_usd": 5.3,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "24370f82166650ab",
+    "timestamp": "2026-03-05T17:53:37.310757",
+    "apy": 20.47,
+    "tvl_usd": 0.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "5577252d0a3b1d20",
+    "timestamp": "2026-03-05T17:53:37.313047",
+    "apy": 20.35,
+    "tvl_usd": 500000.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2bec89b929ca36bf",
+    "timestamp": "2026-03-05T17:53:37.315041",
+    "apy": 20.18,
+    "tvl_usd": 0.02,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "7c3014f3abb083ac",
+    "timestamp": "2026-03-05T17:53:37.316994",
+    "apy": 20.06,
+    "tvl_usd": 500000.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "69f14b2115ee25d2",
+    "timestamp": "2026-03-05T17:53:37.318943",
+    "apy": 32.0,
+    "tvl_usd": 255609.66,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2deea9d532b39ba8",
+    "timestamp": "2026-03-05T17:53:37.320921",
+    "apy": 9.79,
+    "tvl_usd": 559043.51,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "5cdc52c306e0300f",
+    "timestamp": "2026-03-05T17:53:37.324521",
+    "apy": 7.72,
+    "tvl_usd": 212271.35,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "69e52bdc40332b42",
+    "timestamp": "2026-03-05T17:53:37.326729",
+    "apy": 6.07,
+    "tvl_usd": 514673.15,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2272ba2a20bd8034",
+    "timestamp": "2026-03-05T17:53:37.328912",
+    "apy": 4.0,
+    "tvl_usd": 167900.99,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "e460d975997561c1",
+    "timestamp": "2026-03-05T17:53:46.522430",
+    "apy": 21.5,
+    "tvl_usd": 19944.9,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 27.45
+  },
+  {
+    "strategy_id": "6ce2fad5fd7b3101",
+    "timestamp": "2026-03-05T17:53:46.525417",
+    "apy": 20.75,
+    "tvl_usd": 38.87,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "f0f15955b1d6b6af",
+    "timestamp": "2026-03-05T17:53:46.527454",
+    "apy": 20.75,
+    "tvl_usd": 5.3,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "24370f82166650ab",
+    "timestamp": "2026-03-05T17:53:46.529621",
+    "apy": 20.47,
+    "tvl_usd": 0.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "5577252d0a3b1d20",
+    "timestamp": "2026-03-05T17:53:46.532364",
+    "apy": 20.35,
+    "tvl_usd": 500000.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2bec89b929ca36bf",
+    "timestamp": "2026-03-05T17:53:46.535017",
+    "apy": 20.18,
+    "tvl_usd": 0.02,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "7c3014f3abb083ac",
+    "timestamp": "2026-03-05T17:53:46.543180",
+    "apy": 20.06,
+    "tvl_usd": 500000.0,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "69f14b2115ee25d2",
+    "timestamp": "2026-03-05T17:53:46.545874",
+    "apy": 32.0,
+    "tvl_usd": 255680.58,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2deea9d532b39ba8",
+    "timestamp": "2026-03-05T17:53:46.548390",
+    "apy": 9.79,
+    "tvl_usd": 559043.49,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "5cdc52c306e0300f",
+    "timestamp": "2026-03-05T17:53:46.550907",
+    "apy": 7.72,
+    "tvl_usd": 212271.33,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "69e52bdc40332b42",
+    "timestamp": "2026-03-05T17:53:46.553413",
+    "apy": 6.07,
+    "tvl_usd": 514744.09,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
+  },
+  {
+    "strategy_id": "2272ba2a20bd8034",
+    "timestamp": "2026-03-05T17:53:46.555933",
+    "apy": 4.0,
+    "tvl_usd": 167971.93,
+    "risk_score": 50.0,
+    "price_change_pct": 0.0,
+    "volume_24h_usd": 0.0
   }
 ]

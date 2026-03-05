@@ -94,7 +94,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.876075",
-    "updated_at": "2026-03-05T12:58:12.178114",
+    "updated_at": "2026-03-05T17:53:46.525417",
     "first_seen": "2026-03-05T07:06:31.876075"
   },
   "f0f15955b1d6b6af": {
@@ -118,7 +118,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.876654",
-    "updated_at": "2026-03-05T12:58:12.180300",
+    "updated_at": "2026-03-05T17:53:46.527454",
     "first_seen": "2026-03-05T07:06:31.876654"
   },
   "24370f82166650ab": {
@@ -142,7 +142,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.877439",
-    "updated_at": "2026-03-05T12:58:12.182814",
+    "updated_at": "2026-03-05T17:53:46.529621",
     "first_seen": "2026-03-05T07:06:31.877439"
   },
   "5577252d0a3b1d20": {
@@ -166,7 +166,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.878221",
-    "updated_at": "2026-03-05T12:58:12.185014",
+    "updated_at": "2026-03-05T17:53:46.532364",
     "first_seen": "2026-03-05T07:06:31.878221"
   },
   "2bec89b929ca36bf": {
@@ -190,7 +190,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.881618",
-    "updated_at": "2026-03-05T12:58:12.186964",
+    "updated_at": "2026-03-05T17:53:46.535017",
     "first_seen": "2026-03-05T07:06:31.881618"
   },
   "69f14b2115ee25d2": {
@@ -201,20 +201,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.32,
     "apy": 32.0,
-    "tvl_usd": 251849.26,
+    "tvl_usd": 255680.58,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 32.0,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 54.218035,
+      "liquidity_score": 54.324460555555554,
       "efficiency_score": 24.0
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.882528",
-    "updated_at": "2026-03-05T12:58:12.188895",
+    "updated_at": "2026-03-05T17:53:46.545874",
     "first_seen": "2026-03-05T07:06:31.882528"
   },
   "2deea9d532b39ba8": {
@@ -225,20 +225,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.0979,
     "apy": 9.79,
-    "tvl_usd": 559044.58,
+    "tvl_usd": 559043.49,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 9.79,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 62.75123833333333,
+      "liquidity_score": 62.75120805555555,
       "efficiency_score": 7.342499999999999
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.883438",
-    "updated_at": "2026-03-05T12:58:12.190972",
+    "updated_at": "2026-03-05T17:53:46.548390",
     "first_seen": "2026-03-05T07:06:31.883438"
   },
   "5cdc52c306e0300f": {
@@ -249,20 +249,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.0771,
     "apy": 7.72,
-    "tvl_usd": 212292.51,
+    "tvl_usd": 212271.33,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 7.72,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 53.119236388888886,
+      "liquidity_score": 53.11864805555555,
       "efficiency_score": 5.79
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.884446",
-    "updated_at": "2026-03-05T12:58:12.193443",
+    "updated_at": "2026-03-05T17:53:46.550907",
     "first_seen": "2026-03-05T07:06:31.884446"
   },
   "69e52bdc40332b42": {
@@ -273,20 +273,20 @@
     "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "fee_tier": 0.0607,
     "apy": 6.07,
-    "tvl_usd": 510911.69,
+    "tvl_usd": 514744.09,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 6.07,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 61.41421361111111,
+      "liquidity_score": 61.520669166666664,
       "efficiency_score": 4.5525
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.885430",
-    "updated_at": "2026-03-05T12:58:12.195810",
+    "updated_at": "2026-03-05T17:53:46.553413",
     "first_seen": "2026-03-05T07:06:31.885430"
   },
   "2272ba2a20bd8034": {
@@ -297,20 +297,20 @@
     "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
     "fee_tier": 0.04,
     "apy": 4.0,
-    "tvl_usd": 164159.62,
+    "tvl_usd": 167971.93,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 4.0,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 51.78221166666667,
+      "liquidity_score": 51.888109166666666,
       "efficiency_score": 3.0
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.886346",
-    "updated_at": "2026-03-05T12:58:12.198067",
+    "updated_at": "2026-03-05T17:53:46.555933",
     "first_seen": "2026-03-05T07:06:31.886346"
   },
   "da1e14e555ac1525": {
@@ -336,5 +336,53 @@
     "created_at": "2026-03-05T12:49:34.737200",
     "updated_at": "2026-03-05T12:58:12.172296",
     "first_seen": "2026-03-05T12:49:34.737200"
+  },
+  "e460d975997561c1": {
+    "strategy_id": "e460d975997561c1",
+    "pool_id": "STRK/ETH",
+    "protocol": "Ekubo",
+    "token0": "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    "token1": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "fee_tier": 0.215,
+    "apy": 21.5,
+    "tvl_usd": 19944.9,
+    "volume_24h_usd": 27.45,
+    "confidence": "high",
+    "genome": {
+      "yield_score": 21.5,
+      "risk_score": 50.0,
+      "volatility_score": 80.28,
+      "liquidity_score": 23.314966666666667,
+      "efficiency_score": 16.125
+    },
+    "zkml_risk_score": null,
+    "zkml_flags": [],
+    "created_at": "2026-03-05T17:53:37.300424",
+    "updated_at": "2026-03-05T17:53:46.522430",
+    "first_seen": "2026-03-05T17:53:37.300424"
+  },
+  "7c3014f3abb083ac": {
+    "strategy_id": "7c3014f3abb083ac",
+    "pool_id": "ETH/fUSDC",
+    "protocol": "Ekubo",
+    "token0": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "token1": "0x7ab0b8855a61f480b4423c46c32fa7c553f0aac3531bbddaa282d86244f7a23",
+    "fee_tier": 0.2006,
+    "apy": 20.06,
+    "tvl_usd": 500000.0,
+    "volume_24h_usd": 0.0,
+    "confidence": "high",
+    "genome": {
+      "yield_score": 20.06,
+      "risk_score": 50.0,
+      "volatility_score": 80.0,
+      "liquidity_score": 61.111111111111114,
+      "efficiency_score": 15.044999999999998
+    },
+    "zkml_risk_score": null,
+    "zkml_flags": [],
+    "created_at": "2026-03-05T17:53:37.316994",
+    "updated_at": "2026-03-05T17:53:46.543180",
+    "first_seen": "2026-03-05T17:53:37.316994"
   }
 }

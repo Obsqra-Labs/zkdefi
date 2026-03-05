@@ -18,7 +18,7 @@ from typing import Optional
 import os
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -51,13 +51,22 @@ else:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):  # noqa: ARG001
-    """Startup: kick off background Merkle root reconciliation."""
+    """Startup: kick off background tasks."""
     try:
         from app.services.merkle_tree_onchain_sync import reconcile_all_roots
         asyncio.create_task(reconcile_all_roots())
         logger.info("Startup: Merkle root reconciliation task scheduled.")
     except Exception as exc:
         logger.warning("Could not schedule reconcile_all_roots on startup: %s", exc)
+    
+    # Set up WebSocket bridge
+    try:
+        from app.events.websocket_bridge import setup_websocket_bridge
+        await setup_websocket_bridge()
+        logger.info("Startup: WebSocket bridge activated.")
+    except Exception as exc:
+        logger.warning("Could not set up WebSocket bridge: %s", exc)
+    
     yield
 
 
@@ -320,3 +329,49 @@ def legacy_status() -> dict[str, str]:
 @app.get("/")
 def root() -> dict[str, str]:
     return {"service": "zkde.fi api", "health": "/health", "docs": "/docs"}
+
+
+# -----------------------------------------------------------------------------
+# WebSocket endpoint for real-time updates
+# -----------------------------------------------------------------------------
+
+@app.websocket("/ws/{user_address}")
+async def websocket_endpoint(websocket: WebSocket, user_address: str):
+    """
+    WebSocket endpoint for real-time updates.
+    
+    Clients connect with their wallet address and receive:
+    - Strategy updates from market poller
+    - Position alerts from position monitor
+    - Proof completion notifications
+    - Agent status changes
+    
+    Connection stays alive with periodic pings.
+    """
+    from app.websocket.manager import get_connection_manager
+    
+    manager = get_connection_manager()
+    await manager.connect(user_address, websocket)
+    
+    try:
+        # Keep connection alive and handle incoming messages
+        while True:
+            try:
+                # Wait for client messages (e.g., pong responses)
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                
+                # Client can send ping requests, we respond with pong
+                if data == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": asyncio.get_event_loop().time()})
+                
+            except asyncio.TimeoutError:
+                # Send ping every 30s to keep connection alive
+                await manager.send_ping(user_address)
+                
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected normally: {user_address}")
+        await manager.disconnect(user_address)
+        
+    except Exception as e:
+        logger.error(f"WebSocket error for {user_address}: {e}")
+        await manager.disconnect(user_address)

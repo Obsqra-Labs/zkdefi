@@ -145,6 +145,7 @@ class PositionMonitor:
         Process and store alerts for a user.
         
         Creates receipts for high-severity alerts so they appear in activity log.
+        Broadcasts alerts via WebSocket for real-time delivery.
         """
         if not alerts:
             return
@@ -168,6 +169,27 @@ class PositionMonitor:
                         },
                     )
                     logger.warning(f"[{user_address}] {alert['message']}")
+                
+                # Broadcast alert via WebSocket
+                try:
+                    from app.websocket.manager import get_connection_manager
+                    from app.websocket.events import AlertEvent
+                    
+                    manager = get_connection_manager()
+                    event = AlertEvent.create(
+                        user_address=user_address,
+                        severity=alert["severity"],
+                        alert_type=alert["type"],
+                        message=alert["message"],
+                        action=alert.get("action", ""),
+                    )
+                    
+                    # Send to specific user
+                    await manager.send_to_user(user_address, event)
+                    logger.debug(f"Sent alert to {user_address} via WebSocket")
+                    
+                except Exception as ws_err:
+                    logger.warning(f"Failed to send WebSocket alert: {ws_err}")
         
         except Exception as e:
             logger.error(f"Failed to process alerts: {e}")
