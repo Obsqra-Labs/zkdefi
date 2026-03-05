@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_RECOMMENDATIONS, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity, OracleRecommendation } from "@/components/zkdefi/oracle/types";
+import { Check, AlertTriangle, Shield } from "lucide-react";
 
 interface OracleSignalsTabProps {
   address: string | undefined;
@@ -146,6 +147,68 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
                   <span className="text-zinc-500">{opp.proof_status ?? (opp.confidence === "high" ? "Verified" : "Experimental")}</span>
                 </div>
                 <p className="text-xs text-zinc-500 mt-2">APY {apy.toFixed(1)}% · Risk {risk}</p>
+                
+                {/* zkML Intelligence Display */}
+                {(opp as any).zkml_risk_score !== undefined && (
+                  <div className="mt-3 pt-3 border-t border-zinc-800/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="w-3 h-3 text-blue-400" />
+                      <span className="text-xs font-medium text-blue-300">zkML Analysis</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-500">Risk Score:</span>
+                        <span className={`font-medium ${
+                          (opp as any).zkml_risk_score < 30 ? 'text-emerald-400' :
+                          (opp as any).zkml_risk_score < 60 ? 'text-amber-400' :
+                          'text-red-400'
+                        }`}>{(opp as any).zkml_risk_score}/100</span>
+                      </div>
+                      {(opp as any).zkml_flags && (opp as any).zkml_flags.length > 0 && (
+                        <div className="flex items-start gap-1.5 text-xs mt-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                          <div className="flex-1 space-y-0.5">
+                            {(opp as any).zkml_flags.map((flag: string, fi: number) => (
+                              <div key={fi} className="text-zinc-500">{flag.replace(/_/g, ' ')}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(opp as any).zkml_signals && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-400 cursor-pointer hover:text-blue-300">
+                            Circuit Details
+                          </summary>
+                          <div className="mt-2 pl-2 space-y-1 text-xs text-zinc-400">
+                            <div className="flex items-center gap-2">
+                              <span className={(opp as any).zkml_signals.il_acceptable ? "text-emerald-400" : "text-red-400"}>
+                                {(opp as any).zkml_signals.il_acceptable ? "✓" : "✗"}
+                              </span>
+                              <span>IL: {(opp as any).zkml_signals.il_acceptable ? "Acceptable" : "High risk"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={(opp as any).zkml_signals.yield_near_optimal ? "text-emerald-400" : "text-amber-400"}>
+                                {(opp as any).zkml_signals.yield_near_optimal ? "✓" : "~"}
+                              </span>
+                              <span>Yield: {(opp as any).zkml_signals.yield_near_optimal ? "Near optimal" : "Suboptimal"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={(opp as any).zkml_signals.slippage_ok ? "text-emerald-400" : "text-red-400"}>
+                                {(opp as any).zkml_signals.slippage_ok ? "✓" : "✗"}
+                              </span>
+                              <span>Slippage: {(opp as any).zkml_signals.slippage_ok ? "Within bounds" : "High"}</span>
+                            </div>
+                            {(opp as any).zkml_proof_hash && (
+                              <div className="mt-2 pt-2 border-t border-zinc-800/30">
+                                <span className="text-zinc-600">Proof: {(opp as any).zkml_proof_hash.slice(0, 12)}...</span>
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
