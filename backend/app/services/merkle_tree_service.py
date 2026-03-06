@@ -1,0 +1,661 @@
+"""
+Merkle Tree Service for Full Privacy Pool
+
+Manages an incremental Poseidon-based merkle tree off-chain,
+synchronized with the on-chain MerkleTree contract.
+
+Uses circomlib Poseidon (BN254 field) for circuit compatibility.
+Values may exceed felt252 - contracts use u256 split storage (low, high).
+"""
+
+import json
+import logging
+import os
+import sqlite3
+import tempfile
+import threading
+from pathlib import Path
+from typing import Optional, Dict, Any
+
+# Import BN254 Poseidon from circomlib wrapper
+from .circomlib_poseidon import (
+    poseidon_hash_two as _poseidon_hash_two,
+    poseidon_hash_many as _poseidon_hash_many,
+    poseidon_zero_hash,
+    ensure_fits_felt252,
+    BN128_PRIME,
+    STARK_PRIME,
+)
+
+# Tree configuration
+TREE_DEPTH = 20
+ZERO_VALUE = 0
+
+# Export for compatibility - use BN128 prime for this implementation
+FELT_PRIME = BN128_PRIME
+
+
+def poseidon_hash(left: int, right: int) -> int:
+    """
+    Compute Poseidon hash of two elements using circomlib (BN254 field).
+    
+    WARNING: Result may exceed STARK_PRIME. Contracts use u256 split storage.
+    """
+    return _poseidon_hash_two(left, right)
+
+
+def compute_commitment(
+    user_secret: int,
+    amount: int,
+    pool_type: int,
+    nonce: int,
+    blinding: int = 0
+) -> int:
+    """
+    Compute commitment = poseidon(user_secret, amount, pool_type, nonce, blinding)
+    Uses circomlib Poseidon (BN254) for circuit compatibility.
+    
+    WARNING: Result may exceed STARK_PRIME. Use u256 storage on-chain.
+    """
+    return _poseidon_hash_many([user_secret, amount, pool_type, nonce, blinding])
+
+
+def compute_nullifier(commitment: int, user_secret: int) -> int:
+    """
+    Compute nullifier = poseidon(commitment, user_secret)
+    Uses circomlib Poseidon (BN254) for circuit compatibility.
+    
+    WARNING: Result may exceed STARK_PRIME. Use u256 storage on-chain.
+    """
+    return _poseidon_hash_two(commitment, user_secret)
+
+
+def split_u256(value: int) -> tuple[int, int]:
+    """Split a u256 into (low, high) u128 parts for Starknet storage."""
+    low = value % (2 ** 128)
+    high = value // (2 ** 128)
+    return low, high
+
+
+def combine_u256(low: int, high: int) -> int:
+    """Combine (low, high) u128 parts back into u256."""
+    return low + (high * (2 ** 128))
+
+
+class MerkleTreeService:
+    """
+    Off-chain incremental merkle tree for full privacy pool.
+    Uses BN254 Poseidon for circuit compatibility.
+    
+    IMPORTANT: Stores proofs at insertion time because get_merkle_proof()
+    cannot reliably reconstruct proofs for the incremental tree algorithm.
+    """
+    
+    def __init__(
+        self,
+        depth: int = TREE_DEPTH,
+        storage_path: Optional[str] = None,
+        db_path: Optional[str] = None,
+    ):
+        self._log = logging.getLogger(__name__)
+        self.depth = depth
+        self.storage_path = Path(storage_path) if storage_path else None
+        self._db_path = Path(db_path) if db_path else None
+        self._db_lock = threading.RLock()
+        self._last_persisted_leaf_index = 0
+        self.zeros = self._compute_zeros()
+        self.filled_subtrees = list(self.zeros)
+        self.leaves: list[int] = []
+        self.root = self._compute_empty_root()
+        self.roots: list[int] = [self.root]
+        
+        # Store proofs at insertion time (keyed by leaf_index)
+        self.stored_proofs: Dict[int, Dict[str, Any]] = {}
+        
+        if self._db_path:
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._init_db()
+            if self._db_has_state():
+                self._load_state_db()
+            elif self.storage_path and self.storage_path.exists():
+                # Migrate from JSON to SQLite if present.
+                self._load_state_json()
+                self._save_state_db(full_rewrite=True)
+        elif self.storage_path and self.storage_path.exists():
+            self._load_state_json()
+    
+    def _compute_zeros(self) -> list[int]:
+        """Compute zero values for each tree level using BN254 Poseidon."""
+        zeros = [ZERO_VALUE]
+        for level in range(self.depth):
+            zeros.append(poseidon_zero_hash(level + 1))
+        return zeros
+    
+    def _compute_empty_root(self) -> int:
+        """Compute root of empty tree."""
+        return self.zeros[self.depth]
+
+    def _db_connect(self) -> sqlite3.Connection:
+        if not self._db_path:
+            raise ValueError("db_path not configured")
+        conn = sqlite3.connect(str(self._db_path))
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        return conn
+
+    def _init_db(self) -> None:
+        if not self._db_path:
+            return
+        with self._db_lock:
+            conn = self._db_connect()
+            try:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS leaves (idx INTEGER PRIMARY KEY, value TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS filled_subtrees (level INTEGER PRIMARY KEY, value TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS roots (idx INTEGER PRIMARY KEY, value TEXT)"
+                )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS proofs (leaf_index INTEGER PRIMARY KEY, root TEXT, path_elements TEXT, path_indices TEXT)"
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+    def _db_has_state(self) -> bool:
+        if not self._db_path:
+            return False
+        with self._db_lock:
+            conn = self._db_connect()
+            try:
+                cur = conn.execute("SELECT COUNT(1) FROM leaves")
+                count = cur.fetchone()[0]
+                return count > 0
+            finally:
+                conn.close()
+
+    def _load_state_db(self) -> None:
+        if not self._db_path:
+            return
+        with self._db_lock:
+            conn = self._db_connect()
+            try:
+                meta = {
+                    row[0]: row[1]
+                    for row in conn.execute("SELECT key, value FROM meta")
+                }
+                if meta.get("depth") and int(meta["depth"]) != self.depth:
+                    self._log.warning(
+                        "Merkle depth mismatch: db=%s expected=%s",
+                        meta["depth"],
+                        self.depth,
+                    )
+
+                leaves = []
+                for idx, value in conn.execute(
+                    "SELECT idx, value FROM leaves ORDER BY idx"
+                ):
+                    if idx != len(leaves):
+                        self._log.warning(
+                            "Merkle DB leaf gap at %s (expected %s)",
+                            idx,
+                            len(leaves),
+                        )
+                        while len(leaves) < idx:
+                            leaves.append(0)
+                    leaves.append(int(value, 16))
+                self.leaves = leaves
+
+                filled = list(self.zeros)
+                for level, value in conn.execute(
+                    "SELECT level, value FROM filled_subtrees ORDER BY level"
+                ):
+                    if 0 <= level < self.depth:
+                        filled[level] = int(value, 16)
+                self.filled_subtrees = filled
+
+                roots = [
+                    int(value, 16)
+                    for _, value in conn.execute(
+                        "SELECT idx, value FROM roots ORDER BY idx"
+                    )
+                ]
+                self.roots = roots if roots else [self._compute_empty_root()]
+
+                root_hex = meta.get("root")
+                if root_hex:
+                    self.root = int(root_hex, 16)
+                elif self.roots:
+                    self.root = self.roots[-1]
+                else:
+                    self.root = self._compute_empty_root()
+
+                self.stored_proofs = {}
+                for leaf_index, root, path_elements, path_indices in conn.execute(
+                    "SELECT leaf_index, root, path_elements, path_indices FROM proofs"
+                ):
+                    try:
+                        elements = json.loads(path_elements) if path_elements else []
+                        indices = json.loads(path_indices) if path_indices else []
+                    except Exception:
+                        elements = []
+                        indices = []
+                    self.stored_proofs[int(leaf_index)] = {
+                        "path_elements": [int(p, 16) for p in elements],
+                        "path_indices": indices,
+                        "root": int(root, 16) if root else 0,
+                    }
+
+                self._last_persisted_leaf_index = len(self.leaves)
+            finally:
+                conn.close()
+    
+    def insert(self, commitment: int) -> tuple[int, list[int], list[int]]:
+        """
+        Insert a commitment into the tree using incremental algorithm.
+        Returns (leaf_index, path_elements, path_indices).
+        
+        IMPORTANT: The returned proof is ONLY valid at the root computed
+        at this exact moment. Store it with the commitment for withdrawal.
+        """
+        if len(self.leaves) >= 2 ** self.depth:
+            raise ValueError("Tree is full")
+        
+        current_index = len(self.leaves)
+        self.leaves.append(commitment)
+        
+        current_hash = commitment
+        path_elements = []
+        path_indices = []
+        
+        for level in range(self.depth):
+            if current_index % 2 == 0:
+                # Left child: sibling is zero (or will be filled later)
+                left = current_hash
+                right = self.zeros[level]
+                path_elements.append(right)
+                path_indices.append(0)
+                self.filled_subtrees[level] = current_hash
+            else:
+                # Right child: sibling is the filled_subtree from left
+                left = self.filled_subtrees[level]
+                right = current_hash
+                path_elements.append(left)
+                path_indices.append(1)
+            
+            current_hash = poseidon_hash(left, right)
+            current_index = current_index // 2
+        
+        self.root = current_hash
+        self.roots.append(self.root)
+        
+        # Store the proof for later retrieval
+        leaf_index = len(self.leaves) - 1
+        self.stored_proofs[leaf_index] = {
+            "path_elements": path_elements,
+            "path_indices": path_indices,
+            "root": self.root,
+        }
+        
+        if self.storage_path or self._db_path:
+            self._save_state()
+        
+        return leaf_index, path_elements, path_indices
+    
+    def get_stored_proof(self, leaf_index: int) -> Optional[Dict[str, Any]]:
+        """
+        Get the stored proof from insertion time.
+        This is the ONLY reliable way to get valid merkle proofs for this tree.
+        """
+        return self.stored_proofs.get(leaf_index)
+    
+    def get_merkle_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
+        """
+        Get merkle proof for a leaf valid against the CURRENT root.
+
+        Rebuilds the full tree to compute correct sibling paths.
+        This is the only reliable way to get a proof when multiple
+        leaves have been inserted after the target leaf.
+        """
+        if leaf_index >= len(self.leaves):
+            raise ValueError(f"Leaf index {leaf_index} out of range")
+        path_elements, path_indices = self._compute_current_proof(leaf_index)
+        # Sanity check: verify the proof against the current root
+        if not self.verify_proof(self.leaves[leaf_index], path_elements, path_indices, self.root):
+            import logging
+            _log = logging.getLogger(__name__)
+            _log.error(
+                "CRITICAL: computed proof for leaf %d does not verify against root %s",
+                leaf_index, hex(self.root),
+            )
+            raise ValueError(
+                f"Internal error: proof for leaf {leaf_index} is inconsistent "
+                f"with current root {hex(self.root)}"
+            )
+        return path_elements, path_indices
+
+    def _compute_current_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
+        """
+        Compute a proof for `leaf_index` valid against `self.root`.
+
+        Instead of building the entire 2^depth tree (which would be 1M+ nodes),
+        we use a sparse approach: replay all insertions using the incremental
+        algorithm, tracking filled_subtrees at each step.  After processing
+        ALL leaves, the filled_subtrees represent the final tree state.
+        Then we extract the sibling path for the target leaf from those subtrees.
+        """
+        n = len(self.leaves)
+        # Replay all insertions to reconstruct the final filled_subtrees
+        final_filled = [0] * self.depth
+        for i in range(n):
+            current_hash = self.leaves[i]
+            current_index = i
+            for level in range(self.depth):
+                if current_index % 2 == 0:
+                    final_filled[level] = current_hash
+                    # Pair with zero (right sibling hasn't been inserted)
+                    current_hash = poseidon_hash(current_hash, self.zeros[level])
+                else:
+                    # Pair with the stored left subtree
+                    current_hash = poseidon_hash(final_filled[level], current_hash)
+                current_index = current_index // 2
+
+        # Now replay insertions AGAIN, but this time with the knowledge of
+        # the final tree.  Actually, the simpler correct approach is to
+        # rebuild only the path for leaf_index from the fully-computed tree.
+        #
+        # The cleanest approach: build a sparse dictionary of nodes.
+        # node[(level, index)] = hash
+        nodes: dict[tuple[int, int], int] = {}
+        # Insert all leaves at level 0
+        for i in range(n):
+            nodes[(0, i)] = self.leaves[i]
+
+        # For each level, compute parent nodes bottom-up (only for populated pairs)
+        for level in range(self.depth):
+            # Gather all indices at this level that have real values
+            indices_at_level = sorted(set(
+                idx for (lv, idx) in nodes if lv == level
+            ))
+            for idx in indices_at_level:
+                pair_idx = idx ^ 1  # sibling
+                left_idx = min(idx, pair_idx)
+                right_idx = max(idx, pair_idx)
+                left_val = nodes.get((level, left_idx), self.zeros[level])
+                right_val = nodes.get((level, right_idx), self.zeros[level])
+                parent_idx = left_idx // 2
+                nodes[(level + 1, parent_idx)] = poseidon_hash(left_val, right_val)
+
+        # Extract proof for leaf_index
+        path_elements = []
+        path_indices = []
+        idx = leaf_index
+        for level in range(self.depth):
+            if idx % 2 == 0:
+                sibling = nodes.get((level, idx + 1), self.zeros[level])
+                path_indices.append(0)
+            else:
+                sibling = nodes.get((level, idx - 1), self.zeros[level])
+                path_indices.append(1)
+            path_elements.append(sibling)
+            idx = idx // 2
+
+        return path_elements, path_indices
+    
+    def _reconstruct_proof(self, leaf_index: int) -> tuple[list[int], list[int]]:
+        """
+        Attempt to reconstruct proof by simulating insertions.
+        WARNING: This is slow and may not produce valid proofs for all indices.
+        """
+        # Simulate tree construction up to leaf_index to get proof
+        temp_filled = [0] * self.depth
+        path_elements = []
+        path_indices = []
+        
+        # Process all leaves up to and including leaf_index
+        for i in range(leaf_index + 1):
+            temp_hash = self.leaves[i]
+            temp_index = i
+            
+            if i == leaf_index:
+                # Capture the proof for this leaf
+                for level in range(self.depth):
+                    if temp_index % 2 == 0:
+                        path_elements.append(self.zeros[level])
+                        path_indices.append(0)
+                        temp_filled[level] = temp_hash
+                    else:
+                        path_elements.append(temp_filled[level])
+                        path_indices.append(1)
+                        temp_hash = poseidon_hash(temp_filled[level], temp_hash)
+                    temp_index = temp_index // 2
+            else:
+                # Just update filled_subtrees
+                for level in range(self.depth):
+                    if temp_index % 2 == 0:
+                        temp_filled[level] = temp_hash
+                        break
+                    else:
+                        temp_hash = poseidon_hash(temp_filled[level], temp_hash)
+                        temp_index = temp_index // 2
+        
+        return path_elements, path_indices
+    
+    def verify_proof(self, leaf: int, path_elements: list[int], path_indices: list[int], root: int) -> bool:
+        """Verify a merkle proof."""
+        current_hash = leaf
+        for i in range(len(path_elements)):
+            sibling = path_elements[i]
+            if path_indices[i] == 0:
+                current_hash = poseidon_hash(current_hash, sibling)
+            else:
+                current_hash = poseidon_hash(sibling, current_hash)
+        return current_hash == root
+    
+    def is_known_root(self, root: int) -> bool:
+        """Check if a root is in the recent root history."""
+        return root in self.roots[-100:]
+    
+    def get_root(self) -> int:
+        """Get the current merkle root."""
+        return self.root
+    
+    def get_leaf_count(self) -> int:
+        """Get the number of leaves in the tree."""
+        return len(self.leaves)
+    
+    def _save_state_db(self, full_rewrite: bool = False) -> None:
+        if not self._db_path:
+            return
+        with self._db_lock:
+            conn = self._db_connect()
+            try:
+                if full_rewrite:
+                    conn.execute("DELETE FROM leaves")
+                    conn.execute("DELETE FROM filled_subtrees")
+                    conn.execute("DELETE FROM roots")
+                    conn.execute("DELETE FROM proofs")
+                    conn.execute("DELETE FROM meta")
+                    self._last_persisted_leaf_index = 0
+
+                for idx in range(self._last_persisted_leaf_index, len(self.leaves)):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO leaves (idx, value) VALUES (?, ?)",
+                        (idx, hex(self.leaves[idx])),
+                    )
+                    proof = self.stored_proofs.get(idx)
+                    if proof:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO proofs (leaf_index, root, path_elements, path_indices) VALUES (?, ?, ?, ?)",
+                            (
+                                idx,
+                                hex(proof["root"]),
+                                json.dumps([hex(p) for p in proof["path_elements"]]),
+                                json.dumps(proof["path_indices"]),
+                            ),
+                        )
+
+                conn.execute("DELETE FROM filled_subtrees")
+                for level, value in enumerate(self.filled_subtrees):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO filled_subtrees (level, value) VALUES (?, ?)",
+                        (level, hex(value)),
+                    )
+
+                conn.execute("DELETE FROM roots")
+                roots = self.roots[-100:]
+                for idx, value in enumerate(roots):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO roots (idx, value) VALUES (?, ?)",
+                        (idx, hex(value)),
+                    )
+
+                meta = {
+                    "root": hex(self.root),
+                    "depth": str(self.depth),
+                    "leaf_count": str(len(self.leaves)),
+                    "last_persisted_leaf_index": str(len(self.leaves)),
+                }
+                for key, value in meta.items():
+                    conn.execute(
+                        "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                        (key, value),
+                    )
+
+                conn.commit()
+                self._last_persisted_leaf_index = len(self.leaves)
+            finally:
+                conn.close()
+
+    def _save_state_json(self) -> None:
+        """Persist tree state to disk."""
+        state = {
+            "leaves": [hex(l) for l in self.leaves],
+            "filled_subtrees": [hex(s) for s in self.filled_subtrees],
+            "root": hex(self.root),
+            "roots": [hex(r) for r in self.roots[-100:]],
+            "stored_proofs": {
+                str(k): {
+                    "path_elements": [hex(p) for p in v["path_elements"]],
+                    "path_indices": v["path_indices"],
+                    "root": hex(v["root"]),
+                }
+                for k, v in self.stored_proofs.items()
+            },
+        }
+        if not self.storage_path:
+            return
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=self.storage_path.parent, encoding="utf-8") as tmp:
+            json.dump(state, tmp, indent=2)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            temp_name = tmp.name
+        os.replace(temp_name, self.storage_path)
+
+    def _load_state_json(self) -> None:
+        """Load tree state from disk."""
+        if not self.storage_path:
+            return
+        try:
+            state = json.loads(self.storage_path.read_text())
+            self.leaves = [int(l, 16) for l in state["leaves"]]
+            self.filled_subtrees = [int(s, 16) for s in state["filled_subtrees"]]
+            self.root = int(state["root"], 16)
+            self.roots = [int(r, 16) for r in state["roots"]]
+
+            # Load stored proofs
+            if "stored_proofs" in state:
+                self.stored_proofs = {
+                    int(k): {
+                        "path_elements": [int(p, 16) for p in v["path_elements"]],
+                        "path_indices": v["path_indices"],
+                        "root": int(v["root"], 16),
+                    }
+                    for k, v in state["stored_proofs"].items()
+                }
+        except Exception as e:
+            self._log.warning("Could not load merkle tree state: %s", e)
+
+    def _save_state(self) -> None:
+        """Persist tree state to disk."""
+        if self._db_path:
+            self._save_state_db()
+            return
+        self._save_state_json()
+
+
+_merkle_tree: Optional[MerkleTreeService] = None
+
+
+def get_merkle_tree() -> MerkleTreeService:
+    """Get or create the singleton merkle tree instance."""
+    global _merkle_tree
+    if _merkle_tree is None:
+        data_dir = Path(__file__).parent.parent.parent / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        storage_mode = os.getenv("MERKLE_STORAGE_MODE", "json").lower()
+        json_path = data_dir / "merkle_tree.json"
+        if storage_mode in ("sqlite", "db"):
+            db_path = Path(
+                os.getenv("MERKLE_DB_PATH", str(data_dir / "merkle_tree.db"))
+            )
+            _merkle_tree = MerkleTreeService(
+                storage_path=str(json_path),
+                db_path=str(db_path),
+            )
+        else:
+            _merkle_tree = MerkleTreeService(storage_path=str(json_path))
+    return _merkle_tree
+
+
+def reset_merkle_tree():
+    """Reset the merkle tree (for testing or migration)."""
+    global _merkle_tree
+    data_dir = Path(__file__).parent.parent.parent / "data"
+    json_path = data_dir / "merkle_tree.json"
+    db_path = Path(os.getenv("MERKLE_DB_PATH", str(data_dir / "merkle_tree.db")))
+    storage_mode = os.getenv("MERKLE_STORAGE_MODE", "json").lower()
+    if storage_mode in ("sqlite", "db"):
+        if db_path.exists():
+            db_path.unlink()
+        if json_path.exists():
+            json_path.unlink()
+    else:
+        if json_path.exists():
+            json_path.unlink()
+    _merkle_tree = None
+
+
+def find_commitment_in_tree(commitment: int) -> Optional[int]:
+    """
+    Find a commitment in the merkle tree and return its leaf index.
+    Returns None if not found.
+    """
+    tree = get_merkle_tree()
+    for i, leaf in enumerate(tree.leaves):
+        if leaf == commitment:
+            return i
+    return None
+
+
+def recompute_commitment_from_preimage(
+    user_secret: int,
+    amount: int,
+    pool_type: int,
+    nonce: int,
+    blinding: int = 0
+) -> tuple[int, Optional[int]]:
+    """
+    Recompute commitment from preimage and check if it exists in tree.
+    Returns (commitment, leaf_index) or (commitment, None) if not in tree.
+    """
+    commitment = compute_commitment(user_secret, amount, pool_type, nonce, blinding)
+    leaf_index = find_commitment_in_tree(commitment)
+    return commitment, leaf_index
