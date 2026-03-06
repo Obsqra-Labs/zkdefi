@@ -1,0 +1,1 @@
+{"version":1,"contracts":[{"id":"vc8jfs6hslmek","package_name":"garaga_fullprivacy_new","contract_name":"Groth16VerifierBN254","module_path":"garaga_fullprivacy_new::groth16_verifier::Groth16VerifierBN254","artifacts":{"sierra":"garaga_fullprivacy_new_Groth16VerifierBN254.contract_class.json","casm":"garaga_fullprivacy_new_Groth16VerifierBN254.compiled_contract_class.json"}}]}

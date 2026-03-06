@@ -1,0 +1,48 @@
+# Cairo / Scarb
+target/
+**/*.rs
+circuits/contracts/src/scarb-*/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+.venv_py311/
+.env
+.env.local
+*.egg-info/
+.eggs/
+
+# Node
+node_modules/
+.next/
+.next_dev.log
+out/
+.npm
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / deploy
+*.env
+!.env.example
+.env.*
+!.env.example
+
+# Git worktrees (isolated branches)
+.worktrees/
+
+# Deployment tarballs
+*.tar.gz
+*.zip
