@@ -383,6 +383,7 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -419,6 +420,24 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       });
     return () => { cancelled = true; };
   }, [address, setNodes, setEdges]);
+
+  // Load available models
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ models: Array<{ id: string; name: string }> }>("/api/v1/agents/models/list")
+      .then((res) => {
+        if (!cancelled && res?.models) {
+          setModels(res.models);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          toastWarning(`Failed to load models: ${e instanceof Error ? e.message : "Unknown error"}`);
+          setModels([]);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleTestRun = useCallback(() => {
     const sourceNodes = new Set(edges.map((e) => e.source));
@@ -606,9 +625,13 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
           </CollapsibleSection>
 
           <CollapsibleSection title="MODELS" defaultOpen={false}>
-            {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((l) => (
-              <PaletteItem key={l} label={l} type="model" onDragStart={onNodeDragStart} />
-            ))}
+            {models.length > 0 ? (
+              models.map((m) => (
+                <PaletteItem key={m.id} label={m.name} type="model" onDragStart={onNodeDragStart} />
+              ))
+            ) : (
+              <div className="text-[10px] text-zinc-500 px-1 py-1">Loading models…</div>
+            )}
           </CollapsibleSection>
         </aside>
 
@@ -713,12 +736,13 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
                   <div>
                     <label className="block text-zinc-500 mb-0.5">Model</label>
                     <select
-                      value={(selectedNode.data?.label as string) || "RiskScore ML"}
+                      value={(selectedNode.data?.label as string) || ""}
                       onChange={(e) => updateSelectedNodeData("label", e.target.value)}
-                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200"
+                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200 text-xs"
                     >
-                      {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((m) => (
-                        <option key={m} value={m}>{m}</option>
+                      <option value="">Select model…</option>
+                      {models.map((m) => (
+                        <option key={m.id} value={m.name}>{m.name}</option>
                       ))}
                     </select>
                   </div>

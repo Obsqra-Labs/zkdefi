@@ -49,7 +49,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io wss://*.starknet.io",
+              "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io wss://*.starknet.io http://localhost:8003",
               "frame-ancestors 'none'",
             ].join('; '),
           },
