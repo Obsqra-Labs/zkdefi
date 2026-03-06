@@ -28,7 +28,7 @@ from app.services.private_yield_service import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/private-yield", tags=["Private Yield"])
+router = APIRouter(tags=["Private Yield"])
 
 
 class DepositRegistration(BaseModel):
@@ -37,13 +37,13 @@ class DepositRegistration(BaseModel):
     user_address: Optional[str] = None
 
 
-@router.get("/vault/stats")
+@router.get("/private-yield/vault/stats")
 async def vault_stats():
     """Get private yield vault aggregate statistics."""
     return get_vault_stats()
 
 
-@router.post("/deposit/register")
+@router.post("/private-yield/deposit/register")
 async def register_yield_deposit(req: DepositRegistration):
     """
     Register a private deposit in the yield vault ledger.
@@ -61,7 +61,7 @@ async def register_yield_deposit(req: DepositRegistration):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/position/{commitment}")
+@router.get("/private-yield/position/{commitment}")
 async def get_yield_position(commitment: str):
     """Get a specific yield vault position by commitment."""
     pos = get_position(commitment)
@@ -70,7 +70,7 @@ async def get_yield_position(commitment: str):
     return pos
 
 
-@router.get("/positions/{user_address}")
+@router.get("/private-yield/positions/{user_address}")
 async def get_user_yield_positions(user_address: str):
     """Get all active yield vault positions for a user."""
     positions = get_user_positions(user_address)
@@ -81,7 +81,7 @@ async def get_user_yield_positions(user_address: str):
     }
 
 
-@router.get("/withdrawal/prepare/{commitment}")
+@router.get("/private-yield/withdrawal/prepare/{commitment}")
 async def prepare_yield_withdrawal(commitment: str):
     """
     Prepare withdrawal data: compute principal + yield.
@@ -90,7 +90,7 @@ async def prepare_yield_withdrawal(commitment: str):
     return prepare_withdrawal(commitment)
 
 
-@router.post("/withdrawal/complete/{commitment}")
+@router.post("/private-yield/withdrawal/complete/{commitment}")
 async def complete_yield_withdrawal(commitment: str):
     """Mark position as withdrawn after on-chain ZK withdrawal succeeds."""
     success = complete_withdrawal(commitment)
@@ -103,7 +103,7 @@ class DeployRequest(BaseModel):
     risk_profile: str = "balanced"
 
 
-@router.post("/deploy")
+@router.post("/private-yield/deploy")
 async def deploy_idle(req: DeployRequest):
     """Deploy idle vault capital to Ekubo LP and/or LendingPool."""
     try:
@@ -114,25 +114,25 @@ async def deploy_idle(req: DeployRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/allocation/preview/{amount_wei}")
+@router.get("/private-yield/allocation/preview/{amount_wei}")
 async def preview_allocation(amount_wei: int, risk_profile: str = "balanced"):
     """Preview how capital would be allocated between Ekubo and LendingPool."""
     return compute_allocation_split(amount_wei, risk_profile)
 
 
-@router.post("/yield/accrue")
+@router.post("/private-yield/yield/accrue")
 async def trigger_accrual():
     """Manually trigger yield accrual across all active deployments."""
     return accrue_yield()
 
 
-@router.get("/yield/blended")
+@router.get("/private-yield/yield/blended")
 async def blended_yield():
     """Get unified yield calculation: Ekubo fees + lending interest = blended APY."""
     return get_blended_apy()
 
 
-@router.get("/deployments")
+@router.get("/private-yield/deployments")
 async def list_deployments():
     """List all active capital deployments."""
     deployments = get_active_deployments()

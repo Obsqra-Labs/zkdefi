@@ -150,6 +150,7 @@ if orchestration_router:
 
 vault_v2_router = _optional_router("app.api.routes.vault_v2")
 ledger_router = _optional_router("app.api.routes.ledger")
+private_yield_router = _optional_router("app.api.routes.private_yield")
 dao_router = _optional_router("app.api.routes.dao_governance")
 vault_proposals_router = _optional_router("app.api.routes.vault_proposals")
 lending_router = _optional_router("app.api.routes.lending")
@@ -161,6 +162,10 @@ if vault_v2_router:
 if ledger_router:
     app.include_router(
         ledger_router, prefix="/api/v1/zkdefi/ledger", tags=["ledger"]
+    )
+if private_yield_router:
+    app.include_router(
+        private_yield_router, prefix="/api/v1/zkdefi", tags=["private-yield"]
     )
 if dao_router:
     app.include_router(dao_router, prefix="/api/v1/dao", tags=["dao"])
