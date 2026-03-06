@@ -1,0 +1,17 @@
+groups:
+  - name: reputation_proofs
+    interval: 30s
+    rules:
+      - alert: HighProofFailureRate
+        expr: sum(rate(proof_generation_total{status="failure"}[5m]))/sum(rate(proof_generation_total[5m])) > 0.1
+        for: 5m
+        annotations:
+          summary: "High proof failure rate detected"
+          description: "More than 10% of proofs failing over 5m"
+
+      - alert: SlowProofGeneration
+        expr: histogram_quantile(0.95, sum(rate(proof_generation_duration_seconds_bucket[5m])) by (le)) > 30
+        for: 10m
+        annotations:
+          summary: "Proof generation is slow"
+          description: "P95 proof duration is {{ $value }}s"

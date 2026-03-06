@@ -24,6 +24,21 @@ Route-level errors often trace back to chain mismatch or incorrect contract refe
 | ZkmlVerifier | `0x037f17cd0e17f2b41d1b68335e0bc715a4c89d03c6118e5f4e98b5c7872c798d` |
 | GaragaVerifier | `0x06d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37` |
 
+## Phase 10 & Reputation (Starknet Sepolia)
+
+Governance and FICO-pack reputation verifiers (deployed March 2026).
+
+| Contract | Address | Purpose |
+|---|---|---|
+| ReceiptRegistry | `0x02900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd` | Immutable receipt per vault operation |
+| DAOConstraintManager | `0x0101bd9710017c0870077dcf03bf6fe68a955d9f9b9922ed5d673afed7497fc2` | Private DAO governance, emergency pause/unpause |
+| ObsqraFactRegistry | `0x02009ab87f581a0a92f65906ce84664a5cfcb86f7266651f48a04fac3c62faa3` | Registers verified proofs (reputation + other facts) |
+| SolvencyProofVerifier | `0x043b253e3f2fcac35eef0b08fd2f8f4ff81aeb52848f11640d62879854329c9b` | Groth16 verifier for solvency proofs |
+| RiskPassportTierVerifier | `0x05e71cc0c4b87908230414644d675164fb90cd6d8cfafeae87198241e60eb788` | Risk tier proofs |
+| TraderPerformanceVerifier | `0x04c8087855dd0812042de58b2a3f3838d3cea45118c86f07d32ac87648e90769` | Trader performance proofs |
+| StrategyIntegrityVerifier | `0x00c9478f355bdad25caf13899a0d5bf2ee1accb1678e9934ebeda40f2653e549` | Strategy compliance proofs |
+| ExecutionIntegrityVerifier | `0x03bb26a38ea2d8e4bd21895f665d0056a5496f31ad84f4d77e040d9e63e6873b` | Execution fairness proofs |
+
 ## Contract Interaction Topology
 
 ### Proof-Gated Execution Flow

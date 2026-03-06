@@ -357,6 +357,17 @@ pm2 restart zkdefi-frontend
 
 ---
 
+## Emergency Controls Testing
+
+(Added per reputation production readiness plan Task 3.3.)
+
+- **DAOConstraintManager** address: `0x0101bd9710017c0870077dcf03bf6fe68a955d9f9b9922ed5d673afed7497fc2` (Starknet Sepolia).
+- **Script**: `scripts/test_emergency_controls.sh` — calls `emergency_pause`, verifies `is_paused`, then `emergency_unpause`.
+- **Expected**: Only owner/multisig can call emergency functions; after pause, `is_paused` returns true; after unpause, returns false.
+- **Verification**: Run with RPC and keystore configured; document results after live run.
+
+---
+
 **Session Duration**: ~2 hours  
 **Contracts Deployed**: 4 (1 redeployment)  
 **Metrics Added**: 10 custom Prometheus metrics  

@@ -53,7 +53,13 @@ flowchart LR
 |---|---|---|---|
 | `GET` | `/api/v1/zkdefi/reputation/tiers` | Tier definitions | Public |
 | `GET` | `/api/v1/zkdefi/reputation/user/{address}` | User reputation snapshot | Public |
+| `GET` | `/api/v1/zkdefi/reputation/proofs/{address}` | FICO pack proof status (all 5 proofs) | Public |
 | `POST` | `/api/v1/zkdefi/reputation/upgrade-tier` | Tier upgrade request | App flow |
+| `POST` | `/api/v1/zkdefi/reputation/proof/solvency` | Generate solvency proof | App flow |
+| `POST` | `/api/v1/zkdefi/reputation/proof/risk-passport` | Generate risk passport tier proof | App flow |
+| `POST` | `/api/v1/zkdefi/reputation/proof/performance` | Generate trader performance proof | App flow |
+| `POST` | `/api/v1/zkdefi/reputation/proof/strategy-integrity` | Generate strategy integrity proof | App flow |
+| `POST` | `/api/v1/zkdefi/reputation/proof/execution-integrity` | Generate execution integrity proof | App flow |
 | `GET` | `/api/v1/zkdefi/risk_passport/user/{address}` | User passport | Public |
 | `GET` | `/api/v1/zkdefi/risk_passport/pool/{pool_id}` | Pool passport | Public |
 | `GET` | `/api/v1/zkdefi/risk_profile/{address}` | Aggregated risk profile bundle | Public |

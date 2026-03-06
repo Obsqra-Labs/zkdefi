@@ -1,0 +1,9 @@
+{
+  "user_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+  "submission_block": 1000,
+  "inclusion_block": 1003,
+  "expected_price": 2000,
+  "actual_price": 1995,
+  "max_delay_blocks": 5,
+  "max_price_deviation_bps": 50
+}

@@ -19,10 +19,37 @@ import {
   TrendingUp,
   ChevronDown,
 } from "lucide-react";
+import { SiteHeader } from "@/components/marketing/SiteHeader";
 
 export default function Home() {
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
+  const featuredProducts = [
+    {
+      name: "Privacy Pools",
+      href: "/products/privacy-pools",
+      copy: "Tiered commitment and nullifier pools for private capital entry and exit.",
+      accent: "border-emerald-500/30 text-emerald-300",
+    },
+    {
+      name: "Dark Ledger",
+      href: "/products/dark-ledger",
+      copy: "Private settlement rail for execution paths that minimize public traces.",
+      accent: "border-violet-500/30 text-violet-300",
+    },
+    {
+      name: "Risk Passport",
+      href: "/products/risk-passport",
+      copy: "Portable proof-backed risk and reputation layer for policy-aware finance.",
+      accent: "border-cyan-500/30 text-cyan-300",
+    },
+    {
+      name: "Private Governance",
+      href: "/products/private-governance",
+      copy: "Private voting and proposal workflows with cryptographic integrity.",
+      accent: "border-amber-500/30 text-amber-300",
+    },
+  ];
 
   const privacyTiers = [
     {
@@ -124,32 +151,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-4 sticky top-0 z-50 bg-zinc-950/95 backdrop-blur">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-semibold text-lg">zkde.fi</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="#solution" className="text-sm text-zinc-400 hover:text-white transition-colors">Solution</a>
-            <a href="#how-it-works" className="text-sm text-zinc-400 hover:text-white transition-colors">How it works</a>
-            <a href="#developers" className="text-sm text-zinc-400 hover:text-white transition-colors">Developers</a>
-            <a href="/docs" className="text-sm text-zinc-400 hover:text-white transition-colors">Docs</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/agent"
-              prefetch={false}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all hover:shadow-lg hover:shadow-emerald-500/20 flex items-center gap-2"
-            >
-              Launch App
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* HERO SECTION */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-32 relative overflow-hidden">
@@ -195,6 +197,38 @@ export default function Home() {
               For Developers
               <Code className="w-4 h-4" />
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED PRODUCTS */}
+      <section className="px-6 py-12 border-t border-zinc-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+            <h2 className="text-2xl font-bold">Featured product surfaces</h2>
+            <Link href="/products" prefetch={false} className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors">
+              View all products
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {featuredProducts.map((product) => (
+              <Link
+                key={product.name}
+                href={product.href}
+                prefetch={false}
+                className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 hover:border-zinc-600 transition-colors"
+              >
+                <div className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${product.accent}`}>
+                  Product
+                </div>
+                <h3 className="text-lg font-semibold mt-3">{product.name}</h3>
+                <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{product.copy}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm text-emerald-300">
+                  Explore
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

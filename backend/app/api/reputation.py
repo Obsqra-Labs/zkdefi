@@ -9,6 +9,12 @@ from pydantic import BaseModel
 from typing import Optional, Any
 import time
 
+try:
+    from app.monitoring.metrics import proof_generation_total, proof_generation_duration_seconds
+    _REP_METRICS = True
+except ImportError:
+    _REP_METRICS = False
+
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
 
@@ -101,6 +107,28 @@ from app.services.json_store import JsonStore
 
 _user_store = JsonStore("reputation_users")
 _staking_store = JsonStore("staking_positions")
+_proofs_store = JsonStore("reputation_proofs")
+
+
+def _persist_proof_completion(
+    address: str,
+    proof_type: str,
+    proof_hash: str,
+    on_chain_verified: bool = False,
+) -> None:
+    """Record that a proof was generated for GET /proofs/{address}."""
+    if not address or not proof_type or not proof_hash:
+        return
+    addr = address if address.startswith("0x") else f"0x{address}"
+    data = _proofs_store.get(addr)
+    if data is None:
+        data = {}
+    data[proof_type] = {
+        "timestamp": int(time.time()),
+        "proof_hash": proof_hash,
+        "on_chain_verified": on_chain_verified,
+    }
+    _proofs_store.set(addr, data)
 
 
 STAKING_POOLS = [
@@ -565,6 +593,98 @@ class ExecutionIntegrityProofRequest(BaseModel):
     max_price_deviation_bps: int = 50
 
 
+class ProofStatus(BaseModel):
+    proof_type: str
+    status: str  # "complete", "pending", "available", "not_started"
+    generated_at: Optional[int] = None
+    proof_hash: Optional[str] = None
+    on_chain_verified: bool = False
+
+
+class UserProofsResponse(BaseModel):
+    address: str
+    proofs: list[ProofStatus]
+    tier: int
+    tier_name: str
+    total_proofs_complete: int
+
+
+@router.get("/proofs/{address}")
+async def get_user_proofs(address: str):
+    """Get the status of all FICO pack proofs for a user."""
+    from app.services.json_store import JsonStore
+    
+    # Normalize address
+    if not address.startswith("0x"):
+        address = f"0x{address}"
+    
+    # Check user's current tier
+    user_store = JsonStore("reputation_users.json")
+    user_data = user_store.get(address)
+    if user_data is None:
+        user_data = {
+            "tier": 0,
+            "transaction_count": 0,
+            "total_volume_eth": 0.0,
+            "successful_txns": 0,
+        }
+    
+    tier = user_data.get("tier", 0)
+    tier_name = TIER_INFO[tier].tier_name
+    
+    # Check proof storage (persisted after successful proof generation)
+    user_proofs = _proofs_store.get(address)
+    if user_proofs is None:
+        user_proofs = {}
+    
+    proof_statuses = []
+    proof_types = [
+        "solvency",
+        "risk_passport",
+        "trader_performance",
+        "strategy_integrity",
+        "execution_integrity",
+    ]
+    
+    for proof_type in proof_types:
+        proof_data = user_proofs.get(proof_type, {})
+        
+        if proof_data:
+            status_obj = ProofStatus(
+                proof_type=proof_type,
+                status="complete",
+                generated_at=proof_data.get("timestamp", int(time.time())),
+                proof_hash=proof_data.get("proof_hash"),
+                on_chain_verified=proof_data.get("on_chain_verified", False),
+            )
+        else:
+            # Determine if available based on tier
+            if tier >= 1:
+                status = "available"
+            else:
+                status = "pending"
+            
+            status_obj = ProofStatus(
+                proof_type=proof_type,
+                status=status,
+                generated_at=None,
+                proof_hash=None,
+                on_chain_verified=False,
+            )
+        
+        proof_statuses.append(status_obj)
+    
+    complete_count = sum(1 for p in proof_statuses if p.status == "complete")
+    
+    return UserProofsResponse(
+        address=address,
+        proofs=proof_statuses,
+        tier=tier,
+        tier_name=tier_name,
+        total_proofs_complete=complete_count,
+    )
+
+
 @router.post("/proof/solvency")
 async def generate_solvency_proof(req: SolvencyProofRequest):
     """Generate a zero-knowledge proof that assets >= liabilities without revealing positions."""
@@ -586,6 +706,10 @@ async def generate_solvency_proof(req: SolvencyProofRequest):
             inputs_override={"SolvencyProof": inputs},
             mode="gate",
         )
+        if result.get("results"):
+            r0 = result["results"][0]
+            if r0.get("success") and r0.get("proof_hash"):
+                _persist_proof_completion(req.user_address, "solvency", r0["proof_hash"])
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
@@ -616,6 +740,10 @@ async def generate_risk_passport_proof(req: RiskPassportProofRequest):
             inputs_override={"RiskPassportTier": inputs},
             mode="gate",
         )
+        if result.get("results"):
+            r0 = result["results"][0]
+            if r0.get("success") and r0.get("proof_hash"):
+                _persist_proof_completion(req.user_address, "risk_passport", r0["proof_hash"])
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
@@ -645,13 +773,17 @@ async def generate_trader_performance_proof(req: TraderPerformanceProofRequest):
             user_address=user_addr_int,
         )
             
-        result = await run_circuit_scan(
-            circuits=["TraderPerformanceProof"],
-            user_address=user_addr_int,
-            inputs_override={"TraderPerformanceProof": inputs},
-            mode="gate",
-        )
-        return result
+            result = await run_circuit_scan(
+                circuits=["TraderPerformanceProof"],
+                user_address=user_addr_int,
+                inputs_override={"TraderPerformanceProof": inputs},
+                mode="gate",
+            )
+            if result.get("results"):
+                r0 = result["results"][0]
+                if r0.get("success") and r0.get("proof_hash"):
+                    _persist_proof_completion(req.user_address, "trader_performance", r0["proof_hash"])
+            return result
     except HTTPException:
         raise
     except Exception as e:
@@ -684,13 +816,17 @@ async def generate_strategy_integrity_proof(req: StrategyIntegrityProofRequest):
             user_address=user_addr_int,
         )
             
-        result = await run_circuit_scan(
-            circuits=["StrategyIntegrity"],
-            user_address=user_addr_int,
-            inputs_override={"StrategyIntegrity": inputs},
-            mode="gate",
-        )
-        return result
+            result = await run_circuit_scan(
+                circuits=["StrategyIntegrity"],
+                user_address=user_addr_int,
+                inputs_override={"StrategyIntegrity": inputs},
+                mode="gate",
+            )
+            if result.get("results"):
+                r0 = result["results"][0]
+                if r0.get("success") and r0.get("proof_hash"):
+                    _persist_proof_completion(req.user_address, "strategy_integrity", r0["proof_hash"])
+            return result
     except HTTPException:
         raise
     except Exception as e:
@@ -721,6 +857,10 @@ async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest
             inputs_override={"ExecutionIntegrity": inputs},
             mode="gate",
         )
+        if result.get("results"):
+            r0 = result["results"][0]
+            if r0.get("success") and r0.get("proof_hash"):
+                _persist_proof_completion(req.user_address, "execution_integrity", r0["proof_hash"])
         return result
     except HTTPException:
         raise

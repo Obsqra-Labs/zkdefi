@@ -31,6 +31,15 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
+try:
+    from app.monitoring.metrics import (
+        proof_generation_total,
+        proof_generation_duration_seconds,
+    )
+    _METRICS_AVAILABLE = True
+except ImportError:
+    _METRICS_AVAILABLE = False
+
 PROJECT_ROOT = Path(__file__).resolve().parents[4]  # zkdefi/
 CIRCUITS_BUILD = PROJECT_ROOT / "circuits" / "build"
 BACKEND_ROOT = PROJECT_ROOT / "backend"
@@ -1483,6 +1492,15 @@ async def run_circuit_scan(
             circuit_results.append({"circuit": "unknown", "success": False, "error": "Unexpected result type"})
             all_pass = False
             failed_count += 1
+
+    if _METRICS_AVAILABLE:
+        for r in circuit_results:
+            circuit_name = r.get("circuit", "unknown")
+            status = "success" if r.get("success") and not r.get("skipped") else "failure"
+            proof_generation_total.labels(proof_type=circuit_name, status=status).inc()
+            duration_ms = r.get("duration_ms", 0)
+            if duration_ms > 0:
+                proof_generation_duration_seconds.labels(proof_type=circuit_name).observe(duration_ms / 1000.0)
 
     return {
         "mode": mode_value,

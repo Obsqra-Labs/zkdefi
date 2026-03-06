@@ -47,6 +47,7 @@ export default defineConfig({
         text: 'Verify And Control Risk',
         items: [
           { text: 'Reputation system', link: '/reputation-system' },
+          { text: 'Reputation proofs (FICO pack)', link: '/reputation-proofs' },
           { text: 'Risk Passport', link: '/risk-passport' },
           { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' },
           { text: 'Privacy features', link: '/privacy-features' },
@@ -61,6 +62,7 @@ export default defineConfig({
         items: [
           { text: 'Architecture summary', link: '/architecture-summary' },
           { text: 'API overview', link: '/api-overview' },
+          { text: 'Reputation proofs API', link: '/reputation-proofs' },
           { text: 'Developers', link: '/developers' },
           { text: 'Contracts', link: '/contracts' },
           { text: 'Zero-Knowledge Circuits', link: '/circuits' },

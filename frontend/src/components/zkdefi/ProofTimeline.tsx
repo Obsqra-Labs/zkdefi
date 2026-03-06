@@ -34,8 +34,35 @@ function formatProofType(type: string): string {
     risk_score: "Risk score",
     pool_safety: "Pool safety",
     rebalance: "Rebalance",
+    zkrag_agent_report: "zkRAG agent report",
   };
   return map[type] ?? type;
+}
+
+function formatResult(proofType: string, result: string): string {
+  if (proofType === "zkrag_agent_report") {
+    try {
+      const parsed = JSON.parse(result);
+      const confidence = Number(parsed?.confidence);
+      const attestedHits = Number(parsed?.attested_hits);
+      const marketSource = typeof parsed?.market_source === "string" ? parsed.market_source : "unknown";
+      const confidenceLabel = Number.isFinite(confidence)
+        ? `${Math.round(confidence * 100)}%`
+        : "n/a";
+      const hitsLabel = Number.isFinite(attestedHits) ? String(attestedHits) : "0";
+      return `confidence ${confidenceLabel} · attested ${hitsLabel} · ${marketSource}`;
+    } catch {
+      return "agent report recorded";
+    }
+  }
+  return result;
+}
+
+function resultToneClass(proofType: string, result: string): string {
+  if (proofType === "zkrag_agent_report") return "text-cyan-300";
+  return result === "compliant" || result === "safe" || result === "completed"
+    ? "text-emerald-400"
+    : "text-amber-400";
 }
 
 const LAZY_RECEIPTS_CAP = 50;
@@ -105,7 +132,9 @@ export function ProofTimeline({ receipts, compact = false, title, chainId, factR
         <div className="text-sm text-zinc-400 mb-2">{title}</div>
       )}
       <ul className={compact ? "space-y-1" : "space-y-2"}>
-        {visible.map((r, i) => (
+        {visible.map((r, i) => {
+          const displayResult = formatResult(r.proof_type, r.result);
+          return (
           <li
             key={r.receipt_id ?? i}
             className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${compact ? "text-xs" : "text-sm"} text-zinc-300`}
@@ -118,13 +147,13 @@ export function ProofTimeline({ receipts, compact = false, title, chainId, factR
               )}
               <span className="font-medium">{formatProofType(r.proof_type)}</span>
               <span className="text-zinc-500">·</span>
-              <span className={r.result === "compliant" || r.result === "safe" || r.result === "completed" ? "text-emerald-400" : "text-amber-400"}>
-                {r.result}
+              <span className={resultToneClass(r.proof_type, r.result)}>
+                {displayResult}
               </span>
             </span>
             {!compact && (
               <>
-                {r.threshold_or_model && r.proof_type !== "rebalance" && (
+                {r.threshold_or_model && r.proof_type !== "rebalance" && r.proof_type !== "zkrag_agent_report" && (
                   <span className="text-zinc-500">threshold {r.threshold_or_model}</span>
                 )}
                 {r.model_hash && (
@@ -197,7 +226,8 @@ export function ProofTimeline({ receipts, compact = false, title, chainId, factR
               </div>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {capped && (
         <button
