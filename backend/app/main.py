@@ -73,6 +73,7 @@ full_privacy_router = _optional_router("app.api.routes.full_privacy")
 dex_router = _optional_router("app.api.routes.dex")
 onboarding_router = _optional_router("app.api.routes.onboarding")
 proofs_router = _optional_router("app.api.routes.proofs")
+zkgraph_router = _optional_router("app.api.routes.zkgraph")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -129,6 +130,12 @@ if proofs_router:
         tags=["proofs"],
     )
 orchestration_router = _optional_router("app.api.routes.orchestration")
+if zkgraph_router:
+    app.include_router(
+        zkgraph_router,
+        prefix="/api/v1/zkdefi/zkgraph",
+        tags=["zkgraph"],
+    )
 if orchestration_router:
     app.include_router(
         orchestration_router,
