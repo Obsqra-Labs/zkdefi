@@ -12,6 +12,7 @@ Endpoints:
 - PUT  /policy/{address}              Save Circuit Board policy
 - POST /emergency/pause               System-wide emergency pause
 - POST /emergency/unpause             Clear emergency pause
+- GET  /stream/{address}             Unified intelligence stream
 """
 
 from __future__ import annotations
@@ -671,3 +672,136 @@ async def emergency_unpause() -> dict[str, Any]:
         "affected_policies": affected,
         "timestamp": _now_iso(),
     }
+
+
+# ============================================================================
+# 11. GET /stream/{address} — Unified Intelligence Stream
+# ============================================================================
+
+@router.get("/stream/{address}")
+async def get_unified_stream(
+    address: str,
+    types: str = Query("all", description="Comma-separated: receipt,decision,opportunity,policy,privacy,governance,system,lending,staking"),
+    limit: int = Query(30, ge=1, le=200),
+) -> dict[str, Any]:
+    """Unified intelligence stream merging all event types for Mission Control."""
+    items: list[dict[str, Any]] = []
+
+    requested = set(types.split(",")) if types != "all" else {"all"}
+    want_all = "all" in requested
+
+    # -- Receipts + Decisions (reuse timeline logic) --
+    if want_all or requested & {"receipt", "decision", "policy", "privacy", "system"}:
+        try:
+            timeline_resp = await get_receipts_timeline(address, type="all", limit=limit)
+            for day_group in timeline_resp.get("timeline", []):
+                for r in day_group.get("receipts", []):
+                    item_type = _stream_type_from_receipt(r)
+                    if want_all or item_type in requested:
+                        items.append({
+                            "id": r.get("receipt_id", ""),
+                            "type": item_type,
+                            "timestamp": r.get("timestamp", ""),
+                            "title": r.get("intent_summary", ""),
+                            "subtitle": r.get("strategy_name", ""),
+                            "status": r.get("gate_status", ""),
+                            "trust_delta": r.get("trust_delta", 0),
+                            "hashes": r.get("hashes", {}),
+                            "source": r.get("source", ""),
+                            "actions": _actions_for_type(item_type),
+                        })
+        except Exception as exc:
+            logger.debug("stream: receipts unavailable: %s", exc)
+
+    # -- Opportunities --
+    if want_all or "opportunity" in requested:
+        try:
+            opp_resp = await get_opportunity_feed(limit=min(limit, 10))
+            for opp in opp_resp.get("opportunities", []):
+                items.append({
+                    "id": opp.get("id", ""),
+                    "type": "opportunity",
+                    "timestamp": opp.get("snapshot_ts", _now_iso()),
+                    "title": f"{opp.get('pair', '')} -- {opp.get('apy_bps', 0) / 100:.1f}% APY",
+                    "subtitle": f"Risk: {opp.get('risk_level', 'unknown')} | Score: {opp.get('composite_score', 0)}",
+                    "status": "active",
+                    "venue": opp.get("venue", ""),
+                    "apy_bps": opp.get("apy_bps", 0),
+                    "risk_level": opp.get("risk_level", ""),
+                    "composite_score": opp.get("composite_score", 0),
+                    "source": opp.get("source", ""),
+                    "actions": ["deploy", "create_rule"],
+                })
+        except Exception as exc:
+            logger.debug("stream: opportunities unavailable: %s", exc)
+
+    # -- Governance alerts --
+    if want_all or "governance" in requested:
+        try:
+            proposals_path = DATA_DIR / "dao_proposals.json"
+            proposals_raw = _load_json_file(proposals_path)
+            if isinstance(proposals_raw, list):
+                for prop in proposals_raw:
+                    if not isinstance(prop, dict):
+                        continue
+                    items.append({
+                        "id": f"gov-{prop.get('id', '')}",
+                        "type": "governance",
+                        "timestamp": prop.get("created_at", ""),
+                        "title": f"Proposal #{prop.get('id', '')}: {prop.get('description', '')}",
+                        "subtitle": f"Type: {prop.get('proposal_type', '')} | Status: {prop.get('status', '')}",
+                        "status": prop.get("status", ""),
+                        "proposal_id": prop.get("id"),
+                        "actions": ["open_governance"],
+                    })
+        except Exception as exc:
+            logger.debug("stream: governance unavailable: %s", exc)
+
+    # -- Sort by timestamp descending, cap at limit --
+    items.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
+    items = items[:limit]
+
+    return {
+        "address": address,
+        "items": items,
+        "count": len(items),
+        "timestamp": _now_iso(),
+    }
+
+
+def _stream_type_from_receipt(r: dict) -> str:
+    """Map a receipt/event to a stream item type."""
+    source = r.get("source", "")
+    rtype = r.get("type", "")
+    intent = (r.get("intent_summary") or "").lower()
+
+    if "privacy" in intent or "commitment" in intent or "shield" in intent or "nullifier" in intent:
+        return "privacy"
+    if source == "decision_event":
+        if rtype == "warning":
+            return "policy"
+        return "decision"
+    if rtype == "gate":
+        return "policy"
+    if "lend" in intent or "supply" in intent or "borrow" in intent or "repay" in intent:
+        return "lending"
+    if "stak" in intent or "delegat" in intent:
+        return "staking"
+    if rtype == "warning":
+        return "system"
+    return "receipt"
+
+
+def _actions_for_type(item_type: str) -> list[str]:
+    """Return available actions for a stream item type."""
+    return {
+        "receipt": ["inspect", "export"],
+        "decision": ["override", "adjust_limit"],
+        "opportunity": ["deploy", "create_rule"],
+        "policy": ["view_policy", "edit_circuit_board"],
+        "privacy": ["inspect_proof", "view_l3"],
+        "governance": ["open_governance"],
+        "system": ["view_explorer"],
+        "lending": ["manage_position", "borrow_against"],
+        "staking": ["manage_stake", "claim_rewards"],
+    }.get(item_type, ["inspect"])

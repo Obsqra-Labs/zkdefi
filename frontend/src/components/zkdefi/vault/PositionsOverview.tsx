@@ -48,7 +48,7 @@ const FALLBACK_DEPLOYMENT = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatWei(wei: string, asset: "STRK" | "ETH" | "strkBTC"): string {
+function formatWei(wei: string, asset: string): string {
   const value = Number(BigInt(wei || "0")) / 1e18;
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${asset}`;
 }

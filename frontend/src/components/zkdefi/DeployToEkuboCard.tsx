@@ -52,7 +52,6 @@ export function DeployToEkuboCard({ userAddress, onEvent }: DeployToEkuboCardPro
         return;
       }
       setResult(data as DeployResult);
-      onEvent?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Request failed");
     } finally {

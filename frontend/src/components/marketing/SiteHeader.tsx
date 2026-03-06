@@ -109,6 +109,14 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
           >
             Docs
           </Link>
+          <a
+            href="https://starknet.obsqra.fi/forge"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            Proof Chain
+          </a>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">

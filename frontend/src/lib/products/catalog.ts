@@ -861,6 +861,56 @@ export const PRODUCTS: ProductDefinition[] = [
       },
     ],
   },
+  {
+    slug: "proof-chain",
+    title: "Proof Chain (L3)",
+    status: "BUILT",
+    categoryId: "automation-infra",
+    summary: "Dedicated Madara L3 appchain for zero-gas proof verification and fact settlement.",
+    description:
+      "The Obsqra Proof Chain is a Madara-based Starknet L3 sequencer dedicated to proof-fact registration, on-chain verification via Garaga and Integrity verifiers, and batched settlement to Starknet L2. 5-second blocks, zero gas, 3 proving paths.",
+    capabilities: [
+      "Live block production at 5s cadence with zero-gas fee model.",
+      "Groth16 on-chain verification via Garaga (31 circuits).",
+      "STARK on-chain verification via Integrity (6 programs).",
+      "Hash-only fallback with circuit breaker for emergency ops.",
+      "L3 → L2 state-diff settlement with validity proofs.",
+      "Public RPC, block explorer, and wallet add-network support.",
+    ],
+    docsHref: "/docs/developers",
+    advancedLink: { href: "https://starknet.obsqra.fi/forge", label: "Open Forge explorer" },
+    featured: true,
+    standaloneActions: [
+      {
+        id: "l3-health",
+        title: "Check L3 health",
+        description: "Query Madara node health, block height, chain ID, and sync status.",
+        method: "GET",
+        endpointCandidates: ["/api/v1/zkdefi/risk_passport/settlement/madara/health"],
+      },
+      {
+        id: "l3-capabilities",
+        title: "List proving capabilities",
+        description: "Inspect all 3 proving paths, contracts, and circuit coverage.",
+        method: "GET",
+        endpointCandidates: ["/api/v1/zkdefi/risk_passport/l3/capabilities"],
+      },
+      {
+        id: "l3-stats",
+        title: "Read L3 proving stats",
+        description: "Fetch fact registration count, proving path usage, and settlement metrics.",
+        method: "GET",
+        endpointCandidates: ["/api/v1/zkdefi/risk_passport/l3/stats"],
+      },
+      {
+        id: "l3-settlement-config",
+        title: "View settlement config",
+        description: "Check which settlement layer is primary and L2 fallback status.",
+        method: "GET",
+        endpointCandidates: ["/api/v1/zkdefi/risk_passport/settlement/config"],
+      },
+    ],
+  },
 ];
 
 export const PRODUCTS_BY_CATEGORY: Record<string, ProductDefinition[]> = PRODUCT_CATEGORIES.reduce(

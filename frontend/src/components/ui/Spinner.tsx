@@ -1,44 +1,35 @@
 "use client";
 
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
-
 interface SpinnerProps {
-  label?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+const sizes = { sm: "w-4 h-4", md: "w-6 h-6", lg: "w-8 h-8" };
+
+export function Spinner({ size = "md", className = "" }: SpinnerProps) {
+  return (
+    <div
+      className={`border-2 border-emerald-500 border-t-transparent rounded-full animate-spin ${sizes[size]} ${className}`}
+    />
+  );
 }
 
 interface ErrorAlertProps {
   message: string;
+  className?: string;
   onRetry?: () => void;
 }
 
-export function Spinner({ label = "Loading..." }: SpinnerProps) {
+export function ErrorAlert({ message, className = "", onRetry }: ErrorAlertProps) {
   return (
-    <div className="flex items-center gap-2 text-sm text-zinc-400">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-export function ErrorAlert({ message, onRetry }: ErrorAlertProps) {
-  return (
-    <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 text-sm text-rose-200">
-          <AlertTriangle className="mt-0.5 h-4 w-4" />
-          <span>{message}</span>
-        </div>
-        {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="inline-flex items-center gap-1 rounded border border-rose-500/40 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/20"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Retry
-          </button>
-        )}
-      </div>
+    <div className={`rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400 flex items-center justify-between ${className}`}>
+      <span>{message}</span>
+      {onRetry && (
+        <button onClick={onRetry} className="ml-2 text-red-300 hover:text-white text-xs underline">
+          Retry
+        </button>
+      )}
     </div>
   );
 }

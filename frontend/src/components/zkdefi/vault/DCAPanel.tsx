@@ -325,7 +325,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
       </div>
 
       {/* Active Schedules */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 space-y-4" role="region" aria-label="Active DCA schedules">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-emerald-400" />
           <h3 className="text-lg font-semibold text-white">Active Schedules</h3>

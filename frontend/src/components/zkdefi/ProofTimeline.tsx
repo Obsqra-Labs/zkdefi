@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Shield, FileCheck, Copy, ChevronDown } from "lucide-react";
 import { ExplorerLink } from "@/components/zkdefi/ExplorerLink";
+import { l3FactUrl } from "@/lib/explorer";
 import { toastSuccess } from "@/lib/toast";
 
 export interface ProofReceipt {
@@ -125,6 +126,18 @@ export function ProofTimeline({ receipts, compact = false, title }: ProofTimelin
               </button>
             )}
             {r.tx_hash && <ExplorerLink type="tx" txHash={r.tx_hash} />}
+            {r.fact_hash && (
+              <a
+                href={l3FactUrl(r.fact_hash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-violet-400 hover:underline text-xs"
+                title="Verify on L3 Proof Chain"
+              >
+                <Shield className="w-3 h-3" />
+                L3
+              </a>
+            )}
           </li>
         ))}
       </ul>

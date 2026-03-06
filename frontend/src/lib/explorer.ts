@@ -14,7 +14,21 @@ export function sepoliaStarkscanContractUrl(address: string): string {
   return `${SEPOLIA_STARKSCAN_BASE}/contract/${addr}`;
 }
 
-// Backwards-compatible alias used across older UI surfaces.
+export const SEPOLIA_VOYAGER_BASE = "https://sepolia.voyager.online";
+
 export function sepoliaVoyagerTxUrl(txHash: string): string {
-  return sepoliaStarkscanTxUrl(txHash);
+  const hash = txHash.startsWith("0x") ? txHash : `0x${txHash}`;
+  return `${SEPOLIA_VOYAGER_BASE}/tx/${hash}`;
+}
+
+// ── Obsqra Proof Chain (L3) ──
+export const L3_FORGE_BASE = "https://starknet.obsqra.fi/forge";
+
+export function l3ExplorerUrl(): string {
+  return `${L3_FORGE_BASE}/explorer`;
+}
+
+export function l3FactUrl(factHash: string): string {
+  const hash = factHash.startsWith("0x") ? factHash : `0x${factHash}`;
+  return `${L3_FORGE_BASE}/explorer?fact=${hash}`;
 }

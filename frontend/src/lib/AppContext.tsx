@@ -6,10 +6,10 @@ export interface ActivityEvent {
   id: string;
   type: "deposit" | "withdraw" | "transfer" | "disclosure" | "session" | "rebalance" | "proof" | "private";
   text: string;
-  pool?: string;
   txHash?: string;
   status?: "pending" | "confirmed" | "failed";
   details?: string;
+  pool?: string;
   time: Date;
 }
 
