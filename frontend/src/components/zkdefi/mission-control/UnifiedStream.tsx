@@ -5,7 +5,6 @@ import { Search, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { StreamCard, type StreamItem } from "./StreamCard";
 import { OracleDashboardStrip } from "./OracleDashboardStrip";
-import { VaultSurface } from "@/components/zkdefi/vault/VaultSurface";
 
 const POLL_INTERVAL_MS = 15000;
 const INITIAL_LIMIT = 30;
@@ -63,7 +62,6 @@ export function UnifiedStream({
   const [searchQuery, setSearchQuery] = useState("");
   const [limit, setLimit] = useState(INITIAL_LIMIT);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeTab, setActiveTab] = useState<"stream" | "market">("stream");
 
   const fetchStream = useCallback(async (limitToUse: number): Promise<StreamItem[]> => {
     if (!address) return [];
@@ -162,38 +160,6 @@ export function UnifiedStream({
       {/* Oracle Dashboard Strip */}
       <OracleDashboardStrip address={address} onDeploy={onDeploy} />
 
-      {/* Market Data Tabs */}
-      <div className="flex-shrink-0 border-b border-zinc-800 bg-zinc-900/50">
-        <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-thin">
-          {[
-            { id: "stream", label: "Intelligence Stream" },
-            { id: "market", label: "Market Data" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "bg-emerald-600 text-white"
-                  : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Market Data Views */}
-      {activeTab === "market" && (
-        <div className="flex-1 overflow-y-auto">
-          <VaultSurface address={address} />
-        </div>
-      )}
-
-      {/* Intelligence Stream View (default) */}
-      {activeTab === "stream" && (
-        <>
       {/* Filter bar */}
       <div className="flex-shrink-0 p-2 border-b border-zinc-800">
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-thin">
@@ -280,8 +246,6 @@ export function UnifiedStream({
           </div>
         )}
       </div>
-        </>
-      )}
     </div>
   );
 }
