@@ -6,12 +6,13 @@ import { ProofVisualizer } from "./ProofVisualizer";
 import { ConnectButton } from "./ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
 import {
+import { apiUrl } from "@/lib/api/client";
   Lock, Shield, Eye, ArrowDownToLine, ArrowUpFromLine, Key, Download,
   FileCheck, AlertTriangle, Fingerprint, CheckCircle2, Send,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 const FULLY_SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS || "";
 const ETH_TOKEN_ADDRESS = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
@@ -77,7 +78,7 @@ export function FullPrivacyPoolPanel() {
         if (stored) setSavedCommitments(JSON.parse(stored));
       }
       
-      fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});
+      fetch(apiUrl("/api/v1/zkdefi/full_privacy/merkle/root").then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});
     }
   }, [mounted, address]);
 
@@ -95,7 +96,7 @@ export function FullPrivacyPoolPanel() {
     setStep(2);
     try {
       const amountWei = BigInt(parseFloat(amount) * 1e18).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/generate_commitment`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/full_privacy/deposit/generate_commitment"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_address: address, amount: parseInt(amountWei), pool_type: selectedPool }),
       });
@@ -167,7 +168,7 @@ export function FullPrivacyPoolPanel() {
       });
 
       // Register commitment in off-chain merkle tree
-      const regRes = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`, {
+      const regRes = await fetch(apiUrl("/api/v1/zkdefi/full_privacy/deposit/register_commitment"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commitment: commitmentData.commitment }),
       });
@@ -193,7 +194,7 @@ export function FullPrivacyPoolPanel() {
     const recipient = useRelayer ? relayerDestination.trim() : address;
     try {
       const withdrawAmount = BigInt(parseFloat(amount) * 1e18).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/full_privacy/withdraw/generate_proof"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_secret: selectedCommitment.user_secret, amount: selectedCommitment.amount,
@@ -314,7 +315,7 @@ export function FullPrivacyPoolPanel() {
         pool_type: selectedCommitment.pool_type, nonce: selectedCommitment.nonce,
         blinding: selectedCommitment.blinding, leaf_index: selectedCommitment.leaf_index,
       };
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/disclosure/${endpoint}`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/full_privacy/disclosure/${endpoint}"), {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const data = await res.json();

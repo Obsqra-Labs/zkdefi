@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Shield, Zap, Scale } from "lucide-react";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 
 interface PoolData {
   type: "conservative" | "neutral" | "aggressive";
@@ -28,7 +29,7 @@ export function AllocationPools({ currentPool, onSelectPool }: AllocationPoolsPr
   const [pools, setPools] = useState<PoolData[]>(POOLS);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/zkdefi/oracle/pool-apys`)
+    fetch(apiUrl("/api/v1/zkdefi/oracle/pool-apys")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {

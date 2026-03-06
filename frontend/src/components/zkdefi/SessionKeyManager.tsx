@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Key, Clock, Shield, X, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 
 interface Session {
   session_id: string;
@@ -46,7 +47,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/list/${userAddress}`);
+      const response = await fetch(apiUrl(`/api/v1/zkdefi/session_keys/list/${userAddress}`));
       if (response.ok) {
         const data = await response.json();
         setSessions(data.sessions || []);
@@ -63,7 +64,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
     
     setGranting(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/grant`, {
+      const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/grant"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,7 +95,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   
   const confirmGrant = async (sessionId: string, txHash: string) => {
     try {
-      await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/grant/confirm`, {
+      await fetch(apiUrl("/api/v1/zkdefi/session_keys/grant/confirm"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId, tx_hash: txHash })
@@ -107,7 +108,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   
   const handleRevokeSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/revoke`, {
+      const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/revoke"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -120,7 +121,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
         // TODO: Call account.execute to revoke session key on-chain
         // This should trigger wallet signature
         // For now: simulate for demo (NOT FOR PRODUCTION)
-        await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/revoke/confirm`, {
+        await fetch(apiUrl("/api/v1/zkdefi/session_keys/revoke/confirm"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ session_id: sessionId, tx_hash: "0x" + "0".repeat(64) })

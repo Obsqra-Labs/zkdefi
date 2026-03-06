@@ -18,6 +18,10 @@ export interface SandboxAction {
   id: string;
   title: string;
   description: string;
+  problemSolved?: string;
+  plainLanguage?: string;
+  whyItMatters?: string;
+  successSignal?: string;
   method: SandboxMethod;
   endpointCandidates: string[];
   sampleQuery?: Record<string, string | number | boolean>;

@@ -92,6 +92,14 @@ export default function ProductsPage() {
                         <StatusChip status={product.status} />
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-zinc-400">{product.summary}</p>
+                      <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                          Problem this product solves
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                          {product.description}
+                        </p>
+                      </div>
 
                       <div className="mt-5 flex flex-wrap items-center gap-4">
                         <Link

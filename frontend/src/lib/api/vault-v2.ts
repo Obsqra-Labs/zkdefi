@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8003";
+import { apiUrl } from "./client";
 
 export interface VaultAccount {
   vault_id: string;
@@ -69,7 +69,7 @@ export interface LedgerEntry {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}/api/v1/zkdefi${path}`, {
+  const res = await fetch(apiUrl(`/api/v1/zkdefi${path}`), {
     headers: { "Content-Type": "application/json" },
     ...options,
   });

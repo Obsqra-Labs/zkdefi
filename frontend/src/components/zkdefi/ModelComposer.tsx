@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Brain, Plus, Trash2, Check, AlertCircle, Zap, Shield, TrendingUp } from "lucide-react";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 
 interface Model {
   id: string;
@@ -63,7 +64,7 @@ export function ModelComposer({
   const fetchModels = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/models/list`);
+      const res = await fetch(apiUrl("/api/v1/agents/models/list");
       if (res.ok) {
         const data = await res.json();
         setModels(data.models || []);
@@ -111,7 +112,7 @@ export function ModelComposer({
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/create`, {
+      const res = await fetch(apiUrl("/api/v1/agents/create"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

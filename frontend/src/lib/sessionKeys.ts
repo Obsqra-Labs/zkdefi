@@ -4,7 +4,7 @@
  * Utilities for managing session keys with Starknet account abstraction.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { apiUrl } from "@/lib/api/client";
 
 export interface SessionKeyConfig {
   sessionKeyAddress: string;
@@ -37,7 +37,7 @@ export async function generateSessionRequest(
   contractAddress: string;
   entrypoint: string;
 }> {
-  const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/grant`, {
+  const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/grant"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -69,7 +69,7 @@ export async function confirmSessionGrant(
   sessionId: string,
   txHash: string
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/grant/confirm`, {
+  const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/grant/confirm"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -94,7 +94,7 @@ export async function revokeSession(
   contractAddress: string;
   entrypoint: string;
 }> {
-  const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/revoke`, {
+  const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/revoke"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -120,7 +120,7 @@ export async function revokeSession(
  */
 export async function getUserSessions(ownerAddress: string): Promise<Session[]> {
   const response = await fetch(
-    `${API_BASE}/api/v1/zkdefi/session_keys/list/${ownerAddress}`
+    `apiUrl("/api/v1/zkdefi/session_keys/list/${ownerAddress}`
   );
 
   if (!response.ok) {
@@ -153,7 +153,7 @@ export async function validateSession(
   reason?: string;
   remainingTimeSeconds?: number;
 }> {
-  const response = await fetch(`${API_BASE}/api/v1/zkdefi/session_keys/validate`, {
+  const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/validate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

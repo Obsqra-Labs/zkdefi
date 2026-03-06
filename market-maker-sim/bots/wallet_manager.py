@@ -6,6 +6,7 @@ on Starknet Sepolia.  Supports execute_v3 with auto fee estimation.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -30,6 +31,7 @@ class WalletManager:
         self._private_key = private_key
         self._account: Account | None = None
         self._client: FullNodeClient | None = None
+        self._execute_lock = asyncio.Lock()
 
     @property
     def configured(self) -> bool:
@@ -90,23 +92,44 @@ class WalletManager:
         from starknet_py.net.client_models import ResourceBoundsMapping
 
         account = self.get_account()
-        nonce = await account.get_nonce(block_number="latest")
+        max_nonce_retries = 3
 
-        draft = await account._prepare_invoke_v3(
-            calls,
-            resource_bounds=ResourceBoundsMapping.init_with_zeros(),
-            nonce=nonce,
-        )
-        estimated = await account.estimate_fee(draft, block_number="latest")
-        rbm = estimated.to_resource_bounds()
+        # Serialize transactions from all bots to avoid mempool nonce races.
+        async with self._execute_lock:
+            for attempt in range(1, max_nonce_retries + 1):
+                nonce = await account.get_nonce(block_number="latest")
+                try:
+                    draft = await account._prepare_invoke_v3(
+                        calls,
+                        resource_bounds=ResourceBoundsMapping.init_with_zeros(),
+                        nonce=nonce,
+                    )
+                    estimated = await account.estimate_fee(draft, block_number="latest")
+                    rbm = estimated.to_resource_bounds()
 
-        resp = await account.execute_v3(calls=calls, resource_bounds=rbm, nonce=nonce)
-        tx_hash = hex(resp.transaction_hash)
-        logger.info("TX submitted: %s", tx_hash)
+                    resp = await account.execute_v3(calls=calls, resource_bounds=rbm, nonce=nonce)
+                    tx_hash = hex(resp.transaction_hash)
+                    logger.info("TX submitted: %s", tx_hash)
 
-        await account.client.wait_for_tx(resp.transaction_hash)
-        logger.info("TX confirmed: %s", tx_hash)
-        return tx_hash
+                    await account.client.wait_for_tx(resp.transaction_hash)
+                    logger.info("TX confirmed: %s", tx_hash)
+                    return tx_hash
+                except Exception as exc:
+                    msg = str(exc).lower()
+                    is_nonce_error = (
+                        "nonce" in msg
+                        and (
+                            "duplicate" in msg
+                            or "too old" in msg
+                            or "invalid transaction nonce" in msg
+                        )
+                    )
+                    if is_nonce_error and attempt < max_nonce_retries:
+                        await asyncio.sleep(0.35 * attempt)
+                        continue
+                    raise
+
+        raise RuntimeError("Failed to submit transaction after nonce retries")
 
     async def get_balance(self, token_address: str) -> int:
         """Read ERC-20 balance_of(self) in raw wei."""

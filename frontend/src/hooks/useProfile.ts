@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { apiUrl } from "@/lib/api/client";
 
 export function useProfileReputation(address: string | undefined) {
   const [userRep, setUserRep] = useState<any>(null);
@@ -11,7 +10,7 @@ export function useProfileReputation(address: string | undefined) {
   const refetch = useCallback(() => {
     if (!address) return;
     setError(false);
-    fetch(`${API_BASE}/api/v1/zkdefi/reputation/user/${address}`)
+    fetch(apiUrl(`/api/v1/zkdefi/reputation/user/${address}`))
       .then((r) => {
         if (!r.ok) {
           setError(true);
@@ -45,7 +44,7 @@ export function useOnboardingStatus(address: string | undefined) {
   const refetch = useCallback(() => {
     if (!address) return;
     setLoading(true);
-    fetch(`${API_BASE}/api/v1/zkdefi/onboarding/status/${address}`)
+    fetch(apiUrl(`/api/v1/zkdefi/onboarding/status/${address}`))
       .then((r) => (r.ok ? r.json() : null))
       .then(setStatus)
       .catch(() => setStatus(null))

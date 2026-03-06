@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { 
+import { apiUrl } from "@/lib/api/client";
   Shield, 
   Brain, 
   Key, 
@@ -15,7 +16,7 @@ import {
 import { SessionKeyManager } from "./SessionKeyManager";
 import { AgentRebalancer } from "./AgentRebalancer";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 
 interface AgentDashboardProps {
   userAddress: string;
@@ -34,7 +35,7 @@ export function AgentDashboard({ userAddress }: AgentDashboardProps) {
   
   const fetchZkmlStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/status`);
+      const response = await fetch(apiUrl("/api/v1/zkdefi/zkml/status");
       if (response.ok) {
         const data = await response.json();
         setZkmlStatus(data);
@@ -46,7 +47,7 @@ export function AgentDashboard({ userAddress }: AgentDashboardProps) {
   
   const fetchPositions = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/position/${userAddress}`);
+      const response = await fetch(apiUrl("/api/v1/zkdefi/position/${userAddress}");
       if (response.ok) {
         const data = await response.json();
         setPositions({ "0": data.position || 0 });

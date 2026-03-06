@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAccount } from "@starknet-react/core";
 import { ArrowDownUp, RefreshCw, ExternalLink, Search, X } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { apiUrl } from "@/lib/api/client";
 import { ConnectButton } from "./ConnectButton";
 import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 
 // Format large wei-style numbers for display (assume 18 decimals for display scaling)
 function formatCompact(weiStr: string | number, decimals = 2): string {
@@ -96,8 +95,8 @@ export function DexPanel() {
     setLoading(true);
     try {
       const [pairsRes, tokensRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/zkdefi/dex/pairs?min_tvl_usd=0`),
-        fetch(`${API_BASE}/api/v1/zkdefi/dex/tokens?page_size=500`).catch(() => null),
+        fetch(apiUrl("/api/v1/zkdefi/dex/pairs?min_tvl_usd=0")),
+        fetch(apiUrl("/api/v1/zkdefi/dex/tokens?page_size=500")).catch(() => null),
       ]);
       if (pairsRes.ok) {
         const data = await pairsRes.json();
@@ -203,7 +202,7 @@ export function DexPanel() {
     setSwapStep("quoting");
     setQuote(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/dex/quote`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/dex/quote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -232,7 +231,7 @@ export function DexPanel() {
     }
     setSwapStep("building");
     try {
-      const calldataRes = await fetch(`${API_BASE}/api/v1/zkdefi/dex/swap-calldata`, {
+      const calldataRes = await fetch(apiUrl("/api/v1/zkdefi/dex/swap-calldata"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

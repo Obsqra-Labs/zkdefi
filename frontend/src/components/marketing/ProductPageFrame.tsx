@@ -43,6 +43,13 @@ interface ProductPageFrameProps {
   category: ProductCategory;
 }
 
+interface ActionNarrative {
+  problem: string;
+  plainLanguage: string;
+  whyItMatters: string;
+  successSignal: string;
+}
+
 function ProductStatusChip({ status }: ProductStatusChipProps) {
   const isBuilt = status === "BUILT";
   const isReady = status === "READY";
@@ -203,6 +210,70 @@ function defaultStateForAction(action: SandboxAction): SandboxActionState {
     phase: "idle",
     attempted: [],
   };
+}
+
+function buildActionNarrative(action: SandboxAction, product: ProductDefinition): ActionNarrative {
+  const seed = `${action.title} ${action.description} ${action.endpointCandidates.join(" ")}`.toLowerCase();
+  const readOnly = action.method === "GET";
+
+  const isHealthOrLookup = /status|health|list|tokens|pools|operator|address|read|fetch|inspect/.test(seed);
+  const isHistoryOrLedger = /position|history|transfer|event|timeline|ledger|leaves|root/.test(seed);
+  const isPlanningOrProof = /quote|analy|calldata|proof|disclosure|score|strategy|recommend|membership|vote/.test(
+    seed,
+  );
+  const isExecutionPath =
+    action.method !== "GET" && /swap|deploy|execute|stake|withdraw|deposit|submit|trade|vote/.test(seed);
+
+  let problem =
+    action.problemSolved ||
+    `It is difficult to tell whether ${product.title} is correctly wired without testing a real request with realistic inputs.`;
+  let plainLanguage =
+    action.plainLanguage ||
+    `${action.title} runs a live ${action.method} request so you can inspect exactly what this product returns before integrating it into your flow.`;
+  let whyItMatters =
+    action.whyItMatters ||
+    "This reduces guesswork, catches integration issues early, and gives you confidence before wallet-connected execution.";
+
+  if (!action.problemSolved && isHealthOrLookup) {
+    problem =
+      "When you are new to the product, it is easy to use the wrong address, token, or service path and then debug blind failures.";
+    plainLanguage =
+      "This call discovers live configuration and availability so you know which resources are real and currently reachable.";
+  } else if (!action.problemSolved && isHistoryOrLedger) {
+    problem =
+      "Capital movements can become hard to audit, especially when multiple private rails and automation systems are involved.";
+    plainLanguage =
+      "This action pulls concrete state or activity records so you can verify what has already happened for a wallet or pool.";
+  } else if (!action.problemSolved && isPlanningOrProof) {
+    problem =
+      "Executing without previews or proof checks can cause failed transactions, bad routing, or poor risk decisions.";
+    plainLanguage =
+      "This endpoint computes or validates decision data first, so you can inspect the output before any high-impact execution step.";
+  } else if (!action.problemSolved && isExecutionPath) {
+    problem =
+      "Direct execution endpoints are easy to misuse when you are unsure about payload shape, policy gates, or current contract state.";
+    plainLanguage =
+      "This call builds or submits execution-ready payload data in a controlled sandbox so you can iterate safely.";
+  }
+
+  if (!action.whyItMatters && isHealthOrLookup) {
+    whyItMatters =
+      "You avoid hardcoding invalid values and can verify service readiness before spending time on downstream debugging.";
+  } else if (!action.whyItMatters && isHistoryOrLedger) {
+    whyItMatters =
+      "You get an auditable source of truth for troubleshooting, compliance checks, and user-facing reporting.";
+  } else if (!action.whyItMatters && (isPlanningOrProof || isExecutionPath)) {
+    whyItMatters =
+      "You can validate assumptions up front, which lowers failed transaction risk and protects users from avoidable mistakes.";
+  }
+
+  const successSignal =
+    action.successSignal ||
+    (readOnly
+      ? "Success looks like HTTP 200 plus meaningful fields, not just an empty object."
+      : "Success looks like HTTP 200/201 and a response payload you can reuse in the next execution step.");
+
+  return { problem, plainLanguage, whyItMatters, successSignal };
 }
 
 export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
@@ -401,8 +472,10 @@ export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
                 <h2 className="text-xl font-semibold">Standalone API Sandbox</h2>
               </div>
               <p className="mb-6 text-sm text-zinc-400">
-                Run direct API actions from this page. Endpoint fallback automatically tries both
-                single-prefix and duplicated-prefix path variants.
+                Each standalone card explains the problem, what the API call does, and what successful
+                output should look like. You can run these directly here without writing client code.
+                Endpoint fallback automatically tries both single-prefix and duplicated-prefix path
+                variants.
               </p>
 
               <div className="space-y-5">
@@ -411,6 +484,7 @@ export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
                   const isRunning = state.phase === "running";
                   const isSuccess = state.phase === "success";
                   const isError = state.phase === "error";
+                  const narrative = buildActionNarrative(action, product);
 
                   return (
                     <div
@@ -447,6 +521,42 @@ export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
                         </button>
                       </div>
 
+                      <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/55 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                            Problem it solves
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                            {narrative.problem}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/55 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                            What this action does
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                            {narrative.plainLanguage}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/55 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                            Why it matters
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+                            {narrative.whyItMatters}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-emerald-300/80">
+                          What success looks like
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-emerald-100/90">
+                          {narrative.successSignal}
+                        </p>
+                      </div>
+
                       <div className="mt-3 flex flex-wrap gap-2">
                         {action.endpointCandidates.map((candidate) => (
                           <code
@@ -460,7 +570,9 @@ export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
 
                       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div>
-                          <label className="mb-1 block text-xs text-zinc-500">Query JSON</label>
+                          <label className="mb-1 block text-xs text-zinc-500">
+                            Query JSON (optional filters)
+                          </label>
                           <textarea
                             value={state.queryText}
                             onChange={(event) => {
@@ -478,7 +590,9 @@ export function ProductPageFrame({ product, category }: ProductPageFrameProps) {
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs text-zinc-500">Body JSON</label>
+                          <label className="mb-1 block text-xs text-zinc-500">
+                            Body JSON (required for write calls)
+                          </label>
                           <textarea
                             value={state.bodyText}
                             onChange={(event) => {

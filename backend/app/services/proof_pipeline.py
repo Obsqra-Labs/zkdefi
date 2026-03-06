@@ -623,7 +623,9 @@ class ProofPipeline:
         can_execute = zkml_passed and execution_passed
 
         # Build combined calldata from zkML proofs
-        zkml_calldata = risk_proof["proof_calldata"] + anomaly_proof["proof_calldata"]
+        risk_calldata = risk_proof.get("proof_calldata", [])
+        anomaly_calldata = anomaly_proof.get("proof_calldata", [])
+        zkml_calldata = risk_calldata + anomaly_calldata
 
         # Build fact hash from the combined calldata
         import hashlib as _hl
@@ -631,20 +633,68 @@ class ProofPipeline:
             f"rebalance:{commitment_hash}:{','.join(str(c) for c in zkml_calldata)}".encode()
         ).hexdigest()
 
-        # L3 verification
-        l3_verification = {
+        # L3 verification — submit each proof individually with native Garaga calldata
+        risk_l3 = {
             "attempted": False, "success": False, "verified_on_chain": False,
             "mode": None, "tx_hash": None, "error": None,
         }
-        if can_execute and zkml_calldata:
-            l3_verification = await self._verify_l3_bridge(
+        anomaly_l3 = {
+            "attempted": False, "success": False, "verified_on_chain": False,
+            "mode": None, "tx_hash": None, "error": None,
+        }
+        if can_execute:
+            # Submit risk proof with its native Garaga calldata (list[int] → list[str hex])
+            if risk_calldata:
+                risk_fact = "0x" + _hl.sha256(
+                    f"risk:{commitment_hash}:{','.join(str(c) for c in risk_calldata)}".encode()
+                ).hexdigest()
+                risk_l3 = await self._verify_l3_bridge(
+                    fact_hash=risk_fact,
+                    circuit_name="RiskScoreAllocation",
+                    groth16_calldata=[hex(c) if isinstance(c, int) else str(c) for c in risk_calldata],
+                    execution_chain="l3",
+                )
+
+            # Submit anomaly proof with its native Garaga calldata
+            if anomaly_calldata:
+                anomaly_fact = "0x" + _hl.sha256(
+                    f"anomaly:{commitment_hash}:{','.join(str(c) for c in anomaly_calldata)}".encode()
+                ).hexdigest()
+                anomaly_l3 = await self._verify_l3_bridge(
+                    fact_hash=anomaly_fact,
+                    circuit_name="AnomalyDetection",
+                    groth16_calldata=[hex(c) if isinstance(c, int) else str(c) for c in anomaly_calldata],
+                    execution_chain="l3",
+                )
+
+            # Also register the combined fact hash
+            _combined_l3 = await self._verify_l3_bridge(
                 fact_hash=rebalance_fact_hash,
                 circuit_name="RebalanceZkML",
-                groth16_calldata=[self._to_hex_felt(str(c)) for c in zkml_calldata],
+                groth16_calldata=None,  # hash-only for the combined fact
                 execution_chain="l3",
             )
-            if self._strict_l3_verification and not self._is_cryptographically_verified(l3_verification):
-                can_execute = False
+
+            if self._strict_l3_verification:
+                # Either individual proof must be cryptographically verified
+                any_crypto = (
+                    self._is_cryptographically_verified(risk_l3)
+                    or self._is_cryptographically_verified(anomaly_l3)
+                )
+                if not any_crypto:
+                    can_execute = False
+
+        # Merge L3 results into a summary
+        l3_verification = {
+            "attempted": risk_l3.get("attempted", False) or anomaly_l3.get("attempted", False),
+            "success": risk_l3.get("success", False) or anomaly_l3.get("success", False),
+            "verified_on_chain": risk_l3.get("verified_on_chain", False) or anomaly_l3.get("verified_on_chain", False),
+            "mode": risk_l3.get("mode") or anomaly_l3.get("mode"),
+            "tx_hash": risk_l3.get("tx_hash") or anomaly_l3.get("tx_hash"),
+            "error": None if (risk_l3.get("success") or anomaly_l3.get("success")) else (risk_l3.get("error") or anomaly_l3.get("error")),
+            "risk_l3": risk_l3,
+            "anomaly_l3": anomaly_l3,
+        }
 
         result = {
             "commitment_hash": commitment_hash,

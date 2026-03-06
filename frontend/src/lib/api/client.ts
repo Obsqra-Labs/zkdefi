@@ -1,9 +1,19 @@
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8003").replace(/\/$/, "");
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 
 export function apiUrl(path: string): string {
   if (!path) return API_BASE;
   if (/^https?:\/\//i.test(path)) return path;
-  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+  
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  
+  if (API_BASE === "/api") {
+    if (normalizedPath.startsWith("/api/")) {
+      return normalizedPath;
+    }
+    return `${API_BASE}${normalizedPath}`;
+  }
+  
+  return `${API_BASE}${normalizedPath}`;
 }
 
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {

@@ -8,8 +8,9 @@ import { Eye, Shield, CheckCircle2, ArrowRight, Copy, HelpCircle, TrendingUp, Al
 import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 const DISCLOSURE_ADDRESS = process.env.NEXT_PUBLIC_SELECTIVE_DISCLOSURE_ADDRESS || "";
 
 type Step = 1 | 2 | 3;
@@ -187,7 +188,7 @@ export function CompliancePanel() {
         };
       }
 
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi${selectedType.endpoint}`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi${selectedType.endpoint}"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

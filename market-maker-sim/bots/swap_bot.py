@@ -150,6 +150,7 @@ class SwapBot:
         *,
         size_multiplier: float = 1.0,
         behavior: str = "retail",
+        allow_extreme_tick: bool = False,
     ) -> SwapResult:
         """Execute a single swap. If pair_name is None, pick a random initialized pool."""
         pool = self._pick_pool(pair_name)
@@ -164,18 +165,26 @@ class SwapBot:
             if not initialized:
                 self._pool_cooldown_until[pool.name] = time.time() + 180
                 return SwapResult(success=False, error=f"Pool {pool.name} not initialized", pair=pool.name)
-            if abs(current_tick) > MAX_TICK - 10_000:
+            at_extreme_tick = abs(current_tick) > MAX_TICK - 10_000
+            if at_extreme_tick and not allow_extreme_tick:
                 self._pool_cooldown_until[pool.name] = time.time() + 300
                 return SwapResult(success=False, error=f"Pool {pool.name} at extreme tick {current_tick}, skipping", pair=pool.name)
         except Exception as exc:
             self._pool_cooldown_until[pool.name] = time.time() + 120
             return SwapResult(success=False, error=f"Pre-check failed: {exc}", pair=pool.name)
 
-        # Randomly decide swap direction
-        if random.random() < 0.5:
-            token_in, token_out = pool.token0, pool.token1
+        # Choose swap direction.
+        # In boundary-recovery mode, push price back into a tradable range.
+        if allow_extreme_tick and abs(current_tick) > MAX_TICK - 10_000:
+            if current_tick <= (-MAX_TICK + 10_000):
+                token_in, token_out = pool.token1, pool.token0
+            else:
+                token_in, token_out = pool.token0, pool.token1
         else:
-            token_in, token_out = pool.token1, pool.token0
+            if random.random() < 0.5:
+                token_in, token_out = pool.token0, pool.token1
+            else:
+                token_in, token_out = pool.token1, pool.token0
 
         # Random amount in human units → wei
         decimals = pool.token0_decimals if token_in == pool.token0 else pool.token1_decimals

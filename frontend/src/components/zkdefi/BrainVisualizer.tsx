@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Brain, Shield, Zap, Clock, Check, X, Loader2, Play, AlertTriangle } from "lucide-react";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 const PERCEPTRON_ADDRESS = process.env.NEXT_PUBLIC_CAIRO_PERCEPTRON_ADDRESS ?? "";
 
 interface TierStatus {
@@ -73,7 +74,7 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
       updateTier(1, { status: "running" });
       const t1aStart = Date.now();
       
-      const riskResponse = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/risk_score`, {
+      const riskResponse = await fetch(apiUrl("/api/v1/zkdefi/zkml/risk_score"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -97,7 +98,7 @@ export function BrainVisualizer({ userAddress, onBrainComplete }: BrainVisualize
       updateTier(2, { status: "running" });
       const t1bStart = Date.now();
       
-      const anomalyResponse = await fetch(`${API_BASE}/api/v1/zkdefi/zkml/anomaly`, {
+      const anomalyResponse = await fetch(apiUrl("/api/v1/zkdefi/zkml/anomaly"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

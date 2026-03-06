@@ -9,8 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
 import { ConnectButton } from "./ConnectButton";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 const CONFIDENTIAL_TRANSFER_ADDRESS =
   process.env.NEXT_PUBLIC_CONFIDENTIAL_TRANSFER_ADDRESS || "";
 
@@ -87,7 +88,7 @@ export function PrivateTransferPanel() {
 
     try {
       const amountWei = (BigInt(amount) * BigInt(1e18)).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/private_deposit`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/private_deposit"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,7 +208,7 @@ export function PrivateTransferPanel() {
 
     try {
       const amountWei = (BigInt(withdrawAmount) * BigInt(1e18)).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/private_withdraw`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/private_withdraw"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

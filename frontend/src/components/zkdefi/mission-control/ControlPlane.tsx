@@ -15,6 +15,7 @@ import {
 import { apiFetch } from "@/lib/api/client";
 import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
 import { AgentInsightsStrip } from "./AgentInsightsStrip";
+import { ZkmlResultCards } from "@/components/zkdefi/ZkmlResultCards";
 
 const POLL_INTERVAL_MS = 15000;
 
@@ -742,7 +743,10 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
         }}
       />
 
-      {/* 6. Brain Check */}
+      {/* 6. zkML Proofs */}
+      <ZkmlResultCards address={address} />
+
+      {/* 7. Brain Check */}
       {onOpenBrain && (
         <button
           onClick={onOpenBrain}

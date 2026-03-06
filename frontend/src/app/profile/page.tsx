@@ -6,8 +6,9 @@ import { Shield, TrendingUp, Lock, Coins, ArrowUp, Send, Clock, CheckCircle, Ale
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
+import { apiUrl } from "@/lib/api/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+
 
 interface RelayRequest {
   request_id: string;
@@ -33,24 +34,24 @@ export default function ProfilePage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/zkdefi/reputation/tiers`).then(r => r.json()).then(setTiers).catch(() => {});
+    fetch(apiUrl("/api/v1/zkdefi/reputation/tiers").then(r => r.json()).then(setTiers).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!address) return;
-    fetch(`${API_BASE}/api/v1/zkdefi/reputation/user/${address}`).then(r => r.json()).then(setUserRep).catch(() => {});
+    fetch(apiUrl("/api/v1/zkdefi/reputation/user/${address}").then(r => r.json()).then(setUserRep).catch(() => {});
   }, [address]);
 
   useEffect(() => {
     if (!address) return;
-    fetch(`${API_BASE}/api/v1/zkdefi/relayer/pending/${address}`).then(r => r.json()).then(setPendingRelays).catch(() => {});
+    fetch(apiUrl("/api/v1/zkdefi/relayer/pending/${address}").then(r => r.json()).then(setPendingRelays).catch(() => {});
   }, [address]);
 
   const handleStakeCollateral = async () => {
     if (!address) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/stake-collateral`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/reputation/stake-collateral"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, amount_eth: parseFloat(stakeAmount) }),
@@ -58,7 +59,7 @@ export default function ProfilePage() {
       if (res.ok) {
         toastSuccess("Collateral staked");
         // Refresh user data
-        const updated = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/user/${address}`).then(r => r.json());
+        const updated = await fetch(apiUrl("/api/v1/zkdefi/reputation/user/${address}").then(r => r.json());
         setUserRep(updated);
       } else {
         throw new Error("Failed");
@@ -74,7 +75,7 @@ export default function ProfilePage() {
     if (!address) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/upgrade-tier`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/reputation/upgrade-tier"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
@@ -97,7 +98,7 @@ export default function ProfilePage() {
     if (!address || !relayDestination) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/relayer/request`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/relayer/request"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
