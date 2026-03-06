@@ -13,14 +13,17 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
-import { AgentRebalancer } from "@/components/zkdefi/AgentRebalancer";
 import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
+import { AgentInsightsStrip } from "./AgentInsightsStrip";
 
 const POLL_INTERVAL_MS = 15000;
 
 interface ControlPlaneProps {
   address: string | undefined;
   onOpenCircuitBoard?: () => void;
+  onOpenBrain?: () => void;
+  onDeploy?: () => void;
+  onOpenZkRag?: () => void;
 }
 
 // --- Types ---
@@ -140,8 +143,7 @@ function Section({
   );
 }
 
-export function ControlPlane({ address, onOpenCircuitBoard }: ControlPlaneProps) {
-  const [showRebalancer, setShowRebalancer] = useState(false);
+export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeploy, onOpenZkRag }: ControlPlaneProps) {
   const [showSessionManager, setShowSessionManager] = useState(false);
   const [emergencyPaused, setEmergencyPaused] = useState(false);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
@@ -729,22 +731,26 @@ export function ControlPlane({ address, onOpenCircuitBoard }: ControlPlaneProps)
         </div>
       </Section>
 
-      {/* 5. Agent Rebalancer (expandable) */}
-      <section className="rounded-lg border border-zinc-800 p-3">
+      {/* 5. Agent Insights */}
+      <AgentInsightsStrip
+        address={address}
+        onAction={(action) => {
+          if (action === "investigate" && onOpenBrain) onOpenBrain();
+          if (action === "deploy" && onDeploy) onDeploy();
+          if (action === "review" && onOpenBrain) onOpenBrain();
+          if (action === "open_zkrag" && onOpenZkRag) onOpenZkRag();
+        }}
+      />
+
+      {/* 6. Brain Check */}
+      {onOpenBrain && (
         <button
-          onClick={() => setShowRebalancer(!showRebalancer)}
-          className="w-full flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider hover:text-zinc-200 transition-colors"
+          onClick={onOpenBrain}
+          className="w-full py-2 rounded-lg border border-indigo-600/50 text-indigo-400 hover:bg-indigo-900/20 text-xs font-medium transition-colors"
         >
-          <Play className="w-4 h-4" />
-          <span>Agent Rebalancer</span>
-          <ChevronRight className={`w-3 h-3 ml-auto transition-transform ${showRebalancer ? "rotate-90" : ""}`} />
+          Run Brain Check
         </button>
-        {showRebalancer && address && (
-          <div className="mt-3 -mx-3 px-1">
-            <AgentRebalancer userAddress={address} />
-          </div>
-        )}
-      </section>
+      )}
     </div>
   );
 }

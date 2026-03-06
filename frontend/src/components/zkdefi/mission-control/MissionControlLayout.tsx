@@ -2,9 +2,8 @@
 
 import type { ReactNode } from "react";
 import { HeaderStrip } from "./HeaderStrip";
-import { ProofChainStrip } from "./ProofChainStrip";
 
-export type OverlayMode = "deploy" | "circuit-board" | "governance" | null;
+export type OverlayMode = "deploy" | "circuit-board" | "governance" | "brain" | null;
 
 interface MissionControlLayoutProps {
   address: string | undefined;
@@ -32,7 +31,6 @@ export function MissionControlLayout({
         activeOverlay={activeOverlay}
         onOverlayChange={onOverlayChange}
       />
-      <ProofChainStrip />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Rail - Capital Ledger */}
@@ -52,7 +50,7 @@ export function MissionControlLayout({
         </main>
 
         {/* Right Rail - Control Plane */}
-        {activeOverlay !== "circuit-board" && (
+        {activeOverlay !== "circuit-board" && activeOverlay !== "brain" && (
           <aside className="w-[280px] flex-shrink-0 border-l border-zinc-800 overflow-y-auto">
             {rightRail}
           </aside>

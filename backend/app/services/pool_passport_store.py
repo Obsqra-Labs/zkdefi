@@ -4,7 +4,7 @@ Pool Passport Store
 In-memory store for pool/asset risk passport data (last anomaly result per pool_id).
 Read by GET /risk_passport/pool/{pool_id}; updated when anomaly proof runs.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 _store: dict[str, dict[str, Any]] = {}

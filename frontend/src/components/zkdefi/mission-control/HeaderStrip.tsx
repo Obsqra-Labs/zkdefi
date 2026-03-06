@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shield, Activity, Boxes } from "lucide-react";
+import { Shield, Activity } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { ConnectButton } from "../ConnectButton";
 import type { OverlayMode } from "./MissionControlLayout";
@@ -22,7 +22,6 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [gateStatus, setGateStatus] = useState<string>("--");
   const [tierData, setTierData] = useState<{ tier: number; tier_name: string } | null>(null);
-  const [l3Block, setL3Block] = useState<number | null>(null);
 
   useEffect(() => {
     if (!address) return;
@@ -46,12 +45,6 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
           const names = ["Anon", "Express", "Trusted"];
           setTierData({ tier: d.current_tier, tier_name: names[d.current_tier] || `Tier ${d.current_tier}` });
         }
-      })
-      .catch(() => {});
-
-    apiFetch<any>(`/api/v1/zkdefi/risk_passport/settlement/madara/health`)
-      .then((d) => {
-        if (d?.latest_block) setL3Block(d.latest_block);
       })
       .catch(() => {});
   }, [address]);
@@ -91,17 +84,6 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
 
       {/* Right: Network + Tier + Shortcuts + Wallet */}
       <div className="flex items-center gap-3">
-        <a
-          href="https://starknet.obsqra.fi/forge/explorer"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-violet-400 hover:text-violet-300 transition-colors"
-          title="Open L3 Proof Chain explorer"
-        >
-          <Boxes className="w-3 h-3" />
-          <span>L3{l3Block ? ` #${l3Block.toLocaleString()}` : ""}</span>
-        </a>
-        <span className="text-zinc-600">·</span>
         <span className="text-zinc-500">Sepolia</span>
         {tierData && (
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -130,6 +112,12 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
           className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "governance" ? "bg-cyan-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
         >
           Govern
+        </button>
+        <button
+          onClick={() => onOverlayChange(activeOverlay === "brain" ? null : "brain")}
+          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "brain" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+        >
+          Brain
         </button>
         <div className="w-px h-4 bg-zinc-700" />
         <ConnectButton />

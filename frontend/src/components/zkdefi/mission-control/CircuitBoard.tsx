@@ -36,8 +36,6 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { toastSuccess, toastError, toastInfo, toastWarning } from "@/lib/toast";
-import { ModelComposer } from "@/components/zkdefi/ModelComposer";
-import { MyAgents } from "@/components/zkdefi/MyAgents";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,11 +130,27 @@ function VenueNode({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function ModelNode({ data }: { data: Record<string, unknown> }) {
+  const name = (data.label as string) || "ML Model";
+  const threshold = (data.threshold as number) ?? 30;
+  const confidence = (data.confidence as number) ?? 0.8;
+  return (
+    <div className="min-w-[140px] rounded-lg border-2 border-indigo-500/70 bg-zinc-900/95 px-3 py-2 shadow-lg">
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-indigo-400" />
+      <div className="text-xs font-semibold text-indigo-400">{name}</div>
+      <div className="text-[10px] text-zinc-500">thresh: {threshold}</div>
+      <div className="text-[10px] text-zinc-500">conf: {(confidence * 100).toFixed(0)}%</div>
+      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-indigo-400" />
+    </div>
+  );
+}
+
 const nodeTypes: NodeTypes = {
   entity: EntityNode,
   circuit: CircuitNode,
   logic: LogicNode,
   venue: VenueNode,
+  model: ModelNode,
 };
 
 // ---------------------------------------------------------------------------
@@ -161,6 +175,10 @@ function PaletteItem({
     if (label === "IF/ELSE") data.threshold = 0.5;
   }
   if (type === "venue") data.allocation = 100;
+  if (type === "model") {
+    data.threshold = 30;
+    data.confidence = 0.8;
+  }
   return (
     <div
       draggable
@@ -250,7 +268,7 @@ function FlowCanvasInner({
       const id = getId();
       const newNode: Node = {
         id,
-        type: type as "entity" | "circuit" | "logic" | "venue",
+        type: type as "entity" | "circuit" | "logic" | "venue" | "model",
         position,
         data: { label: (data.label as string) || type, ...data },
       };
@@ -298,6 +316,7 @@ function FlowCanvasInner({
           if (n.type === "circuit") return "rgb(52 211 153)";
           if (n.type === "logic") return "rgb(245 158 11)";
           if (n.type === "venue") return "rgb(139 92 246)";
+          if (n.type === "model") return "rgb(129 140 248)";
           return "rgb(113 113 122)";
         }}
         maskColor="rgba(0,0,0,0.7)"
@@ -358,8 +377,6 @@ const TEMPLATES = {
 // ---------------------------------------------------------------------------
 
 export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
-  const [agentRefresh, setAgentRefresh] = useState(0);
-  const [showModels, setShowModels] = useState(false);
   const [policyName, setPolicyName] = useState<string>("Untitled Policy");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -449,6 +466,36 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
     }
   }, [address, nodes, edges, policyName]);
 
+  const handleSaveAsAgent = useCallback(async () => {
+    if (!address) {
+      toastError("Connect wallet first");
+      return;
+    }
+    if (nodes.length === 0) {
+      toastWarning("Add nodes to the canvas first");
+      return;
+    }
+    try {
+      const modelNodes = nodes.filter((n) => n.type === "model");
+      const processorIds = modelNodes.map(
+        (n) => ((n.data as Record<string, unknown>)?.label as string)?.toLowerCase().replace(/\s+/g, "_") || "risk_scoring"
+      );
+      await apiFetch("/api/v1/agents/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          name: policyName,
+          processors: processorIds.length ? processorIds : ["risk_score"],
+          decision_logic: { type: "AND" },
+        }),
+      });
+      toastSuccess(`Agent "${policyName}" created`);
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : "Failed to create agent");
+    }
+  }, [address, nodes, edges, policyName]);
+
   const handleTemplateSelect = useCallback((key: string) => {
     const t = TEMPLATES[key as keyof typeof TEMPLATES];
     if (t) {
@@ -519,6 +566,12 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
             <Save className="w-3 h-3" /> Save
           </button>
           <button
+            onClick={handleSaveAsAgent}
+            className="flex items-center gap-1 rounded border border-indigo-600 bg-indigo-600/20 px-2 py-0.5 text-xs text-indigo-400 hover:bg-indigo-600/30"
+          >
+            <Save className="w-3 h-3" /> Save As Agent
+          </button>
+          <button
             onClick={onClose}
             className="flex items-center gap-1 rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-xs hover:bg-zinc-700"
           >
@@ -552,27 +605,11 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
             ))}
           </CollapsibleSection>
 
-          <div className="mt-3 pt-3 border-t border-zinc-700">
-            <button
-              onClick={() => setShowModels(!showModels)}
-              className="w-full flex items-center gap-1 text-xs font-medium text-zinc-400 uppercase tracking-wider hover:text-zinc-200"
-            >
-              {showModels ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              Agents & Models
-            </button>
-            {showModels && address && (
-              <div className="mt-2 space-y-4">
-                <ModelComposer
-                  userAddress={address}
-                  onAgentCreated={() => setAgentRefresh((p) => p + 1)}
-                />
-                <MyAgents
-                  userAddress={address}
-                  refreshTrigger={agentRefresh}
-                />
-              </div>
-            )}
-          </div>
+          <CollapsibleSection title="MODELS" defaultOpen={false}>
+            {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((l) => (
+              <PaletteItem key={l} label={l} type="model" onDragStart={onNodeDragStart} />
+            ))}
+          </CollapsibleSection>
         </aside>
 
         {/* Canvas */}
@@ -669,6 +706,47 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
                       />
                     </div>
                   )}
+                </>
+              )}
+              {selectedNode.type === "model" && (
+                <>
+                  <div>
+                    <label className="block text-zinc-500 mb-0.5">Model</label>
+                    <select
+                      value={(selectedNode.data?.label as string) || "RiskScore ML"}
+                      onChange={(e) => updateSelectedNodeData("label", e.target.value)}
+                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200"
+                    >
+                      {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-zinc-500 mb-0.5">Threshold</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={(selectedNode.data?.threshold as number) ?? 30}
+                      onChange={(e) => updateSelectedNodeData("threshold", parseInt(e.target.value, 10) || 0)}
+                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-500 mb-0.5">Confidence %</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={((selectedNode.data?.confidence as number) ?? 0.8) * 100}
+                      onChange={(e) => updateSelectedNodeData("confidence", parseInt(e.target.value, 10) / 100)}
+                      className="w-full h-1.5 rounded-full appearance-none bg-zinc-800 accent-indigo-500"
+                    />
+                    <div className="text-right text-zinc-400 text-[10px]">
+                      {(((selectedNode.data?.confidence as number) ?? 0.8) * 100).toFixed(0)}%
+                    </div>
+                  </div>
                 </>
               )}
             </div>

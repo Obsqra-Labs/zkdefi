@@ -12,6 +12,7 @@ import {
   Server,
   Landmark,
   Coins,
+  Shuffle,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -52,6 +53,8 @@ const TYPE_CONFIG: Record<
   system: { icon: Server, bg: "bg-zinc-500/20", text: "text-zinc-400" },
   lending: { icon: Landmark, bg: "bg-green-500/20", text: "text-green-400" },
   staking: { icon: Coins, bg: "bg-orange-500/20", text: "text-orange-400" },
+  rebalance: { icon: Shuffle, bg: "bg-indigo-500/20", text: "text-indigo-400", border: "border-l-indigo-500" },
+  brain_check: { icon: Brain, bg: "bg-purple-500/20", text: "text-purple-400" },
 };
 
 function formatRelativeTime(iso: string): string {
@@ -86,7 +89,7 @@ export function StreamCard({ item, onAction }: StreamCardProps) {
     <div
       className={`rounded-lg border border-zinc-800 bg-zinc-900/50 overflow-hidden transition-colors hover:bg-zinc-800/50 ${
         item.type === "privacy" ? "border-l-4 border-l-violet-500" : ""
-      } ${item.type === "governance" ? "border-l-4 border-l-blue-500" : ""}`}
+      } ${item.type === "governance" ? "border-l-4 border-l-blue-500" : ""} ${item.type === "rebalance" ? "border-l-4 border-l-indigo-500" : ""}`}
     >
       <button
         type="button"
@@ -120,6 +123,19 @@ export function StreamCard({ item, onAction }: StreamCardProps) {
             <p className="text-xs font-medium text-cyan-400 mt-1">
               {(item.apy_bps / 100).toFixed(1)}% APY
             </p>
+          )}
+          {item.type === "rebalance" && item.venue && (
+            <p className="text-xs text-indigo-400 mt-1">{item.venue}</p>
+          )}
+          {item.type === "brain_check" && item.composite_score != null && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`text-xs font-medium ${item.composite_score < 30 ? "text-emerald-400" : item.composite_score < 70 ? "text-amber-400" : "text-red-400"}`}>
+                Score: {item.composite_score}/100
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded ${item.status === "passed" ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
+                {item.status}
+              </span>
+            </div>
           )}
         </div>
         {hasDetail && (

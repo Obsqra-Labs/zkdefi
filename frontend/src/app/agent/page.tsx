@@ -22,6 +22,7 @@ import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
 import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
 import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
 import { ZkRagAgentConsole } from "@/components/zkdefi/ZkRagAgentConsole";
+import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
 
 type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag";
 
@@ -106,6 +107,23 @@ export default function AgentPage() {
         onClose={() => setActiveOverlay(null)}
       />
     );
+  } else if (activeOverlay === "brain") {
+    overlayContent = (
+      <div className="flex h-full flex-col bg-zinc-950">
+        <header className="flex h-10 flex-shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-4">
+          <span className="font-semibold text-sm text-zinc-100">Brain -- zkML Check</span>
+          <button
+            onClick={() => setActiveOverlay(null)}
+            className="flex items-center gap-1 rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-xs hover:bg-zinc-700 text-zinc-200"
+          >
+            <X className="w-3 h-3" /> Close
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto p-6">
+          {address && <BrainVisualizer userAddress={address} />}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -135,6 +153,9 @@ export default function AgentPage() {
           <ControlPlane
             address={address}
             onOpenCircuitBoard={handleOpenCircuitBoard}
+            onOpenBrain={() => setActiveOverlay("brain")}
+            onDeploy={() => setActiveOverlay("deploy")}
+            onOpenZkRag={() => setSlideout("zkrag")}
           />
         }
         overlay={overlayContent}

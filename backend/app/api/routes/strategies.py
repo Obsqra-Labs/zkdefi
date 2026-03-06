@@ -374,6 +374,107 @@ async def execute_advanced_strategy(request: ExecuteAdvancedRequest):
     return await vault_execute_strategy(vault_request)
 
 
+# ============================================================================
+# ENDPOINT 3: Opportunity Discovery (unified feed for Oracle Dashboard)
+# ============================================================================
+
+class OpportunitiesRequest(BaseModel):
+    user_address: str
+    risk_profile: str = "balanced"
+    limit: int = 20
+
+
+def _composite_score(apy_bps: int, volatility_bps: int) -> float:
+    return round(max(0.0, apy_bps - volatility_bps * 0.5) / 100, 2)
+
+
+@router.post("/opportunities")
+async def get_opportunities(request: OpportunitiesRequest):
+    """
+    Unified opportunity feed for the Oracle Dashboard Strip.
+    Merges oracle market data with LLM strategy recommendations.
+    """
+    opportunities: list[dict] = []
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    try:
+        from app.services.mainnet_oracle import get_oracle
+        oracle = get_oracle()
+        snapshot = oracle.get_latest_snapshot()
+        if snapshot:
+            snap_dict = snapshot.to_dict()
+            ekubo = snap_dict.get("ekubo", {})
+            jediswap = snap_dict.get("jediswap", {})
+
+            opportunities.append({
+                "id": "ekubo_eth_usdc",
+                "name": "Ekubo ETH/USDC",
+                "venue": "ekubo",
+                "apy_bps": ekubo.get("apy_bps", 0),
+                "tvl": ekubo.get("tvl", 0),
+                "risk_level": "medium" if ekubo.get("volatility_bps", 0) > 300 else "low",
+                "volatility": min(int(ekubo.get("volatility_bps", 0) / 10), 100),
+                "liquidity_score": min(int(ekubo.get("tvl", 0) / 10000), 100) if ekubo.get("tvl") else 50,
+                "efficiency": _composite_score(ekubo.get("apy_bps", 0), ekubo.get("volatility_bps", 0)) * 10,
+                "composite_score": _composite_score(ekubo.get("apy_bps", 0), ekubo.get("volatility_bps", 0)),
+                "source": "oracle",
+            })
+            opportunities.append({
+                "id": "jediswap_eth_usdc",
+                "name": "JediSwap ETH/USDC",
+                "venue": "ekubo",
+                "apy_bps": jediswap.get("apy_bps", 0),
+                "tvl": jediswap.get("tvl", 0),
+                "risk_level": "low" if jediswap.get("volatility_bps", 0) <= 300 else "medium",
+                "volatility": min(int(jediswap.get("volatility_bps", 0) / 10), 100),
+                "liquidity_score": min(int(jediswap.get("tvl", 0) / 10000), 100) if jediswap.get("tvl") else 50,
+                "efficiency": _composite_score(jediswap.get("apy_bps", 0), jediswap.get("volatility_bps", 0)) * 10,
+                "composite_score": _composite_score(jediswap.get("apy_bps", 0), jediswap.get("volatility_bps", 0)),
+                "source": "oracle",
+            })
+    except Exception as exc:
+        logger.debug("oracle unavailable for opportunities: %s", exc)
+
+    try:
+        from app.services.strategy_recommendation_service import get_recommendation
+        rec = await get_recommendation(request.user_address, 1000.0, request.risk_profile)
+        for pool in rec.get("recommended_pools", []):
+            opp_id = pool.get("pool_id", "")
+            if any(o["id"] == opp_id for o in opportunities):
+                continue
+            apy_bps = int(pool.get("expected_apy", 0) * 10000)
+            risk_score = pool.get("risk_score", 50)
+            opportunities.append({
+                "id": opp_id,
+                "name": pool.get("pair", opp_id),
+                "venue": pool.get("protocol", "ekubo"),
+                "apy_bps": apy_bps,
+                "risk_level": "low" if risk_score < 30 else ("high" if risk_score > 60 else "medium"),
+                "volatility": int(risk_score * 0.8),
+                "liquidity_score": 50,
+                "efficiency": _composite_score(apy_bps, int(risk_score * 5)) * 10,
+                "composite_score": _composite_score(apy_bps, int(risk_score * 5)),
+                "source": "llm",
+            })
+    except Exception as exc:
+        logger.debug("strategy recommendation unavailable for opportunities: %s", exc)
+
+    risk_filter = request.risk_profile.lower()
+    if risk_filter == "conservative":
+        opportunities = [o for o in opportunities if o.get("risk_level") != "high"]
+    elif risk_filter == "aggressive":
+        pass
+
+    opportunities.sort(key=lambda o: o.get("composite_score", 0), reverse=True)
+    opportunities = opportunities[:request.limit]
+
+    return {
+        "opportunities": opportunities,
+        "count": len(opportunities),
+        "timestamp": now_iso,
+    }
+
+
 @router.get("/health")
 async def health_check():
     """Health check for strategies endpoint"""

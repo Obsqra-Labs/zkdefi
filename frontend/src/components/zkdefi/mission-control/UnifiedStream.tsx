@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { StreamCard, type StreamItem } from "./StreamCard";
+import { OracleDashboardStrip } from "./OracleDashboardStrip";
 
 const POLL_INTERVAL_MS = 15000;
 const INITIAL_LIMIT = 30;
@@ -156,6 +157,9 @@ export function UnifiedStream({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Oracle Dashboard Strip */}
+      <OracleDashboardStrip address={address} onDeploy={onDeploy} />
+
       {/* Filter bar */}
       <div className="flex-shrink-0 p-2 border-b border-zinc-800">
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-thin">

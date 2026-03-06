@@ -8,3 +8,5 @@ export { CircuitBoard } from "./CircuitBoard";
 export { DeployOverlay, type DeployMode, type DeployOverlayProps } from "./DeployOverlay";
 export { GovernanceOverlay, type GovernanceOverlayProps } from "./GovernanceOverlay";
 export { ProofChainStrip } from "./ProofChainStrip";
+export { OracleDashboardStrip } from "./OracleDashboardStrip";
+export { AgentInsightsStrip } from "./AgentInsightsStrip";
