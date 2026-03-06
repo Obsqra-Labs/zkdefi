@@ -71,7 +71,7 @@ export function useRiskPassport(address: string | undefined) {
     if (!address) return;
     setLoading(true);
     setError(false);
-    fetch(`${API_BASE}/api/v1/zkdefi/risk_passport/user/${address}`)
+    fetch(apiUrl(`/api/v1/zkdefi/risk_passport/user/${address}`))
       .then((r) => {
         if (!r.ok) {
           setError(true);
@@ -114,7 +114,7 @@ export function useLinkedAddresses(address: string | undefined) {
   const refetch = useCallback(() => {
     if (!address) return;
     setLoading(true);
-    fetch(`${API_BASE}/api/v1/zkdefi/linked_addresses/${address}`)
+    fetch(apiUrl(`/api/v1/zkdefi/linked_addresses/${address}`))
       .then((r) => (r.ok ? r.json() : {}))
       .then((data: Record<string, string>) => {
         setLinked(data);
@@ -145,7 +145,7 @@ export function useLinkedAddresses(address: string | undefined) {
     if (!address) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/linked_addresses`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/linked_addresses"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -66,7 +66,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x63db3fb25796b36f558c8e7b4bdc0c320719615e3b1e1f9f4f5bd46411e985e",
       "created_at": 1772424333.6857357,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129615,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "zkdAI/STRK",
@@ -206,7 +208,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x4381d787def625f9d27a45ef259be791e3e37262074b2a093bd0b404ec45abc",
       "created_at": 1772431476.5202863,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129775,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "zkdAI/STRK",
@@ -378,7 +382,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x78ba4e4364346a469715add6a344be04cf2b5609f4a9c90950ccc57190611b2",
       "created_at": 1772437158.313437,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129818,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/ETH",
@@ -567,7 +573,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x6fa57ae3e731adb2e3c5aec0a7824da5291eab5448739a899fd943bc2a1836b",
       "created_at": 1772442379.8933456,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129837,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/ETH",
@@ -790,7 +798,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x3614d596eeda3358cd5e484913cb7130e690ffc0c4f559c4e1ba84bb970b8ad",
       "created_at": 1772448321.1935966,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.112986,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/ETH",
@@ -943,7 +953,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x2fe898f0dceef416197689fedcdf41f49ca0bd251bc9a54a4380bb6f625c5b7",
       "created_at": 1772453886.1496284,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.112988,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "zkdAI/STRK",
@@ -2681,7 +2693,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x6c908933c6b684e19496474f93f63add8f4e00a22beb6e6b24f3580657e415e",
       "created_at": 1772468004.54163,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129901,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/ETH",
@@ -2800,7 +2814,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x7f09d4b215e0b208d5f6540002443a8a22d91aacee0a931da0659ea2950eead",
       "created_at": 1772468662.8646874,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.112992,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -3599,7 +3615,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x41fbf83632ae9d53dd828ed82080632173ee76967449e410373e5707e230d85",
       "created_at": 1772473438.5917978,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129935,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/ETH",
@@ -4706,7 +4724,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x1e180a1327bb8c9d8c4a9515be0891d2f12250aa0b21b66fb983434f8f5317",
       "created_at": 1772480243.2822769,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1129954,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -5507,7 +5527,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x5440fcba9d7c887c328534ad90bd0e5f26a3cca10f11740965ffa6836e01cb6",
       "created_at": 1772484892.6898313,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.112999,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -7347,7 +7369,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x7aa3854d231dc7f17493de003b969f1bce3978726fc78f2a9a033049f465bc1",
       "created_at": 1772496418.9788816,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1130016,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -8743,7 +8767,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x4fa796bc4c1ae3646ce1f0cd427f4a250dbeea7e2d8db7ba108152a8281be31",
       "created_at": 1772505022.3506598,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.1130037,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -61838,7 +61864,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x282e575290a3b98026597a86f3fd00eb49fd6b08d12b86bf13a393105b2ddac",
       "created_at": 1772832942.0560248,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833688.113006,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -61872,7 +61900,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x4d0c0ad69cfd3e850f5d484ddc2e3ab0fd7e228ebcd0d37e320d89c6931e9a0",
       "created_at": 1772833304.2499194,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772833869.542418,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "ETH/zkdETH",
@@ -61923,8 +61953,78 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x69a76caaab0716b3e8a30edf03caa3a9141fcb26eabcbfb42f13b4b2802742c",
       "created_at": 1772833518.906264,
+      "status": "closed",
+      "closed_at": 1772833688.113008,
+      "close_reason": "stale_no_nft"
+    },
+    {
+      "pair": "STRK/ETH",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x51d87c81a269e78b007c242381217b4c3c9ba0674789e54664fbafa6787117b",
+      "created_at": 1772833530.920399,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 79000,
+      "upper_tick": 100000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x66b02c7fc6ae8ec3abc71a788452fc38ad3d4bf4f6f1f7b0f0e91d01c9281a",
+      "created_at": 1772833695.4941022,
+      "status": "active"
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 88712000,
+      "upper_tick": 88722883,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x5669c90bb1d1740e342323542c4b70c2e35c3a36d03edc50b5a5c55ac8b22d3",
+      "created_at": 1772833746.8917499,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x631cd133ba3282dbc0a828beb2146532f7b196d48ee080443333c68d0bac081",
+      "created_at": 1772833910.7906952,
       "status": "active"
     }
   ],
-  "updated_at": 1772833518.906357
+  "updated_at": 1772833910.7907693
 }
