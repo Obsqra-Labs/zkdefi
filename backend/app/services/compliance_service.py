@@ -5,7 +5,7 @@ Generates and manages compliance proofs (productized selective disclosure).
 Users can register compliance proofs and share with auditors/protocols.
 """
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.services.zkdefi_agent_service import ZkdefiAgentService
@@ -48,7 +48,7 @@ class ComplianceService:
         if profile_type not in self.PROFILE_TYPES:
             raise ValueError(f"Invalid profile type: {profile_type}")
         
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         expiry = timestamp + timedelta(days=validity_days)
         
         # Generate profile ID
@@ -120,7 +120,7 @@ class ComplianceService:
             raise ValueError("Not profile owner")
         
         profile["is_active"] = False
-        profile["revoked_at"] = datetime.utcnow().isoformat()
+        profile["revoked_at"] = datetime.now(timezone.utc).isoformat()
         
         return {
             "profile_id": profile_id,
@@ -137,7 +137,7 @@ class ComplianceService:
         profiles = [self._profiles[pid] for pid in profile_ids if pid in self._profiles]
         
         # Check expiry
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for profile in profiles:
             expiry = datetime.fromisoformat(profile["expiry"])
             profile["is_expired"] = now > expiry
@@ -169,7 +169,7 @@ class ComplianceService:
             return {"has_valid": False, "reason": "Profile revoked"}
         
         expiry = datetime.fromisoformat(profile["expiry"])
-        if datetime.utcnow() > expiry:
+        if datetime.now(timezone.utc) > expiry:
             return {"has_valid": False, "reason": "Profile expired"}
         
         return {

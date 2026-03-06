@@ -145,6 +145,48 @@ if orchestration_router:
 
 
 # -----------------------------------------------------------------------------
+# Mission Control: previously orphaned routes now mounted
+# -----------------------------------------------------------------------------
+
+vault_v2_router = _optional_router("app.api.routes.vault_v2")
+ledger_router = _optional_router("app.api.routes.ledger")
+dao_router = _optional_router("app.api.routes.dao_governance")
+vault_proposals_router = _optional_router("app.api.routes.vault_proposals")
+lending_router = _optional_router("app.api.routes.lending")
+staking_router = _optional_router("app.api.routes.staking")
+mission_control_router = _optional_router("app.api.routes.mission_control")
+
+if vault_v2_router:
+    app.include_router(vault_v2_router, prefix="/api/v2/vault", tags=["vault-v2"])
+if ledger_router:
+    app.include_router(
+        ledger_router, prefix="/api/v1/zkdefi/ledger", tags=["ledger"]
+    )
+if dao_router:
+    app.include_router(dao_router, prefix="/api/v1/dao", tags=["dao"])
+if vault_proposals_router:
+    app.include_router(
+        vault_proposals_router,
+        prefix="/api/v1/zkdefi/vault/proposals",
+        tags=["vault-proposals"],
+    )
+if lending_router:
+    app.include_router(
+        lending_router, prefix="/api/v1/zkdefi/lending", tags=["lending"]
+    )
+if staking_router:
+    app.include_router(
+        staking_router, prefix="/api/v1/zkdefi/staking", tags=["staking"]
+    )
+if mission_control_router:
+    app.include_router(
+        mission_control_router,
+        prefix="/api/v1/zkdefi/mc",
+        tags=["mission-control"],
+    )
+
+
+# -----------------------------------------------------------------------------
 # Shared service routers (identity + agent marketplace + strategy execution)
 # -----------------------------------------------------------------------------
 

@@ -101,7 +101,7 @@ class StrategyIntelligenceService:
         
         # Check if strategy exists
         existing = self.repo.get_strategy(strategy_id)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         strategy = Strategy(
             strategy_id=strategy_id,

@@ -183,7 +183,7 @@ async def execute_deployment(
             allocation_proof=allocation_proof.proof_hash,
             circuit_type=allocation_proof.proof_type.value,
             recommendation_id=deployment_id,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
     except Exception as e:

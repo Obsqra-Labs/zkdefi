@@ -37,7 +37,7 @@ class Position:
         self.fee_tier = fee_tier
         self.created_tx_hash = created_tx_hash
         self.status = PositionStatus.CREATED
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.current_apy = 0.0
         self.rebalance_count = 0
         self.total_fees_earned = 0.0
@@ -61,7 +61,7 @@ class Orchestrator:
         Ties together: position creation → model versioning → audit logging
         """
         # Generate position ID
-        position_id = f"pos_{len(self.positions) + 1}_{int(datetime.utcnow().timestamp())}"
+        position_id = f"pos_{len(self.positions) + 1}_{int(datetime.now(timezone.utc).timestamp())}"
         
         # Create position object
         position = Position(position_id, user_address, token_a, token_b, amount, fee_tier, tx_hash)
@@ -161,7 +161,7 @@ class Orchestrator:
         Execute confidential transfer and record in audit trail
         Ties together: transfer execution → decision recording → audit trail
         """
-        transfer_id = f"xfer_{int(datetime.utcnow().timestamp())}"
+        transfer_id = f"xfer_{int(datetime.now(timezone.utc).timestamp())}"
         current_model = self.model_registry.get_current_model_hash()
         
         # Record transfer in audit trail

@@ -13,7 +13,7 @@ import hashlib
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import IntEnum
 from typing import Any
 
@@ -290,7 +290,7 @@ class ProofPipeline:
 
         model_hash = "0x" + hashlib.sha256(f"model:{model_name}".encode()).hexdigest()
         output_hash = "0x" + hashlib.sha256(str(output).encode()).hexdigest()
-        proof_hash = "0x" + hashlib.sha256(f"{model_name}:{output_hash}:{datetime.utcnow().isoformat()}".encode()).hexdigest()
+        proof_hash = "0x" + hashlib.sha256(f"{model_name}:{output_hash}:{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()
         return SyntheticEzklProof(
             proof_hash=proof_hash,
             model_hash=model_hash,
@@ -306,7 +306,7 @@ class ProofPipeline:
         output_lower_bound: int,
         output_upper_bound: int,
     ) -> tuple[dict[str, Any], str, list[str]]:
-        ts = int(datetime.utcnow().timestamp())
+        ts = int(datetime.now(timezone.utc).timestamp())
         outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:8]]
         avg_out = int(sum(outputs_int) / max(1, len(outputs_int)))
         is_compliant = output_lower_bound <= avg_out <= output_upper_bound
@@ -389,7 +389,7 @@ class ProofPipeline:
                     "mirror_status": "dual_disabled",
                     "failure_reason": failure_reason,
                 },
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "total_duration_ms": 0,
             }
 
@@ -459,7 +459,7 @@ class ProofPipeline:
                 "mirror_status": "not_requested",
                 "failure_reason": None,
             },
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         bridge_fact_hash = ""
@@ -663,7 +663,7 @@ class ProofPipeline:
                 "l3": l3_verification,
                 "fact_hash": rebalance_fact_hash,
             },
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         self._cache_result(cache_key, result)
@@ -707,7 +707,7 @@ class ProofPipeline:
             "execution_proof": execution_proof,
             "can_execute": can_execute,
             "verification": {"l3": l3_verification, "fact_hash": fact_hash},
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     async def generate_withdraw_proofs(
@@ -748,7 +748,7 @@ class ProofPipeline:
             "execution_proof": execution_proof,
             "can_execute": can_execute,
             "verification": {"l3": l3_verification, "fact_hash": fact_hash},
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _generate_execution_proof(
@@ -794,7 +794,7 @@ class ProofPipeline:
                 "prover": "obsqra_stone",
                 "action_type": action_type,
                 "commitment_hash": commitment_hash,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             }
         except Exception as exc:
             logger.warning("Obsqra Stone prover failed (%s), using local execution proof", exc)
@@ -819,13 +819,13 @@ class ProofPipeline:
             "prover": "local_fallback",
             "action_type": action_type,
             "commitment_hash": commitment_hash,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "warning": "Local fallback proof - not STARK-verified. Obsqra Stone prover was unavailable.",
         }
 
     def _generate_commitment(self, user_address: str, data: Any, context: str) -> str:
         return "0x" + hashlib.sha256(
-            f"{user_address}{data}{context}{datetime.utcnow().isoformat()}".encode()
+            f"{user_address}{data}{context}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:32]
 
     def _get_cached(self, key: str) -> dict[str, Any] | None:
@@ -834,7 +834,7 @@ class ProofPipeline:
 
         cached = self._cache[key]
         generated_at = datetime.fromisoformat(cached["generated_at"])
-        age = (datetime.utcnow() - generated_at).total_seconds()
+        age = (datetime.now(timezone.utc) - generated_at).total_seconds()
 
         if age > self._cache_ttl_seconds:
             del self._cache[key]

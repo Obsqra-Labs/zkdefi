@@ -8,7 +8,8 @@ autonomous management (rebalancing), and performance tracking.
 from enum import Enum
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import timezone
 
 
 class PositionStatus(str, Enum):
@@ -57,8 +58,8 @@ class EkuboPosition(BaseModel):
     ekubo_position_key: Optional[str] = Field(default=None, description="Ekubo internal position identifier")
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Rebalancing history (references to RebalanceEvent IDs)
     rebalance_history: list[str] = Field(default_factory=list, description="List of rebalance event IDs")
@@ -79,9 +80,9 @@ class EkuboPosition(BaseModel):
     session_key_address: Optional[str] = Field(default=None, description="Session key for autonomous rebalancing")
     session_key_expires_at: Optional[datetime] = Field(default=None)
     
-    class Config:
-        use_enum_values = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        use_enum_values=True,
+        json_schema_extra={
             "example": {
                 "position_id": "0x1234...abcd",
                 "user_address": "0x5678...efgh",
@@ -100,6 +101,7 @@ class EkuboPosition(BaseModel):
                 "price_drift_threshold": 0.08,
             }
         }
+    )
 
 
 class PositionWithPerformance(BaseModel):

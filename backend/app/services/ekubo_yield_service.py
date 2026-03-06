@@ -156,7 +156,7 @@ class EkuboYieldService:
         
         position = self._positions[position_id]
         position.status = PositionStatus.ACTIVE
-        position.proof_verified_at = datetime.utcnow()
+        position.proof_verified_at = datetime.now(timezone.utc)
         position.ekubo_position_key = ekubo_position_key
         
         logger.info(f"Position {position_id} verified on-chain (tx: {tx_hash})")
@@ -231,5 +231,5 @@ class EkuboYieldService:
     def _generate_position_id(self, user: str, token0: str, token1: str) -> str:
         """Generate unique position ID."""
         import hashlib
-        data = f"{user}:{token0}:{token1}:{datetime.utcnow().isoformat()}".encode()
+        data = f"{user}:{token0}:{token1}:{datetime.now(timezone.utc).isoformat()}".encode()
         return "0x" + hashlib.sha256(data).hexdigest()[:16]

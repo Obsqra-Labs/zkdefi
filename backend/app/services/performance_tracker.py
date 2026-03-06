@@ -59,7 +59,7 @@ class PerformanceTracker:
             self._position_history[position_id] = deque(maxlen=1000)  # Keep 1000 snapshots
         
         snapshot = {
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "fees_earned": fees_earned,
             "tvl": tvl,
             "price": current_price,
@@ -237,5 +237,5 @@ class PerformanceTracker:
             volatility=volatility,
             total_rebalances=0,  # TODO: count from events
             tracking_start=timestamps[0],
-            tracking_updated_at=datetime.utcnow(),
+            tracking_updated_at=datetime.now(timezone.utc),
         )

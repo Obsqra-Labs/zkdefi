@@ -196,8 +196,8 @@ class AutonomousRebalancer:
         # For MVP: simulate (mark as executed)
         
         event.proof_verified = True
-        event.proof_verified_at = datetime.utcnow()
-        event.executed_at = datetime.utcnow()
+        event.proof_verified_at = datetime.now(timezone.utc)
+        event.executed_at = datetime.now(timezone.utc)
         event.tx_hash = f"0x{self._generate_event_id()[:16]}"  # Placeholder
         
         # Update position
@@ -205,7 +205,7 @@ class AutonomousRebalancer:
         position.fee_tier = proof["new_fee_tier"]
         position.lower_tick = proof["new_lower_tick"]
         position.upper_tick = proof["new_upper_tick"]
-        position.last_rebalance_at = datetime.utcnow()
+        position.last_rebalance_at = datetime.now(timezone.utc)
         position.rebalance_history.append(event.event_id)
         
         # Log event
@@ -254,5 +254,5 @@ class AutonomousRebalancer:
         """Generate unique event ID."""
         import hashlib
         from datetime import datetime
-        data = f"{datetime.utcnow().isoformat()}".encode()
+        data = f"{datetime.now(timezone.utc).isoformat()}".encode()
         return "0x" + hashlib.sha256(data).hexdigest()[:16]

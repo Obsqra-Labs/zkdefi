@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "user_address": "0x055be462e718c4166d656d11f89e341115b8bc82389c3762a10eade04fcb225d",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_forecast",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x32d614ebf07c2bd86050ffcc149385b8e4da7f86aa7673782cfbb53a5a68de8",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x4212c56f776fdf273d6664e7cc3362cf",
+      "action_type": "ml_inference"
+    },
+    "created_at": "2026-03-06T13:55:54.190628+00:00"
+  },
+  {
+    "id": 2,
+    "user_address": "0x055be462e718c4166d656d11f89e341115b8bc82389c3762a10eade04fcb225d",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_forecast",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x6bd2ad882724a0deebe8443dc76a7dad4ec104b7de621177b6bf255259a6e09",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x2f870792f562e17829c142953139cf25",
+      "action_type": "ml_inference"
+    },
+    "created_at": "2026-03-06T13:57:06.656313+00:00"
+  }
+]

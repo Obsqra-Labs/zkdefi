@@ -1,0 +1,633 @@
+// Proof-gated agent: Integrity fact registry, real ERC20 token, zkML verification. No mocks.
+// Supports: execution proofs (Integrity/STARK), zkML proofs (Garaga/SNARK), session keys, intent commitments.
+use starknet::ContractAddress;
+
+// Integrity Fact Registry types (simplified for interface compatibility)
+#[derive(Drop, Copy, Serde)]
+pub struct VerificationListElement {
+    verification_hash: felt252,
+    security_bits: u128,
+    verifier_config: felt252,
+}
+
+#[starknet::interface]
+pub trait IFactRegistry<TContractState> {
+    fn get_all_verifications_for_fact_hash(
+        self: @TContractState,
+        fact_hash: felt252
+    ) -> Array<VerificationListElement>;
+}
+
+#[starknet::interface]
+pub trait IGaragaVerifier<TContractState> {
+    fn verify_groth16_proof_bn254(
+        self: @TContractState,
+        full_proof_with_hints: Span<felt252>
+    ) -> Result<Span<u256>, felt252>;
+}
+
+#[starknet::interface]
+pub trait ISessionKeyManager<TContractState> {
+    fn validate_session_with_proof(
+        self: @TContractState,
+        session_id: felt252,
+        proof_hash: felt252,
+        protocol_id: u8,
+        amount: u256
+    ) -> bool;
+}
+
+#[starknet::interface]
+pub trait IIntentCommitment<TContractState> {
+    fn use_commitment(ref self: TContractState, commitment: felt252, action_hash: felt252) -> bool;
+    fn is_commitment_valid(self: @TContractState, commitment: felt252) -> bool;
+}
+
+#[starknet::interface]
+pub trait IAgentComposer<TContractState> {
+    fn execute_agent(self: @TContractState, agent_id: felt252, proof_results: Span<bool>) -> bool;
+}
+
+#[starknet::interface]
+pub trait IProofGatedYieldAgent<TContractState> {
+    fn set_constraints(
+        ref self: TContractState,
+        max_position: u256,
+        max_daily_yield_bps: u256,
+        min_withdraw_delay_seconds: u64
+    );
+    fn get_constraints(self: @TContractState, user: ContractAddress) -> (u256, u256, u64);
+    fn deposit_with_proof(
+        ref self: TContractState,
+        protocol_id: u8,
+        amount: u256,
+        proof_hash: felt252
+    );
+    fn withdraw_with_proof(
+        ref self: TContractState,
+        protocol_id: u8,
+        amount: u256,
+        proof_hash: felt252
+    ) -> u256;
+    
+    // New: Combined proof execution (zkML + execution + intent)
+    fn execute_with_proofs(
+        ref self: TContractState,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,                   // 'deposit', 'withdraw', 'rebalance'
+        zkml_proof_calldata: Span<felt252>,     // Garaga proof
+        execution_proof_hash: felt252,          // Integrity proof
+        intent_commitment: felt252              // Replay-safe commitment
+    );
+
+    // ModelBridge-hardened execution path.
+    fn execute_with_ml_proof(
+        ref self: TContractState,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        model_hash: felt252,
+        output_commitment: felt252,
+        bridge_commitment: felt252,
+        ezkl_proof_hash: felt252,
+        bridge_timestamp: felt252,
+        zkml_proof_calldata: Span<felt252>,
+        execution_proof_hash: felt252,
+        intent_commitment: felt252
+    );
+    
+    // New: Session-gated execution
+    fn execute_with_session(
+        ref self: TContractState,
+        session_id: felt252,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        proof_hash: felt252
+    );
+    
+    fn get_position(self: @TContractState, user: ContractAddress, protocol_id: u8) -> u256;
+    fn get_token(self: @TContractState) -> ContractAddress;
+    fn get_fact_registry(self: @TContractState) -> ContractAddress;
+    
+    // New: Get additional contract addresses
+    fn get_garaga_verifier(self: @TContractState) -> ContractAddress;
+    fn get_session_manager(self: @TContractState) -> ContractAddress;
+    fn get_intent_contract(self: @TContractState) -> ContractAddress;
+    
+    // v5: Execute with composed agent (multiple proofs)
+    fn execute_with_composed_agent(
+        ref self: TContractState,
+        agent_id: felt252,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        proof_results: Span<bool>,
+        execution_proof_hash: felt252
+    );
+    
+    fn set_agent_composer(ref self: TContractState, agent_composer: ContractAddress);
+    fn get_agent_composer(self: @TContractState) -> ContractAddress;
+}
+
+#[starknet::contract]
+mod ProofGatedYieldAgent {
+    use starknet::{
+        ContractAddress, get_caller_address, get_contract_address,
+        get_block_timestamp,
+        storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess,
+                  StorageMapReadAccess, StorageMapWriteAccess}
+    };
+    use core::poseidon::poseidon_hash_span;
+
+    use super::IFactRegistryDispatcher;
+    use super::IFactRegistryDispatcherTrait;
+    use super::IGaragaVerifierDispatcher;
+    use super::IGaragaVerifierDispatcherTrait;
+    use super::ISessionKeyManagerDispatcher;
+    use super::ISessionKeyManagerDispatcherTrait;
+    use super::IIntentCommitmentDispatcher;
+    use super::IIntentCommitmentDispatcherTrait;
+    use super::IAgentComposerDispatcher;
+    use super::IAgentComposerDispatcherTrait;
+    use crate::erc20_interface::IERC20Dispatcher;
+    use crate::erc20_interface::IERC20DispatcherTrait;
+
+    #[storage]
+    struct Storage {
+        fact_registry: ContractAddress,
+        garaga_verifier: ContractAddress,
+        session_manager: ContractAddress,
+        intent_contract: ContractAddress,
+        token: ContractAddress,
+        positions: Map<(ContractAddress, u8), u256>,
+        max_position: Map<ContractAddress, u256>,
+        max_daily_yield_bps: Map<ContractAddress, u256>,
+        min_withdraw_delay: Map<ContractAddress, u64>,
+        deposit_timestamp: Map<ContractAddress, u64>,
+        used_intents: Map<felt252, bool>,
+        agent_composer: ContractAddress,
+        admin: ContractAddress,
+    }
+    
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        ExecutedWithProofs: ExecutedWithProofs,
+        ExecutedWithMLProof: ExecutedWithMLProof,
+        ExecutedWithSession: ExecutedWithSession,
+        ExecutedWithComposedAgent: ExecutedWithComposedAgent,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct ExecutedWithProofs {
+        #[key]
+        user: ContractAddress,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        zkml_verified: bool,
+        execution_verified: bool,
+        intent_used: felt252,
+        timestamp: u64,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct ExecutedWithMLProof {
+        #[key]
+        user: ContractAddress,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        model_hash: felt252,
+        output_commitment: felt252,
+        bridge_commitment: felt252,
+        ezkl_proof_hash: felt252,
+        bridge_timestamp: felt252,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct ExecutedWithSession {
+        #[key]
+        user: ContractAddress,
+        #[key]
+        session_id: felt252,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        timestamp: u64,
+    }
+    
+    #[derive(Drop, starknet::Event)]
+    struct ExecutedWithComposedAgent {
+        #[key]
+        user: ContractAddress,
+        #[key]
+        agent_id: felt252,
+        protocol_id: u8,
+        amount: u256,
+        action_type: felt252,
+        agent_passed: bool,
+        timestamp: u64,
+    }
+
+    #[constructor]
+    fn constructor(
+        ref self: ContractState,
+        fact_registry: ContractAddress,
+        garaga_verifier: ContractAddress,
+        session_manager: ContractAddress,
+        intent_contract: ContractAddress,
+        token: ContractAddress,
+        admin: ContractAddress
+    ) {
+        self.fact_registry.write(fact_registry);
+        self.garaga_verifier.write(garaga_verifier);
+        self.session_manager.write(session_manager);
+        self.intent_contract.write(intent_contract);
+        self.token.write(token);
+        self.admin.write(admin);
+    }
+
+    #[abi(embed_v0)]
+    impl ProofGatedYieldAgentImpl of super::IProofGatedYieldAgent<ContractState> {
+        fn set_constraints(
+            ref self: ContractState,
+            max_position: u256,
+            max_daily_yield_bps: u256,
+            min_withdraw_delay_seconds: u64
+        ) {
+            let caller = get_caller_address();
+            self.max_position.write(caller, max_position);
+            self.max_daily_yield_bps.write(caller, max_daily_yield_bps);
+            self.min_withdraw_delay.write(caller, min_withdraw_delay_seconds);
+        }
+
+        fn get_constraints(self: @ContractState, user: ContractAddress) -> (u256, u256, u64) {
+            (
+                self.max_position.read(user),
+                self.max_daily_yield_bps.read(user),
+                self.min_withdraw_delay.read(user)
+            )
+        }
+
+        fn deposit_with_proof(
+            ref self: ContractState,
+            protocol_id: u8,
+            amount: u256,
+            proof_hash: felt252
+        ) {
+            assert(amount > 0, 'Amount must be positive');
+            let caller = get_caller_address();
+
+            let registry = IFactRegistryDispatcher { contract_address: self.fact_registry.read() };
+            let verifications = registry.get_all_verifications_for_fact_hash(proof_hash);
+            assert(verifications.len() > 0, 'Invalid proof');
+
+            let (max_pos, _, _) = self.get_constraints(caller);
+            let current = self.positions.read((caller, protocol_id));
+            assert(current + amount <= max_pos || max_pos == 0, 'Exceeds max position');
+
+            let token = IERC20Dispatcher { contract_address: self.token.read() };
+            let ok = token.transfer_from(caller, get_contract_address(), amount);
+            assert(ok, 'Transfer failed');
+
+            self.positions.write((caller, protocol_id), current + amount);
+            self.deposit_timestamp.write(caller, get_block_timestamp());
+        }
+
+        fn withdraw_with_proof(
+            ref self: ContractState,
+            protocol_id: u8,
+            amount: u256,
+            proof_hash: felt252
+        ) -> u256 {
+            assert(amount > 0, 'Amount must be positive');
+            let caller = get_caller_address();
+
+            let registry = IFactRegistryDispatcher { contract_address: self.fact_registry.read() };
+            let verifications = registry.get_all_verifications_for_fact_hash(proof_hash);
+            assert(verifications.len() > 0, 'Invalid proof');
+
+            let current = self.positions.read((caller, protocol_id));
+            assert(amount <= current, 'Insufficient position');
+
+            let min_delay = self.min_withdraw_delay.read(caller);
+            let deposited_at = self.deposit_timestamp.read(caller);
+            let elapsed = get_block_timestamp() - deposited_at;
+            assert(elapsed >= min_delay, 'Withdraw delay not met');
+
+            let token = IERC20Dispatcher { contract_address: self.token.read() };
+            let ok = token.transfer(caller, amount);
+            assert(ok, 'Transfer failed');
+
+            self.positions.write((caller, protocol_id), current - amount);
+            amount
+        }
+
+        fn get_position(self: @ContractState, user: ContractAddress, protocol_id: u8) -> u256 {
+            self.positions.read((user, protocol_id))
+        }
+
+        fn get_token(self: @ContractState) -> ContractAddress {
+            self.token.read()
+        }
+
+        fn get_fact_registry(self: @ContractState) -> ContractAddress {
+            self.fact_registry.read()
+        }
+        
+        fn execute_with_proofs(
+            ref self: ContractState,
+            protocol_id: u8,
+            amount: u256,
+            action_type: felt252,
+            zkml_proof_calldata: Span<felt252>,
+            execution_proof_hash: felt252,
+            intent_commitment: felt252
+        ) {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            // Step 1: Verify zkML proof (Garaga)
+            let garaga = IGaragaVerifierDispatcher {
+                contract_address: self.garaga_verifier.read()
+            };
+            let result = garaga.verify_groth16_proof_bn254(zkml_proof_calldata);
+            assert(result.is_ok(), 'Invalid zkML proof');
+            
+            // Step 2: Verify execution proof (Integrity)
+            let registry = IFactRegistryDispatcher {
+                contract_address: self.fact_registry.read()
+            };
+            let verifications = registry.get_all_verifications_for_fact_hash(execution_proof_hash);
+            let execution_verified = verifications.len() > 0;
+            assert(execution_verified, 'Invalid execution proof');
+            
+            // Step 3: Use intent commitment (replay-safety)
+            assert(!self.used_intents.read(intent_commitment), 'Intent already used');
+            self.used_intents.write(intent_commitment, true);
+            
+            // Also mark in intent contract if configured
+            let intent_addr = self.intent_contract.read();
+            if intent_addr.into() != 0_felt252 {
+                let intent_contract = IIntentCommitmentDispatcher {
+                    contract_address: intent_addr
+                };
+                // Generate action hash
+                let action_hash_input: Array<felt252> = array![
+                    caller.into(),
+                    protocol_id.into(),
+                    action_type,
+                    timestamp.into()
+                ];
+                let action_hash = poseidon_hash_span(action_hash_input.span());
+                intent_contract.use_commitment(intent_commitment, action_hash);
+            }
+            
+            // Step 4: Execute action
+            let (max_pos, _, _) = self.get_constraints(caller);
+            let current = self.positions.read((caller, protocol_id));
+            
+            if action_type == 'deposit' {
+                assert(current + amount <= max_pos || max_pos == 0, 'Exceeds max position');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer_from(caller, get_contract_address(), amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current + amount);
+                self.deposit_timestamp.write(caller, timestamp);
+            } else if action_type == 'withdraw' {
+                assert(amount <= current, 'Insufficient position');
+                
+                let min_delay = self.min_withdraw_delay.read(caller);
+                let deposited_at = self.deposit_timestamp.read(caller);
+                let elapsed = timestamp - deposited_at;
+                assert(elapsed >= min_delay, 'Withdraw delay not met');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer(caller, amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current - amount);
+            }
+            
+            // Emit event
+            self.emit(ExecutedWithProofs {
+                user: caller,
+                protocol_id,
+                amount,
+                action_type,
+                zkml_verified: result.is_ok(),
+                execution_verified,
+                intent_used: intent_commitment,
+                timestamp,
+            });
+        }
+
+        fn execute_with_ml_proof(
+            ref self: ContractState,
+            protocol_id: u8,
+            amount: u256,
+            action_type: felt252,
+            model_hash: felt252,
+            output_commitment: felt252,
+            bridge_commitment: felt252,
+            ezkl_proof_hash: felt252,
+            bridge_timestamp: felt252,
+            zkml_proof_calldata: Span<felt252>,
+            execution_proof_hash: felt252,
+            intent_commitment: felt252
+        ) {
+            assert(model_hash != 0_felt252, 'Model hash missing');
+            assert(output_commitment != 0_felt252, 'Output commitment missing');
+
+            let expected_input: Array<felt252> = array![
+                model_hash,
+                output_commitment,
+                ezkl_proof_hash,
+                bridge_timestamp
+            ];
+            let expected_bridge = poseidon_hash_span(expected_input.span());
+            assert(expected_bridge == bridge_commitment, 'Bridge commitment mismatch');
+
+            self.execute_with_proofs(
+                protocol_id,
+                amount,
+                action_type,
+                zkml_proof_calldata,
+                execution_proof_hash,
+                intent_commitment
+            );
+
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            self.emit(ExecutedWithMLProof {
+                user: caller,
+                protocol_id,
+                amount,
+                action_type,
+                model_hash,
+                output_commitment,
+                bridge_commitment,
+                ezkl_proof_hash,
+                bridge_timestamp,
+                timestamp,
+            });
+        }
+        
+        fn execute_with_session(
+            ref self: ContractState,
+            session_id: felt252,
+            protocol_id: u8,
+            amount: u256,
+            action_type: felt252,
+            proof_hash: felt252
+        ) {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            // Validate session + proof
+            let session_mgr = ISessionKeyManagerDispatcher {
+                contract_address: self.session_manager.read()
+            };
+            let session_valid = session_mgr.validate_session_with_proof(
+                session_id,
+                proof_hash,
+                protocol_id,
+                amount
+            );
+            assert(session_valid, 'Invalid session or proof');
+            
+            // Execute action
+            let (max_pos, _, _) = self.get_constraints(caller);
+            let current = self.positions.read((caller, protocol_id));
+            
+            if action_type == 'deposit' {
+                assert(current + amount <= max_pos || max_pos == 0, 'Exceeds max position');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer_from(caller, get_contract_address(), amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current + amount);
+                self.deposit_timestamp.write(caller, timestamp);
+            } else if action_type == 'withdraw' {
+                assert(amount <= current, 'Insufficient position');
+                
+                let min_delay = self.min_withdraw_delay.read(caller);
+                let deposited_at = self.deposit_timestamp.read(caller);
+                let elapsed = timestamp - deposited_at;
+                assert(elapsed >= min_delay, 'Withdraw delay not met');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer(caller, amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current - amount);
+            }
+            
+            // Emit event
+            self.emit(ExecutedWithSession {
+                user: caller,
+                session_id,
+                protocol_id,
+                amount,
+                action_type,
+                timestamp,
+            });
+        }
+        
+        fn get_garaga_verifier(self: @ContractState) -> ContractAddress {
+            self.garaga_verifier.read()
+        }
+        
+        fn get_session_manager(self: @ContractState) -> ContractAddress {
+            self.session_manager.read()
+        }
+        
+        fn get_intent_contract(self: @ContractState) -> ContractAddress {
+            self.intent_contract.read()
+        }
+        
+        fn execute_with_composed_agent(
+            ref self: ContractState,
+            agent_id: felt252,
+            protocol_id: u8,
+            amount: u256,
+            action_type: felt252,
+            proof_results: Span<bool>,
+            execution_proof_hash: felt252
+        ) {
+            let caller = get_caller_address();
+            let timestamp = get_block_timestamp();
+            
+            // Step 1: Verify composed agent proofs via AgentComposer
+            let composer_addr = self.agent_composer.read();
+            assert(composer_addr.into() != 0_felt252, 'AgentComposer not set');
+            
+            let composer = IAgentComposerDispatcher { contract_address: composer_addr };
+            let agent_passed = composer.execute_agent(agent_id, proof_results);
+            assert(agent_passed, 'Agent verification failed');
+            
+            // Step 2: Verify execution proof (Integrity)
+            let registry = IFactRegistryDispatcher {
+                contract_address: self.fact_registry.read()
+            };
+            let verifications = registry.get_all_verifications_for_fact_hash(execution_proof_hash);
+            assert(verifications.len() > 0, 'Invalid execution proof');
+            
+            // Step 3: Execute action
+            let (max_pos, _, _) = self.get_constraints(caller);
+            let current = self.positions.read((caller, protocol_id));
+            
+            if action_type == 'deposit' {
+                assert(current + amount <= max_pos || max_pos == 0, 'Exceeds max position');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer_from(caller, get_contract_address(), amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current + amount);
+                self.deposit_timestamp.write(caller, timestamp);
+            } else if action_type == 'withdraw' {
+                assert(amount <= current, 'Insufficient position');
+                
+                let min_delay = self.min_withdraw_delay.read(caller);
+                let deposited_at = self.deposit_timestamp.read(caller);
+                let elapsed = timestamp - deposited_at;
+                assert(elapsed >= min_delay, 'Withdraw delay not met');
+                
+                let token = IERC20Dispatcher { contract_address: self.token.read() };
+                let ok = token.transfer(caller, amount);
+                assert(ok, 'Transfer failed');
+                
+                self.positions.write((caller, protocol_id), current - amount);
+            }
+            
+            // Emit event
+            self.emit(ExecutedWithComposedAgent {
+                user: caller,
+                agent_id,
+                protocol_id,
+                amount,
+                action_type,
+                agent_passed,
+                timestamp,
+            });
+        }
+        
+        fn set_agent_composer(ref self: ContractState, agent_composer: ContractAddress) {
+            let caller = get_caller_address();
+            assert(caller == self.admin.read(), 'Not admin');
+            self.agent_composer.write(agent_composer);
+        }
+        
+        fn get_agent_composer(self: @ContractState) -> ContractAddress {
+            self.agent_composer.read()
+        }
+    }
+}

@@ -275,7 +275,7 @@ class TimingPredictor:
             user_address=user_address,
             nonce=nonce,
             committed_at_block=current_block,
-            committed_at=datetime.utcnow().isoformat(),
+            committed_at=datetime.now(timezone.utc).isoformat(),
         )
 
         # Store locally for proof generation later

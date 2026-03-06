@@ -56,7 +56,7 @@ class RebalanceProposal:
         self.amount = amount
         self.reason = reason
         self.status = RebalanceStatus.PENDING
-        self.created_at = datetime.utcnow().isoformat()
+        self.created_at = datetime.now(timezone.utc).isoformat()
         
         # Proof data (populated during execution)
         self.risk_proof = None
@@ -159,7 +159,7 @@ class AgentRebalancer:
         import hashlib
         
         proposal_id = hashlib.sha256(
-            f"{user_address}{from_protocol}{to_protocol}{amount}{datetime.utcnow().isoformat()}".encode()
+            f"{user_address}{from_protocol}{to_protocol}{amount}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:16]
         
         proposal = RebalanceProposal(
@@ -389,7 +389,7 @@ class AgentRebalancer:
                 # Fallback: simulated tx_hash when relayer/signer not configured (e.g. dev)
                 import hashlib
                 tx_hash = "0x" + hashlib.sha256(
-                    f"tx_{proposal_id}_{datetime.utcnow().isoformat()}".encode()
+                    f"tx_{proposal_id}_{datetime.now(timezone.utc).isoformat()}".encode()
                 ).hexdigest()[:64]
 
             proposal.tx_hash = tx_hash
@@ -415,7 +415,7 @@ class AgentRebalancer:
                     "anomaly": proposal.anomaly_proof
                 },
                 "execution_proof_hash": proposal.execution_proof_hash,
-                "completed_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.now(timezone.utc).isoformat()
             }
             if execution_error:
                 out["execution_error"] = execution_error

@@ -303,7 +303,7 @@ async def check_position_rebalance(request: RebalanceCheckRequest):
     
     try:
         # Calculate last rebalance time
-        last_rebalance = datetime.utcfromtimestamp(request.last_rebalance_timestamp) if request.last_rebalance_timestamp > 0 else datetime.utcnow()
+        last_rebalance = datetime.fromtimestamp(request.last_rebalance_timestamp, tz=timezone.utc) if request.last_rebalance_timestamp > 0 else datetime.now(timezone.utc)
         
         position = RebalancePosition(
             position_id=request.position_id,

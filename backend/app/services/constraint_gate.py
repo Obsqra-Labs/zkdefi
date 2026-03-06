@@ -158,7 +158,7 @@ class ConstraintGate:
         """
         addr = user_address.strip().lower()
         violations: list[str] = []
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # 1. Load onboarding state
         onb = self._get_onboarding(addr)
@@ -189,7 +189,7 @@ class ConstraintGate:
             violations.append("Onboarding incomplete: missing fact_hash or identity_commitment")
 
         # 3. Check session validity (within session_duration_hours of onboarding)
-        now_ts = int(datetime.utcnow().timestamp())
+        now_ts = int(datetime.now(timezone.utc).timestamp())
         elapsed_hours = (now_ts - onb.onboarded_at) / 3600.0
         session_valid = elapsed_hours <= onb.session_duration_hours
         if not session_valid:

@@ -5,7 +5,7 @@ Generates and manages on-chain receipts for agent actions.
 Receipts provide transparency without revealing strategy details.
 """
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from app.services.zkdefi_agent_service import ZkdefiAgentService
@@ -37,7 +37,7 @@ class ReceiptService:
         
         Returns receipt with ID for on-chain submission.
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         
         # Generate receipt ID
         receipt_id = "0x" + hashlib.sha256(
@@ -110,7 +110,7 @@ class ReceiptService:
         Append a proof-oriented receipt (risk_score, pool_safety, rebalance, etc.).
         Used by zkML and rebalancer; readable by risk passport and proof timeline.
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         receipt_id = "0x" + hashlib.sha256(
             f"{user_address}{proof_type}{threshold_or_model}{result}{timestamp}".encode()
         ).hexdigest()[:64]

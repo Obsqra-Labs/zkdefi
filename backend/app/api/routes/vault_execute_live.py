@@ -176,5 +176,5 @@ async def rebalance_positions(request: RebalanceRequest):
         total_expected_apy=0.0,
         audit_trail_entry_id=f"audit_{uuid.uuid4().hex[:12]}",
         zkml_proof_hash=f"0x{uuid.uuid4().hex}",
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        timestamp=datetime.now(timezone.utc).isoformat() + "Z"
     )

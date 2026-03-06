@@ -100,7 +100,7 @@ async def compute_allocation(
     2. Fall back to deterministic scoring
     3. Generate attestation hash
     """
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     max_lp_pct = assessment.bounds.max_lp_pct * 100.0
     max_single = assessment.max_single_pool_pct * 100.0
 

@@ -7,7 +7,8 @@ Tracks LP position earnings, APY, Sharpe ratio, drawdown, and rebalance history.
 from enum import Enum
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import timezone
 
 
 class RebalanceReason(str, Enum):
@@ -29,7 +30,7 @@ class RebalanceEvent(BaseModel):
     
     # Trigger information
     reason: RebalanceReason = Field(..., description="Why rebalance was triggered")
-    triggered_at: datetime = Field(default_factory=datetime.utcnow)
+    triggered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Old state (before rebalance)
     old_fee_tier: int = Field(..., description="Previous fee tier")
@@ -55,8 +56,7 @@ class RebalanceEvent(BaseModel):
     accumulated_fees_commitment: str = Field(..., description="Commitment hash of fees at rebalance time")
     accumulated_fees_usd_estimate: Optional[float] = Field(default=None)
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class PerformanceMetrics(BaseModel):
@@ -99,12 +99,12 @@ class PerformanceMetrics(BaseModel):
     last_rebalance_at: Optional[datetime] = Field(default=None)
     
     # Time period
-    tracking_start: datetime = Field(default_factory=datetime.utcnow)
-    tracking_updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    class Config:
-        use_enum_values = True
-        json_schema_extra = {
+    tracking_start: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    tracking_updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        json_schema_extra={
             "example": {
                 "position_id": "0x1234...abcd",
                 "total_fees_earned_commitment": "0x5678...efgh",
@@ -119,6 +119,7 @@ class PerformanceMetrics(BaseModel):
                 "last_rebalance_at": "2026-02-15T08:30:00",
             }
         }
+    )
 
 
 class PerformanceSummary(BaseModel):

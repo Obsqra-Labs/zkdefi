@@ -316,7 +316,7 @@ async def train_model(
         "feature_names": FEATURE_NAMES,
         "n_estimators": n_estimators,
         "max_depth": max_depth,
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": datetime.now(timezone.utc).isoformat(),
     }
     meta_path = MODEL_DIR / "training_metadata.json"
     meta_path.write_text(json.dumps(meta, indent=2))

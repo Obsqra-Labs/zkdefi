@@ -23,11 +23,11 @@ class RebalancePosition:
         self.current_fee_tier = current_fee_tier
         self.optimal_fee_tier = optimal_fee_tier
         self.pool_utilization = pool_utilization
-        self.last_rebalance_time = last_rebalance_time or datetime.utcnow()
+        self.last_rebalance_time = last_rebalance_time or datetime.now(timezone.utc)
         self.hours_since_rebalance = self._calculate_hours_since_rebalance()
     
     def _calculate_hours_since_rebalance(self) -> float:
-        return (datetime.utcnow() - self.last_rebalance_time).total_seconds() / 3600
+        return (datetime.now(timezone.utc) - self.last_rebalance_time).total_seconds() / 3600
 
 
 class AutonomousRebalancerMonitor:
@@ -65,7 +65,7 @@ class AutonomousRebalancerMonitor:
             "hours_since_rebalance": position.hours_since_rebalance,
             "reason": reason,
             "should_rebalance": should_rebalance,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         
         if should_rebalance:

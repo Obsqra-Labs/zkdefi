@@ -17,7 +17,7 @@ import hashlib
 import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import httpx
 import os
 
@@ -118,7 +118,7 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
     """
     # Compute identity commitment
     # Hash: user_address + constraints + claims + timestamp
-    timestamp = int(datetime.utcnow().timestamp())
+    timestamp = int(datetime.now(timezone.utc).timestamp())
     
     identity_data = (
         f"{req.user_address}"
@@ -252,7 +252,7 @@ async def submit_agent(req: SubmitAgentRequest):
         _user_onboarding_state[req.user_address.lower()] = {
             "fact_hash": req.fact_hash,
             "identity_commitment": req.identity_commitment,
-            "timestamp": int(datetime.utcnow().timestamp()),
+            "timestamp": int(datetime.now(timezone.utc).timestamp()),
             "risk_signature": req.risk_signature,
             "agent_initialized": True,
         }

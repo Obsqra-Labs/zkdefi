@@ -2,7 +2,7 @@ import os
 import json
 from typing import Optional, Tuple
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 class ModelRegistryService:
     """Service to manage model versioning on-chain via ModelRegistry contract"""
@@ -39,7 +39,7 @@ class ModelRegistryService:
             self.model_versions[version] = {
                 "hash": model_hash,
                 "hash_felt": hash_felt,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "model_data": model_data
             }
             

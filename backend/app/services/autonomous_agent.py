@@ -113,7 +113,7 @@ class AutonomousAgent:
                 "min_rebalance_amount": config.min_rebalance_amount,
                 "max_actions_per_hour": config.max_actions_per_hour,
             },
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "last_check": None,
             "checks_count": 0,
             "actions_taken": 0,
@@ -156,7 +156,7 @@ class AutonomousAgent:
         # Update state
         self._agents[user_address]["state"] = AgentState.STOPPED.value
         self._agents[user_address]["running"] = False
-        self._agents[user_address]["stopped_at"] = datetime.utcnow().isoformat()
+        self._agents[user_address]["stopped_at"] = datetime.now(timezone.utc).isoformat()
         
         logger.info(f"Stopped autonomous agent for {user_address[:10]}...")
         
@@ -222,7 +222,7 @@ class AutonomousAgent:
                 await self._perform_check(user_address, session_id, config)
                 
                 # Update last check time
-                self._agents[user_address]["last_check"] = datetime.utcnow().isoformat()
+                self._agents[user_address]["last_check"] = datetime.now(timezone.utc).isoformat()
                 self._agents[user_address]["checks_count"] += 1
                 
                 # Wait for next interval
@@ -235,7 +235,7 @@ class AutonomousAgent:
                 logger.error(f"Error in monitoring loop: {e}")
                 if user_address in self._agents:
                     self._agents[user_address]["errors"].append({
-                        "time": datetime.utcnow().isoformat(),
+                        "time": datetime.now(timezone.utc).isoformat(),
                         "error": str(e)
                     })
                     # Keep only last 10 errors
@@ -325,7 +325,7 @@ class AutonomousAgent:
                 self._agents[user_address]["last_action"] = {
                     "proposal_id": proposal_id,
                     "tx_hash": exec_result.get("tx_hash"),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "from_protocol": suggestion.get("from_protocol"),
                     "to_protocol": suggestion.get("to_protocol"),
                     "amount": suggestion.get("amount"),

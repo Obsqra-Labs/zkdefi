@@ -57,5 +57,5 @@ async def get_recommendation(
         "expected_portfolio_apy": expected_apy,
         "portfolio_risk_assessment": f"This {risk_profile} allocation balances your risk tolerance with yield optimization.",
         "recommendation_id": recommendation_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

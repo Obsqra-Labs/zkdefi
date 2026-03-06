@@ -20,7 +20,7 @@ def save(pool_id: str, anomaly_result: dict[str, Any], snapshot_hash: str | None
         "health_score": health_score,
         "factors": {},
         "last_anomaly_result": anomaly_result,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "snapshot_hash": snapshot_hash,
     }
     _store[pool_id] = entry

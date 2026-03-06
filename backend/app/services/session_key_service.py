@@ -78,8 +78,8 @@ class SessionKeyService:
             "protocol_bitmap": protocol_bitmap,
             "duration_hours": duration_hours,
             "duration_seconds": duration_seconds,
-            "created_at": datetime.utcnow().isoformat(),
-            "expires_at": (datetime.utcnow() + timedelta(hours=duration_hours)).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(hours=duration_hours)).isoformat(),
             "is_active": True,
             "pending_grant": True  # Not yet on-chain
         }
@@ -172,7 +172,7 @@ class SessionKeyService:
             if session["owner"] == owner_address:
                 # Check if expired
                 expires_at = datetime.fromisoformat(session["expires_at"])
-                is_expired = datetime.utcnow() > expires_at
+                is_expired = datetime.now(timezone.utc) > expires_at
                 
                 sessions.append({
                     "session_id": session_id,
@@ -216,7 +216,7 @@ class SessionKeyService:
         
         # Check if expired
         expires_at = datetime.fromisoformat(session["expires_at"])
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             return {
                 "is_valid": False,
                 "reason": "Session has expired"
@@ -249,7 +249,7 @@ class SessionKeyService:
             "session_id": session_id,
             "protocol_name": protocol_name,
             "amount": amount,
-            "remaining_time_seconds": int((expires_at - datetime.utcnow()).total_seconds())
+            "remaining_time_seconds": int((expires_at - datetime.now(timezone.utc)).total_seconds())
         }
     
     def _generate_session_id(
@@ -262,7 +262,7 @@ class SessionKeyService:
         """
         Generate a unique session ID.
         """
-        data = f"{owner}{session_key}{max_position}{protocol_bitmap}{datetime.utcnow().isoformat()}"
+        data = f"{owner}{session_key}{max_position}{protocol_bitmap}{datetime.now(timezone.utc).isoformat()}"
         return "0x" + hashlib.sha256(data.encode()).hexdigest()[:64]
 
 

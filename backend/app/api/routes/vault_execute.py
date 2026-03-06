@@ -183,7 +183,7 @@ async def execute_strategy(request: ExecuteStrategyRequest):
             total_expected_apy=total_apy,
             audit_trail_entry_id=str(result.audit_trail_id),  # Convert to string
             zkml_proof_hash=f"0x{uuid.uuid4().hex}",  # TODO: Get real zkML proof
-            timestamp=datetime.utcnow().isoformat() + "Z"
+            timestamp=datetime.now(timezone.utc).isoformat() + "Z"
         )
         
         logger.info(f"✅ Response: deployment_id={response.deployment_id}, positions={len(positions)}")
@@ -244,5 +244,5 @@ async def rebalance_positions(request: RebalanceRequest):
         total_expected_apy=0.0,
         audit_trail_entry_id=f"audit_{uuid.uuid4().hex[:12]}",
         zkml_proof_hash=f"0x{uuid.uuid4().hex}",
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        timestamp=datetime.now(timezone.utc).isoformat() + "Z"
     )

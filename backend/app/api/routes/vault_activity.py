@@ -101,7 +101,7 @@ async def get_yield_chart(days: int = Query(30, le=90)):
         return {"points": []}
 
     from datetime import datetime, timedelta
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     points: list[dict] = []
     cumulative = 0.0

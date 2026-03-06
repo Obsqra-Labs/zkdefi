@@ -86,5 +86,5 @@ async def execute_strategy_impl(request: dict[str, Any]) -> dict[str, Any]:
         "total_expected_apy": total_expected_apy,
         "audit_trail_entry_id": audit_entry_id,
         "zkml_proof_hash": f"0x{uuid.uuid4().hex}",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }

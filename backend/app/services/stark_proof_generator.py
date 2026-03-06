@@ -71,7 +71,7 @@ class STARKProofGenerator:
             "pools_evaluated": len(pools),
             "pools_selected": len(valid_pools),
             "constraints_applied": len(constraints),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         # Generate proof hash
@@ -90,7 +90,7 @@ class STARKProofGenerator:
             "risk_profile": risk_profile,
             "pools_proven": len(valid_pools),
             "constraints_count": len(constraints),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "verified": True  # Would be actual verification result
         }
         
@@ -138,7 +138,7 @@ class STARKProofGenerator:
             "total_percentage": total_pct,
             "total_amount": total_amount,
             "constraints_met": all(constraints_met),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if self.use_mock:
@@ -157,7 +157,7 @@ class STARKProofGenerator:
             "total_percentage": total_pct,
             "total_amount": total_amount,
             "constraints_verified": all(constraints_met),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "verified": all(constraints_met)
         }
         
@@ -197,7 +197,7 @@ class STARKProofGenerator:
             "time_period_days": time_period_days,
             "expected_yield": expected_yield_for_period,
             "variance": yield_variance,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if self.use_mock:
@@ -216,7 +216,7 @@ class STARKProofGenerator:
             "apy_realized": apy_realized,
             "variance_pct": yield_variance * 100,
             "within_tolerance": yield_variance < 0.15,  # 15% tolerance
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "verified": yield_variance < 0.15
         }
         

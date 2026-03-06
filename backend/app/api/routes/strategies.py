@@ -6,11 +6,11 @@ POST /api/v1/strategies/analyze - Get zkML pool analysis
 
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,9 @@ class PoolAnalysisRequest(BaseModel):
     risk_profile: str  # "CONSERVATIVE", "BALANCED", "AGGRESSIVE"
     user_address: str
     
-    @validator("risk_profile")
-    def validate_profile(cls, v):
+    @field_validator("risk_profile")
+    @classmethod
+    def validate_profile(cls, v: str) -> str:
         valid = ["CONSERVATIVE", "BALANCED", "AGGRESSIVE"]
         if v not in valid:
             raise ValueError(f"risk_profile must be one of: {valid}")
@@ -86,14 +87,16 @@ class StrategyRecommendationRequest(BaseModel):
     risk_profile: str  # "conservative", "balanced", or "aggressive"
     amount: float = 1000.0  # USDC to deploy
 
-    @validator("risk_profile")
-    def validate_profile(cls, v):
+    @field_validator("risk_profile")
+    @classmethod
+    def validate_profile(cls, v: str) -> str:
         if v not in ["conservative", "balanced", "aggressive"]:
             raise ValueError("risk_profile must be one of: conservative, balanced, aggressive")
         return v.lower()
 
-    @validator("amount")
-    def validate_amount(cls, v):
+    @field_validator("amount")
+    @classmethod
+    def validate_amount(cls, v: float) -> float:
         if v <= 0:
             raise ValueError("amount must be positive")
         if v > 1_000_000:
@@ -165,7 +168,7 @@ async def analyze_strategy(request: PoolAnalysisRequest):
         }
     """
     try:
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         logger.info(f"Analyzing pools for {request.risk_profile} profile")
         
         # Fetch pools

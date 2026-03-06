@@ -43,7 +43,7 @@ class IntentService:
         
         # Use provided block number or simulate
         if block_number is None:
-            block_number = int(datetime.utcnow().timestamp()) % 1000000
+            block_number = int(datetime.now(timezone.utc).timestamp()) % 1000000
         
         # Serialize intent data
         intent_str = str(sorted(intent_data.items()))
@@ -52,7 +52,7 @@ class IntentService:
         commitment_input = f"{intent_str}{nonce}{self.chain_id}{block_number}"
         commitment = "0x" + hashlib.sha256(commitment_input.encode()).hexdigest()[:64]
         
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         
         record = {
             "commitment": commitment,
@@ -118,7 +118,7 @@ class IntentService:
         
         record["used"] = True
         record["action_hash"] = action_hash
-        record["used_at"] = datetime.utcnow().isoformat()
+        record["used_at"] = datetime.now(timezone.utc).isoformat()
         
         return {
             "success": True,

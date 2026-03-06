@@ -6,7 +6,7 @@ Represents amounts hidden via Groth16 commitment proofs (Garaga).
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConfidentialAmount(BaseModel):
@@ -42,11 +42,11 @@ class ConfidentialAmount(BaseModel):
     # Note: In production, this should be stored in a secure enclave, not in plaintext
     amount_secret: Optional[str] = Field(default=None, description="[DEV ONLY] Secret amount for proof generation")
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    class Config:
-        use_enum_values = True
-        json_schema_extra = {
+    created_at: datetime = Field(default_factory=lambda: datetime.now(datetime.timezone.utc))
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        json_schema_extra={
             "example": {
                 "commitment_hash": "0x1234...abcd",
                 "groth16_proof": "0x5678...efgh",
@@ -57,6 +57,7 @@ class ConfidentialAmount(BaseModel):
                 "verified_at": "2026-02-15T10:00:00",
             }
         }
+    )
 
 
 class ConfidentialAmountWithValue(BaseModel):

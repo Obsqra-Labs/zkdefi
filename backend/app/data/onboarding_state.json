@@ -1,0 +1,8 @@
+{
+"0x0123456789abcdef": {
+"fact_hash": "0xaaaa",
+"identity_commitment": "0xbbbb",
+"timestamp": 1772815833,
+"agent_initialized": true
+}
+}

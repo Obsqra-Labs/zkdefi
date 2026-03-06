@@ -1,0 +1,1905 @@
+{
+  "snapshots": [
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772329720,
+      "datetime": "2026-03-01T01:48:40",
+      "snapshot_hash": "0xf5e03a086745180c29eb00259eb869f4",
+      "stale": true,
+      "age_seconds": 474245
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772333337,
+      "datetime": "2026-03-01T02:48:57",
+      "snapshot_hash": "0xa2eb0f3cd6bffac59639afb57e274a77",
+      "stale": true,
+      "age_seconds": 470628
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772337213,
+      "datetime": "2026-03-01T03:53:33",
+      "snapshot_hash": "0x0c09b1971ff713ffc0acf8a28a211b73",
+      "stale": true,
+      "age_seconds": 466752
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772342154,
+      "datetime": "2026-03-01T05:15:54",
+      "snapshot_hash": "0x8c3fb3215375e1289ee4d091626e4eb9",
+      "stale": true,
+      "age_seconds": 461811
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772346848,
+      "datetime": "2026-03-01T06:34:08",
+      "snapshot_hash": "0x3dd2d88ae3d17519342835a773bffeca",
+      "stale": true,
+      "age_seconds": 457117
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772350459,
+      "datetime": "2026-03-01T07:34:19",
+      "snapshot_hash": "0xc76314ba7d8dfea85dc3afb175006edd",
+      "stale": true,
+      "age_seconds": 453506
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772367066,
+      "datetime": "2026-03-01T12:11:06",
+      "snapshot_hash": "0x2d31029449957b0fe9f0ac11e5817190",
+      "stale": true,
+      "age_seconds": 436899
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772373873,
+      "datetime": "2026-03-01T14:04:33",
+      "snapshot_hash": "0x45dcd3074a788f46b405e3ccec811542",
+      "stale": true,
+      "age_seconds": 430092
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772379275,
+      "datetime": "2026-03-01T15:34:35",
+      "snapshot_hash": "0x9cac9a2dc1781839d5d4548fb0e914d4",
+      "stale": true,
+      "age_seconds": 424690
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772413544,
+      "datetime": "2026-03-02T01:05:44",
+      "snapshot_hash": "0xd4500757efb207358c48ed9b2e9b1536",
+      "stale": true,
+      "age_seconds": 390421
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772418330,
+      "datetime": "2026-03-02T02:25:30",
+      "snapshot_hash": "0xd19062277ea0d4daa2e48f19f18f3c5c",
+      "stale": true,
+      "age_seconds": 385635
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772422308,
+      "datetime": "2026-03-02T03:31:48",
+      "snapshot_hash": "0x7a79670a20775aa785b139161177726c",
+      "stale": true,
+      "age_seconds": 381657
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772425991,
+      "datetime": "2026-03-02T04:33:11",
+      "snapshot_hash": "0x4d1e7f2922e7deb2858ef8f61c0d299f",
+      "stale": true,
+      "age_seconds": 377974
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772432176,
+      "datetime": "2026-03-02T06:16:16",
+      "snapshot_hash": "0x58b8fb23ccaefaa2a080e778500d0c66",
+      "stale": true,
+      "age_seconds": 371789
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772435812,
+      "datetime": "2026-03-02T07:16:52",
+      "snapshot_hash": "0xb55eb7c335083588c4718d3052a63044",
+      "stale": true,
+      "age_seconds": 368153
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772456076,
+      "datetime": "2026-03-02T12:54:36",
+      "snapshot_hash": "0x3a2e6a342c784586cd13a96475e21414",
+      "stale": true,
+      "age_seconds": 347889
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772459678,
+      "datetime": "2026-03-02T13:54:38",
+      "snapshot_hash": "0x9761ce734e6011d79ef29d5f328e5384",
+      "stale": true,
+      "age_seconds": 344287
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772464771,
+      "datetime": "2026-03-02T15:19:31",
+      "snapshot_hash": "0xc11957d34ac0cd33128c210129db4dc1",
+      "stale": true,
+      "age_seconds": 339194
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772468399,
+      "datetime": "2026-03-02T16:19:59",
+      "snapshot_hash": "0xed13217829e2b97e3cd7189dfc4d8264",
+      "stale": true,
+      "age_seconds": 335566
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772472030,
+      "datetime": "2026-03-02T17:20:30",
+      "snapshot_hash": "0x72bb6da5eff58290641942a93f646009",
+      "stale": true,
+      "age_seconds": 331935
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772475660,
+      "datetime": "2026-03-02T18:21:00",
+      "snapshot_hash": "0xe6ffeb6a2e2812531a3712faf5c27fb0",
+      "stale": true,
+      "age_seconds": 328305
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772479320,
+      "datetime": "2026-03-02T19:22:00",
+      "snapshot_hash": "0xfdd74eea268d1a72018f7271d5f7f963",
+      "stale": true,
+      "age_seconds": 324645
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772482980,
+      "datetime": "2026-03-02T20:23:00",
+      "snapshot_hash": "0x78b5fae39688796e3970b2a079bd7bae",
+      "stale": true,
+      "age_seconds": 320985
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772486594,
+      "datetime": "2026-03-02T21:23:14",
+      "snapshot_hash": "0x47e8373dc1c629dce9e0c6ae6a9c1459",
+      "stale": true,
+      "age_seconds": 317371
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772490236,
+      "datetime": "2026-03-02T22:23:56",
+      "snapshot_hash": "0xa4674f8e75accb8af7923e78af8580ec",
+      "stale": true,
+      "age_seconds": 313729
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772499941,
+      "datetime": "2026-03-03T01:05:41",
+      "snapshot_hash": "0xecb12caa35b473182ab2e37589188a49",
+      "stale": true,
+      "age_seconds": 304024
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772506926,
+      "datetime": "2026-03-03T03:02:06",
+      "snapshot_hash": "0x803fbaa05b03d19aa7d43e12155f73f6",
+      "stale": true,
+      "age_seconds": 297039
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772510531,
+      "datetime": "2026-03-03T04:02:11",
+      "snapshot_hash": "0x2cd4f318884071c4ab55e56919add157",
+      "stale": true,
+      "age_seconds": 293434
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772514168,
+      "datetime": "2026-03-03T05:02:48",
+      "snapshot_hash": "0xcf6c048d092c2cc1421f22394c3c382d",
+      "stale": true,
+      "age_seconds": 289797
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772518115,
+      "datetime": "2026-03-03T06:08:35",
+      "snapshot_hash": "0x9baa02847ed8b84294175165f1f4883e",
+      "stale": true,
+      "age_seconds": 285850
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772521720,
+      "datetime": "2026-03-03T07:08:40",
+      "snapshot_hash": "0x20023b6d00474130acc0a1fef661da94",
+      "stale": true,
+      "age_seconds": 282245
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772525342,
+      "datetime": "2026-03-03T08:09:02",
+      "snapshot_hash": "0xa048124748fcd88f9d0227dcd7908127",
+      "stale": true,
+      "age_seconds": 278623
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772528943,
+      "datetime": "2026-03-03T09:09:03",
+      "snapshot_hash": "0xb8244c2e16b42fb882b81e1625354fc8",
+      "stale": true,
+      "age_seconds": 275022
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772532603,
+      "datetime": "2026-03-03T10:10:03",
+      "snapshot_hash": "0xe22226c18aed73abe3ddf0470d075343",
+      "stale": true,
+      "age_seconds": 271362
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772536263,
+      "datetime": "2026-03-03T11:11:03",
+      "snapshot_hash": "0x14903f75b5d4d8687d2fff7a2d0def68",
+      "stale": true,
+      "age_seconds": 267702
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772539923,
+      "datetime": "2026-03-03T12:12:03",
+      "snapshot_hash": "0x1fd4195735f8ee2f15dda103864da3fe",
+      "stale": true,
+      "age_seconds": 264042
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772543959,
+      "datetime": "2026-03-03T13:19:19",
+      "snapshot_hash": "0x322c3623ba791b927e63ebb5f6b21593",
+      "stale": true,
+      "age_seconds": 260006
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772549959,
+      "datetime": "2026-03-03T14:59:19",
+      "snapshot_hash": "0xf91d62bacce119403b83c4d8a9fc8b26",
+      "stale": true,
+      "age_seconds": 254006
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772554357,
+      "datetime": "2026-03-03T16:12:37",
+      "snapshot_hash": "0x409e3d5abaf314ce8b41e656cc0327f5",
+      "stale": true,
+      "age_seconds": 249608
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772557984,
+      "datetime": "2026-03-03T17:13:04",
+      "snapshot_hash": "0xb286462b58e8405617cf659a7d7435ea",
+      "stale": true,
+      "age_seconds": 245981
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772561585,
+      "datetime": "2026-03-03T18:13:05",
+      "snapshot_hash": "0xb66f12e4520eb8a47a28609215143269",
+      "stale": true,
+      "age_seconds": 242380
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772565245,
+      "datetime": "2026-03-03T19:14:05",
+      "snapshot_hash": "0x7dcd1e8f4538aa2b4c4f5e420ca6468d",
+      "stale": true,
+      "age_seconds": 238720
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772569361,
+      "datetime": "2026-03-03T20:22:41",
+      "snapshot_hash": "0x6b4f47d5ffc351ad14b9ec7d695e9a08",
+      "stale": true,
+      "age_seconds": 234604
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772574191,
+      "datetime": "2026-03-03T21:43:11",
+      "snapshot_hash": "0x081d58b32bb7bb587887777d384fab9d",
+      "stale": true,
+      "age_seconds": 229774
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772577806,
+      "datetime": "2026-03-03T22:43:26",
+      "snapshot_hash": "0x563f2495e1a29ae15f434621ffe4edf0",
+      "stale": true,
+      "age_seconds": 226159
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772581435,
+      "datetime": "2026-03-03T23:43:55",
+      "snapshot_hash": "0x8be7bf984245f59c827023518a4149c0",
+      "stale": true,
+      "age_seconds": 222530
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772585036,
+      "datetime": "2026-03-04T00:43:56",
+      "snapshot_hash": "0x4dc800b204f6151b6141c7db90951973",
+      "stale": true,
+      "age_seconds": 218929
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772588646,
+      "datetime": "2026-03-04T01:44:06",
+      "snapshot_hash": "0xd99d931f24eba3a829f84f443458b0cf",
+      "stale": true,
+      "age_seconds": 215319
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772592266,
+      "datetime": "2026-03-04T02:44:26",
+      "snapshot_hash": "0x7820b9163c43e364cdd3a283b6d83162",
+      "stale": true,
+      "age_seconds": 211699
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772595896,
+      "datetime": "2026-03-04T03:44:56",
+      "snapshot_hash": "0x7995dfeb2d2d5344d8476d99cf442b00",
+      "stale": true,
+      "age_seconds": 208069
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772599497,
+      "datetime": "2026-03-04T04:44:57",
+      "snapshot_hash": "0xbd99508e6838c2b4fbb325d28d868c6e",
+      "stale": true,
+      "age_seconds": 204468
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772603107,
+      "datetime": "2026-03-04T05:45:07",
+      "snapshot_hash": "0xff5956f82ce941be3eb8622574eccef0",
+      "stale": true,
+      "age_seconds": 200858
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772606727,
+      "datetime": "2026-03-04T06:45:27",
+      "snapshot_hash": "0x3373a77bd225d7faaf12fbd17824afcd",
+      "stale": true,
+      "age_seconds": 197238
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772610357,
+      "datetime": "2026-03-04T07:45:57",
+      "snapshot_hash": "0xfe1c8504473512fe11778d2a6d12204a",
+      "stale": true,
+      "age_seconds": 193608
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772613958,
+      "datetime": "2026-03-04T08:45:58",
+      "snapshot_hash": "0xf73eedaacc420aa6c2e0efbcfcca1d89",
+      "stale": true,
+      "age_seconds": 190007
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772617568,
+      "datetime": "2026-03-04T09:46:08",
+      "snapshot_hash": "0x285c5af37e8ee24950e350c4ef835c1f",
+      "stale": true,
+      "age_seconds": 186397
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772621183,
+      "datetime": "2026-03-04T10:46:23",
+      "snapshot_hash": "0x2f54d72a99582b01a5bf2f5bfac734cc",
+      "stale": true,
+      "age_seconds": 182782
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772624788,
+      "datetime": "2026-03-04T11:46:28",
+      "snapshot_hash": "0x63d2ee75f171fe0bb15d694f6f5a42ac",
+      "stale": true,
+      "age_seconds": 179177
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772628418,
+      "datetime": "2026-03-04T12:46:58",
+      "snapshot_hash": "0x8aed31c0994f2f1b4423a36a10c3ca04",
+      "stale": true,
+      "age_seconds": 175547
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772632028,
+      "datetime": "2026-03-04T13:47:08",
+      "snapshot_hash": "0x5c0a3b32bd46e41f28047660b25954c7",
+      "stale": true,
+      "age_seconds": 171937
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772635648,
+      "datetime": "2026-03-04T14:47:28",
+      "snapshot_hash": "0x02e3c8ad3491efdcca087b1fbb2a77a0",
+      "stale": true,
+      "age_seconds": 168317
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772639279,
+      "datetime": "2026-03-04T15:47:59",
+      "snapshot_hash": "0x20333cb4a6c9482503026db42f93bc72",
+      "stale": true,
+      "age_seconds": 164686
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772642889,
+      "datetime": "2026-03-04T16:48:09",
+      "snapshot_hash": "0xf00afe42c5f3e833e84aff606ec57680",
+      "stale": true,
+      "age_seconds": 161076
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772646509,
+      "datetime": "2026-03-04T17:48:29",
+      "snapshot_hash": "0xf45bb18c64a7ec21dedb3b11453aa27f",
+      "stale": true,
+      "age_seconds": 157456
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772650134,
+      "datetime": "2026-03-04T18:48:54",
+      "snapshot_hash": "0x831a9369122c0af38e390a12c2237ffd",
+      "stale": true,
+      "age_seconds": 153831
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772653739,
+      "datetime": "2026-03-04T19:48:59",
+      "snapshot_hash": "0xd09909aab4180e48e9a7102dc660168a",
+      "stale": true,
+      "age_seconds": 150226
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772657350,
+      "datetime": "2026-03-04T20:49:10",
+      "snapshot_hash": "0x1889e2d060e056070867d646da4ab48a",
+      "stale": true,
+      "age_seconds": 146615
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772660970,
+      "datetime": "2026-03-04T21:49:30",
+      "snapshot_hash": "0x7cd34ddf8b401f9c96fcb881d56a4756",
+      "stale": true,
+      "age_seconds": 142995
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772664600,
+      "datetime": "2026-03-04T22:50:00",
+      "snapshot_hash": "0x2a327a23760f50fc1fa0a10604834347",
+      "stale": true,
+      "age_seconds": 139365
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772668201,
+      "datetime": "2026-03-04T23:50:01",
+      "snapshot_hash": "0xa3e09aaed3cd7b553445c22d8efeea4d",
+      "stale": true,
+      "age_seconds": 135764
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772671802,
+      "datetime": "2026-03-05T00:50:02",
+      "snapshot_hash": "0x773aa6563e3395fa11e2aa4ce0d9ab4c",
+      "stale": true,
+      "age_seconds": 132163
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772675411,
+      "datetime": "2026-03-05T01:50:11",
+      "snapshot_hash": "0xe7c3c42030558428454d11ebed312cf7",
+      "stale": true,
+      "age_seconds": 128554
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772679030,
+      "datetime": "2026-03-05T02:50:30",
+      "snapshot_hash": "0xaf2b5fe3ecfe572381bf83463823a295",
+      "stale": true,
+      "age_seconds": 124935
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772682632,
+      "datetime": "2026-03-05T03:50:32",
+      "snapshot_hash": "0x9c463583b664fdff6a7af64c4855439e",
+      "stale": true,
+      "age_seconds": 121333
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772686256,
+      "datetime": "2026-03-05T04:50:56",
+      "snapshot_hash": "0x07ad73bce782d993a711fb13abed8344",
+      "stale": true,
+      "age_seconds": 117709
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772689861,
+      "datetime": "2026-03-05T05:51:01",
+      "snapshot_hash": "0xed47ba6c5a3352dda83656b1eaf28ef6",
+      "stale": true,
+      "age_seconds": 114104
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772693469,
+      "datetime": "2026-03-05T06:51:09",
+      "snapshot_hash": "0x6ff9c7a108380532178171175b322259",
+      "stale": true,
+      "age_seconds": 110496
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772697072,
+      "datetime": "2026-03-05T07:51:12",
+      "snapshot_hash": "0x5395bad067d191f47334c7ad69619e75",
+      "stale": true,
+      "age_seconds": 106893
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772700700,
+      "datetime": "2026-03-05T08:51:40",
+      "snapshot_hash": "0xed4c5ac5fe3cf801dcfafd07ab199ea0",
+      "stale": true,
+      "age_seconds": 103265
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772704322,
+      "datetime": "2026-03-05T09:52:02",
+      "snapshot_hash": "0xd82062ae5445a4c3c9b2835f6379ee13",
+      "stale": true,
+      "age_seconds": 99643
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772707930,
+      "datetime": "2026-03-05T10:52:10",
+      "snapshot_hash": "0x401fc307aa8a78306dda31538e4c3708",
+      "stale": true,
+      "age_seconds": 96035
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772711532,
+      "datetime": "2026-03-05T11:52:12",
+      "snapshot_hash": "0xdd780b391ce0607d2f70c1f0217f9d1d",
+      "stale": true,
+      "age_seconds": 92433
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772715133,
+      "datetime": "2026-03-05T12:52:13",
+      "snapshot_hash": "0x840c92d042af0595b1fe56960dfcb292",
+      "stale": true,
+      "age_seconds": 88832
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772718734,
+      "datetime": "2026-03-05T13:52:14",
+      "snapshot_hash": "0xc3a30906810a175541138c7b420a6970",
+      "stale": true,
+      "age_seconds": 85231
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772722394,
+      "datetime": "2026-03-05T14:53:14",
+      "snapshot_hash": "0x6c8bf3f370645bae57c11788c7f4f116",
+      "stale": true,
+      "age_seconds": 81571
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772726038,
+      "datetime": "2026-03-05T15:53:58",
+      "snapshot_hash": "0x87a7401f3e2c2eb62eaba209eccc2b69",
+      "stale": true,
+      "age_seconds": 77927
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772729654,
+      "datetime": "2026-03-05T16:54:14",
+      "snapshot_hash": "0x12697983a2d78a378b3ee025702804bc",
+      "stale": true,
+      "age_seconds": 74311
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772733260,
+      "datetime": "2026-03-05T17:54:20",
+      "snapshot_hash": "0x410a3684e0459f88c489dea577c8d2c4",
+      "stale": true,
+      "age_seconds": 70705
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772737373,
+      "datetime": "2026-03-05T19:02:53",
+      "snapshot_hash": "0xf7a8d1fac8cd647cd2c28d039dd03716",
+      "stale": true,
+      "age_seconds": 66592
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772743476,
+      "datetime": "2026-03-05T20:44:36",
+      "snapshot_hash": "0xbd82058d6f995c837f03dbe901a43fff",
+      "stale": true,
+      "age_seconds": 60489
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772747099,
+      "datetime": "2026-03-05T21:44:59",
+      "snapshot_hash": "0x14c64105242efd10eec120ef8d082818",
+      "stale": true,
+      "age_seconds": 56866
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772750715,
+      "datetime": "2026-03-05T22:45:15",
+      "snapshot_hash": "0x1dd1da87bba559338ddecb9df61acd83",
+      "stale": true,
+      "age_seconds": 53250
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772754316,
+      "datetime": "2026-03-05T23:45:16",
+      "snapshot_hash": "0x92763a9be0fc9163a63176569b658a31",
+      "stale": true,
+      "age_seconds": 49649
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772762144,
+      "datetime": "2026-03-06T01:55:44",
+      "snapshot_hash": "0x54323016b644bfcb803b2a8bd988d7fd",
+      "stale": true,
+      "age_seconds": 41821
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772773645,
+      "datetime": "2026-03-06T05:07:25",
+      "snapshot_hash": "0x7e873c0b2877b206d86a22e7a22f62e6",
+      "stale": true,
+      "age_seconds": 30320
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772781681,
+      "datetime": "2026-03-06T07:21:21",
+      "snapshot_hash": "0xb921a2cd1bd5d253c2d7bdc8e822d60e",
+      "stale": true,
+      "age_seconds": 22284
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772785343,
+      "datetime": "2026-03-06T08:22:23",
+      "snapshot_hash": "0xee75cda10c62f2bbefb2a4d0e3779ae4",
+      "stale": true,
+      "age_seconds": 18622
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772796514,
+      "datetime": "2026-03-06T11:28:34",
+      "snapshot_hash": "0x490e68645a93a8d040b57682ac05f2d9",
+      "stale": true,
+      "age_seconds": 7451
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772800357,
+      "datetime": "2026-03-06T12:32:37",
+      "snapshot_hash": "0x2fa2e36149c3db00dfcc138a21ba5bc2",
+      "stale": true,
+      "age_seconds": 3608
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772803965,
+      "datetime": "2026-03-06T13:32:45",
+      "snapshot_hash": "0x109d359c2a8e591aca4b0a735cf52fcb",
+      "stale": false,
+      "age_seconds": 0
+    }
+  ],
+  "updated_at": "2026-03-06T13:32:45.950569"
+}
