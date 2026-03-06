@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { 
-import { apiUrl } from "@/lib/api/client";
   RefreshCw, 
   Shield, 
   AlertTriangle, 
@@ -15,7 +14,7 @@ import { apiUrl } from "@/lib/api/client";
   Activity
 } from "lucide-react";
 
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 
 interface Proposal {
   proposal_id: string;
@@ -66,7 +65,7 @@ export function AgentRebalancer({
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const response = await fetch(apiUrl("/api/v1/zkdefi/rebalancer/proposals/${userAddress}");
+      const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/proposals/${userAddress}`);
       if (response.ok) {
         const data = await response.json();
         setProposals(data.proposals || []);
@@ -81,7 +80,7 @@ export function AgentRebalancer({
   const handlePropose = async () => {
     setProcessing("proposing");
     try {
-      const response = await fetch(apiUrl("/api/v1/zkdefi/rebalancer/propose"), {
+      const response = await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/propose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +115,7 @@ export function AgentRebalancer({
         ? generatePortfolioFeatures(positions)
         : [50, 30, 20, 20, 50, 30, 10, 20];
       
-      await fetch(apiUrl("/api/v1/zkdefi/rebalancer/check"), {
+      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -143,7 +142,7 @@ export function AgentRebalancer({
     setProcessing(proposalId);
     try {
       // Prepare
-      await fetch(apiUrl("/api/v1/zkdefi/rebalancer/prepare"), {
+      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/prepare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,7 +152,7 @@ export function AgentRebalancer({
       });
       
       // Execute
-      await fetch(apiUrl("/api/v1/zkdefi/rebalancer/execute"), {
+      await fetch(`${API_BASE}/api/v1/zkdefi/rebalancer/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

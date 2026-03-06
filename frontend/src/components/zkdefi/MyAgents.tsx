@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Brain, Play, Pause, Trash2, Check, X, Clock, Zap, ExternalLink } from "lucide-react";
-import { apiUrl } from "@/lib/api/client";
 
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 
 interface Agent {
   id: string;
@@ -54,7 +53,7 @@ export function MyAgents({
   const fetchAgents = async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/v1/agents/user/${userAddress}");
+      const res = await fetch(`${API_BASE}/api/v1/agents/user/${userAddress}`);
       if (res.ok) {
         const data = await res.json();
         setAgents(data.agents || []);
@@ -70,7 +69,7 @@ export function MyAgents({
     setExecutionResult(null);
     try {
       // Use path-based execute endpoint (new local orchestrator API)
-      const res = await fetch(apiUrl("/api/v1/agents/${agentId}/execute"), {
+      const res = await fetch(`${API_BASE}/api/v1/agents/${agentId}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,7 +105,7 @@ export function MyAgents({
 
   const deactivateAgent = async (agentId: string) => {
     try {
-      const res = await fetch(apiUrl("/api/v1/agents/${agentId}?user_address=${userAddress}"), {
+      const res = await fetch(`${API_BASE}/api/v1/agents/${agentId}?user_address=${userAddress}`, {
         method: "DELETE",
       });
       if (res.ok) {

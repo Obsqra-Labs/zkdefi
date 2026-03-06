@@ -328,7 +328,10 @@ class OnChainEngine:
         """Admin: trigger a single swap immediately."""
         if not self.swap_bot:
             raise ValueError("Swap bot not configured (no wallet)")
-        result = await self.swap_bot.execute_one(pair_name=pair)
+        result = await self.swap_bot.execute_one(
+            pair_name=pair,
+            allow_extreme_tick=bool(pair),
+        )
         await self._emit("trade", "Admin-triggered swap", {
             "success": result.success,
             "pair": result.pair,
@@ -617,7 +620,10 @@ class OnChainEngine:
         """Admin: trigger a real swap or apply display override."""
         if self.swap_bot:
             # Execute real swap
-            result = await self.swap_bot.execute_one(pair_name=pair)
+            result = await self.swap_bot.execute_one(
+                pair_name=pair,
+                allow_extreme_tick=bool(pair),
+            )
             await self._emit("trade", f"Manual {side} trade", {
                 "pair": pair, "side": side, "notional_usd": notional_usd,
                 "tx_hash": result.tx_hash, "success": result.success,
@@ -835,15 +841,19 @@ class OnChainEngine:
                             self._bot_volume_overlay_usd[pair] = min(10_000_000.0, current + delta_usd_equiv)
 
             # Periodic boundary pool recovery probes to broaden cross-pool activity.
+            target_focus = {pair.lower() for pair in self._coordination_target_pairs(base_snapshot)}
             boundary_candidates: list[tuple[str, int, float]] = []
             for pool in (base_snapshot.get("pools") or []):
                 pair = str(pool.get("name") or "").strip()
+                if target_focus and pair.lower() not in target_focus:
+                    continue
                 tick = int(pool.get("tick") or 0)
                 if pair and abs(tick) >= MAX_TICK - 10_000:
                     boundary_candidates.append((pair, abs(tick), float(pool.get("tvl_usd") or 0.0)))
             # Recover multiple highest-priority boundary pools per poll for faster convergence.
             boundary_candidates.sort(key=lambda item: (item[1], item[2]), reverse=True)
-            for pair, _tick_abs, _tvl in boundary_candidates[:2]:
+            recovery_budget = max(2, min(4, len(target_focus) if target_focus else 2))
+            for pair, _tick_abs, _tvl in boundary_candidates[:recovery_budget]:
                 await self._attempt_boundary_recovery(pair_name=pair, reason="boundary_probe")
 
             await self._maybe_run_coordination_cycle(base_snapshot)
@@ -945,14 +955,21 @@ class OnChainEngine:
                 seen.add(lowered)
                 pairs.append(name)
 
-        allow_list = {
+        explicit_targets = {
             str(pair).strip().lower()
             for pair in (self._coordination_policy.get("target_pairs") or [])
             if str(pair).strip()
         }
+        volume_target_keys = {
+            str(pair).strip().lower()
+            for pair, target in dict(self._coordination_policy.get("volume_targets_usd", {})).items()
+            if str(pair).strip() and float(target or 0.0) > 0
+        }
+        allow_list = explicit_targets or volume_target_keys
         if not allow_list:
             return pairs
-        return [pair for pair in pairs if pair.lower() in allow_list]
+        filtered = [pair for pair in pairs if pair.lower() in allow_list]
+        return filtered or pairs
 
     async def _maybe_run_coordination_cycle(
         self,
@@ -1072,10 +1089,13 @@ class OnChainEngine:
                 size_multiplier = min(max_swap_mult, max(min_swap_mult, 1.8))
                 behavior = "retail"
                 try:
+                    if abs(int(pool_by_name.get(pair.lower(), {}).get("tick") or 0)) >= MAX_TICK - 10_000:
+                        await self._attempt_boundary_recovery(pair_name=pair, reason="coverage_boost")
                     swap_result = await self.swap_bot.execute_one(
                         pair_name=pair,
                         size_multiplier=size_multiplier,
                         behavior=behavior,
+                        allow_extreme_tick=True,
                     )
                 except Exception as exc:
                     errors.append(f"coverage_boost:{pair}:{exc}")
@@ -1231,10 +1251,13 @@ class OnChainEngine:
                     behavior = "degen"
 
                 try:
+                    if abs(int(pool_by_name.get(pair.lower(), {}).get("tick") or 0)) >= MAX_TICK - 10_000:
+                        await self._attempt_boundary_recovery(pair_name=pair, reason="volume_ramp")
                     swap_result = await self.swap_bot.execute_one(
                         pair_name=pair,
                         size_multiplier=size_multiplier,
                         behavior=behavior,
+                        allow_extreme_tick=True,
                     )
                 except Exception as exc:
                     errors.append(f"volume_ramp:{pair}:{exc}")

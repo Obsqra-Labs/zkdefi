@@ -5,14 +5,13 @@ import { useAccount } from "@starknet-react/core";
 import { ProofVisualizer } from "./ProofVisualizer";
 import { ConnectButton } from "./ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { apiUrl } from "@/lib/api/client";
-import {
+import { 
   Lock, Shield, Eye, EyeOff, ArrowRight, CheckCircle2, 
   ArrowDownToLine, ArrowUpFromLine, Send, Info, AlertTriangle 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_SHIELDED_POOL_ADDRESS || 
                               process.env.NEXT_PUBLIC_CONFIDENTIAL_TRANSFER_ADDRESS || "";
 
@@ -87,7 +86,7 @@ export function ShieldedPoolPanel() {
   const fetchUserTier = async () => {
     if (!address) return;
     try {
-      const res = await fetch(apiUrl(`/api/v1/reputation/${address}`));
+      const res = await fetch(`${API_BASE}/api/v1/reputation/${address}`);
       const data = await res.json();
       setUserTier({
         tier: data.tier || 0,
@@ -149,7 +148,7 @@ export function ShieldedPoolPanel() {
       const amountWei = (BigInt(amount) * BigInt(1e18)).toString();
       
       // Generate privacy proof (commitment + Groth16 proof)
-      const res = await fetch(apiUrl("/api/v1/zkdefi/shielded_deposit"), {
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_deposit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -250,7 +249,7 @@ export function ShieldedPoolPanel() {
     try {
       const amountWei = (BigInt(amount) * BigInt(1e18)).toString();
       
-      const res = await fetch(apiUrl("/api/v1/zkdefi/shielded_withdraw"), {
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_withdraw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

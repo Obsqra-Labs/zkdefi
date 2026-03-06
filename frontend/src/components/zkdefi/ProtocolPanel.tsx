@@ -7,9 +7,8 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { Shield, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ConnectButton } from "./ConnectButton";
-import { apiUrl } from "@/lib/api/client";
 
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 const AGENT_ADDRESS = process.env.NEXT_PUBLIC_PROOF_GATED_AGENT_ADDRESS || "";
 
 // DEBUG: Log the address being used
@@ -92,8 +91,8 @@ export function ProtocolPanel({ protocolId }: { protocolId: ProtocolId }) {
       
       // Use different endpoints for deposit vs withdraw
       const endpoint = mode === "deposit" 
-        ? `apiUrl("/api/v1/zkdefi/deposit`
-        : `apiUrl("/api/v1/zkdefi/withdraw`;
+        ? `${API_BASE}/api/v1/zkdefi/deposit`
+        : `${API_BASE}/api/v1/zkdefi/withdraw`;
       
       const res = await fetch(endpoint, {
         method: "POST",
@@ -196,7 +195,7 @@ export function ProtocolPanel({ protocolId }: { protocolId: ProtocolId }) {
   const handleFetchPosition = async () => {
     if (!address) return;
     try {
-      const res = await fetch(apiUrl("/api/v1/zkdefi/position/${address}?protocol_id=${pid}");
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/position/${address}?protocol_id=${pid}`);
       const data = await res.json();
       setPosition(data.position ?? data.error ?? "—");
     } catch (e) {

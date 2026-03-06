@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, Shield, ArrowRight } from "lucide-react";
-import { apiUrl } from "@/lib/api/client";
 
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
 
 interface Position {
   protocol: string;
@@ -56,7 +55,7 @@ export function PositionChart() {
         const results = await Promise.all(
           protocols.map(async (p) => {
             try {
-              const res = await fetch(apiUrl("/api/v1/zkdefi/position/${address}?protocol_id=${p.id}");
+              const res = await fetch(`${API_BASE}/api/v1/zkdefi/position/${address}?protocol_id=${p.id}`);
               const data = await res.json();
               const value = parseFloat(data.position || "0");
               return { protocol: p.name, value, color: PROTOCOL_COLORS[p.name] || "#6b7280" };
@@ -88,7 +87,7 @@ export function PositionChart() {
     const fetchAggregated = async () => {
       setLoadingAggregated(true);
       try {
-        const res = await fetch(apiUrl("/api/v1/zkdefi/position/aggregate/${address}");
+        const res = await fetch(`${API_BASE}/api/v1/zkdefi/position/aggregate/${address}`);
         const data = await res.json();
         setAggregatedPosition(data);
       } catch (e) {

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Zap, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { apiUrl } from "@/lib/api/client";
 
-
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003").replace(/\/api\/v[0-9]+\/?$/, "");
 
 type RiskProfile = "conservative" | "balanced" | "aggressive";
 
@@ -38,7 +37,7 @@ export function DeployToEkuboCard({ userAddress, onEvent }: DeployToEkuboCardPro
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/api/v1/zkdefi/orchestration/deploy"), {
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/orchestration/deploy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
