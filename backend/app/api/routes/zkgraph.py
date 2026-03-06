@@ -45,11 +45,12 @@ async def agent_query(request: AgentQueryRequest):
 
             receipt_svc = get_receipt_service()
             receipt = receipt_svc.append_proof_receipt(
-                proof_type="zkrag_agent_report",
                 user_address=request.user_address,
+                proof_type="zkrag_agent_report",
+                threshold_or_model=f"confidence={report.get('confidence', 0)}",
+                result=report.get("action", {}).get("level", "unknown"),
                 fact_hash=fact_hash,
                 pool_id=report.get("pool_id"),
-                confidence=report.get("confidence"),
             )
 
         return {**report, "receipt": receipt}

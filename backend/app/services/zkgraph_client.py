@@ -319,6 +319,81 @@ class ZkGraphClient:
             logger.error(f"Provenance verification failed: {e}")
             return {"verified": False, "error": str(e)}
     
+    async def query_agent_report(
+        self,
+        prompt: str,
+        run_live_circuits: bool = False,
+        llm_synthesis: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Query obsqra zkRAG agent for a multi-section intelligence report.
+
+        Returns a dict with:
+          - confidence: float   (0-1 overall quality / freshness)
+          - action:     dict    (level, label, etc.)
+          - zkrag_queries: list of {query, available, results, fact_hash}
+          - pool_id:    str | None
+          - raw sections from the agent
+        """
+        if not self.enabled:
+            return {
+                "source": "local_only",
+                "confidence": 0,
+                "action": {"level": "unknown", "label": "zkGraph disabled"},
+                "zkrag_queries": [],
+            }
+
+        if not self._check_rate_limit():
+            return {
+                "source": "local_only",
+                "confidence": 0,
+                "action": {"level": "rate_limited", "label": "Rate limit exceeded"},
+                "zkrag_queries": [],
+            }
+
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/zkrag/agent/query",
+                json={
+                    "prompt": prompt,
+                    "run_live_circuits": run_live_circuits,
+                    "llm_synthesis": llm_synthesis,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # Normalise sections into a flat zkrag_queries list
+            zkrag_queries: List[Dict[str, Any]] = []
+            for section in data.get("sections", data.get("results", [])):
+                zkrag_queries.append({
+                    "query": section.get("query", section.get("title", "")),
+                    "available": section.get("available", True),
+                    "results": section.get("results", section.get("data", [])),
+                    "fact_hash": section.get("provenance", {}).get("fact_hash")
+                                or section.get("fact_hash"),
+                })
+
+            return {
+                "source": "zkrag",
+                "confidence": data.get("confidence", data.get("score", 0)),
+                "action": data.get("action", {"level": "unknown"}),
+                "zkrag_queries": zkrag_queries,
+                "pool_id": data.get("pool_id"),
+                **{k: v for k, v in data.items()
+                   if k not in ("sections", "results", "confidence", "score",
+                                "action", "pool_id")},
+            }
+
+        except Exception as e:
+            logger.error(f"Agent report query failed: {e}")
+            return {
+                "source": "local_only",
+                "confidence": 0,
+                "action": {"level": "error", "label": str(e)},
+                "zkrag_queries": [],
+            }
+
     async def health_check(self) -> Dict[str, Any]:
         """
         Check zkGraph client health
