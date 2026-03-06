@@ -1,0 +1,18 @@
+[
+  {
+    "pool": "strkBTC/ETH",
+    "init_tx": "0xb06672b173f901415fcc58deaa9169cc96676988bb75aeb3e9208eb2273947",
+    "status": "initialized",
+    "lp_tx": "0xeb172a3fb98a7a0194c91000a0a8b3d18a6e62da97c9d95bdcc91e54c866d6",
+    "lp_amount": 100,
+    "lp_symbol": "strkBTC"
+  },
+  {
+    "pool": "strkBTC/STRK",
+    "init_tx": "0x2bd09794d9db3c5f93d31c5020fb6481636ed1cd7c7ed3c6edf374425a13ffd",
+    "status": "initialized",
+    "lp_tx": "0x41a4219e8ab50920ea511bd68a7c806611f5d81c91ffa4bdb90a1a1553c59a3",
+    "lp_amount": 100,
+    "lp_symbol": "strkBTC"
+  }
+]

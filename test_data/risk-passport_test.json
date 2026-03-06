@@ -1,0 +1,10 @@
+{
+  "user_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+  "volatility_bps": 800,
+  "max_drawdown_bps": 1500,
+  "concentration_bps": 3000,
+  "effective_leverage_bps": 5000,
+  "liquidation_events": 0,
+  "tenure_days": 30,
+  "required_tier": 3
+}

@@ -1,0 +1,16 @@
+{
+  "demo_pool": {
+    "0x222": {
+      "autopilot_opt_in": true,
+      "member_address": "0x222",
+      "member_override": {},
+      "session_scope": {
+        "enabled": true,
+        "expires_at": "2099-01-01T00:00:00+00:00",
+        "max_notional_usd": 300
+      },
+      "shared_pool_id": "demo_pool",
+      "updated_at": "2026-02-24T04:33:00.061397+00:00"
+    }
+  }
+}

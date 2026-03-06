@@ -1,0 +1,10 @@
+{
+  "AgentSkillRegistry": {
+    "class_hash": "0x3e5927705e38ef0868f56dfb6906eb53edf3497eb4be8798c92dc47c747c78",
+    "address": "0x6a039b4e59b39fc2ab44c3c70a5ecdbe765a9afabb4b2765f9bb966dfb6ddda"
+  },
+  "AgentPerformanceStore": {
+    "class_hash": "0x77015bdefbb221813afb193233ffae6f36717222ddb733d8d21d2785c6b63a4",
+    "address": "0x67f10e598223c89135cd8b6a6f58b081e658069231b5a9064d29d5204d4c450"
+  }
+}

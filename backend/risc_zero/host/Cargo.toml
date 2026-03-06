@@ -1,0 +1,10 @@
+[package]
+name = "credit-scoring-host"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+methods = { path = "../methods" }
+risc0-zkvm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,9 @@
+{
+  "model_name": "yield_forecast",
+  "model_hash": "7b41f26e243e2ced4a61d50108793670cc649b5fe4d8710898321af08b91afec",
+  "accuracy": 0.9975,
+  "n_features": 12,
+  "n_classes": 4,
+  "n_samples": 400,
+  "architecture": "Linear(12\u219232)\u2192ReLU\u2192Linear(32\u219216)\u2192ReLU\u2192Linear(16\u21924)"
+}

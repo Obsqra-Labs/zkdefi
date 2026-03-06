@@ -1,0 +1,19 @@
+{
+  "name": "Cascade Failure",
+  "description": "Combined liquidity drain (50%) followed by a depeg down (35%). Multi-vector stress test.",
+  "steps": [
+    {
+      "scenario": "liquidity_drain",
+      "severity": 0.50,
+      "duration_ticks": 20,
+      "delay_ticks": 0
+    },
+    {
+      "scenario": "depeg_down",
+      "severity": 0.35,
+      "duration_ticks": 40,
+      "delay_ticks": 25
+    }
+  ],
+  "tags": ["multi-vector", "stress-test", "critical"]
+}

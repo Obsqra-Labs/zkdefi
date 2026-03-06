@@ -1,0 +1,8 @@
+{
+  "name": "Whale Dump",
+  "description": "Massive sell pressure causing 60% liquidity drain. Tests pool resilience and emergency rebalancing.",
+  "scenario": "liquidity_drain",
+  "severity": 0.60,
+  "duration_ticks": 45,
+  "tags": ["stress-test", "liquidity", "high-impact"]
+}

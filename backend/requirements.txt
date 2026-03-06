@@ -1,0 +1,20 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+httpx>=0.25.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+starknet-py>=0.21.0
+eth-account>=0.13.0
+# crypto_cpp_py (pulled by starknet-py) expects igcdex in sympy.core.numbers.
+# sympy>=1.13 removed that location and breaks imports.
+sympy<1.13
+
+# v6: ML + DB dependencies
+asyncpg>=0.29.0
+onnxruntime>=1.17.0
+xgboost>=2.0.0
+onnxmltools>=1.12.0
+skl2onnx>=1.16.0
+scikit-learn>=1.4.0
+numpy>=1.26.0
+prometheus-client==0.21.0

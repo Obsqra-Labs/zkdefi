@@ -1,0 +1,54 @@
+=============================================================================
+                    VK MISMATCH FIX - DEPLOYMENT SUMMARY
+=============================================================================
+
+TECHNICAL FIX: ✅ 100% COMPLETE
+
+ROOT CAUSE:
+  - One verifier used for both deposit & withdrawal
+  - But they have different verification keys!
+  - Withdrawal proof → deposit verifier = "Wrong Glv&FakeGLV result"
+
+SOLUTION:
+  - Updated contract to use TWO verifiers
+  - Generated withdrawal verifier with correct VK
+  - Both artifacts built and ready
+
+ARTIFACTS LOCATION:
+  Withdrawal Verifier:
+    circuits/contracts/src/garaga_verifier_withdraw/target/dev/
+      - garaga_verifier_withdraw_Groth16VerifierBN254.contract_class.json
+      - garaga_verifier_withdraw_Groth16VerifierBN254.compiled_contract_class.json
+    
+  ConfidentialTransfer:
+    contracts/target/dev/
+      - zkdefi_contracts_ConfidentialTransfer.contract_class.json
+      - zkdefi_contracts_ConfidentialTransfer.compiled_contract_class.json
+
+DEPLOYMENT REQUIRED:
+  ⚠️ RPC v0.7.1 vs v0.10.0 incompatibility blocks automated deployment
+  ✅ Manual deployment via Voyager/Starkscan works
+
+DEPLOYMENT STEPS:
+  1. Go to https://voyager.online/
+  2. Upload withdrawal verifier artifacts → Deploy → Save address
+  3. Upload ConfidentialTransfer artifacts → Deploy with constructor:
+       - garaga_verifier_deposit: 0x06d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37
+       - garaga_verifier_withdraw: <from step 2>
+       - token: 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
+       - admin: 0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d
+  4. Update .env files with new ConfidentialTransfer address
+  5. Restart backend & frontend
+  6. Test!
+
+COMPLETE INSTRUCTIONS:
+  → MANUAL_DEPLOYMENT_INSTRUCTIONS.md
+
+EXPECTED RESULTS:
+  ✅ Deposits work (already working)
+  ✅ Withdrawals work (after deployment)
+
+=============================================================================
+Date: February 3, 2026
+Status: Ready for manual deployment
+=============================================================================

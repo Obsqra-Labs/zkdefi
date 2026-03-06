@@ -1,0 +1,20 @@
+{
+  "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": {
+    "ethereum": {
+      "address": "0x4490a26eB6A0a19d1720866DA5d43f862768110D",
+      "verified": true,
+      "verified_at": "2026-03-04T21:56:42.708757+00:00",
+      "signature_hash": "0x6992b1ad3f801b3607d9a5fd39e1e91afe394c12944969878e68ca130b98f026",
+      "nonce_id": "13703cd5ee5b47f591e031e5b70684aa"
+    }
+  },
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "ethereum": {
+      "address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+      "verified": true,
+      "verified_at": "2026-03-03T21:48:55.270893+00:00",
+      "signature_hash": "0xe0dc47a7a03358cdbcac7c6813db4884f361f6ac2f98562a9090966697989050",
+      "nonce_id": "520629e4e302453caf3e76953ef23fe7"
+    }
+  }
+}

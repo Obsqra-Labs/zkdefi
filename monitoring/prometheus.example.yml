@@ -1,0 +1,19 @@
+# If running Prometheus from this directory (monitoring/), rule path is relative:
+#   prometheus --config.file=prometheus.example.yml
+# From repo root: prometheus --config.file=monitoring/prometheus.example.yml
+# Then ensure alert_rules.yml path is valid (same dir as this file, or use absolute path below).
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - "alert_rules.yml"
+# If running Prometheus outside the repo, use absolute path, e.g.:
+# - "/opt/obsqra.starknet/zkdefi/monitoring/alert_rules.yml"
+
+scrape_configs:
+  - job_name: zkdefi-backend
+    static_configs:
+      - targets: ["127.0.0.1:8003"]
+    metrics_path: /metrics

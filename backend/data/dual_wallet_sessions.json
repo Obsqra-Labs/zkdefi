@@ -1,0 +1,46 @@
+{
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "active": false,
+    "status": "expired",
+    "session_id": "390e0b7a197a451aa4bcd33a3fe5c06d",
+    "starknet_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "chain": "ethereum",
+    "evm_address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+    "issued_at": 1772574535,
+    "issued_at_iso": "2026-03-03T21:48:55.271723+00:00",
+    "expires_at": 1772660935,
+    "verified_at": "2026-03-03T21:48:55.270893+00:00",
+    "linked_proof": {
+      "nonce_id": "520629e4e302453caf3e76953ef23fe7"
+    },
+    "auth_provider": "injected",
+    "identity_binding": {
+      "linked_chain_key": "eth",
+      "linked_address": "0x8f2c8b79b24122e189966d8a041af49a9f9ec7d9",
+      "bound": true,
+      "linked_updated_at": "2026-03-03T21:48:55.272192+00:00"
+    },
+    "history": [
+      {
+        "at": "2026-03-03T21:48:55.272199+00:00",
+        "action": "bind",
+        "status": "active",
+        "auth_provider": "injected",
+        "chain": "ethereum",
+        "evm_address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+        "bound": true
+      },
+      {
+        "at": "2026-03-04T22:03:38.573014+00:00",
+        "action": "expired",
+        "status": "expired",
+        "auth_provider": "injected",
+        "chain": "ethereum",
+        "evm_address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+        "bound": true
+      }
+    ],
+    "expired_at": 1772661818,
+    "expired_at_iso": "2026-03-04T22:03:38.573014+00:00"
+  }
+}

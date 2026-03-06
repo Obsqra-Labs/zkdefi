@@ -1,0 +1,16 @@
+{
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "core_emerald": {
+      "staked_wei": 0,
+      "rewards_wei": 0,
+      "last_accrual_ts": 1772461697,
+      "last_stake_ts": 0
+    },
+    "boost_violet": {
+      "staked_wei": 0,
+      "rewards_wei": 0,
+      "last_accrual_ts": 1772461697,
+      "last_stake_ts": 0
+    }
+  }
+}

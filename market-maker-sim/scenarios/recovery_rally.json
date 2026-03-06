@@ -1,0 +1,8 @@
+{
+  "name": "Recovery Rally",
+  "description": "Sharp 25% overshoot above peg simulating a recovery squeeze. Tests bot response to over-peg conditions.",
+  "scenario": "depeg_up",
+  "severity": 0.25,
+  "duration_ticks": 60,
+  "tags": ["recovery", "over-peg", "medium-impact"]
+}

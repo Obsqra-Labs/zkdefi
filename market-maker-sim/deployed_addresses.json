@@ -1,0 +1,12 @@
+{
+  "network": "sepolia",
+  "deployed_at": "2026-03-01T05:44:00Z",
+  "token_class_hash": "0x145e61fc5713b27d970de4d8cc106e2cbf45bd671b86fc6aedd184151579a70",
+  "controller_class_hash": "0x4e5db827157bc78830fdc520608c1b9709083a21a8ab381fbd88556d9a6d799",
+  "zkdETH": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+  "zkdAI": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+  "zkdETH_v1": "0x07b107f3ab08e81333be9360e5a38b93f47f6fdf656bf55242e0c6ac7f768cd9",
+  "zkdAI_v1": "0x04899efc45b5a6cb94ece002b3f483ab488e0d63a5852d143bdef881e0931cb0",
+  "market_controller": "0x051abfe849a54c19b1afa7977bed7e0c58689251dd64df3063ebb1bff3d760fc",
+  "owner": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
+}

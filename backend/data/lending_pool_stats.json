@@ -1,0 +1,9 @@
+{
+  "pool": {
+    "total_supplied_wei": 25000000000000000000,
+    "total_borrowed_wei": 8000000000000000000,
+    "total_shares": 25000,
+    "supply_apy_bps": 300,
+    "borrow_apy_bps": 500
+  }
+}

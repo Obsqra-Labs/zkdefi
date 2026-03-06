@@ -13565,7 +13565,109 @@
         "tick_spacing": 1000,
         "extension": "0x0"
       }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x5818e12f7f64bb5b3161a11bdd9c1414be12068d73e7a383db08f9d59f89127",
+      "created_at": 1772825615.8140209,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x69b73d5ccfc5e050826cbd83111e8861a3606596056fcfb5c37c45d6a97a72d",
+      "created_at": 1772826087.4248102,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x37323251a2240613dbfd03a6c7b38658582dca7a600963d3cdd146d9d3c3e2",
+      "created_at": 1772826242.9608839,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x357f31c61f300d21df088b30ae69cc2e392ec189f86a22f69c49e952d002b57",
+      "created_at": 1772826371.4216232,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x780f724c71932cb21f30921057751e3e10e13394663c25292beb776375d9f2",
+      "created_at": 1772826506.1989312,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4689920acb44fc1184c63d9baf6f946a3ef1420dbcaa269cf42012a2a7b31e7",
+      "created_at": 1772826745.076657,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
     }
   ],
-  "updated_at": 1772825221.6159863
+  "updated_at": 1772826745.0767376
 }

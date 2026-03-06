@@ -1,0 +1,6 @@
+{
+  "user_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+  "asset_positions": [1000, 2000],
+  "debt_positions": [500],
+  "min_solvency_ratio_bps": 12000
+}

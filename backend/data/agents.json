@@ -1,0 +1,32 @@
+{
+  "e5b7e23e952a49c8": {
+    "id": "e5b7e23e952a49c8",
+    "owner": "0xtest",
+    "name": "TestAgent",
+    "processors": [
+      "risk_scoring"
+    ],
+    "decision_logic": {
+      "mode": "all_pass"
+    },
+    "created_at": 1772158214,
+    "active": false
+  },
+  "90e22ac9dffad5a7": {
+    "id": "90e22ac9dffad5a7",
+    "owner": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "name": "zx",
+    "processors": [
+      "risk_scoring",
+      "correlation_risk",
+      "safety_diversification",
+      "twap_position",
+      "credit_scoring"
+    ],
+    "decision_logic": {
+      "type": "AND"
+    },
+    "created_at": 1772164062,
+    "active": true
+  }
+}

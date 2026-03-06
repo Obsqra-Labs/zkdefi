@@ -1,0 +1,1 @@
+from app.api.routes.full_privacy import router as full_privacy_router

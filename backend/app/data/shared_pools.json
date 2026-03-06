@@ -1,0 +1,113 @@
+{
+  "demo_pool": {
+    "created_at": "2026-02-24T04:33:00.058378+00:00",
+    "envelope": {
+      "allowed_strategies": {
+        "enable_dca": true,
+        "enable_lp": true,
+        "enable_rebalance": true,
+        "enable_rotation": false
+      },
+      "execution_limits": {
+        "min_passport_score": 20,
+        "per_member_daily_notional_usd": 500
+      },
+      "max_risk_budget": {
+        "max_daily_turnover_bps": 1500,
+        "max_drawdown_bps": 1200,
+        "max_position_pct": 30
+      },
+      "privacy_floor": {
+        "hide_amounts": true,
+        "hide_recipient": true,
+        "hide_sender": true,
+        "max_relayer_delay_seconds": 600,
+        "preset": "hidden_flow",
+        "relay_mode": "required",
+        "settlement_mode": "public_transfer",
+        "use_nullifier": true
+      },
+      "token_allowlist": [],
+      "venue_allowlist": []
+    },
+    "manager_address": "0x111",
+    "metadata": {},
+    "proposals": [
+      {
+        "created_at": "2026-02-24T04:33:00.065269+00:00",
+        "executed_at": "2026-02-24T04:33:00.070755+00:00",
+        "executed_by": "0x222",
+        "manager_address": "0x111",
+        "payload": {
+          "action_type": "rebalance",
+          "context": {
+            "venue": "ekubo"
+          },
+          "notional_usd": 250
+        },
+        "proposal_id": "spp_c1458d7bd01e1c5d",
+        "shared_pool_id": "demo_pool",
+        "status": "executed",
+        "updated_at": "2026-02-24T04:33:00.070804+00:00"
+      }
+    ],
+    "shared_pool_id": "demo_pool",
+    "updated_at": "2026-02-24T04:33:00.070806+00:00"
+  },
+  "sp_9800404d51f5bb": {
+    "created_at": "2026-03-02T04:12:32.653867+00:00",
+    "envelope": {
+      "allowed_strategies": {
+        "enable_dca": true,
+        "enable_lp": true,
+        "enable_rebalance": true,
+        "enable_rotation": true
+      },
+      "execution_limits": {
+        "min_passport_score": 30,
+        "per_member_daily_notional_usd": 1000
+      },
+      "max_risk_budget": {
+        "max_daily_turnover_bps": 2000,
+        "max_drawdown_bps": 1500,
+        "max_position_pct": 30
+      },
+      "privacy_floor": {
+        "hide_amounts": true,
+        "hide_recipient": true,
+        "hide_sender": true,
+        "max_relayer_delay_seconds": 600,
+        "preset": "hidden_flow",
+        "relay_mode": "required",
+        "settlement_mode": "public_transfer",
+        "use_nullifier": true
+      },
+      "token_allowlist": [],
+      "venue_allowlist": [
+        "ekubo",
+        "avnu"
+      ]
+    },
+    "manager_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "metadata": {},
+    "proposals": [
+      {
+        "created_at": "2026-03-02T04:12:44.941285+00:00",
+        "manager_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+        "payload": {
+          "action_type": "rebalance",
+          "context": {
+            "venue": "ekubo"
+          },
+          "notional_usd": 100
+        },
+        "proposal_id": "spp_5d219212aafd4ef8",
+        "shared_pool_id": "sp_9800404d51f5bb",
+        "status": "proposed",
+        "updated_at": "2026-03-02T04:12:44.941288+00:00"
+      }
+    ],
+    "shared_pool_id": "sp_9800404d51f5bb",
+    "updated_at": "2026-03-02T04:12:54.873315+00:00"
+  }
+}
