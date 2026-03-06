@@ -2,10 +2,11 @@
 Reputation API Routes
 
 Manages user reputation tiers and proof requirements.
+Includes proof generation endpoints for the FICO-pack reputation circuits.
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 import time
 
 router = APIRouter(prefix="/reputation", tags=["reputation"])
@@ -507,3 +508,221 @@ async def get_on_chain_reputation(address: str):
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"On-chain read failed: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# REPUTATION CIRCUIT PROOF GENERATION ENDPOINTS (FICO Pack)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class SolvencyProofRequest(BaseModel):
+    user_address: str
+    asset_positions: list[int]
+    debt_positions: list[int]
+    min_solvency_ratio_bps: int = 10000
+
+
+class RiskPassportProofRequest(BaseModel):
+    user_address: str
+    volatility_bps: int
+    max_drawdown_bps: int
+    concentration_bps: int
+    effective_leverage_bps: int
+    liquidation_events: int
+    tenure_days: int
+    required_tier: Optional[int] = None
+
+
+class TraderPerformanceProofRequest(BaseModel):
+    user_address: str
+    returns_bps: list[int]
+    equity_curve: list[int]
+    wins_count: int
+    trades_count: int
+    min_sharpe_x100: int = 150
+    max_drawdown_bps: int = 2000
+    min_win_rate_bps: int = 5000
+
+
+class StrategyIntegrityProofRequest(BaseModel):
+    user_address: str
+    position_weights_bps: list[int]
+    effective_leverage_bps: int
+    observed_slippage_bps: list[int]
+    asset_exposures_bps: list[int]
+    max_position_weight_bps: int = 2500
+    max_leverage_bps: int = 20000
+    max_slippage_bps: int = 100
+
+
+class ExecutionIntegrityProofRequest(BaseModel):
+    user_address: str
+    submission_block: int
+    inclusion_block: int
+    expected_price: int
+    actual_price: int
+    max_delay_blocks: int = 5
+    max_price_deviation_bps: int = 50
+
+
+@router.post("/proof/solvency")
+async def generate_solvency_proof(req: SolvencyProofRequest):
+    """Generate a zero-knowledge proof that assets >= liabilities without revealing positions."""
+    from app.services.zkml.circuit_scanner import build_solvency_proof_inputs, run_circuit_scan
+    
+    try:
+        user_addr_int = int(req.user_address, 16) if req.user_address.startswith("0x") else int(req.user_address)
+        
+        inputs = build_solvency_proof_inputs(
+            asset_positions=req.asset_positions,
+            debt_positions=req.debt_positions,
+            min_solvency_ratio_bps=req.min_solvency_ratio_bps,
+            user_address=user_addr_int,
+        )
+        
+        result = await run_circuit_scan(
+            circuits=["SolvencyProof"],
+            user_address=user_addr_int,
+            inputs_override={"SolvencyProof": inputs},
+            mode="gate",
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
+
+
+@router.post("/proof/risk-passport")
+async def generate_risk_passport_proof(req: RiskPassportProofRequest):
+    """Generate a zero-knowledge proof of risk tier without revealing metrics."""
+    from app.services.zkml.circuit_scanner import build_risk_passport_tier_inputs, run_circuit_scan
+    
+    try:
+        user_addr_int = int(req.user_address, 16) if req.user_address.startswith("0x") else int(req.user_address)
+        
+        inputs = build_risk_passport_tier_inputs(
+            volatility_bps=req.volatility_bps,
+            max_drawdown_bps=req.max_drawdown_bps,
+            concentration_bps=req.concentration_bps,
+            effective_leverage_bps=req.effective_leverage_bps,
+            liquidation_events_lookback=req.liquidation_events,
+            tenure_days=req.tenure_days,
+            required_tier=req.required_tier or 3,
+            user_address=user_addr_int,
+        )
+        
+        result = await run_circuit_scan(
+            circuits=["RiskPassportTier"],
+            user_address=user_addr_int,
+            inputs_override={"RiskPassportTier": inputs},
+            mode="gate",
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
+
+
+@router.post("/proof/performance")
+async def generate_trader_performance_proof(req: TraderPerformanceProofRequest):
+    """Generate a zero-knowledge proof of trader performance without revealing returns."""
+    from app.services.zkml.circuit_scanner import build_trader_performance_inputs, run_circuit_scan
+    
+    try:
+        if len(req.returns_bps) != 30:
+            raise HTTPException(status_code=400, detail="returns_bps must have exactly 30 values")
+        if len(req.equity_curve) != 30:
+            raise HTTPException(status_code=400, detail="equity_curve must have exactly 30 values")
+        
+        user_addr_int = int(req.user_address, 16) if req.user_address.startswith("0x") else int(req.user_address)
+        
+        inputs = build_trader_performance_inputs(
+            returns_bps=req.returns_bps,
+            equity_curve=req.equity_curve,
+            wins_count=req.wins_count,
+            trades_count=req.trades_count,
+            min_sharpe_x100=req.min_sharpe_x100,
+            max_drawdown_bps=req.max_drawdown_bps,
+            min_win_rate_bps=req.min_win_rate_bps,
+            user_address=user_addr_int,
+        )
+            
+        result = await run_circuit_scan(
+            circuits=["TraderPerformanceProof"],
+            user_address=user_addr_int,
+            inputs_override={"TraderPerformanceProof": inputs},
+            mode="gate",
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
+
+
+@router.post("/proof/strategy-integrity")
+async def generate_strategy_integrity_proof(req: StrategyIntegrityProofRequest):
+    """Generate a zero-knowledge proof that strategy complies with mandate constraints."""
+    from app.services.zkml.circuit_scanner import build_strategy_integrity_inputs, run_circuit_scan
+    
+    try:
+        if len(req.position_weights_bps) != 8:
+            raise HTTPException(status_code=400, detail="position_weights_bps must have exactly 8 values")
+        if len(req.observed_slippage_bps) != 8:
+            raise HTTPException(status_code=400, detail="observed_slippage_bps must have exactly 8 values")
+        if len(req.asset_exposures_bps) != 8:
+            raise HTTPException(status_code=400, detail="asset_exposures_bps must have exactly 8 values")
+        
+        user_addr_int = int(req.user_address, 16) if req.user_address.startswith("0x") else int(req.user_address)
+        
+        inputs = build_strategy_integrity_inputs(
+            position_weights_bps=req.position_weights_bps,
+            effective_leverage_bps=req.effective_leverage_bps,
+            observed_slippage_bps=req.observed_slippage_bps,
+            asset_exposures_bps=req.asset_exposures_bps,
+            max_position_weight_bps=req.max_position_weight_bps,
+            max_leverage_bps=req.max_leverage_bps,
+            max_slippage_bps=req.max_slippage_bps,
+            user_address=user_addr_int,
+        )
+            
+        result = await run_circuit_scan(
+            circuits=["StrategyIntegrity"],
+            user_address=user_addr_int,
+            inputs_override={"StrategyIntegrity": inputs},
+            mode="gate",
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")
+
+
+@router.post("/proof/execution-integrity")
+async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest):
+    """Generate a zero-knowledge proof that execution met fairness constraints."""
+    from app.services.zkml.circuit_scanner import build_execution_integrity_inputs, run_circuit_scan
+    
+    try:
+        user_addr_int = int(req.user_address, 16) if req.user_address.startswith("0x") else int(req.user_address)
+        
+        inputs = build_execution_integrity_inputs(
+            submission_block=req.submission_block,
+            inclusion_block=req.inclusion_block,
+            expected_price=req.expected_price,
+            actual_price=req.actual_price,
+            max_delay_blocks=req.max_delay_blocks,
+            max_price_deviation_bps=req.max_price_deviation_bps,
+            user_address=user_addr_int,
+        )
+        
+        result = await run_circuit_scan(
+            circuits=["ExecutionIntegrity"],
+            user_address=user_addr_int,
+            inputs_override={"ExecutionIntegrity": inputs},
+            mode="gate",
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proof generation failed: {str(e)}")

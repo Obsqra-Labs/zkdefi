@@ -571,3 +571,149 @@ async def stark_passport_config():
     from app.services.reputation_passport_client import get_reputation_passport_client
     client = get_reputation_passport_client()
     return await client.get_passport_config()
+
+
+@router.get("/settlement/config")
+async def settlement_config():
+    """
+    Return current proof settlement configuration.
+
+    Shows whether proofs settle to Madara L3, Starknet L2, or both.
+    Useful for the frontend to display which chain the user's proofs are on.
+    """
+    from app.services.madara_settlement_client import get_madara_settlement_client
+    client = get_madara_settlement_client()
+    config = await client.settlement_config()
+    return {
+        "primary_settlement": config.primary_settlement,
+        "madara_l3": {
+            "enabled": config.madara_enabled,
+            "configured": config.madara_configured,
+            "chain_id": config.madara_chain_id,
+        },
+        "starknet_l2": {
+            "enabled": config.starknet_l2_enabled,
+            "network": config.starknet_l2_network,
+        },
+        "error": config.error or None,
+    }
+
+
+@router.get("/settlement/madara/health")
+async def madara_health():
+    """Check Madara L3 appchain health (proxied from obsqra parent)."""
+    from app.services.madara_settlement_client import get_madara_settlement_client
+    client = get_madara_settlement_client()
+    health = await client.health()
+    return {
+        "healthy": health.healthy,
+        "enabled": health.enabled,
+        "chain_id": health.chain_id,
+        "latest_block": health.latest_block,
+        "error": health.error or None,
+    }
+
+
+@router.post("/settlement/madara/verify")
+async def madara_verify_fact(fact_hash: str):
+    """Verify a fact hash on the Madara L3 FactRegistry."""
+    from app.services.madara_settlement_client import get_madara_settlement_client
+    client = get_madara_settlement_client()
+    result = await client.verify_fact(fact_hash)
+    return {
+        "valid": result.valid,
+        "fact_hash": result.fact_hash,
+        "chain_id": result.chain_id,
+        "error": result.error or None,
+    }
+
+
+# ── L3 Proving Paths (obsqra stack integration) ─────────────────────────
+
+
+@router.get("/l3/capabilities")
+async def l3_capabilities():
+    """
+    Full obsqra stack capability discovery for zkde.fi.
+
+    Returns all proving paths (on-chain verification, SNOS, aggregation),
+    available obsqra services (Stone prover, dual prover, sequencer, etc.),
+    and complete circuit inventory. Use this to render the zkde.fi proof
+    infrastructure dashboard.
+    """
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    caps = await client.capabilities()
+    if caps.error:
+        return {"error": caps.error}
+    return caps.raw
+
+
+@router.get("/l3/proving-paths")
+async def l3_proving_paths():
+    """
+    List available L3 proving paths.
+
+    Path 1: On-chain Verification (Garaga/Integrity) — zero gas cost
+    Path 2: SNOS Block Proving — L3→L2 validity proofs
+    Path 3: Recursive Aggregation on L3 — batched contract verification
+    """
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    return await client.proving_paths()
+
+
+@router.get("/l3/stats")
+async def l3_stats():
+    """Comprehensive L3 proving statistics across all three paths."""
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    return await client.stats()
+
+
+@router.post("/l3/verify")
+async def l3_verify_proof(
+    fact_hash: str,
+    proof_type: str = "stark",
+    circuit_name: str = "",
+):
+    """
+    Verify a proof on L3 and register the fact on-chain.
+
+    Uses the best available on-chain verifier (Garaga Groth16 or Integrity STARK),
+    all at zero gas cost on the Madara L3 appchain. Falls back to hash-only
+    registration if no on-chain verifier is deployed.
+    """
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    result = await client.verify_proof(
+        fact_hash=fact_hash,
+        proof_type=proof_type,
+        circuit_name=circuit_name,
+    )
+    return {
+        "success": result.success,
+        "mode": result.mode,
+        "fact_hash": result.fact_hash,
+        "tx_hash": result.tx_hash,
+        "verified_on_chain": result.verified_on_chain,
+        "latency_ms": result.latency_ms,
+        "error": result.error or None,
+    }
+
+
+@router.get("/l3/snos/queue")
+async def l3_snos_queue():
+    """Blocks queued for SNOS proving (Path 2 status)."""
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    return await client.snos_queue()
+
+
+@router.get("/l3/blocks")
+async def l3_recent_blocks(limit: int = 10):
+    """Recent blocks processed through L3 proving paths."""
+    from app.services.l3_proving_path_client import get_l3_proving_path_client
+    client = get_l3_proving_path_client()
+    return await client.recent_blocks(limit=limit)
+

@@ -94,7 +94,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.876075",
-    "updated_at": "2026-03-05T22:19:51.585346",
+    "updated_at": "2026-03-06T00:01:50.274074",
     "first_seen": "2026-03-05T07:06:31.876075"
   },
   "f0f15955b1d6b6af": {
@@ -118,7 +118,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.876654",
-    "updated_at": "2026-03-05T22:19:51.589378",
+    "updated_at": "2026-03-06T00:01:50.280307",
     "first_seen": "2026-03-05T07:06:31.876654"
   },
   "24370f82166650ab": {
@@ -142,7 +142,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.877439",
-    "updated_at": "2026-03-05T22:19:51.595201",
+    "updated_at": "2026-03-06T00:01:50.285492",
     "first_seen": "2026-03-05T07:06:31.877439"
   },
   "5577252d0a3b1d20": {
@@ -166,7 +166,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.878221",
-    "updated_at": "2026-03-05T22:19:51.600080",
+    "updated_at": "2026-03-06T00:01:50.290681",
     "first_seen": "2026-03-05T07:06:31.878221"
   },
   "2bec89b929ca36bf": {
@@ -190,7 +190,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.881618",
-    "updated_at": "2026-03-05T22:19:51.604138",
+    "updated_at": "2026-03-06T00:01:50.296119",
     "first_seen": "2026-03-05T07:06:31.881618"
   },
   "69f14b2115ee25d2": {
@@ -201,20 +201,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.32,
     "apy": 32.0,
-    "tvl_usd": 260215.9,
+    "tvl_usd": 262645.11,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 32.0,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 54.45044166666666,
+      "liquidity_score": 54.517919722222224,
       "efficiency_score": 24.0
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.882528",
-    "updated_at": "2026-03-05T22:19:51.612848",
+    "updated_at": "2026-03-06T00:01:50.310005",
     "first_seen": "2026-03-05T07:06:31.882528"
   },
   "2deea9d532b39ba8": {
@@ -225,20 +225,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.0979,
     "apy": 9.79,
-    "tvl_usd": 559042.17,
+    "tvl_usd": 559041.45,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 9.79,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 62.75117138888889,
+      "liquidity_score": 62.751151388888886,
       "efficiency_score": 7.342499999999999
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.883438",
-    "updated_at": "2026-03-05T22:19:51.616556",
+    "updated_at": "2026-03-06T00:01:50.316783",
     "first_seen": "2026-03-05T07:06:31.883438"
   },
   "5cdc52c306e0300f": {
@@ -249,20 +249,20 @@
     "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
     "fee_tier": 0.0771,
     "apy": 7.72,
-    "tvl_usd": 212270.0,
+    "tvl_usd": 212269.29,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 7.72,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 53.118611111111115,
+      "liquidity_score": 53.11859138888889,
       "efficiency_score": 5.79
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.884446",
-    "updated_at": "2026-03-05T22:19:51.619889",
+    "updated_at": "2026-03-06T00:01:50.323697",
     "first_seen": "2026-03-05T07:06:31.884446"
   },
   "69e52bdc40332b42": {
@@ -273,20 +273,20 @@
     "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "fee_tier": 0.0607,
     "apy": 6.07,
-    "tvl_usd": 519280.74,
+    "tvl_usd": 521710.65,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 6.07,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 61.646687222222226,
+      "liquidity_score": 61.71418472222222,
       "efficiency_score": 4.5525
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.885430",
-    "updated_at": "2026-03-05T22:19:51.623518",
+    "updated_at": "2026-03-06T00:01:50.330379",
     "first_seen": "2026-03-05T07:06:31.885430"
   },
   "2272ba2a20bd8034": {
@@ -297,20 +297,20 @@
     "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
     "fee_tier": 0.04,
     "apy": 4.0,
-    "tvl_usd": 172508.58,
+    "tvl_usd": 174938.49,
     "volume_24h_usd": 0.0,
     "confidence": "medium",
     "genome": {
       "yield_score": 4.0,
       "risk_score": 50.0,
       "volatility_score": 100.0,
-      "liquidity_score": 52.01412722222222,
+      "liquidity_score": 52.08162472222222,
       "efficiency_score": 3.0
     },
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T07:06:31.886346",
-    "updated_at": "2026-03-05T22:19:51.627690",
+    "updated_at": "2026-03-06T00:01:50.337321",
     "first_seen": "2026-03-05T07:06:31.886346"
   },
   "da1e14e555ac1525": {
@@ -382,7 +382,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T17:53:37.316994",
-    "updated_at": "2026-03-05T22:19:51.609206",
+    "updated_at": "2026-03-06T00:01:50.302894",
     "first_seen": "2026-03-05T17:53:37.316994"
   },
   "5fcd78b8a20ec7e3": {
@@ -406,7 +406,7 @@
     "zkml_risk_score": null,
     "zkml_flags": [],
     "created_at": "2026-03-05T21:20:36.992067",
-    "updated_at": "2026-03-05T22:19:51.577373",
+    "updated_at": "2026-03-06T00:01:50.263002",
     "first_seen": "2026-03-05T21:20:36.992067"
   }
 }

@@ -71,9 +71,19 @@
 
 ### Q6: What about the Madara appchain path?
 
-**Context:** The obsqra proof sequencer has `MADARA_APPCHAIN_RPC` and `MADARA_SETTLE_ENABLED` config for future Madara settlement.
+**Status: IMPLEMENTED** (2026-03-05).
 
-**Impact:** If obsqra moves to Madara, the zkRAG API stays the same (HTTP). The proof sequencer settlement changes but zkdefi's `ProofSequencerClient` already talks to the HTTP layer, not directly to Starknet. Low impact on zkGraph integration.
+**What was built:**
+- `MadaraSettlementService` (`backend/app/services/madara_settlement_service.py`) — register_fact/verify_fact on Madara L3
+- `ProofSequencer._seal_block()` now tries Madara L3 first, falls back to Starknet L2
+- `MadaraSettlementClient` on zkdefi side for status queries
+- 5 new obsqra API routes + 3 new zkdefi routes for Madara health/verify/config
+- Chain config: `OBSQRA_PROOF_CHAIN`, 5s blocks, zero gas, RPC :9944
+- Deploy + startup scripts for Madara node and FactRegistry
+
+**Impact on zkGraph:** None. The zkRAG API is unchanged (HTTP). The settlement layer is transparent to all consumers. `ProofSequencerClient` talks to the HTTP layer, not directly to any settlement layer.
+
+See [MADARA_L3_APPCHAIN_ARCHITECTURE.md](../MADARA_L3_APPCHAIN_ARCHITECTURE.md) for full details.
 
 ---
 

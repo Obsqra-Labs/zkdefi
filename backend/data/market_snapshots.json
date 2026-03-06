@@ -13,49 +13,11 @@
         "volume_24h": 5800000,
         "volatility_bps": 430
       },
-      "timestamp": 1772239254,
-      "datetime": "2026-02-28T00:40:54",
-      "snapshot_hash": "0x18daf4bdb7e1753172084da5aec2802a",
-      "stale": true,
-      "age_seconds": 507845
-    },
-    {
-      "jediswap": {
-        "tvl": 45000000,
-        "apy_bps": 420,
-        "volume_24h": 2500000,
-        "volatility_bps": 210
-      },
-      "ekubo": {
-        "tvl": 78000000,
-        "apy_bps": 0,
-        "volume_24h": 5800000,
-        "volatility_bps": 430
-      },
-      "timestamp": 1772242861,
-      "datetime": "2026-02-28T01:41:01",
-      "snapshot_hash": "0x82bdb2cb92105db10d6e98dcfe1c205e",
-      "stale": true,
-      "age_seconds": 504238
-    },
-    {
-      "jediswap": {
-        "tvl": 45000000,
-        "apy_bps": 420,
-        "volume_24h": 2500000,
-        "volatility_bps": 210
-      },
-      "ekubo": {
-        "tvl": 78000000,
-        "apy_bps": 0,
-        "volume_24h": 5800000,
-        "volatility_bps": 430
-      },
       "timestamp": 1772246507,
       "datetime": "2026-02-28T02:41:47",
       "snapshot_hash": "0xf8457ecd3b85a08845ad2b60b428657d",
       "stale": true,
-      "age_seconds": 500592
+      "age_seconds": 507809
     },
     {
       "jediswap": {
@@ -74,7 +36,7 @@
       "datetime": "2026-02-28T15:07:29",
       "snapshot_hash": "0xab152fcd3c8d05ceb0c41940668dcdea",
       "stale": true,
-      "age_seconds": 455850
+      "age_seconds": 463067
     },
     {
       "jediswap": {
@@ -93,7 +55,7 @@
       "datetime": "2026-02-28T16:29:27",
       "snapshot_hash": "0x260203532dc19ff1fbd71ec9783b1423",
       "stale": true,
-      "age_seconds": 450932
+      "age_seconds": 458149
     },
     {
       "jediswap": {
@@ -112,7 +74,7 @@
       "datetime": "2026-02-28T21:19:00",
       "snapshot_hash": "0x55d30fb4b2b16700e743c04b9fdc624b",
       "stale": true,
-      "age_seconds": 433559
+      "age_seconds": 440776
     },
     {
       "jediswap": {
@@ -131,7 +93,7 @@
       "datetime": "2026-02-28T22:23:32",
       "snapshot_hash": "0xcbf39a0fa2ed27b09e5ae919824d26c3",
       "stale": true,
-      "age_seconds": 429687
+      "age_seconds": 436904
     },
     {
       "jediswap": {
@@ -150,7 +112,7 @@
       "datetime": "2026-02-28T23:42:54",
       "snapshot_hash": "0xf1533f9dd7bdce081df2438f9c70dfb7",
       "stale": true,
-      "age_seconds": 424925
+      "age_seconds": 432142
     },
     {
       "jediswap": {
@@ -169,7 +131,7 @@
       "datetime": "2026-03-01T00:43:46",
       "snapshot_hash": "0x335f21d1b7aa32936ee8ecdaf47f7d1d",
       "stale": true,
-      "age_seconds": 421273
+      "age_seconds": 428490
     },
     {
       "jediswap": {
@@ -188,7 +150,7 @@
       "datetime": "2026-03-01T01:48:40",
       "snapshot_hash": "0xf5e03a086745180c29eb00259eb869f4",
       "stale": true,
-      "age_seconds": 417379
+      "age_seconds": 424596
     },
     {
       "jediswap": {
@@ -207,7 +169,7 @@
       "datetime": "2026-03-01T02:48:57",
       "snapshot_hash": "0xa2eb0f3cd6bffac59639afb57e274a77",
       "stale": true,
-      "age_seconds": 413762
+      "age_seconds": 420979
     },
     {
       "jediswap": {
@@ -226,7 +188,7 @@
       "datetime": "2026-03-01T03:53:33",
       "snapshot_hash": "0x0c09b1971ff713ffc0acf8a28a211b73",
       "stale": true,
-      "age_seconds": 409886
+      "age_seconds": 417103
     },
     {
       "jediswap": {
@@ -245,7 +207,7 @@
       "datetime": "2026-03-01T05:15:54",
       "snapshot_hash": "0x8c3fb3215375e1289ee4d091626e4eb9",
       "stale": true,
-      "age_seconds": 404945
+      "age_seconds": 412162
     },
     {
       "jediswap": {
@@ -264,7 +226,7 @@
       "datetime": "2026-03-01T06:34:08",
       "snapshot_hash": "0x3dd2d88ae3d17519342835a773bffeca",
       "stale": true,
-      "age_seconds": 400251
+      "age_seconds": 407468
     },
     {
       "jediswap": {
@@ -283,7 +245,7 @@
       "datetime": "2026-03-01T07:34:19",
       "snapshot_hash": "0xc76314ba7d8dfea85dc3afb175006edd",
       "stale": true,
-      "age_seconds": 396640
+      "age_seconds": 403857
     },
     {
       "jediswap": {
@@ -302,7 +264,7 @@
       "datetime": "2026-03-01T12:11:06",
       "snapshot_hash": "0x2d31029449957b0fe9f0ac11e5817190",
       "stale": true,
-      "age_seconds": 380033
+      "age_seconds": 387250
     },
     {
       "jediswap": {
@@ -321,7 +283,7 @@
       "datetime": "2026-03-01T14:04:33",
       "snapshot_hash": "0x45dcd3074a788f46b405e3ccec811542",
       "stale": true,
-      "age_seconds": 373226
+      "age_seconds": 380443
     },
     {
       "jediswap": {
@@ -340,7 +302,7 @@
       "datetime": "2026-03-01T15:34:35",
       "snapshot_hash": "0x9cac9a2dc1781839d5d4548fb0e914d4",
       "stale": true,
-      "age_seconds": 367824
+      "age_seconds": 375041
     },
     {
       "jediswap": {
@@ -359,7 +321,7 @@
       "datetime": "2026-03-02T01:05:44",
       "snapshot_hash": "0xd4500757efb207358c48ed9b2e9b1536",
       "stale": true,
-      "age_seconds": 333555
+      "age_seconds": 340772
     },
     {
       "jediswap": {
@@ -378,7 +340,7 @@
       "datetime": "2026-03-02T02:25:30",
       "snapshot_hash": "0xd19062277ea0d4daa2e48f19f18f3c5c",
       "stale": true,
-      "age_seconds": 328769
+      "age_seconds": 335986
     },
     {
       "jediswap": {
@@ -397,7 +359,7 @@
       "datetime": "2026-03-02T03:31:48",
       "snapshot_hash": "0x7a79670a20775aa785b139161177726c",
       "stale": true,
-      "age_seconds": 324791
+      "age_seconds": 332008
     },
     {
       "jediswap": {
@@ -416,7 +378,7 @@
       "datetime": "2026-03-02T04:33:11",
       "snapshot_hash": "0x4d1e7f2922e7deb2858ef8f61c0d299f",
       "stale": true,
-      "age_seconds": 321108
+      "age_seconds": 328325
     },
     {
       "jediswap": {
@@ -435,7 +397,7 @@
       "datetime": "2026-03-02T06:16:16",
       "snapshot_hash": "0x58b8fb23ccaefaa2a080e778500d0c66",
       "stale": true,
-      "age_seconds": 314923
+      "age_seconds": 322140
     },
     {
       "jediswap": {
@@ -454,7 +416,7 @@
       "datetime": "2026-03-02T07:16:52",
       "snapshot_hash": "0xb55eb7c335083588c4718d3052a63044",
       "stale": true,
-      "age_seconds": 311287
+      "age_seconds": 318504
     },
     {
       "jediswap": {
@@ -473,7 +435,7 @@
       "datetime": "2026-03-02T12:54:36",
       "snapshot_hash": "0x3a2e6a342c784586cd13a96475e21414",
       "stale": true,
-      "age_seconds": 291023
+      "age_seconds": 298240
     },
     {
       "jediswap": {
@@ -492,7 +454,7 @@
       "datetime": "2026-03-02T13:54:38",
       "snapshot_hash": "0x9761ce734e6011d79ef29d5f328e5384",
       "stale": true,
-      "age_seconds": 287421
+      "age_seconds": 294638
     },
     {
       "jediswap": {
@@ -511,7 +473,7 @@
       "datetime": "2026-03-02T15:19:31",
       "snapshot_hash": "0xc11957d34ac0cd33128c210129db4dc1",
       "stale": true,
-      "age_seconds": 282328
+      "age_seconds": 289545
     },
     {
       "jediswap": {
@@ -530,7 +492,7 @@
       "datetime": "2026-03-02T16:19:59",
       "snapshot_hash": "0xed13217829e2b97e3cd7189dfc4d8264",
       "stale": true,
-      "age_seconds": 278700
+      "age_seconds": 285917
     },
     {
       "jediswap": {
@@ -549,7 +511,7 @@
       "datetime": "2026-03-02T17:20:30",
       "snapshot_hash": "0x72bb6da5eff58290641942a93f646009",
       "stale": true,
-      "age_seconds": 275069
+      "age_seconds": 282286
     },
     {
       "jediswap": {
@@ -568,7 +530,7 @@
       "datetime": "2026-03-02T18:21:00",
       "snapshot_hash": "0xe6ffeb6a2e2812531a3712faf5c27fb0",
       "stale": true,
-      "age_seconds": 271439
+      "age_seconds": 278656
     },
     {
       "jediswap": {
@@ -587,7 +549,7 @@
       "datetime": "2026-03-02T19:22:00",
       "snapshot_hash": "0xfdd74eea268d1a72018f7271d5f7f963",
       "stale": true,
-      "age_seconds": 267779
+      "age_seconds": 274996
     },
     {
       "jediswap": {
@@ -606,7 +568,7 @@
       "datetime": "2026-03-02T20:23:00",
       "snapshot_hash": "0x78b5fae39688796e3970b2a079bd7bae",
       "stale": true,
-      "age_seconds": 264119
+      "age_seconds": 271336
     },
     {
       "jediswap": {
@@ -625,7 +587,7 @@
       "datetime": "2026-03-02T21:23:14",
       "snapshot_hash": "0x47e8373dc1c629dce9e0c6ae6a9c1459",
       "stale": true,
-      "age_seconds": 260505
+      "age_seconds": 267722
     },
     {
       "jediswap": {
@@ -644,7 +606,7 @@
       "datetime": "2026-03-02T22:23:56",
       "snapshot_hash": "0xa4674f8e75accb8af7923e78af8580ec",
       "stale": true,
-      "age_seconds": 256863
+      "age_seconds": 264080
     },
     {
       "jediswap": {
@@ -663,7 +625,7 @@
       "datetime": "2026-03-03T01:05:41",
       "snapshot_hash": "0xecb12caa35b473182ab2e37589188a49",
       "stale": true,
-      "age_seconds": 247158
+      "age_seconds": 254375
     },
     {
       "jediswap": {
@@ -682,7 +644,7 @@
       "datetime": "2026-03-03T03:02:06",
       "snapshot_hash": "0x803fbaa05b03d19aa7d43e12155f73f6",
       "stale": true,
-      "age_seconds": 240173
+      "age_seconds": 247390
     },
     {
       "jediswap": {
@@ -701,7 +663,7 @@
       "datetime": "2026-03-03T04:02:11",
       "snapshot_hash": "0x2cd4f318884071c4ab55e56919add157",
       "stale": true,
-      "age_seconds": 236568
+      "age_seconds": 243785
     },
     {
       "jediswap": {
@@ -720,7 +682,7 @@
       "datetime": "2026-03-03T05:02:48",
       "snapshot_hash": "0xcf6c048d092c2cc1421f22394c3c382d",
       "stale": true,
-      "age_seconds": 232931
+      "age_seconds": 240148
     },
     {
       "jediswap": {
@@ -739,7 +701,7 @@
       "datetime": "2026-03-03T06:08:35",
       "snapshot_hash": "0x9baa02847ed8b84294175165f1f4883e",
       "stale": true,
-      "age_seconds": 228984
+      "age_seconds": 236201
     },
     {
       "jediswap": {
@@ -758,7 +720,7 @@
       "datetime": "2026-03-03T07:08:40",
       "snapshot_hash": "0x20023b6d00474130acc0a1fef661da94",
       "stale": true,
-      "age_seconds": 225379
+      "age_seconds": 232596
     },
     {
       "jediswap": {
@@ -777,7 +739,7 @@
       "datetime": "2026-03-03T08:09:02",
       "snapshot_hash": "0xa048124748fcd88f9d0227dcd7908127",
       "stale": true,
-      "age_seconds": 221757
+      "age_seconds": 228974
     },
     {
       "jediswap": {
@@ -796,7 +758,7 @@
       "datetime": "2026-03-03T09:09:03",
       "snapshot_hash": "0xb8244c2e16b42fb882b81e1625354fc8",
       "stale": true,
-      "age_seconds": 218156
+      "age_seconds": 225373
     },
     {
       "jediswap": {
@@ -815,7 +777,7 @@
       "datetime": "2026-03-03T10:10:03",
       "snapshot_hash": "0xe22226c18aed73abe3ddf0470d075343",
       "stale": true,
-      "age_seconds": 214496
+      "age_seconds": 221713
     },
     {
       "jediswap": {
@@ -834,7 +796,7 @@
       "datetime": "2026-03-03T11:11:03",
       "snapshot_hash": "0x14903f75b5d4d8687d2fff7a2d0def68",
       "stale": true,
-      "age_seconds": 210836
+      "age_seconds": 218053
     },
     {
       "jediswap": {
@@ -853,7 +815,7 @@
       "datetime": "2026-03-03T12:12:03",
       "snapshot_hash": "0x1fd4195735f8ee2f15dda103864da3fe",
       "stale": true,
-      "age_seconds": 207176
+      "age_seconds": 214393
     },
     {
       "jediswap": {
@@ -872,7 +834,7 @@
       "datetime": "2026-03-03T13:19:19",
       "snapshot_hash": "0x322c3623ba791b927e63ebb5f6b21593",
       "stale": true,
-      "age_seconds": 203140
+      "age_seconds": 210357
     },
     {
       "jediswap": {
@@ -891,7 +853,7 @@
       "datetime": "2026-03-03T14:59:19",
       "snapshot_hash": "0xf91d62bacce119403b83c4d8a9fc8b26",
       "stale": true,
-      "age_seconds": 197140
+      "age_seconds": 204357
     },
     {
       "jediswap": {
@@ -910,7 +872,7 @@
       "datetime": "2026-03-03T16:12:37",
       "snapshot_hash": "0x409e3d5abaf314ce8b41e656cc0327f5",
       "stale": true,
-      "age_seconds": 192742
+      "age_seconds": 199959
     },
     {
       "jediswap": {
@@ -929,7 +891,7 @@
       "datetime": "2026-03-03T17:13:04",
       "snapshot_hash": "0xb286462b58e8405617cf659a7d7435ea",
       "stale": true,
-      "age_seconds": 189115
+      "age_seconds": 196332
     },
     {
       "jediswap": {
@@ -948,7 +910,7 @@
       "datetime": "2026-03-03T18:13:05",
       "snapshot_hash": "0xb66f12e4520eb8a47a28609215143269",
       "stale": true,
-      "age_seconds": 185514
+      "age_seconds": 192731
     },
     {
       "jediswap": {
@@ -967,7 +929,7 @@
       "datetime": "2026-03-03T19:14:05",
       "snapshot_hash": "0x7dcd1e8f4538aa2b4c4f5e420ca6468d",
       "stale": true,
-      "age_seconds": 181854
+      "age_seconds": 189071
     },
     {
       "jediswap": {
@@ -986,7 +948,7 @@
       "datetime": "2026-03-03T20:22:41",
       "snapshot_hash": "0x6b4f47d5ffc351ad14b9ec7d695e9a08",
       "stale": true,
-      "age_seconds": 177738
+      "age_seconds": 184955
     },
     {
       "jediswap": {
@@ -1005,7 +967,7 @@
       "datetime": "2026-03-03T21:43:11",
       "snapshot_hash": "0x081d58b32bb7bb587887777d384fab9d",
       "stale": true,
-      "age_seconds": 172908
+      "age_seconds": 180125
     },
     {
       "jediswap": {
@@ -1024,7 +986,7 @@
       "datetime": "2026-03-03T22:43:26",
       "snapshot_hash": "0x563f2495e1a29ae15f434621ffe4edf0",
       "stale": true,
-      "age_seconds": 169293
+      "age_seconds": 176510
     },
     {
       "jediswap": {
@@ -1043,7 +1005,7 @@
       "datetime": "2026-03-03T23:43:55",
       "snapshot_hash": "0x8be7bf984245f59c827023518a4149c0",
       "stale": true,
-      "age_seconds": 165664
+      "age_seconds": 172881
     },
     {
       "jediswap": {
@@ -1062,7 +1024,7 @@
       "datetime": "2026-03-04T00:43:56",
       "snapshot_hash": "0x4dc800b204f6151b6141c7db90951973",
       "stale": true,
-      "age_seconds": 162063
+      "age_seconds": 169280
     },
     {
       "jediswap": {
@@ -1081,7 +1043,7 @@
       "datetime": "2026-03-04T01:44:06",
       "snapshot_hash": "0xd99d931f24eba3a829f84f443458b0cf",
       "stale": true,
-      "age_seconds": 158453
+      "age_seconds": 165670
     },
     {
       "jediswap": {
@@ -1100,7 +1062,7 @@
       "datetime": "2026-03-04T02:44:26",
       "snapshot_hash": "0x7820b9163c43e364cdd3a283b6d83162",
       "stale": true,
-      "age_seconds": 154833
+      "age_seconds": 162050
     },
     {
       "jediswap": {
@@ -1119,7 +1081,7 @@
       "datetime": "2026-03-04T03:44:56",
       "snapshot_hash": "0x7995dfeb2d2d5344d8476d99cf442b00",
       "stale": true,
-      "age_seconds": 151203
+      "age_seconds": 158420
     },
     {
       "jediswap": {
@@ -1138,7 +1100,7 @@
       "datetime": "2026-03-04T04:44:57",
       "snapshot_hash": "0xbd99508e6838c2b4fbb325d28d868c6e",
       "stale": true,
-      "age_seconds": 147602
+      "age_seconds": 154819
     },
     {
       "jediswap": {
@@ -1157,7 +1119,7 @@
       "datetime": "2026-03-04T05:45:07",
       "snapshot_hash": "0xff5956f82ce941be3eb8622574eccef0",
       "stale": true,
-      "age_seconds": 143992
+      "age_seconds": 151209
     },
     {
       "jediswap": {
@@ -1176,7 +1138,7 @@
       "datetime": "2026-03-04T06:45:27",
       "snapshot_hash": "0x3373a77bd225d7faaf12fbd17824afcd",
       "stale": true,
-      "age_seconds": 140372
+      "age_seconds": 147589
     },
     {
       "jediswap": {
@@ -1195,7 +1157,7 @@
       "datetime": "2026-03-04T07:45:57",
       "snapshot_hash": "0xfe1c8504473512fe11778d2a6d12204a",
       "stale": true,
-      "age_seconds": 136742
+      "age_seconds": 143959
     },
     {
       "jediswap": {
@@ -1214,7 +1176,7 @@
       "datetime": "2026-03-04T08:45:58",
       "snapshot_hash": "0xf73eedaacc420aa6c2e0efbcfcca1d89",
       "stale": true,
-      "age_seconds": 133141
+      "age_seconds": 140358
     },
     {
       "jediswap": {
@@ -1233,7 +1195,7 @@
       "datetime": "2026-03-04T09:46:08",
       "snapshot_hash": "0x285c5af37e8ee24950e350c4ef835c1f",
       "stale": true,
-      "age_seconds": 129531
+      "age_seconds": 136748
     },
     {
       "jediswap": {
@@ -1252,7 +1214,7 @@
       "datetime": "2026-03-04T10:46:23",
       "snapshot_hash": "0x2f54d72a99582b01a5bf2f5bfac734cc",
       "stale": true,
-      "age_seconds": 125916
+      "age_seconds": 133133
     },
     {
       "jediswap": {
@@ -1271,7 +1233,7 @@
       "datetime": "2026-03-04T11:46:28",
       "snapshot_hash": "0x63d2ee75f171fe0bb15d694f6f5a42ac",
       "stale": true,
-      "age_seconds": 122311
+      "age_seconds": 129528
     },
     {
       "jediswap": {
@@ -1290,7 +1252,7 @@
       "datetime": "2026-03-04T12:46:58",
       "snapshot_hash": "0x8aed31c0994f2f1b4423a36a10c3ca04",
       "stale": true,
-      "age_seconds": 118681
+      "age_seconds": 125898
     },
     {
       "jediswap": {
@@ -1309,7 +1271,7 @@
       "datetime": "2026-03-04T13:47:08",
       "snapshot_hash": "0x5c0a3b32bd46e41f28047660b25954c7",
       "stale": true,
-      "age_seconds": 115071
+      "age_seconds": 122288
     },
     {
       "jediswap": {
@@ -1328,7 +1290,7 @@
       "datetime": "2026-03-04T14:47:28",
       "snapshot_hash": "0x02e3c8ad3491efdcca087b1fbb2a77a0",
       "stale": true,
-      "age_seconds": 111451
+      "age_seconds": 118668
     },
     {
       "jediswap": {
@@ -1347,7 +1309,7 @@
       "datetime": "2026-03-04T15:47:59",
       "snapshot_hash": "0x20333cb4a6c9482503026db42f93bc72",
       "stale": true,
-      "age_seconds": 107820
+      "age_seconds": 115037
     },
     {
       "jediswap": {
@@ -1366,7 +1328,7 @@
       "datetime": "2026-03-04T16:48:09",
       "snapshot_hash": "0xf00afe42c5f3e833e84aff606ec57680",
       "stale": true,
-      "age_seconds": 104210
+      "age_seconds": 111427
     },
     {
       "jediswap": {
@@ -1385,7 +1347,7 @@
       "datetime": "2026-03-04T17:48:29",
       "snapshot_hash": "0xf45bb18c64a7ec21dedb3b11453aa27f",
       "stale": true,
-      "age_seconds": 100590
+      "age_seconds": 107807
     },
     {
       "jediswap": {
@@ -1404,7 +1366,7 @@
       "datetime": "2026-03-04T18:48:54",
       "snapshot_hash": "0x831a9369122c0af38e390a12c2237ffd",
       "stale": true,
-      "age_seconds": 96965
+      "age_seconds": 104182
     },
     {
       "jediswap": {
@@ -1423,7 +1385,7 @@
       "datetime": "2026-03-04T19:48:59",
       "snapshot_hash": "0xd09909aab4180e48e9a7102dc660168a",
       "stale": true,
-      "age_seconds": 93360
+      "age_seconds": 100577
     },
     {
       "jediswap": {
@@ -1442,7 +1404,7 @@
       "datetime": "2026-03-04T20:49:10",
       "snapshot_hash": "0x1889e2d060e056070867d646da4ab48a",
       "stale": true,
-      "age_seconds": 89749
+      "age_seconds": 96966
     },
     {
       "jediswap": {
@@ -1461,7 +1423,7 @@
       "datetime": "2026-03-04T21:49:30",
       "snapshot_hash": "0x7cd34ddf8b401f9c96fcb881d56a4756",
       "stale": true,
-      "age_seconds": 86129
+      "age_seconds": 93346
     },
     {
       "jediswap": {
@@ -1480,7 +1442,7 @@
       "datetime": "2026-03-04T22:50:00",
       "snapshot_hash": "0x2a327a23760f50fc1fa0a10604834347",
       "stale": true,
-      "age_seconds": 82499
+      "age_seconds": 89716
     },
     {
       "jediswap": {
@@ -1499,7 +1461,7 @@
       "datetime": "2026-03-04T23:50:01",
       "snapshot_hash": "0xa3e09aaed3cd7b553445c22d8efeea4d",
       "stale": true,
-      "age_seconds": 78898
+      "age_seconds": 86115
     },
     {
       "jediswap": {
@@ -1518,7 +1480,7 @@
       "datetime": "2026-03-05T00:50:02",
       "snapshot_hash": "0x773aa6563e3395fa11e2aa4ce0d9ab4c",
       "stale": true,
-      "age_seconds": 75297
+      "age_seconds": 82514
     },
     {
       "jediswap": {
@@ -1537,7 +1499,7 @@
       "datetime": "2026-03-05T01:50:11",
       "snapshot_hash": "0xe7c3c42030558428454d11ebed312cf7",
       "stale": true,
-      "age_seconds": 71688
+      "age_seconds": 78905
     },
     {
       "jediswap": {
@@ -1556,7 +1518,7 @@
       "datetime": "2026-03-05T02:50:30",
       "snapshot_hash": "0xaf2b5fe3ecfe572381bf83463823a295",
       "stale": true,
-      "age_seconds": 68069
+      "age_seconds": 75286
     },
     {
       "jediswap": {
@@ -1575,7 +1537,7 @@
       "datetime": "2026-03-05T03:50:32",
       "snapshot_hash": "0x9c463583b664fdff6a7af64c4855439e",
       "stale": true,
-      "age_seconds": 64467
+      "age_seconds": 71684
     },
     {
       "jediswap": {
@@ -1594,7 +1556,7 @@
       "datetime": "2026-03-05T04:50:56",
       "snapshot_hash": "0x07ad73bce782d993a711fb13abed8344",
       "stale": true,
-      "age_seconds": 60843
+      "age_seconds": 68060
     },
     {
       "jediswap": {
@@ -1613,7 +1575,7 @@
       "datetime": "2026-03-05T05:51:01",
       "snapshot_hash": "0xed47ba6c5a3352dda83656b1eaf28ef6",
       "stale": true,
-      "age_seconds": 57238
+      "age_seconds": 64455
     },
     {
       "jediswap": {
@@ -1632,7 +1594,7 @@
       "datetime": "2026-03-05T06:51:09",
       "snapshot_hash": "0x6ff9c7a108380532178171175b322259",
       "stale": true,
-      "age_seconds": 53630
+      "age_seconds": 60847
     },
     {
       "jediswap": {
@@ -1651,7 +1613,7 @@
       "datetime": "2026-03-05T07:51:12",
       "snapshot_hash": "0x5395bad067d191f47334c7ad69619e75",
       "stale": true,
-      "age_seconds": 50027
+      "age_seconds": 57244
     },
     {
       "jediswap": {
@@ -1670,7 +1632,7 @@
       "datetime": "2026-03-05T08:51:40",
       "snapshot_hash": "0xed4c5ac5fe3cf801dcfafd07ab199ea0",
       "stale": true,
-      "age_seconds": 46399
+      "age_seconds": 53616
     },
     {
       "jediswap": {
@@ -1689,7 +1651,7 @@
       "datetime": "2026-03-05T09:52:02",
       "snapshot_hash": "0xd82062ae5445a4c3c9b2835f6379ee13",
       "stale": true,
-      "age_seconds": 42777
+      "age_seconds": 49994
     },
     {
       "jediswap": {
@@ -1708,7 +1670,7 @@
       "datetime": "2026-03-05T10:52:10",
       "snapshot_hash": "0x401fc307aa8a78306dda31538e4c3708",
       "stale": true,
-      "age_seconds": 39169
+      "age_seconds": 46386
     },
     {
       "jediswap": {
@@ -1727,7 +1689,7 @@
       "datetime": "2026-03-05T11:52:12",
       "snapshot_hash": "0xdd780b391ce0607d2f70c1f0217f9d1d",
       "stale": true,
-      "age_seconds": 35567
+      "age_seconds": 42784
     },
     {
       "jediswap": {
@@ -1746,7 +1708,7 @@
       "datetime": "2026-03-05T12:52:13",
       "snapshot_hash": "0x840c92d042af0595b1fe56960dfcb292",
       "stale": true,
-      "age_seconds": 31966
+      "age_seconds": 39183
     },
     {
       "jediswap": {
@@ -1765,7 +1727,7 @@
       "datetime": "2026-03-05T13:52:14",
       "snapshot_hash": "0xc3a30906810a175541138c7b420a6970",
       "stale": true,
-      "age_seconds": 28365
+      "age_seconds": 35582
     },
     {
       "jediswap": {
@@ -1784,7 +1746,7 @@
       "datetime": "2026-03-05T14:53:14",
       "snapshot_hash": "0x6c8bf3f370645bae57c11788c7f4f116",
       "stale": true,
-      "age_seconds": 24705
+      "age_seconds": 31922
     },
     {
       "jediswap": {
@@ -1803,7 +1765,7 @@
       "datetime": "2026-03-05T15:53:58",
       "snapshot_hash": "0x87a7401f3e2c2eb62eaba209eccc2b69",
       "stale": true,
-      "age_seconds": 21061
+      "age_seconds": 28278
     },
     {
       "jediswap": {
@@ -1822,7 +1784,7 @@
       "datetime": "2026-03-05T16:54:14",
       "snapshot_hash": "0x12697983a2d78a378b3ee025702804bc",
       "stale": true,
-      "age_seconds": 17445
+      "age_seconds": 24662
     },
     {
       "jediswap": {
@@ -1841,7 +1803,7 @@
       "datetime": "2026-03-05T17:54:20",
       "snapshot_hash": "0x410a3684e0459f88c489dea577c8d2c4",
       "stale": true,
-      "age_seconds": 13839
+      "age_seconds": 21056
     },
     {
       "jediswap": {
@@ -1860,7 +1822,7 @@
       "datetime": "2026-03-05T19:02:53",
       "snapshot_hash": "0xf7a8d1fac8cd647cd2c28d039dd03716",
       "stale": true,
-      "age_seconds": 9726
+      "age_seconds": 16943
     },
     {
       "jediswap": {
@@ -1879,7 +1841,7 @@
       "datetime": "2026-03-05T20:44:36",
       "snapshot_hash": "0xbd82058d6f995c837f03dbe901a43fff",
       "stale": true,
-      "age_seconds": 3623
+      "age_seconds": 10840
     },
     {
       "jediswap": {
@@ -1897,9 +1859,47 @@
       "timestamp": 1772747099,
       "datetime": "2026-03-05T21:44:59",
       "snapshot_hash": "0x14c64105242efd10eec120ef8d082818",
+      "stale": true,
+      "age_seconds": 7217
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772750715,
+      "datetime": "2026-03-05T22:45:15",
+      "snapshot_hash": "0x1dd1da87bba559338ddecb9df61acd83",
+      "stale": true,
+      "age_seconds": 3601
+    },
+    {
+      "jediswap": {
+        "tvl": 45000000,
+        "apy_bps": 420,
+        "volume_24h": 2500000,
+        "volatility_bps": 210
+      },
+      "ekubo": {
+        "tvl": 78000000,
+        "apy_bps": 0,
+        "volume_24h": 5800000,
+        "volatility_bps": 430
+      },
+      "timestamp": 1772754316,
+      "datetime": "2026-03-05T23:45:16",
+      "snapshot_hash": "0x92763a9be0fc9163a63176569b658a31",
       "stale": false,
       "age_seconds": 0
     }
   ],
-  "updated_at": "2026-03-05T21:44:59.345877"
+  "updated_at": "2026-03-05T23:45:16.176902"
 }

@@ -238,6 +238,19 @@ fn execute_with_proofs(
    - Receipts auditable
    - Intent commitments used
 
+## Settlement Layer
+
+All proofs ultimately settle as **facts** on-chain. The settlement stack now supports two layers:
+
+| Layer | Chain | Contract | Finality | Gas |
+|-------|-------|----------|----------|-----|
+| **L3 (Primary)** | Madara — `OBSQRA_PROOF_CHAIN` | ObsqraFactRegistry (same interface) | ~5s | Zero (subsidized) |
+| **L2 (Fallback)** | Starknet Sepolia | ObsqraFactRegistry @ `0x059b65...a664a8` | ~6 min | Market rate |
+
+The `ProofSequencer._seal_block()` tries Madara L3 first; if the node is down or the tx fails, it falls through to Starknet L2 automatically. This is controlled by `MADARA_SETTLE_ENABLED` in config.
+
+See [MADARA_L3_APPCHAIN_ARCHITECTURE.md](MADARA_L3_APPCHAIN_ARCHITECTURE.md) for full Madara integration docs.
+
 ## Architecture Diagram
 
 ```
@@ -271,6 +284,13 @@ fn execute_with_proofs(
 ┌─────────────────────────────────────────────────────────────────┐
 │                  COMBINED VERIFICATION                           │
 │  Verify Garaga proofs → Verify Integrity proofs → Execute       │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   SETTLEMENT LAYER                               │
+│  ProofSequencer → Madara L3 (5s) → if fail → Starknet L2 (6m)  │
+│  register_fact(hash, 96, 0x1) on ObsqraFactRegistry             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼

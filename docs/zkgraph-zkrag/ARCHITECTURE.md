@@ -20,7 +20,7 @@
 | **zkRAG Frontend** | `frontend/src/app/zkrag/page.tsx` | Chat UI at `starknet.obsqra.fi/zkrag`. Posts NL queries, renders provenance metadata. |
 | **IntegrityService** | `backend/app/services/integrity_service.py` | Herodotus Integrity Verifier on Starknet L2. `register_fact_in_obsqra_registry()` and `verify_fact_in_obsqra_registry()`. |
 | **Proof Aggregator** | `backend/app/services/proof_aggregator.py` | Batches proofs (batch_size=8, timeout=60s), registers aggregate fact hash on-chain. |
-| **Proof Sequencer** | `backend/app/services/proof_sequencer.py` | Block-based proof settlement (30s blocks, 32 proofs/block max). Supports Madara appchain future settlement. |
+| **Proof Sequencer** | `backend/app/services/proof_sequencer.py` | Block-based proof settlement (30s blocks, 32 proofs/block max). Primary: Madara L3 appchain → fallback: Starknet L2. See [MADARA_L3_APPCHAIN_ARCHITECTURE.md](../MADARA_L3_APPCHAIN_ARCHITECTURE.md). |
 | **Verifier Node** | `/opt/obsqra.starknet/verifier-node/src/verifier.py` (PM2: `obsqra-verifier`) | Polls `/api/v1/index/snapshots`, verifies fact_hash on-chain, submits attestations to `AttestationRegistry`. Supports staking check. |
 | **Stone CPU AIR** | `/opt/obsqra.starknet/stone-prover/` | Local STARK proof binary. Used by `stone_prover_service.py`. |
 | **Dual Prover** | `backend/app/services/dual_prover_service.py` | STARK + Groth16. The STARK fact_hash is embedded as a public input in the Groth16 proof, binding both systems cryptographically. |
