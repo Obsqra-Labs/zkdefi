@@ -46,3 +46,9 @@ Thumbs.db
 # Deployment tarballs
 *.tar.gz
 *.zip
+
+# Large ML model files (EZKL proving keys - use external storage)
+backend/app/data/ezkl_models/**/*.key
+backend/app/data/ezkl_models/**/*.zkey
+circuits/build/**/*.zkey
+circuits/build/**/*.ptau
