@@ -27,24 +27,35 @@ export class MarketDataService {
     if (filters?.maxRisk !== undefined) params.append('maxRisk', String(filters.maxRisk));
     if (filters?.privacyMode) params.append('privacyMode', filters.privacyMode);
 
-    const url = apiUrl(`/api/v1/zkdefi/opportunities/list?${params}`);
+    // Try live endpoint first, fallback to mock
+    const urls = [
+      apiUrl(`/api/v1/zkdefi/opportunities/live?${params}`),
+      apiUrl(`/api/v1/zkdefi/opportunities/list?${params}`)
+    ];
+    
+    let opportunities: Opportunity[] = [];
+    
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch opportunities (${response.status})`;
-      throw new Error(detail);
+        if (response.ok) {
+          const data = await response.json();
+          opportunities = Array.isArray(data) ? data : (data.opportunities || []);
+          break;
+        }
+      } catch (e) {
+        console.warn(`Fetch from ${url} failed, trying next...`);
+        continue;
+      }
     }
-
-    const data = await response.json();
-    const opportunities = Array.isArray(data) ? data : [];
+    
+    if (opportunities.length === 0) {
+      throw new Error('Failed to fetch opportunities from any source');
+    }
 
     // Update cache only if no filters
     if (!filters) {

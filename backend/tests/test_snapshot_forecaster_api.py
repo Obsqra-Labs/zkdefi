@@ -20,6 +20,7 @@ def test_snapshot_forecaster_api_roundtrip():
         "/api/v1/zkdefi/snapshot-forecaster/windows",
         json={
             "pair_id": "ETH/USDC",
+            "network_id": "starknet_sepolia",
             "window_open_ts": 1710200000,
             "window_close_ts": 1710200300,
             "cadence_id": "5m",
@@ -31,7 +32,12 @@ def test_snapshot_forecaster_api_roundtrip():
     )
     assert window_resp.status_code == 200
     window = window_resp.json()
+    assert window["network_id"] == "starknet_sepolia"
     window_id = window["window_id"]
+
+    list_resp = client.get("/api/v1/zkdefi/snapshot-forecaster/windows?network_id=starknet_sepolia&limit=10")
+    assert list_resp.status_code == 200
+    assert list_resp.json()["count"] >= 1
 
     commit_resp = client.post(
         "/api/v1/zkdefi/snapshot-forecaster/predictions/commit",

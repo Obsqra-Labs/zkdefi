@@ -32,6 +32,7 @@ import { apiFetch } from "@/lib/api/client";
 type WindowRecord = {
   window_id: string;
   pair_id: string;
+  network_id?: string;
   window_open_ts: number;
   window_close_ts: number;
   cadence_id: string;
@@ -166,6 +167,26 @@ type HorizonProgress = {
   deltaBps: number | null;
   directionalHit: boolean | null;
 };
+
+type NetworkId = "starknet_sepolia" | "starknet_mainnet" | "ethereum_mainnet";
+
+const NETWORK_OPTIONS: Array<{ id: NetworkId; label: string; hint: string }> = [
+  {
+    id: "starknet_sepolia",
+    label: "Starknet Sepolia",
+    hint: "Ekubo Sepolia history",
+  },
+  {
+    id: "starknet_mainnet",
+    label: "Starknet Mainnet",
+    hint: "Ekubo mainnet history",
+  },
+  {
+    id: "ethereum_mainnet",
+    label: "Ethereum Mainnet",
+    hint: "CoinGecko pair oracle",
+  },
+];
 
 const DEFAULT_OUTPUTS: OutputMap = {
   r5: 85,
@@ -317,6 +338,7 @@ function normalizePercent(value: number, maxAbs: number): number {
 }
 
 export default function ForecasterPage() {
+  const [networkId, setNetworkId] = useState<NetworkId>("starknet_sepolia");
   const [pairId, setPairId] = useState("ETH/USDC");
   const [cadenceId, setCadenceId] = useState("5m");
   const [windowOpenTs, setWindowOpenTs] = useState<number>(() => nowUnix());
@@ -538,6 +560,9 @@ export default function ForecasterPage() {
       `/api/v1/zkdefi/snapshot-forecaster/windows/${loadedPrediction.window_id}`,
     );
     setWindowRecord(loadedWindow);
+    if (loadedWindow.network_id && NETWORK_OPTIONS.some((n) => n.id === loadedWindow.network_id)) {
+      setNetworkId(loadedWindow.network_id as NetworkId);
+    }
 
     let loadedScore: ScoreReceipt | null = null;
     if (loadedPrediction.score_receipt_id) {
@@ -690,6 +715,7 @@ export default function ForecasterPage() {
 
       const payload = {
         pair_id: pairId,
+        network_id: networkId,
         cadence_id: cadenceId,
         window_open_ts: Number(windowOpenTs),
         window_close_ts: Number(windowCloseTs),
@@ -883,6 +909,7 @@ export default function ForecasterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pair_id: pairId,
+          network_id: networkId,
           cadence_id: cadenceId,
           window_open_ts: Number(windowOpenTs),
           window_close_ts: Number(windowCloseTs),
@@ -1030,6 +1057,23 @@ export default function ForecasterPage() {
                   onChange={(e) => setPairId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
                 />
+              </label>
+              <label className="block text-xs text-zinc-400">
+                <LabelWithTip
+                  label="Network"
+                  tip="Select the market network used for matured outcome oracle reads."
+                />
+                <select
+                  value={networkId}
+                  onChange={(e) => setNetworkId(e.target.value as NetworkId)}
+                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                >
+                  {NETWORK_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label} · {option.hint}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block text-xs text-zinc-400">
                 <LabelWithTip label="Cadence" tip="Window cadence for sampling and forecast generation, e.g. 5m." />
@@ -1554,19 +1598,23 @@ export default function ForecasterPage() {
                 <p className="text-sm text-zinc-500">Pick a persisted forecast or run a new one to see timeline progress.</p>
               ) : (
                 <>
-                  <div className="mb-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+                  <div className="mb-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
                     <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
                       <div className="text-zinc-500">Forecast</div>
                       <div className="font-mono text-zinc-200">{shortId(prediction.forecast_id)}</div>
                     </div>
-                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
-                      <div className="text-zinc-500">Pair</div>
-                      <div className="font-medium text-zinc-200">{windowRecord.pair_id}</div>
-                    </div>
-                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
-                      <div className="text-zinc-500">Window Open</div>
-                      <div className="text-zinc-200">{formatUnixTs(windowRecord.window_open_ts)}</div>
-                    </div>
+                  <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+                    <div className="text-zinc-500">Pair</div>
+                    <div className="font-medium text-zinc-200">{windowRecord.pair_id}</div>
+                  </div>
+                  <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+                    <div className="text-zinc-500">Network</div>
+                    <div className="font-medium text-zinc-200">{windowRecord.network_id || "starknet_sepolia"}</div>
+                  </div>
+                  <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+                    <div className="text-zinc-500">Window Open</div>
+                    <div className="text-zinc-200">{formatUnixTs(windowRecord.window_open_ts)}</div>
+                  </div>
                     <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
                       <div className="text-zinc-500">Window Close</div>
                       <div className="text-zinc-200">{formatUnixTs(windowRecord.window_close_ts)}</div>

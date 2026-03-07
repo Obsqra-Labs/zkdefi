@@ -19,25 +19,36 @@ export class AIRecommendationService {
       return this.recommendationsCache;
     }
 
-    const url = apiUrl('/api/v1/zkdefi/ai/recommendations');
+    // Try live endpoint first, fallback to mock
+    const urls = [
+      apiUrl('/api/v1/zkdefi/ai/recommendations/live'),
+      apiUrl('/api/v1/zkdefi/ai/recommendations')
+    ];
+    
+    let recommendations: Recommendation[] = [];
+    
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(context),
+        });
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(context),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch recommendations (${response.status})`;
-      throw new Error(detail);
+        if (response.ok) {
+          const data = await response.json();
+          recommendations = Array.isArray(data) ? data : (data.recommendations || []);
+          break;
+        }
+      } catch (e) {
+        console.warn(`AI fetch from ${url} failed, trying next...`);
+        continue;
+      }
     }
-
-    const data = await response.json();
-    const recommendations = Array.isArray(data) ? data : [];
+    
+    if (recommendations.length === 0) {
+      throw new Error('Failed to fetch recommendations from any source');
+    }
 
     // Update cache
     this.recommendationsCache = recommendations;

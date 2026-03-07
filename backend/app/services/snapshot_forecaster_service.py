@@ -49,26 +49,43 @@ DEFAULT_OUTPUT_BOUNDS = {
     "prob_max": 10000,
 }
 
+DEFAULT_NETWORK_ID = "starknet_sepolia"
+SUPPORTED_NETWORK_IDS = ("starknet_sepolia", "starknet_mainnet", "ethereum_mainnet")
+
 AUTO_OUTCOME_SOURCE_ID = "auto_det_outcome_v1"
 ORACLE_OUTCOME_SOURCE_ID = "ekubo_price_history_v1"
+COINGECKO_OUTCOME_SOURCE_ID = "coingecko_pair_price_v1"
 
 _EKUBO_SEPOLIA_CHAIN_ID = "0x534e5f4d41494f"
 _EKUBO_SEPOLIA_CHAIN_ID_DEC = "23448594291968335"
+_EKUBO_MAINNET_CHAIN_ID = "0x534e5f4d41494e"
 
 # Canonical Starknet token addresses used by Ekubo APIs for ETH/USDC/STRK pairs.
-_TOKEN_BY_SYMBOL: dict[str, str] = {
+_SEPOLIA_TOKEN_BY_SYMBOL: dict[str, str] = {
     "ETH": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "STRK": "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
     "USDC": "0x53b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080",
     "FUSDC": "0x7ab0b8855a61f480b4423c46c32fa7c553f0aac3531bbddaa282d86244f7a23",
 }
 
-_PAIR_SYMBOL_TO_TOKENS: dict[str, tuple[str, str]] = {
+_MAINNET_TOKEN_BY_SYMBOL: dict[str, str] = {
+    "ETH": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "STRK": "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    "USDC": "0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8",
+}
+
+_PAIR_SYMBOLS: dict[str, tuple[str, str]] = {
     "ETH/USDC": ("ETH", "USDC"),
     "STRK/USDC": ("STRK", "USDC"),
     "STRK/ETH": ("STRK", "ETH"),
     "ETH/FUSDC": ("ETH", "FUSDC"),
     "STRK/FUSDC": ("STRK", "FUSDC"),
+}
+
+_COINGECKO_ID_BY_SYMBOL: dict[str, str] = {
+    "ETH": "ethereum",
+    "USDC": "usd-coin",
+    "STRK": "starknet",
 }
 
 logger = logging.getLogger(__name__)
@@ -84,6 +101,8 @@ class SnapshotForecasterService:
         self._scores = JsonStore(f"{store_prefix}_scores")
         # (chain_id, base_token, quote_token, interval) -> (fetch_ts, points[(ts, price)])
         self._oracle_history_cache: dict[tuple[str, str, str, int], tuple[int, list[tuple[int, float]]]] = {}
+        # (coin_id, range_start_sec, range_end_sec) -> (fetch_ts, points[(ts, price_usd)])
+        self._coingecko_history_cache: dict[tuple[str, int, int], tuple[int, list[tuple[int, float]]]] = {}
 
     # ------------------------------------------------------------------
     # Window layer
@@ -97,6 +116,7 @@ class SnapshotForecasterService:
         window_close_ts: int,
         cadence_id: str,
         snapshot_data: dict[str, Any],
+        network_id: str = DEFAULT_NETWORK_ID,
         feature_schema_id: str = DEFAULT_SCHEMA_ID,
         feature_vector: dict[str, float] | None = None,
         data_source_id: str = "unknown",
@@ -111,6 +131,7 @@ class SnapshotForecasterService:
             raise ValueError("cadence_id is required")
         if not feature_schema_id.strip():
             raise ValueError("feature_schema_id is required")
+        normalized_network_id = self._normalize_network_id(network_id)
 
         validated_features = self._validate_feature_vector(feature_vector or {})
         snapshot_hash = str(snapshot_data.get("snapshot_hash", "")).strip()
@@ -123,6 +144,7 @@ class SnapshotForecasterService:
                 "window_open_ts": int(window_open_ts),
                 "window_close_ts": int(window_close_ts),
                 "cadence_id": cadence_id,
+                "network_id": normalized_network_id,
                 "snapshot_hash": snapshot_hash,
                 "feature_schema_id": feature_schema_id,
             }
@@ -152,6 +174,7 @@ class SnapshotForecasterService:
                     data_sources=[data_source_id],
                     metadata={
                         "pair_id": pair_id,
+                        "network_id": normalized_network_id,
                         "window_open_ts": int(window_open_ts),
                         "window_close_ts": int(window_close_ts),
                         "feature_schema_id": feature_schema_id,
@@ -171,6 +194,7 @@ class SnapshotForecasterService:
         record = {
             "window_id": window_id,
             "pair_id": pair_id,
+            "network_id": normalized_network_id,
             "window_open_ts": int(window_open_ts),
             "window_close_ts": int(window_close_ts),
             "cadence_id": cadence_id,
@@ -192,10 +216,18 @@ class SnapshotForecasterService:
     def get_window(self, window_id: str) -> dict[str, Any] | None:
         return self._windows.get(window_id)
 
-    def list_windows(self, pair_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    def list_windows(
+        self,
+        pair_id: str | None = None,
+        network_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
         rows = self._windows.values()
         if pair_id:
             rows = [r for r in rows if r.get("pair_id") == pair_id]
+        if network_id:
+            normalized_network_id = self._normalize_network_id(network_id)
+            rows = [r for r in rows if str(r.get("network_id", DEFAULT_NETWORK_ID)) == normalized_network_id]
         rows.sort(key=lambda r: int(r.get("created_at_ts", 0)), reverse=True)
         return rows[: max(1, limit)]
 
@@ -720,7 +752,7 @@ class SnapshotForecasterService:
                         bounds=bounds,
                     )
                 else:
-                    source_id = ORACLE_OUTCOME_SOURCE_ID
+                    source_id = self._oracle_source_id(window)
 
                 pending_outcomes.append(
                     {
@@ -842,6 +874,14 @@ class SnapshotForecasterService:
         return dict(sorted(normalized.items(), key=lambda kv: kv[0]))
 
     @staticmethod
+    def _normalize_network_id(network_id: str | None) -> str:
+        val = str(network_id or DEFAULT_NETWORK_ID).strip().lower()
+        if val not in SUPPORTED_NETWORK_IDS:
+            allowed = ", ".join(SUPPORTED_NETWORK_IDS)
+            raise ValueError(f"Unsupported network_id '{val}'. Allowed: {allowed}")
+        return val
+
+    @staticmethod
     def _normalize_output_map(outputs_scaled: dict[str, int]) -> dict[str, int]:
         required = {"r5", "r30", "r240", "p5", "p30", "p240"}
         missing = sorted(required.difference(outputs_scaled.keys()))
@@ -941,27 +981,50 @@ class SnapshotForecasterService:
         maturity_ts: int,
         bounds: dict[str, int],
     ) -> int | None:
-        pair_tokens = self._resolve_pair_tokens(window)
-        if not pair_tokens:
-            return None
-
+        network_id = self._normalize_network_id(str(window.get("network_id", DEFAULT_NETWORK_ID)))
         open_ts = int(window.get("window_open_ts") or 0)
         if open_ts <= 0:
             return None
 
-        base_token, quote_token = pair_tokens
-        points = self._load_oracle_history_points(
-            base_token=base_token,
-            quote_token=quote_token,
-            horizon_min=int(horizon_min),
-        )
-        if len(points) < 2:
+        if network_id in {"starknet_sepolia", "starknet_mainnet"}:
+            pair_tokens = self._resolve_pair_tokens(window, network_id=network_id)
+            if not pair_tokens:
+                return None
+
+            base_token, quote_token = pair_tokens
+            points = self._load_ekubo_history_points(
+                network_id=network_id,
+                base_token=base_token,
+                quote_token=quote_token,
+                horizon_min=int(horizon_min),
+            )
+            if len(points) < 2:
+                return None
+
+            max_skew_sec = max(24 * 3600, int(horizon_min) * 120)
+            open_price = self._nearest_oracle_price(points, open_ts, max_skew_sec=max_skew_sec)
+            close_price = self._nearest_oracle_price(points, int(maturity_ts), max_skew_sec=max_skew_sec)
+        elif network_id == "ethereum_mainnet":
+            symbols = self._resolve_pair_symbols(window)
+            if not symbols:
+                return None
+            base_sym, quote_sym = symbols
+            max_skew_sec = max(24 * 3600, int(horizon_min) * 120)
+            open_price = self._coingecko_pair_price_at(
+                base_symbol=base_sym,
+                quote_symbol=quote_sym,
+                target_ts=open_ts,
+                max_skew_sec=max_skew_sec,
+            )
+            close_price = self._coingecko_pair_price_at(
+                base_symbol=base_sym,
+                quote_symbol=quote_sym,
+                target_ts=int(maturity_ts),
+                max_skew_sec=max_skew_sec,
+            )
+        else:
             return None
 
-        # Ekubo sepolia can be sparse; allow wider skew before falling back to deterministic.
-        max_skew_sec = max(24 * 3600, int(horizon_min) * 120)
-        open_price = self._nearest_oracle_price(points, open_ts, max_skew_sec=max_skew_sec)
-        close_price = self._nearest_oracle_price(points, int(maturity_ts), max_skew_sec=max_skew_sec)
         if open_price is None or close_price is None:
             return None
         if open_price <= 0 or close_price <= 0:
@@ -975,7 +1038,28 @@ class SnapshotForecasterService:
             )
         )
 
-    def _resolve_pair_tokens(self, window: dict[str, Any]) -> tuple[str, str] | None:
+    def _resolve_pair_symbols(self, window: dict[str, Any]) -> tuple[str, str] | None:
+        pair_id = str(window.get("pair_id", "")).strip().upper()
+        if not pair_id:
+            return None
+        canonical_pair = pair_id.split("(")[0].strip()
+        symbols = _PAIR_SYMBOLS.get(canonical_pair)
+        if symbols:
+            return symbols
+        if "/" in canonical_pair:
+            left, right = canonical_pair.split("/", 1)
+            left = left.strip().upper()
+            right = right.strip().upper()
+            if left and right:
+                return left, right
+        return None
+
+    def _resolve_pair_tokens(
+        self,
+        window: dict[str, Any],
+        *,
+        network_id: str,
+    ) -> tuple[str, str] | None:
         snapshot = window.get("snapshot_data") or {}
         if isinstance(snapshot, dict):
             token_a = self._coerce_token_address(
@@ -993,15 +1077,12 @@ class SnapshotForecasterService:
             if token_a and token_b:
                 return token_a, token_b
 
-        pair_id = str(window.get("pair_id", "")).strip().upper()
-        if not pair_id:
-            return None
-        canonical_pair = pair_id.split("(")[0].strip()
-        symbols = _PAIR_SYMBOL_TO_TOKENS.get(canonical_pair)
+        symbols = self._resolve_pair_symbols(window)
         if not symbols:
             return None
-        token_a = _TOKEN_BY_SYMBOL.get(symbols[0])
-        token_b = _TOKEN_BY_SYMBOL.get(symbols[1])
+        token_map = _SEPOLIA_TOKEN_BY_SYMBOL if network_id == "starknet_sepolia" else _MAINNET_TOKEN_BY_SYMBOL
+        token_a = token_map.get(symbols[0])
+        token_b = token_map.get(symbols[1])
         if not token_a or not token_b:
             return None
         return token_a, token_b
@@ -1021,13 +1102,20 @@ class SnapshotForecasterService:
         return "0x" + body.lstrip("0") if body.lstrip("0") else "0x0"
 
     @staticmethod
-    def _history_chain_candidates() -> list[str]:
+    def _history_chain_candidates(network_id: str) -> list[str]:
         configured = str(os.getenv("EKUBO_CHAIN_ID") or "").strip()
-        candidates = [
-            configured,
-            _EKUBO_SEPOLIA_CHAIN_ID,
-            _EKUBO_SEPOLIA_CHAIN_ID_DEC,
-        ]
+        configured_mainnet = str(os.getenv("EKUBO_CHAIN_ID_MAINNET") or "").strip()
+        if network_id == "starknet_mainnet":
+            candidates = [
+                configured_mainnet,
+                _EKUBO_MAINNET_CHAIN_ID,
+            ]
+        else:
+            candidates = [
+                configured,
+                _EKUBO_SEPOLIA_CHAIN_ID,
+                _EKUBO_SEPOLIA_CHAIN_ID_DEC,
+            ]
         out: list[str] = []
         for c in candidates:
             if c and c not in out:
@@ -1042,15 +1130,16 @@ class SnapshotForecasterService:
             return [300, 900, 1800, 3600, 7200]
         return [900, 1800, 3600, 7200]
 
-    def _load_oracle_history_points(
+    def _load_ekubo_history_points(
         self,
         *,
+        network_id: str,
         base_token: str,
         quote_token: str,
         horizon_min: int,
     ) -> list[tuple[int, float]]:
         best_points: list[tuple[int, float]] = []
-        for chain_id in self._history_chain_candidates():
+        for chain_id in self._history_chain_candidates(network_id):
             for interval in self._history_intervals_for_horizon(horizon_min):
                 points = self._fetch_price_history_points(
                     chain_id=chain_id,
@@ -1120,6 +1209,116 @@ class SnapshotForecasterService:
         points.sort(key=lambda item: item[0])
         self._oracle_history_cache[key] = (now, list(points))
         return points
+
+    @staticmethod
+    def _coingecko_range_key(target_ts: int) -> tuple[int, int]:
+        start = int(target_ts - (2 * 24 * 3600))
+        end = int(target_ts + (2 * 24 * 3600))
+        bucket = 6 * 3600
+        start_b = (start // bucket) * bucket
+        end_b = ((end + bucket - 1) // bucket) * bucket
+        return start_b, end_b
+
+    def _fetch_coingecko_points(
+        self,
+        *,
+        coin_id: str,
+        target_ts: int,
+    ) -> list[tuple[int, float]]:
+        range_start, range_end = self._coingecko_range_key(target_ts)
+        key = (coin_id, range_start, range_end)
+        now = self._now_ts()
+        cached = self._coingecko_history_cache.get(key)
+        if cached and (now - int(cached[0])) <= 120:
+            return list(cached[1])
+
+        api_base = str(os.getenv("COINGECKO_API_BASE") or "https://api.coingecko.com/api/v3").rstrip("/")
+        url = f"{api_base}/coins/{coin_id}/market_chart/range"
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    url,
+                    params={
+                        "vs_currency": "usd",
+                        "from": int(range_start),
+                        "to": int(range_end),
+                    },
+                    headers={"accept": "application/json"},
+                )
+            if response.status_code != 200:
+                return []
+            payload = response.json()
+        except Exception as exc:
+            logger.debug("CoinGecko fetch failed coin=%s (%s)", coin_id, exc)
+            return []
+
+        raw = payload.get("prices") if isinstance(payload, dict) else None
+        if not isinstance(raw, list):
+            return []
+
+        points: list[tuple[int, float]] = []
+        for item in raw:
+            if not isinstance(item, list) or len(item) < 2:
+                continue
+            try:
+                ts_ms = int(item[0])
+                price = float(item[1])
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(price) or price <= 0:
+                continue
+            points.append((int(ts_ms / 1000), price))
+
+        points.sort(key=lambda row: row[0])
+        self._coingecko_history_cache[key] = (now, list(points))
+        return points
+
+    def _coingecko_usd_price_at(
+        self,
+        *,
+        coin_id: str,
+        target_ts: int,
+        max_skew_sec: int,
+    ) -> float | None:
+        if coin_id == "usd-coin":
+            return 1.0
+        points = self._fetch_coingecko_points(coin_id=coin_id, target_ts=target_ts)
+        if not points:
+            return None
+        return self._nearest_oracle_price(points, target_ts, max_skew_sec=max_skew_sec)
+
+    def _coingecko_pair_price_at(
+        self,
+        *,
+        base_symbol: str,
+        quote_symbol: str,
+        target_ts: int,
+        max_skew_sec: int,
+    ) -> float | None:
+        base_id = _COINGECKO_ID_BY_SYMBOL.get(base_symbol)
+        quote_id = _COINGECKO_ID_BY_SYMBOL.get(quote_symbol)
+        if not base_id or not quote_id:
+            return None
+
+        base_usd = self._coingecko_usd_price_at(
+            coin_id=base_id,
+            target_ts=target_ts,
+            max_skew_sec=max_skew_sec,
+        )
+        quote_usd = self._coingecko_usd_price_at(
+            coin_id=quote_id,
+            target_ts=target_ts,
+            max_skew_sec=max_skew_sec,
+        )
+        if base_usd is None or quote_usd is None or quote_usd <= 0:
+            return None
+        return float(base_usd / quote_usd)
+
+    def _oracle_source_id(self, window: dict[str, Any]) -> str:
+        network_id = self._normalize_network_id(str(window.get("network_id", DEFAULT_NETWORK_ID)))
+        if network_id == "ethereum_mainnet":
+            return COINGECKO_OUTCOME_SOURCE_ID
+        return ORACLE_OUTCOME_SOURCE_ID
 
     @staticmethod
     def _parse_unix_ts(raw: Any) -> int | None:

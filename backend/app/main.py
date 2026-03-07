@@ -280,3 +280,8 @@ def health() -> dict[str, str]:
 def root() -> dict[str, str]:
     return {"service": "zkde.fi api", "health": "/health", "docs": "/docs"}
 
+
+# Live data routes (wired to Ekubo + zkGraph + zkRAG)
+trade_desk_live_router = _optional_router("app.api.routes.trade_desk_live")
+if trade_desk_live_router:
+    app.include_router(trade_desk_live_router)

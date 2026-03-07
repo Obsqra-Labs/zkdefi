@@ -111,6 +111,21 @@ def test_output_bounds_enforced(svc: SnapshotForecasterService):
 
 
 @pytest.mark.asyncio
+async def test_create_window_rejects_invalid_network(svc: SnapshotForecasterService):
+    with pytest.raises(ValueError, match="Unsupported network_id"):
+        await svc.create_window(
+            pair_id="ETH/USDC",
+            network_id="invalid_network",
+            window_open_ts=1_710_000_000,
+            window_close_ts=1_710_000_300,
+            cadence_id="5m",
+            snapshot_data={"mid_price": 3000.0},
+            feature_schema_id="snapshot_forecaster.v1",
+            attest_snapshot=False,
+        )
+
+
+@pytest.mark.asyncio
 async def test_auto_ingest_and_score_progression(svc: SnapshotForecasterService, monkeypatch):
     monkeypatch.setattr(svc, "_oracle_actual_return_bps", lambda **kwargs: None)
 

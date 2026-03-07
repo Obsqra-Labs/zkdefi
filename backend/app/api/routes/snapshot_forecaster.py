@@ -19,6 +19,8 @@ from pydantic import BaseModel, Field
 from app.services.llm_narration import generate_narration
 from app.services.snapshot_forecaster_service import (
     DEFAULT_SCHEMA_ID,
+    DEFAULT_NETWORK_ID,
+    SUPPORTED_NETWORK_IDS,
     SnapshotForecasterService,
     get_snapshot_forecaster_service,
 )
@@ -28,6 +30,10 @@ router = APIRouter(prefix="/snapshot-forecaster", tags=["snapshot-forecaster"])
 
 class WindowCreateRequest(BaseModel):
     pair_id: str = Field(..., description="Market pair identifier, e.g. ETH/USDC")
+    network_id: str = Field(
+        default=DEFAULT_NETWORK_ID,
+        description=f"Forecast network. Allowed: {', '.join(SUPPORTED_NETWORK_IDS)}",
+    )
     window_open_ts: int = Field(..., description="Window open timestamp (unix seconds)")
     window_close_ts: int = Field(..., description="Window close timestamp (unix seconds)")
     cadence_id: str = Field(..., description="Window cadence id, e.g. 1m")
@@ -122,6 +128,7 @@ async def create_window(req: WindowCreateRequest) -> dict[str, Any]:
     try:
         return await _svc().create_window(
             pair_id=req.pair_id,
+            network_id=req.network_id,
             window_open_ts=req.window_open_ts,
             window_close_ts=req.window_close_ts,
             cadence_id=req.cadence_id,
@@ -139,10 +146,14 @@ async def create_window(req: WindowCreateRequest) -> dict[str, Any]:
 @router.get("/windows")
 def list_windows(
     pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> dict[str, Any]:
-    rows = _svc().list_windows(pair_id=pair_id, limit=limit)
-    return {"windows": rows, "count": len(rows)}
+    try:
+        rows = _svc().list_windows(pair_id=pair_id, network_id=network_id, limit=limit)
+        return {"windows": rows, "count": len(rows)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/windows/{window_id}")

@@ -1,9 +1,10 @@
 {
-  "0x0189408762443a734ae3bd8cb9efd347987ed28ae824881b4f6dedd701acd3cd": {
-    "window_id": "0x0189408762443a734ae3bd8cb9efd347987ed28ae824881b4f6dedd701acd3cd",
+  "0x5fa2541c5c4b01aa0b5f6996f5069f23186e4066acbe5a79fe04a0a1ad3c4fe9": {
+    "window_id": "0x5fa2541c5c4b01aa0b5f6996f5069f23186e4066acbe5a79fe04a0a1ad3c4fe9",
     "pair_id": "ETH/USDC",
-    "window_open_ts": 1710200000,
-    "window_close_ts": 1710200300,
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1710300000,
+    "window_close_ts": 1710300300,
     "cadence_id": "5m",
     "snapshot_hash": "0x4776e37061e1ea35198324c5c03842046b00d6e1e583e73df570f78f88e324cd",
     "snapshot_data": {
@@ -25,32 +26,16 @@
     "outcomes": {
       "5": {
         "horizon_min": 5,
-        "actual_return_bps": 94,
+        "actual_return_bps": 42,
         "actual_up": 1,
-        "maturity_ts": 1710200300,
-        "source_id": "auto_det_outcome_v1",
-        "recorded_at_ts": 1710200360
-      },
-      "30": {
-        "horizon_min": 30,
-        "actual_return_bps": 101,
-        "actual_up": 1,
-        "maturity_ts": 1710201800,
-        "source_id": "auto_det_outcome_v1",
-        "recorded_at_ts": 1710202100
-      },
-      "240": {
-        "horizon_min": 240,
-        "actual_return_bps": 224,
-        "actual_up": 1,
-        "maturity_ts": 1710214400,
-        "source_id": "auto_det_outcome_v1",
-        "recorded_at_ts": 1710214460
+        "maturity_ts": 1710300300,
+        "source_id": "ekubo_price_history_v1",
+        "recorded_at_ts": 1710300360
       }
     },
     "prediction_ids": [
-      "0x113a6326efcaa45733b4fa639855d0977c83eee0e4d2ea3a474931d625784d22"
+      "0x927acab8e70c73fd4fc29775c91fb4630fd84268d273b838db303142f82e25ff"
     ],
-    "created_at_ts": 1772854767
+    "created_at_ts": 1772857909
   }
 }

@@ -1,18 +1,18 @@
 {
-  "0x113a6326efcaa45733b4fa639855d0977c83eee0e4d2ea3a474931d625784d22": {
-    "forecast_id": "0x113a6326efcaa45733b4fa639855d0977c83eee0e4d2ea3a474931d625784d22",
-    "window_id": "0x0189408762443a734ae3bd8cb9efd347987ed28ae824881b4f6dedd701acd3cd",
-    "subject_id": "0xauto",
-    "guess_ts": 1772854767,
+  "0x927acab8e70c73fd4fc29775c91fb4630fd84268d273b838db303142f82e25ff": {
+    "forecast_id": "0x927acab8e70c73fd4fc29775c91fb4630fd84268d273b838db303142f82e25ff",
+    "window_id": "0x5fa2541c5c4b01aa0b5f6996f5069f23186e4066acbe5a79fe04a0a1ad3c4fe9",
+    "subject_id": "0xoracle",
+    "guess_ts": 1772857909,
     "horizons_min": [
       5,
       30,
       240
     ],
-    "status": "scored",
-    "prediction_commitment": "0x259ce1b0ae5b63d1aebd6e62a69e202549ff125997df5c399c82c08cc64a22fc",
+    "status": "revealed",
+    "prediction_commitment": "0x085f45fac75c97193f63121a38ca1591885296d53aeade72bfeddecf7edc1c75",
     "model_identity": {
-      "model_hash": "0xmodelhash-auto",
+      "model_hash": "0xmodelhash-oracle",
       "schema_id": "snapshot_forecaster.v1",
       "settings_hash": null,
       "vk_hash": null
@@ -24,17 +24,17 @@
       "prob_max": 10000
     },
     "metadata": {},
-    "revealed_at_ts": 1772854767,
+    "revealed_at_ts": 1772857909,
     "outputs_scaled": {
-      "p240": 7600,
-      "p30": 7000,
-      "p5": 6400,
-      "r240": 220,
-      "r30": 140,
-      "r5": 90
+      "p240": 6800,
+      "p30": 6400,
+      "p5": 6200,
+      "r240": 120,
+      "r30": 80,
+      "r5": 50
     },
     "ezkl_receipt": {
-      "proof_hash": "0xauto",
+      "proof_hash": "0xoracle",
       "verify_key_hash": null,
       "proof_system": "halo2_kzg",
       "verified_locally": true,
@@ -42,9 +42,8 @@
       "verification_mode": null
     },
     "trust_mode": "offchain_ezkl_verified",
-    "score_receipt_id": "0xbca70ded2530b583a4f442029a11483e22be42c66e6b66ad3bb272fd668d17cd",
-    "created_at_ts": 1772854767,
-    "reveal_salt_hash": "0x99a5f09a49bac6e7e3c25ee2bb7944cf0bd6cebffe406b0f0c01c5d03f35654d",
-    "scored_at_ts": 1772854767
+    "score_receipt_id": null,
+    "created_at_ts": 1772857909,
+    "reveal_salt_hash": "0x0859e3fc8017bbb9c2f33472073ef50d2c4bd593356ca404d849eec2e2324924"
   }
 }
