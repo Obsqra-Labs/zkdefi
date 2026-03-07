@@ -62,19 +62,13 @@ export function FullPrivacyPoolPanel() {
 
   useEffect(() => {
     if (mounted && address) {
-      // Version check: Clear old commitments from before Feb 4, 2026 merkle tree reset
-      const MERKLE_TREE_RESET_DATE = "2026-02-04";
-      const versionKey = `zkdefi_fullprivacy_version`;
-      const currentVersion = localStorage.getItem(versionKey);
-      
-      if (currentVersion !== MERKLE_TREE_RESET_DATE) {
-        console.log("Clearing old Full Privacy Pool commitments (merkle tree was reset)");
-        localStorage.removeItem(`zkdefi_fullprivacy_${address}`);
-        localStorage.setItem(versionKey, MERKLE_TREE_RESET_DATE);
-        setSavedCommitments([]);
+      // Load saved commitments (version-based clearing removed — migration
+      // into the unified vault store handles stale data now).
+      const stored = localStorage.getItem(`zkdefi_fullprivacy_${address}`);
+      if (stored) {
+        try { setSavedCommitments(JSON.parse(stored)); } catch { setSavedCommitments([]); }
       } else {
-        const stored = localStorage.getItem(`zkdefi_fullprivacy_${address}`);
-        if (stored) setSavedCommitments(JSON.parse(stored));
+        setSavedCommitments([]);
       }
       
       fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});

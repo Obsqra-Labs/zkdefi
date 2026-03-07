@@ -163,49 +163,76 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
   const newEntries: VaultCommitment[] = [];
 
   for (const { prefix, method } of OLD_KEY_METHOD_MAP) {
-    const key = `${prefix}${addr}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) continue;
+    // Try both raw address and lowercased (old panels didn't normalise case)
+    const candidates = [addr, address];
+    const seen = new Set<string>();
+    for (const a of candidates) {
+      const key = `${prefix}${a}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed: unknown = JSON.parse(raw);
+        if (!Array.isArray(parsed)) continue;
 
-      for (const item of parsed) {
-        if (typeof item !== "object" || item === null) continue;
-        const rec = item as Record<string, unknown>;
-        const hash = String(rec.commitment_hash ?? rec.hash ?? "");
-        if (!hash || knownHashes.has(hash)) continue;
-        knownHashes.add(hash);
+        let migratedFromThisKey = 0;
+        for (const item of parsed) {
+          if (typeof item !== "object" || item === null) continue;
+          const rec = item as Record<string, unknown>;
+          // Old panels stored "commitment", not "commitment_hash"
+          const hash = String(rec.commitment_hash ?? rec.commitment ?? rec.hash ?? "");
+          if (!hash || knownHashes.has(hash)) continue;
+          knownHashes.add(hash);
 
-        newEntries.push({
-          id: crypto.randomUUID(),
-          method,
-          asset: (rec.asset as "STRK" | "ETH") ?? "STRK",
-          amount_wei: String(rec.amount_wei ?? rec.amount ?? "0"),
-          commitment_hash: hash,
-          nullifier: rec.nullifier != null ? String(rec.nullifier) : undefined,
-          secret: rec.secret != null ? String(rec.secret) : undefined,
-          user_secret: rec.user_secret != null ? String(rec.user_secret) : undefined,
-          nonce: rec.nonce != null ? String(rec.nonce) : undefined,
-          blinding: rec.blinding != null ? String(rec.blinding) : undefined,
-          pool_type: typeof rec.pool_type === "number" ? rec.pool_type : undefined,
-          merkle_index: typeof rec.merkle_index === "number" ? rec.merkle_index : undefined,
-          merkle_root: rec.merkle_root != null ? String(rec.merkle_root) : undefined,
-          path_elements: Array.isArray(rec.path_elements)
-            ? rec.path_elements.map((p) => String(p))
-            : undefined,
-          path_indices: Array.isArray(rec.path_indices)
-            ? rec.path_indices.map((p) => Number(p)).filter((p) => Number.isFinite(p))
-            : undefined,
-          pool_variant: rec.pool_variant != null ? String(rec.pool_variant) : undefined,
-          deposited_at: typeof rec.deposited_at === "string" ? rec.deposited_at : new Date().toISOString(),
-          yield_accrued: rec.yield_accrued != null ? String(rec.yield_accrued) : undefined,
-        });
+          // Old ShieldedPool stored "balance" (wei string), FullPrivacy stored "amount" (int)
+          const rawAmount = rec.amount_wei ?? rec.balance ?? rec.amount ?? "0";
+          const amountStr = String(rawAmount);
+
+          // Resolve deposited_at from various legacy fields
+          let depositedAt: string;
+          if (typeof rec.deposited_at === "string") {
+            depositedAt = rec.deposited_at;
+          } else if (typeof rec.timestamp === "number") {
+            depositedAt = new Date(rec.timestamp).toISOString();
+          } else {
+            depositedAt = new Date().toISOString();
+          }
+
+          newEntries.push({
+            id: crypto.randomUUID(),
+            method,
+            asset: (rec.asset as "STRK" | "ETH") ?? "STRK",
+            amount_wei: amountStr,
+            commitment_hash: hash,
+            nullifier: rec.nullifier != null ? String(rec.nullifier) : undefined,
+            secret: rec.secret != null ? String(rec.secret) : undefined,
+            user_secret: rec.user_secret != null ? String(rec.user_secret) : undefined,
+            nonce: rec.nonce != null ? String(rec.nonce) : undefined,
+            blinding: rec.blinding != null ? String(rec.blinding) : undefined,
+            pool_type: typeof rec.pool_type === "number" ? rec.pool_type : undefined,
+            merkle_index: typeof rec.merkle_index === "number" ? rec.merkle_index : undefined,
+            merkle_root: rec.merkle_root != null ? String(rec.merkle_root) : undefined,
+            path_elements: Array.isArray(rec.path_elements)
+              ? rec.path_elements.map((p) => String(p))
+              : undefined,
+            path_indices: Array.isArray(rec.path_indices)
+              ? rec.path_indices.map((p) => Number(p)).filter((p) => Number.isFinite(p))
+              : undefined,
+            pool_variant: rec.pool_variant != null ? String(rec.pool_variant) : undefined,
+            deposited_at: depositedAt,
+            yield_accrued: rec.yield_accrued != null ? String(rec.yield_accrued) : undefined,
+          });
+          migratedFromThisKey++;
+        }
+
+        // Only remove the old key if we actually migrated records from it
+        if (migratedFromThisKey > 0) {
+          window.localStorage.removeItem(key);
+        }
+      } catch {
+        // best-effort
       }
-
-      window.localStorage.removeItem(key);
-    } catch {
-      // best-effort
     }
   }
 

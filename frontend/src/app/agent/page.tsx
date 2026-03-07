@@ -33,7 +33,7 @@ export default function AgentPage() {
   const [activeOverlay, setActiveOverlay] = useState<OverlayMode>(null);
   const [slideout, setSlideout] = useState<SlideoutMode>(null);
 
-  const vault = usePrivacyVault();
+  const vault = usePrivacyVault(address);
 
   useEffect(() => setMounted(true), []);
 

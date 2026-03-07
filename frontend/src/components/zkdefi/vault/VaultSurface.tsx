@@ -87,7 +87,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
   useEffect(() => {
     if (!address) return;
     migrateOldStorage();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [address, migrateOldStorage]);
 
   useEffect(() => {
     if (!address) {
