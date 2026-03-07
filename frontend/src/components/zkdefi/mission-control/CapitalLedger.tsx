@@ -61,15 +61,12 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
           });
         }
 
-        // Dark Ledger (notes)
-        const notes = await apiFetch<any>(`/api/v1/zkdefi/ledger/notes/${address}`).catch(() => null);
-        if (notes) {
-          setDarkLedger({
-            note_count: notes.count || (Array.isArray(notes.notes) ? notes.notes.length : 0),
-            sweep_available_usd: notes.sweep_available_usd || 0,
-            l3_block: notes.l3_block || 0,
-          });
-        }
+        // Dark Ledger (notes) - endpoint not yet implemented, keeping data as zeroes
+        setDarkLedger({
+          note_count: 0,
+          sweep_available_usd: 0,
+          l3_block: 0,
+        });
 
         // Positions
         const pos = await apiFetch<any>(`/api/v1/zkdefi/position/${address}?protocol_id=0`).catch(() => null);
