@@ -89,6 +89,25 @@ type ScoreHistoryResponse = {
   count: number;
 };
 
+type HorizonBenchmarkRow = {
+  horizon_min: number;
+  sample_size: number;
+  directional_accuracy: number;
+  mae_bps: number;
+  rmse_bps: number;
+  bias_bps: number;
+  brier_score: number;
+  avg_pred_prob_up: number;
+  actual_up_rate: number;
+  calibration_gap: number;
+};
+
+type HorizonBenchmarksResponse = {
+  subject_id: string;
+  sample_forecasts: number;
+  horizon_benchmarks: HorizonBenchmarkRow[];
+};
+
 type ScoreReceipt = {
   score_receipt_id: string;
   forecast_id: string;
@@ -273,6 +292,10 @@ function formatBpsWithPct(bps: number): string {
   const bpsPrefix = bps > 0 ? "+" : "";
   const pctPrefix = pct > 0 ? "+" : "";
   return `${bpsPrefix}${pretty(bps, 0)} bps (${pctPrefix}${pretty(pct, 2)}%)`;
+}
+
+function horizonLabel(horizonMin: number): string {
+  return horizonMin === 240 ? "4h" : `${horizonMin}m`;
 }
 
 function shortId(value?: string | null): string {

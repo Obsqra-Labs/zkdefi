@@ -106,6 +106,13 @@ def test_snapshot_forecaster_api_roundtrip():
     assert reputation["sample_size"] == 1
     assert "trust_score" in reputation
 
+    benchmark_resp = client.get("/api/v1/zkdefi/snapshot-forecaster/reputation/0xfeedbeef/benchmarks?limit=100")
+    assert benchmark_resp.status_code == 200
+    benchmark = benchmark_resp.json()
+    assert benchmark["subject_id"] == "0xfeedbeef"
+    assert benchmark["sample_forecasts"] == 1
+    assert len(benchmark["horizon_benchmarks"]) == 3
+
     history_resp = client.get("/api/v1/zkdefi/snapshot-forecaster/reputation/0xfeedbeef/history?limit=10")
     assert history_resp.status_code == 200
     history_payload = history_resp.json()

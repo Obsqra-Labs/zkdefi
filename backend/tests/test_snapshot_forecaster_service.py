@@ -245,3 +245,53 @@ async def test_suggest_outputs_changes_by_network(svc: SnapshotForecasterService
     assert sepolia_outputs["network_id"] == "starknet_sepolia"
     assert mainnet_outputs["network_id"] == "ethereum_mainnet"
     assert sepolia_outputs["outputs_scaled"] != mainnet_outputs["outputs_scaled"]
+
+
+@pytest.mark.asyncio
+async def test_subject_horizon_benchmarks(svc: SnapshotForecasterService):
+    open_ts = 1_710_500_000
+    window = await svc.create_window(
+        pair_id="ETH/USDC",
+        window_open_ts=open_ts,
+        window_close_ts=open_ts + 300,
+        cadence_id="5m",
+        snapshot_data={"mid_price": 3500.0},
+        feature_schema_id="snapshot_forecaster.v1",
+        attest_snapshot=False,
+    )
+
+    outputs = {"r5": 90, "r30": 140, "r240": 220, "p5": 6400, "p30": 7000, "p240": 7600}
+    forecast = svc.commit_prediction(
+        window_id=window["window_id"],
+        model_identity={"model_hash": "0xmodelhash-bench", "schema_id": "snapshot_forecaster.v1"},
+        outputs_scaled=outputs,
+        salt="bench-flow",
+        horizons_min=[5, 30, 240],
+        subject_id="0xbench",
+    )
+    svc.reveal_prediction(
+        forecast_id=forecast["forecast_id"],
+        outputs_scaled=outputs,
+        salt="bench-flow",
+        ezkl_receipt={"proof_hash": "0xbench", "verified_locally": True},
+    )
+    svc.upsert_outcomes(
+        window_id=window["window_id"],
+        outcomes=[
+            {"horizon_min": 5, "actual_return_bps": 70},
+            {"horizon_min": 30, "actual_return_bps": 120},
+            {"horizon_min": 240, "actual_return_bps": 180},
+        ],
+        source_id="unit_test_feed",
+    )
+    svc.score_prediction(forecast_id=forecast["forecast_id"])
+
+    bench = svc.get_subject_horizon_benchmarks("0xBENCH", limit=100)
+    assert bench["subject_id"] == "0xbench"
+    assert bench["sample_forecasts"] == 1
+    assert len(bench["horizon_benchmarks"]) == 3
+    by_h = {row["horizon_min"]: row for row in bench["horizon_benchmarks"]}
+    assert by_h[5]["sample_size"] == 1
+    assert by_h[30]["sample_size"] == 1
+    assert by_h[240]["sample_size"] == 1
+    assert by_h[5]["mae_bps"] == pytest.approx(20.0)

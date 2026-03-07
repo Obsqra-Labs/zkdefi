@@ -282,6 +282,14 @@ def get_subject_reputation(subject_id: str) -> dict[str, Any]:
     return _svc().get_subject_reputation(subject_id)
 
 
+@router.get("/reputation/{subject_id}/benchmarks")
+def get_subject_horizon_benchmarks(
+    subject_id: str,
+    limit: int = Query(default=1000, ge=1, le=5000),
+) -> dict[str, Any]:
+    return _svc().get_subject_horizon_benchmarks(subject_id=subject_id, limit=limit)
+
+
 @router.get("/reputation/{subject_id}/history")
 def get_subject_reputation_history(
     subject_id: str,

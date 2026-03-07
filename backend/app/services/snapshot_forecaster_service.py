@@ -779,6 +779,142 @@ class SnapshotForecasterService:
             "metric_tiers": self._metric_tiers(avg_metrics),
         }
 
+    def get_subject_horizon_benchmarks(self, subject_id: str, limit: int = 1000) -> dict[str, Any]:
+        subject = self._normalize_subject(subject_id)
+
+        predictions = [
+            r
+            for r in self._predictions.values()
+            if self._normalize_subject(str(r.get("subject_id", ""))) == subject
+            and str(r.get("status", "")).strip().lower() == "scored"
+            and r.get("score_receipt_id")
+        ]
+        predictions.sort(key=lambda row: int(row.get("scored_at_ts", row.get("created_at_ts", 0)) or 0), reverse=True)
+        limited = predictions[: max(1, int(limit))]
+
+        buckets: dict[int, dict[str, float]] = {
+            5: {
+                "n": 0.0,
+                "dir_hits": 0.0,
+                "abs_err_sum": 0.0,
+                "sq_err_sum": 0.0,
+                "bias_sum": 0.0,
+                "brier_sum": 0.0,
+                "pred_prob_sum": 0.0,
+                "actual_up_sum": 0.0,
+            },
+            30: {
+                "n": 0.0,
+                "dir_hits": 0.0,
+                "abs_err_sum": 0.0,
+                "sq_err_sum": 0.0,
+                "bias_sum": 0.0,
+                "brier_sum": 0.0,
+                "pred_prob_sum": 0.0,
+                "actual_up_sum": 0.0,
+            },
+            240: {
+                "n": 0.0,
+                "dir_hits": 0.0,
+                "abs_err_sum": 0.0,
+                "sq_err_sum": 0.0,
+                "bias_sum": 0.0,
+                "brier_sum": 0.0,
+                "pred_prob_sum": 0.0,
+                "actual_up_sum": 0.0,
+            },
+        }
+
+        for prediction in limited:
+            score_receipt_id = str(prediction.get("score_receipt_id", "")).strip()
+            if not score_receipt_id:
+                continue
+            receipt = self._scores.get(score_receipt_id)
+            if not receipt:
+                continue
+            per_horizon = receipt.get("per_horizon") or {}
+            if not isinstance(per_horizon, dict):
+                continue
+
+            for row in per_horizon.values():
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    horizon = int(row.get("horizon_min"))
+                except Exception:
+                    continue
+                if horizon not in buckets:
+                    continue
+
+                predicted_return = float(row.get("predicted_return_bps", 0.0))
+                actual_return = float(row.get("actual_return_bps", 0.0))
+                err = predicted_return - actual_return
+                directional_hit = 1.0 if bool(row.get("directional_hit", False)) else 0.0
+                pred_prob = float(row.get("predicted_prob_up", 0.0))
+                actual_up = float(int(row.get("actual_up", 0)))
+                brier = float(row.get("brier", (pred_prob - actual_up) ** 2))
+
+                acc = buckets[horizon]
+                acc["n"] += 1.0
+                acc["dir_hits"] += directional_hit
+                acc["abs_err_sum"] += abs(err)
+                acc["sq_err_sum"] += (err * err)
+                acc["bias_sum"] += err
+                acc["brier_sum"] += brier
+                acc["pred_prob_sum"] += pred_prob
+                acc["actual_up_sum"] += actual_up
+
+        horizon_benchmarks: list[dict[str, Any]] = []
+        for horizon in SUPPORTED_HORIZONS_MIN:
+            acc = buckets[horizon]
+            n = acc["n"]
+            if n <= 0:
+                horizon_benchmarks.append(
+                    {
+                        "horizon_min": horizon,
+                        "sample_size": 0,
+                        "directional_accuracy": 0.0,
+                        "mae_bps": 0.0,
+                        "rmse_bps": 0.0,
+                        "bias_bps": 0.0,
+                        "brier_score": 0.0,
+                        "avg_pred_prob_up": 0.0,
+                        "actual_up_rate": 0.0,
+                        "calibration_gap": 0.0,
+                    }
+                )
+                continue
+
+            directional = acc["dir_hits"] / n
+            mae = acc["abs_err_sum"] / n
+            rmse = math.sqrt(acc["sq_err_sum"] / n)
+            bias = acc["bias_sum"] / n
+            brier = acc["brier_sum"] / n
+            avg_pred_prob = acc["pred_prob_sum"] / n
+            actual_up_rate = acc["actual_up_sum"] / n
+            calibration_gap = abs(avg_pred_prob - actual_up_rate)
+
+            horizon_benchmarks.append(
+                {
+                    "horizon_min": horizon,
+                    "sample_size": int(n),
+                    "directional_accuracy": round(directional, 6),
+                    "mae_bps": round(mae, 6),
+                    "rmse_bps": round(rmse, 6),
+                    "bias_bps": round(bias, 6),
+                    "brier_score": round(brier, 6),
+                    "avg_pred_prob_up": round(avg_pred_prob, 6),
+                    "actual_up_rate": round(actual_up_rate, 6),
+                    "calibration_gap": round(calibration_gap, 6),
+                }
+            )
+
+        return {
+            "subject_id": subject,
+            "sample_forecasts": len(limited),
+            "horizon_benchmarks": horizon_benchmarks,
+        }
+
     def list_subject_score_history(self, subject_id: str, limit: int = 200) -> list[dict[str, Any]]:
         subject = self._normalize_subject(subject_id)
         rows: list[dict[str, Any]] = []

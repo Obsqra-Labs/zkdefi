@@ -194,7 +194,7 @@ if vault_v2_router:
     app.include_router(vault_v2_router, prefix="/api/v2/vault", tags=["vault-v2"])
 if ledger_router:
     app.include_router(
-        ledger_router, prefix="/api/v1/zkdefi/ledger", tags=["ledger"]
+        ledger_router, prefix="/api/v1/zkdefi", tags=["ledger"]
     )
 if private_yield_router:
     app.include_router(
