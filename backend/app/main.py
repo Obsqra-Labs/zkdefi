@@ -100,6 +100,7 @@ onboarding_router = _optional_router("app.api.routes.onboarding")
 proofs_router = _optional_router("app.api.routes.proofs")
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
 snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaster")
+trade_desk_router = _optional_router("app.api.routes.trade_desk")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -257,6 +258,8 @@ if vault_execute_live_router:
     )
 if phase4a_router:
     app.include_router(phase4a_router, prefix="/api/v1/phase4a", tags=["phase4a"])
+if trade_desk_router:
+    app.include_router(trade_desk_router)
 
 
 # -----------------------------------------------------------------------------
@@ -276,3 +279,4 @@ def health() -> dict[str, str]:
 @app.get("/")
 def root() -> dict[str, str]:
     return {"service": "zkde.fi api", "health": "/health", "docs": "/docs"}
+
