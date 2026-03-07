@@ -1,8 +1,7 @@
 "use client";
 
-import type { ReceiptWithImpact } from "@/services/types";
+import type { ReceiptWithImpact } from "@/services/ReceiptService";
 import { useState, useMemo } from "react";
-import { ReceiptDisplay } from "./ReceiptDisplay";
 
 interface MemoryLaneProps {
   receipts: ReceiptWithImpact[];
@@ -79,7 +78,7 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
                 <div className="p-3 bg-slate-800 rounded">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-sm">{receipt.opportunityName || receipt.action}</p>
+                      <p className="font-medium text-sm">{receipt.opportunityName || receipt.adapter}</p>
                       <p className="text-xs text-slate-400 mt-1">
                         {new Date(receipt.timestamp).toLocaleString()}
                       </p>
@@ -110,7 +109,43 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
 
                 {/* Expanded View */}
                 {expandedId === receipt.id && (
-                  <ReceiptDisplay receipt={receipt} />
+                  <div className="p-3 bg-slate-900 border-t border-slate-700 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-slate-400">Type</p>
+                        <p className="font-medium capitalize">{receipt.action}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400">Adapter</p>
+                        <p className="font-medium">{receipt.adapter}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400">Privacy Level</p>
+                        <p className="font-medium capitalize">{receipt.privacyLevel}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400">Trust Delta</p>
+                        <p className="font-medium">
+                          {receipt.trustDelta > 0 ? "+" : ""}
+                          {receipt.trustDelta}
+                        </p>
+                      </div>
+                    </div>
+                    {receipt.txHash && (
+                      <div>
+                        <p className="text-slate-400">Transaction</p>
+                        <p className="font-mono text-xs text-blue-400 truncate">
+                          {receipt.txHash}
+                        </p>
+                      </div>
+                    )}
+                    {receipt.explanationFromAI && (
+                      <div>
+                        <p className="text-slate-400">AI Note</p>
+                        <p className="text-xs text-slate-300">{receipt.explanationFromAI}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

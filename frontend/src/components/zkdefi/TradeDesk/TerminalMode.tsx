@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Robot,
+  Bot,
   ShieldAlert,
   Clock,
   CheckCircle,
@@ -91,7 +91,7 @@ export const TerminalMode = React.memo(
               animate={{ opacity: 1, y: 0 }}
               className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3"
             >
-              <Robot className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <Bot className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-blue-900">
                   Autonomous Execution Enabled

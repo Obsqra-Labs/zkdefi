@@ -15,6 +15,16 @@ import {
   Shield,
   Sparkles,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { apiFetch } from "@/lib/api/client";
@@ -54,6 +64,27 @@ type PredictionRecord = {
 
 type PredictionListResponse = {
   predictions: PredictionRecord[];
+  count: number;
+};
+
+type ScoreHistoryRow = {
+  forecast_id: string;
+  window_id: string;
+  pair_id: string;
+  status: string;
+  trust_mode: string;
+  created_at_ts: number;
+  scored_at_ts: number;
+  metrics: {
+    directional_accuracy: number;
+    mae_bps: number;
+    brier_score: number;
+    ece: number;
+  };
+};
+
+type ScoreHistoryResponse = {
+  history: ScoreHistoryRow[];
   count: number;
 };
 
@@ -335,6 +366,7 @@ export default function ForecasterPage() {
   const [reputation, setReputation] = useState<ReputationSlice | null>(null);
   const [explain, setExplain] = useState<ExplainResponse | null>(null);
   const [history, setHistory] = useState<PredictionRecord[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryRow[]>([]);
   const [selectedForecastId, setSelectedForecastId] = useState<string | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
   const [liveTracking, setLiveTracking] = useState(true);
@@ -433,6 +465,22 @@ export default function ForecasterPage() {
     ];
   }, [explain]);
 
+  const performanceSeries = useMemo(() => {
+    if (!scoreHistory.length) return [];
+    const asc = [...scoreHistory].sort((a, b) => a.scored_at_ts - b.scored_at_ts);
+    return asc.map((row, idx) => ({
+      idx: idx + 1,
+      label: `#${idx + 1}`,
+      scoredAtLabel: formatUnixTs(row.scored_at_ts),
+      forecast: shortId(row.forecast_id),
+      pair: row.pair_id,
+      directionalPct: Number(row.metrics.directional_accuracy) * 100,
+      maePct: Number(row.metrics.mae_bps) / 100,
+      brier: Number(row.metrics.brier_score),
+      ece: Number(row.metrics.ece),
+    }));
+  }, [scoreHistory]);
+
   const resetError = () => setError(null);
 
   const storePayload = (payload: unknown) => {
@@ -525,15 +573,29 @@ export default function ForecasterPage() {
   const refreshHistory = async (preferredForecastId?: string) => {
     setHistoryBusy(true);
     try {
+      const trimmedSubject = subjectId.trim().toLowerCase();
       const query = new URLSearchParams({ limit: "25" });
-      if (subjectId.trim()) {
-        query.set("subject_id", subjectId.trim().toLowerCase());
+      if (trimmedSubject) {
+        query.set("subject_id", trimmedSubject);
       }
       const rows = await apiFetch<PredictionListResponse>(
         `/api/v1/zkdefi/snapshot-forecaster/predictions?${query.toString()}`,
       );
       const predictions = rows.predictions ?? [];
       setHistory(predictions);
+
+      if (trimmedSubject) {
+        try {
+          const scoreRows = await apiFetch<ScoreHistoryResponse>(
+            `/api/v1/zkdefi/snapshot-forecaster/reputation/${encodeURIComponent(trimmedSubject)}/history?limit=60`,
+          );
+          setScoreHistory(scoreRows.history ?? []);
+        } catch {
+          setScoreHistory([]);
+        }
+      } else {
+        setScoreHistory([]);
+      }
 
       const selected =
         preferredForecastId ??
@@ -1578,6 +1640,108 @@ export default function ForecasterPage() {
                 </>
               )}
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                <LabelWithTip
+                  label="Performance Over Time"
+                  tip="Each point is one scored forecast receipt. Directional (%) should trend up; MAE/Brier/ECE should trend down."
+                />
+              </div>
+              <div className="text-[11px] text-zinc-500">Scored receipts: {performanceSeries.length}</div>
+            </div>
+
+            {!performanceSeries.length ? (
+              <p className="text-xs text-zinc-500">No scored receipts yet. Timeline will chart automatically once scores are produced.</p>
+            ) : (
+              <>
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={performanceSeries} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
+                      <XAxis dataKey="label" stroke="#a1a1aa" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        yAxisId="left"
+                        stroke="#a1a1aa"
+                        tick={{ fontSize: 11 }}
+                        domain={[0, 100]}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#a1a1aa"
+                        tick={{ fontSize: 11 }}
+                        domain={[0, "dataMax + 0.5"]}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#09090b",
+                          border: "1px solid #3f3f46",
+                          borderRadius: 8,
+                          color: "#e4e4e7",
+                          fontSize: 12,
+                        }}
+                        formatter={(value, name) => {
+                          const metricName = String(name ?? "");
+                          const numeric = typeof value === "number" ? value : Number(value);
+                          if (!Number.isFinite(numeric)) return [String(value ?? "—"), metricName];
+                          if (metricName.includes("Directional")) return [`${pretty(numeric, 1)}%`, metricName];
+                          if (metricName.includes("MAE")) return [`${pretty(numeric, 2)}%`, metricName];
+                          return [pretty(numeric, 4), metricName];
+                        }}
+                        labelFormatter={(_, payload) => {
+                          const row = payload?.[0]?.payload;
+                          return row ? `${row.scoredAtLabel} · ${row.forecast}` : "";
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="directionalPct"
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        name="Directional %"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="maePct"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        name="MAE %"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="brier"
+                        stroke="#38bdf8"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        name="Brier"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="ece"
+                        stroke="#a78bfa"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        name="ECE"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-2 text-[11px] text-zinc-500">
+                  Bps note: MAE% = MAE(bps) / 100. Example: 32 bps = 0.32%.
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>

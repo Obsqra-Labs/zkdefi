@@ -90,6 +90,12 @@ def test_snapshot_forecaster_api_roundtrip():
     assert reputation["sample_size"] == 1
     assert "trust_score" in reputation
 
+    history_resp = client.get("/api/v1/zkdefi/snapshot-forecaster/reputation/0xfeedbeef/history?limit=10")
+    assert history_resp.status_code == 200
+    history_payload = history_resp.json()
+    assert history_payload["count"] == 1
+    assert history_payload["history"][0]["forecast_id"] == forecast_id
+
     explain_resp = client.post(
         "/api/v1/zkdefi/snapshot-forecaster/explain",
         json={"forecast_id": forecast_id},

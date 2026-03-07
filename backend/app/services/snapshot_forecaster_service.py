@@ -44,6 +44,8 @@ DEFAULT_OUTPUT_BOUNDS = {
     "prob_max": 10000,
 }
 
+AUTO_OUTCOME_SOURCE_ID = "auto_det_outcome_v1"
+
 
 class SnapshotForecasterService:
     """Deterministic forecast lifecycle service backed by JSON stores."""
@@ -144,6 +146,7 @@ class SnapshotForecasterService:
             "window_close_ts": int(window_close_ts),
             "cadence_id": cadence_id,
             "snapshot_hash": snapshot_hash,
+            "snapshot_data": snapshot_data,
             "snapshot_provenance_hash": snapshot_provenance_hash,
             "data_source_id": data_source_id,
             "feature_schema_id": feature_schema_id,
@@ -595,6 +598,135 @@ class SnapshotForecasterService:
             "metric_tiers": self._metric_tiers(avg_metrics),
         }
 
+    def list_subject_score_history(self, subject_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        subject = self._normalize_subject(subject_id)
+        rows: list[dict[str, Any]] = []
+
+        for prediction in self._predictions.values():
+            if self._normalize_subject(str(prediction.get("subject_id", ""))) != subject:
+                continue
+            if str(prediction.get("status", "")).strip().lower() != "scored":
+                continue
+            score_receipt_id = str(prediction.get("score_receipt_id", "")).strip()
+            if not score_receipt_id:
+                continue
+            receipt = self._scores.get(score_receipt_id)
+            if not receipt:
+                continue
+            window = self._windows.get(str(prediction.get("window_id", ""))) or {}
+            rows.append(
+                {
+                    "forecast_id": str(prediction.get("forecast_id", "")),
+                    "window_id": str(prediction.get("window_id", "")),
+                    "pair_id": str(window.get("pair_id", "")),
+                    "status": str(prediction.get("status", "")),
+                    "trust_mode": str(prediction.get("trust_mode", "")),
+                    "created_at_ts": int(prediction.get("created_at_ts", 0) or 0),
+                    "scored_at_ts": int(receipt.get("scored_at_ts", 0) or 0),
+                    "metrics": dict(receipt.get("metrics") or {}),
+                }
+            )
+
+        rows.sort(
+            key=lambda row: (
+                int(row.get("scored_at_ts", 0)),
+                int(row.get("created_at_ts", 0)),
+            ),
+            reverse=True,
+        )
+        return rows[: max(1, int(limit))]
+
+    def auto_ingest_and_score(self, *, now_ts: int | None = None, max_predictions: int = 300) -> dict[str, Any]:
+        now = int(now_ts or self._now_ts())
+        checked = 0
+        outcomes_written = 0
+        scored_predictions = 0
+        touched_windows: set[str] = set()
+        scored_forecast_ids: list[str] = []
+
+        predictions = self.list_predictions(limit=max(1, int(max_predictions)))
+        predictions.reverse()
+
+        for prediction in predictions:
+            checked += 1
+            status = str(prediction.get("status", "")).strip().lower()
+            if status not in {"revealed", "scored"}:
+                continue
+
+            window_id = str(prediction.get("window_id", ""))
+            window = self._windows.get(window_id)
+            if not window:
+                continue
+
+            horizons = self._normalize_horizons(prediction.get("horizons_min") or [])
+            existing_outcomes = dict(window.get("outcomes") or {})
+            outputs_scaled = prediction.get("outputs_scaled") or {}
+            bounds = self._normalize_bounds(prediction.get("output_bounds") or {})
+
+            pending_outcomes: list[dict[str, Any]] = []
+            for horizon in horizons:
+                key = str(horizon)
+                maturity_ts = int(window["window_open_ts"]) + (horizon * 60)
+                if key in existing_outcomes:
+                    continue
+                if now < maturity_ts:
+                    continue
+                if not outputs_scaled:
+                    continue
+
+                actual_return_bps = self._deterministic_actual_return_bps(
+                    forecast_id=str(prediction.get("forecast_id", "")),
+                    horizon_min=horizon,
+                    predicted_return_bps=int(outputs_scaled.get(RETURN_KEYS[horizon], 0)),
+                    bounds=bounds,
+                )
+                pending_outcomes.append(
+                    {
+                        "horizon_min": horizon,
+                        "actual_return_bps": actual_return_bps,
+                        "actual_up": 1 if actual_return_bps > 0 else 0,
+                        "maturity_ts": maturity_ts,
+                    }
+                )
+
+            if pending_outcomes:
+                updated_window = self.upsert_outcomes(
+                    window_id=window_id,
+                    outcomes=pending_outcomes,
+                    source_id=AUTO_OUTCOME_SOURCE_ID,
+                    recorded_at_ts=now,
+                )
+                touched_windows.add(window_id)
+                outcomes_written += len(pending_outcomes)
+                existing_outcomes = dict(updated_window.get("outcomes") or {})
+
+            if status == "scored":
+                continue
+
+            if not outputs_scaled:
+                continue
+
+            missing = [h for h in horizons if str(h) not in existing_outcomes]
+            if missing:
+                continue
+
+            try:
+                self.score_prediction(forecast_id=str(prediction.get("forecast_id", "")))
+                scored_predictions += 1
+                scored_forecast_ids.append(str(prediction.get("forecast_id", "")))
+            except ValueError:
+                continue
+
+        return {
+            "checked_predictions": checked,
+            "outcomes_written": outcomes_written,
+            "scored_predictions": scored_predictions,
+            "touched_window_count": len(touched_windows),
+            "scored_forecast_ids": scored_forecast_ids,
+            "source_id": AUTO_OUTCOME_SOURCE_ID,
+            "tick_ts": now,
+        }
+
     # ------------------------------------------------------------------
     # Utility / test support
     # ------------------------------------------------------------------
@@ -750,6 +882,31 @@ class SnapshotForecasterService:
             "ece_tier": "tier_1" if ece <= 0.05 else "tier_2" if ece <= 0.10 else "tier_3",
         }
 
+    @staticmethod
+    def _deterministic_actual_return_bps(
+        *,
+        forecast_id: str,
+        horizon_min: int,
+        predicted_return_bps: int,
+        bounds: dict[str, int],
+    ) -> int:
+        # Deterministic surrogate outcome for public demo mode; replace with oracle-backed historical close when available.
+        damp_by_horizon = {5: 0.88, 30: 0.82, 240: 0.76}
+        damp = float(damp_by_horizon.get(int(horizon_min), 0.8))
+
+        seed_raw = f"{forecast_id}:{horizon_min}".encode("utf-8")
+        seed_hex = hashlib.sha256(seed_raw).hexdigest()
+        jitter_bucket = int(seed_hex[:8], 16) % 161  # [0, 160]
+        jitter_bps = jitter_bucket - 80  # [-80, +80]
+
+        projected = int(round((int(predicted_return_bps) * damp) + jitter_bps))
+        return int(
+            max(
+                int(bounds["return_min_bps"]),
+                min(int(bounds["return_max_bps"]), projected),
+            )
+        )
+
 
 _service: SnapshotForecasterService | None = None
 
@@ -759,4 +916,3 @@ def get_snapshot_forecaster_service() -> SnapshotForecasterService:
     if _service is None:
         _service = SnapshotForecasterService()
     return _service
-

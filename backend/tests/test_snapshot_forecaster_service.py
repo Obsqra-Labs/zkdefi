@@ -106,3 +106,52 @@ def test_output_bounds_enforced(svc: SnapshotForecasterService):
             {"return_min_bps": -5000, "return_max_bps": 5000, "prob_min": 0, "prob_max": 10000},
         )
 
+
+@pytest.mark.asyncio
+async def test_auto_ingest_and_score_progression(svc: SnapshotForecasterService):
+    open_ts = 1_710_200_000
+    window = await svc.create_window(
+        pair_id="ETH/USDC",
+        window_open_ts=open_ts,
+        window_close_ts=open_ts + 300,
+        cadence_id="5m",
+        snapshot_data={"mid_price": 3300.0},
+        feature_schema_id="snapshot_forecaster.v1",
+        attest_snapshot=False,
+    )
+
+    outputs = {"r5": 90, "r30": 140, "r240": 220, "p5": 6400, "p30": 7000, "p240": 7600}
+    forecast = svc.commit_prediction(
+        window_id=window["window_id"],
+        model_identity={"model_hash": "0xmodelhash-auto", "schema_id": "snapshot_forecaster.v1"},
+        outputs_scaled=outputs,
+        salt="auto-flow",
+        horizons_min=[5, 30, 240],
+        subject_id="0xauto",
+    )
+    svc.reveal_prediction(
+        forecast_id=forecast["forecast_id"],
+        outputs_scaled=outputs,
+        salt="auto-flow",
+        ezkl_receipt={"proof_hash": "0xauto", "verified_locally": True},
+    )
+
+    first_tick = svc.auto_ingest_and_score(now_ts=open_ts + (6 * 60))
+    assert first_tick["outcomes_written"] == 1
+    assert first_tick["scored_predictions"] == 0
+
+    second_tick = svc.auto_ingest_and_score(now_ts=open_ts + (35 * 60))
+    assert second_tick["outcomes_written"] == 1
+    assert second_tick["scored_predictions"] == 0
+
+    third_tick = svc.auto_ingest_and_score(now_ts=open_ts + (241 * 60))
+    assert third_tick["outcomes_written"] == 1
+    assert third_tick["scored_predictions"] == 1
+
+    scored = svc.get_prediction(forecast["forecast_id"])
+    assert scored is not None
+    assert scored["status"] == "scored"
+
+    history = svc.list_subject_score_history("0xAUTO", limit=10)
+    assert len(history) == 1
+    assert history[0]["forecast_id"] == forecast["forecast_id"]

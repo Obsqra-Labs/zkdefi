@@ -254,6 +254,22 @@ def get_subject_reputation(subject_id: str) -> dict[str, Any]:
     return _svc().get_subject_reputation(subject_id)
 
 
+@router.get("/reputation/{subject_id}/history")
+def get_subject_reputation_history(
+    subject_id: str,
+    limit: int = Query(default=200, ge=1, le=1000),
+) -> dict[str, Any]:
+    rows = _svc().list_subject_score_history(subject_id=subject_id, limit=limit)
+    return {"history": rows, "count": len(rows)}
+
+
+@router.post("/automation/tick")
+def automation_tick(
+    max_predictions: int = Query(default=300, ge=1, le=5000),
+) -> dict[str, Any]:
+    return _svc().auto_ingest_and_score(max_predictions=max_predictions)
+
+
 @router.post("/explain")
 async def explain_forecast(req: ExplainRequest) -> dict[str, Any]:
     if not req.forecast_id and not req.window_id and not req.score_receipt_id:

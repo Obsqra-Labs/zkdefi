@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +23,29 @@ env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    try:
+        from app.services.snapshot_forecaster_worker import (
+            maybe_start_snapshot_forecaster_worker,
+            stop_snapshot_forecaster_worker,
+        )
+
+        await maybe_start_snapshot_forecaster_worker()
+    except Exception as exc:  # pragma: no cover - defensive startup guard
+        logger.warning("Snapshot forecaster worker startup skipped: %s", exc)
+        stop_snapshot_forecaster_worker = None
+
+    try:
+        yield
+    finally:
+        try:
+            if stop_snapshot_forecaster_worker:
+                await stop_snapshot_forecaster_worker()
+        except Exception as exc:  # pragma: no cover - defensive shutdown guard
+            logger.warning("Snapshot forecaster worker shutdown warning: %s", exc)
 
 
 def _optional_router(module_path: str, attr: str = "router") -> Optional[APIRouter]:
@@ -45,6 +69,7 @@ app = FastAPI(
         "risk passport, and autonomous agent tooling on Starknet."
     ),
     version="0.2.0",
+    lifespan=_lifespan,
 )
 
 app.add_middleware(
