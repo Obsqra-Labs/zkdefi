@@ -2,16 +2,53 @@
 
 import type { ReceiptWithImpact } from "@/services/ReceiptService";
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
+import { MemoryLaneCard } from "./MemoryLaneCard";
+import { MemoryLaneAnalytics } from "./MemoryLaneAnalytics";
 
 interface MemoryLaneProps {
   receipts: ReceiptWithImpact[];
-  loading: boolean;
+  userAddress?: string;
+  compact?: boolean; // Default false (full view)
+  showFilters?: boolean; // Default true
+  limit?: number; // Default 50
+  loading?: boolean;
 }
 
 type DateFilter = "24h" | "7d" | "30d" | "all";
 
-export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
+const actionIcons: Record<string, string> = {
+  swap: "🔄",
+  lp_add: "💰",
+  lp_remove: "📉",
+  borrow: "🏦",
+  repay: "💳",
+  stake: "📊",
+  dca: "📈",
+  limit_order: "⏱️",
+};
+
+const actionLabels: Record<string, string> = {
+  swap: "Swap",
+  lp_add: "Added LP",
+  lp_remove: "Removed LP",
+  borrow: "Borrowed",
+  repay: "Repaid",
+  stake: "Staked",
+  dca: "DCA Execute",
+  limit_order: "Limit Order",
+};
+
+export function MemoryLane({
+  receipts,
+  userAddress,
+  compact = false,
+  showFilters = true,
+  limit = 50,
+  loading = false,
+}: MemoryLaneProps) {
   const [dateFilter, setDateFilter] = useState<DateFilter>("24h");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -23,11 +60,25 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
       "all": Infinity,
     }[dateFilter];
 
-    return receipts.filter((r) => {
-      const receiptTime = new Date(r.timestamp).getTime();
-      return now - receiptTime <= filterMs;
-    });
-  }, [receipts, dateFilter]);
+    let result = receipts
+      .filter((r) => {
+        const receiptTime = new Date(r.timestamp).getTime();
+        return now - receiptTime <= filterMs;
+      })
+      .slice(0, limit);
+
+    if (typeFilter !== "all") {
+      result = result.filter((r) => r.action === typeFilter);
+    }
+
+    return result;
+  }, [receipts, dateFilter, typeFilter, limit]);
+
+  // Get unique action types from receipts
+  const actionTypes = useMemo(() => {
+    const types = new Set(receipts.map((r) => r.action));
+    return Array.from(types).sort();
+  }, [receipts]);
 
   if (loading && receipts.length === 0) {
     return (
@@ -37,18 +88,35 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
     );
   }
 
-  return (
-    <div className="bg-slate-900 border-t border-slate-700 p-4 flex flex-col gap-4 h-full overflow-hidden">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Memory Lane</h2>
+  const analytics = useMemo(() => {
+    const totalExecutions = filtered.length;
+    const totalYield = filtered.reduce((sum, r) => sum + r.yieldImpact, 0);
+    const successCount = filtered.filter((r) => r.status === "confirmed").length;
+    const successRate = totalExecutions > 0 ? Math.round((successCount / totalExecutions) * 100) : 0;
+    const totalReputation = filtered.reduce((sum, r) => sum + r.reputationImpact, 0);
+    const avgReputation = totalExecutions > 0 ? (totalReputation / totalExecutions).toFixed(1) : "0";
 
-        {/* Date Filters */}
-        <div className="flex gap-2">
+    return {
+      totalExecutions,
+      totalYield: totalYield.toFixed(2),
+      successRate,
+      avgReputation,
+    };
+  }, [filtered]);
+
+  const renderCompactView = () => (
+    <div
+      data-testid="memory-lane-compact"
+      className="flex flex-col gap-2"
+    >
+      <div className="flex gap-2 items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-200">Recent Trades</h3>
+        <div className="flex gap-1">
           {(["24h", "7d", "30d", "all"] as DateFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setDateFilter(f)}
-              className={`px-2 py-1 text-xs rounded ${
+              className={`px-1.5 py-0.5 text-xs rounded transition-colors ${
                 dateFilter === f
                   ? "bg-blue-600 text-white"
                   : "bg-slate-700 text-slate-300 hover:bg-slate-600"
@@ -60,94 +128,116 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
         </div>
       </div>
 
+      <div className="space-y-1">
+        {filtered.length === 0 ? (
+          <p className="text-slate-400 text-xs text-center py-2">No trades in this period</p>
+        ) : (
+          filtered.map((receipt) => (
+            <motion.div
+              key={receipt.id}
+              className="p-2 bg-slate-800 rounded border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer text-xs"
+              onClick={() =>
+                setExpandedId(expandedId === receipt.id ? null : receipt.id)
+              }
+              layout
+            >
+              <div className="flex justify-between items-center">
+                <span>
+                  {actionIcons[receipt.action] || "📝"} {receipt.opportunityName}
+                </span>
+                <span
+                  className={`px-1 py-0.5 rounded text-xs ${
+                    receipt.status === "confirmed"
+                      ? "bg-green-900/30 text-green-400"
+                      : receipt.status === "pending"
+                        ? "bg-yellow-900/30 text-yellow-400"
+                        : "bg-red-900/30 text-red-400"
+                  }`}
+                >
+                  {receipt.status}
+                </span>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  const renderFullView = () => (
+    <div className="bg-slate-900 border-t border-slate-700 p-4 flex flex-col gap-4 h-full overflow-hidden">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Memory Lane</h2>
+
+        {/* Date Filters */}
+        <div className="flex gap-2">
+          {(["24h", "7d", "30d", "all"] as DateFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setDateFilter(f)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                dateFilter === f
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+              }`}
+            >
+              {f === "all" ? "All" : f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Type Filters */}
+      {showFilters && actionTypes.length > 0 && (
+        <div className="flex gap-2 flex-wrap" data-testid="filter-type">
+          <button
+            onClick={() => setTypeFilter("all")}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              typeFilter === "all"
+                ? "bg-purple-600 text-white"
+                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+            }`}
+          >
+            All Types
+          </button>
+          {actionTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setTypeFilter(type)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                typeFilter === type
+                  ? "bg-purple-600 text-white"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+              }`}
+            >
+              {actionLabels[type] || type}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Timeline */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-4">No trades in this period</p>
         ) : (
           <div className="space-y-2">
-            {filtered.map((receipt) => (
-              <div
+            {filtered.map((receipt, index) => (
+              <motion.div
                 key={receipt.id}
-                className="border border-slate-700 rounded hover:border-slate-600 transition cursor-pointer"
-                onClick={() =>
-                  setExpandedId(expandedId === receipt.id ? null : receipt.id)
-                }
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
               >
-                {/* Collapsed View */}
-                <div className="p-3 bg-slate-800 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-sm">{receipt.opportunityName || receipt.adapter}</p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {new Date(receipt.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span
-                        className={`inline-block text-xs px-2 py-1 rounded ${
-                          receipt.status === "confirmed"
-                            ? "bg-green-900/30 text-green-400"
-                            : receipt.status === "pending"
-                              ? "bg-yellow-900/30 text-yellow-400"
-                              : "bg-red-900/30 text-red-400"
-                        }`}
-                      >
-                        {receipt.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between mt-2 text-xs text-slate-400">
-                    <span>
-                      Amount: {receipt.privacyLevel !== "public" ? "***" : receipt.amount.toFixed(4)}
-                    </span>
-                    <span className="text-green-400">
-                      +{receipt.yieldImpact.toFixed(2)}% yield
-                    </span>
-                  </div>
-                </div>
-
-                {/* Expanded View */}
-                {expandedId === receipt.id && (
-                  <div className="p-3 bg-slate-900 border-t border-slate-700 space-y-2 text-sm">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-slate-400">Type</p>
-                        <p className="font-medium capitalize">{receipt.action}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Adapter</p>
-                        <p className="font-medium">{receipt.adapter}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Privacy Level</p>
-                        <p className="font-medium capitalize">{receipt.privacyLevel}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Trust Delta</p>
-                        <p className="font-medium">
-                          {receipt.trustDelta > 0 ? "+" : ""}
-                          {receipt.trustDelta}
-                        </p>
-                      </div>
-                    </div>
-                    {receipt.txHash && (
-                      <div>
-                        <p className="text-slate-400">Transaction</p>
-                        <p className="font-mono text-xs text-blue-400 truncate">
-                          {receipt.txHash}
-                        </p>
-                      </div>
-                    )}
-                    {receipt.explanationFromAI && (
-                      <div>
-                        <p className="text-slate-400">AI Note</p>
-                        <p className="text-xs text-slate-300">{receipt.explanationFromAI}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                <MemoryLaneCard
+                  receipt={receipt}
+                  isExpanded={expandedId === receipt.id}
+                  onToggle={() =>
+                    setExpandedId(expandedId === receipt.id ? null : receipt.id)
+                  }
+                  actionIcon={actionIcons[receipt.action] || "📝"}
+                />
+              </motion.div>
             ))}
           </div>
         )}
@@ -155,27 +245,15 @@ export function MemoryLane({ receipts, loading }: MemoryLaneProps) {
 
       {/* Summary Stats */}
       {filtered.length > 0 && (
-        <div className="border-t border-slate-700 pt-3 text-xs text-slate-400 grid grid-cols-3 gap-2">
-          <div>
-            Total Trades: <span className="text-white font-medium">{filtered.length}</span>
-          </div>
-          <div>
-            Total Yield:{" "}
-            <span className="text-green-400 font-medium">
-              +{filtered.reduce((sum, r) => sum + r.yieldImpact, 0).toFixed(2)}%
-            </span>
-          </div>
-          <div>
-            Success Rate:{" "}
-            <span className="text-white font-medium">
-              {Math.round(
-                (filtered.filter((r) => r.status === "confirmed").length / filtered.length) * 100
-              )}
-              %
-            </span>
-          </div>
-        </div>
+        <MemoryLaneAnalytics
+          totalExecutions={analytics.totalExecutions}
+          totalYield={analytics.totalYield}
+          successRate={analytics.successRate}
+          avgReputation={analytics.avgReputation}
+        />
       )}
     </div>
   );
+
+  return compact ? renderCompactView() : renderFullView();
 }
