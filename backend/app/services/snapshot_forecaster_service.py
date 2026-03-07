@@ -55,6 +55,21 @@ SUPPORTED_NETWORK_IDS = ("starknet_sepolia", "starknet_mainnet", "ethereum_mainn
 AUTO_OUTCOME_SOURCE_ID = "auto_det_outcome_v1"
 ORACLE_OUTCOME_SOURCE_ID = "ekubo_price_history_v1"
 COINGECKO_OUTCOME_SOURCE_ID = "coingecko_pair_price_v1"
+HEURISTIC_PROJECTION_SOURCE_ID = "heuristic_snapshot_projection_v1"
+
+_NETWORK_PROJECTION_PROFILE: dict[str, dict[str, float]] = {
+    "starknet_sepolia": {"amplitude_mult": 0.82, "bias_bps": -10.0, "prob_shift": -0.02},
+    "starknet_mainnet": {"amplitude_mult": 1.0, "bias_bps": 0.0, "prob_shift": 0.0},
+    "ethereum_mainnet": {"amplitude_mult": 1.14, "bias_bps": 8.0, "prob_shift": 0.02},
+}
+
+_PAIR_RETURN_PRIOR_BPS: dict[str, float] = {
+    "ETH/USDC": 10.0,
+    "ETH/FUSDC": 8.0,
+    "STRK/USDC": 14.0,
+    "STRK/FUSDC": 12.0,
+    "STRK/ETH": 6.0,
+}
 
 _EKUBO_SEPOLIA_CHAIN_ID = "0x534e5f4d41494f"
 _EKUBO_SEPOLIA_CHAIN_ID_DEC = "23448594291968335"
@@ -230,6 +245,110 @@ class SnapshotForecasterService:
             rows = [r for r in rows if str(r.get("network_id", DEFAULT_NETWORK_ID)) == normalized_network_id]
         rows.sort(key=lambda r: int(r.get("created_at_ts", 0)), reverse=True)
         return rows[: max(1, limit)]
+
+    def suggest_outputs(
+        self,
+        *,
+        window_id: str,
+        horizons_min: list[int] | None = None,
+        output_bounds: dict[str, int] | None = None,
+    ) -> dict[str, Any]:
+        window = self._windows.get(window_id)
+        if not window:
+            raise ValueError(f"Unknown window_id: {window_id}")
+
+        bounds = self._normalize_bounds(output_bounds)
+        _ = self._normalize_horizons(horizons_min)
+        network_id = self._normalize_network_id(str(window.get("network_id", DEFAULT_NETWORK_ID)))
+        profile = _NETWORK_PROJECTION_PROFILE.get(network_id, _NETWORK_PROJECTION_PROFILE[DEFAULT_NETWORK_ID])
+
+        pair_id = str(window.get("pair_id", "")).strip().upper()
+        pair_key = pair_id.split("(")[0].strip() if pair_id else ""
+        pair_prior_bps = float(_PAIR_RETURN_PRIOR_BPS.get(pair_key, 0.0))
+
+        signals = self._projection_signals(window)
+        trend_bps, trend_source = self._recent_oracle_trend_bps(window=window, lookback_min=30)
+        trend_component_bps = float(max(-450, min(450, int(trend_bps)))) if trend_bps is not None else 0.0
+        seed_jitter_bps = float(self._projection_seed_jitter(window_id=window_id, network_id=network_id, pair_id=pair_key))
+
+        momentum = float(signals.get("momentum", 0.0))
+        imbalance = float(signals.get("imbalance", 0.0))
+        volatility = float(signals.get("volatility", 0.0))
+        spread = float(signals.get("spread", 0.0))
+        liquidity = float(signals.get("liquidity", 0.0))
+
+        base_return_bps = (
+            135.0 * momentum
+            + 80.0 * imbalance
+            + 45.0 * liquidity
+            - 70.0 * max(0.0, volatility)
+            - 35.0 * max(0.0, spread)
+            + (0.34 * trend_component_bps)
+            + pair_prior_bps
+            + float(profile["bias_bps"])
+            + (0.45 * seed_jitter_bps)
+        )
+
+        horizon_scales: dict[int, float] = {5: 1.0, 30: 1.62, 240: 2.48}
+        trend_scales: dict[int, float] = {5: 0.42, 30: 0.74, 240: 1.08}
+        volatility_penalty: dict[int, float] = {5: 8.0, 30: 24.0, 240: 52.0}
+
+        returns_by_h: dict[int, int] = {}
+        for horizon in SUPPORTED_HORIZONS_MIN:
+            raw_bps = (
+                (base_return_bps * horizon_scales[horizon])
+                + (trend_component_bps * trend_scales[horizon])
+                - (max(0.0, volatility) * volatility_penalty[horizon])
+            ) * float(profile["amplitude_mult"])
+            clipped = max(
+                int(bounds["return_min_bps"]),
+                min(int(bounds["return_max_bps"]), int(round(raw_bps))),
+            )
+            returns_by_h[horizon] = int(clipped)
+
+        signal_strength = min(
+            1.0,
+            (0.50 * abs(momentum))
+            + (0.25 * abs(imbalance))
+            + (0.20 * min(1.0, abs(trend_component_bps) / 250.0))
+            + (0.05 * abs(liquidity)),
+        )
+        confidence_shift = (
+            (0.20 * signal_strength)
+            - (0.09 * max(0.0, volatility))
+            - (0.05 * max(0.0, spread))
+            + float(profile["prob_shift"])
+        )
+
+        probs_by_h: dict[int, int] = {}
+        for horizon in SUPPORTED_HORIZONS_MIN:
+            horizon_bias = 0.0 if horizon == 5 else 0.08 if horizon == 30 else 0.18
+            z = (returns_by_h[horizon] / 140.0) + confidence_shift + horizon_bias
+            p = 1.0 / (1.0 + math.exp(-z))
+            p_scaled = int(round(p * 10000.0))
+            p_scaled = max(int(bounds["prob_min"]), min(int(bounds["prob_max"]), p_scaled))
+            probs_by_h[horizon] = int(p_scaled)
+
+        outputs = {
+            "r5": returns_by_h[5],
+            "r30": returns_by_h[30],
+            "r240": returns_by_h[240],
+            "p5": probs_by_h[5],
+            "p30": probs_by_h[30],
+            "p240": probs_by_h[240],
+        }
+
+        return {
+            "window_id": window_id,
+            "pair_id": pair_key or pair_id,
+            "network_id": network_id,
+            "source_id": HEURISTIC_PROJECTION_SOURCE_ID,
+            "outputs_scaled": outputs,
+            "signals": {k: round(float(v), 6) for k, v in signals.items()},
+            "recent_trend_bps": trend_bps,
+            "trend_source": trend_source,
+            "seed_jitter_bps": int(round(seed_jitter_bps)),
+        }
 
     # ------------------------------------------------------------------
     # Commit / reveal layer
@@ -972,6 +1091,144 @@ class SnapshotForecasterService:
             "brier_tier": "tier_1" if brier <= 0.12 else "tier_2" if brier <= 0.20 else "tier_3",
             "ece_tier": "tier_1" if ece <= 0.05 else "tier_2" if ece <= 0.10 else "tier_3",
         }
+
+    def _projection_signals(self, window: dict[str, Any]) -> dict[str, float]:
+        features = window.get("feature_vector") or {}
+        snapshot = window.get("snapshot_data") or {}
+
+        feature_vals = self._numeric_entries(features if isinstance(features, dict) else {})
+        snapshot_vals = self._numeric_entries(snapshot if isinstance(snapshot, dict) else {})
+
+        momentum_vals = [
+            value
+            for key, value in [*feature_vals, *snapshot_vals]
+            if any(token in key for token in ("ret", "return", "mom", "trend"))
+        ]
+        imbalance_vals = [
+            value
+            for key, value in [*feature_vals, *snapshot_vals]
+            if any(token in key for token in ("imbalance", "buy_sell", "orderflow", "pressure"))
+        ]
+        volatility_vals = [
+            value
+            for key, value in [*feature_vals, *snapshot_vals]
+            if any(token in key for token in ("vol", "sigma", "std"))
+        ]
+        spread_vals = [
+            value
+            for key, value in [*feature_vals, *snapshot_vals]
+            if any(token in key for token in ("spread", "slippage"))
+        ]
+        liquidity_vals = [
+            value
+            for key, value in [*feature_vals, *snapshot_vals]
+            if any(token in key for token in ("depth", "liq", "reserve", "tvl"))
+        ]
+
+        momentum_raw = self._mean(momentum_vals, default=0.0)
+        imbalance_raw = self._mean(imbalance_vals, default=0.0)
+        volatility_raw = self._mean(volatility_vals, default=50.0)
+        spread_raw = self._mean(spread_vals, default=4.0)
+        liquidity_raw = self._mean(liquidity_vals, default=0.0)
+
+        if abs(liquidity_raw) > 10_000:
+            liquidity_scale = 1_000_000.0
+        elif abs(liquidity_raw) > 100:
+            liquidity_scale = 1_000.0
+        else:
+            liquidity_scale = 2.0
+
+        return {
+            "momentum": math.tanh(momentum_raw / 35.0),
+            "imbalance": math.tanh(imbalance_raw / 1.5),
+            "volatility": math.tanh((volatility_raw - 50.0) / 60.0),
+            "spread": math.tanh(spread_raw / 20.0),
+            "liquidity": math.tanh(liquidity_raw / liquidity_scale),
+        }
+
+    @staticmethod
+    def _projection_seed_jitter(*, window_id: str, network_id: str, pair_id: str) -> int:
+        seed_input = f"{window_id}:{network_id}:{pair_id}".encode("utf-8")
+        seed_hex = hashlib.sha256(seed_input).hexdigest()
+        bucket = int(seed_hex[:8], 16) % 241  # [0, 240]
+        return bucket - 120  # [-120, +120]
+
+    @staticmethod
+    def _numeric_entries(payload: dict[str, Any]) -> list[tuple[str, float]]:
+        out: list[tuple[str, float]] = []
+        for key, value in payload.items():
+            try:
+                num = float(value)
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(num):
+                continue
+            out.append((str(key).strip().lower(), num))
+        return out
+
+    @staticmethod
+    def _mean(values: list[float], *, default: float) -> float:
+        if not values:
+            return float(default)
+        return float(sum(values) / len(values))
+
+    def _recent_oracle_trend_bps(
+        self,
+        *,
+        window: dict[str, Any],
+        lookback_min: int = 30,
+    ) -> tuple[int | None, str]:
+        network_id = self._normalize_network_id(str(window.get("network_id", DEFAULT_NETWORK_ID)))
+        now_ts = self._now_ts()
+        lookback_ts = now_ts - max(5, int(lookback_min)) * 60
+        max_skew_sec = max(6 * 3600, int(lookback_min) * 60 * 4)
+
+        try:
+            if network_id in {"starknet_sepolia", "starknet_mainnet"}:
+                pair_tokens = self._resolve_pair_tokens(window, network_id=network_id)
+                if not pair_tokens:
+                    return None, "none"
+                base_token, quote_token = pair_tokens
+                points = self._load_ekubo_history_points(
+                    network_id=network_id,
+                    base_token=base_token,
+                    quote_token=quote_token,
+                    horizon_min=max(5, int(lookback_min)),
+                )
+                if len(points) < 2:
+                    return None, "none"
+                old_price = self._nearest_oracle_price(points, lookback_ts, max_skew_sec=max_skew_sec)
+                new_price = self._nearest_oracle_price(points, now_ts, max_skew_sec=max_skew_sec)
+                if old_price is None or new_price is None or old_price <= 0 or new_price <= 0:
+                    return None, "none"
+                trend_bps = int(round(((new_price / old_price) - 1.0) * 10000.0))
+                return trend_bps, ORACLE_OUTCOME_SOURCE_ID
+
+            if network_id == "ethereum_mainnet":
+                symbols = self._resolve_pair_symbols(window)
+                if not symbols:
+                    return None, "none"
+                base_sym, quote_sym = symbols
+                old_price = self._coingecko_pair_price_at(
+                    base_symbol=base_sym,
+                    quote_symbol=quote_sym,
+                    target_ts=lookback_ts,
+                    max_skew_sec=max_skew_sec,
+                )
+                new_price = self._coingecko_pair_price_at(
+                    base_symbol=base_sym,
+                    quote_symbol=quote_sym,
+                    target_ts=now_ts,
+                    max_skew_sec=max_skew_sec,
+                )
+                if old_price is None or new_price is None or old_price <= 0 or new_price <= 0:
+                    return None, "none"
+                trend_bps = int(round(((new_price / old_price) - 1.0) * 10000.0))
+                return trend_bps, COINGECKO_OUTCOME_SOURCE_ID
+        except Exception as exc:  # pragma: no cover - network dependent
+            logger.debug("Recent trend fetch failed (%s)", exc)
+
+        return None, "none"
 
     def _oracle_actual_return_bps(
         self,

@@ -1,1 +1,66 @@
-{}
+{
+  "0x82de406f934636a56c16062629791128f8e7317139d10558586ac0fee699b160": {
+    "score_receipt_id": "0x82de406f934636a56c16062629791128f8e7317139d10558586ac0fee699b160",
+    "forecast_id": "0xcad3e99f603aadd3f2138e843df3d150cfb0c07c75527714275b0ad75918d1e6",
+    "window_id": "0x6fec692a2404e29a5e74df550b9d011e49ae83bda6fe60d320ca85a57593b498",
+    "subject_id": "0xpublic_demo_subject",
+    "pair_id": "ETH/USDC",
+    "model_identity": {
+      "model_hash": "0xdemo_snapshot_forecaster_model_v1",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "None",
+      "vk_hash": "None"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "metrics": {
+      "horizon_count": 3,
+      "mae_bps": 111.333333,
+      "rmse_bps": 124.699639,
+      "directional_accuracy": 1.0,
+      "brier_score": 0.202918,
+      "ece": 0.449867
+    },
+    "metric_tiers": {
+      "directional_accuracy_tier": "tier_1",
+      "mae_tier": "tier_3",
+      "brier_tier": "tier_3",
+      "ece_tier": "tier_3"
+    },
+    "per_horizon": {
+      "5": {
+        "horizon_min": 5,
+        "predicted_return_bps": 15,
+        "actual_return_bps": 70,
+        "predicted_prob_up": 0.5222,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 55.0,
+        "squared_error_bps2": 3025.0,
+        "brier": 0.22829284
+      },
+      "30": {
+        "horizon_min": 30,
+        "predicted_return_bps": 19,
+        "actual_return_bps": 110,
+        "predicted_prob_up": 0.5492,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 91.0,
+        "squared_error_bps2": 8281.0,
+        "brier": 0.20322063999999998
+      },
+      "240": {
+        "horizon_min": 240,
+        "predicted_return_bps": 22,
+        "actual_return_bps": 210,
+        "predicted_prob_up": 0.579,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 188.0,
+        "squared_error_bps2": 35344.0,
+        "brier": 0.17724100000000004
+      }
+    },
+    "scored_at_ts": 1772860356
+  }
+}

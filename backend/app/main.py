@@ -261,6 +261,14 @@ if phase4a_router:
 if trade_desk_router:
     app.include_router(trade_desk_router)
 
+receipts_router = _optional_router("app.api.routes.receipts")
+if receipts_router:
+    app.include_router(
+        receipts_router,
+        prefix="/api/v1/zkdefi",
+        tags=["receipts"],
+    )
+
 
 # -----------------------------------------------------------------------------
 # Backward compatibility aliases

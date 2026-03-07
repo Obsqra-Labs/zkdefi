@@ -1,20 +1,26 @@
 {
-  "0x5fa2541c5c4b01aa0b5f6996f5069f23186e4066acbe5a79fe04a0a1ad3c4fe9": {
-    "window_id": "0x5fa2541c5c4b01aa0b5f6996f5069f23186e4066acbe5a79fe04a0a1ad3c4fe9",
+  "0x5361e238d398e69f96575ce2dffb6055f2324cde2c2f238695277b04c8ba0863": {
+    "window_id": "0x5361e238d398e69f96575ce2dffb6055f2324cde2c2f238695277b04c8ba0863",
     "pair_id": "ETH/USDC",
     "network_id": "starknet_sepolia",
-    "window_open_ts": 1710300000,
-    "window_close_ts": 1710300300,
+    "window_open_ts": 1710400000,
+    "window_close_ts": 1710400300,
     "cadence_id": "5m",
-    "snapshot_hash": "0x4776e37061e1ea35198324c5c03842046b00d6e1e583e73df570f78f88e324cd",
+    "snapshot_hash": "0xa065a12fa4c2b13c2df261b452b467470182288e6e07dab8fe96f70e9fbb28a9",
     "snapshot_data": {
-      "mid_price": 3300.0
+      "mid_price": 3000.0,
+      "spread_bps": 5,
+      "reserve_imbalance": 0.22
     },
     "snapshot_provenance_hash": null,
     "data_source_id": "unknown",
     "feature_schema_id": "snapshot_forecaster.v1",
-    "feature_vector": {},
-    "feature_vector_hash": "0x44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "feature_vector": {
+      "buy_sell_imbalance": 0.18,
+      "ret_1m": 17.5,
+      "vol_5m": 63.0
+    },
+    "feature_vector_hash": "0x4bbe5bbefa3165b5ca4011a0db73f39f6562cf7aa8041019f1e3cc848e3d9ee9",
     "attestation": {
       "attempted": false,
       "registered_on_chain": false,
@@ -23,19 +29,42 @@
       "timestamp": null,
       "error": null
     },
-    "outcomes": {
-      "5": {
-        "horizon_min": 5,
-        "actual_return_bps": 42,
-        "actual_up": 1,
-        "maturity_ts": 1710300300,
-        "source_id": "ekubo_price_history_v1",
-        "recorded_at_ts": 1710300360
-      }
+    "outcomes": {},
+    "prediction_ids": [],
+    "created_at_ts": 1772860019
+  },
+  "0x1fa0d62d30fa63e47275d4cae275f21d256678d859b2a679b4a588a6a11875c0": {
+    "window_id": "0x1fa0d62d30fa63e47275d4cae275f21d256678d859b2a679b4a588a6a11875c0",
+    "pair_id": "ETH/USDC",
+    "network_id": "ethereum_mainnet",
+    "window_open_ts": 1710400000,
+    "window_close_ts": 1710400300,
+    "cadence_id": "5m",
+    "snapshot_hash": "0xa065a12fa4c2b13c2df261b452b467470182288e6e07dab8fe96f70e9fbb28a9",
+    "snapshot_data": {
+      "mid_price": 3000.0,
+      "spread_bps": 5,
+      "reserve_imbalance": 0.22
     },
-    "prediction_ids": [
-      "0x927acab8e70c73fd4fc29775c91fb4630fd84268d273b838db303142f82e25ff"
-    ],
-    "created_at_ts": 1772857909
+    "snapshot_provenance_hash": null,
+    "data_source_id": "unknown",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "buy_sell_imbalance": 0.18,
+      "ret_1m": 17.5,
+      "vol_5m": 63.0
+    },
+    "feature_vector_hash": "0x4bbe5bbefa3165b5ca4011a0db73f39f6562cf7aa8041019f1e3cc848e3d9ee9",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {},
+    "prediction_ids": [],
+    "created_at_ts": 1772860019
   }
 }

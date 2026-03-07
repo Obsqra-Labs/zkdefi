@@ -66,6 +66,36 @@ async def get_transfers(
     }
 
 
+class DarkLedgerNote(BaseModel):
+    note_hash: str
+    amount_wei: str
+    commitment: str
+    created_at: int
+
+
+class NotesResponse(BaseModel):
+    count: int
+    sweep_available_usd: float
+    l3_block: int
+    notes: List[DarkLedgerNote]
+
+
+@router.get("/notes/{address}", response_model=NotesResponse)
+async def get_dark_ledger_notes(address: str) -> dict[str, Any]:
+    """
+    Return Dark Ledger notes (shielded commitments) for the given address.
+    Includes note count, sweep-available amount (USD), and L3 block context.
+    """
+    # TODO: Wire to actual note_store.get_notes() when available
+    # For now, return empty with zeroes to eliminate console 404 errors
+    return {
+        "count": 0,
+        "sweep_available_usd": 0.0,
+        "l3_block": 0,
+        "notes": [],
+    }
+
+
 class DemoCreditRequest(BaseModel):
     user_address: str = Field(..., description="Starknet address to credit")
     amount_wei: str = Field(..., description="Amount in wei (decimal or hex string)")

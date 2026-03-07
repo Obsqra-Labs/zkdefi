@@ -39,6 +39,16 @@ def test_snapshot_forecaster_api_roundtrip():
     assert list_resp.status_code == 200
     assert list_resp.json()["count"] >= 1
 
+    suggest_resp = client.post(
+        f"/api/v1/zkdefi/snapshot-forecaster/windows/{window_id}/suggested-outputs",
+        json={"horizons_min": [5, 30, 240]},
+    )
+    assert suggest_resp.status_code == 200
+    suggested = suggest_resp.json()
+    assert suggested["window_id"] == window_id
+    assert suggested["network_id"] == "starknet_sepolia"
+    assert set(suggested["outputs_scaled"].keys()) == {"r5", "r30", "r240", "p5", "p30", "p240"}
+
     commit_resp = client.post(
         "/api/v1/zkdefi/snapshot-forecaster/predictions/commit",
         json={

@@ -1,6 +1,7 @@
 import pytest
 
 from app.services.snapshot_forecaster_service import (
+    HEURISTIC_PROJECTION_SOURCE_ID,
     ORACLE_OUTCOME_SOURCE_ID,
     SnapshotForecasterService,
 )
@@ -216,3 +217,31 @@ async def test_auto_ingest_prefers_oracle_outcomes(svc: SnapshotForecasterServic
     h5 = updated_window["outcomes"]["5"]
     assert h5["actual_return_bps"] == 42
     assert h5["source_id"] == ORACLE_OUTCOME_SOURCE_ID
+
+
+@pytest.mark.asyncio
+async def test_suggest_outputs_changes_by_network(svc: SnapshotForecasterService, monkeypatch):
+    monkeypatch.setattr(svc, "_recent_oracle_trend_bps", lambda **kwargs: (None, "none"))
+
+    common_args = {
+        "pair_id": "ETH/USDC",
+        "window_open_ts": 1_710_400_000,
+        "window_close_ts": 1_710_400_300,
+        "cadence_id": "5m",
+        "snapshot_data": {"mid_price": 3000.0, "spread_bps": 5, "reserve_imbalance": 0.22},
+        "feature_vector": {"ret_1m": 17.5, "vol_5m": 63.0, "buy_sell_imbalance": 0.18},
+        "feature_schema_id": "snapshot_forecaster.v1",
+        "attest_snapshot": False,
+    }
+
+    sepolia_window = await svc.create_window(network_id="starknet_sepolia", **common_args)
+    mainnet_window = await svc.create_window(network_id="ethereum_mainnet", **common_args)
+
+    sepolia_outputs = svc.suggest_outputs(window_id=sepolia_window["window_id"])
+    mainnet_outputs = svc.suggest_outputs(window_id=mainnet_window["window_id"])
+
+    assert sepolia_outputs["source_id"] == HEURISTIC_PROJECTION_SOURCE_ID
+    assert mainnet_outputs["source_id"] == HEURISTIC_PROJECTION_SOURCE_ID
+    assert sepolia_outputs["network_id"] == "starknet_sepolia"
+    assert mainnet_outputs["network_id"] == "ethereum_mainnet"
+    assert sepolia_outputs["outputs_scaled"] != mainnet_outputs["outputs_scaled"]

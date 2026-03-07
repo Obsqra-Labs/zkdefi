@@ -59,6 +59,11 @@ class OutputBounds(BaseModel):
     prob_max: int = 10000
 
 
+class SuggestOutputsRequest(BaseModel):
+    horizons_min: list[int] = Field(default_factory=lambda: [5, 30, 240])
+    output_bounds: OutputBounds = Field(default_factory=OutputBounds)
+
+
 class BuildCommitmentRequest(BaseModel):
     window_id: str
     model_hash: str
@@ -162,6 +167,18 @@ def get_window(window_id: str) -> dict[str, Any]:
     if not row:
         raise HTTPException(status_code=404, detail="Window not found")
     return row
+
+
+@router.post("/windows/{window_id}/suggested-outputs")
+def suggest_window_outputs(window_id: str, req: SuggestOutputsRequest) -> dict[str, Any]:
+    try:
+        return _svc().suggest_outputs(
+            window_id=window_id,
+            horizons_min=req.horizons_min,
+            output_bounds=req.output_bounds.model_dump(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/commitment")

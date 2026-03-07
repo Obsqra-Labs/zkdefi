@@ -11,7 +11,6 @@ import {
   ControlPlane,
   CircuitBoard,
 } from "@/components/zkdefi/mission-control";
-import { TradeDesk } from "@/components/zkdefi/TradeDesk";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
@@ -21,6 +20,8 @@ import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
 import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
 import { ZkRagAgentConsole } from "@/components/zkdefi/ZkRagAgentConsole";
 import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
+import { UnifiedStream } from "@/components/zkdefi/mission-control/UnifiedStream";
+import { DeployOverlay } from "@/components/zkdefi/mission-control/DeployOverlay";
 
 type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag";
 
@@ -76,7 +77,14 @@ export default function AgentPage() {
   }
 
   let overlayContent: React.ReactNode = null;
-  if (activeOverlay === "circuit-board") {
+  if (activeOverlay === "deploy") {
+    overlayContent = (
+      <DeployOverlay
+        address={address}
+        onClose={() => setActiveOverlay(null)}
+      />
+    );
+  } else if (activeOverlay === "circuit-board") {
     overlayContent = (
       <CircuitBoard
         address={address}
@@ -117,10 +125,12 @@ export default function AgentPage() {
           />
         }
         centerStage={
-          <TradeDesk
-            userAddress={address}
-            autoRefresh={true}
-            showMemoryLane={true}
+          <UnifiedStream
+            address={address}
+            onDeploy={() => setActiveOverlay("deploy")}
+            onOpenGovernance={() => setActiveOverlay("governance")}
+            onOpenCircuitBoard={() => setActiveOverlay("circuit-board")}
+            onOpenZkRag={() => setSlideout("zkrag")}
           />
         }
         rightRail={
@@ -128,7 +138,6 @@ export default function AgentPage() {
             address={address}
             onOpenCircuitBoard={handleOpenCircuitBoard}
             onOpenBrain={() => setActiveOverlay("brain")}
-            onDeploy={() => setActiveOverlay("deploy")}
             onOpenZkRag={() => setSlideout("zkrag")}
           />
         }

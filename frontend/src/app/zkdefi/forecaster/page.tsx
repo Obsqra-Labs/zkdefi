@@ -145,6 +145,18 @@ type OutputMap = {
   p240: number;
 };
 
+type SuggestedOutputsResponse = {
+  window_id: string;
+  pair_id: string;
+  network_id: NetworkId;
+  source_id: string;
+  outputs_scaled: OutputMap;
+  signals: Record<string, number>;
+  recent_trend_bps: number | null;
+  trend_source: string;
+  seed_jitter_bps: number;
+};
+
 type JsonViewMode = "text" | "genome";
 
 type JsonScalar = string | number | boolean | null;
@@ -349,6 +361,10 @@ export default function ForecasterPage() {
   const [salt, setSalt] = useState(randomSalt());
 
   const [outputs, setOutputs] = useState<OutputMap>(DEFAULT_OUTPUTS);
+  const [autoSuggestOutputs, setAutoSuggestOutputs] = useState(true);
+  const [projectionSourceLabel, setProjectionSourceLabel] = useState(
+    "manual_defaults (fixed demo values until auto-suggest runs)",
+  );
   const [actuals, setActuals] = useState(DEFAULT_ACTUALS);
 
   const [snapshotJson, setSnapshotJson] = useState<string>(
@@ -520,6 +536,33 @@ export default function ForecasterPage() {
 
   const updateOutput = (key: keyof OutputMap, value: string) => {
     setOutputs((prev) => ({ ...prev, [key]: Number(value) }));
+    setProjectionSourceLabel("manual_override");
+  };
+
+  const suggestOutputsForWindow = async (windowId: string): Promise<OutputMap> => {
+    const suggested = await apiFetch<SuggestedOutputsResponse>(
+      `/api/v1/zkdefi/snapshot-forecaster/windows/${windowId}/suggested-outputs`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          horizons_min: [5, 30, 240],
+          output_bounds: {
+            return_min_bps: -5000,
+            return_max_bps: 5000,
+            prob_min: 0,
+            prob_max: 10000,
+          },
+        }),
+      },
+    );
+
+    setOutputs(suggested.outputs_scaled);
+    const trendText = suggested.recent_trend_bps === null
+      ? "trend unavailable"
+      : `recent trend ${formatBpsWithPct(suggested.recent_trend_bps)}`;
+    setProjectionSourceLabel(`${suggested.source_id} · ${suggested.network_id} · ${trendText}`);
+    return suggested.outputs_scaled;
   };
 
   const fetchExplanation = async (
@@ -551,6 +594,10 @@ export default function ForecasterPage() {
       `/api/v1/zkdefi/snapshot-forecaster/predictions/${forecastId}`,
     );
     setPrediction(loadedPrediction);
+    if (loadedPrediction.outputs_scaled) {
+      setOutputs(loadedPrediction.outputs_scaled);
+      setProjectionSourceLabel(`loaded_from_${loadedPrediction.status}`);
+    }
     setSelectedForecastId(forecastId);
     if (loadedPrediction.subject_id) {
       setSubjectId(loadedPrediction.subject_id);
@@ -731,7 +778,15 @@ export default function ForecasterPage() {
         body: JSON.stringify(payload),
       });
       setWindowRecord(created);
-      storePayload(created);
+      let suggestedOutputs: OutputMap | null = null;
+      if (autoSuggestOutputs) {
+        try {
+          suggestedOutputs = await suggestOutputsForWindow(created.window_id);
+        } catch {
+          setProjectionSourceLabel("manual_defaults (suggestion unavailable)");
+        }
+      }
+      storePayload({ window: created, suggested_outputs: suggestedOutputs });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create forecast window");
     } finally {
@@ -748,6 +803,15 @@ export default function ForecasterPage() {
     setBusy(true);
     resetError();
     try {
+      let outputsForCommit = outputs;
+      if (autoSuggestOutputs) {
+        try {
+          outputsForCommit = await suggestOutputsForWindow(windowRecord.window_id);
+        } catch {
+          setProjectionSourceLabel("manual_outputs (suggestion unavailable)");
+        }
+      }
+
       const payload = {
         window_id: windowRecord.window_id,
         subject_id: subjectId,
@@ -756,7 +820,7 @@ export default function ForecasterPage() {
           model_hash: modelHash,
           schema_id: schemaId,
         },
-        outputs_scaled: outputs,
+        outputs_scaled: outputsForCommit,
         salt,
       };
       const committed = await apiFetch<PredictionRecord>("/api/v1/zkdefi/snapshot-forecaster/predictions/commit", {
@@ -767,7 +831,7 @@ export default function ForecasterPage() {
       setPrediction(committed);
       setSelectedForecastId(committed.forecast_id);
       await refreshHistory(committed.forecast_id);
-      storePayload(committed);
+      storePayload({ prediction: committed, outputs_scaled: outputsForCommit });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to commit prediction");
     } finally {
@@ -922,6 +986,15 @@ export default function ForecasterPage() {
       });
       setWindowRecord(created);
 
+      let outputsForFlow = outputs;
+      if (autoSuggestOutputs) {
+        try {
+          outputsForFlow = await suggestOutputsForWindow(created.window_id);
+        } catch {
+          setProjectionSourceLabel("manual_outputs (suggestion unavailable)");
+        }
+      }
+
       const committed = await apiFetch<PredictionRecord>("/api/v1/zkdefi/snapshot-forecaster/predictions/commit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -933,7 +1006,7 @@ export default function ForecasterPage() {
             model_hash: modelHash,
             schema_id: schemaId,
           },
-          outputs_scaled: outputs,
+          outputs_scaled: outputsForFlow,
           salt,
         }),
       });
@@ -944,7 +1017,7 @@ export default function ForecasterPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            outputs_scaled: outputs,
+            outputs_scaled: outputsForFlow,
             salt,
             ezkl_receipt: {
               proof_hash: "0xpublic_demo_receipt",
@@ -1209,6 +1282,45 @@ export default function ForecasterPage() {
                   </button>
                 </div>
               </label>
+
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
+                <LabelWithTip
+                  label="Projection Source"
+                  tip="Shows where current outputs came from. Auto-suggest derives outputs from snapshot/features/network."
+                />
+                <div className="mt-1 break-all text-zinc-200">{projectionSourceLabel}</div>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={autoSuggestOutputs}
+                  onChange={(e) => setAutoSuggestOutputs(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-600 bg-zinc-900"
+                />
+                <span>Auto-suggest outputs from snapshot + network</span>
+              </label>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!windowRecord) {
+                    setError("Create a window first");
+                    return;
+                  }
+                  try {
+                    setBusy(true);
+                    resetError();
+                    await suggestOutputsForWindow(windowRecord.window_id);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Failed to suggest outputs");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy || !windowRecord}
+                className="w-full rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-60"
+              >
+                Suggest Outputs From Window
+              </button>
 
               <div className="grid grid-cols-2 gap-2">
                 {([
