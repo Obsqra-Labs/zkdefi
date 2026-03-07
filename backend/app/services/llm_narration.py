@@ -9,6 +9,7 @@ Context types:
   - gate_rate_explanation: explain gate pass/fail rate
   - error_decode: rewrite a raw error into actionable guidance
   - pending_claims: prioritize and explain claimable rewards
+  - snapshot_forecast_explain: explain Snapshot Forecaster outputs and results
 
 Uses Onyx LLM with deterministic fallback templates.
 """
@@ -17,8 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
-from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,20 @@ _PROMPTS: dict[str, str] = {
         "Write 2 sentences: first explain why the rebalance is needed, "
         "then summarise what will change. Use plain language with concrete numbers."
     ),
+    "snapshot_forecast_explain": (
+        "You are the zkde.fi AI assistant explaining a Snapshot Forecaster receipt. "
+        "Window pair: {pair_id}. Prediction status: {status}. Trust mode: {trust_mode}. "
+        "Predicted returns: 5m={r5_bps} bps ({r5_pct:.2f}%), "
+        "30m={r30_bps} bps ({r30_pct:.2f}%), 4h={r240_bps} bps ({r240_pct:.2f}%). "
+        "Predicted up-probabilities (0-100%): 5m={p5_pct:.1f}, 30m={p30_pct:.1f}, 4h={p240_pct:.1f}. "
+        "If scored, actual returns were 5m={a5_bps} bps ({a5_pct:.2f}%), "
+        "30m={a30_bps} bps ({a30_pct:.2f}%), 4h={a240_bps} bps ({a240_pct:.2f}%); "
+        "directional accuracy={directional_pct:.1f}%, MAE={mae_bps:.1f} bps ({mae_pct:.2f}%), "
+        "Brier={brier:.4f}, ECE={ece:.4f}. "
+        "Write up to 3 short sentences for a non-quant user: what the model predicted, "
+        "how it performed (if scored), and one caution/interpretation tip. "
+        "Avoid jargon and always include percent equivalents."
+    ),
 }
 
 # ── Deterministic fallbacks (no LLM needed) ────────────────────────────
@@ -112,6 +126,12 @@ _FALLBACKS: dict[str, str] = {
     "pending_claims": "You have {claim_amount} STRK pending for {oldest_days} days. Claim before the next rebalance cycle.",
     "risk_assessment": "Risk level: moderate. Your {risk_profile} portfolio has {drift_pct:.1f}% drift across {position_count} positions with max exposure {max_exposure_pct:.0f}%.",
     "rebalance_explanation": "Rebalance {status}: portfolio drift is {drift_pct:.1f}% (threshold {drift_threshold:.0f}%). Moving {actions_count} positions to restore target weights.",
+    "snapshot_forecast_explain": (
+        "The model predicted {pair_id} returns of {r5_pct:.2f}% (5m), {r30_pct:.2f}% (30m), and "
+        "{r240_pct:.2f}% (4h), with up-probabilities of {p5_pct:.1f}%, {p30_pct:.1f}%, and {p240_pct:.1f}%. "
+        "Status is {status} under {trust_mode} trust mode. "
+        "If scored: directional accuracy {directional_pct:.1f}%, MAE {mae_pct:.2f}%, Brier {brier:.4f}, ECE {ece:.4f}."
+    ),
 }
 
 
@@ -130,12 +150,13 @@ async def generate_narration(
         }
 
     # Try LLM path
+    llm_error: str | None = None
     client = _get_openai()
     if client is not None:
         try:
             prompt = _PROMPTS[context_type].format(**context_data)
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a DeFi assistant for zkde.fi. Be concise, specific, and actionable. Never use markdown. Max 2 sentences."},
                     {"role": "user", "content": prompt},
@@ -150,6 +171,7 @@ async def generate_narration(
                 "context_type": context_type,
             }
         except Exception as e:
+            llm_error = type(e).__name__
             logger.warning("LLM narration failed, using fallback: %s", e)
 
     # Deterministic fallback
@@ -169,4 +191,5 @@ async def generate_narration(
         "narration": narration,
         "source": "deterministic",
         "context_type": context_type,
+        "fallback_reason": llm_error,
     }

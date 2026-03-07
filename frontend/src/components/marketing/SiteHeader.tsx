@@ -109,6 +109,13 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
           >
             Docs
           </Link>
+          <Link
+            href="/zkdefi/forecaster"
+            prefetch={false}
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            Forecaster
+          </Link>
           <a
             href="https://starknet.obsqra.fi/forge"
             target="_blank"
@@ -189,6 +196,14 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
               className="rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-white"
             >
               Developers
+            </Link>
+            <Link
+              href="/zkdefi/forecaster"
+              prefetch={false}
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-white"
+            >
+              Forecaster
             </Link>
             <Link
               href="/products"

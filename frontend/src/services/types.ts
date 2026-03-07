@@ -92,3 +92,52 @@ export interface ReceiptSummary {
   topPerformingAdapter: string;
   lastExecutionTime: string; // ISO8601
 }
+
+// ExecutionPanel execution parameters
+export interface ExecutionParams {
+  amount: number;
+  slippage: number; // 0-100 basis points (e.g., 50 = 0.5%)
+  privacyLevel: "public" | "shielded" | "dark_ledger";
+  adapterId?: string; // For adapters that support multiple instances
+}
+
+// Adapter-specific options (override-able by manual mode)
+export interface AdapterOptions {
+  [key: string]: any;
+}
+
+// Real-time impact estimation
+export interface EstimatedImpact {
+  estimatedYield: number; // APY %
+  estimatedRisk: "low" | "medium" | "high";
+  slippageExposure: number; // % amount lost to slippage
+  privacyExposure: number; // 0-100 exposure score
+  reputationImpact?: number; // Change in reputation score
+  confidence: number; // 0-100 confidence in estimate
+}
+
+// AI Recommendation for Advisory mode
+export interface AIExecutionRecommendation extends Recommendation {
+  recommendedPrivacyLevel: "public" | "shielded" | "dark_ledger";
+  recommendedAmount: number;
+  recommendedSlippage: number;
+  explanationForAmount: string;
+}
+
+// Terminal mode policy
+export interface TerminalModePolicy {
+  id: string;
+  condition: string; // e.g., "rebalance when drift > 5%"
+  executionFrequency: "on_trigger" | "daily" | "weekly";
+  isActive: boolean;
+  createdAt: string;
+}
+
+// Execution log entry for Terminal mode
+export interface ExecutionLogEntry {
+  timestamp: string;
+  action: string;
+  status: "pending" | "executed" | "failed";
+  details: string;
+  receipt?: TradeReceipt;
+}

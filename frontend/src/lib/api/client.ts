@@ -1,4 +1,5 @@
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
+const CANONICAL_API_ORIGIN = "https://zkde.fi";
 
 export function apiUrl(path: string): string {
   if (!path) return API_BASE;
@@ -17,7 +18,21 @@ export function apiUrl(path: string): string {
 }
 
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(apiUrl(path), init);
+  const resolvedUrl = apiUrl(path);
+  let response = await fetch(resolvedUrl, init);
+
+  // Some hosts (e.g. zke.fi) do not proxy /api/* to this backend.
+  // Retry once against canonical API origin for zkdefi routes on 404.
+  const shouldRetryCanonical =
+    response.status === 404 &&
+    path.startsWith("/api/v1/zkdefi/") &&
+    !resolvedUrl.startsWith(CANONICAL_API_ORIGIN);
+
+  if (shouldRetryCanonical) {
+    const canonicalUrl = `${CANONICAL_API_ORIGIN}${path}`;
+    response = await fetch(canonicalUrl, init);
+  }
+
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     const detail =

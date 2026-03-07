@@ -74,6 +74,7 @@ dex_router = _optional_router("app.api.routes.dex")
 onboarding_router = _optional_router("app.api.routes.onboarding")
 proofs_router = _optional_router("app.api.routes.proofs")
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
+snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaster")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -128,6 +129,12 @@ if proofs_router:
         proofs_router,
         prefix="/api/v1/zkdefi/proofs",
         tags=["proofs"],
+    )
+if snapshot_forecaster_router:
+    app.include_router(
+        snapshot_forecaster_router,
+        prefix="/api/v1/zkdefi",
+        tags=["snapshot-forecaster"],
     )
 orchestration_router = _optional_router("app.api.routes.orchestration")
 if zkgraph_router:

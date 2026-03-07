@@ -282,7 +282,7 @@ export class PrivacyPoolAdapter implements ExecutionAdapter {
     });
 
     // Get pool yield for yieldImpact
-    const poolYield = POOL_YIELDS[pool] || 10;
+    const poolYield = POOL_YIELDS[pool as keyof typeof POOL_YIELDS] || 10;
 
     // Generate ID from deposit receipt
     const id = `trade-${receipt.id}`;

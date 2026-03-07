@@ -44,6 +44,10 @@ class SyntheticEzklProof:
             "inference_output": self.inference_output,
             "output_hash": self.output_hash,
             "proof_type": "ezkl_synthetic",
+            "trust_mode": "synthetic_dev_only",
+            "trust_warning": (
+                "Synthetic development proof. This is not a cryptographic EZKL inference proof."
+            ),
         }
 
 
@@ -433,6 +437,11 @@ class ProofPipeline:
             "proof_mode_level": int(mode),
             "ezkl_proof": ezkl_proof.to_dict(),
             "ezkl_verified": ezkl_verified,
+            "trust_mode": "synthetic_dev_only",
+            "trust_warning": (
+                "This ml-bridge path currently uses synthetic EZKL placeholders. "
+                "Do not treat as trustless inference verification."
+            ),
             "bridge_proof": None,
             "execution_proof": None,
             "can_execute": ezkl_verified,
