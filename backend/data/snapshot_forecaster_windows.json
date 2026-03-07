@@ -1,112 +1,68 @@
 {
-  "0x79ccb46d440fd17dd82b96b4950c06df4a94a06b03a23cb5e91765b55990d067": {
-    "window_id": "0x79ccb46d440fd17dd82b96b4950c06df4a94a06b03a23cb5e91765b55990d067",
+  "0xe32e42f1b8936583c2dc21309748c595acfe5ae4a787198bbc4ac7330b54f62a": {
+    "window_id": "0xe32e42f1b8936583c2dc21309748c595acfe5ae4a787198bbc4ac7330b54f62a",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_mainnet",
+    "window_open_ts": 1772861078,
+    "window_close_ts": 1772861378,
+    "cadence_id": "5m",
+    "snapshot_hash": "0x520200a06915dd03c54911a872a59696db5997bc00a7b6f1a4d12d0f10e9964e",
+    "snapshot_data": {
+      "mid_price": 3500
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "unknown",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "ret_1m": 10.0,
+      "vol_5m": 60.0
+    },
+    "feature_vector_hash": "0xf96954072894600458f107ee7f98646a09f37cc56bcbfc5133074399fc6536a7",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 35,
+        "actual_up": 1,
+        "maturity_ts": 1772861378,
+        "source_id": "unit_test_live",
+        "recorded_at_ts": 1772861078
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 80,
+        "actual_up": 1,
+        "maturity_ts": 1772862878,
+        "source_id": "unit_test_live",
+        "recorded_at_ts": 1772861078
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 120,
+        "actual_up": 1,
+        "maturity_ts": 1772875478,
+        "source_id": "unit_test_live",
+        "recorded_at_ts": 1772861078
+      }
+    },
+    "prediction_ids": [
+      "0x8f25a076e92b60a1134044a678553a4856ab463e6a4ccb6eb4b65bf054112ded"
+    ],
+    "created_at_ts": 1772861078
+  },
+  "0xdc6289011f045f152ce8702f3bf6b7e1c25423dbed1fe4ae6e08237c578a4d99": {
+    "window_id": "0xdc6289011f045f152ce8702f3bf6b7e1c25423dbed1fe4ae6e08237c578a4d99",
     "pair_id": "ETH/USDC",
     "network_id": "starknet_sepolia",
-    "window_open_ts": 1772860091,
-    "window_close_ts": 1772860391,
-    "cadence_id": "5m",
-    "snapshot_hash": "0xcbf68e113b40c0dbc5ffde31cc484d19e5e0b5c226b409e3c6b08b4ac73e9a83",
-    "snapshot_data": {
-      "mid_price": 3520.5,
-      "spread_bps": 4,
-      "reserve_imbalance": 0.12
-    },
-    "snapshot_provenance_hash": null,
-    "data_source_id": "unknown",
-    "feature_schema_id": "snapshot_forecaster.v1",
-    "feature_vector": {
-      "buy_sell_imbalance": 0.17,
-      "ret_1m": 12.2,
-      "vol_5m": 68.0
-    },
-    "feature_vector_hash": "0xc0dd2d2e7e900b0e8266d16b98ed69e5ecae9af8e476e8ec33be425affe84edc",
-    "attestation": {
-      "attempted": false,
-      "registered_on_chain": false,
-      "tx_hash": null,
-      "fact_hash": null,
-      "timestamp": null,
-      "error": null
-    },
-    "outcomes": {},
-    "prediction_ids": [],
-    "created_at_ts": 1772860091
-  },
-  "0x1b751e301e1ddcf694b6647b862bafa9d3cb0583668e7cd451a93a0549afa899": {
-    "window_id": "0x1b751e301e1ddcf694b6647b862bafa9d3cb0583668e7cd451a93a0549afa899",
-    "pair_id": "ETH/USDC",
-    "network_id": "starknet_mainnet",
-    "window_open_ts": 1772860091,
-    "window_close_ts": 1772860391,
-    "cadence_id": "5m",
-    "snapshot_hash": "0xcbf68e113b40c0dbc5ffde31cc484d19e5e0b5c226b409e3c6b08b4ac73e9a83",
-    "snapshot_data": {
-      "mid_price": 3520.5,
-      "spread_bps": 4,
-      "reserve_imbalance": 0.12
-    },
-    "snapshot_provenance_hash": null,
-    "data_source_id": "unknown",
-    "feature_schema_id": "snapshot_forecaster.v1",
-    "feature_vector": {
-      "buy_sell_imbalance": 0.17,
-      "ret_1m": 12.2,
-      "vol_5m": 68.0
-    },
-    "feature_vector_hash": "0xc0dd2d2e7e900b0e8266d16b98ed69e5ecae9af8e476e8ec33be425affe84edc",
-    "attestation": {
-      "attempted": false,
-      "registered_on_chain": false,
-      "tx_hash": null,
-      "fact_hash": null,
-      "timestamp": null,
-      "error": null
-    },
-    "outcomes": {},
-    "prediction_ids": [],
-    "created_at_ts": 1772860092
-  },
-  "0x0e13973dd515e07206519e84b6704330f412309e64c9e1872102bf520c56758a": {
-    "window_id": "0x0e13973dd515e07206519e84b6704330f412309e64c9e1872102bf520c56758a",
-    "pair_id": "ETH/USDC",
-    "network_id": "ethereum_mainnet",
-    "window_open_ts": 1772860091,
-    "window_close_ts": 1772860391,
-    "cadence_id": "5m",
-    "snapshot_hash": "0xcbf68e113b40c0dbc5ffde31cc484d19e5e0b5c226b409e3c6b08b4ac73e9a83",
-    "snapshot_data": {
-      "mid_price": 3520.5,
-      "spread_bps": 4,
-      "reserve_imbalance": 0.12
-    },
-    "snapshot_provenance_hash": null,
-    "data_source_id": "unknown",
-    "feature_schema_id": "snapshot_forecaster.v1",
-    "feature_vector": {
-      "buy_sell_imbalance": 0.17,
-      "ret_1m": 12.2,
-      "vol_5m": 68.0
-    },
-    "feature_vector_hash": "0xc0dd2d2e7e900b0e8266d16b98ed69e5ecae9af8e476e8ec33be425affe84edc",
-    "attestation": {
-      "attempted": false,
-      "registered_on_chain": false,
-      "tx_hash": null,
-      "fact_hash": null,
-      "timestamp": null,
-      "error": null
-    },
-    "outcomes": {},
-    "prediction_ids": [],
-    "created_at_ts": 1772860092
-  },
-  "0x6fec692a2404e29a5e74df550b9d011e49ae83bda6fe60d320ca85a57593b498": {
-    "window_id": "0x6fec692a2404e29a5e74df550b9d011e49ae83bda6fe60d320ca85a57593b498",
-    "pair_id": "ETH/USDC",
-    "network_id": "starknet_mainnet",
-    "window_open_ts": 1772860295,
-    "window_close_ts": 1772860595,
+    "window_open_ts": 1772861618,
+    "window_close_ts": 1772861918,
     "cadence_id": "5m",
     "snapshot_hash": "0xcc426469eb3e5d489fb4dd114e574365fd914498b80904f7854037a85dd31e21",
     "snapshot_data": {
@@ -140,30 +96,30 @@
         "horizon_min": 5,
         "actual_return_bps": 70,
         "actual_up": 1,
-        "maturity_ts": 1772860595,
+        "maturity_ts": 1772861918,
         "source_id": "public_ui_outcome_feed",
-        "recorded_at_ts": 1772860356
+        "recorded_at_ts": 1772861643
       },
       "30": {
         "horizon_min": 30,
         "actual_return_bps": 110,
         "actual_up": 1,
-        "maturity_ts": 1772862095,
+        "maturity_ts": 1772863418,
         "source_id": "public_ui_outcome_feed",
-        "recorded_at_ts": 1772860356
+        "recorded_at_ts": 1772861643
       },
       "240": {
         "horizon_min": 240,
         "actual_return_bps": 210,
         "actual_up": 1,
-        "maturity_ts": 1772874695,
+        "maturity_ts": 1772876018,
         "source_id": "public_ui_outcome_feed",
-        "recorded_at_ts": 1772860356
+        "recorded_at_ts": 1772861643
       }
     },
     "prediction_ids": [
-      "0xcad3e99f603aadd3f2138e843df3d150cfb0c07c75527714275b0ad75918d1e6"
+      "0xa276f22335d3c336068aabb9ddd7f507bae70977ca4bec5063b55103f2ca6120"
     ],
-    "created_at_ts": 1772860339
+    "created_at_ts": 1772861636
   }
 }

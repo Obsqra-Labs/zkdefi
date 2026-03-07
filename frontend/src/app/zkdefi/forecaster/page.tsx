@@ -16,6 +16,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -106,6 +110,135 @@ type HorizonBenchmarksResponse = {
   subject_id: string;
   sample_forecasts: number;
   horizon_benchmarks: HorizonBenchmarkRow[];
+};
+
+type AnalyticsBenchmarksResponse = {
+  sample_forecasts: number;
+  filters: Record<string, string | number | null>;
+  horizon_benchmarks: HorizonBenchmarkRow[];
+};
+
+type CalibrationBucket = {
+  bin_index: number;
+  range_lo: number;
+  range_hi: number;
+  count: number;
+  avg_confidence: number;
+  empirical_up_rate: number;
+  gap: number;
+};
+
+type CalibrationHorizon = {
+  horizon_min: number;
+  sample_size: number;
+  buckets: CalibrationBucket[];
+};
+
+type CalibrationResponse = {
+  sample_forecasts: number;
+  bins: number;
+  horizons: CalibrationHorizon[];
+};
+
+type StageLatencySummary = {
+  count: number;
+  mean: number;
+  min: number;
+  max: number;
+  p50: number;
+  p95: number;
+};
+
+type LatencyResponse = {
+  sample_forecasts: number;
+  stage_latencies_sec: {
+    commit_to_reveal: StageLatencySummary;
+    reveal_to_score: StageLatencySummary;
+    commit_to_score: StageLatencySummary;
+  };
+  horizon_score_lag_sec: Record<string, StageLatencySummary>;
+};
+
+type DriftFeatureRow = {
+  feature: string;
+  reference_mean: number;
+  current_mean: number;
+  delta: number;
+  drift_z: number;
+};
+
+type DriftPerformanceMetric = {
+  reference: number;
+  current: number;
+  delta: number;
+};
+
+type DriftResponse = {
+  sample_forecasts: number;
+  reference_count: number;
+  current_count: number;
+  feature_drift: DriftFeatureRow[];
+  performance_drift: {
+    directional_accuracy: DriftPerformanceMetric;
+    mae_bps: DriftPerformanceMetric;
+    brier_score: DriftPerformanceMetric;
+    ece: DriftPerformanceMetric;
+  };
+  rolling_performance: Array<{
+    idx: number;
+    scored_at_ts: number;
+    directional_accuracy: number;
+    mae_bps: number;
+    brier_score: number;
+    ece: number;
+  }>;
+};
+
+type LeaderboardRow = {
+  model_hash: string;
+  sample_size: number;
+  shared_window_count: number;
+  directional_accuracy: number;
+  mae_bps: number;
+  brier_score: number;
+  ece: number;
+  win_rate_shared: number;
+  composite_score: number;
+};
+
+type LeaderboardResponse = {
+  sample_forecasts: number;
+  leaderboard: LeaderboardRow[];
+};
+
+type PnlCurvePoint = {
+  scored_at_ts: number;
+  equity_bps: number;
+  action: "flat" | "long" | "short";
+  trade_return_bps: number;
+};
+
+type PnlResponse = {
+  sample_forecasts: number;
+  horizon_min: number;
+  params: {
+    long_prob_threshold: number;
+    short_prob_threshold: number;
+    min_abs_return_bps: number;
+    cost_per_trade_bps: number;
+  };
+  stats: {
+    trade_count: number;
+    long_count: number;
+    short_count: number;
+    win_rate: number;
+    participation_rate: number;
+    avg_trade_return_bps: number;
+    cumulative_return_bps: number;
+    max_drawdown_bps: number;
+    buy_and_hold_bps: number;
+  };
+  curve: PnlCurvePoint[];
 };
 
 type ScoreReceipt = {
@@ -200,6 +333,7 @@ type HorizonProgress = {
 };
 
 type NetworkId = "starknet_sepolia" | "starknet_mainnet" | "ethereum_mainnet";
+type AnalyticsNetworkFilter = "all" | NetworkId;
 
 const NETWORK_OPTIONS: Array<{ id: NetworkId; label: string; hint: string }> = [
   {
@@ -428,10 +562,34 @@ export default function ForecasterPage() {
   const [explain, setExplain] = useState<ExplainResponse | null>(null);
   const [history, setHistory] = useState<PredictionRecord[]>([]);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistoryRow[]>([]);
+  const [horizonBenchmarks, setHorizonBenchmarks] = useState<HorizonBenchmarkRow[]>([]);
+  const [benchmarkSampleForecasts, setBenchmarkSampleForecasts] = useState(0);
   const [selectedForecastId, setSelectedForecastId] = useState<string | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
+  const [autoTickBusy, setAutoTickBusy] = useState(false);
+  const [lastAutoTickTs, setLastAutoTickTs] = useState<number | null>(null);
   const [liveTracking, setLiveTracking] = useState(true);
   const [clockTs, setClockTs] = useState<number>(() => nowUnix());
+  const [analyticsSubjectId, setAnalyticsSubjectId] = useState("0xpublic_demo_subject");
+  const [analyticsPairId, setAnalyticsPairId] = useState("ETH/USDC");
+  const [analyticsNetwork, setAnalyticsNetwork] = useState<AnalyticsNetworkFilter>("all");
+  const [analyticsModelHash, setAnalyticsModelHash] = useState("");
+  const [analyticsStartTs, setAnalyticsStartTs] = useState<number | "">("");
+  const [analyticsEndTs, setAnalyticsEndTs] = useState<number | "">("");
+  const [analyticsBins, setAnalyticsBins] = useState(10);
+  const [calibrationHorizon, setCalibrationHorizon] = useState<5 | 30 | 240>(30);
+  const [pnlHorizon, setPnlHorizon] = useState<5 | 30 | 240>(30);
+  const [pnlLongThreshold, setPnlLongThreshold] = useState(0.6);
+  const [pnlShortThreshold, setPnlShortThreshold] = useState(0.4);
+  const [pnlMinAbsBps, setPnlMinAbsBps] = useState(25);
+  const [pnlCostBps, setPnlCostBps] = useState(4);
+  const [analyticsBusy, setAnalyticsBusy] = useState(false);
+  const [analyticsBenchmarks, setAnalyticsBenchmarks] = useState<AnalyticsBenchmarksResponse | null>(null);
+  const [analyticsCalibration, setAnalyticsCalibration] = useState<CalibrationResponse | null>(null);
+  const [analyticsLatency, setAnalyticsLatency] = useState<LatencyResponse | null>(null);
+  const [analyticsDrift, setAnalyticsDrift] = useState<DriftResponse | null>(null);
+  const [analyticsLeaderboard, setAnalyticsLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [analyticsPnl, setAnalyticsPnl] = useState<PnlResponse | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [explainBusy, setExplainBusy] = useState(false);
@@ -541,6 +699,64 @@ export default function ForecasterPage() {
       ece: Number(row.metrics.ece),
     }));
   }, [scoreHistory]);
+
+  const sortedBenchmarks = useMemo(() => {
+    return [...horizonBenchmarks].sort((a, b) => a.horizon_min - b.horizon_min);
+  }, [horizonBenchmarks]);
+
+  const analyticsCalibrationSeries = useMemo(() => {
+    const horizon = analyticsCalibration?.horizons?.find((h) => h.horizon_min === calibrationHorizon);
+    if (!horizon) return [];
+    return horizon.buckets.map((bucket) => ({
+      bucket: `${Math.round(bucket.range_lo * 100)}-${Math.round(bucket.range_hi * 100)}%`,
+      confidencePct: bucket.avg_confidence * 100,
+      actualPct: bucket.empirical_up_rate * 100,
+      count: bucket.count,
+      gapPct: bucket.gap * 100,
+    }));
+  }, [analyticsCalibration, calibrationHorizon]);
+
+  const analyticsPnlSeries = useMemo(() => {
+    if (!analyticsPnl?.curve?.length) return [];
+    return analyticsPnl.curve.map((point, idx) => ({
+      idx: idx + 1,
+      label: `#${idx + 1}`,
+      scoredAtLabel: formatUnixTs(point.scored_at_ts),
+      equityPct: point.equity_bps / 100.0,
+      tradePct: point.trade_return_bps / 100.0,
+      action: point.action,
+    }));
+  }, [analyticsPnl]);
+
+  const driftPerfRows = useMemo(() => {
+    if (!analyticsDrift?.performance_drift) return [];
+    return [
+      {
+        metric: "Directional",
+        reference: analyticsDrift.performance_drift.directional_accuracy.reference * 100,
+        current: analyticsDrift.performance_drift.directional_accuracy.current * 100,
+        delta: analyticsDrift.performance_drift.directional_accuracy.delta * 100,
+      },
+      {
+        metric: "MAE (bps)",
+        reference: analyticsDrift.performance_drift.mae_bps.reference,
+        current: analyticsDrift.performance_drift.mae_bps.current,
+        delta: analyticsDrift.performance_drift.mae_bps.delta,
+      },
+      {
+        metric: "Brier",
+        reference: analyticsDrift.performance_drift.brier_score.reference,
+        current: analyticsDrift.performance_drift.brier_score.current,
+        delta: analyticsDrift.performance_drift.brier_score.delta,
+      },
+      {
+        metric: "ECE",
+        reference: analyticsDrift.performance_drift.ece.reference,
+        current: analyticsDrift.performance_drift.ece.current,
+        delta: analyticsDrift.performance_drift.ece.delta,
+      },
+    ];
+  }, [analyticsDrift]);
 
   const resetError = () => setError(null);
 
@@ -685,11 +901,21 @@ export default function ForecasterPage() {
             `/api/v1/zkdefi/snapshot-forecaster/reputation/${encodeURIComponent(trimmedSubject)}/history?limit=60`,
           );
           setScoreHistory(scoreRows.history ?? []);
+
+          const benchmarkRows = await apiFetch<HorizonBenchmarksResponse>(
+            `/api/v1/zkdefi/snapshot-forecaster/reputation/${encodeURIComponent(trimmedSubject)}/benchmarks?limit=1000`,
+          );
+          setHorizonBenchmarks(benchmarkRows.horizon_benchmarks ?? []);
+          setBenchmarkSampleForecasts(Number(benchmarkRows.sample_forecasts ?? 0));
         } catch {
           setScoreHistory([]);
+          setHorizonBenchmarks([]);
+          setBenchmarkSampleForecasts(0);
         }
       } else {
         setScoreHistory([]);
+        setHorizonBenchmarks([]);
+        setBenchmarkSampleForecasts(0);
       }
 
       const selected =
@@ -703,6 +929,21 @@ export default function ForecasterPage() {
       setError(e instanceof Error ? e.message : "Failed to load forecast history");
     } finally {
       setHistoryBusy(false);
+    }
+  };
+
+  const runAutomationTick = async () => {
+    setAutoTickBusy(true);
+    try {
+      await apiFetch("/api/v1/zkdefi/snapshot-forecaster/automation/tick?max_predictions=400", {
+        method: "POST",
+      });
+      setLastAutoTickTs(nowUnix());
+      await refreshHistory(selectedForecastId ?? undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to run automation tick");
+    } finally {
+      setAutoTickBusy(false);
     }
   };
 
@@ -756,10 +997,20 @@ export default function ForecasterPage() {
   useEffect(() => {
     if (!liveTracking || !selectedForecastId) return;
     const timer = setInterval(() => {
-      void hydrateForecast(selectedForecastId, false);
+      void (async () => {
+        try {
+          await apiFetch("/api/v1/zkdefi/snapshot-forecaster/automation/tick?max_predictions=400", {
+            method: "POST",
+          });
+          setLastAutoTickTs(nowUnix());
+        } catch {
+          // worker may already be running or tick may be unavailable; history refresh still runs
+        }
+        await refreshHistory(selectedForecastId);
+      })();
     }, 30000);
     return () => clearInterval(timer);
-  }, [liveTracking, selectedForecastId]);
+  }, [liveTracking, selectedForecastId, subjectId]);
 
   const formatJsonBlock = (type: "snapshot" | "feature") => {
     try {
@@ -1672,6 +1923,13 @@ export default function ForecasterPage() {
                 {historyBusy ? "Refreshing..." : "Refresh History"}
               </button>
               <button
+                onClick={() => void runAutomationTick()}
+                disabled={autoTickBusy}
+                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-60"
+              >
+                {autoTickBusy ? "Ticking..." : "Run Tick"}
+              </button>
+              <button
                 onClick={() => setLiveTracking((prev) => !prev)}
                 className={`rounded-lg border px-3 py-1.5 text-xs ${
                   liveTracking
@@ -1687,6 +1945,11 @@ export default function ForecasterPage() {
           <div className="mb-3 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
             Tracking subject <span className="font-semibold text-zinc-200">{subjectId}</span> · stored forecasts:{" "}
             <span className="font-semibold text-zinc-200">{history.length}</span>
+            {lastAutoTickTs ? (
+              <>
+                {" "}· last tick: <span className="font-semibold text-zinc-200">{formatUnixTs(lastAutoTickTs)}</span>
+              </>
+            ) : null}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
@@ -1823,6 +2086,57 @@ export default function ForecasterPage() {
                 </>
               )}
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                <LabelWithTip
+                  label="Horizon Benchmarks"
+                  tip="Compares forecast quality separately at 5m, 30m, and 4h across scored receipts."
+                />
+              </div>
+              <div className="text-[11px] text-zinc-500">
+                Total scored forecasts: {benchmarkSampleForecasts}
+              </div>
+            </div>
+            {!sortedBenchmarks.length || sortedBenchmarks.every((row) => row.sample_size === 0) ? (
+              <p className="text-xs text-zinc-500">
+                No benchmark data yet. Benchmarks appear after scored forecasts accumulate.
+              </p>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-3">
+                {sortedBenchmarks.map((row) => (
+                  <div key={row.horizon_min} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-xs">
+                    <div className="mb-1 flex items-center justify-between">
+                      <div className="font-semibold text-zinc-100">{horizonLabel(row.horizon_min)}</div>
+                      <div className="text-zinc-500">n={row.sample_size}</div>
+                    </div>
+                    <div className="text-zinc-400">
+                      Directional:{" "}
+                      <span className="font-semibold text-zinc-100">{pretty(row.directional_accuracy * 100, 1)}%</span>
+                    </div>
+                    <div className="text-zinc-400">
+                      MAE: <span className="font-semibold text-zinc-100">{pretty(row.mae_bps, 1)} bps</span>
+                    </div>
+                    <div className="text-zinc-400">
+                      Bias:{" "}
+                      <span className="font-semibold text-zinc-100">
+                        {row.bias_bps >= 0 ? "+" : ""}
+                        {pretty(row.bias_bps, 1)} bps
+                      </span>
+                    </div>
+                    <div className="text-zinc-400">
+                      Brier: <span className="font-semibold text-zinc-100">{pretty(row.brier_score, 4)}</span>
+                    </div>
+                    <div className="text-zinc-400">
+                      Calibration gap:{" "}
+                      <span className="font-semibold text-zinc-100">{pretty(row.calibration_gap * 100, 1)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3">

@@ -1,1 +1,66 @@
-{}
+{
+  "0xe08fc8780f48a45a8346d63b90efcbd669f800d695eb8ebe48805d6cb1a8b60d": {
+    "score_receipt_id": "0xe08fc8780f48a45a8346d63b90efcbd669f800d695eb8ebe48805d6cb1a8b60d",
+    "forecast_id": "0x042c23e36e16e0ae736d865d5bb56676fac35fba5736e0e6f266d054d05b214d",
+    "window_id": "0x9d46024a75801519fc78f7317555cedf04a19128db4ab55e08fb1cabe83a96b5",
+    "subject_id": "0xbench",
+    "pair_id": "ETH/USDC",
+    "model_identity": {
+      "model_hash": "0xmodelhash-bench",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": null,
+      "vk_hash": null
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "metrics": {
+      "horizon_count": 3,
+      "mae_bps": 26.666667,
+      "rmse_bps": 28.284271,
+      "directional_accuracy": 1.0,
+      "brier_score": 0.0924,
+      "ece": 0.3
+    },
+    "metric_tiers": {
+      "directional_accuracy_tier": "tier_1",
+      "mae_tier": "tier_1",
+      "brier_tier": "tier_1",
+      "ece_tier": "tier_3"
+    },
+    "per_horizon": {
+      "5": {
+        "horizon_min": 5,
+        "predicted_return_bps": 90,
+        "actual_return_bps": 70,
+        "predicted_prob_up": 0.64,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 20.0,
+        "squared_error_bps2": 400.0,
+        "brier": 0.1296
+      },
+      "30": {
+        "horizon_min": 30,
+        "predicted_return_bps": 140,
+        "actual_return_bps": 120,
+        "predicted_prob_up": 0.7,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 20.0,
+        "squared_error_bps2": 400.0,
+        "brier": 0.09000000000000002
+      },
+      "240": {
+        "horizon_min": 240,
+        "predicted_return_bps": 220,
+        "actual_return_bps": 180,
+        "predicted_prob_up": 0.76,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 40.0,
+        "squared_error_bps2": 1600.0,
+        "brier": 0.0576
+      }
+    },
+    "scored_at_ts": 1772860984
+  }
+}

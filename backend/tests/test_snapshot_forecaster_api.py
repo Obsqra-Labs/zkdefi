@@ -113,6 +113,53 @@ def test_snapshot_forecaster_api_roundtrip():
     assert benchmark["sample_forecasts"] == 1
     assert len(benchmark["horizon_benchmarks"]) == 3
 
+    analytics_bench_resp = client.get(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/benchmarks?subject_id=0xfeedbeef&limit=100",
+    )
+    assert analytics_bench_resp.status_code == 200
+    analytics_bench = analytics_bench_resp.json()
+    assert analytics_bench["sample_forecasts"] == 1
+    assert len(analytics_bench["horizon_benchmarks"]) == 3
+
+    analytics_cal_resp = client.get(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/calibration?subject_id=0xfeedbeef&bins=5&limit=100",
+    )
+    assert analytics_cal_resp.status_code == 200
+    assert analytics_cal_resp.json()["bins"] == 5
+
+    analytics_latency_resp = client.get(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/latency?subject_id=0xfeedbeef&limit=100",
+    )
+    assert analytics_latency_resp.status_code == 200
+    assert "stage_latencies_sec" in analytics_latency_resp.json()
+
+    analytics_drift_resp = client.get(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/drift?subject_id=0xfeedbeef&limit=100",
+    )
+    assert analytics_drift_resp.status_code == 200
+    assert "performance_drift" in analytics_drift_resp.json()
+
+    analytics_lb_resp = client.get(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/leaderboard?subject_id=0xfeedbeef&limit=100",
+    )
+    assert analytics_lb_resp.status_code == 200
+    assert len(analytics_lb_resp.json()["leaderboard"]) >= 1
+
+    analytics_pnl_resp = client.post(
+        "/api/v1/zkdefi/snapshot-forecaster/analytics/pnl-sim",
+        json={
+            "subject_id": "0xfeedbeef",
+            "horizon_min": 30,
+            "long_prob_threshold": 0.6,
+            "short_prob_threshold": 0.4,
+            "min_abs_return_bps": 10,
+            "cost_per_trade_bps": 1.0,
+            "limit": 100,
+        },
+    )
+    assert analytics_pnl_resp.status_code == 200
+    assert "stats" in analytics_pnl_resp.json()
+
     history_resp = client.get("/api/v1/zkdefi/snapshot-forecaster/reputation/0xfeedbeef/history?limit=10")
     assert history_resp.status_code == 200
     history_payload = history_resp.json()

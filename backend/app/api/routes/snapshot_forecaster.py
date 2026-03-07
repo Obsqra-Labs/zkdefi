@@ -124,6 +124,21 @@ class ExplainRequest(BaseModel):
     score_receipt_id: str | None = Field(default=None, description="Optional score receipt id")
 
 
+class PnlSimulationRequest(BaseModel):
+    subject_id: str | None = None
+    pair_id: str | None = None
+    network_id: str | None = None
+    model_hash: str | None = None
+    start_ts: int | None = None
+    end_ts: int | None = None
+    horizon_min: int = Field(default=30, description="One of 5, 30, 240")
+    long_prob_threshold: float = Field(default=0.60, ge=0.0, le=1.0)
+    short_prob_threshold: float = Field(default=0.40, ge=0.0, le=1.0)
+    min_abs_return_bps: int = Field(default=25, ge=0)
+    cost_per_trade_bps: float = Field(default=4.0, ge=0.0)
+    limit: int = Field(default=3000, ge=1, le=10000)
+
+
 def _svc() -> SnapshotForecasterService:
     return get_snapshot_forecaster_service()
 
@@ -297,6 +312,147 @@ def get_subject_reputation_history(
 ) -> dict[str, Any]:
     rows = _svc().list_subject_score_history(subject_id=subject_id, limit=limit)
     return {"history": rows, "count": len(rows)}
+
+
+@router.get("/analytics/benchmarks")
+def analytics_benchmarks(
+    subject_id: str | None = Query(default=None),
+    pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
+    model_hash: str | None = Query(default=None),
+    start_ts: int | None = Query(default=None),
+    end_ts: int | None = Query(default=None),
+    limit: int = Query(default=1000, ge=1, le=10000),
+) -> dict[str, Any]:
+    try:
+        return _svc().get_horizon_benchmarks(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/analytics/calibration")
+def analytics_calibration(
+    subject_id: str | None = Query(default=None),
+    pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
+    model_hash: str | None = Query(default=None),
+    start_ts: int | None = Query(default=None),
+    end_ts: int | None = Query(default=None),
+    bins: int = Query(default=10, ge=2, le=50),
+    limit: int = Query(default=2000, ge=1, le=10000),
+) -> dict[str, Any]:
+    try:
+        return _svc().get_calibration_curves(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            bins=bins,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/analytics/latency")
+def analytics_latency(
+    subject_id: str | None = Query(default=None),
+    pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
+    model_hash: str | None = Query(default=None),
+    start_ts: int | None = Query(default=None),
+    end_ts: int | None = Query(default=None),
+    limit: int = Query(default=2000, ge=1, le=10000),
+) -> dict[str, Any]:
+    try:
+        return _svc().get_latency_analytics(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/analytics/drift")
+def analytics_drift(
+    subject_id: str | None = Query(default=None),
+    pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
+    model_hash: str | None = Query(default=None),
+    start_ts: int | None = Query(default=None),
+    end_ts: int | None = Query(default=None),
+    limit: int = Query(default=2000, ge=1, le=10000),
+) -> dict[str, Any]:
+    try:
+        return _svc().get_drift_analytics(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/analytics/leaderboard")
+def analytics_leaderboard(
+    subject_id: str | None = Query(default=None),
+    pair_id: str | None = Query(default=None),
+    network_id: str | None = Query(default=None),
+    start_ts: int | None = Query(default=None),
+    end_ts: int | None = Query(default=None),
+    limit: int = Query(default=3000, ge=1, le=10000),
+) -> dict[str, Any]:
+    try:
+        return _svc().get_model_leaderboard(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/analytics/pnl-sim")
+def analytics_pnl_sim(req: PnlSimulationRequest) -> dict[str, Any]:
+    try:
+        return _svc().run_pnl_simulation(
+            subject_id=req.subject_id,
+            pair_id=req.pair_id,
+            network_id=req.network_id,
+            model_hash=req.model_hash,
+            start_ts=req.start_ts,
+            end_ts=req.end_ts,
+            horizon_min=req.horizon_min,
+            long_prob_threshold=req.long_prob_threshold,
+            short_prob_threshold=req.short_prob_threshold,
+            min_abs_return_bps=req.min_abs_return_bps,
+            cost_per_trade_bps=req.cost_per_trade_bps,
+            limit=req.limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/automation/tick")

@@ -1,1 +1,50 @@
-{}
+{
+  "0x042c23e36e16e0ae736d865d5bb56676fac35fba5736e0e6f266d054d05b214d": {
+    "forecast_id": "0x042c23e36e16e0ae736d865d5bb56676fac35fba5736e0e6f266d054d05b214d",
+    "window_id": "0x9d46024a75801519fc78f7317555cedf04a19128db4ab55e08fb1cabe83a96b5",
+    "subject_id": "0xbench",
+    "guess_ts": 1772860984,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x9587befed42e1d49a1eaafc7227ec03fedbfc157370d0735ef185ad54cfda939",
+    "model_identity": {
+      "model_hash": "0xmodelhash-bench",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": null,
+      "vk_hash": null
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {},
+    "revealed_at_ts": 1772860984,
+    "outputs_scaled": {
+      "p240": 7600,
+      "p30": 7000,
+      "p5": 6400,
+      "r240": 220,
+      "r30": 140,
+      "r5": 90
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0xbench",
+      "verify_key_hash": null,
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": null
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xe08fc8780f48a45a8346d63b90efcbd669f800d695eb8ebe48805d6cb1a8b60d",
+    "created_at_ts": 1772860984,
+    "reveal_salt_hash": "0x09fdde65e2cbbfc3a554d9ba1e7f5379480c664991b8e9bc41ad11668241e411",
+    "scored_at_ts": 1772860984
+  }
+}

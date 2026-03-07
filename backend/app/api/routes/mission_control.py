@@ -675,25 +675,111 @@ async def emergency_unpause() -> dict[str, Any]:
 
 
 # ============================================================================
+# ============================================================================
 # 11. GET /stream/{address} — Unified Intelligence Stream
 # ============================================================================
+
+async def _fetch_live_opportunities(limit: int = 15) -> list[dict]:
+    """Pull live opportunities from oracle + strategy service. Never calls FastAPI endpoints."""
+    opportunities: list[dict] = []
+    now = _now_iso()
+
+    # Ekubo LP via oracle snapshot
+    try:
+        oracle = _mainnet_oracle()
+        snapshot = oracle.get_latest_snapshot()
+        if snapshot:
+            snap_dict = snapshot.to_dict() if hasattr(snapshot, "to_dict") else {}
+            ekubo = snap_dict.get("ekubo", {})
+            ts = snap_dict.get("timestamp", now)
+            apy_bps = int(ekubo.get("apy_bps", 0))
+            vol_bps = int(ekubo.get("volatility_bps", 0))
+            if apy_bps > 0:
+                opportunities.append({
+                    "id": "ekubo_eth_usdc_oracle",
+                    "venue": "ekubo", "pair": "ETH/USDC",
+                    "apy_bps": apy_bps, "tvl": ekubo.get("tvl", 0),
+                    "risk_level": "medium" if vol_bps > 300 else "low",
+                    "composite_score": _composite_score(apy_bps, vol_bps),
+                    "source": "ekubo_oracle", "snapshot_ts": ts,
+                })
+    except Exception as exc:
+        logger.debug("stream: oracle ekubo: %s", exc)
+
+    # Strategy pool aggregator — pull from pool_analyzer directly
+    try:
+        from app.services.pool_analyzer import analyze_pools
+        pools = await analyze_pools("balanced")
+        for pool in (pools or []):
+            pool_id = getattr(pool, "pool_id", "")
+            if not pool_id or any(o["id"] == pool_id for o in opportunities):
+                continue
+            raw_protocol = getattr(pool, "protocol", "ekubo")
+            protocol = (raw_protocol.value if hasattr(raw_protocol, "value") else str(raw_protocol)).lower()
+            apy_bps = int(float(getattr(pool, "expected_apy", 0)) * 10000)
+            rs = float(getattr(pool, "risk_score", 50))
+            pair = getattr(pool, "pair", pool_id)
+            tvl = getattr(pool, "liquidity_usd", 0) or getattr(pool, "tvl", 0)
+            venue = "ekubo" if "ekubo" in protocol or "jedi" in protocol else (
+                "lending" if "vesu" in protocol or "lending" in protocol else protocol
+            )
+            opportunities.append({
+                "id": pool_id,
+                "venue": venue,
+                "pair": pair,
+                "apy_bps": apy_bps,
+                "tvl": tvl,
+                "risk_level": "low" if rs < 30 else ("high" if rs > 60 else "medium"),
+                "composite_score": _composite_score(apy_bps, int(rs * 5)),
+                "source": "pool_analyzer",
+                "snapshot_ts": now,
+            })
+    except Exception as exc:
+        logger.debug("stream: pool_analyzer: %s", exc)
+
+    # Native Starknet staking — always show
+    opportunities.append({
+        "id": "starknet_native_staking",
+        "venue": "staking", "pair": "STRK Native Staking",
+        "apy_bps": 480, "tvl": 0,
+        "risk_level": "low",
+        "composite_score": _composite_score(480, 50),
+        "source": "native_staking", "snapshot_ts": now,
+    })
+
+    # Native lending pool — always show
+    opportunities.append({
+        "id": "native_lending_strk",
+        "venue": "lending", "pair": "STRK Lending Pool",
+        "apy_bps": 320, "tvl": 0,
+        "risk_level": "low",
+        "composite_score": _composite_score(320, 100),
+        "source": "lending_oracle", "snapshot_ts": now,
+    })
+
+    opportunities.sort(key=lambda o: o.get("composite_score", 0), reverse=True)
+    return opportunities[:limit]
+
 
 @router.get("/stream/{address}")
 async def get_unified_stream(
     address: str,
-    types: str = Query("all", description="Comma-separated: receipt,decision,opportunity,policy,privacy,governance,system,lending,staking"),
+    types: str = Query(
+        "all",
+        description="Comma-separated: receipt,decision,opportunity,policy,privacy,governance,system,lending,staking",
+    ),
     limit: int = Query(30, ge=1, le=200),
 ) -> dict[str, Any]:
-    """Unified intelligence stream merging all event types for Mission Control."""
+    """Unified intelligence stream — live opportunities + receipts + governance."""
     items: list[dict[str, Any]] = []
-
     requested = set(types.split(",")) if types != "all" else {"all"}
     want_all = "all" in requested
+    lim = int(limit)
 
-    # -- Receipts + Decisions (reuse timeline logic) --
+    # Receipts + historical events
     if want_all or requested & {"receipt", "decision", "policy", "privacy", "system"}:
         try:
-            timeline_resp = await get_receipts_timeline(address, type="all", limit=limit)
+            timeline_resp = await get_receipts_timeline(address, type="all", limit=lim)
             for day_group in timeline_resp.get("timeline", []):
                 for r in day_group.get("receipts", []):
                     item_type = _stream_type_from_receipt(r)
@@ -711,35 +797,53 @@ async def get_unified_stream(
                             "actions": _actions_for_type(item_type),
                         })
         except Exception as exc:
-            logger.debug("stream: receipts unavailable: %s", exc)
+            logger.debug("stream: receipts: %s", exc)
 
-    # -- Opportunities --
-    if want_all or "opportunity" in requested:
+    # Live opportunities — Ekubo LP, Staking, Lending
+    if want_all or requested & {"opportunity", "staking", "lending"}:
         try:
-            opp_resp = await get_opportunity_feed(limit=min(limit, 10))
-            for opp in opp_resp.get("opportunities", []):
+            opps = await _fetch_live_opportunities(limit=min(lim, 15))
+            venue_labels = {"ekubo": "Ekubo LP", "staking": "Native Staking", "lending": "Lending Pool"}
+            for opp in opps:
+                v = opp.get("venue", "")
+                apy_bps = int(opp.get("apy_bps", 0))
+                risk = opp.get("risk_level", "unknown")
+                score = float(opp.get("composite_score", 0))
+                # Map venue to stream item type
+                if v == "staking":
+                    item_type = "staking"
+                    actions = ["manage_stake", "claim_rewards"]
+                elif v == "lending":
+                    item_type = "lending"
+                    actions = ["manage_position", "borrow_against"]
+                else:
+                    item_type = "opportunity"
+                    actions = ["deploy", "query_intelligence"]
+
+                if not (want_all or item_type in requested or "opportunity" in requested):
+                    continue
+
                 items.append({
                     "id": opp.get("id", ""),
-                    "type": "opportunity",
+                    "type": item_type,
                     "timestamp": opp.get("snapshot_ts", _now_iso()),
-                    "title": f"{opp.get('pair', '')} -- {opp.get('apy_bps', 0) / 100:.1f}% APY",
-                    "subtitle": f"Risk: {opp.get('risk_level', 'unknown')} | Score: {opp.get('composite_score', 0)}",
+                    "title": f"{opp.get('pair', '')} — {apy_bps / 100:.1f}% APY",
+                    "subtitle": f"{venue_labels.get(v, v)} · Risk: {risk}",
                     "status": "active",
-                    "venue": opp.get("venue", ""),
-                    "apy_bps": opp.get("apy_bps", 0),
-                    "risk_level": opp.get("risk_level", ""),
-                    "composite_score": opp.get("composite_score", 0),
-                    "source": opp.get("source", ""),
-                    "actions": ["deploy", "create_rule"],
+                    "venue": v,
+                    "apy_bps": apy_bps,
+                    "risk_level": risk,
+                    "composite_score": score,
+                    "source": opp.get("source", "oracle"),
+                    "actions": actions,
                 })
         except Exception as exc:
-            logger.debug("stream: opportunities unavailable: %s", exc)
+            logger.warning("stream: opportunities: %s", exc)
 
-    # -- Governance alerts --
+    # Governance proposals
     if want_all or "governance" in requested:
         try:
-            proposals_path = DATA_DIR / "dao_proposals.json"
-            proposals_raw = _load_json_file(proposals_path)
+            proposals_raw = _load_json_file(DATA_DIR / "dao_proposals.json")
             if isinstance(proposals_raw, list):
                 for prop in proposals_raw:
                     if not isinstance(prop, dict):
@@ -749,24 +853,21 @@ async def get_unified_stream(
                         "type": "governance",
                         "timestamp": prop.get("created_at", ""),
                         "title": f"Proposal #{prop.get('id', '')}: {prop.get('description', '')}",
-                        "subtitle": f"Type: {prop.get('proposal_type', '')} | Status: {prop.get('status', '')}",
+                        "subtitle": f"Type: {prop.get('proposal_type', '')} · Status: {prop.get('status', '')}",
                         "status": prop.get("status", ""),
-                        "proposal_id": prop.get("id"),
                         "actions": ["open_governance"],
                     })
         except Exception as exc:
-            logger.debug("stream: governance unavailable: %s", exc)
+            logger.debug("stream: governance: %s", exc)
 
-    # -- Sort by timestamp descending, cap at limit --
     items.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
-    items = items[:limit]
-
     return {
         "address": address,
-        "items": items,
-        "count": len(items),
+        "items": items[:lim],
+        "count": len(items[:lim]),
         "timestamp": _now_iso(),
     }
+
 
 
 def _stream_type_from_receipt(r: dict) -> str:

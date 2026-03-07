@@ -781,82 +781,208 @@ class SnapshotForecasterService:
 
     def get_subject_horizon_benchmarks(self, subject_id: str, limit: int = 1000) -> dict[str, Any]:
         subject = self._normalize_subject(subject_id)
+        result = self.get_horizon_benchmarks(
+            subject_id=subject,
+            pair_id=None,
+            network_id=None,
+            model_hash=None,
+            start_ts=None,
+            end_ts=None,
+            limit=limit,
+        )
+        result["subject_id"] = subject
+        return result
 
-        predictions = [
-            r
-            for r in self._predictions.values()
-            if self._normalize_subject(str(r.get("subject_id", ""))) == subject
-            and str(r.get("status", "")).strip().lower() == "scored"
-            and r.get("score_receipt_id")
-        ]
-        predictions.sort(key=lambda row: int(row.get("scored_at_ts", row.get("created_at_ts", 0)) or 0), reverse=True)
-        limited = predictions[: max(1, int(limit))]
+    def _collect_scored_records(
+        self,
+        *,
+        subject_id: str | None = None,
+        pair_id: str | None = None,
+        network_id: str | None = None,
+        model_hash: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
+        limit: int = 5000,
+    ) -> list[dict[str, Any]]:
+        normalized_subject = self._normalize_subject(subject_id) if subject_id else None
+        normalized_pair = str(pair_id or "").strip().upper() or None
+        normalized_network = self._normalize_network_id(network_id) if network_id else None
+        normalized_model_hash = str(model_hash or "").strip().lower() or None
+        start_val = int(start_ts) if start_ts is not None else None
+        end_val = int(end_ts) if end_ts is not None else None
 
-        buckets: dict[int, dict[str, float]] = {
-            5: {
-                "n": 0.0,
-                "dir_hits": 0.0,
-                "abs_err_sum": 0.0,
-                "sq_err_sum": 0.0,
-                "bias_sum": 0.0,
-                "brier_sum": 0.0,
-                "pred_prob_sum": 0.0,
-                "actual_up_sum": 0.0,
-            },
-            30: {
-                "n": 0.0,
-                "dir_hits": 0.0,
-                "abs_err_sum": 0.0,
-                "sq_err_sum": 0.0,
-                "bias_sum": 0.0,
-                "brier_sum": 0.0,
-                "pred_prob_sum": 0.0,
-                "actual_up_sum": 0.0,
-            },
-            240: {
-                "n": 0.0,
-                "dir_hits": 0.0,
-                "abs_err_sum": 0.0,
-                "sq_err_sum": 0.0,
-                "bias_sum": 0.0,
-                "brier_sum": 0.0,
-                "pred_prob_sum": 0.0,
-                "actual_up_sum": 0.0,
-            },
-        }
+        rows: list[dict[str, Any]] = []
+        for prediction in self._predictions.values():
+            if str(prediction.get("status", "")).strip().lower() != "scored":
+                continue
 
-        for prediction in limited:
             score_receipt_id = str(prediction.get("score_receipt_id", "")).strip()
             if not score_receipt_id:
                 continue
-            receipt = self._scores.get(score_receipt_id)
-            if not receipt:
-                continue
-            per_horizon = receipt.get("per_horizon") or {}
-            if not isinstance(per_horizon, dict):
+            score = self._scores.get(score_receipt_id)
+            if not score:
                 continue
 
-            for row in per_horizon.values():
-                if not isinstance(row, dict):
+            window_id = str(prediction.get("window_id", "")).strip()
+            window = self._windows.get(window_id)
+            if not window:
+                continue
+
+            scored_at_ts = int(
+                score.get("scored_at_ts")
+                or prediction.get("scored_at_ts")
+                or prediction.get("created_at_ts")
+                or 0
+            )
+            if start_val is not None and scored_at_ts < start_val:
+                continue
+            if end_val is not None and scored_at_ts > end_val:
+                continue
+
+            prediction_subject = self._normalize_subject(str(prediction.get("subject_id", "")))
+            if normalized_subject and prediction_subject != normalized_subject:
+                continue
+
+            row_pair = str(window.get("pair_id", "")).strip().upper()
+            row_pair = row_pair.split("(")[0].strip() if row_pair else row_pair
+            if normalized_pair and row_pair != normalized_pair:
+                continue
+
+            row_network = self._normalize_network_id(str(window.get("network_id", DEFAULT_NETWORK_ID)))
+            if normalized_network and row_network != normalized_network:
+                continue
+
+            row_model_hash = str((prediction.get("model_identity") or {}).get("model_hash", "")).strip().lower()
+            if normalized_model_hash and row_model_hash != normalized_model_hash:
+                continue
+
+            rows.append(
+                {
+                    "prediction": prediction,
+                    "window": window,
+                    "score": score,
+                    "subject_id": prediction_subject,
+                    "pair_id": row_pair,
+                    "network_id": row_network,
+                    "model_hash": row_model_hash or "unknown_model",
+                    "scored_at_ts": scored_at_ts,
+                }
+            )
+
+        rows.sort(key=lambda row: int(row.get("scored_at_ts", 0)), reverse=True)
+        return rows[: max(1, int(limit))]
+
+    @staticmethod
+    def _empty_horizon_metrics(horizon_min: int) -> dict[str, Any]:
+        return {
+            "horizon_min": horizon_min,
+            "sample_size": 0,
+            "directional_accuracy": 0.0,
+            "mae_bps": 0.0,
+            "rmse_bps": 0.0,
+            "bias_bps": 0.0,
+            "brier_score": 0.0,
+            "avg_pred_prob_up": 0.0,
+            "actual_up_rate": 0.0,
+            "calibration_gap": 0.0,
+        }
+
+    @staticmethod
+    def _summary_stats(values: list[float]) -> dict[str, float]:
+        if not values:
+            return {
+                "count": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "max": 0.0,
+                "p50": 0.0,
+                "p95": 0.0,
+            }
+        sorted_vals = sorted(float(v) for v in values)
+        n = len(sorted_vals)
+
+        def _pct(p: float) -> float:
+            idx = int(round((n - 1) * p))
+            return float(sorted_vals[max(0, min(n - 1, idx))])
+
+        return {
+            "count": float(n),
+            "mean": round(sum(sorted_vals) / n, 6),
+            "min": round(sorted_vals[0], 6),
+            "max": round(sorted_vals[-1], 6),
+            "p50": round(_pct(0.50), 6),
+            "p95": round(_pct(0.95), 6),
+        }
+
+    @staticmethod
+    def _max_drawdown_bps(equity_curve: list[float]) -> float:
+        if not equity_curve:
+            return 0.0
+        peak = equity_curve[0]
+        max_dd = 0.0
+        for value in equity_curve:
+            peak = max(peak, value)
+            max_dd = max(max_dd, peak - value)
+        return float(max_dd)
+
+    def get_horizon_benchmarks(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        model_hash: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        limit: int = 1000,
+    ) -> dict[str, Any]:
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+
+        buckets: dict[int, dict[str, float]] = {
+            h: {
+                "n": 0.0,
+                "dir_hits": 0.0,
+                "abs_err_sum": 0.0,
+                "sq_err_sum": 0.0,
+                "bias_sum": 0.0,
+                "brier_sum": 0.0,
+                "pred_prob_sum": 0.0,
+                "actual_up_sum": 0.0,
+            }
+            for h in SUPPORTED_HORIZONS_MIN
+        }
+
+        for row in rows:
+            per_horizon = (row["score"] or {}).get("per_horizon") or {}
+            if not isinstance(per_horizon, dict):
+                continue
+            for per_h in per_horizon.values():
+                if not isinstance(per_h, dict):
                     continue
                 try:
-                    horizon = int(row.get("horizon_min"))
+                    horizon = int(per_h.get("horizon_min"))
                 except Exception:
                     continue
                 if horizon not in buckets:
                     continue
-
-                predicted_return = float(row.get("predicted_return_bps", 0.0))
-                actual_return = float(row.get("actual_return_bps", 0.0))
+                predicted_return = float(per_h.get("predicted_return_bps", 0.0))
+                actual_return = float(per_h.get("actual_return_bps", 0.0))
                 err = predicted_return - actual_return
-                directional_hit = 1.0 if bool(row.get("directional_hit", False)) else 0.0
-                pred_prob = float(row.get("predicted_prob_up", 0.0))
-                actual_up = float(int(row.get("actual_up", 0)))
-                brier = float(row.get("brier", (pred_prob - actual_up) ** 2))
+                pred_prob = float(per_h.get("predicted_prob_up", 0.0))
+                actual_up = float(int(per_h.get("actual_up", 0)))
+                brier = float(per_h.get("brier", (pred_prob - actual_up) ** 2))
 
                 acc = buckets[horizon]
                 acc["n"] += 1.0
-                acc["dir_hits"] += directional_hit
+                acc["dir_hits"] += 1.0 if bool(per_h.get("directional_hit", False)) else 0.0
                 acc["abs_err_sum"] += abs(err)
                 acc["sq_err_sum"] += (err * err)
                 acc["bias_sum"] += err
@@ -867,52 +993,550 @@ class SnapshotForecasterService:
         horizon_benchmarks: list[dict[str, Any]] = []
         for horizon in SUPPORTED_HORIZONS_MIN:
             acc = buckets[horizon]
-            n = acc["n"]
-            if n <= 0:
-                horizon_benchmarks.append(
-                    {
-                        "horizon_min": horizon,
-                        "sample_size": 0,
-                        "directional_accuracy": 0.0,
-                        "mae_bps": 0.0,
-                        "rmse_bps": 0.0,
-                        "bias_bps": 0.0,
-                        "brier_score": 0.0,
-                        "avg_pred_prob_up": 0.0,
-                        "actual_up_rate": 0.0,
-                        "calibration_gap": 0.0,
-                    }
-                )
+            if acc["n"] <= 0:
+                horizon_benchmarks.append(self._empty_horizon_metrics(horizon))
                 continue
-
-            directional = acc["dir_hits"] / n
-            mae = acc["abs_err_sum"] / n
-            rmse = math.sqrt(acc["sq_err_sum"] / n)
-            bias = acc["bias_sum"] / n
-            brier = acc["brier_sum"] / n
+            n = acc["n"]
             avg_pred_prob = acc["pred_prob_sum"] / n
             actual_up_rate = acc["actual_up_sum"] / n
-            calibration_gap = abs(avg_pred_prob - actual_up_rate)
-
             horizon_benchmarks.append(
                 {
                     "horizon_min": horizon,
                     "sample_size": int(n),
-                    "directional_accuracy": round(directional, 6),
-                    "mae_bps": round(mae, 6),
-                    "rmse_bps": round(rmse, 6),
-                    "bias_bps": round(bias, 6),
-                    "brier_score": round(brier, 6),
+                    "directional_accuracy": round(acc["dir_hits"] / n, 6),
+                    "mae_bps": round(acc["abs_err_sum"] / n, 6),
+                    "rmse_bps": round(math.sqrt(acc["sq_err_sum"] / n), 6),
+                    "bias_bps": round(acc["bias_sum"] / n, 6),
+                    "brier_score": round(acc["brier_sum"] / n, 6),
                     "avg_pred_prob_up": round(avg_pred_prob, 6),
                     "actual_up_rate": round(actual_up_rate, 6),
-                    "calibration_gap": round(calibration_gap, 6),
+                    "calibration_gap": round(abs(avg_pred_prob - actual_up_rate), 6),
                 }
             )
 
         return {
-            "subject_id": subject,
-            "sample_forecasts": len(limited),
+            "sample_forecasts": len(rows),
+            "filters": {
+                "subject_id": self._normalize_subject(subject_id) if subject_id else None,
+                "pair_id": str(pair_id or "").strip().upper() or None,
+                "network_id": self._normalize_network_id(network_id) if network_id else None,
+                "model_hash": str(model_hash or "").strip() or None,
+                "start_ts": int(start_ts) if start_ts is not None else None,
+                "end_ts": int(end_ts) if end_ts is not None else None,
+            },
             "horizon_benchmarks": horizon_benchmarks,
+        }
+
+    def get_calibration_curves(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        model_hash: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        bins: int = 10,
+        limit: int = 2000,
+    ) -> dict[str, Any]:
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+
+        bucket_count = max(2, min(50, int(bins)))
+        horizon_points: dict[int, list[tuple[float, int]]] = {h: [] for h in SUPPORTED_HORIZONS_MIN}
+
+        for row in rows:
+            per_horizon = (row["score"] or {}).get("per_horizon") or {}
+            for per_h in per_horizon.values():
+                if not isinstance(per_h, dict):
+                    continue
+                try:
+                    horizon = int(per_h.get("horizon_min"))
+                except Exception:
+                    continue
+                if horizon not in horizon_points:
+                    continue
+                try:
+                    prob = float(per_h.get("predicted_prob_up", 0.0))
+                    label = int(per_h.get("actual_up", 0))
+                except Exception:
+                    continue
+                clipped_prob = min(max(prob, 0.0), 1.0)
+                horizon_points[horizon].append((clipped_prob, 1 if label > 0 else 0))
+
+        horizons: list[dict[str, Any]] = []
+        for horizon in SUPPORTED_HORIZONS_MIN:
+            bins_payload: list[dict[str, Any]] = []
+            points = horizon_points[horizon]
+            if points:
+                buckets: list[list[tuple[float, int]]] = [[] for _ in range(bucket_count)]
+                for prob, label in points:
+                    idx = min(int(prob * bucket_count), bucket_count - 1)
+                    buckets[idx].append((prob, label))
+
+                for idx, bucket in enumerate(buckets):
+                    lo = idx / bucket_count
+                    hi = (idx + 1) / bucket_count
+                    if not bucket:
+                        bins_payload.append(
+                            {
+                                "bin_index": idx,
+                                "range_lo": round(lo, 6),
+                                "range_hi": round(hi, 6),
+                                "count": 0,
+                                "avg_confidence": 0.0,
+                                "empirical_up_rate": 0.0,
+                                "gap": 0.0,
+                            }
+                        )
+                        continue
+                    avg_conf = sum(prob for prob, _ in bucket) / len(bucket)
+                    empirical = sum(label for _, label in bucket) / len(bucket)
+                    bins_payload.append(
+                        {
+                            "bin_index": idx,
+                            "range_lo": round(lo, 6),
+                            "range_hi": round(hi, 6),
+                            "count": int(len(bucket)),
+                            "avg_confidence": round(avg_conf, 6),
+                            "empirical_up_rate": round(empirical, 6),
+                            "gap": round(abs(avg_conf - empirical), 6),
+                        }
+                    )
+            horizons.append(
+                {
+                    "horizon_min": horizon,
+                    "sample_size": len(points),
+                    "buckets": bins_payload,
+                }
+            )
+
+        return {
+            "sample_forecasts": len(rows),
+            "bins": bucket_count,
+            "horizons": horizons,
+        }
+
+    def get_latency_analytics(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        model_hash: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        limit: int = 2000,
+    ) -> dict[str, Any]:
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+
+        commit_to_reveal: list[float] = []
+        reveal_to_score: list[float] = []
+        total_commit_to_score: list[float] = []
+        horizon_score_lag: dict[int, list[float]] = {h: [] for h in SUPPORTED_HORIZONS_MIN}
+
+        for row in rows:
+            prediction = row["prediction"] or {}
+            window = row["window"] or {}
+            score = row["score"] or {}
+
+            created_ts = int(prediction.get("created_at_ts") or 0)
+            reveal_ts = int(prediction.get("revealed_at_ts") or 0)
+            scored_ts = int(score.get("scored_at_ts") or row.get("scored_at_ts") or 0)
+            window_open = int(window.get("window_open_ts") or 0)
+
+            if created_ts > 0 and reveal_ts > created_ts:
+                commit_to_reveal.append(float(reveal_ts - created_ts))
+            if reveal_ts > 0 and scored_ts > reveal_ts:
+                reveal_to_score.append(float(scored_ts - reveal_ts))
+            if created_ts > 0 and scored_ts > created_ts:
+                total_commit_to_score.append(float(scored_ts - created_ts))
+
+            for horizon in SUPPORTED_HORIZONS_MIN:
+                if window_open <= 0 or scored_ts <= 0:
+                    continue
+                maturity_ts = window_open + (horizon * 60)
+                if scored_ts >= maturity_ts:
+                    horizon_score_lag[horizon].append(float(scored_ts - maturity_ts))
+
+        return {
+            "sample_forecasts": len(rows),
+            "stage_latencies_sec": {
+                "commit_to_reveal": self._summary_stats(commit_to_reveal),
+                "reveal_to_score": self._summary_stats(reveal_to_score),
+                "commit_to_score": self._summary_stats(total_commit_to_score),
+            },
+            "horizon_score_lag_sec": {
+                str(h): self._summary_stats(horizon_score_lag[h]) for h in SUPPORTED_HORIZONS_MIN
+            },
+        }
+
+    def get_drift_analytics(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        model_hash: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        limit: int = 2000,
+    ) -> dict[str, Any]:
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+        asc = sorted(rows, key=lambda row: int(row.get("scored_at_ts", 0)))
+        if not asc:
+            return {
+                "sample_forecasts": 0,
+                "reference_count": 0,
+                "current_count": 0,
+                "feature_drift": [],
+                "performance_drift": {},
+                "rolling_performance": [],
+            }
+
+        split_idx = max(1, len(asc) // 2)
+        reference = asc[:split_idx]
+        current = asc[split_idx:]
+        if not current:
+            current = asc[-1:]
+
+        def _metric_avg(records: list[dict[str, Any]], key: str) -> float:
+            vals: list[float] = []
+            for row in records:
+                metrics = (row["score"] or {}).get("metrics") or {}
+                if key in metrics:
+                    vals.append(float(metrics.get(key, 0.0)))
+            return float(sum(vals) / len(vals)) if vals else 0.0
+
+        feature_keys: set[str] = set()
+        for row in asc:
+            feature_keys.update((row["window"].get("feature_vector") or {}).keys())
+
+        feature_drift: list[dict[str, Any]] = []
+        for feature_key in sorted(feature_keys):
+            ref_vals = [
+                float((row["window"].get("feature_vector") or {}).get(feature_key))
+                for row in reference
+                if feature_key in (row["window"].get("feature_vector") or {})
+            ]
+            cur_vals = [
+                float((row["window"].get("feature_vector") or {}).get(feature_key))
+                for row in current
+                if feature_key in (row["window"].get("feature_vector") or {})
+            ]
+            if not ref_vals or not cur_vals:
+                continue
+            ref_mean = sum(ref_vals) / len(ref_vals)
+            cur_mean = sum(cur_vals) / len(cur_vals)
+            ref_var = sum((v - ref_mean) ** 2 for v in ref_vals) / max(1, len(ref_vals))
+            ref_std = math.sqrt(ref_var)
+            drift_z = abs(cur_mean - ref_mean) / max(1e-9, ref_std + 1e-6)
+            feature_drift.append(
+                {
+                    "feature": str(feature_key),
+                    "reference_mean": round(ref_mean, 6),
+                    "current_mean": round(cur_mean, 6),
+                    "delta": round(cur_mean - ref_mean, 6),
+                    "drift_z": round(drift_z, 6),
+                }
+            )
+        feature_drift.sort(key=lambda row: float(row.get("drift_z", 0.0)), reverse=True)
+
+        rolling_performance = [
+            {
+                "idx": idx + 1,
+                "scored_at_ts": int(row.get("scored_at_ts", 0)),
+                "directional_accuracy": round(
+                    float(((row["score"] or {}).get("metrics") or {}).get("directional_accuracy", 0.0)),
+                    6,
+                ),
+                "mae_bps": round(float(((row["score"] or {}).get("metrics") or {}).get("mae_bps", 0.0)), 6),
+                "brier_score": round(float(((row["score"] or {}).get("metrics") or {}).get("brier_score", 0.0)), 6),
+                "ece": round(float(((row["score"] or {}).get("metrics") or {}).get("ece", 0.0)), 6),
+            }
+            for idx, row in enumerate(asc)
+        ]
+
+        performance_drift = {
+            "directional_accuracy": {
+                "reference": round(_metric_avg(reference, "directional_accuracy"), 6),
+                "current": round(_metric_avg(current, "directional_accuracy"), 6),
+            },
+            "mae_bps": {
+                "reference": round(_metric_avg(reference, "mae_bps"), 6),
+                "current": round(_metric_avg(current, "mae_bps"), 6),
+            },
+            "brier_score": {
+                "reference": round(_metric_avg(reference, "brier_score"), 6),
+                "current": round(_metric_avg(current, "brier_score"), 6),
+            },
+            "ece": {
+                "reference": round(_metric_avg(reference, "ece"), 6),
+                "current": round(_metric_avg(current, "ece"), 6),
+            },
+        }
+        for key, vals in performance_drift.items():
+            vals["delta"] = round(float(vals["current"]) - float(vals["reference"]), 6)
+
+        return {
+            "sample_forecasts": len(asc),
+            "reference_count": len(reference),
+            "current_count": len(current),
+            "feature_drift": feature_drift[:12],
+            "performance_drift": performance_drift,
+            "rolling_performance": rolling_performance,
+        }
+
+    def get_model_leaderboard(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        limit: int = 3000,
+    ) -> dict[str, Any]:
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=None,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+
+        model_acc: dict[str, dict[str, Any]] = {}
+        window_rows: dict[str, list[dict[str, Any]]] = {}
+
+        for row in rows:
+            model = str(row.get("model_hash", "") or "unknown_model")
+            metrics = (row["score"] or {}).get("metrics") or {}
+            if model not in model_acc:
+                model_acc[model] = {
+                    "model_hash": model,
+                    "sample_size": 0,
+                    "directional_sum": 0.0,
+                    "mae_sum": 0.0,
+                    "brier_sum": 0.0,
+                    "ece_sum": 0.0,
+                    "wins": 0.0,
+                    "losses": 0.0,
+                    "shared_window_count": 0,
+                }
+            acc = model_acc[model]
+            acc["sample_size"] += 1
+            acc["directional_sum"] += float(metrics.get("directional_accuracy", 0.0))
+            acc["mae_sum"] += float(metrics.get("mae_bps", 0.0))
+            acc["brier_sum"] += float(metrics.get("brier_score", 0.0))
+            acc["ece_sum"] += float(metrics.get("ece", 0.0))
+
+            window_id = str((row["prediction"] or {}).get("window_id", ""))
+            if window_id:
+                window_rows.setdefault(window_id, []).append(row)
+
+        for contenders in window_rows.values():
+            if len(contenders) < 2:
+                continue
+            by_mae = sorted(
+                contenders,
+                key=lambda item: float(((item["score"] or {}).get("metrics") or {}).get("mae_bps", 1e12)),
+            )
+            winner_model = str(by_mae[0].get("model_hash", "unknown_model"))
+            for contender in contenders:
+                model = str(contender.get("model_hash", "unknown_model"))
+                model_acc[model]["shared_window_count"] += 1
+                if model == winner_model:
+                    model_acc[model]["wins"] += 1.0
+                else:
+                    model_acc[model]["losses"] += 1.0
+
+        leaderboard: list[dict[str, Any]] = []
+        for acc in model_acc.values():
+            n = max(1, int(acc["sample_size"]))
+            directional = acc["directional_sum"] / n
+            mae = acc["mae_sum"] / n
+            brier = acc["brier_sum"] / n
+            ece = acc["ece_sum"] / n
+            wins = float(acc["wins"])
+            losses = float(acc["losses"])
+            shared_total = wins + losses
+            win_rate = (wins / shared_total) if shared_total > 0 else 0.0
+
+            mae_component = max(0.0, 1.0 - (mae / 600.0))
+            brier_component = max(0.0, 1.0 - brier)
+            ece_component = max(0.0, 1.0 - ece)
+            composite = (
+                (directional * 0.40)
+                + (mae_component * 0.25)
+                + (brier_component * 0.20)
+                + (ece_component * 0.10)
+                + (win_rate * 0.05)
+            )
+
+            leaderboard.append(
+                {
+                    "model_hash": str(acc["model_hash"]),
+                    "sample_size": int(acc["sample_size"]),
+                    "shared_window_count": int(acc["shared_window_count"]),
+                    "directional_accuracy": round(directional, 6),
+                    "mae_bps": round(mae, 6),
+                    "brier_score": round(brier, 6),
+                    "ece": round(ece, 6),
+                    "win_rate_shared": round(win_rate, 6),
+                    "composite_score": round(composite, 6),
+                }
+            )
+
+        leaderboard.sort(
+            key=lambda row: (
+                float(row.get("composite_score", 0.0)),
+                float(row.get("win_rate_shared", 0.0)),
+                -float(row.get("mae_bps", 1e12)),
+            ),
+            reverse=True,
+        )
+
+        return {
+            "sample_forecasts": len(rows),
+            "leaderboard": leaderboard,
+        }
+
+    def run_pnl_simulation(
+        self,
+        *,
+        subject_id: str | None,
+        pair_id: str | None,
+        network_id: str | None,
+        model_hash: str | None,
+        start_ts: int | None,
+        end_ts: int | None,
+        horizon_min: int = 30,
+        long_prob_threshold: float = 0.60,
+        short_prob_threshold: float = 0.40,
+        min_abs_return_bps: int = 25,
+        cost_per_trade_bps: float = 4.0,
+        limit: int = 3000,
+    ) -> dict[str, Any]:
+        horizon = int(horizon_min)
+        if horizon not in SUPPORTED_HORIZONS_MIN:
+            raise ValueError(f"Unsupported horizon_min={horizon}")
+        long_threshold = min(max(float(long_prob_threshold), 0.0), 1.0)
+        short_threshold = min(max(float(short_prob_threshold), 0.0), 1.0)
+        if short_threshold > long_threshold:
+            raise ValueError("short_prob_threshold must be <= long_prob_threshold")
+
+        rows = self._collect_scored_records(
+            subject_id=subject_id,
+            pair_id=pair_id,
+            network_id=network_id,
+            model_hash=model_hash,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            limit=limit,
+        )
+        asc = sorted(rows, key=lambda row: int(row.get("scored_at_ts", 0)))
+
+        equity_curve: list[float] = []
+        curve_points: list[dict[str, Any]] = []
+        equity_bps = 0.0
+        trade_count = 0
+        long_count = 0
+        short_count = 0
+        wins = 0
+        trade_returns: list[float] = []
+        hold_returns: list[float] = []
+
+        horizon_key = str(horizon)
+        for row in asc:
+            per_h = (((row["score"] or {}).get("per_horizon") or {}).get(horizon_key) or {})
+            if not isinstance(per_h, dict):
+                continue
+
+            pred_return = float(per_h.get("predicted_return_bps", 0.0))
+            pred_prob = float(per_h.get("predicted_prob_up", 0.0))
+            actual_return = float(per_h.get("actual_return_bps", 0.0))
+            hold_returns.append(actual_return)
+
+            action = "flat"
+            realized = 0.0
+            if pred_prob >= long_threshold and pred_return >= float(min_abs_return_bps):
+                action = "long"
+                realized = actual_return - float(cost_per_trade_bps)
+                long_count += 1
+            elif pred_prob <= short_threshold and pred_return <= -float(min_abs_return_bps):
+                action = "short"
+                realized = (-actual_return) - float(cost_per_trade_bps)
+                short_count += 1
+
+            if action != "flat":
+                trade_count += 1
+                trade_returns.append(realized)
+                if realized > 0:
+                    wins += 1
+
+            equity_bps += realized
+            equity_curve.append(equity_bps)
+            curve_points.append(
+                {
+                    "scored_at_ts": int(row.get("scored_at_ts", 0)),
+                    "equity_bps": round(equity_bps, 6),
+                    "action": action,
+                    "trade_return_bps": round(realized, 6),
+                }
+            )
+
+        avg_trade = (sum(trade_returns) / len(trade_returns)) if trade_returns else 0.0
+        win_rate = (wins / trade_count) if trade_count else 0.0
+        participation = (trade_count / len(curve_points)) if curve_points else 0.0
+        buy_hold_bps = sum(hold_returns) if hold_returns else 0.0
+        max_drawdown_bps = self._max_drawdown_bps(equity_curve)
+
+        return {
+            "sample_forecasts": len(curve_points),
+            "horizon_min": horizon,
+            "params": {
+                "long_prob_threshold": round(long_threshold, 6),
+                "short_prob_threshold": round(short_threshold, 6),
+                "min_abs_return_bps": int(min_abs_return_bps),
+                "cost_per_trade_bps": round(float(cost_per_trade_bps), 6),
+            },
+            "stats": {
+                "trade_count": int(trade_count),
+                "long_count": int(long_count),
+                "short_count": int(short_count),
+                "win_rate": round(win_rate, 6),
+                "participation_rate": round(participation, 6),
+                "avg_trade_return_bps": round(avg_trade, 6),
+                "cumulative_return_bps": round(equity_bps, 6),
+                "max_drawdown_bps": round(max_drawdown_bps, 6),
+                "buy_and_hold_bps": round(buy_hold_bps, 6),
+            },
+            "curve": curve_points,
         }
 
     def list_subject_score_history(self, subject_id: str, limit: int = 200) -> list[dict[str, Any]]:

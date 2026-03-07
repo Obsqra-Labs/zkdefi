@@ -295,3 +295,118 @@ async def test_subject_horizon_benchmarks(svc: SnapshotForecasterService):
     assert by_h[30]["sample_size"] == 1
     assert by_h[240]["sample_size"] == 1
     assert by_h[5]["mae_bps"] == pytest.approx(20.0)
+
+
+@pytest.mark.asyncio
+async def test_analytics_suite_outputs(svc: SnapshotForecasterService):
+    open_ts = 1_710_600_000
+    window = await svc.create_window(
+        pair_id="ETH/USDC",
+        network_id="starknet_mainnet",
+        window_open_ts=open_ts,
+        window_close_ts=open_ts + 300,
+        cadence_id="5m",
+        snapshot_data={"mid_price": 3600.0},
+        feature_vector={"ret_1m": 14.0, "vol_5m": 58.0, "buy_sell_imbalance": 0.2},
+        feature_schema_id="snapshot_forecaster.v1",
+        attest_snapshot=False,
+    )
+
+    outputs = {"r5": 60, "r30": 120, "r240": 180, "p5": 6200, "p30": 6700, "p240": 7200}
+    forecast = svc.commit_prediction(
+        window_id=window["window_id"],
+        model_identity={"model_hash": "0xanalytics_model", "schema_id": "snapshot_forecaster.v1"},
+        outputs_scaled=outputs,
+        salt="analytics-flow",
+        horizons_min=[5, 30, 240],
+        subject_id="0xanalytics",
+    )
+    svc.reveal_prediction(
+        forecast_id=forecast["forecast_id"],
+        outputs_scaled=outputs,
+        salt="analytics-flow",
+        ezkl_receipt={"proof_hash": "0xanalytics", "verified_locally": True},
+    )
+    svc.upsert_outcomes(
+        window_id=window["window_id"],
+        outcomes=[
+            {"horizon_min": 5, "actual_return_bps": 55},
+            {"horizon_min": 30, "actual_return_bps": 95},
+            {"horizon_min": 240, "actual_return_bps": 150},
+        ],
+        source_id="analytics_feed",
+    )
+    svc.score_prediction(forecast_id=forecast["forecast_id"])
+
+    benchmarks = svc.get_horizon_benchmarks(
+        subject_id="0xanalytics",
+        pair_id="ETH/USDC",
+        network_id="starknet_mainnet",
+        model_hash="0xanalytics_model",
+        start_ts=None,
+        end_ts=None,
+        limit=100,
+    )
+    assert benchmarks["sample_forecasts"] == 1
+    assert len(benchmarks["horizon_benchmarks"]) == 3
+
+    calibration = svc.get_calibration_curves(
+        subject_id="0xanalytics",
+        pair_id=None,
+        network_id=None,
+        model_hash=None,
+        start_ts=None,
+        end_ts=None,
+        bins=5,
+        limit=100,
+    )
+    assert calibration["bins"] == 5
+
+    latency = svc.get_latency_analytics(
+        subject_id="0xanalytics",
+        pair_id=None,
+        network_id=None,
+        model_hash=None,
+        start_ts=None,
+        end_ts=None,
+        limit=100,
+    )
+    assert "stage_latencies_sec" in latency
+
+    drift = svc.get_drift_analytics(
+        subject_id="0xanalytics",
+        pair_id=None,
+        network_id=None,
+        model_hash=None,
+        start_ts=None,
+        end_ts=None,
+        limit=100,
+    )
+    assert drift["sample_forecasts"] >= 1
+
+    leaderboard = svc.get_model_leaderboard(
+        subject_id="0xanalytics",
+        pair_id=None,
+        network_id=None,
+        start_ts=None,
+        end_ts=None,
+        limit=100,
+    )
+    assert len(leaderboard["leaderboard"]) == 1
+
+    pnl = svc.run_pnl_simulation(
+        subject_id="0xanalytics",
+        pair_id=None,
+        network_id=None,
+        model_hash=None,
+        start_ts=None,
+        end_ts=None,
+        horizon_min=30,
+        long_prob_threshold=0.6,
+        short_prob_threshold=0.4,
+        min_abs_return_bps=10,
+        cost_per_trade_bps=2.0,
+        limit=100,
+    )
+    assert pnl["sample_forecasts"] >= 1
+    assert "stats" in pnl
