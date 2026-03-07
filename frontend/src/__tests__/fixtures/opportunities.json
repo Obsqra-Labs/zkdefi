@@ -1,0 +1,68 @@
+[
+  {
+    "id": "opp-eth-usdc-lp",
+    "name": "ETH/USDC Liquidity Pool",
+    "description": "Provide liquidity on ETH/USDC pair via Ekubo",
+    "type": "lp",
+    "tokenA": "ETH",
+    "tokenB": "USDC",
+    "currentYield": 12.5,
+    "riskScore": 30,
+    "tvl": 5000000,
+    "privacyModes": ["public", "shielded"],
+    "source": "Ekubo",
+    "updatedAt": "2026-03-07T10:00:00Z"
+  },
+  {
+    "id": "opp-lending-usdc",
+    "name": "USDC Lending Pool",
+    "description": "Lend USDC and earn interest",
+    "type": "lending",
+    "tokenA": "USDC",
+    "currentYield": 8.2,
+    "riskScore": 15,
+    "tvl": 10000000,
+    "privacyModes": ["public"],
+    "source": "zkGraph",
+    "updatedAt": "2026-03-07T10:00:00Z"
+  },
+  {
+    "id": "opp-strk-staking",
+    "name": "STRK Staking",
+    "description": "Stake STRK tokens for validator rewards",
+    "type": "staking",
+    "tokenA": "STRK",
+    "currentYield": 15.0,
+    "riskScore": 20,
+    "tvl": 2500000,
+    "privacyModes": ["public"],
+    "source": "Strategy",
+    "updatedAt": "2026-03-07T10:00:00Z"
+  },
+  {
+    "id": "opp-dca-eth",
+    "name": "ETH DCA Strategy",
+    "description": "Dollar-cost average into ETH",
+    "type": "dca",
+    "tokenA": "USDC",
+    "tokenB": "ETH",
+    "currentYield": 0,
+    "riskScore": 25,
+    "privacyModes": ["public", "shielded"],
+    "source": "Strategy",
+    "updatedAt": "2026-03-07T10:00:00Z"
+  },
+  {
+    "id": "opp-limit-orders",
+    "name": "Limit Orders Strategy",
+    "description": "Set limit orders for automated trading",
+    "type": "limit_orders",
+    "tokenA": "ETH",
+    "tokenB": "USDC",
+    "currentYield": 0,
+    "riskScore": 10,
+    "privacyModes": ["public"],
+    "source": "zkGraph",
+    "updatedAt": "2026-03-07T10:00:00Z"
+  }
+]

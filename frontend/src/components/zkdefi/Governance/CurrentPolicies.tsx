@@ -213,11 +213,11 @@ export function CurrentPolicies({
       {showProposalForm && (
         <LendingProposalForm
           poolId={poolId}
+          isOpen={showProposalForm}
           currentPolicy={policy}
-          userAddress={userAddress}
-          userReputation={userReputation}
+          userVotingPower={userReputation?.votingPower || 1}
           onClose={() => setShowProposalForm(false)}
-          onProposalCreated={(proposalId) => {
+          onSuccess={(proposalId) => {
             setShowProposalForm(false);
             onProposalCreated?.(proposalId);
           }}

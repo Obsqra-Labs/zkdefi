@@ -82,10 +82,10 @@ export function VaultGovernancePanel({
 
       setCurrentPolicies(policies);
 
-      const filteredProposals = proposals.filter(
-        (p) => p.status === "open"
-      ) as Proposal[];
-      setActiveProposals(filteredProposals);
+      const filteredProposals = (proposals as any[])?.filter(
+        (p: any) => p.status === "open"
+      ) || [];
+      setActiveProposals(filteredProposals as Proposal[]);
 
       if (loans && Array.isArray(loans)) {
         const totalLiquidity = 1000000;

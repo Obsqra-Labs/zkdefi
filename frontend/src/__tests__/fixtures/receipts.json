@@ -1,0 +1,47 @@
+[
+  {
+    "id": "receipt-001",
+    "timestamp": "2026-03-06T10:00:00Z",
+    "action": "lp",
+    "adapter": "LPAdapter",
+    "opportunityName": "ETH/USDC Liquidity Pool",
+    "amount": 1000,
+    "privacyLevel": "public",
+    "yieldImpact": 12.5,
+    "trustDelta": 5,
+    "txHash": "0xabc123def456",
+    "status": "confirmed",
+    "reputationImpact": 25,
+    "proofHash": "0xproof001"
+  },
+  {
+    "id": "receipt-002",
+    "timestamp": "2026-03-05T14:30:00Z",
+    "action": "lending",
+    "adapter": "LendingAdapter",
+    "opportunityName": "USDC Lending Pool",
+    "amount": 5000,
+    "privacyLevel": "public",
+    "yieldImpact": 8.2,
+    "trustDelta": 3,
+    "txHash": "0xdef456ghi789",
+    "status": "confirmed",
+    "reputationImpact": 15,
+    "proofHash": "0xproof002"
+  },
+  {
+    "id": "receipt-003",
+    "timestamp": "2026-03-04T09:15:00Z",
+    "action": "staking",
+    "adapter": "StakingAdapter",
+    "opportunityName": "STRK Staking",
+    "amount": 500,
+    "privacyLevel": "public",
+    "yieldImpact": 15.0,
+    "trustDelta": 7,
+    "txHash": "0xjkl012mno345",
+    "status": "confirmed",
+    "reputationImpact": 35,
+    "proofHash": "0xproof003"
+  }
+]

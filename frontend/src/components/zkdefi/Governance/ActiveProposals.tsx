@@ -82,7 +82,7 @@ export function ActiveProposals({
             Vote on policy changes with your reputation-weighted voting power
           </p>
         </div>
-        <Select value={filter} onValueChange={(val) => onFilterChange(val as any)}>
+        <Select value={filter} onValueChange={(val: string) => onFilterChange(val as "voting" | "passed" | "failed")}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>

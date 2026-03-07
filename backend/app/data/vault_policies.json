@@ -49,6 +49,152 @@
     ]
   },
   "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "circuit_board": {
+      "edges": [
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_2-node_1",
+          "source": "node_2",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_1",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_3-node_2",
+          "source": "node_3",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_2",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_4-node_3",
+          "source": "node_4",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_3",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_4-node_5",
+          "source": "node_4",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_5",
+          "targetHandle": null,
+          "type": "smoothstep"
+        }
+      ],
+      "nodes": [
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Yield Optimality",
+            "threshold": 30
+          },
+          "dragging": false,
+          "height": 65,
+          "id": "node_1",
+          "position": {
+            "x": 390,
+            "y": 315.5
+          },
+          "positionAbsolute": {
+            "x": 390,
+            "y": 315.5
+          },
+          "selected": false,
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Anomaly Detector",
+            "threshold": 30
+          },
+          "dragging": false,
+          "height": 65,
+          "id": "node_2",
+          "position": {
+            "x": 394,
+            "y": 221.25
+          },
+          "positionAbsolute": {
+            "x": 394,
+            "y": 221.25
+          },
+          "selected": false,
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "label": "Performance",
+            "outputType": "float"
+          },
+          "height": 67,
+          "id": "node_3",
+          "position": {
+            "x": 232,
+            "y": 220.75
+          },
+          "type": "circuit",
+          "width": 140
+        },
+        {
+          "data": {
+            "label": "IF/ELSE",
+            "logicType": "IF/ELSE",
+            "threshold": 0.5
+          },
+          "dragging": false,
+          "height": 52,
+          "id": "node_4",
+          "position": {
+            "x": 82.39999999999998,
+            "y": 342.25
+          },
+          "positionAbsolute": {
+            "x": 82.39999999999998,
+            "y": 342.25
+          },
+          "selected": false,
+          "type": "logic",
+          "width": 140
+        },
+        {
+          "data": {
+            "allocation": 100,
+            "label": "Reject"
+          },
+          "height": 52,
+          "id": "node_5",
+          "position": {
+            "x": 489.4,
+            "y": 502.75
+          },
+          "type": "venue",
+          "width": 140
+        }
+      ],
+      "policy_name": "test"
+    },
     "disclosure_policy": {
       "allow_balance_proof": true,
       "allow_performance_proof": false,
@@ -90,7 +236,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-06T22:45:43.937607+00:00",
+    "updated_at": "2026-03-07T03:42:59.055480+00:00",
     "user_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
     "venue_allowlist": [
       "ekubo",

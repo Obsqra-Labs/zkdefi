@@ -156,7 +156,7 @@ export function VotingHistory({
               <label className="text-sm font-medium text-gray-700">Outcome</label>
               <Select
                 value={filterOutcome}
-                onValueChange={(val) => setFilterOutcome(val as FilterOutcome)}
+                onValueChange={(val: string) => setFilterOutcome(val as FilterOutcome)}
               >
                 <SelectTrigger className="mt-2">
                   <SelectValue />
