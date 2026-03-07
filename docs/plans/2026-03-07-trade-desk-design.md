@@ -1,383 +1,214 @@
-# Trade Desk: AI Oracle Control Plane Design
+# TradeDesk Component Design
 
 **Date:** 2026-03-07  
 **Status:** Design Approved  
-**Scope:** Privacy-first multi-adapter execution surface integrated into Capital OS
+**Scope:** Orchestrator component integrating OpportunityList, ExecutionPanel, MarketInfo, and Memory Lane
 
 ---
 
 ## Overview
 
-Trade Desk is the execution control plane for Capital OS—a policy-gated, multi-adapter terminal where opportunities discovered through intelligence streams are evaluated against user circuits and executed through the appropriate adapter (Ekubo, Lending, Staking, Dark Ledger).
+**Goal:** Implement a 3-column layout orchestrator component that ties together opportunity discovery, execution, and audit trail with real-time market data.
 
-**Core Design Principle:** Privacy is not a feature—it's the foundation. Every module prioritizes shielded flows and private execution paths.
+**Architecture:** Container component (TradeDesk) manages state for selected opportunity, user reputation, market context, and receipts. Child components (OpportunityList, ExecutionPanel, MarketInfoPanel, MemoryLane) receive props and callbacks to update parent state. Real-time data polls via intervals on mount/cleanup.
 
----
-
-## Architecture: Modular Design
-
-### Layer 1: Data Intelligence (Privacy-Aware)
-
-**`MarketDataService.ts`** (NEW - wraps LP panel logic)
-- Fetches opportunities from `/strategies/opportunities`
-- **Privacy handling:** 
-  - Flags opportunities that support private execution (Dark Ledger, shielded swaps)
-  - Separates public vs. private pool options
-  - Never logs opportunity details to persistent storage
-- Enriches with composite scores (yield, risk, liquidity, efficiency)
-- Caches in memory only (no localStorage)
-
-**`AIRecommendationService.ts`** (NEW - wraps zkRAG integration)
-- Calls `rebalancer/autonomous/status` for agent reasoning
-- Ranks opportunities by agent confidence
-- **Privacy handling:**
-  - Doesn't expose user's current portfolio to recommendation logic (uses risk profile only)
-  - Recommendations are stateless (no history stored)
-  - Can be run in privacy mode (agent reasoning on encrypted data)
-
-**`CircuitPolicyGate.ts`** (NEW - bridges Circuit Board)
-- Evaluates opportunity against user's policies (from Circuit Board)
-- Returns: PASS | WARNING | BLOCKED with reasoning
-- **Privacy handling:**
-  - Policies enforce privacy constraints (e.g., "Only execute via Dark Ledger for amounts > $X")
-  - Can enforce "no public routing" for sensitive strategies
-  - Policy evaluation happens locally, never sent to server
+**Tech Stack:** React 18, TypeScript, TailwindCSS, Vitest + React Testing Library, existing services (MarketDataService, ReputationGatingService, ReceiptService, AIRecommendationService)
 
 ---
 
-### Layer 2: Opportunity Discovery (Public + Private Modes)
+## Component Architecture
 
-**`OpportunityList.tsx`** (NEW component)
-
-Renders opportunities with adapter awareness:
+### File Structure
 ```
-Manual Mode:
-├─ Ekubo ETH/USDC LP        [Public]  APY: 12.5%  [Select]
-├─ Lending: borrow STRK     [Private] APY: 8%     [Select]
-└─ Staking: STRK            [Public]  APY: 4.2%   [Select]
-
-Advisory Mode:
-├─ ★ RECOMMENDED (agent): Ekubo LP + hint + confidence
-└─ All alternatives below
-
-Terminal Mode:
-├─ ETH/USDC LP    | Ekubo  | 12.5% | Risk: 30 | ✓ policy
-└─ STRK borrow    | Lend   | 8%    | Risk: 15 | ⚠ needs approval
+frontend/src/components/zkdefi/TradeDesk.tsx (main)
+frontend/src/components/zkdefi/TradeDesk/Header.tsx
+frontend/src/components/zkdefi/TradeDesk/MarketInfoPanel.tsx
+frontend/src/components/zkdefi/TradeDesk/MemoryLane.tsx
+frontend/src/components/zkdefi/TradeDesk/__tests__/TradeDesk.test.tsx
 ```
 
-**Privacy Features:**
-- **Public badge:** Opportunity executes on public chain
-- **Private badge:** Opportunity routes through Dark Ledger or private pool
-- Adapter icon shows routing venue
-- Policy status icon (✓ PASS | ⚠ WARNING | ✗ BLOCKED)
-
-**Data Flow (Privacy Preserved):**
-1. Fetch from `/strategies/opportunities` (public market data)
-2. Enrich with user's risk profile (NOT portfolio details)
-3. Filter by policy constraints (locally)
-4. Rank by composite score
-5. Display with adapter badges
-6. On select: **never expose full portfolio state**
-
----
-
-### Layer 3: Execution Engine (Privacy-First)
-
-**`ExecutionAdapter.ts`** (EXTRACT & REFACTOR from VaultTradeTab)
-
-Unified adapter interface:
+### Props Interface
 ```typescript
-interface ExecutionAdapter {
-  name: "ekubo" | "lending" | "staking" | "dark_ledger";
-  supportsPrivacy: boolean;
-  execute(opportunity, amount, userPolicy): Receipt;
+interface TradeDeskProps {
+  userAddress?: string;
+  autoRefresh?: boolean; // Default true
+  showMemoryLane?: boolean; // Default true
 }
 ```
 
-**Adapters (Each a Module):**
+### State Management
 
-**`EkuboAdapter.ts`** (Swap + LP)
-- Uses proven VaultTradeTab swap logic
-- **Privacy handling:**
-  - Checks if pair supports private routing
-  - If public: routes through Ekubo directly
-  - If private option: routes through Dark Ledger first, then swap
-  - Commitment-based execution for privacy mode
-- Generates receipt with privacy level metadata
+**TradeDesk manages:**
+- `selectedOpportunity` (Opportunity | null)
+- `userReputation` (UserReputation | null)
+- `marketContext` (MarketContext | null)
+- `insights` (MarketInsights | null)
+- `receipts` (ReceiptWithImpact[])
+- `opportunities` (Opportunity[])
+- `loading` (boolean)
+- `error` (string | null)
+- `executionMode` ('manual' | 'advisory' | 'terminal')
 
-**`LendingAdapter.ts`** (Borrow + Lend)
-- Uses proven LP panel logic from VaultTradeTab
-- **Privacy handling:**
-  - Lending always against collateral in vault (can be private)
-  - Borrowed amounts can be withdrawn to Dark Ledger
-  - Interest streams are privacy-aware (can be shielded)
-  - Collateral ratio calculations never expose full portfolio
-
-**`StakingAdapter.ts`** (Stake STRK)
-- Uses proven staking logic
-- **Privacy handling:**
-  - Staking address can be a shielded commitment
-  - Rewards routed through Dark Ledger option
-  - Unstaking preserves privacy tier
-
-**`DarkLedgerAdapter.ts`** (Shielded execution)
-- Meta-adapter: routes swaps/LP/lending through commitment first
-- **Privacy handling:**
-  - All operations start with commitment generation
-  - Amounts obfuscated as commitments
-  - Nullifier set proves ownership without exposure
-  - Receipts marked as "Private" with commitment hash only
+**Child callbacks:**
+- `onOpportunitySelect(opportunity)` → updates selectedOpportunity
+- `onExecute(params)` → executes adapter, records receipt, refreshes state
+- `onModeChange(mode)` → updates executionMode
 
 ---
 
-### Layer 4: Policy Gate (Privacy-Aware Constraints)
+## Layout (3-Column + Header + Footer)
 
-**`PolicyEvaluator.ts`** (NEW - bridges Circuit Board)
-
-Evaluates policies without exposing data:
 ```
-User's Policy (from Circuit Board):
-├─ IF amount > $1000 THEN route via Dark Ledger
-├─ IF risk_score > 60 THEN BLOCK
-├─ IF strategy == "risky" THEN require_approval
-└─ Always preserve privacy tier
-
-Opportunity Evaluation:
-├─ Amount: $2,000 → Dark Ledger required ✓
-├─ Risk: 35 → Below threshold ✓
-├─ Strategy: "moderate yield" → Auto-approve ✓
-└─ Privacy: Maintained throughout ✓
+┌─────────────────────────────────────────────────┐
+│ Header: Title + Stats + Mode Toggle             │
+├──────────────┬──────────────┬────────────────────┤
+│ OpportList   │ ExecutionPnl │ MarketInfo + AI    │
+│ (25%)        │ (35%)        │ (40%)              │
+│              │              │                    │
+├──────────────┴──────────────┴────────────────────┤
+│ Memory Lane: Receipt Timeline (newest first)     │
+└──────────────────────────────────────────────────┘
 ```
 
-**Privacy Features:**
-- Policies evaluated locally, never sent to server
-- Policy evaluation doesn't require portfolio state
-- Can enforce "minimum privacy tier" constraints
-- Blocked opportunities are silently hidden (don't expose rejection reason to backend)
+**Responsive breakpoints:**
+- Desktop (1024px+): 3-column layout as above
+- Tablet (768px-1023px): 2-column (OpportList+ExecPanel, MarketInfo, MemoryLane stacked)
+- Mobile (<768px): Stacked vertically (OpportList → ExecPanel → MarketInfo → MemoryLane)
 
 ---
 
-### Layer 5: Receipt Generation (Privacy-Preserving)
+## Components
 
-**`ReceiptService.ts`** (NEW - privacy-aware receipts)
+### Header.tsx
+Displays:
+- "Trade Desk" title
+- Stats: Total yield (24h/7d/APY), Risk score, Tier badge, Borrowing power
+- Mode toggle (Manual / Advisory / Terminal)
+- Settings/Portfolio button
 
-Generates receipt for Memory Lane:
-```typescript
-interface TradeReceipt {
-  id: string;
-  timestamp: ISO8601;
-  action: "swap" | "lp_add" | "borrow" | "stake";
-  opportunity: { name, adapter, apy };
-  
-  // Privacy layer
-  privacyLevel: "public" | "shielded" | "dark_ledger";
-  exposureLevel: number; // 0-100, how much is exposed
-  
-  // User-visible data
-  yieldImpact: number; // APY change
-  trustDelta: number;  // Reputation impact
-  
-  // Private data (hidden by default, only show if user opts in)
-  commitment?: string; // Only if private
-  amountHashed?: string; // Not actual amount
-}
-```
+### OpportunityList.tsx
+- List of opportunities from MarketDataService
+- Filters: type, minYield, maxRisk, privacyMode
+- Sorting: by compositeScore (yield + risk)
+- Cards show: name, APY, risk, privacy badge, policy status
+- Click → onOpportunitySelect callback
+- Real-time updates via polling
 
-**Privacy Features:**
-- Public receipts: Show full details
-- Private receipts: Show only aggregate impact (yield +X%, trust +Y)
-- Dark Ledger receipts: Show commitment hash, not amount
-- User can expand to see more detail (with authentication)
+### ExecutionPanel.tsx
+- Shows selectedOpportunity details
+- Amount input with max calculated from LTV (tier-based)
+- Privacy mode selector (public/shielded/dark_ledger)
+- Slippage/LTV controls (collapsible)
+- Confidence badge (from recommendations)
+- Execute button → calls adapter, records receipt
+- Hidden if no opportunity selected
 
----
+### MarketInfoPanel.tsx
+- Market volatility indicator
+- Sentiment badge (bullish/neutral/bearish)
+- Trending pairs carousel
+- Risk warnings list
+- AI recommendations (top 3 with reasoning)
+- Real-time updates every 30s
 
-## UI/UX: Three Toggle Modes
+### MemoryLane.tsx
+- Timeline of recent receipts (newest first)
+- Date filters: Last 24h, 7d, 30d buttons
+- Receipt cards: timestamp, action, amount (hashed if private), yield, trust delta, status
+- Expandable detail view per receipt
+- Search/filter by adapter type
+- Infinite scroll or pagination
 
-### Mode 1: Manual (User-Driven)
-```
-┌─ Mode Toggle: Manual [✓] | Advisory | Terminal
-├─ Left Sidebar:
-│  └─ Adapter filters (Ekubo, Lending, Staking, Dark Ledger)
-├─ Main Panel:
-│  ├─ All opportunities (sorted by composite score)
-│  └─ Each shows: Name | Adapter | APY | Risk | Policy Status | Select
-├─ Bottom Panel:
-│  ├─ Selected opportunity details
-│  ├─ Amount input
-│  ├─ Slippage control
-│  ├─ Privacy mode toggle (if supported)
-│  ├─ Policy gate status (✓ PASS / ⚠ WARNING / ✗ BLOCKED)
-│  └─ [Execute] button
-└─ Privacy Indicator: 
-   └─ "Privacy Level: [Public] [Shielded] [Dark Ledger]"
-```
-
-### Mode 2: Advisory (Agent Recommends)
-```
-┌─ Mode Toggle: Manual | Advisory [✓] | Terminal
-├─ Top Panel: AI Recommendation
-│  ├─ ★ RECOMMENDED: Ekubo ETH/USDC LP
-│  ├─ Why: "High yield (12.5%), low vol, policy approved"
-│  ├─ Confidence: 87%
-│  ├─ Privacy: Can execute shielded via Dark Ledger first
-│  └─ [Execute Recommended] button
-├─ Below: All alternatives (if user wants to override)
-└─ Privacy Indicator:
-   └─ "Privacy Level: [Recommended Path Uses Dark Ledger]"
-```
-
-### Mode 3: Terminal (Pro/Compact)
-```
-┌─ Mode Toggle: Manual | Advisory | Terminal [✓]
-├─ Compact ranked list:
-│  ├─ Ekubo ETH/USDC LP | 12.5% | Risk 30 | ✓ | [Select]
-│  ├─ Lending STRK | 8% | Risk 15 | ⚠ | [Select]
-│  └─ Staking STRK | 4.2% | Risk 5 | ✓ | [Select]
-├─ Adapter badges (tiny icons)
-└─ One-click execute selected
-```
+### Main Component (TradeDesk.tsx)
+- Lifecycle: On mount → fetch opportunities, reputation, market context, receipts
+- Polling: If autoRefresh enabled, set intervals for market context (30s) and receipts (60s)
+- Cleanup: Clear intervals on unmount
+- Error boundaries around each panel
+- Loading skeleton states for each panel
 
 ---
 
-## Privacy Preservation Strategy
+## Data Flow
 
-### By Component:
+### Load Phase
+1. Mount → useEffect fetches:
+   - `MarketDataService.getOpportunities()`
+   - `ReputationGatingService.getUserReputation(userAddress)`
+   - `MarketDataService.getMarketContext()`
+   - `AIRecommendationService.getRecommendations()`
+   - `ReceiptService.getReceipts()`
 
-| Component | Privacy Threat | Mitigation |
-|-----------|---|---|
-| MarketDataService | Portfolio inference | Use risk profile only, not actual holdings |
-| AIRecommendationService | Recommendation history leaking | Stateless, in-memory only |
-| CircuitPolicyGate | Policy exposure | Local evaluation, never sent to server |
-| ExecutionAdapter | Transaction privacy | Support Dark Ledger routing, commitments |
-| ReceiptService | Sensitive data in timeline | Hash sensitive data, show aggregates |
-| OpportunityList | User preference inference | Don't track which opportunities user views |
+### Execution Phase
+1. User selects opportunity → `onOpportunitySelect(opportunity)`
+2. ExecutionPanel updates amount, privacy, parameters
+3. User clicks Execute → `onExecute(params)` calls adapter.execute()
+4. Adapter returns TradeReceipt
+5. `ReceiptService.recordReceipt(receipt)`
+6. Update receipts state, refresh opportunities
+7. MemoryLane renders new receipt
 
-### By Flow:
-
-**Public Execution (e.g., Ekubo swap):**
-```
-User selects opportunity → Check policy gate → 
-If policy says "public OK" → Execute directly → Public receipt
-```
-
-**Private Execution (e.g., via Dark Ledger):**
-```
-User selects opportunity → Check policy gate → 
-If policy says "use Dark Ledger" → 
-  Generate commitment → Deposit to Dark Ledger → 
-  Execute swap from Dark Ledger → 
-  Withdraw to Dark Ledger → Private receipt (hash only)
-```
-
-**Hybrid (Selective Privacy):**
-```
-User selects opportunity + sets privacy tier → 
-Policy gate enforces minimum tier → 
-Route through appropriate privacy level → 
-Mixed receipt (aggregate + private hash)
-```
+### Real-time Updates
+- Market context polls every 30s if `autoRefresh` true
+- Receipts poll every 60s if `autoRefresh` true
+- Opportunities re-fetch on receipt record (yield impact)
 
 ---
 
-## Integration Points
+## Error Handling
 
-### With Capital Ledger (Left Rail):
-- Click deployed position → Trade Desk opens with that position pre-selected
-- "Rebalance" action → Trade Desk in Manual mode showing alternatives
-- Privacy level visible on position (🔒 Private | 🌐 Public)
+**Per-panel error boundaries:**
+- OpportunityList: show "Failed to load opportunities" + retry
+- ExecutionPanel: show "Failed to execute" + details
+- MarketInfoPanel: show "Failed to fetch market data"
+- MemoryLane: show "Failed to load receipts"
 
-### With Memory Lane (Bottom):
-- Every execution generates receipt
-- Receipt appears in timeline with privacy level badge
-- Click receipt → Expand to see details (if privacy allows)
-- Privacy-aware grouping (private receipts together, public separate)
-
-### With Circuit Board:
-- Policies become execution guards in Trade Desk
-- Policy violations marked with ⚠️ WARNING
-- User can "Request Override" (generates approval request)
-
-### With Oracle Intelligence Strip:
-- Opportunity in oracle strip → [Deploy] button
-- Opens Trade Desk with that opportunity pre-selected
-- Advisory mode shows why oracle recommended it
+**Global error state:**
+- Show banner if any critical service fails
+- Disable execution if reputation unavailable
 
 ---
 
-## Data Flow: End-to-End (Privacy Preserved)
+## Testing Strategy
 
-```
-┌─ Intelligence Streams
-│  ├─ zkGraph: Market data (public)
-│  ├─ zkRAG: Agent reasoning (no user portfolio)
-│  └─ Risk Passport: Risk profile (aggregated only)
-│
-├─ Opportunity Discovery (MarketDataService)
-│  ├─ Fetch public opportunities
-│  ├─ Flag private routing options
-│  └─ Rank by scores (no portfolio lookup)
-│
-├─ Policy Gate (CircuitPolicyGate)
-│  ├─ Evaluate against user policies (local)
-│  ├─ Filter by privacy constraints
-│  └─ Determine execution path
-│
-├─ Execution (ExecutionAdapter)
-│  ├─ Route through selected adapter
-│  ├─ Apply privacy protections (if needed)
-│  └─ Generate receipt with privacy metadata
-│
-└─ Memory Lane Integration
-   ├─ Store receipt (hash sensitive data)
-   ├─ Display with privacy badge
-   └─ Allow expand if user authenticates
-```
+**Unit Tests (TradeDesk.test.tsx):**
+1. Renders header, opportunity list, execution panel, memory lane
+2. Loads opportunities on mount
+3. Loads user reputation on mount
+4. Handles opportunity selection → updates selected state
+5. Handles execution → records receipt, updates state
+6. Polls market context at correct interval
+7. Polls receipts at correct interval
+8. Cleans up intervals on unmount
+9. Handles errors gracefully
+10. Responsive layout renders correctly on mobile/tablet/desktop
 
----
-
-## Modules to Build/Extract
-
-### New Modules (Build):
-1. `TradeDesk.tsx` - Main component wrapper
-2. `MarketDataService.ts` - Opportunity discovery
-3. `AIRecommendationService.ts` - Agent reasoning integration
-4. `CircuitPolicyGate.ts` - Policy evaluation
-5. `ReceiptService.ts` - Privacy-aware receipts
-6. `OpportunityList.tsx` - Opportunity rendering
-7. `ExecutionPanel.tsx` - Execution controls
-
-### Extracted & Refactored (from VaultTradeTab):
-1. `EkuboAdapter.ts` - Swap + LP (privacy-enhanced)
-2. `LendingAdapter.ts` - Lending (privacy-enhanced)
-3. `StakingAdapter.ts` - Staking (privacy-enhanced)
-4. `DarkLedgerAdapter.ts` - Shielded routing (privacy-aware)
-5. `MarketDataLPPanel.ts` - Market data sourcing (extracted, tested)
+**Integration tests (if separate file):**
+- Full workflow: select opportunity → execute → receipt appears in memory lane
+- Mode switching: Manual → Advisory → Terminal
+- Privacy mode selection
+- Filters and sorting
 
 ---
 
 ## Success Criteria
 
-✅ Trade Desk displays opportunities with adapter clarity  
-✅ Three toggle modes work independently (Manual, Advisory, Terminal)  
-✅ Policy gates enforce circuit constraints  
-✅ Privacy level is always visible and preserved  
-✅ Execution generates proper receipts for Memory Lane  
-✅ No user portfolio data exposed in recommendations  
-✅ Dark Ledger routing is seamless and automated  
-✅ All legacy logic is extracted, tested, and optimized for Capital OS  
+- ✅ 3-column layout renders correctly on desktop
+- ✅ Responsive on tablet/mobile
+- ✅ Real-time polling for market context and receipts
+- ✅ Opportunity selection updates ExecutionPanel
+- ✅ Execution flow: select → execute → receipt → memory lane
+- ✅ Error handling with retry buttons
+- ✅ All tests passing (Vitest)
+- ✅ No TypeScript errors
+- ✅ Accessibility: ARIA labels, keyboard navigation
 
 ---
 
-## Privacy Audit Checklist
+## Notes
 
-Before implementation completion:
-- [ ] MarketDataService never accesses full portfolio
-- [ ] AIRecommendationService doesn't store user history
-- [ ] CircuitPolicyGate evaluation is local-only
-- [ ] ExecutionAdapters support private routing
-- [ ] ReceiptService hashes sensitive data
-- [ ] Dark Ledger flows are tested end-to-end
-- [ ] Privacy badges accurately reflect execution path
-- [ ] No sensitive data in browser localStorage
-- [ ] All adapters support commitment-based execution
-- [ ] Memory Lane respects privacy level on display
+- ExecutionPanel hidden by default (no opportunity selected)
+- MemoryLane scrollable independently (sticky header)
+- All timestamps in ISO8601 format for consistency
+- Privacy-aware receipt display (hash amounts if private)
+- Use `useCallback` for memoized callbacks to children
+- Use `useMemo` for opportunities filtering/sorting
