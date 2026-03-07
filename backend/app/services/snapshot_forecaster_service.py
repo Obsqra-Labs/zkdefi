@@ -15,9 +15,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
+import os
 import time
+from datetime import datetime, timezone
 from typing import Any
+
+import httpx
 
 from app.services.json_store import JsonStore
 
@@ -45,6 +50,28 @@ DEFAULT_OUTPUT_BOUNDS = {
 }
 
 AUTO_OUTCOME_SOURCE_ID = "auto_det_outcome_v1"
+ORACLE_OUTCOME_SOURCE_ID = "ekubo_price_history_v1"
+
+_EKUBO_SEPOLIA_CHAIN_ID = "0x534e5f4d41494f"
+_EKUBO_SEPOLIA_CHAIN_ID_DEC = "23448594291968335"
+
+# Canonical Starknet token addresses used by Ekubo APIs for ETH/USDC/STRK pairs.
+_TOKEN_BY_SYMBOL: dict[str, str] = {
+    "ETH": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "STRK": "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    "USDC": "0x53b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080",
+    "FUSDC": "0x7ab0b8855a61f480b4423c46c32fa7c553f0aac3531bbddaa282d86244f7a23",
+}
+
+_PAIR_SYMBOL_TO_TOKENS: dict[str, tuple[str, str]] = {
+    "ETH/USDC": ("ETH", "USDC"),
+    "STRK/USDC": ("STRK", "USDC"),
+    "STRK/ETH": ("STRK", "ETH"),
+    "ETH/FUSDC": ("ETH", "FUSDC"),
+    "STRK/FUSDC": ("STRK", "FUSDC"),
+}
+
+logger = logging.getLogger(__name__)
 
 
 class SnapshotForecasterService:
@@ -55,6 +82,8 @@ class SnapshotForecasterService:
         self._windows = JsonStore(f"{store_prefix}_windows")
         self._predictions = JsonStore(f"{store_prefix}_predictions")
         self._scores = JsonStore(f"{store_prefix}_scores")
+        # (chain_id, base_token, quote_token, interval) -> (fetch_ts, points[(ts, price)])
+        self._oracle_history_cache: dict[tuple[str, str, str, int], tuple[int, list[tuple[int, float]]]] = {}
 
     # ------------------------------------------------------------------
     # Window layer
@@ -401,12 +430,13 @@ class SnapshotForecasterService:
             if maturity_ts is None:
                 maturity_ts = int(window["window_open_ts"]) + (horizon * 60)
 
+            row_source_id = str(raw.get("source_id") or source_id).strip() or source_id
             existing[str(horizon)] = {
                 "horizon_min": horizon,
                 "actual_return_bps": actual_return,
                 "actual_up": actual_up,
                 "maturity_ts": int(maturity_ts),
-                "source_id": source_id,
+                "source_id": row_source_id,
                 "recorded_at_ts": now_ts,
             }
 
@@ -643,6 +673,7 @@ class SnapshotForecasterService:
         scored_predictions = 0
         touched_windows: set[str] = set()
         scored_forecast_ids: list[str] = []
+        source_counts: dict[str, int] = {}
 
         predictions = self.list_predictions(limit=max(1, int(max_predictions)))
         predictions.reverse()
@@ -674,20 +705,33 @@ class SnapshotForecasterService:
                 if not outputs_scaled:
                     continue
 
-                actual_return_bps = self._deterministic_actual_return_bps(
-                    forecast_id=str(prediction.get("forecast_id", "")),
+                source_id = AUTO_OUTCOME_SOURCE_ID
+                actual_return_bps = self._oracle_actual_return_bps(
+                    window=window,
                     horizon_min=horizon,
-                    predicted_return_bps=int(outputs_scaled.get(RETURN_KEYS[horizon], 0)),
+                    maturity_ts=maturity_ts,
                     bounds=bounds,
                 )
+                if actual_return_bps is None:
+                    actual_return_bps = self._deterministic_actual_return_bps(
+                        forecast_id=str(prediction.get("forecast_id", "")),
+                        horizon_min=horizon,
+                        predicted_return_bps=int(outputs_scaled.get(RETURN_KEYS[horizon], 0)),
+                        bounds=bounds,
+                    )
+                else:
+                    source_id = ORACLE_OUTCOME_SOURCE_ID
+
                 pending_outcomes.append(
                     {
                         "horizon_min": horizon,
                         "actual_return_bps": actual_return_bps,
                         "actual_up": 1 if actual_return_bps > 0 else 0,
                         "maturity_ts": maturity_ts,
+                        "source_id": source_id,
                     }
                 )
+                source_counts[source_id] = source_counts.get(source_id, 0) + 1
 
             if pending_outcomes:
                 updated_window = self.upsert_outcomes(
@@ -723,7 +767,14 @@ class SnapshotForecasterService:
             "scored_predictions": scored_predictions,
             "touched_window_count": len(touched_windows),
             "scored_forecast_ids": scored_forecast_ids,
-            "source_id": AUTO_OUTCOME_SOURCE_ID,
+            "source_id": (
+                next(iter(source_counts.keys()))
+                if len(source_counts) == 1
+                else "mixed"
+                if source_counts
+                else AUTO_OUTCOME_SOURCE_ID
+            ),
+            "source_counts": source_counts,
             "tick_ts": now,
         }
 
@@ -881,6 +932,240 @@ class SnapshotForecasterService:
             "brier_tier": "tier_1" if brier <= 0.12 else "tier_2" if brier <= 0.20 else "tier_3",
             "ece_tier": "tier_1" if ece <= 0.05 else "tier_2" if ece <= 0.10 else "tier_3",
         }
+
+    def _oracle_actual_return_bps(
+        self,
+        *,
+        window: dict[str, Any],
+        horizon_min: int,
+        maturity_ts: int,
+        bounds: dict[str, int],
+    ) -> int | None:
+        pair_tokens = self._resolve_pair_tokens(window)
+        if not pair_tokens:
+            return None
+
+        open_ts = int(window.get("window_open_ts") or 0)
+        if open_ts <= 0:
+            return None
+
+        base_token, quote_token = pair_tokens
+        points = self._load_oracle_history_points(
+            base_token=base_token,
+            quote_token=quote_token,
+            horizon_min=int(horizon_min),
+        )
+        if len(points) < 2:
+            return None
+
+        # Ekubo sepolia can be sparse; allow wider skew before falling back to deterministic.
+        max_skew_sec = max(24 * 3600, int(horizon_min) * 120)
+        open_price = self._nearest_oracle_price(points, open_ts, max_skew_sec=max_skew_sec)
+        close_price = self._nearest_oracle_price(points, int(maturity_ts), max_skew_sec=max_skew_sec)
+        if open_price is None or close_price is None:
+            return None
+        if open_price <= 0 or close_price <= 0:
+            return None
+
+        raw_bps = int(round(((close_price / open_price) - 1.0) * 10000.0))
+        return int(
+            max(
+                int(bounds["return_min_bps"]),
+                min(int(bounds["return_max_bps"]), raw_bps),
+            )
+        )
+
+    def _resolve_pair_tokens(self, window: dict[str, Any]) -> tuple[str, str] | None:
+        snapshot = window.get("snapshot_data") or {}
+        if isinstance(snapshot, dict):
+            token_a = self._coerce_token_address(
+                snapshot.get("base_token")
+                or snapshot.get("baseToken")
+                or snapshot.get("token0")
+                or snapshot.get("token_a")
+            )
+            token_b = self._coerce_token_address(
+                snapshot.get("quote_token")
+                or snapshot.get("quoteToken")
+                or snapshot.get("token1")
+                or snapshot.get("token_b")
+            )
+            if token_a and token_b:
+                return token_a, token_b
+
+        pair_id = str(window.get("pair_id", "")).strip().upper()
+        if not pair_id:
+            return None
+        canonical_pair = pair_id.split("(")[0].strip()
+        symbols = _PAIR_SYMBOL_TO_TOKENS.get(canonical_pair)
+        if not symbols:
+            return None
+        token_a = _TOKEN_BY_SYMBOL.get(symbols[0])
+        token_b = _TOKEN_BY_SYMBOL.get(symbols[1])
+        if not token_a or not token_b:
+            return None
+        return token_a, token_b
+
+    @staticmethod
+    def _coerce_token_address(raw: Any) -> str | None:
+        if raw is None:
+            return None
+        value = str(raw).strip().lower()
+        if not value.startswith("0x"):
+            return None
+        body = value[2:]
+        if not body:
+            return None
+        if any(ch not in "0123456789abcdef" for ch in body):
+            return None
+        return "0x" + body.lstrip("0") if body.lstrip("0") else "0x0"
+
+    @staticmethod
+    def _history_chain_candidates() -> list[str]:
+        configured = str(os.getenv("EKUBO_CHAIN_ID") or "").strip()
+        candidates = [
+            configured,
+            _EKUBO_SEPOLIA_CHAIN_ID,
+            _EKUBO_SEPOLIA_CHAIN_ID_DEC,
+        ]
+        out: list[str] = []
+        for c in candidates:
+            if c and c not in out:
+                out.append(c)
+        return out
+
+    @staticmethod
+    def _history_intervals_for_horizon(horizon_min: int) -> list[int]:
+        if horizon_min <= 5:
+            return [60, 300, 900, 1800, 3600, 7200]
+        if horizon_min <= 30:
+            return [300, 900, 1800, 3600, 7200]
+        return [900, 1800, 3600, 7200]
+
+    def _load_oracle_history_points(
+        self,
+        *,
+        base_token: str,
+        quote_token: str,
+        horizon_min: int,
+    ) -> list[tuple[int, float]]:
+        best_points: list[tuple[int, float]] = []
+        for chain_id in self._history_chain_candidates():
+            for interval in self._history_intervals_for_horizon(horizon_min):
+                points = self._fetch_price_history_points(
+                    chain_id=chain_id,
+                    base_token=base_token,
+                    quote_token=quote_token,
+                    interval=interval,
+                )
+                if len(points) > len(best_points):
+                    best_points = points
+                if len(points) >= 2:
+                    return points
+        return best_points
+
+    def _fetch_price_history_points(
+        self,
+        *,
+        chain_id: str,
+        base_token: str,
+        quote_token: str,
+        interval: int,
+    ) -> list[tuple[int, float]]:
+        key = (chain_id, base_token, quote_token, int(interval))
+        now = self._now_ts()
+        cached = self._oracle_history_cache.get(key)
+        if cached and (now - int(cached[0])) <= 30:
+            return list(cached[1])
+
+        api_base = str(os.getenv("EKUBO_API_BASE") or "https://prod-api.ekubo.org").rstrip("/")
+        url = f"{api_base}/price/{chain_id}/{base_token}/{quote_token}/history"
+
+        try:
+            with httpx.Client(timeout=8.0) as client:
+                response = client.get(url, params={"interval": int(interval)})
+            if response.status_code != 200:
+                return []
+            payload = response.json()
+        except Exception as exc:
+            logger.debug(
+                "Snapshot forecaster oracle history fetch failed chain=%s interval=%s pair=%s/%s (%s)",
+                chain_id,
+                interval,
+                base_token,
+                quote_token,
+                exc,
+            )
+            return []
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, list):
+            return []
+
+        points: list[tuple[int, float]] = []
+        for row in data:
+            if not isinstance(row, dict):
+                continue
+            ts = self._parse_unix_ts(row.get("start") or row.get("timestamp") or row.get("ts"))
+            if ts is None:
+                continue
+            try:
+                price = float(row.get("vwap"))
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(price) or price <= 0:
+                continue
+            points.append((ts, price))
+
+        points.sort(key=lambda item: item[0])
+        self._oracle_history_cache[key] = (now, list(points))
+        return points
+
+    @staticmethod
+    def _parse_unix_ts(raw: Any) -> int | None:
+        if raw is None:
+            return None
+
+        if isinstance(raw, (int, float)):
+            ts = int(raw)
+            return int(ts / 1000) if ts > 10_000_000_000 else ts
+
+        txt = str(raw).strip()
+        if not txt:
+            return None
+
+        if txt.isdigit():
+            ts = int(txt)
+            return int(ts / 1000) if ts > 10_000_000_000 else ts
+
+        try:
+            dt = datetime.fromisoformat(txt.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return int(dt.timestamp())
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _nearest_oracle_price(
+        points: list[tuple[int, float]],
+        target_ts: int,
+        *,
+        max_skew_sec: int,
+    ) -> float | None:
+        if not points:
+            return None
+
+        prior = [p for p in points if p[0] <= target_ts]
+        if prior:
+            ts, price = prior[-1]
+            if abs(ts - target_ts) <= max_skew_sec:
+                return price
+
+        nearest_ts, nearest_price = min(points, key=lambda p: abs(p[0] - target_ts))
+        if abs(nearest_ts - target_ts) > max_skew_sec:
+            return None
+        return nearest_price
 
     @staticmethod
     def _deterministic_actual_return_bps(

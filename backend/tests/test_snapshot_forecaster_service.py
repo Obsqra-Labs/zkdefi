@@ -1,6 +1,9 @@
 import pytest
 
-from app.services.snapshot_forecaster_service import SnapshotForecasterService
+from app.services.snapshot_forecaster_service import (
+    ORACLE_OUTCOME_SOURCE_ID,
+    SnapshotForecasterService,
+)
 
 
 @pytest.fixture
@@ -108,7 +111,9 @@ def test_output_bounds_enforced(svc: SnapshotForecasterService):
 
 
 @pytest.mark.asyncio
-async def test_auto_ingest_and_score_progression(svc: SnapshotForecasterService):
+async def test_auto_ingest_and_score_progression(svc: SnapshotForecasterService, monkeypatch):
+    monkeypatch.setattr(svc, "_oracle_actual_return_bps", lambda **kwargs: None)
+
     open_ts = 1_710_200_000
     window = await svc.create_window(
         pair_id="ETH/USDC",
@@ -155,3 +160,44 @@ async def test_auto_ingest_and_score_progression(svc: SnapshotForecasterService)
     history = svc.list_subject_score_history("0xAUTO", limit=10)
     assert len(history) == 1
     assert history[0]["forecast_id"] == forecast["forecast_id"]
+
+
+@pytest.mark.asyncio
+async def test_auto_ingest_prefers_oracle_outcomes(svc: SnapshotForecasterService, monkeypatch):
+    open_ts = 1_710_300_000
+    window = await svc.create_window(
+        pair_id="ETH/USDC",
+        window_open_ts=open_ts,
+        window_close_ts=open_ts + 300,
+        cadence_id="5m",
+        snapshot_data={"mid_price": 3300.0},
+        feature_schema_id="snapshot_forecaster.v1",
+        attest_snapshot=False,
+    )
+
+    outputs = {"r5": 50, "r30": 80, "r240": 120, "p5": 6200, "p30": 6400, "p240": 6800}
+    forecast = svc.commit_prediction(
+        window_id=window["window_id"],
+        model_identity={"model_hash": "0xmodelhash-oracle", "schema_id": "snapshot_forecaster.v1"},
+        outputs_scaled=outputs,
+        salt="oracle-flow",
+        horizons_min=[5, 30, 240],
+        subject_id="0xoracle",
+    )
+    svc.reveal_prediction(
+        forecast_id=forecast["forecast_id"],
+        outputs_scaled=outputs,
+        salt="oracle-flow",
+        ezkl_receipt={"proof_hash": "0xoracle", "verified_locally": True},
+    )
+
+    monkeypatch.setattr(svc, "_oracle_actual_return_bps", lambda **kwargs: 42)
+    tick = svc.auto_ingest_and_score(now_ts=open_ts + (6 * 60))
+    assert tick["outcomes_written"] == 1
+    assert tick["source_counts"][ORACLE_OUTCOME_SOURCE_ID] == 1
+
+    updated_window = svc.get_window(window["window_id"])
+    assert updated_window is not None
+    h5 = updated_window["outcomes"]["5"]
+    assert h5["actual_return_bps"] == 42
+    assert h5["source_id"] == ORACLE_OUTCOME_SOURCE_ID
