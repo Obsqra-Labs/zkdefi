@@ -9,11 +9,9 @@ import {
   type OverlayMode,
   CapitalLedger,
   ControlPlane,
-  UnifiedStream,
-  DeployOverlay,
-  GovernanceOverlay,
   CircuitBoard,
 } from "@/components/zkdefi/mission-control";
+import { TradeDesk } from "@/components/zkdefi/TradeDesk";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
@@ -50,14 +48,6 @@ export default function AgentPage() {
     setShowOnboarding(false);
   }, [address]);
 
-  const handleDeploy = useCallback((_opportunityId?: string) => {
-    setActiveOverlay("deploy");
-  }, []);
-
-  const handleOpenGovernance = useCallback(() => {
-    setActiveOverlay("governance");
-  }, []);
-
   const handleOpenCircuitBoard = useCallback(() => {
     setActiveOverlay("circuit-board");
   }, []);
@@ -86,14 +76,7 @@ export default function AgentPage() {
   }
 
   let overlayContent: React.ReactNode = null;
-  if (activeOverlay === "deploy") {
-    overlayContent = (
-      <DeployOverlay
-        address={address}
-        onClose={() => setActiveOverlay(null)}
-      />
-    );
-  } else if (activeOverlay === "circuit-board") {
+  if (activeOverlay === "circuit-board") {
     overlayContent = (
       <CircuitBoard
         address={address}
@@ -141,12 +124,10 @@ export default function AgentPage() {
           />
         }
         centerStage={
-          <UnifiedStream
-            address={address}
-            onDeploy={handleDeploy}
-            onOpenGovernance={handleOpenGovernance}
-            onOpenCircuitBoard={handleOpenCircuitBoard}
-            onOpenZkRag={() => setSlideout("zkrag")}
+          <TradeDesk
+            userAddress={address}
+            autoRefresh={true}
+            showMemoryLane={true}
           />
         }
         rightRail={
