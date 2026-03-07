@@ -83,13 +83,6 @@ export default function AgentPage() {
         onClose={() => setActiveOverlay(null)}
       />
     );
-  } else if (activeOverlay === "governance") {
-    overlayContent = (
-      <GovernanceOverlay
-        address={address}
-        onClose={() => setActiveOverlay(null)}
-      />
-    );
   } else if (activeOverlay === "brain") {
     overlayContent = (
       <div className="flex h-full flex-col bg-zinc-950">
