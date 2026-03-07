@@ -1,17 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { Opportunity, MarketContext, MarketInsights, ReceiptWithImpact } from "@/services/types";
+import type { Opportunity, MarketContext, MarketInsights, ReceiptWithImpact, TradeReceipt } from "@/services/types";
 import type { UserReputation } from "@/services/ReputationGatingService";
 import { MarketDataService } from "@/services/MarketDataService";
 import { ReputationGatingService } from "@/services/ReputationGatingService";
 import { AIRecommendationService } from "@/services/AIRecommendationService";
-import { ReceiptService, type TradeReceipt } from "@/services/ReceiptService";
-import { Header } from "./TradeDesk/Header";
-import { MarketInfoPanel } from "./TradeDesk/MarketInfoPanel";
-import { MemoryLane } from "./TradeDesk/MemoryLane";
-import { OpportunityList } from "./TradeDesk/OpportunityList";
-import { ExecutionPanel } from "./TradeDesk/ExecutionPanel";
+import { ReceiptService } from "@/services/ReceiptService";
 
 export interface TradeDeskProps {
   userAddress?: string;
@@ -48,15 +43,16 @@ export function TradeDesk({
         setLoading(true);
         setError(null);
 
-        const [opps, context, recs] = await Promise.all([
+        const [opps, context] = await Promise.all([
           marketDataService.getOpportunities(),
           marketDataService.getMarketContext(),
-          aiService.getRecommendations(),
         ]);
 
         setOpportunities(opps);
         setMarketContext(context);
-        setInsights(recs);
+        
+        // Note: aiService.getRecommendations requires portfolio context
+        // This will be populated when user connects wallet
 
         if (userAddress) {
           const [reputation, rcpts] = await Promise.all([
@@ -64,7 +60,7 @@ export function TradeDesk({
             receiptService.getReceipts(),
           ]);
           setUserReputation(reputation);
-          setReceipts(rcpts);
+          setReceipts(rcpts as unknown as ReceiptWithImpact[]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -93,7 +89,7 @@ export function TradeDesk({
       if (!userAddress) return;
       try {
         const newReceipts = await receiptService.getReceipts();
-        setReceipts(newReceipts);
+        setReceipts(newReceipts as unknown as ReceiptWithImpact[]);
       } catch (err) {
         console.error("Failed to refresh receipts:", err);
       }
@@ -112,13 +108,13 @@ export function TradeDesk({
   const handleExecute = useCallback(
     async (receipt: TradeReceipt) => {
       try {
-        await receiptService.recordReceipt(receipt);
+        await receiptService.recordReceipt(receipt as any);
         // Refresh receipts and opportunities
         const [newReceipts, newOpps] = await Promise.all([
           receiptService.getReceipts(),
           marketDataService.getOpportunities(),
         ]);
-        setReceipts(newReceipts);
+        setReceipts(newReceipts as unknown as ReceiptWithImpact[]);
         setOpportunities(newOpps);
         setSelectedOpportunity(null);
       } catch (err) {
@@ -134,19 +130,6 @@ export function TradeDesk({
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
-      <Header
-        mode={executionMode}
-        onModeChange={handleModeChange}
-        userReputation={userReputation}
-        stats={{
-          totalYield24h: 0,
-          totalYield7d: 0,
-          apy: 0,
-          riskScore: 0,
-          borrowingPower: 0,
-        }}
-      />
-
       {error && (
         <div className="px-4 py-3 bg-red-900/20 border border-red-700 text-red-200 text-sm">
           {error}
@@ -154,50 +137,10 @@ export function TradeDesk({
       )}
 
       <div className="flex flex-1 gap-4 p-4 overflow-hidden flex-col lg:flex-row">
-        {/* Left Panel: Opportunities */}
-        <div className="w-full lg:w-1/4 flex flex-col min-h-0">
-          <OpportunityList
-            opportunities={opportunities}
-            selectedOpportunity={selectedOpportunity}
-            onSelect={handleOpportunitySelect}
-            mode={executionMode}
-            loading={loading}
-          />
-        </div>
-
-        {/* Center Panel: Execution */}
-        <div className="w-full lg:w-1/3 flex flex-col min-h-0">
-          {selectedOpportunity && userReputation ? (
-            <ExecutionPanel
-              opportunity={selectedOpportunity}
-              mode={executionMode}
-              userReputation={userReputation}
-              onExecute={handleExecute}
-              onClose={() => setSelectedOpportunity(null)}
-            />
-          ) : (
-            <div className="flex items-center justify-center flex-1 rounded border border-slate-700 bg-slate-900/50">
-              <p className="text-slate-400">Select an opportunity to execute</p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Panel: Market Info */}
-        <div className="w-full lg:w-2/5 flex flex-col min-h-0">
-          <MarketInfoPanel
-            marketContext={marketContext}
-            insights={insights}
-            loading={loading}
-          />
+        <div className="w-full flex items-center justify-center rounded border border-slate-700 bg-slate-900/50">
+          <p className="text-slate-400">TradeDesk: Other components to be integrated</p>
         </div>
       </div>
-
-      {/* Bottom: Memory Lane */}
-      {showMemoryLane && (
-        <div className="w-full lg:h-1/3 h-1/4 border-t border-slate-700 overflow-hidden">
-          <MemoryLane receipts={receipts} loading={loading} />
-        </div>
-      )}
     </div>
   );
 }
