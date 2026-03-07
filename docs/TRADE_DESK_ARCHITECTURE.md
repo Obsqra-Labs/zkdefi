@@ -83,40 +83,51 @@ Yield Distribution (to pools, to user)
 
 ---
 
-## Reputation-Gated Pool Access
+## Reputation-Gated Pool Access + DAO-Voted Lending
 
-### Three DAO-Governed Pools
+### Three DAO-Governed Pools (Dual Yield)
+
+Each pool has both **strategy execution yield** and **lending interest yield**.
 
 ```
-┌─ CONSERVATIVE POOL
-│  ├─ Max risk: 25
-│  ├─ Acceptable: Staking, Lending (low LTV), Blue-chip LPs
-│  ├─ Idle maintained: 40%
-│  └─ Earning: 8% (Tier1 borrow) | 6% (Tier2) | 4% (Tier3)
+┌─ CONSERVATIVE POOL ($2M)
+│  ├─ Strategy yield: 10% APY
+│  ├─ DAO-voted lending terms:
+│  │  ├─ Tier1: Cannot borrow
+│  │  ├─ Tier2: 40% LTV @ 5.5% APR (DAO voted)
+│  │  └─ Tier3: 100% LTV @ 3.5% APR (DAO voted)
+│  ├─ Idle maintained: 40% (holders vote to adjust)
+│  └─ Total vault APY: ~12% (strategy + lending interest)
 │
-├─ MODERATE POOL
-│  ├─ Max risk: 50
-│  ├─ Acceptable: Mixed LPs, medium lending, DCA
-│  ├─ Idle maintained: 30%
-│  └─ Earning: 6% (Tier2) | 4% (Tier3) + yield from strategies
+├─ MODERATE POOL ($5M)
+│  ├─ Strategy yield: 12% APY
+│  ├─ DAO-voted lending terms:
+│  │  ├─ Tier1: Cannot borrow
+│  │  ├─ Tier2: 50% LTV @ 6% APR (DAO voted)
+│  │  └─ Tier3: 150% LTV @ 4% APR (DAO voted)
+│  ├─ Idle maintained: 30% (holders vote to adjust)
+│  └─ Total vault APY: ~14.5% (strategy + lending interest)
 │
-└─ AGGRESSIVE POOL
-   ├─ Max risk: 100
-   ├─ Acceptable: High-yield LPs, limit orders, leveraged positions
-   ├─ Idle maintained: 20%
-   └─ Earning: 4% (Tier3) + performance-based kickback
+└─ AGGRESSIVE POOL ($1.5M)
+   ├─ Strategy yield: 18% APY (higher risk)
+   ├─ DAO-voted lending terms:
+   │  ├─ Tier1: Cannot borrow
+   │  ├─ Tier2: 60% LTV @ 7% APR (DAO voted)
+   │  └─ Tier3: 200% LTV @ 5% APR (DAO voted)
+   ├─ Idle maintained: 20% (holders vote to adjust)
+   └─ Total vault APY: ~21% (strategy + lending interest)
 ```
 
-### Tier Access Matrix
+### Tier Access Matrix (DAO-Governed)
 
 | Feature | Tier1 (0-50) | Tier2 (51-75) | Tier3 (76-100) |
 |---------|---|---|---|
 | **Deposit** | ✅ | ✅ | ✅ |
 | **Earn yield** | ✅ | ✅ | ✅ |
-| **Borrow** | ❌ | ✅ 50% LTV | ✅ 150% LTV |
-| **Borrow rate** | — | 6% | 4% |
-| **Free vault** | ❌ | ❌ | ✅ (20% for 7 days) |
-| **Lending pool idle access** | — | 50% | 80% |
+| **Can borrow** | ❌ | ✅ | ✅ |
+| **LTV (per pool)** | — | DAO votes (40-60%) | DAO votes (100-200%) |
+| **Rate (per pool)** | — | DAO votes (4-8%) | DAO votes (2-6%) |
+| **Economic model** | Earn passively | Borrow at competitive DAO rate | Borrow at competitive DAO rate |
 
 ---
 
@@ -238,11 +249,13 @@ Route through appropriate privacy level → Mixed receipt (aggregate + private h
 
 ### Functional
 ✅ Users can deposit into privacy pools  
+✅ Vault DAOs vote on lending terms (LTV, APR, min reputation)  
 ✅ Reputation tiers unlock borrowing capacity  
-✅ Tier3 can access free vault for 7 days  
+✅ DAO can adjust rates to stay competitive  
 ✅ All adapters (swap, LP, DCA, limit orders, lending) working  
 ✅ Opportunities routable through all venues  
-✅ DAO can set pool rates and constraints  
+✅ Vault holders earn dual yield (strategies + lending interest)  
+✅ Loan history tracked for accountability  
 
 ### Privacy
 ✅ No user portfolio exposed to recommendation engine  
@@ -262,25 +275,30 @@ Route through appropriate privacy level → Mixed receipt (aggregate + private h
 
 ## Files to Create / Modify
 
-### New Files (14)
+### New Files (17)
 - `frontend/src/services/MarketDataService.ts`
 - `frontend/src/services/AIRecommendationService.ts`
 - `frontend/src/services/CircuitPolicyGate.ts`
 - `frontend/src/services/ReceiptService.ts`
 - `frontend/src/services/ReputationGatingService.ts`
+- `frontend/src/services/VaultLendingGovernanceService.ts` ← NEW
+- `frontend/src/services/LoanTrackingService.ts` ← NEW
 - `frontend/src/services/adapters/ExecutionAdapter.ts` (interface)
 - `frontend/src/services/adapters/EkuboAdapter.ts`
-- `frontend/src/services/adapters/LendingAdapter.ts`
+- `frontend/src/services/adapters/LendingAdapter.ts` (enhanced)
 - `frontend/src/services/adapters/StakingAdapter.ts`
 - `frontend/src/services/adapters/DarkLedgerAdapter.ts`
 - `frontend/src/services/adapters/LimitOrdersAdapter.ts`
 - `frontend/src/services/adapters/DCAAdapter.ts`
 - `frontend/src/services/adapters/LPAdapter.ts`
-- `frontend/src/services/adapters/PrivacyPoolAdapter.ts`
+- `frontend/src/services/adapters/PrivacyPoolAdapter.ts` (enhanced)
 - `frontend/src/services/adapters/PoolLiquidityManager.ts`
 - `frontend/src/components/zkdefi/trade-desk/TradeDesk.tsx`
 - `frontend/src/components/zkdefi/trade-desk/OpportunityList.tsx`
 - `frontend/src/components/zkdefi/trade-desk/ExecutionPanel.tsx`
+- `frontend/src/components/zkdefi/governance/VaultGovernancePanel.tsx` ← NEW
+- `frontend/src/components/zkdefi/governance/LendingProposalForm.tsx` ← NEW
+- `frontend/src/components/zkdefi/governance/ActiveLoansDisplay.tsx` ← NEW
 
 ### Test Files (14)
 - All services get `__tests__/ServiceName.test.ts`
