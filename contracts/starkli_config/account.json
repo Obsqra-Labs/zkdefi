@@ -3,11 +3,12 @@
   "variant": {
     "type": "open_zeppelin",
     "version": 1,
-    "public_key": "0x7bd46bce89bf8ce1b3c9fdd4eeedcf5be135f62dde4a6c71948cd50caff59ea"
+    "public_key": "0x7bd46bce89bf8ce1b3c9fdd4eeedcf5be135f62dde4a6c71948cd50caff59ea",
+    "legacy": false
   },
   "deployment": {
     "status": "deployed",
-    "class_hash": "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
-    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
+    "class_hash": "0x5b4b537eaa2399e3aa99c4e2e0208ebd6c71bc1467938cd52c798c601e43564",
+    "address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
   }
 }

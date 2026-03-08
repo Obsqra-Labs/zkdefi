@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import type { Opportunity, MarketContext, MarketInsights, ReceiptWithImpact, TradeReceipt } from "@/services/types";
+import type { Opportunity, MarketContext, MarketInsights, TradeReceipt } from "@/services/types";
 import type { UserReputation } from "@/services/ReputationGatingService";
+import type { ReceiptWithImpact } from "@/services/ReceiptService";
 import { MarketDataService } from "@/services/MarketDataService";
 import { ReputationGatingService } from "@/services/ReputationGatingService";
 import { AIRecommendationService } from "@/services/AIRecommendationService";
@@ -132,19 +133,25 @@ export function TradeDesk({
   const headerStats = useMemo(() => {
     const totalYield24h = receipts
       .filter(r => {
-        const receiptTime = new Date(r.timestamp).getTime();
+        // Use timestamp if available, fallback to executedAt
+        const timeStr = (r as any).timestamp || (r as any).executedAt;
+        if (!timeStr) return false;
+        const receiptTime = new Date(timeStr).getTime();
         const now = Date.now();
         return now - receiptTime <= 24 * 60 * 60 * 1000;
       })
-      .reduce((sum, r) => sum + (r.yieldImpact || 0), 0);
+      .reduce((sum, r) => sum + ((r as any).yieldImpact || 0), 0);
 
     const totalYield7d = receipts
       .filter(r => {
-        const receiptTime = new Date(r.timestamp).getTime();
+        // Use timestamp if available, fallback to executedAt
+        const timeStr = (r as any).timestamp || (r as any).executedAt;
+        if (!timeStr) return false;
+        const receiptTime = new Date(timeStr).getTime();
         const now = Date.now();
         return now - receiptTime <= 7 * 24 * 60 * 60 * 1000;
       })
-      .reduce((sum, r) => sum + (r.yieldImpact || 0), 0);
+      .reduce((sum, r) => sum + ((r as any).yieldImpact || 0), 0);
 
     const avgRiskScore = opportunities.length > 0
       ? opportunities.reduce((sum, o) => sum + o.riskScore, 0) / opportunities.length

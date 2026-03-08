@@ -25,7 +25,7 @@ export interface ExecutionPanelProps {
   onCancel: () => void;
   userReputation?: {
     tier: "Tier1" | "Tier2" | "Tier3";
-    score: number;
+    reputationScore: number;
   };
   aiRecommendation?: AIExecutionRecommendation;
 }
@@ -37,7 +37,7 @@ export const ExecutionPanel = React.memo(
     opportunity,
     onExecute,
     onCancel,
-    userReputation = { tier: "Tier1", score: 0 },
+    userReputation = { tier: "Tier1", reputationScore: 0 },
     aiRecommendation,
   }: ExecutionPanelProps) => {
     const [mode, setMode] = useState<ExecutionMode>("manual");
@@ -135,7 +135,6 @@ export const ExecutionPanel = React.memo(
             opportunity: opportunity.name,
             parameters,
             impact: estimatedImpact,
-            source: "simulated",
           },
         };
 
