@@ -192,6 +192,7 @@ signals_router = _optional_router("app.api.routes.signals")
 oracle_gating_router = _optional_router("app.api.routes.oracle_gating")
 agent_execution_router = _optional_router("app.api.routes.agent_execution")
 archive_query_router = _optional_router("app.api.routes.archive_query")
+analytics_router = _optional_router("app.api.routes.analytics")
 skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 
@@ -286,6 +287,11 @@ if archive_query_router:
     app.include_router(
         archive_query_router,
         tags=["archive-query"],
+    )
+if analytics_router:
+    app.include_router(
+        analytics_router,
+        tags=["analytics"],
     )
 if skills_router:
     app.include_router(
