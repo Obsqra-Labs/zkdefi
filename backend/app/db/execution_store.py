@@ -73,11 +73,15 @@ class ExecutionStore:
                         call_id TEXT NOT NULL,
                         event_type TEXT NOT NULL,
                         data TEXT,
+                        compressed_data BLOB,
+                        is_compressed INTEGER DEFAULT 0,
                         created_at TEXT NOT NULL,
                         archived_at TEXT NOT NULL,
+                        compressed_at TEXT,
                         
                         INDEX idx_created_at (created_at),
-                        INDEX idx_archived_at (archived_at)
+                        INDEX idx_archived_at (archived_at),
+                        INDEX idx_is_compressed (is_compressed)
                     )
                 """)
                 

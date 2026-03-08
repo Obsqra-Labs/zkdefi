@@ -44,6 +44,8 @@ class EventArchivalWorker:
         while self.running:
             try:
                 await self._cleanup_old_events()
+                # After archival, compress old archived events
+                await self._compress_archived_events()
             except Exception as e:
                 logger.error(f"Error in cleanup cycle: {e}")
             
@@ -189,6 +191,25 @@ class EventArchivalWorker:
         except Exception as e:
             logger.error(f"Failed to get database stats: {e}")
             return {}
+    
+    async def _compress_archived_events(self):
+        """Compress old archived events to reduce disk usage."""
+        try:
+            from app.services.archive_compression import get_compression_service
+            
+            service = get_compression_service(self._execution_store.db_path)
+            compressed = service.compress_old_events(older_than_days=30)
+            
+            if compressed > 0:
+                stats = service.get_compression_stats()
+                logger.info(
+                    f"Archive compression: {compressed} events compressed. "
+                    f"Rate: {stats.get('compression_rate', 0):.1f}%, "
+                    f"DB size: {stats.get('database_size_mb', 0):.1f}MB"
+                )
+        
+        except Exception as e:
+            logger.error(f"Archive compression failed: {e}")
 
 
 # Singleton instance
