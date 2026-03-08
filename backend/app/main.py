@@ -56,10 +56,35 @@ async def _lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Transaction confirmation worker startup skipped: %s", exc)
         worker_task = None
+    
+    # Start event archival worker (Phase 2.4)
+    try:
+        import asyncio
+        from app.workers.event_archival_worker import get_archival_worker
+        
+        archival_worker = get_archival_worker()
+        archival_task = asyncio.create_task(archival_worker.start())
+        logger.info("Event archival worker started")
+    except Exception as exc:
+        logger.warning("Event archival worker startup skipped: %s", exc)
+        archival_task = None
 
     try:
         yield
     finally:
+        # Stop archival worker
+        try:
+            if archival_task:
+                await archival_worker.stop()
+                archival_task.cancel()
+                try:
+                    await archival_task
+                except asyncio.CancelledError:
+                    pass
+                logger.info("Event archival worker stopped")
+        except Exception as exc:
+            logger.warning("Event archival worker shutdown warning: %s", exc)
+        
         # Stop confirmation worker
         try:
             if worker_task:
