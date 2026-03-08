@@ -28,7 +28,7 @@ function YieldChart() {
     let dead = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/zkdefi/vault/yield-chart?days=30`, {
+        const res = await fetch(`${API_BASE}/v1/zkdefi/vault/yield-chart?days=30`, {
           signal: AbortSignal.timeout(8000),
         });
         if (!res.ok || dead) return;

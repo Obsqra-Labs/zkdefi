@@ -208,7 +208,7 @@ export function WithdrawPanel({
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/reputation/user/${address}`,
+          `${API_BASE}/v1/zkdefi/reputation/user/${address}`,
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -261,7 +261,7 @@ export function WithdrawPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setWithdrawSteps((prev) => updateStep(prev, 0, "active", "Verifying..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_withdraw`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_withdraw`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -332,8 +332,8 @@ export function WithdrawPanel({
     );
 
     const endpoint = isPartial
-      ? `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
-      : `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`;
+      ? `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
+      : `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof`;
 
     setWithdrawSteps((prev) =>
       updateStep(prev, 1, "active", "Generating nullifier..."),
@@ -493,7 +493,7 @@ export function WithdrawPanel({
     poolType: number,
     proofFelts: string[],
   ) {
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/relayer/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/relayer/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -520,7 +520,7 @@ export function WithdrawPanel({
       updateStep(prev, 0, "active", "Queuing withdrawal..."),
     );
 
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_out/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -560,7 +560,7 @@ export function WithdrawPanel({
 
     if (!ledger) {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_out/request`, {
+        const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -588,7 +588,7 @@ export function WithdrawPanel({
     if (commitment.commitment_hash) {
       try {
         const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/private-yield/withdrawal/complete/${encodeURIComponent(commitment.commitment_hash)}`,
+          `${API_BASE}/v1/zkdefi/private-yield/withdrawal/complete/${encodeURIComponent(commitment.commitment_hash)}`,
           { method: "POST" },
         );
         if (res.ok) {
@@ -680,7 +680,7 @@ export function WithdrawPanel({
               label: "Check status",
               onClick: () =>
                 window.open(
-                  `${API_BASE}/api/v1/zkdefi/relayer/request/${result.txRef}`,
+                  `${API_BASE}/v1/zkdefi/relayer/request/${result.txRef}`,
                   "_blank",
                 ),
             },

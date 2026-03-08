@@ -84,7 +84,7 @@ export default function PositionsOverview({
   useEffect(() => {
     if (!address) return;
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, {
+    fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, {
       signal: controller.signal,
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))

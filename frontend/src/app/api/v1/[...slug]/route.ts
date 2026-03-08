@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8003';
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL?.replace(/^\/api.*/, 'http://localhost:8003') || 'http://localhost:8003';
 
 export async function GET(req: Request, { params }: { params: { slug: string[] } }) {
   const path = params.slug.join('/');

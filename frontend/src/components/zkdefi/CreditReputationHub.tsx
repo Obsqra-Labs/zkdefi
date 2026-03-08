@@ -30,14 +30,14 @@ export function CreditReputationHub({ address }: CreditReputationHubProps) {
         setLoading(true);
         
         // Fetch credit decision
-        const creditRes = await fetch(`${API_BASE}/api/v1/zkdefi/profile/decision?address=${address}`);
+        const creditRes = await fetch(`${API_BASE}/v1/zkdefi/profile/decision?address=${address}`);
         if (creditRes.ok) {
           const data = await creditRes.json();
           setCreditData(data);
         }
 
         // Fetch proof statuses
-        const proofsRes = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/proofs/${address}`);
+        const proofsRes = await fetch(`${API_BASE}/v1/zkdefi/reputation/proofs/${address}`);
         if (proofsRes.ok) {
           const proofsData = await proofsRes.json();
           const completed = proofsData.proofs

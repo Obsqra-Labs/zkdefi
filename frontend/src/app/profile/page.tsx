@@ -7,7 +7,7 @@ import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface RelayRequest {
   request_id: string;

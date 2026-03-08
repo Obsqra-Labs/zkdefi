@@ -194,8 +194,8 @@ export function DepositPanel({
   useEffect(() => {
     let dead = false;
     Promise.allSettled([
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
     ]).then(async ([statsRes, blendedRes]) => {
       if (dead) return;
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
@@ -278,7 +278,7 @@ export function DepositPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_deposit`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_deposit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -343,7 +343,7 @@ export function DepositPanel({
     // Step 1 – generate commitment
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
     const res = await fetch(
-      `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/generate_commitment`,
+      `${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -418,7 +418,7 @@ export function DepositPanel({
           await new Promise((r) => setTimeout(r, 3000 * attempt));
         }
         const regRes = await fetch(
-          `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`,
+          `${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -512,7 +512,7 @@ export function DepositPanel({
       if (method === "dark_ledger") {
         setDepositSteps((prev) => updateStep(prev, 1, "active", "Syncing ledger..."));
       }
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_in/request`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_in/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -550,7 +550,7 @@ export function DepositPanel({
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/private-yield/deposit/register`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/private-yield/deposit/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

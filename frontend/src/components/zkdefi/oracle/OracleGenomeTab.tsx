@@ -45,7 +45,7 @@ export function OracleGenomeTab({ address }: OracleGenomeTabProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/strategies/opportunities`, {
+      const res = await fetch(`${API_BASE}/v1/strategies/opportunities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_address: address || "0x0", risk_profile: "balanced", limit: 20 }),

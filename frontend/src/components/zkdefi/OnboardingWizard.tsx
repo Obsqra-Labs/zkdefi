@@ -13,7 +13,7 @@ import {
   RISK_DISCLOSURE_STATEMENT,
 } from "@/lib/riskDisclosureTypedData";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -96,7 +96,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       const enabledClaims = claims.filter(c => c.enabled).map(c => c.id);
       const maxPositionWei = (parseFloat(constraints.maxPosition) * 1e18).toString();
       
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/onboarding/generate_authorization`, {
+      const response = await fetch(`${API_BASE}/v1/zkdefi/onboarding/generate_authorization`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -204,7 +204,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       console.log("Fact Hash:", factHash);
       console.log("Identity Commitment:", identityCommitment);
       
-      const response = await fetch(`${API_BASE}/api/v1/zkdefi/onboarding/submit_agent`, {
+      const response = await fetch(`${API_BASE}/v1/zkdefi/onboarding/submit_agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

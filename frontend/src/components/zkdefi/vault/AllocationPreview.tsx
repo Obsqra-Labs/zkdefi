@@ -47,7 +47,7 @@ export function AllocationPreview({ amount, asset, riskProfile = "balanced", isD
 
     const fetchAllocation = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
+        const res = await fetch(`${API_BASE}/v1/strategies/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_address: address || "0x0", amount: amountNum, risk_profile: riskProfile, asset }),

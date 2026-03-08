@@ -95,7 +95,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       return;
     }
     let dead = false;
-    fetch(`${API_BASE}/api/v1/zkdefi/session_keys/list/${address}`, {
+    fetch(`${API_BASE}/v1/zkdefi/session_keys/list/${address}`, {
       signal: AbortSignal.timeout(6000),
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -126,7 +126,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
 
     const fetchPrices = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/strategies/price/live`, {
+        const res = await fetch(`${API_BASE}/v1/strategies/price/live`, {
           signal: AbortSignal.timeout(8000),
         });
         if (!res.ok || cancelled) return;
@@ -141,7 +141,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       }
 
       try {
-        const surfaceRes = await fetch(`${API_BASE}/api/v1/zkdefi/market/surface`, {
+        const surfaceRes = await fetch(`${API_BASE}/v1/zkdefi/market/surface`, {
           signal: AbortSignal.timeout(6000),
         });
         if (surfaceRes.ok && !cancelled) {
@@ -158,7 +158,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       } catch { /* best effort */ }
 
       try {
-        const statsRes = await fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, {
+        const statsRes = await fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, {
           signal: AbortSignal.timeout(6000),
         });
         if (statsRes.ok && !cancelled) {

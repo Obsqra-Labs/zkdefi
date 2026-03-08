@@ -151,7 +151,7 @@ export function AllocationEditor({
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
+        const res = await fetch(`${API_BASE}/v1/strategies/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -218,7 +218,7 @@ export function AllocationEditor({
     setZkScreen({ status: "running" });
     try {
       const avgApy = blendedApy(slices);
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/skills/screen/opportunity`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/skills/screen/opportunity`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -257,7 +257,7 @@ export function AllocationEditor({
     if (!address || amountNum <= 0) return;
     setDeploying(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/orchestration/deploy`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/orchestration/deploy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
