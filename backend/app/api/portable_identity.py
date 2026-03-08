@@ -1,0 +1,287 @@
+"""Portable Identity / Reputation V3 additive routes."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from app.services.portable_identity_service import get_portable_identity_service
+from app.services.trust_event_service import log_trust_event
+
+router = APIRouter(tags=["portable-identity"])
+
+
+class IdentityLinkRequest(BaseModel):
+    chain: str
+    address: str
+    verification_method: str = "signature_challenge"
+    verified: bool = False
+    confidence: float = Field(default=0.4, ge=0.0, le=1.0)
+    verification_ref: str | None = None
+    identity_commitment: str | None = None
+
+
+class AttributionQueryRequest(BaseModel):
+    subject: str
+    window_days: int = Field(default=90, ge=1, le=3650)
+    filters: dict[str, Any] | None = None
+    include_evidence: bool = False
+
+
+class ClaimsDeriveRequest(BaseModel):
+    subject: str
+    window_days: int = Field(default=90, ge=1, le=3650)
+    min_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class CredentialIssueRequest(BaseModel):
+    subject: str
+    template: str = "portable_identity_v3"
+    audience: str = "self"
+    claim_keys: list[str] | None = None
+    claims: dict[str, Any] | None = None
+    ttl_hours: int = Field(default=24, ge=1, le=24 * 365)
+
+
+class CredentialVerifyRequest(BaseModel):
+    credential_id: str
+    signature: str | None = None
+
+
+class CredentialRevokeRequest(BaseModel):
+    credential_id: str | None = None
+    revocation_id: str | None = None
+    reason: str | None = None
+
+
+def _svc():
+    service = get_portable_identity_service()
+    if not service.enabled():
+        raise HTTPException(status_code=503, detail="portable_identity_v3_disabled")
+    return service
+
+
+@router.get("/identity/graph/{subject}")
+async def get_identity_graph(subject: str) -> dict[str, Any]:
+    service = _svc()
+    return await service.get_identity_graph(subject)
+
+
+@router.post("/identity/graph/{subject}/link")
+async def link_identity(subject: str, req: IdentityLinkRequest) -> dict[str, Any]:
+    service = _svc()
+
+    if req.identity_commitment:
+        service.set_identity_commitment(subject, req.identity_commitment)
+
+    result = service.upsert_identity_link(
+        subject=subject,
+        chain=req.chain,
+        address=req.address,
+        verification_method=req.verification_method,
+        verified=req.verified,
+        confidence=req.confidence,
+        verification_ref=req.verification_ref,
+    )
+
+    await log_trust_event(
+        subject,
+        "identity_link_updated",
+        gate="identity",
+        outcome="updated",
+        metadata={
+            "chain": req.chain,
+            "address": req.address,
+            "verified": req.verified,
+            "confidence": req.confidence,
+            "verification_method": req.verification_method,
+        },
+        receipt_proof_type="identity_link_updated",
+    )
+
+    return {
+        "status": "ok",
+        "subject": service.normalize_subject(subject),
+        "result": result,
+        "version_matrix": service.get_version_matrix(),
+    }
+
+
+@router.post("/attributions/query")
+async def query_attributions(req: AttributionQueryRequest) -> dict[str, Any]:
+    service = _svc()
+    result = await service.query_attributions(
+        subject=req.subject,
+        window_days=req.window_days,
+        filters=req.filters,
+        include_evidence=req.include_evidence,
+    )
+    # Persist normalized rows for deterministic replay / claim derivation.
+    service.persist_attributions(req.subject, list(result.get("attributions") or []))
+    return {
+        **result,
+        "version_matrix": service.get_version_matrix(),
+    }
+
+
+@router.post("/claims/derive")
+async def derive_claims(req: ClaimsDeriveRequest) -> dict[str, Any]:
+    service = _svc()
+    attribution = await service.query_attributions(
+        subject=req.subject,
+        window_days=req.window_days,
+        filters=None,
+        include_evidence=False,
+    )
+    rows = list(attribution.get("attributions") or [])
+    filtered_rows = [
+        row for row in rows if float((row or {}).get("confidence", 0.0) or 0.0) >= req.min_confidence
+    ]
+
+    action_type_counts: dict[str, int] = {}
+    protocol_counts: dict[str, int] = {}
+    for row in filtered_rows:
+        if not isinstance(row, dict):
+            continue
+        action = str(row.get("action_type") or "unknown")
+        protocol = str(row.get("protocol_id") or "unknown")
+        action_type_counts[action] = int(action_type_counts.get(action, 0)) + 1
+        protocol_counts[protocol] = int(protocol_counts.get(protocol, 0)) + 1
+
+    coverage_score = float((attribution.get("summary") or {}).get("coverage_score", 0.0) or 0.0)
+    verified_chain_count = int((attribution.get("summary") or {}).get("verified_chain_count", 0) or 0)
+    activity_score = min(100.0, round(len(filtered_rows) * 2.5 + coverage_score * 25.0, 2))
+    reputation_score = min(100.0, round(activity_score * 0.55 + verified_chain_count * 15.0, 2))
+
+    claims_payload = {
+        "subject": service.normalize_subject(req.subject),
+        "window_days": req.window_days,
+        "min_confidence": req.min_confidence,
+        "summary": {
+            "attribution_count": len(filtered_rows),
+            "coverage_score": coverage_score,
+            "verified_chain_count": verified_chain_count,
+        },
+        "claims": {
+            "activity_score_0_100": activity_score,
+            "reputation_score_0_100": reputation_score,
+            "action_type_counts": action_type_counts,
+            "protocol_counts": protocol_counts,
+        },
+        "version_matrix": service.get_version_matrix(),
+    }
+
+    service.set_derived_claims(req.subject, claims_payload)
+
+    await log_trust_event(
+        req.subject,
+        "claims_derived",
+        gate="reputation",
+        outcome="updated",
+        metadata={
+            "attribution_count": len(filtered_rows),
+            "coverage_score": coverage_score,
+            "verified_chain_count": verified_chain_count,
+            "reputation_score_0_100": reputation_score,
+        },
+        receipt_proof_type="claims_derived",
+    )
+
+    return claims_payload
+
+
+@router.post("/credentials/issue")
+async def issue_credential(req: CredentialIssueRequest) -> dict[str, Any]:
+    service = _svc()
+    claims: dict[str, Any] = {}
+    if isinstance(req.claims, dict):
+        claims.update(req.claims)
+
+    derived = service.get_derived_claims(req.subject)
+    derived_claims = (derived or {}).get("claims") if isinstance(derived, dict) else None
+    if isinstance(derived_claims, dict):
+        if req.claim_keys:
+            for key in req.claim_keys:
+                if key in derived_claims:
+                    claims[key] = derived_claims[key]
+        else:
+            claims.update(derived_claims)
+
+    issued = service.issue_credential(
+        subject=req.subject,
+        template=req.template,
+        audience=req.audience,
+        claims=claims,
+        ttl_hours=req.ttl_hours,
+    )
+
+    await log_trust_event(
+        req.subject,
+        "credential_issued",
+        gate="identity",
+        outcome="updated",
+        metadata={
+            "credential_id": issued.get("credential_id"),
+            "template": req.template,
+            "audience": req.audience,
+            "revocation_id": issued.get("revocation_id"),
+            "claims_count": len(claims),
+        },
+        receipt_proof_type="credential_issued",
+    )
+
+    return {
+        "status": "ok",
+        "credential": issued,
+    }
+
+
+@router.post("/credentials/verify")
+async def verify_credential(req: CredentialVerifyRequest) -> dict[str, Any]:
+    service = _svc()
+    return service.verify_credential(req.credential_id, req.signature)
+
+
+@router.post("/credentials/revoke")
+async def revoke_credential(req: CredentialRevokeRequest) -> dict[str, Any]:
+    service = _svc()
+    result = service.revoke_credential(
+        credential_id=req.credential_id,
+        revocation_id=req.revocation_id,
+        reason=req.reason,
+    )
+
+    if result.get("revoked"):
+        subject = None
+        verify_result = service.verify_credential(str(result.get("credential_id") or ""))
+        if isinstance(verify_result, dict):
+            credential = verify_result.get("credential")
+            if isinstance(credential, dict):
+                subject = credential.get("subject")
+        if subject:
+            await log_trust_event(
+                str(subject),
+                "credential_revoked",
+                gate="identity",
+                outcome="updated",
+                metadata={
+                    "credential_id": result.get("credential_id"),
+                    "revocation_id": result.get("revocation_id"),
+                    "reason": result.get("reason"),
+                },
+                receipt_proof_type="credential_revoked",
+            )
+
+    return result
+
+
+@router.get("/credentials/revocation/{revocation_id}")
+async def get_revocation_status(revocation_id: str) -> dict[str, Any]:
+    service = _svc()
+    row = service.get_revocation_status(revocation_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="revocation_not_found")
+    return row
+
