@@ -198,6 +198,9 @@ skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 privacy_vault_router = _optional_router("app.api.routes.privacy_vault")
 credit_lines_router = _optional_router("app.api.routes.credit_lines")
+collateral_router = _optional_router("app.api.routes.collateral")
+batch_verification_router = _optional_router("app.api.routes.batch_verification")
+system_metrics_router = _optional_router("app.api.routes.system_metrics")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -325,6 +328,24 @@ if credit_lines_router:
         credit_lines_router,
         prefix="/api/v1/zkdefi",
         tags=["credit-lines"],
+    )
+if collateral_router:
+    app.include_router(
+        collateral_router,
+        prefix="/api/v1/zkdefi",
+        tags=["collateral"],
+    )
+if batch_verification_router:
+    app.include_router(
+        batch_verification_router,
+        prefix="/api/v1/zkdefi",
+        tags=["batch-verification"],
+    )
+if system_metrics_router:
+    app.include_router(
+        system_metrics_router,
+        prefix="/api/v1/zkdefi",
+        tags=["system-metrics"],
     )
 if orchestration_router:
     app.include_router(
