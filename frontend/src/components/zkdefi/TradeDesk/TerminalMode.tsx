@@ -16,7 +16,7 @@ interface TerminalModeProps {
   opportunity: Opportunity;
   userReputation: {
     tier: "Tier1" | "Tier2" | "Tier3";
-    score: number;
+    reputationScore: number;
   };
   disabled: boolean;
 }

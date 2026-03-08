@@ -30,7 +30,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   // Retry once against canonical API origin for zkdefi routes on 404.
   const shouldRetryCanonical =
     response.status === 404 &&
-    path.startsWith("/api/v1/zkdefi/") &&
+    path.startsWith("/api/v1/") &&
     !resolvedUrl.startsWith(CANONICAL_API_ORIGIN);
 
   if (shouldRetryCanonical) {

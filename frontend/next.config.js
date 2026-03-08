@@ -1,8 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  typescript: {
-    ignoreBuildErrors: true,
+  
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.BACKEND_API_URL || 'http://127.0.0.1:8003'}/api/:path*`,
+        },
+      ],
+    };
   },
   
   async redirects() {
@@ -52,7 +60,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' http://127.0.0.1:8003 http://localhost:8003 https://*.starknet.io https://*.alchemy.com https://*.infura.io wss://*.starknet.io",
+              "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io wss://*.starknet.io",
               "frame-ancestors 'none'",
             ].join('; '),
           },

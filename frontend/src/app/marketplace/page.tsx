@@ -6,8 +6,7 @@ import { Brain, Boxes, Sparkles, Shield, Zap, ArrowRight, ExternalLink } from "l
 import { ModelComposer } from "@/components/zkdefi/ModelComposer";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { apiFetch } from "@/lib/api/client";
 
 interface Model {
   id: string;
@@ -29,11 +28,8 @@ export default function MarketplacePage() {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/models/list`);
-      if (res.ok) {
-        const data = await res.json();
-        setModels(data.models || []);
-      }
+      const data = await apiFetch<{ models?: Model[] }>("/api/v1/agents/models/list");
+      setModels(data.models || []);
     } catch (e) {
       console.error("Failed to fetch models:", e);
     }

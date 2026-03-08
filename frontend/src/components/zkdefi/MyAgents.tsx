@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Brain, Play, Pause, Trash2, Check, X, Clock, Zap, ExternalLink } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { Brain, Play, Trash2, Check, X, Clock, Zap } from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 
 interface Agent {
   id: string;
   name: string;
   processors: string[];
   decision_logic: { type: "AND" | "OR" };
+  llm?: {
+    provider?: string;
+    model?: string;
+  };
   active: boolean;
   created_at: number;
 }
@@ -45,6 +48,7 @@ export function MyAgents({
   const [loading, setLoading] = useState(false);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAgents();
@@ -52,14 +56,13 @@ export function MyAgents({
 
   const fetchAgents = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/user/${userAddress}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAgents(data.agents || []);
-      }
+      const data = await apiFetch<{ agents?: Agent[] }>(`/api/v1/agents/user/${userAddress}`);
+      setAgents(data.agents || []);
     } catch (e) {
       console.error("Failed to fetch agents:", e);
+      setFetchError(e instanceof Error ? e.message : "Failed to fetch agents");
     }
     setLoading(false);
   };
@@ -69,9 +72,8 @@ export function MyAgents({
     setExecutionResult(null);
     try {
       // Use path-based execute endpoint (new local orchestrator API)
-      const res = await fetch(`${API_BASE}/api/v1/agents/${agentId}/execute`, {
+      const result = await apiFetch<ExecutionResult>(`/api/v1/agents/${agentId}/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_address: userAddress,
           portfolio: {
@@ -89,14 +91,7 @@ export function MyAgents({
           },
         }),
       });
-
-      if (res.ok) {
-        const result = await res.json();
-        setExecutionResult(result);
-      } else {
-        const data = await res.json();
-        console.error("Execution failed:", data);
-      }
+      setExecutionResult(result);
     } catch (e) {
       console.error("Network error:", e);
     }
@@ -105,18 +100,19 @@ export function MyAgents({
 
   const deactivateAgent = async (agentId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/${agentId}?user_address=${userAddress}`, {
+      await apiFetch(`/api/v1/agents/${agentId}?user_address=${userAddress}`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        fetchAgents();
-      }
+      fetchAgents();
     } catch (e) {
       console.error("Failed to deactivate:", e);
     }
   };
 
-  const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
+  const formatDate = (ts: number) => {
+    const millis = ts > 1_000_000_000_000 ? ts : ts * 1000;
+    return new Date(millis).toLocaleDateString();
+  };
 
   if (loading) {
     return (
@@ -143,6 +139,7 @@ export function MyAgents({
           <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No agents created yet</p>
           <p className="text-xs">Compose your first agent above</p>
+          {fetchError && <p className="mt-2 text-xs text-red-400">{fetchError}</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -215,6 +212,12 @@ export function MyAgents({
                   <Clock className="w-3 h-3" />
                   {formatDate(agent.created_at)}
                 </span>
+                {agent.llm?.provider && (
+                  <span className="text-zinc-400">
+                    LLM: <span className="text-violet-300">{agent.llm.provider}</span>
+                    {agent.llm.model ? `/${agent.llm.model}` : ""}
+                  </span>
+                )}
               </div>
             </div>
           ))}

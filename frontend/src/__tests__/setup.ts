@@ -20,24 +20,27 @@ export const mockOpportunity = (overrides?: Partial<Opportunity>): Opportunity =
 });
 
 export const mockUserReputation = (overrides?: Partial<UserReputation>): UserReputation => ({
+  address: '0x0',
   tier: 'Tier2',
-  score: 65,
-  votingPower: 2,
+  reputationScore: 65,
+  updatedAt: new Date().toISOString(),
   ...overrides,
 });
 
 export const mockTradeReceipt = (overrides?: Partial<ReceiptWithImpact>): ReceiptWithImpact => ({
   id: `receipt-${Date.now()}`,
-  timestamp: new Date().toISOString(),
-  action: 'lp',
+  executedAt: new Date().toISOString(),
+  type: 'lp',
   adapter: 'LPAdapter',
-  opportunityName: 'ETH/USDC LP',
-  amount: 1000,
-  privacyLevel: 'public',
-  yieldImpact: 12.5,
-  trustDelta: 5,
-  txHash: '0xabc123',
-  status: 'confirmed',
+  status: 'executed',
+  details: {
+    opportunityName: 'ETH/USDC LP',
+    amount: 1000,
+    privacyLevel: 'public',
+    yieldImpact: 12.5,
+    trustDelta: 5,
+  },
+  transactionHash: '0xabc123',
   reputationImpact: 25,
   proofHash: '0xproof001',
   ...overrides,

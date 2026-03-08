@@ -30,7 +30,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -45,7 +45,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -58,7 +58,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier2", score: 65 }}
+        userReputation={{ tier: "Tier2", reputationScore: 65 }}
       />
     );
 
@@ -74,7 +74,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier3", score: 85 }}
+        userReputation={{ tier: "Tier3", reputationScore: 85 }}
       />
     );
 
@@ -90,7 +90,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -106,7 +106,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -122,7 +122,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -143,7 +143,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -160,7 +160,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -190,7 +190,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -203,7 +203,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -216,7 +216,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
@@ -234,7 +234,7 @@ describe("ExecutionPanel", () => {
         opportunity={mockOpportunity}
         onExecute={mockOnExecute}
         onCancel={mockOnCancel}
-        userReputation={{ tier: "Tier1", score: 25 }}
+        userReputation={{ tier: "Tier1", reputationScore: 25 }}
       />
     );
 
