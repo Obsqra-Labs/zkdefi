@@ -211,33 +211,41 @@ Each protocol endpoint returns different schema. Must normalize:
 
 ## Execution
 
-This plan is ready for implementation. Recommended approach:
-
-### Batch 1 (Current Phase)
+### ✅ BATCH 1 (COMPLETED)
 1. **Task 1.1 + 1.2:** Opportunities aggregation ✅ COMPLETED
    - Created `aggregate_opportunities()` with real protocol integration
    - Verified: lending, staking, DEX, DCA, limits flowing through
+   - Commit: 22c85e86
    
-2. **Task 2.1:** Market context enhancement — ~1 hour
-   - Add real volatility/sentiment calculation
-   - Commit + verify
+2. **Task 2.1:** Market context enhancement ✅ COMPLETED
+   - Add real volatility/sentiment calculation from lending pool utilization
+   - Compute sentiment from APY, trending pairs from protocol data
+   - Graceful fallback to defaults
+   - Commit: 5ca35ef5
    
-3. **Task 3.1:** Receipts service integration — ~1 hour
-   - Wire to actual receipt service
-   - Commit + verify
+3. **Task 3.1:** Receipts service integration ✅ COMPLETED
+   - Wire to actual receipt service endpoint with address filtering
+   - Graceful fallback to mock receipts if service unavailable
+   - Commit: 6e531aa4
 
-### Batch 2 (Signals Placeholder - NEW)
-4. **Task 4.1:** Create signals endpoint — ~2 hours
-   - New route: `GET /api/v1/zkdefi/signals/top`
+### ✅ BATCH 2 (COMPLETED)
+4. **Task 4.1:** Create signals endpoint ✅ COMPLETED
+   - New route: `GET /api/v1/zkdefi/signals/top` (verified working)
    - Transform opportunities → signals with constitution reports
-   - Add prediction JSON structure (empty in Phase 1)
-   - Include Ekubo LP in opportunities source
+   - Add prediction JSON structure (yield forecast, reputation, market forecaster)
+   - Include Ekubo LP in opportunities source (inherited from opportunities)
+   - Status endpoint: `GET /api/v1/zkdefi/signals/status` (verified operational)
+   - Gated signals placeholder: `GET /api/v1/zkdefi/signals/gated` (Phase 2)
+   - Commit: 4a6ebabe
    
-5. **Task 4.2:** Frontend signals integration — ~1 hour
+5. **Task 4.2:** Frontend signals integration — IN PROGRESS
    - Wire dashboard to consume signals endpoint
    - Display constitution cards, yield/risk info
+   - Show placeholder predictions with "Phase 1" labels
+   - Integrate with existing opportunity displays
 
-**Total estimated time:** 5-6 hours for Phase 1 (opportunities + signals placeholder ready for prediction models).
+**Total time (Batches 1-2):** ~5-6 hours backend work COMPLETED
+**Next phase:** Frontend signals dashboard integration + Phase 2 prediction models
 
 ---
 
