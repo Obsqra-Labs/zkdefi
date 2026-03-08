@@ -3,6 +3,7 @@
  */
 
 import { apiUrl } from '@/lib/api/client';
+import { fetchWithRetry } from '@/lib/api/fetchUtils';
 
 export interface CreditLineRequest {
   user_address: string;
@@ -50,7 +51,7 @@ export interface CreditTransactionResponse {
 export class CreditLineService {
   async openCreditLine(request: CreditLineRequest): Promise<CreditLineResponse> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/credit/lines/open'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/credit/lines/open'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -72,7 +73,7 @@ export class CreditLineService {
       const url = new URL(apiUrl(`/api/v1/zkdefi/credit/score/${address}`));
       if (includeProof) url.searchParams.append('include_proof', 'true');
 
-      const response = await fetch(url.toString());
+      const response = await fetchWithRetry(url.toString());
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
@@ -83,7 +84,7 @@ export class CreditLineService {
 
   async borrow(lineId: string, request: CreditTransactionRequest): Promise<CreditTransactionResponse> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/credit/lines/${lineId}/borrow`), {
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/credit/lines/${lineId}/borrow`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -99,7 +100,7 @@ export class CreditLineService {
 
   async repay(lineId: string, request: CreditTransactionRequest): Promise<CreditTransactionResponse> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/credit/lines/${lineId}/repay`), {
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/credit/lines/${lineId}/repay`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -122,7 +123,7 @@ export class CreditLineService {
     lines: CreditLineResponse[];
   }> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/credit/lines/${address}`));
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/credit/lines/${address}`));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {

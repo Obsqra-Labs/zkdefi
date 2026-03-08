@@ -1,4 +1,5 @@
 import { apiUrl } from '@/lib/api/client';
+import { fetchWithRetry } from '@/lib/api/fetchUtils';
 
 /**
  * Trade receipt for audit trail and Memory Lane
@@ -64,7 +65,7 @@ export class ReceiptService {
   async recordReceipt(receipt: TradeReceipt): Promise<string> {
     const url = apiUrl('/api/v1/zkdefi/receipts');
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(receipt),
@@ -115,7 +116,7 @@ export class ReceiptService {
           `/api/v1/zkdefi/oracle/execution/history/${filters.address}?${params}`
         );
 
-        const response = await fetch(url, {
+        const response = await fetchWithRetry(url, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -155,7 +156,7 @@ export class ReceiptService {
 
     const url = apiUrl(`/api/v1/zkdefi/receipts?${params}`);
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -177,7 +178,7 @@ export class ReceiptService {
   async getReceiptSummary(): Promise<ReceiptSummary> {
     const url = apiUrl('/api/v1/zkdefi/receipts/summary');
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -206,7 +207,7 @@ export class ReceiptService {
 
     const url = apiUrl(`/api/v1/zkdefi/receipts/timeline?${params}`);
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });

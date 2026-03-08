@@ -1,3 +1,5 @@
+import { fetchWithRetry } from './fetchUtils';
+
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 const CANONICAL_API_ORIGIN = "https://zkde.fi";
 
@@ -24,7 +26,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
     headers.set("Content-Type", "application/json");
   }
   const mergedInit: RequestInit = { ...init, headers };
-  let response = await fetch(resolvedUrl, mergedInit);
+  let response = await fetchWithRetry(resolvedUrl, mergedInit);
 
   if (!response || typeof response !== "object") {
     throw new Error("Request failed");
@@ -40,7 +42,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
 
   if (shouldRetryCanonical) {
     const canonicalUrl = `${CANONICAL_API_ORIGIN}${path}`;
-    response = await fetch(canonicalUrl, mergedInit);
+    response = await fetchWithRetry(canonicalUrl, mergedInit);
     if (!response || typeof response !== "object") {
       throw new Error("Request failed");
     }

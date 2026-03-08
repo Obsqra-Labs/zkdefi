@@ -3,6 +3,7 @@
  */
 
 import { apiUrl } from '@/lib/api/client';
+import { fetchWithRetry } from '@/lib/api/fetchUtils';
 
 export interface ShieldedDepositRequest {
   user_address: string;
@@ -39,7 +40,7 @@ export interface WithdrawResponse {
 export class PrivacyVaultService {
   async depositShielded(request: ShieldedDepositRequest): Promise<DepositResponse> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/privacy/vault/deposit'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/privacy/vault/deposit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -55,7 +56,7 @@ export class PrivacyVaultService {
 
   async withdrawShielded(request: ShieldedWithdrawRequest): Promise<WithdrawResponse> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/privacy/vault/withdraw'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/privacy/vault/withdraw'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -75,7 +76,7 @@ export class PrivacyVaultService {
     available_for_withdrawal: boolean;
   }> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/privacy/vault/status/${commitment}`));
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/privacy/vault/status/${commitment}`));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
@@ -94,7 +95,7 @@ export class PrivacyVaultService {
     }>;
   }> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/privacy/vault/balance/${address}`));
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/privacy/vault/balance/${address}`));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {

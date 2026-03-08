@@ -3,6 +3,7 @@
  */
 
 import { apiUrl } from '@/lib/api/client';
+import { fetchWithRetry } from '@/lib/api/fetchUtils';
 
 export interface CollateralDepositRequest {
   user_address: string;
@@ -55,7 +56,7 @@ export interface CollateralStatusResponse {
 export class CollateralService {
   async depositCollateral(request: CollateralDepositRequest): Promise<CollateralResponse> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/collateral/deposit'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/collateral/deposit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -71,7 +72,7 @@ export class CollateralService {
 
   async withdrawCollateral(request: CollateralWithdrawRequest): Promise<CollateralResponse> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/collateral/withdraw'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/collateral/withdraw'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -87,7 +88,7 @@ export class CollateralService {
 
   async getCollateralStatus(address: string): Promise<CollateralStatusResponse> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/collateral/${address}`));
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/collateral/${address}`));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
@@ -98,7 +99,7 @@ export class CollateralService {
 
   async getHealthFactor(address: string): Promise<CollateralHealthResponse> {
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/collateral/health/${address}`));
+      const response = await fetchWithRetry(apiUrl(`/api/v1/zkdefi/collateral/health/${address}`));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
@@ -113,7 +114,7 @@ export class CollateralService {
     amount: number
   ): Promise<{ status: string; tx_hash: string | null }> {
     try {
-      const response = await fetch(apiUrl('/api/v1/zkdefi/collateral/liquidate'), {
+      const response = await fetchWithRetry(apiUrl('/api/v1/zkdefi/collateral/liquidate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
