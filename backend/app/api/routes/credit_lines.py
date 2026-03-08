@@ -3,14 +3,22 @@
 import logging
 from typing import Any
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 try:
     from app.services.credit_line_service import get_credit_line_service
     from app.services.credit_eligibility_proof_service import get_credit_eligibility_service
+    from app.api.validators import (
+        validate_starknet_address, validate_token_symbol,
+        validate_wei_amount, validate_usd_amount,
+    )
 except ImportError:
     from backend.app.services.credit_line_service import get_credit_line_service
     from backend.app.services.credit_eligibility_proof_service import get_credit_eligibility_service
+    from backend.app.api.validators import (
+        validate_starknet_address, validate_token_symbol,
+        validate_wei_amount, validate_usd_amount,
+    )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["credit-lines"])
@@ -19,9 +27,29 @@ router = APIRouter(tags=["credit-lines"])
 class CreditLineRequest(BaseModel):
     """Request to open/update credit line."""
     user_address: str = Field(..., description="User's Starknet address")
-    collateral_token: str = Field(..., description="Collateral token address")
+    collateral_token: str = Field(..., description="Collateral token symbol")
     collateral_amount: int = Field(..., ge=1, description="Collateral amount in wei")
     desired_credit_usd: int = Field(..., ge=100, description="Desired credit line in USD")
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("collateral_token")
+    @classmethod
+    def check_token(cls, v: str) -> str:
+        return validate_token_symbol(v)
+
+    @field_validator("collateral_amount")
+    @classmethod
+    def check_collateral(cls, v: int) -> int:
+        return validate_wei_amount(v)
+
+    @field_validator("desired_credit_usd")
+    @classmethod
+    def check_credit(cls, v: int) -> int:
+        return validate_usd_amount(v)
 
 
 class CreditScoreRequest(BaseModel):
@@ -59,6 +87,23 @@ class CreditTransactionRequest(BaseModel):
     user_address: str
     amount_usd: int = Field(..., ge=1, description="Amount to borrow/repay in USD")
     action: str = Field(..., description="'borrow' or 'repay'")
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("amount_usd")
+    @classmethod
+    def check_amount(cls, v: int) -> int:
+        return validate_usd_amount(v)
+
+    @field_validator("action")
+    @classmethod
+    def check_action(cls, v: str) -> str:
+        if v not in ("borrow", "repay"):
+            raise ValueError("action must be 'borrow' or 'repay'")
+        return v
 
 
 class CreditTransactionResponse(BaseModel):

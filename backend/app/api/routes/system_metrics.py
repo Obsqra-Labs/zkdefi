@@ -1,12 +1,21 @@
 """System Metrics & Health API routes."""
 
 import logging
+import os
 from typing import Any
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query, Header, HTTPException
 from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["system-metrics"])
+
+METRICS_API_KEY = os.getenv("METRICS_API_KEY", "")
+
+
+async def _check_metrics_auth(x_api_key: str | None = Header(None)) -> None:
+    """Gate sensitive metrics behind an API key when one is configured."""
+    if METRICS_API_KEY and x_api_key != METRICS_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden: invalid or missing X-Api-Key")
 
 
 @router.get(
@@ -46,6 +55,7 @@ async def get_system_health() -> dict[str, Any]:
     "/metrics/performance",
     summary="Performance metrics",
     description="Get performance and throughput metrics",
+    dependencies=[Depends(_check_metrics_auth)],
 )
 async def get_performance_metrics(
     period_minutes: int = Query(60, ge=1, le=1440),
@@ -81,6 +91,7 @@ async def get_performance_metrics(
     "/metrics/database",
     summary="Database metrics",
     description="Get database performance and storage metrics",
+    dependencies=[Depends(_check_metrics_auth)],
 )
 async def get_database_metrics() -> dict[str, Any]:
     """Get database metrics."""
@@ -164,6 +175,7 @@ async def get_metrics_timeline(
     "/metrics/alerts",
     summary="Active alerts",
     description="Get active system alerts and warnings",
+    dependencies=[Depends(_check_metrics_auth)],
 )
 async def get_alerts() -> dict[str, Any]:
     """Get active alerts."""

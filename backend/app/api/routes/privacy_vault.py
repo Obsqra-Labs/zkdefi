@@ -3,12 +3,20 @@
 import logging
 from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 try:
     from app.services.privacy_vault_service import get_privacy_vault_service
+    from app.api.validators import (
+        validate_starknet_address, validate_hex_string,
+        validate_token_symbol, validate_wei_amount,
+    )
 except ImportError:
     from backend.app.services.privacy_vault_service import get_privacy_vault_service
+    from backend.app.api.validators import (
+        validate_starknet_address, validate_hex_string,
+        validate_token_symbol, validate_wei_amount,
+    )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["privacy-vault"])
@@ -17,10 +25,30 @@ router = APIRouter(tags=["privacy-vault"])
 class ShieldedDepositRequest(BaseModel):
     """Request to deposit into shielded pool."""
     user_address: str = Field(..., description="User's Starknet address")
-    token: str = Field(..., description="Token address (ETH, USDC, STRK)")
+    token: str = Field(..., description="Token symbol (ETH, USDC, STRK)")
     amount_wei: int = Field(..., ge=1, description="Amount in wei")
     commitment: str = Field(..., description="Merkle tree commitment for privacy")
     metadata: dict[str, Any] | None = None
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("token")
+    @classmethod
+    def check_token(cls, v: str) -> str:
+        return validate_token_symbol(v)
+
+    @field_validator("amount_wei")
+    @classmethod
+    def check_amount(cls, v: int) -> int:
+        return validate_wei_amount(v)
+
+    @field_validator("commitment")
+    @classmethod
+    def check_commitment(cls, v: str) -> str:
+        return validate_hex_string(v)
 
 
 class ShieldedWithdrawRequest(BaseModel):
@@ -29,7 +57,24 @@ class ShieldedWithdrawRequest(BaseModel):
     commitment: str = Field(..., description="Original deposit commitment")
     nullifier: str = Field(..., description="Nullifier for the note")
     proof: str = Field(..., description="Zero-knowledge proof of ownership")
-    recipient: str | None = None  # Defaults to user_address if not provided
+    recipient: str | None = None
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("commitment", "nullifier", "proof")
+    @classmethod
+    def check_hex(cls, v: str) -> str:
+        return validate_hex_string(v)
+
+    @field_validator("recipient")
+    @classmethod
+    def check_recipient(cls, v: str | None) -> str | None:
+        if v is not None:
+            return validate_starknet_address(v)
+        return v
 
 
 class DepositResponse(BaseModel):

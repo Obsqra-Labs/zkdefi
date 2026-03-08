@@ -163,6 +163,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+try:
+    from app.middleware.rate_limiter import RateLimitMiddleware
+    app.add_middleware(RateLimitMiddleware)
+    logger.info("Rate limiting middleware enabled")
+except Exception as exc:
+    logger.warning("Rate limiting middleware skipped: %s", exc)
+
 
 # -----------------------------------------------------------------------------
 # Core zkde.fi API surface (consumed by /agent and /profile)

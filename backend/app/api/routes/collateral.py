@@ -3,7 +3,16 @@
 import logging
 from typing import Any
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+try:
+    from app.api.validators import (
+        validate_starknet_address, validate_token_symbol, validate_wei_amount,
+    )
+except ImportError:
+    from backend.app.api.validators import (
+        validate_starknet_address, validate_token_symbol, validate_wei_amount,
+    )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["collateral"])
@@ -12,15 +21,45 @@ router = APIRouter(tags=["collateral"])
 class CollateralDepositRequest(BaseModel):
     """Request to deposit collateral."""
     user_address: str = Field(..., description="User's Starknet address")
-    token: str = Field(..., description="Collateral token address")
+    token: str = Field(..., description="Collateral token symbol")
     amount: int = Field(..., ge=1, description="Amount in wei")
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("token")
+    @classmethod
+    def check_token(cls, v: str) -> str:
+        return validate_token_symbol(v)
+
+    @field_validator("amount")
+    @classmethod
+    def check_amount(cls, v: int) -> int:
+        return validate_wei_amount(v)
 
 
 class CollateralWithdrawRequest(BaseModel):
     """Request to withdraw collateral."""
     user_address: str = Field(..., description="User's Starknet address")
-    token: str = Field(..., description="Collateral token address")
+    token: str = Field(..., description="Collateral token symbol")
     amount: int = Field(..., ge=1, description="Amount in wei")
+
+    @field_validator("user_address")
+    @classmethod
+    def check_address(cls, v: str) -> str:
+        return validate_starknet_address(v)
+
+    @field_validator("token")
+    @classmethod
+    def check_token(cls, v: str) -> str:
+        return validate_token_symbol(v)
+
+    @field_validator("amount")
+    @classmethod
+    def check_amount(cls, v: int) -> int:
+        return validate_wei_amount(v)
 
 
 class CollateralResponse(BaseModel):
