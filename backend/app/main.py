@@ -45,6 +45,20 @@ async def _lifespan(app: FastAPI):
         logger.warning("Snapshot forecaster worker startup skipped: %s", exc)
         stop_snapshot_forecaster_worker = None
     
+    # Initialize Redis nonce manager (Phase 4.2)
+    try:
+        import os
+        from app.services.redis_nonce_manager import initialize_nonce_manager
+        
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        redis_available = await initialize_nonce_manager(redis_url)
+        if redis_available:
+            logger.info("Redis nonce manager initialized for multi-instance coordination")
+        else:
+            logger.info("Redis unavailable - nonce coordination in fallback mode")
+    except Exception as exc:
+        logger.warning("Redis nonce manager initialization skipped: %s", exc)
+    
     # Start transaction confirmation worker (Phase 2)
     try:
         import asyncio

@@ -199,14 +199,28 @@ class RelayerClient:
     
     async def _get_nonce(self, address: str) -> int:
         """
-        Get account nonce from relayer or cache.
+        Get account nonce from Redis, relayer, or cache.
         
-        Uses cache if available, otherwise fetches from relayer.
+        Priority:
+        1. Redis (multi-instance safe)
+        2. Relayer HTTP endpoint
+        3. Local cache (fallback)
         """
-        # Return cached nonce if available
-        if address in self._nonce_cache:
-            return self._nonce_cache[address]
+        try:
+            # Try Redis first (multi-instance coordination)
+            from app.services.redis_nonce_manager import get_nonce_manager
+            
+            redis_mgr = get_nonce_manager()
+            if redis_mgr.redis_client:
+                redis_nonce = await redis_mgr.increment_nonce(address)
+                if redis_nonce is not None:
+                    logger.debug(f"Using Redis nonce for {address}: {redis_nonce}")
+                    return redis_nonce
         
+        except Exception as e:
+            logger.debug(f"Redis nonce unavailable: {e}")
+        
+        # Fall back to relayer HTTP endpoint
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
@@ -218,12 +232,17 @@ class RelayerClient:
                     data = response.json()
                     nonce = int(data.get("nonce", 0))
                     self._nonce_cache[address] = nonce
+                    logger.debug(f"Using relayer nonce for {address}: {nonce}")
                     return nonce
-                
+        
         except Exception as e:
             logger.warning(f"Failed to fetch nonce from relayer: {e}")
         
-        # Default: use 0 if all else fails
+        # Last resort: local cache or default
+        if address in self._nonce_cache:
+            return self._nonce_cache[address]
+        
+        logger.warning(f"Using default nonce (0) for {address}")
         return 0
     
     def reset_nonce_cache(self, address: Optional[str] = None):
