@@ -163,22 +163,34 @@ async def withdraw_collateral(request: CollateralWithdrawRequest) -> CollateralR
     summary="Get collateral details",
     description="Get all collateral positions for user",
 )
-async def get_collateral(address: str) -> dict[str, Any]:
-    """Get user's collateral positions."""
+async def get_collateral(
+    address: str,
+    limit: int = Query(20, ge=1, le=100, description="Max results"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+) -> dict[str, Any]:
+    """Get user's collateral positions with pagination."""
     try:
+        all_positions = [
+            {
+                "token": "ETH",
+                "balance": 1000000000000000000,
+                "locked": 0,
+                "available": 1000000000000000000,
+                "usd_value": 1800.0,
+            }
+        ]
+        paginated = all_positions[offset : offset + limit]
         return {
             "user_address": address,
-            "positions": [
-                {
-                    "token": "ETH",
-                    "balance": 1000000000000000000,
-                    "locked": 0,
-                    "available": 1000000000000000000,
-                    "usd_value": 1800.0,
-                }
-            ],
-            "total_collateral_usd": 1800.0,
+            "positions": paginated,
+            "total_collateral_usd": sum(p["usd_value"] for p in all_positions),
             "total_locked_usd": 0.0,
+            "pagination": {
+                "offset": offset,
+                "limit": limit,
+                "total": len(all_positions),
+                "has_more": offset + limit < len(all_positions),
+            },
         }
     except Exception as e:
         logger.error(f"Fetch collateral failed: {e}")
@@ -201,15 +213,24 @@ async def get_collateral_health(address: str) -> CollateralHealthResponse:
     - 1.0-1.5: At risk
     - <1.0: Liquidation
     """
+    from app.services.ttl_cache import collateral_cache
+
     try:
-        return CollateralHealthResponse(
+        cache_key = f"health:{address}"
+        cached = await collateral_cache.get(cache_key)
+        if cached:
+            return CollateralHealthResponse(**cached)
+
+        response = CollateralHealthResponse(
             user_address=address,
             total_collateral_usd=5000.0,
             total_locked_usd=3000.0,
-            health_factor=1.67,  # 5000 / 3000
+            health_factor=1.67,
             status="healthy",
             liquidation_price=1800.0,
         )
+        await collateral_cache.set(cache_key, response.model_dump())
+        return response
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))

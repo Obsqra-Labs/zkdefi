@@ -20,6 +20,8 @@ import { getExecutionGate, getLendingGate } from "@/lib/trust/adapters";
 import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { PrivacyPoolPanel } from "./TradeDesk/PrivacyPoolPanel";
 import { CreditLinePanel } from "./TradeDesk/CreditLinePanel";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { OpportunityListSkeleton } from "@/components/ui/Skeleton";
 
 export interface TradeDeskProps {
   userAddress?: string;
@@ -294,11 +296,17 @@ export function TradeDesk({
       <div className="flex flex-1 gap-4 p-4 overflow-hidden">
         {/* Left: Opportunity List */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <OpportunityList
-            onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
-            autoHighlight={true}
-            maxOpportunities={20}
-          />
+          <ErrorBoundary>
+            {loading && opportunities.length === 0 ? (
+              <OpportunityListSkeleton count={8} />
+            ) : (
+              <OpportunityList
+                onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
+                autoHighlight={true}
+                maxOpportunities={20}
+              />
+            )}
+          </ErrorBoundary>
         </div>
 
       {/* Right: Execution Panel or Market Info */}
@@ -311,12 +319,14 @@ export function TradeDesk({
             exit={{ opacity: 0, x: 20 }}
             className="w-96 flex flex-col min-w-0 overflow-hidden"
           >
-            <ExecutionPanel
-              opportunity={selectedOpportunity}
-              onExecute={handleExecute}
-              onCancel={handleCancel}
-              userReputation={userReputation || undefined}
-            />
+            <ErrorBoundary>
+              <ExecutionPanel
+                opportunity={selectedOpportunity}
+                onExecute={handleExecute}
+                onCancel={handleCancel}
+                userReputation={userReputation || undefined}
+              />
+            </ErrorBoundary>
           </motion.div>
         ) : (
           <motion.div

@@ -191,11 +191,18 @@ async def get_credit_score(
     
     Score range: 300-850
     """
+    from app.services.ttl_cache import fico_cache
+
     credit_service = get_credit_line_service()
     proof_service = get_credit_eligibility_service()
     
     try:
-        # Calculate credit score
+        # Check cache first (FICO scores are expensive to compute)
+        cache_key = f"fico:{address}"
+        cached_score = await fico_cache.get(cache_key)
+        if cached_score and not include_proof:
+            return CreditScoreResponse(**cached_score)
+
         score_data = await credit_service.calculate_credit_score(address)
         
         fico_score = score_data.get("fico_score", 650)
@@ -221,7 +228,7 @@ async def get_credit_score(
         
         logger.info(f"Credit score calculated: user={address}, score={fico_score}")
         
-        return CreditScoreResponse(
+        response = CreditScoreResponse(
             user_address=address,
             fico_score=fico_score,
             fico_tier=tier,
@@ -235,6 +242,11 @@ async def get_credit_score(
             confidence=0.92,
             proof=proof,
         )
+
+        if not include_proof:
+            await fico_cache.set(cache_key, response.model_dump())
+
+        return response
         
     except Exception as e:
         logger.error(f"Credit score calculation failed: {e}")
@@ -316,19 +328,30 @@ async def repay_credit_line(
     summary="Get credit line details",
     description="Get all credit lines for an address",
 )
-async def get_credit_lines(address: str) -> dict[str, Any]:
-    """Get all credit lines for user."""
+async def get_credit_lines(
+    address: str,
+    limit: int = Query(20, ge=1, le=100, description="Max results"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+) -> dict[str, Any]:
+    """Get all credit lines for user with pagination."""
     service = get_credit_line_service()
     
     try:
-        lines = await service.get_user_credit_lines(address)
+        all_lines = await service.get_user_credit_lines(address)
+        paginated = all_lines[offset : offset + limit]
         return {
             "user_address": address,
-            "active_lines": len(lines),
-            "total_limit_usd": sum(l.get("limit", 0) for l in lines),
-            "total_available_usd": sum(l.get("available", 0) for l in lines),
-            "total_used_usd": sum(l.get("used", 0) for l in lines),
-            "lines": lines,
+            "active_lines": len(all_lines),
+            "total_limit_usd": sum(l.get("limit", 0) for l in all_lines),
+            "total_available_usd": sum(l.get("available", 0) for l in all_lines),
+            "total_used_usd": sum(l.get("used", 0) for l in all_lines),
+            "lines": paginated,
+            "pagination": {
+                "offset": offset,
+                "limit": limit,
+                "total": len(all_lines),
+                "has_more": offset + limit < len(all_lines),
+            },
         }
     except Exception as e:
         logger.error(f"Fetch credit lines failed: {e}")
