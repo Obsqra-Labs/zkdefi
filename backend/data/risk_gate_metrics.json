@@ -119,33 +119,33 @@
     "last_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
   },
   "2026-03-08": {
-    "total": 86,
+    "total": 106,
     "by_gate": {
       "relayer": {
         "allow": 0,
-        "advisory": 86,
+        "advisory": 106,
         "block": 0
       },
       "execution": {
         "allow": 0,
-        "advisory": 86,
+        "advisory": 106,
         "block": 0
       },
       "lending": {
         "allow": 0,
-        "advisory": 86,
+        "advisory": 106,
         "block": 0
       }
     },
     "reason_counts": {
       "tier_below_standard": 3,
       "passport_low_confidence": 6,
-      "onboarding_incomplete": 258,
-      "no_active_session": 86,
+      "onboarding_incomplete": 318,
+      "no_active_session": 106,
       "passport_letter_below_c": 3,
       "no_credit_line": 3
     },
-    "updated_at": "2026-03-08T13:48:31.960771+00:00",
+    "updated_at": "2026-03-08T13:53:34.833313+00:00",
     "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
   }
 }

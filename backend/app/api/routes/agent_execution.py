@@ -99,22 +99,56 @@ async def get_execution(call_id: str):
 async def get_execution_history(
     address: str,
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    status: str = Query(None, description="Filter by status (pending|confirmed|failed)"),
 ):
     """
-    Get execution history for a user address.
+    Get execution history for a user address (Phase 2+: SQLite persistence).
     
-    Phase 1: Returns empty (execution history not yet persisted).
-    Phase 2+: Real history from database.
-    """
-    return {
-        "address": address,
-        "executions": [],
-        "total": 0,
-        "metadata": {
-            "phase": "phase-1-placeholder",
-            "message": "Execution history tracking coming in Phase 2",
+    Args:
+        address: User's wallet address
+        limit: Max results (1-200, default 50)
+        offset: Pagination offset
+        status: Optional status filter
+        
+    Returns:
+        {
+            "address": address,
+            "executions": [{...}],
+            "total": count,
+            "stats": {
+                "pending": count,
+                "confirmed": count,
+                "failed": count
+            }
         }
-    }
+    """
+    try:
+        from app.db.execution_store import get_execution_store
+        
+        store = get_execution_store()
+        executions = store.get_user_executions(
+            address=address,
+            limit=limit,
+            offset=offset,
+            status=status,
+        )
+        stats = store.get_stats(address=address)
+        
+        return {
+            "address": address,
+            "executions": executions,
+            "total": stats.get("total", 0),
+            "stats": {
+                "pending": stats.get("pending", 0),
+                "confirmed": stats.get("confirmed", 0),
+                "failed": stats.get("failed", 0),
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch execution history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/api/v1/zkdefi/oracle/execution/simulate")

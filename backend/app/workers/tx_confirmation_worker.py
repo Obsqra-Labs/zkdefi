@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from app.services.relayer_client import get_relayer_client
-from app.services.json_store import JsonStore
+from app.db.execution_store import get_execution_store
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class TxConfirmationWorker:
         """
         self.poll_interval = poll_interval
         self.max_age_hours = max_age_hours
-        self._execution_history = JsonStore("execution_history")
+        self._execution_store = get_execution_store()  # ← SQLite instead of JSON
         self._relayer = get_relayer_client()
         self.running = False
     
@@ -56,17 +56,15 @@ class TxConfirmationWorker:
         logger.info("TxConfirmationWorker stopping")
     
     async def _poll_pending_executions(self):
-        """Check all pending executions for confirmation."""
+        """Check all pending executions for confirmation (using SQLite)."""
         try:
-            # Get all pending executions
-            all_executions = self._execution_history.get("executions", [])
-            if not isinstance(all_executions, list):
-                all_executions = []
+            # Get all pending executions from SQLite
+            pending = self._execution_store.get_pending_executions()
             
             pending_count = 0
             confirmed_count = 0
             
-            for execution in all_executions:
+            for execution in pending:
                 if execution.get("status") not in ["pending", "submitted"]:
                     continue
                 
@@ -96,12 +94,14 @@ class TxConfirmationWorker:
                     
                     # Update if changed
                     if new_status != execution.get("status"):
-                        execution["status"] = new_status
-                        execution["last_checked"] = datetime.now(timezone.utc).isoformat()
+                        self._execution_store.update_execution_status(
+                            call_id=execution.get("call_id"),
+                            status=new_status,
+                            confirmed_at=status_result.get("confirmed_at"),
+                            block_number=status_result.get("block_number"),
+                        )
                         
                         if new_status == "confirmed":
-                            execution["confirmed_at"] = status_result.get("confirmed_at")
-                            execution["block_number"] = status_result.get("block_number")
                             confirmed_count += 1
                             logger.info(
                                 f"Tx confirmed: {tx_hash[:16]}... "
@@ -109,12 +109,6 @@ class TxConfirmationWorker:
                             )
                         elif new_status == "failed":
                             logger.warning(f"Tx failed: {tx_hash[:16]}...")
-                        
-                        # Persist update
-                        self._execution_history.set(
-                            execution.get("id"),
-                            execution,
-                        )
                 
                 except Exception as e:
                     logger.debug(f"Failed to check tx {tx_hash[:16]}...: {e}")
