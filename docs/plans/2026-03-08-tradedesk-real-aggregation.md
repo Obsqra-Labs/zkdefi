@@ -1,3 +1,4 @@
+
 # TradeDesk Real Data Aggregation Plan
 
 **Date:** 2026-03-08  
@@ -212,22 +213,31 @@ Each protocol endpoint returns different schema. Must normalize:
 
 This plan is ready for implementation. Recommended approach:
 
-1. **Step 1:** Implement Task 1.1 + 1.2 (opportunities aggregation) — ~2-3 hours
-   - Create `aggregate_opportunities()` function with error handling
-   - Test against real backend endpoints
+### Batch 1 (Current Phase)
+1. **Task 1.1 + 1.2:** Opportunities aggregation ✅ COMPLETED
+   - Created `aggregate_opportunities()` with real protocol integration
+   - Verified: lending, staking, DEX, DCA, limits flowing through
+   
+2. **Task 2.1:** Market context enhancement — ~1 hour
+   - Add real volatility/sentiment calculation
    - Commit + verify
    
-2. **Step 2:** Implement Task 2.1 (market context) — ~1 hour
-   - Enhance with real volatility/sentiment logic
+3. **Task 3.1:** Receipts service integration — ~1 hour
+   - Wire to actual receipt service
    - Commit + verify
-   
-3. **Step 3:** Implement Task 3.1 (receipts) — ~1 hour
-   - Wire to receipt service or fallback
-   - Commit + verify
-   
-4. **Integration Test:** Full E2E flow through TradeDesk UI — ~30 min
 
-**Total estimated time:** 4-5 hours for full deterministic real-data integration.
+### Batch 2 (Signals Placeholder - NEW)
+4. **Task 4.1:** Create signals endpoint — ~2 hours
+   - New route: `GET /api/v1/zkdefi/signals/top`
+   - Transform opportunities → signals with constitution reports
+   - Add prediction JSON structure (empty in Phase 1)
+   - Include Ekubo LP in opportunities source
+   
+5. **Task 4.2:** Frontend signals integration — ~1 hour
+   - Wire dashboard to consume signals endpoint
+   - Display constitution cards, yield/risk info
+
+**Total estimated time:** 5-6 hours for Phase 1 (opportunities + signals placeholder ready for prediction models).
 
 ---
 
