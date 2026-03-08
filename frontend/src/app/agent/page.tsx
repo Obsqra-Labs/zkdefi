@@ -138,6 +138,7 @@ export default function AgentPage() {
         leftRail={
           <CapitalLedger
             address={address}
+            privacyCommitments={vault.commitments}
             onDeposit={() => setSlideout("deposit")}
             onWithdraw={() => setSlideout("withdraw")}
             onImportDarkLedger={() => setSlideout("privacy")}

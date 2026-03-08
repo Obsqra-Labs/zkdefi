@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import type { VaultCommitment } from "@/hooks/usePrivacyVault";
+import { ShieldedBreakdown, formatWei, METHOD_LABELS } from "@/components/zkdefi/vault/ShieldedBreakdown";
 
 interface CapitalLedgerProps {
   address: string | undefined;
+  /** Privacy vault commitments from usePrivacyVault (localStorage) */
+  privacyCommitments?: VaultCommitment[];
   onDeposit?: () => void;
   onWithdraw?: () => void;
   onImportDarkLedger?: () => void;
@@ -69,9 +73,11 @@ function YieldSparkline({ points }: { points: YieldPoint[] }) {
   );
 }
 
-export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedger }: CapitalLedgerProps) {
+export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onWithdraw, onImportDarkLedger }: CapitalLedgerProps) {
   const [vault, setVault] = useState<VaultStats>({ total_usd: 0, strk_balance: 0, eth_balance: 0, strk_usd: 0, eth_usd: 0 });
   const [darkLedger, setDarkLedger] = useState({ note_count: 0, sweep_available_usd: 0, l3_block: 0 });
+  interface BackendNote { note_hash: string; amount_wei: string; token: string; rail_type: string; }
+  const [backendDarkNotes, setBackendDarkNotes] = useState<BackendNote[]>([]);
   const [positions, setPositions] = useState<DeployedPosition[]>([]);
   const [health, setHealth] = useState<HealthData | null>(null);
   const [zkdBalances, setZkdBalances] = useState<ZkdBalance[]>([]);
@@ -99,24 +105,36 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
           setYieldPoints(yieldChart.points);
         }
 
-        // Vault stats
+        // Vault stats (private-yield pool stats)
         const stats = await apiFetch<any>("/api/v1/zkdefi/private-yield/vault/stats").catch(() => null);
         if (stats) {
+          // The pool is currently ETH-denominated; token field tells us which asset.
+          const isEth = !stats.token || stats.token?.toLowerCase().includes("049d365");
+          const tvl = stats.tvl_eth ?? stats.tvl ?? stats.total_deposits_eth ?? 0;
           setVault({
-            total_usd: stats.total_value_usd || stats.tvl || 0,
-            strk_balance: stats.strk_balance || 0,
-            eth_balance: stats.eth_balance || 0,
-            strk_usd: stats.strk_value_usd || 0,
-            eth_usd: stats.eth_value_usd || 0,
+            total_usd: stats.total_value_usd ?? 0, // not yet provided by backend
+            strk_balance: isEth ? 0 : tvl,
+            eth_balance: isEth ? tvl : 0,
+            strk_usd: 0,
+            eth_usd: 0,
           });
         }
 
-        // Dark Ledger (notes) - endpoint not yet implemented, keeping data as zeroes
+        // Dark Ledger notes from backend (if endpoint is available)
+        const darkNotes = await apiFetch<any>(`/api/v1/zkdefi/ledger/notes/${address}`).catch(() => null);
         setDarkLedger({
-          note_count: 0,
-          sweep_available_usd: 0,
-          l3_block: 0,
+          note_count: darkNotes?.note_count ?? 0,
+          sweep_available_usd: darkNotes?.sweep_available_usd ?? 0,
+          l3_block: darkNotes?.l3_block ?? 0,
         });
+        if (darkNotes?.notes && Array.isArray(darkNotes.notes)) {
+          setBackendDarkNotes(darkNotes.notes.map((n: any) => ({
+            note_hash: n.note_hash || "",
+            amount_wei: n.amount_wei || "0",
+            token: n.token || "STRK",
+            rail_type: n.rail_type || "unknown",
+          })));
+        }
 
         // Positions
         const pos = await apiFetch<any>(`/api/v1/zkdefi/position/${address}?protocol_id=0`).catch(() => null);
@@ -158,6 +176,65 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
     ? positions.reduce((s, p) => s + p.value_usd * p.apy_pct, 0) / Math.max(1, positions.reduce((s, p) => s + p.value_usd, 0))
     : 0;
 
+  // ---------------------------------------------------------------------------
+  // Aggregate privacy commitments from localStorage
+  // ---------------------------------------------------------------------------
+  const shieldedCommitments = useMemo(
+    () => privacyCommitments.filter((c) => c.method !== "dark_ledger"),
+    [privacyCommitments],
+  );
+  const darkLedgerCommitments = useMemo(
+    () => privacyCommitments.filter((c) => c.method === "dark_ledger"),
+    [privacyCommitments],
+  );
+
+  // Use shared component for shielded breakdown (rendered in Vault section)
+
+  // ---------------------------------------------------------------------------
+  // Unified per-asset totals (API balances + all local commitments + backend notes)
+  // ---------------------------------------------------------------------------
+
+  // Deduplicate: localStorage dark_ledger commits that also exist in backend notes
+  const localOnlyDarkCommitments = useMemo(() => {
+    if (backendDarkNotes.length === 0) return darkLedgerCommitments;
+    const backendHashes = new Set(backendDarkNotes.map((n) => n.note_hash));
+    return darkLedgerCommitments.filter((c) => !backendHashes.has(c.id) && !backendHashes.has(c.commitment_hash));
+  }, [darkLedgerCommitments, backendDarkNotes]);
+
+  const totalDarkNotes = darkLedger.note_count + localOnlyDarkCommitments.length;
+
+  const assetTotals = useMemo(() => {
+    const map = new Map<string, { asset: string; api_balance: number; shielded_wei: bigint; dark_wei: bigint; total_notes: number }>();
+    const ensure = (asset: string) => {
+      if (!map.has(asset)) map.set(asset, { asset, api_balance: 0, shielded_wei: BigInt(0), dark_wei: BigInt(0), total_notes: 0 });
+      return map.get(asset)!;
+    };
+    // API public balances (private-yield pool)
+    if (vault.strk_balance > 0) { const e = ensure("STRK"); e.api_balance = vault.strk_balance; }
+    if (vault.eth_balance > 0) { const e = ensure("ETH"); e.api_balance = vault.eth_balance; }
+    // Shielded commits (localStorage)
+    for (const c of shieldedCommitments) {
+      const e = ensure(c.asset);
+      e.shielded_wei += BigInt(c.amount_wei);
+      e.total_notes += 1;
+    }
+    // Backend dark-ledger notes
+    for (const n of backendDarkNotes) {
+      const e = ensure(n.token);
+      e.dark_wei += BigInt(n.amount_wei);
+      e.total_notes += 1;
+    }
+    // Local-only dark-ledger commits (not already in backend)
+    for (const c of localOnlyDarkCommitments) {
+      const e = ensure(c.asset);
+      e.dark_wei += BigInt(c.amount_wei);
+      e.total_notes += 1;
+    }
+    return Array.from(map.values());
+  }, [vault.strk_balance, vault.eth_balance, shieldedCommitments, backendDarkNotes, localOnlyDarkCommitments]);
+
+  const totalPrivateNotes = privacyCommitments.length + backendDarkNotes.length;
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
@@ -170,23 +247,54 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
 
   return (
     <div className="p-3 space-y-1">
-      {/* Vault Balance */}
+      {/* ── Vault — canonical private identity ── */}
       <section className="rounded-lg border border-zinc-800 p-3">
         <div className="flex items-center gap-2 mb-2">
           <Landmark className="w-4 h-4 text-emerald-400" />
           <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Vault</h3>
+          {totalPrivateNotes > 0 && (
+            <span className="ml-auto flex items-center gap-1 text-[10px] text-emerald-400/80">
+              <ShieldCheck className="w-3 h-3" />
+              {totalPrivateNotes} note{totalPrivateNotes !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-        <p className="text-xl font-bold">${vault.total_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-        <div className="mt-2 space-y-1 text-xs text-zinc-400">
-          <div className="flex justify-between">
-            <span>STRK</span>
-            <span>{vault.strk_balance.toLocaleString()} (${vault.strk_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+
+        {/* Per-asset rows: API balance + shielded + dark-ledger */}
+        {assetTotals.length > 0 ? (
+          <div className="space-y-2">
+            {assetTotals.map((a) => {
+              const shieldedFloat = Number(a.shielded_wei) / 1e18;
+              const darkFloat = Number(a.dark_wei) / 1e18;
+              const totalFloat = a.api_balance + shieldedFloat + darkFloat;
+              return (
+                <div key={a.asset}>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-300 font-medium">{a.asset}</span>
+                    <span className="text-zinc-100 font-mono">{totalFloat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                  </div>
+                  {/* Breakdown when there's more than one source */}
+                  {(a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0)) ? (
+                    <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
+                      {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
+                      {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
+                      {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Dark Ledger</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
-          <div className="flex justify-between">
-            <span>ETH</span>
-            <span>{vault.eth_balance.toFixed(4)} (${vault.eth_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
-          </div>
-        </div>
+        ) : (
+          <p className="text-sm text-zinc-500 py-1">No balances</p>
+        )}
+
+        {/* Shielded breakdown by method */}
+        <ShieldedBreakdown
+          commitments={privacyCommitments}
+          className="mt-3 pt-2 border-t border-zinc-800/60"
+        />
+
         <div className="mt-3 flex gap-2">
           <button onClick={onDeposit} className="flex-1 py-1.5 text-xs font-medium rounded bg-emerald-600 hover:bg-emerald-500 transition-colors">
             Deposit
@@ -251,9 +359,31 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
         </div>
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between text-zinc-300">
-            <span>Shielded Notes</span>
-            <span>{darkLedger.note_count}</span>
+            <span>Notes</span>
+            <span>{totalDarkNotes}</span>
           </div>
+          {/* Backend notes */}
+          {backendDarkNotes.length > 0 && (
+            <div className="space-y-1 pl-2 border-l border-violet-800/30">
+              {backendDarkNotes.map((n) => (
+                <div key={n.note_hash} className="flex justify-between text-[11px]">
+                  <span className="text-violet-300">{n.token} <span className="text-zinc-600">({METHOD_LABELS[n.rail_type] || n.rail_type})</span></span>
+                  <span className="text-zinc-300 font-mono">{formatWei(n.amount_wei, n.token)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Local-only (not yet synced to backend) */}
+          {localOnlyDarkCommitments.length > 0 && (
+            <div className="space-y-1 pl-2 border-l border-violet-800/30">
+              {localOnlyDarkCommitments.map((c) => (
+                <div key={c.id} className="flex justify-between text-[11px]">
+                  <span className="text-violet-300">{c.asset} <span className="text-zinc-600">(local)</span></span>
+                  <span className="text-zinc-300 font-mono">{formatWei(c.amount_wei, c.asset)}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex justify-between text-zinc-300">
             <span>Sweep Available</span>
             <span>${darkLedger.sweep_available_usd.toLocaleString()}</span>

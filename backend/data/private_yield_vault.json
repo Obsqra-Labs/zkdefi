@@ -1,13 +1,13 @@
 {
   "state": {
-    "total_deposits_wei": 0,
-    "total_shares": 0,
+    "total_deposits_wei": 1000000000000000000,
+    "total_shares": 1000000000000000000,
     "total_yield_wei": 0,
     "ekubo_deployed_wei": 0,
     "lending_deployed_wei": 0,
-    "idle_wei": 0,
+    "idle_wei": 1000000000000000000,
     "share_price_wei": 1000000000000000000,
     "last_accrual": 1772517238,
-    "deposit_count": 0
+    "deposit_count": 1
   }
 }

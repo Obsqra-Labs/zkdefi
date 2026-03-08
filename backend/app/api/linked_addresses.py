@@ -15,6 +15,7 @@ from app.services.linked_address_verification_service import (
     LinkedAddressVerificationError,
     get_linked_address_verification_service,
 )
+from app.services.trust_event_service import log_trust_event, log_trust_event_if_changed
 
 router = APIRouter(prefix="/linked_addresses", tags=["linked_addresses"])
 
@@ -124,6 +125,23 @@ async def complete_linked_address_verification(data: LinkedAddressVerifyComplete
         if not linked.get(short):
             set_linked(data.starknet_address, **set_kwargs)
 
+    chain = str(result.get("chain") or "")
+    verified_address = result.get("address")
+    if chain and isinstance(verified_address, str):
+        await log_trust_event_if_changed(
+            data.starknet_address,
+            f"identity_link.{chain}",
+            verified_address.strip().lower(),
+            event_type="identity_bind",
+            gate="identity",
+            outcome="verified",
+            metadata={
+                "chain": chain,
+                "address": verified_address.strip().lower(),
+            },
+            receipt_proof_type="identity_bind",
+        )
+
     result["verification"] = _verification_payload(data.starknet_address)
     return result
 
@@ -146,6 +164,7 @@ async def put_linked_addresses(data: LinkedAddressesPut):
                     detail=f"Linked address for {chain} must be signature-verified before saving.",
                 )
 
+    before = get_linked(data.starknet_address)
     result = set_linked(
         data.starknet_address,
         eth=data.eth,
@@ -153,5 +172,46 @@ async def put_linked_addresses(data: LinkedAddressesPut):
         base=data.base,
         opt=data.opt,
     )
+
+    chain_by_short = {
+        "eth": "ethereum",
+        "arb": "arbitrum",
+        "base": "base",
+        "opt": "optimism",
+    }
+    for short, chain in chain_by_short.items():
+        incoming = getattr(data, short)
+        if incoming is None:
+            continue
+        prev_value = before.get(short)
+        next_value = result.get(short)
+        if prev_value == next_value:
+            continue
+
+        if next_value:
+            await log_trust_event_if_changed(
+                data.starknet_address,
+                f"identity_link.{chain}",
+                str(next_value).strip().lower(),
+                event_type="identity_bind",
+                gate="identity",
+                outcome="updated",
+                metadata={
+                    "chain": chain,
+                    "address": str(next_value).strip().lower(),
+                    "method": "put_linked_addresses",
+                },
+                receipt_proof_type="identity_bind",
+            )
+        else:
+            await log_trust_event(
+                data.starknet_address,
+                "identity_unbind",
+                gate="identity",
+                outcome="updated",
+                metadata={"chain": chain, "previous_address": prev_value},
+                receipt_proof_type="identity_unbind",
+            )
+
     result["verification"] = _verification_payload(data.starknet_address)
     return result

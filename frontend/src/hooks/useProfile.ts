@@ -43,6 +43,19 @@ export interface RiskProfileBundle {
   linked_addresses: Record<string, string>;
   compliance_summary: { count: number; profiles: Array<Record<string, unknown>> };
   session_summary: { count: number; active_count: number; sessions: Array<Record<string, unknown>> };
+  governance?: {
+    user_address?: string;
+    voting_power?: number;
+    lp_usd?: number;
+    lending_usd?: number;
+    staking_usd?: number;
+    tier?: number;
+    tier_name?: string;
+    tier_multiplier?: number;
+    base_capital_usd?: number;
+    formula_version?: string;
+    basis?: string;
+  } | null;
   dual_wallet_session?: {
     active: boolean;
     status: string;
@@ -101,6 +114,15 @@ export interface RiskProfileV2 {
     credit_score?: number | null;
     receipt_summary: { count: number; by_type: Record<string, number> };
   };
+  governance?: {
+    voting_power: number;
+    lp_usd: number;
+    lending_usd: number;
+    staking_usd: number;
+    tier_multiplier: number;
+    formula_version: string;
+    basis?: string;
+  };
   decisions: {
     relayer: RiskDecisionGate;
     execution: RiskDecisionGate;
@@ -125,7 +147,16 @@ export interface RiskProfileV2 {
 }
 
 async function fetchLegacyBundle(address: string): Promise<RiskProfileBundle> {
-  const [repRes, passportRes, onbRes, linkedRes, complianceRes, sessionsRes, dualSessionRes] =
+  const [
+    repRes,
+    passportRes,
+    onbRes,
+    linkedRes,
+    complianceRes,
+    sessionsRes,
+    dualSessionRes,
+    governanceRes,
+  ] =
     await Promise.all([
       fetch(apiUrl(`/api/v1/zkdefi/reputation/user/${address}`)),
       fetch(apiUrl(`/api/v1/zkdefi/risk_passport/user/${address}`)),
@@ -134,6 +165,7 @@ async function fetchLegacyBundle(address: string): Promise<RiskProfileBundle> {
       fetch(apiUrl(`/api/v1/zkdefi/compliance/profiles/${address}`)),
       fetch(apiUrl(`/api/v1/zkdefi/session_keys/list/${address}`)),
       fetch(apiUrl(`/api/v1/zkdefi/auth/session/${address}`)),
+      fetch(apiUrl(`/api/v1/dao/voting_power/${address}`)),
     ]);
 
   const reputation = repRes.ok ? await repRes.json() : null;
@@ -179,6 +211,13 @@ async function fetchLegacyBundle(address: string): Promise<RiskProfileBundle> {
       };
     }
   }
+  let governance: RiskProfileBundle["governance"] = null;
+  if (governanceRes.ok) {
+    const data = await governanceRes.json();
+    if (data && typeof data === "object") {
+      governance = data as RiskProfileBundle["governance"];
+    }
+  }
 
   return {
     address,
@@ -188,6 +227,7 @@ async function fetchLegacyBundle(address: string): Promise<RiskProfileBundle> {
     linked_addresses,
     compliance_summary: { count: complianceProfiles.length, profiles: complianceProfiles },
     session_summary,
+    governance,
     dual_wallet_session,
   };
 }

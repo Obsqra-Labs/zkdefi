@@ -20,11 +20,18 @@ import httpx
 import logging
 from typing import Optional, List
 
+from app.services.forecaster_adapter import ForecasterAdapter
+from app.services.reputation_adapter import ReputationAdapter
+
 router = APIRouter(tags=["signals"])
 logger = logging.getLogger(__name__)
 
 BACKEND_BASE = "http://localhost:8003"
 AGGREGATION_TIMEOUT = 10.0
+
+# Initialize adapters
+_forecaster_adapter = ForecasterAdapter()
+_reputation_adapter = ReputationAdapter()
 
 
 async def fetch_opportunities() -> List[dict]:
@@ -42,16 +49,17 @@ async def fetch_opportunities() -> List[dict]:
 
 
 def opportunity_to_signal(opportunity: dict, index: int) -> dict:
-    """Transform an opportunity into a signal with constitution and predictions."""
+    """Transform an opportunity into a signal with real predictions from adapters."""
     
     opp_type = opportunity.get("type", "unknown")
     opp_id = opportunity.get("id", f"signal-{opp_type}-{index}")
     
     # Constitution: deterministic contract/entity/asset context
+    entity = opportunity.get("source", f"zkdefi-{opp_type}")
     constitution = {
-        "contract": "0x05ba14536eca827e292bf633c2963abc048f0160a8a3efea6a71ca07d0bb3e64",  # zkdefi-core
-        "entity": opportunity.get("adapter", f"zkdefi-{opp_type}"),
-        "asset": opportunity.get("token", opportunity.get("token0", "UNKNOWN")),
+        "contract": "0x05ba14536eca827e292bf633c2963abc048f0160a8a3efea6a71ca07d0bb3e64",
+        "entity": entity,
+        "asset": opportunity.get("tokenA", opportunity.get("token", "UNKNOWN")),
         "pool": opportunity.get("poolId", opportunity.get("pool", "primary"))
     }
     
@@ -64,16 +72,32 @@ def opportunity_to_signal(opportunity: dict, index: int) -> dict:
         constitution["asset"] = opportunity.get("stakingToken", "STRK")
     elif opp_type == "dex":
         constitution["entity"] = opportunity.get("dex", "ekubo")
-        constitution["pool"] = f"{opportunity.get('token0', 'ETH')}-{opportunity.get('token1', 'USDC')}"
+        constitution["pool"] = f"{opportunity.get('tokenA', 'ETH')}-{opportunity.get('tokenB', 'USDC')}"
     
-    # Placeholder predictions (Phase 1)
-    yield_forecast = opportunity.get("apy", opportunity.get("estimatedApy", 3.0))
-    risk_score = max(1, min(99, 
-        25 if opp_type == "lending" else 
-        35 if opp_type == "staking" else 
-        50 if opp_type == "dex" else 
-        40
-    ))
+    # Get real predictions from adapters
+    token_a = opportunity.get("tokenA", "UNKNOWN")
+    token_b = opportunity.get("tokenB", "USDC")
+    pair_id = f"{token_a}/{token_b}" if token_b else token_a
+    
+    # Fetch market forecast from forecaster adapter
+    try:
+        market_forecast = _forecaster_adapter.get_market_forecast(pair_id)
+    except Exception as e:
+        logger.warning(f"Forecaster failed for {pair_id}: {e}")
+        market_forecast = _forecaster_adapter._fallback_forecast(pair_id)
+    
+    # Fetch reputation from reputation adapter
+    try:
+        rep = _reputation_adapter.get_protocol_reputation(entity)
+    except Exception as e:
+        logger.warning(f"Reputation failed for {entity}: {e}")
+        rep = _reputation_adapter._fallback_reputation(entity)
+    
+    # Build yield forecast from opportunity APY
+    opportunity_apy = opportunity.get("apy", opportunity.get("estimatedApy", 0.0))
+    # Adjust predicted yield based on market forecast confidence
+    market_confidence = market_forecast.get("calibration_score", 0.7)
+    predicted_apy = opportunity_apy * (1.0 + (market_forecast.get("predicted_apy", 0.0) / 100.0) * market_confidence)
     
     signal = {
         "id": opp_id,
@@ -81,29 +105,35 @@ def opportunity_to_signal(opportunity: dict, index: int) -> dict:
         "type": opp_type,
         "name": opportunity.get("name", f"{opp_type.title()} Opportunity"),
         "description": opportunity.get("description", ""),
-        "currentYield": yield_forecast,
-        "riskScore": risk_score,
+        "currentYield": opportunity_apy,
+        "riskScore": max(1, min(99, 
+            25 if opp_type == "lending" else 
+            35 if opp_type == "staking" else 
+            50 if opp_type == "dex" else 
+            40
+        )),
         "privacyMode": opportunity.get("privacyMode", "public"),
         "rank": index + 1,
         "constitution": constitution,
         "predictions": {
             "yieldForecast": {
                 "model": "yield-predictor-v1",
-                "predicted_apy": yield_forecast * 1.05,  # Placeholder: 5% upside
-                "confidence": 0.72,
+                "predicted_apy": round(predicted_apy, 2),
+                "confidence": market_confidence,
                 "horizon": "7d"
             },
             "reputationScore": {
-                "model": "reputation-v1",
-                "score": 85 if opp_type != "dex" else 72,
-                "trustworthiness": "high" if risk_score < 40 else "moderate"
+                "model": rep.get("model", "reputation-v1"),
+                "score": rep.get("score", 75),
+                "trustworthiness": rep.get("trustworthiness", "moderate")
             },
             "marketForecaster": {
-                "model": "forecaster-circuit-v1",
-                "probability_up_5m": 0.62,
-                "probability_up_30m": 0.68,
-                "probability_up_4h": 0.71,
-                "calibration_score": 0.88
+                "model": market_forecast.get("model", "forecaster-circuit-v1"),
+                "probability_up_5m": market_forecast.get("probability_up_5m", 0.5),
+                "probability_up_30m": market_forecast.get("probability_up_30m", 0.5),
+                "probability_up_4h": market_forecast.get("probability_up_4h", 0.5),
+                "calibration_score": market_forecast.get("calibration_score", 0.7),
+                "signal_strength": market_forecast.get("signal_strength", 0.0),
             }
         },
         "zkml_gated": False,

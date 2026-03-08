@@ -21,6 +21,7 @@ are separate, explainable, and composable signals backed by verified identity li
 - `backend/app/main.py` had code for risk profile and auth session in repo but not mounted in current runtime path.
 - `backend/app/api/linked_addresses.py` had regressed to basic GET/PUT, losing verify/start and verify/complete ownership proof endpoints.
 - `backend/app/api/reputation.py` used in-memory user state (`_user_data`), causing non-persistent reputation history across restarts.
+- `backend/app/api/reputation.py` currently exposes a reduced route surface vs `a49d5346` (missing staking/proof status and proof generation endpoints), creating product regression in profile trust UX.
 - `frontend/src/app/profile/page.tsx` remained V1-style and used fragile API path construction.
 - `frontend/src/lib/sessionKeys.ts` had a broken `getUserSessions` URL call.
 - `frontend/src/components/zkdefi/CreditReputationHub.tsx` pointed to deprecated endpoint paths.
@@ -34,9 +35,11 @@ are separate, explainable, and composable signals backed by verified identity li
 - Switched reputation user state to `JsonStore` persistence in `backend/app/api/reputation.py`.
 - Enforced verified linked addresses for cross-chain reputation baseline in `backend/app/api/reputation.py`.
 - Fixed timezone import bug in `backend/app/services/session_key_service.py`.
+- Replaced in-memory session-key state with `JsonStore` persistence in `backend/app/services/session_key_service.py`.
 - Fixed `getUserSessions` fetch wiring in `frontend/src/lib/sessionKeys.ts`.
 - Rewired `/profile` V1 API calls to canonical `apiUrl(...)` in `frontend/src/app/profile/page.tsx`.
 - Re-enabled richer profile hooks (`useRiskProfile`, `useRiskProfileV2`) in `frontend/src/hooks/useProfile.ts`.
+- Extended risk profile composition to include governance voting power in `backend/app/api/risk_profile.py` and `frontend/src/hooks/useProfile.ts`.
 - Updated `CreditReputationHub` to use `risk_profile/v2` instead of stale routes.
 - Fixed receipt aggregation hook API URL normalization in `frontend/src/hooks/useReceiptAggregator.ts`.
 

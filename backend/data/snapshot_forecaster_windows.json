@@ -1,1 +1,67 @@
-{}
+{
+  "0xf90d5587c753e4646eee52503c09f6347f66934c24bd1d807e11358e46bd1b47": {
+    "window_id": "0xf90d5587c753e4646eee52503c09f6347f66934c24bd1d807e11358e46bd1b47",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1772957722,
+    "window_close_ts": 1772958022,
+    "cadence_id": "5m",
+    "snapshot_hash": "0xcc426469eb3e5d489fb4dd114e574365fd914498b80904f7854037a85dd31e21",
+    "snapshot_data": {
+      "pair_id": "ETH/USDC",
+      "mid_price": 3524.18,
+      "spread_bps": 4,
+      "reserve_imbalance": -0.12,
+      "trade_count_60s": 96
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "public_ui",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "buy_sell_imbalance": 0.19,
+      "depth_ratio": 0.71,
+      "ret_15s": 5.2,
+      "ret_60s": 17.9,
+      "vol_5m": 82.4
+    },
+    "feature_vector_hash": "0xe41f832c4ae40728dcd33f036051057159d1d8e8c628ded92ff5117a66f87040",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 70,
+        "actual_up": 1,
+        "maturity_ts": 1772958022,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1772958573
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 110,
+        "actual_up": 1,
+        "maturity_ts": 1772959522,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1772958573
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 210,
+        "actual_up": 1,
+        "maturity_ts": 1772972122,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1772958573
+      }
+    },
+    "prediction_ids": [
+      "0x28feb08cc106b0dc3363d4fa23e15a7e823a9c2621a4b14eff3eaccbb49a20bc"
+    ],
+    "created_at_ts": 1772958572
+  }
+}

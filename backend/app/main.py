@@ -112,6 +112,7 @@ reputation_router = _optional_router("app.api.reputation")
 relayer_router = _optional_router("app.api.relayer")
 risk_passport_router = _optional_router("app.api.risk_passport")
 risk_profile_router = _optional_router("app.api.risk_profile")
+profile_router = _optional_router("app.api.profile")
 linked_addresses_router = _optional_router("app.api.linked_addresses")
 auth_session_router = _optional_router("app.api.routes.auth_session")
 full_privacy_router = _optional_router("app.api.routes.full_privacy")
@@ -159,6 +160,12 @@ if risk_profile_router:
         risk_profile_router,
         prefix="/api/v1/zkdefi",
         tags=["risk_profile"],
+    )
+if profile_router:
+    app.include_router(
+        profile_router,
+        prefix="/api/v1/zkdefi",
+        tags=["profile"],
     )
 if linked_addresses_router:
     app.include_router(
