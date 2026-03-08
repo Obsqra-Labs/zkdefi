@@ -120,6 +120,7 @@ proofs_router = _optional_router("app.api.routes.proofs")
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
 snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaster")
 trade_desk_router = _optional_router("app.api.routes.trade_desk")
+signals_router = _optional_router("app.api.routes.signals")
 skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 
@@ -298,6 +299,8 @@ if phase4a_router:
     app.include_router(phase4a_router, prefix="/api/v1/phase4a", tags=["phase4a"])
 if trade_desk_router:
     app.include_router(trade_desk_router)
+if signals_router:
+    app.include_router(signals_router)
 
 receipts_router = _optional_router("app.api.routes.receipts")
 if receipts_router:
