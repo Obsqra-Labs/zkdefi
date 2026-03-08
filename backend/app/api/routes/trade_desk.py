@@ -433,11 +433,37 @@ async def get_ai_insights():
 
 
 @router.get("/api/v1/zkdefi/receipts/timeline")
-async def get_receipt_timeline(limit: int = 50):
-    """Fetch receipt timeline for Memory Lane."""
+async def get_receipt_timeline(
+    address: Optional[str] = None,
+    limit: int = 50,
+    type: Optional[str] = "all"
+):
+    """Fetch receipt timeline for Memory Lane - real receipts with fallback."""
+    try:
+        async with httpx.AsyncClient(timeout=AGGREGATION_TIMEOUT) as client:
+            # Try to fetch from receipts endpoint if it exists
+            receipts_url = f"{BACKEND_BASE}/api/v1/zkdefi/receipts"
+            if address:
+                receipts_url += f"?address={address}&limit={limit}"
+            
+            response = await client.get(receipts_url)
+            if response.status_code == 200:
+                data = response.json()
+                receipts = data.get("receipts", [])
+                if receipts:
+                    return {
+                        "receipts": receipts[:limit],
+                        "totalCount": len(receipts),
+                        "source": "receipts_service"
+                    }
+    except Exception as e:
+        logger.warning(f"Failed to fetch real receipts: {e}")
+    
+    # Fallback to mock data
     return {
         "receipts": RECEIPTS[:limit],
-        "totalCount": len(RECEIPTS)
+        "totalCount": len(RECEIPTS),
+        "source": "mock_data"
     }
 
 
