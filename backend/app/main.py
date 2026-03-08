@@ -470,6 +470,10 @@ if receipts_router:
         tags=["receipts"],
     )
 
+trade_desk_v2_router = _optional_router("app.api.routes.trade_desk_v2")
+if trade_desk_v2_router:
+    app.include_router(trade_desk_v2_router, prefix="/api/v1/zkdefi", tags=["trade-desk-v2"])
+
 
 # -----------------------------------------------------------------------------
 # Backward compatibility aliases
