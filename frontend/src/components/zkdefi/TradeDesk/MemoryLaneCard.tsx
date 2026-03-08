@@ -89,7 +89,17 @@ export function MemoryLaneCard({ receipt, isExpanded, onToggle, actionIcon }: Me
           {receipt.txHash && (
             <div>
               <p className="text-slate-400 text-xs">Transaction</p>
-              <p className="font-mono text-xs text-blue-400 truncate">{receipt.txHash.slice(0, 10)}...{receipt.txHash.slice(-8)}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-xs text-blue-400 truncate">{receipt.txHash.slice(0, 10)}...{receipt.txHash.slice(-8)}</p>
+                <a
+                  href={`https://voyager.online/tx/${receipt.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-500 hover:text-blue-400 underline"
+                >
+                  voyager ↗
+                </a>
+              </div>
             </div>
           )}
 
