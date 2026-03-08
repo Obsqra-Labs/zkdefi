@@ -35,6 +35,14 @@ def _stable_json(value: Any) -> str:
         return str(value)
 
 
+def _json_safe(value: Any) -> Any:
+    """Return a detached JSON-serializable copy when possible."""
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except Exception:
+        return str(value)
+
+
 async def log_trust_event(
     user_address: str,
     event_type: str,
@@ -102,10 +110,10 @@ async def log_trust_event_if_changed(
     cache[state_key] = state_value
     _STATE_STORE.set(address, cache)
 
-    meta = _as_dict(metadata)
+    meta = dict(_as_dict(metadata))
     meta["state_key"] = state_key
-    meta["previous"] = previous
-    meta["current"] = state_value
+    meta["previous"] = _json_safe(previous)
+    meta["current"] = _json_safe(state_value)
 
     await log_trust_event(
         address,

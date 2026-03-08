@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import uuid
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+backend = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(backend))
 
 from app.main import app
 from app.services.session_key_service import SessionKeyService

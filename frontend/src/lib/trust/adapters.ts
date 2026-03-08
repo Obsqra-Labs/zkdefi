@@ -64,7 +64,7 @@ export function getLendingGate(profile: RiskProfileV2 | null | undefined): Trust
 }
 
 export function getGovernancePower(profile: RiskProfileV2 | null | undefined): GovernancePowerView {
-  const governance = profile?.governance ?? {};
+  const governance = (profile?.governance ?? {}) as Partial<NonNullable<RiskProfileV2["governance"]>>;
   return {
     votingPower: Number(governance.voting_power ?? 0),
     lpUsd: Number(governance.lp_usd ?? 0),

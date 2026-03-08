@@ -123,6 +123,13 @@ export interface RiskProfileV2 {
     formula_version: string;
     basis?: string;
   };
+  trust_tuple?: {
+    reputation?: Record<string, unknown>;
+    credit?: Record<string, unknown>;
+    governance?: Record<string, unknown>;
+    execution?: Record<string, unknown>;
+    identity?: Record<string, unknown>;
+  };
   decisions: {
     relayer: RiskDecisionGate;
     execution: RiskDecisionGate;

@@ -84,6 +84,27 @@ export async function confirmSessionGrant(
 }
 
 /**
+ * Confirm session revoke on-chain
+ */
+export async function confirmSessionRevoke(
+  sessionId: string,
+  txHash: string
+): Promise<void> {
+  const response = await fetch(apiUrl("/api/v1/zkdefi/session_keys/revoke/confirm"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      tx_hash: txHash,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to confirm session revoke");
+  }
+}
+
+/**
  * Revoke a session key
  */
 export async function revokeSession(

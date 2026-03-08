@@ -8,6 +8,56 @@ Unify the profile and trust stack into a single Capital OS flow where:
 
 are separate, explainable, and composable signals backed by verified identity links, proof receipts, and session-bound execution.
 
+## Implemented in this Stream (Conflict-Safe)
+
+### Enforced no-touch boundaries
+- `frontend/src/components/zkdefi/TradeDesk/**`
+- `frontend/src/components/zkdefi/mission-control/**`
+- `frontend/src/components/zkdefi/oracle/**`
+- `frontend/src/app/agent/**`
+
+Guardrails shipped:
+- `scripts/check_conflict_safe_paths.sh`
+- `.github/workflows/ci.yml` includes `conflict-safe-guard` job and blocks downstream jobs on violation.
+
+### Backend trust core upgrades shipped
+- Reputation routes expanded additively in `backend/app/api/reputation.py`:
+  - staking pools/positions/stake/claim/exit
+  - on-chain reputation read
+  - proof lifecycle status + proof generation routes
+- Session key lifecycle state is file-persistent (`JsonStore`) in `backend/app/services/session_key_service.py`.
+- Session key route telemetry emits trust events in `backend/app/api/session_keys.py`.
+- Linked address bind/unbind + verification now emits identity trust events in `backend/app/api/linked_addresses.py`.
+- `risk_profile/v2` now includes:
+  - explicit `governance` block
+  - explicit `trust_tuple` block (`reputation`, `credit`, `governance`, `execution`, `identity`)
+  - change-driven trust telemetry (`governance_power_updated`, `credit_model_updated`, `identity_binding_status_updated`, `execution_gate_updated`)
+
+### New additive profile explainability APIs
+- Added `backend/app/api/profile.py` and mounted in `backend/app/main.py`.
+- New endpoints:
+  - `GET /api/v1/zkdefi/profile/snapshot/{address}`
+  - `GET /api/v1/zkdefi/profile/diff/{address}?from=...&to=...`
+
+### Frontend profile/adapters shipped
+- `/profile` rebuilt as V2 four-lens UI in `frontend/src/app/profile/page.tsx`:
+  - `Identity`, `Reputation`, `Credit`, `Governance`
+  - linked-wallet verification challenge + completion controls
+  - smart wallet session lifecycle controls (grant/confirm/revoke/confirm)
+  - selective disclosure claim controls + export
+  - portable identity export (`erc8004` + snapshot JSON)
+- Added typed trust adapter layer:
+  - `frontend/src/lib/trust/adapters.ts`
+  - selectors: `getExecutionGate`, `getLendingGate`, `getGovernancePower`, `getIdentityBindingStatus`, `getDisclosureClaims`
+
+### Tests shipped
+- Backend:
+  - `backend/tests/test_profile_v2_contracts.py`
+  - coverage: `risk_profile/v2` trust tuple + governance fields, snapshot/diff contract, session persistence across restart, verified-only cross-chain reputation baseline.
+- Frontend:
+  - `frontend/src/lib/trust/__tests__/adapters.test.ts`
+  - validates trust adapter selector behavior and claim assembly.
+
 ## Current State Deep Dive (as of 2026-03-08)
 
 ### What Exists and Is Strong

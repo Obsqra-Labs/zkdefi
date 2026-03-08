@@ -63215,7 +63215,9 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0x1227f606b4b5db143ab0e9baa77abe9f648734a4fcff43d52baebe5f389feaf",
       "created_at": 1772959729.459939,
-      "status": "active"
+      "status": "closed",
+      "closed_at": 1772960089.0628366,
+      "close_reason": "stale_no_nft"
     },
     {
       "pair": "STRK/zkdETH",
@@ -63232,8 +63234,46 @@
       "amount1_wei": 3000000000000000,
       "tx_hash": "0xdea5633fe0c46cec7ae2730c973fba345f2b995da9afbc194f58729946d2ad",
       "created_at": 1772959956.23934,
+      "status": "closed",
+      "closed_at": 1772960275.6991093,
+      "close_reason": "stale_no_nft"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 74000,
+      "upper_tick": 95000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x200043815f4a52d67ac86b956108013993d2a44e2a005eeced282078122c24b",
+      "created_at": 1772960281.0282454,
+      "status": "closed",
+      "closed_at": 1772960832.9180512,
+      "close_reason": "stale_no_nft"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x7a31be330d09c1695a47f7ed8b514fbb3a602c475d9d186123bfd422d649c08",
+      "created_at": 1772960688.9168372,
       "status": "active"
     }
   ],
-  "updated_at": 1772959956.2394128
+  "updated_at": 1772960832.918115
 }
