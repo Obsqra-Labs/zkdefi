@@ -18,6 +18,8 @@ import { MarketInfoPanel } from "./TradeDesk/MarketInfoPanel";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate, getLendingGate } from "@/lib/trust/adapters";
 import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
+import { PrivacyPoolPanel } from "./TradeDesk/PrivacyPoolPanel";
+import { CreditLinePanel } from "./TradeDesk/CreditLinePanel";
 
 export interface TradeDeskProps {
   userAddress?: string;
@@ -40,6 +42,7 @@ export function TradeDesk({
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rightPanelMode, setRightPanelMode] = useState<"market" | "privacy" | "credit">("market");
   const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const { profile: trustProfile } = useRiskProfileV2(
     trustSurfaceWiringEnabled ? userAddress : undefined
@@ -298,39 +301,107 @@ export function TradeDesk({
           />
         </div>
 
-        {/* Right: Execution Panel or Market Info */}
-        <AnimatePresence mode="wait">
-          {selectedOpportunity ? (
-            <motion.div
-              key="execution-panel"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="w-96 flex flex-col min-w-0 overflow-hidden"
-            >
-              <ExecutionPanel
-                opportunity={selectedOpportunity}
-                onExecute={handleExecute}
-                onCancel={handleCancel}
-                userReputation={userReputation || undefined}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="market-info"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="w-96 flex flex-col min-w-0 overflow-hidden"
-            >
-              <MarketInfoPanel
-                marketContext={marketContext}
-                insights={insights}
-                loading={loading}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Right: Execution Panel or Market Info */}
+      <AnimatePresence mode="wait">
+        {selectedOpportunity ? (
+          <motion.div
+            key="execution-panel"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="w-96 flex flex-col min-w-0 overflow-hidden"
+          >
+            <ExecutionPanel
+              opportunity={selectedOpportunity}
+              onExecute={handleExecute}
+              onCancel={handleCancel}
+              userReputation={userReputation || undefined}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="right-panel"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="w-96 flex flex-col min-w-0 overflow-hidden"
+          >
+            {/* Tab Buttons */}
+            <div className="flex gap-2 mb-4 p-2 bg-slate-900 rounded-lg border border-slate-700">
+              <button
+                onClick={() => setRightPanelMode("market")}
+                className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                  rightPanelMode === "market"
+                    ? "bg-slate-700 text-cyan-400"
+                    : "bg-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Market
+              </button>
+              <button
+                onClick={() => setRightPanelMode("privacy")}
+                className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                  rightPanelMode === "privacy"
+                    ? "bg-slate-700 text-cyan-400"
+                    : "bg-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Privacy
+              </button>
+              <button
+                onClick={() => setRightPanelMode("credit")}
+                className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                  rightPanelMode === "credit"
+                    ? "bg-slate-700 text-cyan-400"
+                    : "bg-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Credit
+              </button>
+            </div>
+
+            {/* Panel Content */}
+            <AnimatePresence mode="wait">
+              {rightPanelMode === "market" && (
+                <motion.div
+                  key="market"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <MarketInfoPanel
+                    marketContext={marketContext}
+                    insights={insights}
+                    loading={loading}
+                  />
+                </motion.div>
+              )}
+
+              {rightPanelMode === "privacy" && userAddress && (
+                <motion.div
+                  key="privacy"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <PrivacyPoolPanel userAddress={userAddress} />
+                </motion.div>
+              )}
+
+              {rightPanelMode === "credit" && userAddress && (
+                <motion.div
+                  key="credit"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <CreditLinePanel userAddress={userAddress} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
 
       {/* Memory Lane - Optional Bottom Panel */}

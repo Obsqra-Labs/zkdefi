@@ -18,6 +18,8 @@ import { AdvisoryMode } from "./AdvisoryMode";
 import { TerminalMode } from "./TerminalMode";
 import { ExecutionPreview } from "./ExecutionPreview";
 import { ReceiptDisplay } from "./ReceiptDisplay";
+import { collateralService } from "@/services/CollateralService";
+import { creditLineService } from "@/services/CreditLineService";
 
 export interface ExecutionPanelProps {
   opportunity: Opportunity;
@@ -57,6 +59,7 @@ export const ExecutionPanel = React.memo(
     const [executing, setExecuting] = useState(false);
     const [receipt, setReceipt] = useState<TradeReceipt | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [collateralHealth, setCollateralHealth] = useState<number | null>(null);
 
     // Estimate impact when parameters change
     useEffect(() => {
@@ -124,6 +127,25 @@ export const ExecutionPanel = React.memo(
       setError(null);
 
       try {
+        // Check collateral health if it's a lending opportunity
+        if (opportunity.type === "lending" && userReputation) {
+          try {
+            const health = await collateralService.getHealthFactor(userReputation.toString());
+            setCollateralHealth(health.health_factor);
+            
+            if (health.status === "liquidatable") {
+              setError("Your collateral is below minimum threshold - liquidation risk");
+              setExecuting(false);
+              return;
+            }
+            if (health.status === "at_risk" && health.health_factor < 1.2) {
+              setError("Warning: Your collateral health is low - consider depositing more");
+            }
+          } catch (healthErr) {
+            console.warn("Could not fetch collateral health:", healthErr);
+          }
+        }
+
         const mockReceipt: TradeReceipt = {
           id: `trade-${Date.now()}`,
           type: (opportunity.type === "staking" ? "swap" : opportunity.type) as any,
@@ -146,7 +168,7 @@ export const ExecutionPanel = React.memo(
       } finally {
         setExecuting(false);
       }
-    }, [parameters, estimatedImpact, opportunity, onExecute]);
+    }, [parameters, estimatedImpact, opportunity, onExecute, userReputation]);
 
     return (
       <motion.div
@@ -240,6 +262,22 @@ export const ExecutionPanel = React.memo(
             privacyLevel={parameters.privacyLevel}
             userTier={userReputation.tier}
           />
+        )}
+
+        {/* Collateral Health Indicator */}
+        {collateralHealth !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+          >
+            <p className="text-sm text-blue-900">
+              Collateral Health: <span className="font-bold">{collateralHealth.toFixed(2)}</span>
+              {collateralHealth < 1.5 && (
+                <span className="ml-2 text-orange-600">(⚠ Monitor closely)</span>
+              )}
+            </p>
+          </motion.div>
         )}
 
         {/* Action Buttons */}
