@@ -23,8 +23,12 @@ import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
 import { DeployOverlay } from "@/components/zkdefi/mission-control/DeployOverlay";
 import { GovernanceOverlay } from "@/components/zkdefi/mission-control/GovernanceOverlay";
 import { CenterStageModes } from "@/components/zkdefi/mission-control/CenterStageModes";
+import {
+  AgentBuilderDrawer,
+  type AgentBuilderDraft,
+} from "@/components/zkdefi/mission-control/AgentBuilderDrawer";
 
-type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag";
+type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag" | "agent-builder";
 
 export default function AgentPage() {
   const { address, isConnected } = useAccount();
@@ -33,6 +37,7 @@ export default function AgentPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayMode>(null);
   const [slideout, setSlideout] = useState<SlideoutMode>(null);
+  const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
 
   const vault = usePrivacyVault(address);
 
@@ -52,6 +57,11 @@ export default function AgentPage() {
 
   const handleOpenCircuitBoard = useCallback(() => {
     setActiveOverlay("circuit-board");
+  }, []);
+
+  const handleOpenAgentBuilder = useCallback((draft: AgentBuilderDraft) => {
+    setAgentBuilderDraft(draft);
+    setSlideout("agent-builder");
   }, []);
 
   if (!mounted || (!isConnected && !walletSettled)) {
@@ -89,6 +99,7 @@ export default function AgentPage() {
     overlayContent = (
       <CircuitBoard
         address={address}
+        onOpenAgentBuilder={handleOpenAgentBuilder}
         onClose={() => setActiveOverlay(null)}
       />
     );
@@ -158,7 +169,7 @@ export default function AgentPage() {
             className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={() => setSlideout(null)}
           />
-          <div className={`w-full ${slideout === "zkrag" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
+          <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
                 {slideout === "deposit" && "Deposit"}
@@ -166,6 +177,7 @@ export default function AgentPage() {
                 {slideout === "privacy" && "Full Privacy Pool"}
                 {slideout === "shielded" && "Shielded Pool"}
                 {slideout === "zkrag" && "zkRAG Intelligence"}
+                {slideout === "agent-builder" && "Agent Builder"}
               </h2>
               <button
                 onClick={() => setSlideout(null)}
@@ -198,6 +210,9 @@ export default function AgentPage() {
             {slideout === "privacy" && <FullPrivacyPoolPanel />}
             {slideout === "shielded" && <ShieldedPoolPanel />}
             {slideout === "zkrag" && address && <ZkRagAgentConsole userAddress={address} />}
+            {slideout === "agent-builder" && address && (
+              <AgentBuilderDrawer userAddress={address} draft={agentBuilderDraft} />
+            )}
           </div>
         </div>
       )}

@@ -19,6 +19,69 @@ logger = logging.getLogger(__name__)
 _agents: Dict[str, Dict] = {}
 _user_agents: Dict[str, List[str]] = {}
 
+LLM_PROVIDER_CATALOG: Dict[str, Dict[str, Any]] = {
+    "openai": {
+        "provider_id": "openai",
+        "name": "OpenAI",
+        "description": "OpenAI Chat Completions API",
+        "default_model": "gpt-4o-mini",
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o3-mini"],
+        "requires_api_key_env": True,
+        "api_key_env": "OPENAI_API_KEY",
+        "requires_base_url": False,
+        "base_url": "",
+        "defaults": {"temperature": 0.2, "max_tokens": 1024, "top_p": 1.0},
+    },
+    "anthropic": {
+        "provider_id": "anthropic",
+        "name": "Anthropic",
+        "description": "Anthropic Messages API",
+        "default_model": "claude-3-7-sonnet-latest",
+        "models": ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+        "requires_api_key_env": True,
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "requires_base_url": False,
+        "base_url": "",
+        "defaults": {"temperature": 0.2, "max_tokens": 1024, "top_p": 1.0},
+    },
+    "claude": {
+        "provider_id": "claude",
+        "name": "Claude",
+        "description": "Claude model family configuration",
+        "default_model": "claude-3-7-sonnet-latest",
+        "models": ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+        "requires_api_key_env": True,
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "requires_base_url": False,
+        "base_url": "",
+        "defaults": {"temperature": 0.2, "max_tokens": 1024, "top_p": 1.0},
+    },
+    "local": {
+        "provider_id": "local",
+        "name": "Local / OpenAI-Compatible",
+        "description": "Local endpoint such as Ollama or vLLM",
+        "default_model": "llama3.1:8b",
+        "models": ["llama3.1:8b", "mistral:7b", "qwen2.5:7b"],
+        "requires_api_key_env": False,
+        "api_key_env": "",
+        "requires_base_url": True,
+        "base_url": "http://localhost:11434/v1",
+        "defaults": {"temperature": 0.2, "max_tokens": 1024, "top_p": 1.0},
+    },
+    "deterministic": {
+        "provider_id": "deterministic",
+        "name": "Deterministic Fallback",
+        "description": "No external LLM call; deterministic decision path",
+        "default_model": "deterministic-v1",
+        "models": ["deterministic-v1"],
+        "requires_api_key_env": False,
+        "api_key_env": "",
+        "requires_base_url": False,
+        "base_url": "",
+        "defaults": {"temperature": 0.0, "max_tokens": 512, "top_p": 1.0},
+    },
+}
+
 
 class AgentService:
     """
@@ -27,13 +90,69 @@ class AgentService:
     
     def __init__(self):
         self.orchestrator = get_local_orchestrator()
+
+    @staticmethod
+    def _clamp_float(value: Any, minimum: float, maximum: float, fallback: float) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return fallback
+        return max(minimum, min(maximum, parsed))
+
+    @staticmethod
+    def _clamp_int(value: Any, minimum: int, maximum: int, fallback: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return fallback
+        return max(minimum, min(maximum, parsed))
+
+    def _normalize_llm_config(self, llm_config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        payload = llm_config or {}
+        provider_id = str(payload.get("provider") or "deterministic").strip().lower()
+        provider = LLM_PROVIDER_CATALOG.get(provider_id)
+        if not provider:
+            available = sorted(LLM_PROVIDER_CATALOG.keys())
+            raise ValueError(f"Unknown LLM provider: {provider_id}. Available: {available}")
+
+        defaults = provider["defaults"]
+        model = str(payload.get("model") or provider["default_model"]).strip()
+        if not model:
+            model = provider["default_model"]
+
+        normalized: Dict[str, Any] = {
+            "provider": provider_id,
+            "model": model,
+            "temperature": self._clamp_float(payload.get("temperature"), 0.0, 2.0, float(defaults["temperature"])),
+            "max_tokens": self._clamp_int(payload.get("max_tokens"), 64, 8192, int(defaults["max_tokens"])),
+            "top_p": self._clamp_float(payload.get("top_p"), 0.0, 1.0, float(defaults["top_p"])),
+        }
+
+        api_key_env = str(payload.get("api_key_env") or provider.get("api_key_env") or "").strip().upper()
+        if provider["requires_api_key_env"]:
+            if not api_key_env:
+                raise ValueError(f"Provider {provider_id} requires api_key_env")
+            normalized["api_key_env"] = api_key_env
+        elif api_key_env:
+            normalized["api_key_env"] = api_key_env
+
+        base_url = str(payload.get("base_url") or provider.get("base_url") or "").strip()
+        if provider["requires_base_url"]:
+            if not base_url:
+                raise ValueError(f"Provider {provider_id} requires base_url")
+            normalized["base_url"] = base_url
+        elif base_url:
+            normalized["base_url"] = base_url
+
+        return normalized
     
     async def create_agent(
         self, 
         user_address: str, 
         name: str, 
         processors: List[str], 
-        decision_logic: Dict
+        decision_logic: Dict,
+        llm_config: Optional[Dict[str, Any]] = None,
     ) -> Dict:
         """Create a new composed agent."""
         agent_id = hashlib.sha256(f"{user_address}{name}{time.time()}".encode()).hexdigest()[:16]
@@ -43,6 +162,8 @@ class AgentService:
         invalid = set(processors) - available_models
         if invalid:
             raise ValueError(f"Unknown processors: {invalid}")
+
+        normalized_llm = self._normalize_llm_config(llm_config)
         
         agent = {
             "id": agent_id,
@@ -50,6 +171,7 @@ class AgentService:
             "name": name,
             "processors": processors,
             "decision_logic": decision_logic,
+            "llm": normalized_llm,
             "created_at": int(time.time()),
             "active": True
         }
@@ -134,6 +256,26 @@ class AgentService:
     async def list_available_models(self) -> List[Dict]:
         """List all available models (owned by zkde.fi)."""
         return self.orchestrator.list_models()
+
+    async def list_llm_providers(self) -> List[Dict]:
+        """List available LLM providers and defaults for builder UIs."""
+        providers: List[Dict[str, Any]] = []
+        for provider in LLM_PROVIDER_CATALOG.values():
+            providers.append(
+                {
+                    "provider_id": provider["provider_id"],
+                    "name": provider["name"],
+                    "description": provider["description"],
+                    "default_model": provider["default_model"],
+                    "models": provider["models"],
+                    "requires_api_key_env": provider["requires_api_key_env"],
+                    "requires_base_url": provider["requires_base_url"],
+                    "api_key_env": provider["api_key_env"],
+                    "base_url": provider["base_url"],
+                    "defaults": provider["defaults"],
+                }
+            )
+        return providers
     
     def get_model_details(self, model_id: str) -> Optional[Dict]:
         """Get detailed info about a model."""

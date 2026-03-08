@@ -80,14 +80,6 @@ export function MemoryLane({
     return Array.from(types).sort();
   }, [receipts]);
 
-  if (loading && receipts.length === 0) {
-    return (
-      <div className="bg-slate-900 border-t border-slate-700 p-4">
-        <div className="text-slate-400">Loading receipt history...</div>
-      </div>
-    );
-  }
-
   const analytics = useMemo(() => {
     const totalExecutions = filtered.length;
     const totalYield = filtered.reduce((sum, r) => sum + r.yieldImpact, 0);
@@ -103,6 +95,14 @@ export function MemoryLane({
       avgReputation,
     };
   }, [filtered]);
+
+  if (loading && receipts.length === 0) {
+    return (
+      <div className="bg-slate-900 border-t border-slate-700 p-4">
+        <div className="text-slate-400">Loading receipt history...</div>
+      </div>
+    );
+  }
 
   const renderCompactView = () => (
     <div

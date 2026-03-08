@@ -16,6 +16,7 @@ class CreateAgentRequest(BaseModel):
     name: str
     processors: List[str]
     decision_logic: Dict[str, Any] = {"type": "AND"}
+    llm: Optional[Dict[str, Any]] = None
 
 
 class ExecuteAgentRequest(BaseModel):
@@ -31,6 +32,14 @@ async def list_models():
     service = get_agent_service()
     models = await service.list_available_models()
     return {"models": models}
+
+
+@router.get("/providers")
+async def list_llm_providers():
+    """List available LLM providers for agent composition."""
+    service = get_agent_service()
+    providers = await service.list_llm_providers()
+    return {"providers": providers}
 
 
 @router.post("/{agent_id}/execute")
@@ -59,9 +68,12 @@ async def create_agent(request: CreateAgentRequest):
             user_address=request.user_address,
             name=request.name,
             processors=request.processors,
-            decision_logic=request.decision_logic
+            decision_logic=request.decision_logic,
+            llm_config=request.llm,
         )
         return agent
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
