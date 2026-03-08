@@ -48,30 +48,6 @@ const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
     "bg-cyan-500/15 text-cyan-300 border-cyan-500/25",
 };
 
-type WithdrawActionResult = {
-  txRef: string;
-  chainTxHash?: string;
-  sync?: Record<string, unknown> | null;
-};
-
-type SettlementReport = {
-  status: string;
-  methodLabel: string;
-  amountLabel: string;
-  txHash?: string;
-  txUrl?: string;
-  receiptId?: string;
-  receiptUrl?: string;
-  noteId?: string;
-  commitmentHash?: string;
-  settlementDay?: string;
-  settlementEta?: string;
-  ledgerSynced: boolean;
-  vaultSynced: boolean;
-  warnings: string[];
-  statusUrl?: string;
-};
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -185,7 +161,6 @@ export function WithdrawPanel({
   const [recipientAddress, setRecipientAddress] = useState("");
   const [userTier, setUserTier] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
-  const [report, setReport] = useState<SettlementReport | null>(null);
 
   // Auto-select commitment from prop
   useEffect(() => {
@@ -208,7 +183,7 @@ export function WithdrawPanel({
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/v1/zkdefi/reputation/user/${address}`,
+          `${API_BASE}/api/v1/zkdefi/reputation/user/${address}`,
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -257,11 +232,11 @@ export function WithdrawPanel({
   async function withdrawCommitmentShield(
     commitment: VaultCommitment,
     amountWei: string,
-  ): Promise<WithdrawActionResult> {
+  ) {
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setWithdrawSteps((prev) => updateStep(prev, 0, "active", "Verifying..."));
-    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_withdraw`, {
+    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_withdraw`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -315,14 +290,14 @@ export function WithdrawPanel({
     const txHash = result.transaction_hash;
 
     setWithdrawSteps((prev) => updateStep(prev, 2, "done", "Confirmed"));
-    return { txRef: txHash, chainTxHash: txHash };
+    return txHash;
   }
 
   async function withdrawNullifierSet(
     commitment: VaultCommitment,
     amountWei: string,
     isPartial: boolean,
-  ): Promise<WithdrawActionResult> {
+  ) {
     const poolAddr = FULL_PRIVACY_POOL_ADDRESS;
     if (!poolAddr)
       throw new Error("Full Privacy Pool address not configured");
@@ -332,8 +307,8 @@ export function WithdrawPanel({
     );
 
     const endpoint = isPartial
-      ? `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
-      : `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof`;
+      ? `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
+      : `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`;
 
     setWithdrawSteps((prev) =>
       updateStep(prev, 1, "active", "Generating nullifier..."),
@@ -430,7 +405,7 @@ export function WithdrawPanel({
       setWithdrawSteps((prev) =>
         updateStep(prev, 3, "done", `Queued (relay #${relayData.request_id})`),
       );
-      return { txRef: relayData.request_id?.toString() || "" };
+      return relayData.request_id?.toString() || "";
     } else {
       setWithdrawSteps((prev) =>
         updateStep(prev, 2, "active", "Sign in wallet..."),
@@ -481,7 +456,7 @@ export function WithdrawPanel({
       const txHash = result.transaction_hash;
 
       setWithdrawSteps((prev) => updateStep(prev, 3, "done", "Confirmed"));
-      return { txRef: txHash, chainTxHash: txHash };
+      return txHash;
     }
   }
 
@@ -493,7 +468,7 @@ export function WithdrawPanel({
     poolType: number,
     proofFelts: string[],
   ) {
-    const res = await fetch(`${API_BASE}/v1/zkdefi/relayer/request`, {
+    const res = await fetch(`${API_BASE}/api/v1/zkdefi/relayer/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -513,14 +488,14 @@ export function WithdrawPanel({
     return data;
   }
 
-  async function withdrawDarkLedger(amountWei: string, asset: string): Promise<WithdrawActionResult> {
+  async function withdrawDarkLedger(amountWei: string, asset: string) {
     if (!address) throw new Error("Wallet not connected");
 
     setWithdrawSteps((prev) =>
       updateStep(prev, 0, "active", "Queuing withdrawal..."),
     );
 
-    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
+    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_out/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -536,73 +511,7 @@ export function WithdrawPanel({
       throw new Error(data.detail || "Ledger transfer-out failed");
 
     setWithdrawSteps((prev) => updateStep(prev, 1, "done", `Queued (request #${data.request_id ?? ""})`));
-    return {
-      txRef: String(data?.request_id ?? data?.payout_id ?? data?.receipt_id ?? ""),
-      chainTxHash: typeof data?.tx_hash === "string" ? data.tx_hash : undefined,
-      sync: data,
-    };
-  }
-
-  async function syncWithdrawRecord(
-    commitment: VaultCommitment,
-    amountWei: string,
-    result: WithdrawActionResult,
-  ): Promise<{
-    ledger: Record<string, unknown> | null;
-    ledgerError: string | null;
-    vaultSynced: boolean;
-    vaultError: string | null;
-  }> {
-    let ledger: Record<string, unknown> | null = (result.sync as Record<string, unknown>) ?? null;
-    let ledgerError: string | null = null;
-    let vaultSynced = false;
-    let vaultError: string | null = null;
-
-    if (!ledger) {
-      try {
-        const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_address: address,
-            amount_wei: amountWei,
-            asset: commitment.asset,
-            method,
-            commitment_hash: commitment.commitment_hash,
-            tx_hash: result.chainTxHash || result.txRef,
-            capital_source: method === "dark_ledger" ? "private_capital" : "onchain_pool",
-            destination_mode: method === "dark_ledger" ? "wallet" : "onchain_withdraw",
-            recipient: recipientAddress || address,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.detail || "Failed to sync withdrawal");
-        }
-        ledger = data;
-      } catch (err: unknown) {
-        ledgerError = err instanceof Error ? err.message : String(err);
-      }
-    }
-
-    if (commitment.commitment_hash) {
-      try {
-        const res = await fetch(
-          `${API_BASE}/v1/zkdefi/private-yield/withdrawal/complete/${encodeURIComponent(commitment.commitment_hash)}`,
-          { method: "POST" },
-        );
-        if (res.ok) {
-          vaultSynced = true;
-        } else if (res.status !== 404) {
-          const data = await res.json().catch(() => ({}));
-          vaultError = String(data?.detail || "Failed to sync vault withdrawal");
-        }
-      } catch (err: unknown) {
-        vaultError = err instanceof Error ? err.message : String(err);
-      }
-    }
-
-    return { ledger, ledgerError, vaultSynced, vaultError };
+    return data.receipt_id || "";
   }
 
   // -----------------------------------------------------------------------
@@ -612,51 +521,45 @@ export function WithdrawPanel({
   async function handleWithdraw() {
     if (!selectedCommitment || !amount || parseFloat(amount) <= 0) return;
     setBusy(true);
-    setReport(null);
 
     try {
-      const parts = amount.split(".");
-      const whole = parts[0] || "0";
-      const frac = (parts[1] || "").padEnd(18, "0").slice(0, 18);
-      const raw = whole + frac;
-      const trimmed = raw.replace(/^0+/, "") || "0";
-      const amountWei = BigInt(trimmed).toString();
+      const amountWei = (
+        BigInt(Math.floor(parseFloat(amount))) * BigInt(1e18.toString())
+      ).toString();
 
-      let result: WithdrawActionResult = { txRef: "" };
+      let txHash: string;
 
       const isFullAmount =
         formatAmount(selectedCommitment.amount_wei) === amount;
 
       switch (method) {
         case "commitment_shield":
-          result = await withdrawCommitmentShield(
+          txHash = await withdrawCommitmentShield(
             selectedCommitment,
             selectedCommitment.amount_wei,
           );
           break;
         case "nullifier_set":
-          result = await withdrawNullifierSet(
+          txHash = await withdrawNullifierSet(
             selectedCommitment,
             amountWei,
             !isFullAmount,
           );
           break;
         case "hashed_proof":
-          result = await withdrawNullifierSet(
+          txHash = await withdrawNullifierSet(
             selectedCommitment,
             amountWei,
             !isFullAmount,
           );
           break;
         case "dark_ledger":
-          result = await withdrawDarkLedger(
+          txHash = await withdrawDarkLedger(
             amountWei,
             selectedCommitment.asset,
           );
           break;
       }
-
-      const sync = await syncWithdrawRecord(selectedCommitment, amountWei, result);
 
       removeCommitment(selectedCommitment.id);
 
@@ -669,66 +572,33 @@ export function WithdrawPanel({
         text: isRelayed
           ? `Queued relayed withdrawal of ${amount} ${selectedCommitment!.asset} via ${METHOD_LABELS[method]}`
           : `Withdrew ${amount} ${selectedCommitment!.asset} via ${METHOD_LABELS[method]}`,
-        txHash: isRelayed ? undefined : result.chainTxHash,
+        txHash: isRelayed ? undefined : txHash,
       });
 
       if (isRelayed) {
         toastSuccess(
-          `Withdrawal queued via relayer (request #${result.txRef})`,
+          `Withdrawal queued via relayer (request #${txHash})`,
           {
             action: {
               label: "Check status",
               onClick: () =>
                 window.open(
-                  `${API_BASE}/v1/zkdefi/relayer/request/${result.txRef}`,
+                  `${API_BASE}/api/v1/zkdefi/relayer/request/${txHash}`,
                   "_blank",
                 ),
             },
           },
         );
-      } else if (result.chainTxHash) {
+      } else if (txHash) {
         toastSuccess(
           `Withdrawal of ${amount} ${selectedCommitment!.asset} submitted`,
           {
             action: {
               label: "View tx",
               onClick: () =>
-                window.open(sepoliaVoyagerTxUrl(result.chainTxHash!), "_blank"),
+                window.open(sepoliaVoyagerTxUrl(txHash), "_blank"),
             },
           },
-        );
-      } else if (result.txRef) {
-        toastSuccess(`Withdrawal request queued (#${result.txRef})`);
-      }
-
-      const receiptId = String(sync.ledger?.receipt_id || "");
-      const receiptPath = String(sync.ledger?.receipt_url || "");
-      const statusUrl = String(sync.ledger?.status_url || "");
-      setReport({
-        status: String(sync.ledger?.status || "recorded"),
-        methodLabel: METHOD_LABELS[method],
-        amountLabel: `${amount} ${selectedCommitment.asset}`,
-        txHash: result.chainTxHash,
-        txUrl: result.chainTxHash ? sepoliaVoyagerTxUrl(result.chainTxHash) : undefined,
-        receiptId: receiptId || undefined,
-        receiptUrl: receiptPath ? `${API_BASE}${receiptPath}` : undefined,
-        noteId: String(sync.ledger?.note_id || "") || undefined,
-        commitmentHash: selectedCommitment.commitment_hash,
-        settlementDay: String(sync.ledger?.settlement_day_utc || "") || undefined,
-        settlementEta: String(sync.ledger?.settlement_eta || "") || undefined,
-        ledgerSynced: Boolean(sync.ledger),
-        vaultSynced: sync.vaultSynced,
-        warnings: [sync.ledgerError, sync.vaultError, String(sync.ledger?.warning || "")].filter(
-          (w): w is string => Boolean(w),
-        ),
-        statusUrl: statusUrl ? `${API_BASE}${statusUrl}` : undefined,
-      });
-
-      if (sync.ledgerError || sync.vaultError) {
-        toastError(
-          `Withdrawal submitted but backend sync is partial: ${[sync.ledgerError, sync.vaultError]
-            .filter(Boolean)
-            .join(" | ")}`,
         );
       }
 
@@ -991,69 +861,6 @@ export function WithdrawPanel({
           <span className="text-emerald-400">Source commitment stays hidden</span>
         </div>
       </div>
-
-      {report && (
-        <div className="rounded-lg border border-rose-700/40 bg-rose-900/10 p-3 space-y-2 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-rose-300">Confirmation Report</span>
-            <span className="text-rose-200">{report.status}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-zinc-300">
-            <span className="text-zinc-500">Method</span>
-            <span>{report.methodLabel}</span>
-            <span className="text-zinc-500">Amount</span>
-            <span>{report.amountLabel}</span>
-            <span className="text-zinc-500">Settlement Day (UTC)</span>
-            <span>{report.settlementDay || "--"}</span>
-            <span className="text-zinc-500">Ledger Sync</span>
-            <span>{report.ledgerSynced ? "yes" : "pending"}</span>
-            <span className="text-zinc-500">Vault Sync</span>
-            <span>{report.vaultSynced ? "yes" : "pending"}</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {report.txUrl && (
-              <a
-                href={report.txUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded border border-rose-500/30 px-2 py-1 text-rose-300 hover:bg-rose-500/10"
-              >
-                Tx
-              </a>
-            )}
-            {report.receiptUrl && (
-              <a
-                href={report.receiptUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded border border-cyan-500/30 px-2 py-1 text-cyan-300 hover:bg-cyan-500/10"
-              >
-                Receipt
-              </a>
-            )}
-            {report.statusUrl && (
-              <a
-                href={report.statusUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded border border-zinc-500/30 px-2 py-1 text-zinc-300 hover:bg-zinc-500/10"
-              >
-                Settlement Status
-              </a>
-            )}
-          </div>
-          {report.commitmentHash && (
-            <p className="font-mono text-[11px] text-zinc-400 break-all">
-              commitment: {report.commitmentHash}
-            </p>
-          )}
-          {report.warnings.length > 0 && (
-            <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200">
-              {report.warnings.join(" | ")}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Submit */}
       <button

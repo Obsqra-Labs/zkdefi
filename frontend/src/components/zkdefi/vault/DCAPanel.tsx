@@ -75,7 +75,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
 
     const fetchSchedules = async () => {
       try {
-        const res = await fetch(`${API_BASE}/v1/vault/dca/list/${address}`, {
+        const res = await fetch(`${API_BASE}/api/v1/vault/dca/list/${address}`, {
           signal: AbortSignal.timeout(8000),
         });
         if (res.ok && !dead) {
@@ -138,7 +138,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/v1/vault/dca/schedule`, {
+      const res = await fetch(`${API_BASE}/api/v1/vault/dca/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,7 +173,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/v1/vault/dca/stop/${id}`, {
+      const res = await fetch(`${API_BASE}/api/v1/vault/dca/stop/${id}`, {
         method: "POST",
       });
       if (res.ok) {
@@ -325,7 +325,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
       </div>
 
       {/* Active Schedules */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 space-y-4" role="region" aria-label="Active DCA schedules">
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-emerald-400" />
           <h3 className="text-lg font-semibold text-white">Active Schedules</h3>
