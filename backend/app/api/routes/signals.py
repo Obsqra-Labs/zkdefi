@@ -22,9 +22,12 @@ from typing import Optional, List
 
 from app.services.forecaster_adapter import ForecasterAdapter
 from app.services.reputation_adapter import ReputationAdapter
+from app.services.agent_event_tracker import get_event_tracker
 
 router = APIRouter(tags=["signals"])
 logger = logging.getLogger(__name__)
+
+tracker = get_event_tracker()
 
 BACKEND_BASE = "http://localhost:8003"
 AGGREGATION_TIMEOUT = 10.0

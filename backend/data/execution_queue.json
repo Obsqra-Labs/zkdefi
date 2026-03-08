@@ -1,0 +1,20 @@
+{
+  "0x5f7a55145f1470e38b7b0104ad042fa97ab2d2f277f12e88b8c9744648427c": {
+    "id": "0x5f7a55145f1470e38b7b0104ad042fa97ab2d2f277f12e88b8c9744648427c",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "lending",
+    "method": "borrow",
+    "calldata": {
+      "to": "0xabc123",
+      "method": "borrow",
+      "amount": 1000000000000000000,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "asset": "USDC",
+      "pool_id": "3"
+    },
+    "signal_id": "test_sig_001",
+    "estimated_gas": 180000,
+    "created_at": "2026-03-08T12:37:26.266644+00:00"
+  }
+}

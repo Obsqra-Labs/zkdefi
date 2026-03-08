@@ -125,6 +125,7 @@ snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaste
 trade_desk_router = _optional_router("app.api.routes.trade_desk")
 signals_router = _optional_router("app.api.routes.signals")
 oracle_gating_router = _optional_router("app.api.routes.oracle_gating")
+agent_execution_router = _optional_router("app.api.routes.agent_execution")
 skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 
@@ -325,6 +326,8 @@ if signals_router:
     app.include_router(signals_router)
 if oracle_gating_router:
     app.include_router(oracle_gating_router)
+if agent_execution_router:
+    app.include_router(agent_execution_router)
 
 receipts_router = _optional_router("app.api.routes.receipts")
 if receipts_router:

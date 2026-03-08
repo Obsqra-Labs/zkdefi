@@ -19651,7 +19651,1282 @@
         "tick_spacing": 1000,
         "extension": "0x0"
       }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1e5bdc0de52d512da0870ffa0913a3d2c5718146bad59a51bf9a7f7560fbe5e",
+      "created_at": 1772960889.2937062,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4d60c3b3a62ec714deb71a55c1a579d5ae291973b854b9f63a5d0c06c30fd16",
+      "created_at": 1772961042.3704855,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 81000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x473e9e655e2d36b2684d9c72b39059f9962d33f6693cdcc08d932e1f54b2c46",
+      "created_at": 1772961216.7422287,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1dd168e5887ba093794d2a8cf1748013078af5193390f2e1fa657994ef02ae1",
+      "created_at": 1772961294.406038,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "buy",
+      "tick": 85000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7760a9e03ed47dd26aa0a942e1b46ce1751f1c63c5ab2b464936b8559d72521",
+      "created_at": 1772961416.11538,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 85000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3279269a7b94286e1b5f4ae84d858ce785d351231ac1fcf5b15949e2f9530de",
+      "created_at": 1772961525.427211,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7e212ddc61df1a4a29ce7263439c9d38715a544055202213ccb1d68d932c78",
+      "created_at": 1772961634.6405146,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x6c3e85e54835e15c818e34c3a693fe860636b04ec2d1dbbf2886ae778dbcea3",
+      "created_at": 1772961888.4654703,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 80000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2bfe3d4a5314ac1aeb14cd1bdd7a195410f1857ae2c52e493e2af11b6f681f6",
+      "created_at": 1772962051.3983362,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x66e036b682280b4d8eaf235f69515a6a72396f11a56389bb022a38ea4924e7f",
+      "created_at": 1772962207.9314444,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x70430d54eef8ce02933a8152a29d220a3214c1d5f7001cc05557582813b9168",
+      "created_at": 1772962334.8494935,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7e434c36debf4b595996a180a92aab9b63f8d9c74a543e6ae3ad123a32d64f1",
+      "created_at": 1772962538.4829905,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4d3f0b6ad05a738dea714242f3d33720aeaf59ee52d392543db23800188c53c",
+      "created_at": 1772962661.4716687,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 89000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x25e63af8e4a3c38589de8e6600d4448c65942b38c5e09390d6f9b9bc5f33033",
+      "created_at": 1772962766.1561456,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x9a31db48af55da19dc4144da78e47e10d693bbd3c7170cfb226cc22a33f5c6",
+      "created_at": 1772962911.6999114,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2fdeeac3d66036d0ac51ab79da6707a2040678a7d3f2652aabfbdeecf86d71c",
+      "created_at": 1772963028.2013817,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x5b27e602a01f93a45dd259f166f06078e29439803dcffd34fb812025a0d85c6",
+      "created_at": 1772963138.2749133,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 90000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x37e3d2f74271fcbcefaaaaf35dfefb72fafc970e46f4d249bae1e63b6e4a524",
+      "created_at": 1772963293.5347013,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x42cca0beff0fd58e39295d8ca88f98629bee8460ffcaf8f18e93ad514957fd1",
+      "created_at": 1772963432.5941029,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x37fb20247d682fea31bd644cdfcea2f8c3bf00ec1f228e181928744e6213253",
+      "created_at": 1772963691.0319405,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "buy",
+      "tick": 88000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2f51426e7d8d1a74ba8d138a788661760e92e89ac39da5be2da040044372850",
+      "created_at": 1772963808.7550144,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "buy",
+      "tick": 88000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x383503884f3e4d1809789bc288f7850af018693c3b6d28f9b92ead3704a57a9",
+      "created_at": 1772963931.212822,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x206245ed03fa85b2f5937b3a3f427134207ac1ba0b51525d0fe4a92c2b9b0e4",
+      "created_at": 1772964070.3910863,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3ef40511a7481983a9b837335345ead60ba17aa561fb25c9281c924842783d5",
+      "created_at": 1772964207.4903224,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3e20b919b54973e8fda6f00a5bc5485317c8fe1e55f421187ff263f9a17f4c2",
+      "created_at": 1772964440.936561,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "sell",
+      "tick": 86000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0xfa3f4518f2d00d82ba86785adad15301f6fecc7b322848f6d04dde37fe2ee3",
+      "created_at": 1772964557.367016,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1a53fc3e613772a701e56054b7167159e233dccad4689543ac2f434dec5ec4f",
+      "created_at": 1772964673.6491375,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "side": "buy",
+      "tick": 81000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x79cf46c1168c2b36ff3354b3fc414b71cd8a6f7916b6beef60f912a39269769",
+      "created_at": 1772964798.5036619,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x23fb26567438106af2f81774a2157b2df90adf3fe591d542d29f00f866ad009",
+      "created_at": 1772965074.4333944,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x52a5f2412250810141e6756275ed2339417583b31460f13beb7db3c85c309f9",
+      "created_at": 1772965222.9732714,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x46b2a7d2448bbb05cfd378e36cc35481562a89c82ae8932a8aa820f097e0e1",
+      "created_at": 1772965530.8797567,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x61364f3c9e6fbd1a26d427f68d7e242e8ea0c7c98cfc332773d93c6fcc51608",
+      "created_at": 1772965788.1999977,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x541161148d3d5413eef0828587cb8c3edca982f8bb9f90137852db5a01dce0e",
+      "created_at": 1772966059.8099635,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4fc9fd641ab9e59293e3c104c848a3a45f36490115412f8348534ee7c8e7421",
+      "created_at": 1772966170.948889,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x13abd9d8b13d2baf9cf7ac31c9085ade8b8dd6984b7696fa01d488db586583",
+      "created_at": 1772966439.6703217,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x31e505eaee67f685b508213c3e077df36d4002d90c4fac44c741b89c35a28e3",
+      "created_at": 1772966606.024412,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1e8d6a188b28f9a243a17a0224d2b9dc684e96fdc2bda0dc70535ad1dcee6a8",
+      "created_at": 1772966833.4449637,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x5605b543e67dda70309fcd9ac9a4a160fbaea91dbda345e126b2f1ebee080c9",
+      "created_at": 1772967077.6762252,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1688a4b1ff4817c30bd9b1bda025a9b4b24592c84a409be48aa105ea5de528c",
+      "created_at": 1772967414.3712978,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x6bb5bab751a9d41b61129896f0808b8b142d3b74824a248a2095501e19f125d",
+      "created_at": 1772967576.0779862,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x40bdf96df3887415126cb47e60b288b38fecbf9984c54c726460b9095ad1039",
+      "created_at": 1772967795.4745166,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x5997c2a6043e1e4e011d23389f585000ac7a59d70a93239368698ca5f2254db",
+      "created_at": 1772967915.3969119,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2d1cc22b724c308f612cf268462e4c3361682c2e533c6028ade298cf9992ef",
+      "created_at": 1772968167.6250107,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x484864d7d1bb0e4fb1e9265c33860874a30ea8e6d8d7c77ad48efd60ffe50e8",
+      "created_at": 1772968311.3987558,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x74e26f2a41ef8c10e4453daffdebb5290ea0157c04f1a6caae22b0ec2462272",
+      "created_at": 1772968556.0310142,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1eb5f1fd6011c8a29131c4e8d497e5d96b2c529711d86a37919bfc500f5636b",
+      "created_at": 1772968678.256784,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3d4cfa47a572e0bfb35bbed9fe44f879ad4d7715d6f5e05ded7327f22622b9a",
+      "created_at": 1772968814.6357393,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x638a332981f2801a1008795d702e1cfebd8dc39659f75fe7d554038c4e658fd",
+      "created_at": 1772968934.0430784,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0xfcfe80f57aa4e52194ae8d808f73bb60810ef755b5b62ef5c9fb1273dfd70a",
+      "created_at": 1772969218.8016703,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x288080e99e227e97c7f228ccef4dfe77c08692caa26566d56279175fb692db2",
+      "created_at": 1772969344.019462,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3509e06c3f90a77f9d322dfc2c8fdd4b9fc0788f01b203a73de7e4f67e05bf9",
+      "created_at": 1772969504.0062907,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2912ffc80be6d868625b4dd6849c1af5838b5b2b541e13329d59ebfc011018",
+      "created_at": 1772969642.167341,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2fbb2121d701d9d1a17e17e6e0b030cdba5db8cd0054fda5401548a9381340f",
+      "created_at": 1772969773.580671,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x35f2a6b89cf3eb7eeb02d01060423114a2f46847624078f20018fab56b2d802",
+      "created_at": 1772969892.6992645,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7963948b83352373bb115a6b384883836b455cc2023bd4b3e27ca832e110967",
+      "created_at": 1772970056.8687308,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4ddb0231437b4f2ede984150f427979db75271740cc6c97439d461a46de851f",
+      "created_at": 1772970201.9927545,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x515df6a76f63901622500b1a942162cccb7ed2bc06fdbe860fb7625e4d11aba",
+      "created_at": 1772970325.1010396,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x157eee8cb14895e05ad3cb3944e7590d457d93e3c55213c4ab94d7660ffa94d",
+      "created_at": 1772970432.837919,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x36286926145e41e1ebcbb18e836694c7b07baece1913748114edd438f7ab529",
+      "created_at": 1772970541.8045294,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4b41119203e14ae56ab8937b5972f90ac18aa93bf4d229e5d2a2e418a63e1ca",
+      "created_at": 1772970776.0692294,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0xbe12a5de88b895ab92c9a30487e63f94160e5eac4e58371b0cc46f5c622ff1",
+      "created_at": 1772970985.856193,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x4c7a2a0807498d43ea03d3b050fe0311d895a9a900fcbf8e645551b5169b657",
+      "created_at": 1772971092.7189066,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7358e757c3e7448e6ec5fe094f5450ed7822085b542f29b2c6cac38fb3535cb",
+      "created_at": 1772971331.1740665,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x8e668b44952d5569446dc0e1b7c61cb19e715d2488362ee99ccbd18514b13e",
+      "created_at": 1772971458.0278113,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0xb489560d75fdfce2a5590eb71fd13d9c76cd11ab8f177e9fe28e8218ee9a34",
+      "created_at": 1772971616.3625,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1500ae45859ec086424636869fb675333cfda330bd0649dde55a4cb1735c11c",
+      "created_at": 1772971764.5654376,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x555fd645a090801013012c926756062ac5561a70af7c03699222053ea20662",
+      "created_at": 1772972009.811605,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x75967f6dc92bf269d567b32c19c5814c4d09d08d55ca4de7115b92c46bc81d3",
+      "created_at": 1772972157.3771207,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "buy",
+      "tick": -9000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2cf70fc25f90fe4be708c0f855a361105ef8eb02eda7b8ddbc02ba4a2e72751",
+      "created_at": 1772972284.9897096,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2c949de9dd2ed198b8a885efbdd05b2cea1610816dcff8e72a56365ebaa0b93",
+      "created_at": 1772972424.294976,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x2214c82a32e84ad8133ef1128b6175f0fd0be065589c010a7434559dbd0198a",
+      "created_at": 1772972578.8160112,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x54413938fe5688ab0aa0384b91164b3d8ff9696475998a638c9e9d9ed2972b4",
+      "created_at": 1772972835.406809,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "side": "sell",
+      "tick": -7000,
+      "token_in": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x1cb81db5504d3d4989a25c4376ba290144c94e8d16559f6ad7dbf2ca72c0bcc",
+      "created_at": 1772972987.2799997,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "buy",
+      "tick": 80000,
+      "token_in": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x3bd7f2d3f859d00619b3e72280930100e65c3f15990aa808ca83e2c406caf39",
+      "created_at": 1772973250.919256,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "side": "sell",
+      "tick": 82000,
+      "token_in": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+      "amount_wei": 1000000000000000,
+      "tx_hash": "0x7ce42d1c8fd742e368bb6575a828b322a04a88a706dc2cf19346e0d5c92d366",
+      "created_at": 1772973394.2336152,
+      "status": "open",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      }
     }
   ],
-  "updated_at": 1772960757.4482398
+  "updated_at": 1772973394.233676
 }
