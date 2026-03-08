@@ -190,7 +190,6 @@ export default function AgentPage() {
             {slideout === "deposit" && (
               <DepositPanel
                 method={vault.method}
-                setMethod={vault.setMethod}
                 depositSteps={vault.depositSteps}
                 setDepositSteps={vault.setDepositSteps}
                 addCommitment={vault.addCommitment}

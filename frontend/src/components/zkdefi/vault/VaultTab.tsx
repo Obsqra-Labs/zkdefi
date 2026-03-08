@@ -67,7 +67,7 @@ export function VaultTab(props: VaultTabProps) {
         </span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DepositPanel method={method} setMethod={setMethod} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
+        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
         <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} />
       </div>
       <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />
