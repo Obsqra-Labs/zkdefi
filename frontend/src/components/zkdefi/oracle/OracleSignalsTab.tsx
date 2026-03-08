@@ -42,28 +42,36 @@ export function OracleSignalsTab({ address }: OracleSignalsTabProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/v1/strategies/opportunities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_address: address || "0x0",
-          risk_profile: "balanced",
-          limit: 20,
-        }),
+      // Fetch from unified signals endpoint
+      const res = await fetch(`${API_BASE}/v1/zkdefi/signals/top?limit=20`, {
         signal: AbortSignal.timeout(10000),
       });
-      if (!res.ok) throw new Error("Failed to load opportunities");
+      if (!res.ok) throw new Error("Failed to load signals");
       const data = await res.json();
-      const opps = Array.isArray(data?.opportunities) ? data.opportunities : [];
+      
+      // Transform signals to opportunities format for display
+      const signals = Array.isArray(data?.signals) ? data.signals : [];
+      const opps = signals.map((sig: any) => ({
+        id: sig.id,
+        pair: sig.name,
+        name: sig.name,
+        apy: sig.currentYield,
+        estimated_apy_pct: sig.currentYield,
+        risk_score: sig.riskScore,
+        volatility: 30, // placeholder
+        confidence: sig.predictions?.reputationScore?.trustworthiness === "high" ? "high" : "medium",
+        proof_status: sig.circuit_verified ? "Verified" : "Experimental",
+      }));
+      
       setOpportunities(opps);
       const recs: OracleRecommendation[] = [];
       if (opps.length >= 1) {
         const top = opps[0];
-        const name = top?.pair || top?.name || "Top strategy";
+        const name = top?.pair || top?.name || "Top signal";
         recs.push({ label: `Allocate 12% to ${name}`, strategyName: name, allocationPct: 12 });
       }
       if (opps.length >= 2) {
-        recs.push({ label: `Diversify with ${opps[1]?.pair ?? "second opportunity"}`, allocationPct: 8 });
+        recs.push({ label: `Diversify with ${opps[1]?.pair ?? "second signal"}`, allocationPct: 8 });
       }
       setRecommendations(recs);
     } catch (e) {

@@ -120,7 +120,7 @@ export async function revokeSession(
  */
 export async function getUserSessions(ownerAddress: string): Promise<Session[]> {
   const response = await fetch(
-    `apiUrl("/api/v1/zkdefi/session_keys/list/${ownerAddress}`
+    apiUrl(`/api/v1/zkdefi/session_keys/list/${ownerAddress}`)
   );
 
   if (!response.ok) {

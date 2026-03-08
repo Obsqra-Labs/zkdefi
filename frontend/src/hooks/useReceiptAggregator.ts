@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { API_BASE } from "@/lib/api/client";
+import { apiUrl } from "@/lib/api/client";
 
 export interface AggregatedReceipt {
   proof_type?: string;
@@ -33,7 +33,7 @@ export function useReceiptAggregator(address?: string, refreshKey = 0): ReceiptA
       setLoading(true);
       try {
         const response = await fetch(
-          `${API_BASE}/api/v1/zkdefi/risk_passport/user/${address}`,
+          apiUrl(`/api/v1/zkdefi/risk_passport/user/${address}`),
           { signal: AbortSignal.timeout(8000) },
         );
 

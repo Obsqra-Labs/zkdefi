@@ -3,9 +3,13 @@ Reputation API Routes
 
 Manages user reputation tiers and proof requirements.
 """
+import time
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+
+from app.services.json_store import JsonStore
 
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
@@ -78,14 +82,15 @@ TIER_INFO = {
     ),
 }
 
-# In-memory user data (replace with DB in production)
-_user_data: dict[str, dict] = {}
+# File-backed user data (persists across restarts)
+_user_store = JsonStore("reputation_users")
 
 
 def get_user_data(address: str) -> dict:
     """Get or create user data."""
-    if address not in _user_data:
-        _user_data[address] = {
+    data = _user_store.get(address)
+    if data is None:
+        data = {
             "tier": 0,
             "transaction_count": 0,
             "total_volume": 0,
@@ -93,7 +98,13 @@ def get_user_data(address: str) -> dict:
             "successful_txns": 0,
             "collateral": 0,
         }
-    return _user_data[address]
+        _user_store.set(address, data)
+    return data
+
+
+def _persist_user(address: str, data: dict) -> None:
+    """Flush user data back to JsonStore."""
+    _user_store.set(address, data)
 
 
 @router.get("/tiers", response_model=list[TierInfo])
@@ -113,8 +124,6 @@ async def get_tier_info(tier_id: int):
 @router.get("/user/{address}", response_model=UserReputationResponse)
 async def get_user_reputation(address: str):
     """Get reputation info for a specific user. Merges in-app data with on-chain (and cross-chain) baseline."""
-    import time
-
     user = get_user_data(address)
     tier = user.get("tier", 0)
     tier_name = TIER_INFO[tier].tier_name
@@ -130,12 +139,17 @@ async def get_user_reputation(address: str):
     try:
         from app.services.cross_chain_fetcher import fetch_combined_history
         from app.services.linked_addresses_store import get_linked
+        from app.services.linked_address_verification_service import (
+            get_linked_address_verification_service,
+        )
+
         linked = get_linked(address)
+        verified = get_linked_address_verification_service().filter_verified(address, linked)
         combined = await fetch_combined_history(
             address,
-            linked.get("eth"),
-            linked.get("arb"),
-            linked.get("base"),
+            verified.get("eth"),
+            verified.get("arb"),
+            verified.get("base"),
         )
         chain_tenure_days = combined.get("account_age_days", 0) or 0
         chain_tx_count = combined.get("total_transactions", 0) or 0
@@ -199,8 +213,6 @@ async def get_user_reputation(address: str):
 @router.post("/record-transaction")
 async def record_transaction(address: str, volume_wei: int, success: bool = True):
     """Record a transaction for reputation tracking."""
-    import time
-    
     user = get_user_data(address)
     
     user["transaction_count"] = user.get("transaction_count", 0) + 1
@@ -211,8 +223,8 @@ async def record_transaction(address: str, volume_wei: int, success: bool = True
     
     if user.get("first_interaction", 0) == 0:
         user["first_interaction"] = int(time.time())
-    
-    _user_data[address] = user
+
+    _persist_user(address, user)
     
     return {"status": "recorded", "address": address}
 
@@ -222,7 +234,7 @@ async def stake_collateral(address: str, amount_wei: int):
     """Record collateral stake."""
     user = get_user_data(address)
     user["collateral"] = user.get("collateral", 0) + amount_wei
-    _user_data[address] = user
+    _persist_user(address, user)
     
     return {
         "status": "staked",
@@ -247,7 +259,7 @@ async def upgrade_tier(request: TierUpgradeRequest):
     # For now, just check requirements are met
     
     user["tier"] = request.target_tier
-    _user_data[request.address] = user
+    _persist_user(request.address, user)
     
     return {
         "status": "upgraded",
@@ -263,7 +275,7 @@ async def opt_into_strict(address: str):
     user = get_user_data(address)
     old_tier = user.get("tier", 0)
     user["tier"] = 0
-    _user_data[address] = user
+    _persist_user(address, user)
     
     return {
         "status": "downgraded",

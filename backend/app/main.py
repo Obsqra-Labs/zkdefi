@@ -111,7 +111,9 @@ oracle_router = _optional_router("app.api.oracle")
 reputation_router = _optional_router("app.api.reputation")
 relayer_router = _optional_router("app.api.relayer")
 risk_passport_router = _optional_router("app.api.risk_passport")
+risk_profile_router = _optional_router("app.api.risk_profile")
 linked_addresses_router = _optional_router("app.api.linked_addresses")
+auth_session_router = _optional_router("app.api.routes.auth_session")
 full_privacy_router = _optional_router("app.api.routes.full_privacy")
 dex_router = _optional_router("app.api.routes.dex")
 ekubo_router = _optional_router("app.api.routes.ekubo")
@@ -152,11 +154,23 @@ if risk_passport_router:
         prefix="/api/v1/zkdefi",
         tags=["risk_passport"],
     )
+if risk_profile_router:
+    app.include_router(
+        risk_profile_router,
+        prefix="/api/v1/zkdefi",
+        tags=["risk_profile"],
+    )
 if linked_addresses_router:
     app.include_router(
         linked_addresses_router,
         prefix="/api/v1/zkdefi",
         tags=["linked_addresses"],
+    )
+if auth_session_router:
+    app.include_router(
+        auth_session_router,
+        prefix="/api/v1/zkdefi",
+        tags=["auth_session"],
     )
 if full_privacy_router:
     app.include_router(

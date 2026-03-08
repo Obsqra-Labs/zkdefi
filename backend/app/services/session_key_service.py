@@ -7,7 +7,7 @@ Session key = limited delegation + proof requirement.
 import os
 import hashlib
 from typing import Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.contract import Contract

@@ -171,19 +171,53 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
     setLoading(true);
     setError(null);
     try {
-      // Prefer mission-control signal/top (same curated opportunities as stream; no JediSwap)
-      const signalRes = await apiFetch<{ opportunities?: Opportunity[]; count?: number }>(
-        "/api/v1/zkdefi/mc/signal/top?limit=12",
+      // Prefer unified signals endpoint (phase-1-placeholder with predictions ready)
+      const signalRes = await apiFetch<{ signals?: any[]; metadata?: any }>(
+        "/api/v1/zkdefi/signals/top?limit=12",
       ).catch(() => null);
-      const signalData = Array.isArray(signalRes?.opportunities)
-        ? signalRes.opportunities
-            .map((opp, idx) => normalizeOpportunity(opp, idx))
+      
+      const signalData = Array.isArray(signalRes?.signals)
+        ? signalRes.signals
+            .map((sig: any, idx: number) => {
+              // Transform signals to opportunities format
+              const opportunity: Opportunity = {
+                id: sig.id,
+                name: sig.name,
+                venue: sig.constitution?.entity || "zkdefi",
+                apy_bps: Math.round((sig.currentYield || 0) * 100),
+                risk_level: sig.riskScore <= 35 ? "safe" : sig.riskScore <= 65 ? "medium" : "elevated",
+                volatility: sig.type === "dex" ? 45 : 25,
+                liquidity_score: 85,
+                efficiency: sig.predictions?.reputationScore?.score || 75,
+                signal: sig.riskScore <= 35 ? "top_pick" : sig.currentYield > 5 ? "trending" : "rising",
+                signal_strength: sig.predictions?.reputationScore?.score || 80,
+                signal_reason: `${sig.type} opportunity with ${sig.currentYield.toFixed(1)}% yield`,
+                signal_features: sig.predictions,
+              };
+              return normalizeOpportunity(opportunity, idx);
+            })
             .filter((opp): opp is Opportunity => opp !== null)
         : [];
+      
       if (signalData.length > 0) {
         setData(signalData);
         return;
       }
+      
+      // Fallback: mission-control signal/top
+      const mcSignalRes = await apiFetch<{ opportunities?: Opportunity[]; count?: number }>(
+        "/api/v1/zkdefi/mc/signal/top?limit=12",
+      ).catch(() => null);
+      const mcSignalData = Array.isArray(mcSignalRes?.opportunities)
+        ? mcSignalRes.opportunities
+            .map((opp, idx) => normalizeOpportunity(opp, idx))
+            .filter((opp): opp is Opportunity => opp !== null)
+        : [];
+      if (mcSignalData.length > 0) {
+        setData(mcSignalData);
+        return;
+      }
+      
       // Fallback: strategies/opportunities
       const res = await apiFetch<Opportunity[] | { opportunities?: Opportunity[] }>(
         "/api/v1/strategies/opportunities",
