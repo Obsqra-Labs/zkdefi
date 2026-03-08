@@ -196,6 +196,8 @@ archive_query_router = _optional_router("app.api.routes.archive_query")
 analytics_router = _optional_router("app.api.routes.analytics")
 skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
+privacy_vault_router = _optional_router("app.api.routes.privacy_vault")
+credit_lines_router = _optional_router("app.api.routes.credit_lines")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -311,6 +313,18 @@ if zkd_portfolio_router:
         zkd_portfolio_router,
         prefix="/api/v1/zkdefi/zkd",
         tags=["zkd-portfolio"],
+    )
+if privacy_vault_router:
+    app.include_router(
+        privacy_vault_router,
+        prefix="/api/v1/zkdefi",
+        tags=["privacy-vault"],
+    )
+if credit_lines_router:
+    app.include_router(
+        credit_lines_router,
+        prefix="/api/v1/zkdefi",
+        tags=["credit-lines"],
     )
 if orchestration_router:
     app.include_router(
