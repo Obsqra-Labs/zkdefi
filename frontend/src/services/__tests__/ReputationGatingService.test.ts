@@ -37,7 +37,7 @@ describe('ReputationGatingService', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/v1/zkdefi/reputation/user/${mockAddress}`),
+        expect.stringContaining(`/api/v1/zkdefi/risk_profile/v2/${mockAddress}`),
         expect.any(Object)
       );
     });
@@ -45,6 +45,11 @@ describe('ReputationGatingService', () => {
     it('should handle API errors gracefully', async () => {
       const mockAddress = '0x123abc';
 
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ detail: 'User not found' }),
+      });
       (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 404,

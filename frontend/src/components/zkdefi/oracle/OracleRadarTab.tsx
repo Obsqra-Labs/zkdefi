@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_OPPORTUNITIES, DEMO_ADDRESS } from "@/lib/demoCapitalOS";
 import type { OracleOpportunity } from "@/components/zkdefi/oracle/types";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
+import { getCapitalRiskProfile } from "@/lib/trust/riskProfile";
 
 interface OracleRadarTabProps {
   address: string | undefined;
@@ -28,10 +30,23 @@ export function OracleRadarTab({ address, onNavigateToVault }: OracleRadarTabPro
     setLoading(true);
     setError(null);
     try {
+      let riskProfile: "conservative" | "balanced" | "aggressive" = "balanced";
+      try {
+        const profileRes = await fetch(`${API_BASE}/v1/zkdefi/risk_profile/v2/${address || "0x0"}`, {
+          signal: AbortSignal.timeout(7000),
+        });
+        if (profileRes.ok) {
+          const profile = (await profileRes.json()) as RiskProfileV2;
+          riskProfile = getCapitalRiskProfile(profile);
+        }
+      } catch {
+        // fall back to balanced profile
+      }
+
       const res = await fetch(`${API_BASE}/v1/strategies/opportunities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_address: address || "0x0", risk_profile: "balanced", limit: 20 }),
+        body: JSON.stringify({ user_address: address || "0x0", risk_profile: riskProfile, limit: 20 }),
         signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) throw new Error("Failed to load opportunities");

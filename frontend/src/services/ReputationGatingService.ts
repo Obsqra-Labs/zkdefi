@@ -24,6 +24,12 @@ const BORROWING_RATE_BY_TIER = {
   Tier3: 4,
 } as const;
 
+const DEFAULT_SCORE_BY_TIER: Record<Tier, number> = {
+  Tier1: 45,
+  Tier2: 65,
+  Tier3: 85,
+};
+
 export type Tier = 'Tier1' | 'Tier2' | 'Tier3';
 
 export interface UserReputation {
@@ -42,6 +48,60 @@ export interface AccessEvent {
   rate?: number;
 }
 
+function asNumber(value: unknown): number | null {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function clampScore(score: number): number {
+  if (!Number.isFinite(score)) return 0;
+  return Math.max(0, Math.min(100, score));
+}
+
+function normalizeTierFromRaw(rawTier: unknown, rawTierName: unknown): Tier | null {
+  const numeric = asNumber(rawTier);
+  if (numeric !== null) {
+    if (numeric >= 2) return 'Tier3';
+    if (numeric >= 1) return 'Tier2';
+    return 'Tier1';
+  }
+
+  const text = String(rawTierName ?? rawTier ?? '').trim().toLowerCase();
+  if (text.includes('tier3') || text.includes('trusted') || text.includes('express')) return 'Tier3';
+  if (text.includes('tier2') || text.includes('standard')) return 'Tier2';
+  if (text.includes('tier1') || text.includes('strict') || text.includes('anon')) return 'Tier1';
+  return null;
+}
+
+function isLikelyRiskProfileV2(payload: Record<string, unknown>): boolean {
+  return (
+    typeof payload.profile_version === 'string' ||
+    typeof payload.reputation === 'object' ||
+    typeof payload.passport === 'object'
+  );
+}
+
+function normalizeFromLegacyPayload(data: Record<string, unknown>, fallbackAddress: string, nowIso: string, mapScoreToTier: (score: number) => Tier): UserReputation {
+  const score = clampScore(
+    asNumber(data.reputationScore) ??
+      asNumber(data.trust_score) ??
+      asNumber(data.composite_score) ??
+      0
+  );
+
+  const explicitTier =
+    normalizeTierFromRaw(data.tier ?? data.current_tier, data.tier_name) ??
+    mapScoreToTier(score || DEFAULT_SCORE_BY_TIER.Tier1);
+  const normalizedScore = score || DEFAULT_SCORE_BY_TIER[explicitTier];
+
+  return {
+    address: String(data.address ?? fallbackAddress),
+    reputationScore: normalizedScore,
+    tier: explicitTier,
+    updatedAt: String(data.updatedAt ?? nowIso),
+  };
+}
+
 /**
  * ReputationGatingService
  *
@@ -57,16 +117,39 @@ export class ReputationGatingService {
    * @returns UserReputation with computed tier
    */
   async getUserReputation(address: string): Promise<UserReputation> {
-    const data = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`, {
-      method: 'GET',
-    });
+    const nowIso = new Date().toISOString();
+    try {
+      const profileV2 = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/risk_profile/v2/${address}`, {
+        method: 'GET',
+      });
 
-    return {
-      address: String(data.address ?? address),
-      reputationScore: Number(data.reputationScore ?? 0),
-      tier: this.mapScoreToTier(Number(data.reputationScore ?? 0)),
-      updatedAt: String(data.updatedAt ?? new Date().toISOString()),
-    };
+      if (!isLikelyRiskProfileV2(profileV2)) {
+        return normalizeFromLegacyPayload(profileV2, address, nowIso, this.mapScoreToTier.bind(this));
+      }
+
+      const profileRep = (profileV2.reputation as Record<string, unknown> | undefined) ?? {};
+      const profilePassport = (profileV2.passport as Record<string, unknown> | undefined) ?? {};
+      const tier =
+        normalizeTierFromRaw(profileRep.tier, profileRep.tier_name) ??
+        this.mapScoreToTier(clampScore(asNumber(profilePassport.composite_score) ?? 0));
+      const score = clampScore(asNumber(profilePassport.composite_score) ?? DEFAULT_SCORE_BY_TIER[tier]);
+
+      return {
+        address: String(profileV2.address ?? address),
+        reputationScore: score,
+        tier,
+        updatedAt: String(profileV2.generated_at ?? nowIso),
+      };
+    } catch (v2Error) {
+      try {
+        const data = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`, {
+          method: 'GET',
+        });
+        return normalizeFromLegacyPayload(data, address, nowIso, this.mapScoreToTier.bind(this));
+      } catch {
+        throw v2Error;
+      }
+    }
   }
 
   /**

@@ -53,6 +53,7 @@ interface Proposal {
 }
 
 interface ReputationData {
+  tier?: number;
   current_tier?: number;
   tier_name?: string;
 }
@@ -210,7 +211,7 @@ function VotingPowerSection({ address }: { address: string | undefined }) {
           ).catch(() => null),
         ]);
 
-        const tierVal = Number((vpRes as any)?.tier ?? repRes?.current_tier ?? 0);
+        const tierVal = Number((vpRes as any)?.tier ?? repRes?.tier ?? repRes?.current_tier ?? 0);
         setTier(tierVal);
         setTierMult(Number((vpRes as any)?.tier_multiplier ?? TIER_MULTIPLIERS[tierVal] ?? 1));
 

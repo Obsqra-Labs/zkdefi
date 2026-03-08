@@ -64197,7 +64197,279 @@
       "tx_hash": "0x2a890e4a6eafa0805d44bfc6c31658701af1bdab56b0fb55e3b2e3312d82da3",
       "created_at": 1772973593.5420775,
       "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x1075d18f6f68c4831bd8eb0a64306c6dde3b6faf7b004f82cf973458c2c9ff7",
+      "created_at": 1772973776.2024057,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x18378a4055e3a71d66f1eb7cfb9f203bb097fbd685e4ef06876a550d369ed5a",
+      "created_at": 1772973959.355016,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x54cb80c18101c44162cfb9435a70ebc834b24b56adf9d9e29b9b19ba2c791d7",
+      "created_at": 1772974150.7168875,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x2fd32f23a2e8697d631004add2f809b0448a05baa7bd368b367feb06317ccda",
+      "created_at": 1772974335.9590018,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x1f852130eaa45343cfa2acbac74653f57bbd1f6a1055259b5b1607c524b0503",
+      "created_at": 1772974525.2504482,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x144593a426720f96da5b9100817a81d2396ba61b68c6b2db58cad97fddbd587",
+      "created_at": 1772974705.8379757,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x37aaf6de7fd5bc9f7efde82bbcb5ee354f36494d549e37bf986aa3194db252b",
+      "created_at": 1772974894.88191,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x809210f01f7e40ab83d8b3c9681640b9b42f291414a152c0aef292059a5b1a",
+      "created_at": 1772975078.106976,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x2b231c048ed8f1cadd12a163083d58e65e300d9e4e0642fbe54f8918691046d",
+      "created_at": 1772975262.7125022,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x76f60c52a4fdbec7b87ae85d03ae08e10e5e542fd5b8d1cf22e5fc9f094a38c",
+      "created_at": 1772975447.346332,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x5ba4901def863c5c28338ef68978a32eb1d2d63247765d7c116bda09e155814",
+      "created_at": 1772975632.3465831,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x3e1ff66e70cb3d937b1d13cfe5f8b4ca52a4e4f4a8a19476ae6f83c619c45d5",
+      "created_at": 1772975820.1720915,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x7f0f53d245d508e7bfffd7f52d4eab58aa0f5a4d7433776a621e99b30734c06",
+      "created_at": 1772976002.6292489,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x7882e447be1d6e5a12c0dd97dafdd8403c6599df61fbb06b80f225d9b7f256c",
+      "created_at": 1772976186.3920016,
+      "status": "active"
+    },
+    {
+      "pair": "STRK/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x1430b8cb8dad2e8e13281c07f73fecefa8e5b3b5f68abb73f413f1832503c8d",
+      "created_at": 1772976376.1749923,
+      "status": "active"
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 88712000,
+      "upper_tick": 88722883,
+      "amount0_wei": 3000000000000000,
+      "amount1_wei": 3000000000000000,
+      "tx_hash": "0x7bf406cef75fff83635b4cb8439a68015268ca5870a65ae7351fc0326440cfa",
+      "created_at": 1772976472.2191982,
+      "status": "active"
     }
   ],
-  "updated_at": 1772973593.5421388
+  "updated_at": 1772976472.2192786
 }

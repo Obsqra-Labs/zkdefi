@@ -61,7 +61,7 @@ export function TradeDesk({
         if (userAddress) {
           const [reputation, rcpts] = await Promise.all([
             reputationService.getUserReputation(userAddress),
-            receiptService.getReceipts(),
+            receiptService.getReceipts({ address: userAddress }),
           ]);
           setUserReputation(reputation);
           setReceipts(rcpts as unknown as ReceiptWithImpact[]);
@@ -93,7 +93,7 @@ export function TradeDesk({
     const receiptsInterval = setInterval(async () => {
       if (!userAddress) return;
       try {
-        const newReceipts = await receiptService.getReceipts();
+        const newReceipts = await receiptService.getReceipts({ address: userAddress });
         setReceipts(newReceipts as unknown as ReceiptWithImpact[]);
       } catch (err) {
         console.warn("Failed to refresh receipts:", err);
@@ -111,7 +111,7 @@ export function TradeDesk({
       try {
         await receiptService.recordReceipt(receipt as any);
         const [newReceipts, newOpps] = await Promise.all([
-          receiptService.getReceipts(),
+          receiptService.getReceipts(userAddress ? { address: userAddress } : undefined),
           marketDataService.getOpportunities(),
         ]);
         setReceipts(newReceipts as unknown as ReceiptWithImpact[]);

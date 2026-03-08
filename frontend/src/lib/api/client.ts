@@ -26,16 +26,24 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   const mergedInit: RequestInit = { ...init, headers };
   let response = await fetch(resolvedUrl, mergedInit);
 
+  if (!response || typeof response !== "object") {
+    throw new Error("Request failed");
+  }
+
   // Some hosts (e.g. zke.fi) do not proxy /api/* to this backend.
   // Retry once against canonical API origin for zkdefi routes on 404.
+  const status = Number((response as any).status ?? 0);
   const shouldRetryCanonical =
-    response.status === 404 &&
+    status === 404 &&
     path.startsWith("/api/v1/") &&
     !resolvedUrl.startsWith(CANONICAL_API_ORIGIN);
 
   if (shouldRetryCanonical) {
     const canonicalUrl = `${CANONICAL_API_ORIGIN}${path}`;
     response = await fetch(canonicalUrl, mergedInit);
+    if (!response || typeof response !== "object") {
+      throw new Error("Request failed");
+    }
   }
 
   if (!response.ok) {
@@ -47,14 +55,22 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
     throw new Error(detail);
   }
 
-  const text = await response.text();
-  if (!text) {
-    return {} as T;
+  if (typeof response.text === "function") {
+    const text = await response.text();
+    if (!text) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as T;
+    }
   }
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return text as T;
+  if (typeof response.json === "function") {
+    return (await response.json()) as T;
   }
+
+  return {} as T;
 }

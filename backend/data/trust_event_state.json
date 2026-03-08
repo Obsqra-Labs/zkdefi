@@ -158,5 +158,29 @@
       ],
       "active_sessions": 0
     }
+  },
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "governance.voting_power": 113.137085,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 9.33,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "expired",
+      "session_id": null,
+      "linked_verified_count": 1
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ],
+      "active_sessions": 0
+    }
   }
 }

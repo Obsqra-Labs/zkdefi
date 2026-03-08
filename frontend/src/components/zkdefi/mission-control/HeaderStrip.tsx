@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Shield, Activity } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
+import { getExecutionGate } from "@/lib/trust/adapters";
 import { ConnectButton } from "../ConnectButton";
 import type { OverlayMode } from "./MissionControlLayout";
 
@@ -30,23 +32,35 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
       .then((d) => setAgentStatus(d))
       .catch(() => setAgentStatus({ state: "offline" }));
 
-    apiFetch<any>(`/api/v1/zkdefi/mc/execution/current/${address}`)
+    apiFetch<RiskProfileV2>(`/api/v1/zkdefi/risk_profile/v2/${address}`)
       .then((d) => {
-        const exec = d?.steps?.execution;
-        if (exec?.emergency_pause) setGateStatus("PAUSED");
-        else if (exec?.status === "complete") setGateStatus("PASS");
+        const tier = Number(d?.reputation?.tier ?? 0);
+        const tierName = String(d?.reputation?.tier_name ?? "Strict");
+        setTierData({ tier, tier_name: tierName });
+
+        const execGate = getExecutionGate(d);
+        if (execGate.mode === "block") setGateStatus("PAUSED");
+        else if (execGate.mode === "allow") setGateStatus("PASS");
         else setGateStatus("READY");
       })
-      .catch(() => setGateStatus("--"));
+      .catch(() => {
+        apiFetch<any>(`/api/v1/zkdefi/mc/execution/current/${address}`)
+          .then((d) => {
+            const exec = d?.steps?.execution;
+            if (exec?.emergency_pause) setGateStatus("PAUSED");
+            else if (exec?.status === "complete") setGateStatus("PASS");
+            else setGateStatus("READY");
+          })
+          .catch(() => setGateStatus("--"));
 
-    apiFetch<any>(`/api/v1/zkdefi/reputation/user/${address}`)
-      .then((d) => {
-        if (d?.current_tier !== undefined) {
-          const names = ["Anon", "Express", "Trusted"];
-          setTierData({ tier: d.current_tier, tier_name: names[d.current_tier] || `Tier ${d.current_tier}` });
-        }
-      })
-      .catch(() => {});
+        apiFetch<any>(`/api/v1/zkdefi/reputation/user/${address}`)
+          .then((d) => {
+            const tier = Number(d?.tier ?? d?.current_tier ?? 0);
+            const tierName = String(d?.tier_name ?? `Tier ${tier}`);
+            setTierData({ tier, tier_name: tierName });
+          })
+          .catch(() => {});
+      });
   }, [address]);
 
   const agentId = agentStatus?.state === "monitoring" || agentStatus?.state === "running"

@@ -12,6 +12,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { apiFetch } from "@/lib/api/client";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
+import { getCapitalRiskProfile } from "@/lib/trust/riskProfile";
 
 interface Opportunity {
   id: string;
@@ -171,6 +173,11 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
     setLoading(true);
     setError(null);
     try {
+      const profile = await apiFetch<RiskProfileV2>(`/api/v1/zkdefi/risk_profile/v2/${address}`, {
+        method: "GET",
+      }).catch(() => null);
+      const riskProfile = getCapitalRiskProfile(profile);
+
       // Prefer unified signals endpoint (phase-1-placeholder with predictions ready)
       const signalRes = await apiFetch<{ signals?: any[]; metadata?: any }>(
         "/api/v1/zkdefi/signals/top?limit=12",
@@ -226,7 +233,7 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_address: address,
-            risk_profile: "balanced",
+            risk_profile: riskProfile,
             limit: 20,
           }),
         },

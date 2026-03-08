@@ -47,6 +47,7 @@ type ReceiptFilters = {
   endDate?: string;
   type?: string;
   adapter?: string;
+  limit?: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -162,6 +163,44 @@ export class ReceiptService {
     return [];
   }
 
+  private normalizeTimelinePayload(data: unknown): ReceiptWithImpact[] {
+    if (Array.isArray(data)) {
+      return data.map((item) => this.normalizeReceipt(item));
+    }
+    if (!isRecord(data)) {
+      return [];
+    }
+    if (Array.isArray(data.receipts)) {
+      return data.receipts.map((item) => this.normalizeReceipt(item));
+    }
+    if (Array.isArray(data.timeline)) {
+      const flattened = data.timeline.flatMap((group) => {
+        if (!isRecord(group) || !Array.isArray(group.receipts)) return [];
+        return group.receipts;
+      });
+      return flattened.map((item) => this.normalizeReceipt(item));
+    }
+    return [];
+  }
+
+  private applyClientFilters(receipts: ReceiptWithImpact[], filters?: ReceiptFilters): ReceiptWithImpact[] {
+    return receipts.filter((receipt) => {
+      if (filters?.type && receipt.action !== filters.type) return false;
+      if (filters?.adapter && receipt.adapter !== filters.adapter) return false;
+
+      const ts = Date.parse(receipt.timestamp);
+      if (filters?.startDate && Number.isFinite(ts)) {
+        const start = Date.parse(filters.startDate);
+        if (Number.isFinite(start) && ts < start) return false;
+      }
+      if (filters?.endDate && Number.isFinite(ts)) {
+        const end = Date.parse(filters.endDate);
+        if (Number.isFinite(end) && ts > end) return false;
+      }
+      return true;
+    });
+  }
+
   private async getMissionControlReceiptFallback(address: string, limit: number = 120): Promise<ReceiptWithImpact[]> {
     const endpoint = this.buildPath(
       `/api/v1/zkdefi/mc/receipts/timeline/${address}`,
@@ -184,11 +223,18 @@ export class ReceiptService {
    * @throws Error if storage fails
    */
   async recordReceipt(receipt: TradeReceipt): Promise<string> {
-    const data = await apiFetch<Record<string, unknown>>('/api/v1/zkdefi/receipts', {
-      method: 'POST',
-      body: JSON.stringify(receipt),
-    });
-    return asString(data.id) || asString(data.receipt_id) || receipt.id;
+    try {
+      const data = await apiFetch<Record<string, unknown>>('/api/v1/zkdefi/receipts', {
+        method: 'POST',
+        body: JSON.stringify(receipt),
+      });
+      return asString(data.id) || asString(data.receipt_id) || receipt.id;
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return receipt.id;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -204,20 +250,41 @@ export class ReceiptService {
   async getReceipts(filters?: ReceiptFilters): Promise<ReceiptWithImpact[]> {
     const params = new URLSearchParams();
     if (filters?.address) params.append('address', filters.address);
+    if (filters?.limit) params.append('limit', String(filters.limit));
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.type) params.append('type', filters.type);
     if (filters?.adapter) params.append('adapter', filters.adapter);
 
+    const timelineEndpoint = this.buildPath('/api/v1/zkdefi/receipts/timeline', params);
     const endpoint = this.buildPath('/api/v1/zkdefi/receipts', params);
+
+    try {
+      const timelineData = await apiFetch<unknown>(timelineEndpoint, { method: 'GET' });
+      const timelineReceipts = this.normalizeTimelinePayload(timelineData);
+      if (timelineReceipts.length > 0) {
+        return this.applyClientFilters(timelineReceipts, filters);
+      }
+      if (!filters?.address) {
+        return [];
+      }
+    } catch (timelineError) {
+      if (!isNotFoundError(timelineError)) {
+        if (!filters?.address) {
+          throw timelineError;
+        }
+      }
+    }
+
     try {
       const data = await apiFetch<unknown>(endpoint, { method: 'GET' });
       const receipts = this.normalizeReceipts(data);
-      if (receipts.length > 0) return receipts;
+      if (receipts.length > 0) return this.applyClientFilters(receipts, filters);
     } catch (primaryError) {
       if (filters?.address) {
         try {
-          return await this.getMissionControlReceiptFallback(filters.address);
+          const fallback = await this.getMissionControlReceiptFallback(filters.address, filters.limit ?? 120);
+          return this.applyClientFilters(fallback, filters);
         } catch {
           // If both APIs fail and the primary was 404, degrade to empty list.
         }
@@ -231,7 +298,8 @@ export class ReceiptService {
 
     if (filters?.address) {
       try {
-        return await this.getMissionControlReceiptFallback(filters.address);
+        const fallback = await this.getMissionControlReceiptFallback(filters.address, filters.limit ?? 120);
+        return this.applyClientFilters(fallback, filters);
       } catch {
         return [];
       }

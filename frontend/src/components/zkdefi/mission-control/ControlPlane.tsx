@@ -16,6 +16,8 @@ import { apiFetch } from "@/lib/api/client";
 import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
 import { AgentInsightsStrip } from "./AgentInsightsStrip";
 import { ZkmlResultCards } from "@/components/zkdefi/ZkmlResultCards";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
+import { getExecutionGate, getGovernancePower, getLendingGate } from "@/lib/trust/adapters";
 
 const POLL_INTERVAL_MS = 15000;
 
@@ -155,6 +157,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
   const [constraintsDirty, setConstraintsDirty] = useState(false);
   const [reputation, setReputation] = useState<Reputation | null>(null);
   const [passport, setPassport] = useState<RiskPassport | null>(null);
+  const [profileV2, setProfileV2] = useState<RiskProfileV2 | null>(null);
   const [sessions, setSessions] = useState<SessionKey[]>([]);
 
   // Local constraint edits (for controlled inputs)
@@ -207,30 +210,29 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
     }
   }, [address]);
 
-  const fetchReputation = useCallback(async () => {
+  const fetchRiskProfile = useCallback(async () => {
     if (!address) return;
     try {
-      const d = await apiFetch<Reputation>(
-        `/api/v1/zkdefi/reputation/user/${address}`
+      const d = await apiFetch<RiskProfileV2>(
+        `/api/v1/zkdefi/risk_profile/v2/${address}`
       );
+      setProfileV2(d);
       setReputation({
-        tier: d.tier ?? 0,
-        tier_name: String(d.tier_name ?? "Anon"),
-        trust_score: d.trust_score ?? 0,
+        tier: Number(d?.reputation?.tier ?? 0),
+        tier_name: String(d?.reputation?.tier_name ?? "Strict"),
+        trust_score: Number(d?.passport?.composite_score ?? 0),
+      });
+      setPassport({
+        tier: Number(d?.passport?.tier ?? 0),
+        tier_name: String(d?.passport?.tier_name ?? d?.reputation?.tier_name ?? "Strict"),
+        composite_score: Number(d?.passport?.composite_score ?? 0),
+        credit_score: Number(d?.passport?.credit_score ?? 0),
+        letter_rating: String(d?.passport?.letter_rating ?? ""),
+        proof_receipts: Array.from({ length: Number(d?.passport?.receipt_summary?.count ?? 0) }),
       });
     } catch {
+      setProfileV2(null);
       setReputation(null);
-    }
-  }, [address]);
-
-  const fetchPassport = useCallback(async () => {
-    if (!address) return;
-    try {
-      const d = await apiFetch<RiskPassport>(
-        `/api/v1/zkdefi/risk_passport/user/${address}`
-      );
-      setPassport(d);
-    } catch {
       setPassport(null);
     }
   }, [address]);
@@ -372,16 +374,14 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       setConstraintsLoading(true);
       fetchConstraints();
     }
-    fetchReputation();
-    fetchPassport();
+    fetchRiskProfile();
     fetchSessions();
   }, [
     address,
     fetchExecution,
     fetchAgent,
     fetchConstraints,
-    fetchReputation,
-    fetchPassport,
+    fetchRiskProfile,
     fetchSessions,
   ]);
 
@@ -390,14 +390,33 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       fetchExecution();
       fetchAgent();
       if (address) fetchConstraints();
+      fetchRiskProfile();
     }, POLL_INTERVAL_MS);
     return () => clearInterval(t);
-  }, [address, fetchExecution, fetchAgent, fetchConstraints]);
+  }, [address, fetchExecution, fetchAgent, fetchConstraints, fetchRiskProfile]);
 
   const agentState = agentStatus?.state ?? "stopped";
   const agentRunning = agentState === "running" || agentState === "monitoring";
   const agentPaused = agentState === "paused";
-  const proofCount = passport?.proof_receipts?.length ?? 0;
+  const executionGate = getExecutionGate(profileV2);
+  const lendingGate = getLendingGate(profileV2);
+  const governancePower = getGovernancePower(profileV2);
+  const tier = Number(profileV2?.reputation?.tier ?? reputation?.tier ?? 0);
+  const tierName =
+    profileV2?.reputation?.tier_name ??
+    reputation?.tier_name ??
+    passport?.tier_name ??
+    "Strict";
+  const trustScore = Number(profileV2?.passport?.composite_score ?? reputation?.trust_score ?? 0);
+  const creditScore = Number(
+    profileV2?.passport?.credit_score ??
+      passport?.credit_score ??
+      passport?.composite_score ??
+      0
+  );
+  const proofCount = Number(
+    profileV2?.passport?.receipt_summary?.count ?? passport?.proof_receipts?.length ?? 0
+  );
   const proofsRequired = 5;
   const activeSession = sessions.find((s) => s.is_active && !s.is_expired);
 
@@ -631,25 +650,23 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
           <div className="flex items-center gap-2">
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                (reputation?.tier ?? 0) === 0
+                tier === 0
                   ? "bg-zinc-700 text-zinc-300"
-                  : (reputation?.tier ?? 0) === 1
+                  : tier === 1
                     ? "bg-emerald-900/50 text-emerald-400"
                     : "bg-amber-900/50 text-amber-400"
               }`}
             >
-              {reputation?.tier_name ?? passport?.tier_name ?? "Anon"}
+              {tierName}
             </span>
           </div>
           <div className="flex justify-between text-zinc-500">
             <span>Trust</span>
-            <span className="text-zinc-300">{reputation?.trust_score ?? "—"}</span>
+            <span className="text-zinc-300">{trustScore}</span>
           </div>
           <div className="flex justify-between text-zinc-500">
             <span>FICO</span>
-            <span className="text-zinc-300">
-              {passport?.credit_score ?? passport?.composite_score ?? "—"}
-            </span>
+            <span className="text-zinc-300">{creditScore || "—"}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-zinc-500">Proofs</span>
@@ -673,7 +690,21 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
           </div>
           <div className="flex justify-between text-zinc-500">
             <span>Voting power</span>
-            <span className="text-zinc-300">—</span>
+            <span className="text-zinc-300">
+              {governancePower.votingPower > 0
+                ? governancePower.votingPower.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })
+                : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between text-zinc-500">
+            <span>Execution gate</span>
+            <span className="text-zinc-300 uppercase">{executionGate.mode}</span>
+          </div>
+          <div className="flex justify-between text-zinc-500">
+            <span>Lending gate</span>
+            <span className="text-zinc-300 uppercase">{lendingGate.mode}</span>
           </div>
           <Link
             href="/profile"

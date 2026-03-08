@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { ShieldedBreakdown, formatWei, METHOD_LABELS } from "@/components/zkdefi/vault/ShieldedBreakdown";
 
 interface CapitalLedgerProps {
@@ -148,19 +149,44 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           })));
         }
 
-        // Health / Reputation
-        const rep = await apiFetch<any>(`/api/v1/zkdefi/reputation/user/${address}`).catch(() => null);
-        const passport = await apiFetch<any>(`/api/v1/zkdefi/risk_passport/user/${address}`).catch(() => null);
-        const tierNames = ["Anon", "Express", "Trusted"];
-        setHealth({
-          tier: rep?.current_tier ?? 0,
-          tier_name: tierNames[rep?.current_tier ?? 0] || "Anon",
-          trust_score: rep?.trust_score ?? 0,
-          privacy_coverage_pct: passport?.privacy_coverage_pct ?? 0,
-          collateral_ratio_pct: passport?.collateral_ratio_pct ?? 0,
-          proof_count: passport?.proof_count ?? rep?.completed_proofs ?? 0,
-          proofs_required: passport?.proofs_required ?? 5,
-        });
+        // Health / Reputation (canonical V2 first, legacy fallback)
+        const profile = await apiFetch<RiskProfileV2>(`/api/v1/zkdefi/risk_profile/v2/${address}`).catch(() => null);
+        if (profile) {
+          const linked = Array.isArray(profile.identity?.linked_addresses) ? profile.identity.linked_addresses : [];
+          const linkedVerified = linked.filter((entry) => Boolean(entry?.verified)).length;
+          const privacyCoveragePct = linked.length > 0
+            ? Math.round((linkedVerified / linked.length) * 100)
+            : profile.identity?.dual_wallet_session?.active
+              ? 100
+              : 0;
+          const collateralEth = Number(profile.reputation?.collateral_eth ?? 0);
+          const creditLineEth = Number(profile.predictive_credit?.credit_line_eth ?? 0);
+          const collateralRatioPct = creditLineEth > 0
+            ? Math.round((collateralEth / creditLineEth) * 100)
+            : 0;
+
+          setHealth({
+            tier: Number(profile.reputation?.tier ?? 0),
+            tier_name: String(profile.reputation?.tier_name ?? "Strict"),
+            trust_score: Number(profile.passport?.composite_score ?? 0),
+            privacy_coverage_pct: privacyCoveragePct,
+            collateral_ratio_pct: collateralRatioPct,
+            proof_count: Number(profile.passport?.receipt_summary?.count ?? 0),
+            proofs_required: 5,
+          });
+        } else {
+          const rep = await apiFetch<any>(`/api/v1/zkdefi/reputation/user/${address}`).catch(() => null);
+          const passport = await apiFetch<any>(`/api/v1/zkdefi/risk_passport/user/${address}`).catch(() => null);
+          setHealth({
+            tier: Number(rep?.tier ?? 0),
+            tier_name: String(rep?.tier_name ?? "Strict"),
+            trust_score: Number(passport?.composite_score ?? rep?.trust_score ?? 0),
+            privacy_coverage_pct: Number(passport?.privacy_coverage_pct ?? 0),
+            collateral_ratio_pct: Number(passport?.collateral_ratio_pct ?? 0),
+            proof_count: Number(passport?.proof_count ?? 0),
+            proofs_required: Number(passport?.proofs_required ?? 5),
+          });
+        }
       } finally {
         setLoading(false);
       }

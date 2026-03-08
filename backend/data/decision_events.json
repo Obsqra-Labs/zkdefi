@@ -883,5 +883,217 @@
       ]
     },
     "created_at": "2026-03-08T09:05:52.641826+00:00"
+  },
+  {
+    "id": 32,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "governance_power_updated",
+    "gate": "governance",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "voting_power": 113.137085,
+      "tier_multiplier": 2.0,
+      "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+      "state_key": "governance.voting_power",
+      "previous": null,
+      "current": 113.137085
+    },
+    "created_at": "2026-03-08T13:28:51.872851+00:00"
+  },
+  {
+    "id": 33,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "credit_model_updated",
+    "gate": "credit",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 9.33,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+      "state_key": "credit.model_state",
+      "previous": null,
+      "current": {
+        "grade": "AAA",
+        "rate_bps": 300,
+        "credit_line_eth": 9.33,
+        "model_name": "creditworthiness_mlp",
+        "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+      }
+    },
+    "created_at": "2026-03-08T13:28:51.874664+00:00"
+  },
+  {
+    "id": 34,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "identity_binding_status_updated",
+    "gate": "identity",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "active": false,
+      "status": "expired",
+      "session_id": null,
+      "linked_verified_count": 1,
+      "state_key": "identity.binding_state",
+      "previous": null,
+      "current": {
+        "active": false,
+        "status": "expired",
+        "session_id": null,
+        "linked_verified_count": 1
+      }
+    },
+    "created_at": "2026-03-08T13:28:51.875970+00:00"
+  },
+  {
+    "id": 35,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "execution_gate_updated",
+    "gate": "execution",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ],
+      "active_sessions": 0,
+      "state_key": "execution.gate_state",
+      "previous": null,
+      "current": {
+        "mode": "advisory",
+        "reason_codes": [
+          "onboarding_incomplete",
+          "no_active_session"
+        ],
+        "active_sessions": 0
+      }
+    },
+    "created_at": "2026-03-08T13:28:51.877369+00:00"
+  },
+  {
+    "id": 36,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-08T13:28:51.879696+00:00"
+  },
+  {
+    "id": 37,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-08T13:28:51.880754+00:00"
+  },
+  {
+    "id": 38,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-08T13:28:51.881697+00:00"
   }
 ]
