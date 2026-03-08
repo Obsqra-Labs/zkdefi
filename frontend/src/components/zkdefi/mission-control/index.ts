@@ -7,6 +7,7 @@ export { StreamCard, type StreamItem } from "./StreamCard";
 export { CircuitBoard } from "./CircuitBoard";
 export { DeployOverlay, type DeployMode, type DeployOverlayProps } from "./DeployOverlay";
 export { GovernanceOverlay, type GovernanceOverlayProps } from "./GovernanceOverlay";
+export { CenterStageModes } from "./CenterStageModes";
 export { ProofChainStrip } from "./ProofChainStrip";
 export { OracleDashboardStrip } from "./OracleDashboardStrip";
 export { AgentInsightsStrip } from "./AgentInsightsStrip";

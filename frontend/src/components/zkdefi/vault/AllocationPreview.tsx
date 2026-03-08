@@ -16,6 +16,7 @@ export interface AllocationPreviewProps {
   asset: "STRK" | "ETH" | "strkBTC";
   riskProfile?: string;
   isDemo?: boolean;
+  address?: string;
 }
 
 interface AllocationData {
@@ -26,7 +27,7 @@ interface AllocationData {
   blendedApy: number;
 }
 
-export function AllocationPreview({ amount, asset, riskProfile = "balanced", isDemo }: AllocationPreviewProps) {
+export function AllocationPreview({ amount, asset, riskProfile = "balanced", isDemo, address }: AllocationPreviewProps) {
   const [data, setData] = useState<AllocationData | null>(isDemo ? DEMO_ALLOCATION : null);
   const [loading, setLoading] = useState(!isDemo);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function AllocationPreview({ amount, asset, riskProfile = "balanced", isD
         const res = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: amountNum, risk_profile: riskProfile, asset }),
+          body: JSON.stringify({ user_address: address || "0x0", amount: amountNum, risk_profile: riskProfile, asset }),
           signal: AbortSignal.timeout(8000),
         });
 
@@ -81,7 +82,7 @@ export function AllocationPreview({ amount, asset, riskProfile = "balanced", isD
 
     fetchAllocation();
     return () => { dead = true; };
-  }, [amount, asset, riskProfile, isDemo, showPreview, amountNum]);
+  }, [amount, asset, riskProfile, isDemo, showPreview, amountNum, address]);
 
   if (!showPreview) {
     return (

@@ -1,4 +1,4 @@
-import { apiUrl } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 
 /**
  * Reputation score thresholds for tier mapping
@@ -57,29 +57,15 @@ export class ReputationGatingService {
    * @returns UserReputation with computed tier
    */
   async getUserReputation(address: string): Promise<UserReputation> {
-    const url = apiUrl(`/api/v1/zkdefi/reputation/user/${address}`);
-
-    const response = await fetch(url, {
+    const data = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch reputation (${response.status})`;
-      throw new Error(detail);
-    }
-
-    const data = await response.json();
-
     return {
-      address: data.address,
-      reputationScore: data.reputationScore,
-      tier: this.mapScoreToTier(data.reputationScore),
-      updatedAt: data.updatedAt,
+      address: String(data.address ?? address),
+      reputationScore: Number(data.reputationScore ?? 0),
+      tier: this.mapScoreToTier(Number(data.reputationScore ?? 0)),
+      updatedAt: String(data.updatedAt ?? new Date().toISOString()),
     };
   }
 
@@ -132,23 +118,9 @@ export class ReputationGatingService {
    * @returns Array of access events (borrows, repays, etc)
    */
   async getAccessHistory(address: string): Promise<AccessEvent[]> {
-    const url = apiUrl(`/api/v1/zkdefi/reputation/access-history/${address}`);
-
-    const response = await fetch(url, {
+    const data = await apiFetch<unknown>(`/api/v1/zkdefi/reputation/access-history/${address}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch access history (${response.status})`;
-      throw new Error(detail);
-    }
-
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? (data as AccessEvent[]) : [];
   }
 }

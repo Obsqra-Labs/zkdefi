@@ -33,7 +33,7 @@ router = APIRouter(tags=["Private Yield"])
 
 class DepositRegistration(BaseModel):
     commitment: str
-    amount_wei: int
+    amount_wei: int | str
     user_address: Optional[str] = None
 
 
@@ -52,7 +52,7 @@ async def register_yield_deposit(req: DepositRegistration):
     try:
         position = register_deposit(
             commitment=req.commitment,
-            amount_wei=req.amount_wei,
+            amount_wei=int(req.amount_wei),
             user_address=req.user_address,
         )
         return {"status": "registered", "position": position}

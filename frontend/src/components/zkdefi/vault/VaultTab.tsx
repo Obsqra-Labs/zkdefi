@@ -3,7 +3,6 @@
 import React, { useState, useCallback } from "react";
 import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
 import { Shield } from "lucide-react";
-import { TierSelector } from "./TierSelector";
 import { DepositPanel } from "./DepositPanel";
 import { WithdrawPanel } from "./WithdrawPanel";
 import PositionsOverview from "./PositionsOverview";
@@ -61,7 +60,6 @@ export function VaultTab(props: VaultTabProps) {
           reasoning={DEMO_AI_INSIGHT.reasoning}
         />
       )}
-      <TierSelector selected={method} onSelect={setMethod} commitments={commitments} />
       <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2 text-xs text-emerald-400/80 flex items-center gap-2">
         <Shield className="w-3.5 h-3.5 flex-shrink-0" />
         <span>
@@ -69,7 +67,7 @@ export function VaultTab(props: VaultTabProps) {
         </span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
+        <DepositPanel method={method} setMethod={setMethod} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
         <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} />
       </div>
       <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />

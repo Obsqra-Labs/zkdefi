@@ -201,40 +201,22 @@ function VotingPowerSection({ address }: { address: string | undefined }) {
       setError(null);
       setLoading(true);
       try {
-        const [repRes, vpRes, posRes, lendRes, stakeRes] = await Promise.all([
+        const [repRes, vpRes] = await Promise.all([
           apiFetch<ReputationData>(`/api/v1/zkdefi/reputation/user/${address}`).catch(
             (): ReputationData => ({})
           ),
           fetch(apiUrl(`/api/v1/dao/voting_power/${address}`)).then((r) =>
             r.ok ? r.json() : null
           ).catch(() => null),
-          apiFetch<{ positions?: Array<{ value_usd?: number }> }>(
-            `/api/v1/zkdefi/position/${address}?protocol_id=0`
-          ).catch(() => ({ positions: [] })),
-          apiFetch<{ supplies?: Array<{ amount_wei?: string }> }>(
-            `/api/v1/zkdefi/lending/positions/${address}`
-          ).catch(() => ({ supplies: [] })),
-          apiFetch<{ positions?: Array<{ delegated_strk?: number }> }>(
-            `/api/v1/zkdefi/staking/positions/${address}`
-          ).catch(() => ({ positions: [] })),
         ]);
 
-        const tierVal = repRes?.current_tier ?? 0;
+        const tierVal = Number((vpRes as any)?.tier ?? repRes?.current_tier ?? 0);
         setTier(tierVal);
-        setTierMult(TIER_MULTIPLIERS[tierVal] ?? 1);
+        setTierMult(Number((vpRes as any)?.tier_multiplier ?? TIER_MULTIPLIERS[tierVal] ?? 1));
 
-        const lpVal =
-          posRes?.positions?.reduce((a, p) => a + (p.value_usd ?? 0), 0) ?? 0;
-        const lendVal =
-          lendRes?.supplies?.reduce(
-            (a, s) => a + Number(s.amount_wei ?? "0") / 1e18,
-            0
-          ) ?? 0;
-        const stakeVal =
-          stakeRes?.positions?.reduce(
-            (a, p) => a + (p.delegated_strk ?? 0),
-            0
-          ) ?? 0;
+        const lpVal = Number((vpRes as any)?.lp_usd ?? 0);
+        const lendVal = Number((vpRes as any)?.lending_usd ?? 0);
+        const stakeVal = Number((vpRes as any)?.staking_usd ?? 0);
 
         setLpValue(lpVal);
         setLendingSupplied(lendVal);
@@ -245,7 +227,7 @@ function VotingPowerSection({ address }: { address: string | undefined }) {
         setBasePower(Math.floor(base));
 
         if (vpRes && typeof (vpRes as VotingPowerData).voting_power === "number") {
-          setVp((vpRes as VotingPowerData).voting_power!);
+          setVp(Number((vpRes as VotingPowerData).voting_power || 0));
         } else {
           const finalVp = Math.floor(base * (TIER_MULTIPLIERS[tierVal] ?? 1));
           setVp(finalVp);

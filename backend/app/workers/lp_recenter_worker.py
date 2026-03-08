@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 import sys
 import time
@@ -28,7 +29,6 @@ from app.services.ekubo.lp_recenter_adapter import (
     build_recenter_calldata,
     should_recenter,
 )
-from app.services.ekubo_executor import price_to_tick, EkuboContractExecutor
 from app.services.vault_policy_service import VaultPolicyService, get_vault_policy_service
 
 logging.basicConfig(
@@ -50,13 +50,18 @@ VAULT_ADDRESS = os.getenv(
 )
 
 
+def _price_to_tick(price: float) -> int:
+    if price <= 0:
+        return 0
+    return round(math.log(price) / math.log(1.0001))
+
+
 async def _get_current_tick() -> Optional[int]:
     """Fetch current spot price and convert to tick."""
     price = await get_spot_price()
     if price is None:
         return None
-    from app.services.ekubo_executor import price_to_tick
-    return price_to_tick(price)
+    return _price_to_tick(price)
 
 
 async def _run_cycle() -> None:
@@ -120,8 +125,8 @@ async def _run_cycle() -> None:
 
         # Live execution
         try:
+            from app.services.ekubo_executor import EkuboContractExecutor
             executor = EkuboContractExecutor()
-            account = executor._get_account()
             # In a real implementation, convert recenter["calls"] to starknet-py Call objects
             # For now, log the intent
             logger.info("[LIVE] Executing recenter for NFT %s ...", nft_id)

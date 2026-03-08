@@ -68,7 +68,7 @@ def _parse_address(raw: str) -> int:
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 
-@router.get("/skills", summary="List available agent skills")
+@router.get("/", summary="List available agent skills")
 async def list_skills(
     category: str | None = None,
     max_tier: int = 2,
@@ -79,7 +79,7 @@ async def list_skills(
     return {"skills": skills, "count": len(skills)}
 
 
-@router.get("/skills/{skill_id}", summary="Get skill details")
+@router.get("/{skill_id}", summary="Get skill details")
 async def get_skill(skill_id: str):
     """Return details for a single skill."""
     svc = get_skill_service()
@@ -91,7 +91,7 @@ async def get_skill(skill_id: str):
 
 
 @router.post(
-    "/skills/{skill_id}/run",
+    "/{skill_id}/run",
     response_model=SkillRunResponse,
     summary="Execute a skill (generate ZK proof)",
 )
@@ -105,10 +105,6 @@ async def run_skill(skill_id: str, body: SkillRunRequest):
         params=body.params,
         user_address=addr,
     )
-    if result.get("error") and not result.get("success"):
-        # Still return 200 with error payload so callers can inspect
-        pass
-
     return SkillRunResponse(
         skill_id=result.get("skill_id", skill_id),
         circuit_name=result.get("circuit_name"),
@@ -121,7 +117,68 @@ async def run_skill(skill_id: str, body: SkillRunRequest):
     )
 
 
-@router.post("/skills/batch", summary="Execute multiple skills in parallel")
+@router.post(
+    "/screen/opportunity",
+    summary="Async circuit screening for a stream opportunity",
+)
+async def screen_opportunity(body: dict):
+    """
+    Run YieldOptimality + StrategyIntegrity circuits on an opportunity.
+    Called async — the stream item shows 'proving' then updates to 'proved' or 'flagged'.
+    Returns proof_hash + compliance flag immediately (circuits run in ~1-3s).
+    """
+    import asyncio as _asyncio
+    svc = get_skill_service()
+    pool_id = body.get("pool_id", "unknown")
+    apy_bps = int(body.get("apy_bps", 0))
+    risk_level = body.get("risk_level", "medium")
+    user_address = _parse_address(body.get("user_address", "0x0"))
+
+    # Map risk_level to numeric score for circuit inputs
+    risk_score = {"low": 20, "medium": 50, "high": 75}.get(risk_level, 50)
+
+    async def _run(skill_id: str, params: dict) -> dict:
+        try:
+            return await svc.execute_skill(skill_id=skill_id, params=params, user_address=user_address)
+        except Exception as exc:
+            return {"skill_id": skill_id, "success": False, "error": str(exc), "proof_hash": None}
+
+    # Map stream-level params → circuit builder params
+    # build_yield_optimality_inputs expects: allocations, predicted_yields, optimality_threshold_bps
+    # build_strategy_integrity_inputs expects: position_weights_bps, effective_leverage_bps, ...
+    yield_task = _asyncio.create_task(_run("yield_optimality", {
+        "predicted_yields": [apy_bps] + [max(0, apy_bps - i * 50) for i in range(1, 8)],
+        "optimality_threshold_bps": risk_score * 4,
+    }))
+    integrity_task = _asyncio.create_task(_run("strategy_integrity", {
+        "effective_leverage_bps": 10000 + risk_score * 100,
+    }))
+
+    yield_result, integrity_result = await _asyncio.gather(yield_task, integrity_task)
+
+    is_proved = (
+        yield_result.get("success") and
+        integrity_result.get("success") and
+        yield_result.get("is_compliant", True) and
+        integrity_result.get("is_compliant", True)
+    )
+
+    proof_hashes = {
+        "yield_optimality": yield_result.get("proof_hash"),
+        "strategy_integrity": integrity_result.get("proof_hash"),
+    }
+
+    return {
+        "pool_id": pool_id,
+        "is_proved": is_proved,
+        "proof_status": "proved" if is_proved else "flagged",
+        "proof_hashes": proof_hashes,
+        "yield_result": yield_result,
+        "integrity_result": integrity_result,
+    }
+
+
+@router.post("/batch", summary="Execute multiple skills in parallel")
 async def run_skills_batch(body: BatchSkillRequest):
     """Execute several skills concurrently and return all results."""
     import asyncio

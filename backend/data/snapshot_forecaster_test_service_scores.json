@@ -1,12 +1,12 @@
 {
-  "0xe08fc8780f48a45a8346d63b90efcbd669f800d695eb8ebe48805d6cb1a8b60d": {
-    "score_receipt_id": "0xe08fc8780f48a45a8346d63b90efcbd669f800d695eb8ebe48805d6cb1a8b60d",
-    "forecast_id": "0x042c23e36e16e0ae736d865d5bb56676fac35fba5736e0e6f266d054d05b214d",
-    "window_id": "0x9d46024a75801519fc78f7317555cedf04a19128db4ab55e08fb1cabe83a96b5",
-    "subject_id": "0xbench",
+  "0x789a0dc4556333c221c65c42f24d510281f4569626171a856af5e54f75b66342": {
+    "score_receipt_id": "0x789a0dc4556333c221c65c42f24d510281f4569626171a856af5e54f75b66342",
+    "forecast_id": "0xe86384a81c0b97d0990b7b8518dd9810718e557390edb7211bb5691aa2834777",
+    "window_id": "0x4e6f36ea15a932b137983d31209cbb723c3c57220cbaee95122596e347e2dca7",
+    "subject_id": "0xanalytics",
     "pair_id": "ETH/USDC",
     "model_identity": {
-      "model_hash": "0xmodelhash-bench",
+      "model_hash": "0xanalytics_model",
       "schema_id": "snapshot_forecaster.v1",
       "settings_hash": null,
       "vk_hash": null
@@ -14,11 +14,11 @@
     "trust_mode": "offchain_ezkl_verified",
     "metrics": {
       "horizon_count": 3,
-      "mae_bps": 26.666667,
-      "rmse_bps": 28.284271,
+      "mae_bps": 20.0,
+      "rmse_bps": 22.730303,
       "directional_accuracy": 1.0,
-      "brier_score": 0.0924,
-      "ece": 0.3
+      "brier_score": 0.110567,
+      "ece": 0.33
     },
     "metric_tiers": {
       "directional_accuracy_tier": "tier_1",
@@ -29,38 +29,38 @@
     "per_horizon": {
       "5": {
         "horizon_min": 5,
-        "predicted_return_bps": 90,
-        "actual_return_bps": 70,
-        "predicted_prob_up": 0.64,
+        "predicted_return_bps": 60,
+        "actual_return_bps": 55,
+        "predicted_prob_up": 0.62,
         "actual_up": 1,
         "directional_hit": true,
-        "abs_error_bps": 20.0,
-        "squared_error_bps2": 400.0,
-        "brier": 0.1296
+        "abs_error_bps": 5.0,
+        "squared_error_bps2": 25.0,
+        "brier": 0.1444
       },
       "30": {
         "horizon_min": 30,
-        "predicted_return_bps": 140,
-        "actual_return_bps": 120,
-        "predicted_prob_up": 0.7,
+        "predicted_return_bps": 120,
+        "actual_return_bps": 95,
+        "predicted_prob_up": 0.67,
         "actual_up": 1,
         "directional_hit": true,
-        "abs_error_bps": 20.0,
-        "squared_error_bps2": 400.0,
-        "brier": 0.09000000000000002
+        "abs_error_bps": 25.0,
+        "squared_error_bps2": 625.0,
+        "brier": 0.10889999999999997
       },
       "240": {
         "horizon_min": 240,
-        "predicted_return_bps": 220,
-        "actual_return_bps": 180,
-        "predicted_prob_up": 0.76,
+        "predicted_return_bps": 180,
+        "actual_return_bps": 150,
+        "predicted_prob_up": 0.72,
         "actual_up": 1,
         "directional_hit": true,
-        "abs_error_bps": 40.0,
-        "squared_error_bps2": 1600.0,
-        "brier": 0.0576
+        "abs_error_bps": 30.0,
+        "squared_error_bps2": 900.0,
+        "brier": 0.07840000000000001
       }
     },
-    "scored_at_ts": 1772860984
+    "scored_at_ts": 1772862326
   }
 }

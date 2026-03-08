@@ -5,6 +5,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import {
   ReactFlow,
@@ -384,6 +385,10 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [lastSavedHash, setLastSavedHash] = useState<string>("");
+  const [isDirty, setIsDirty] = useState(false);
+  const hydratedRef = useRef(false);
+  const baselineSignatureRef = useRef<string>("");
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -407,12 +412,23 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       .then((res) => {
         if (cancelled) return;
         const cb = res?.policy?.circuit_board;
+        const loadedNodes = cb?.nodes || [];
+        const loadedEdges = cb?.edges || [];
+        const loadedName = cb?.policy_name || "Untitled Policy";
         if (cb?.nodes?.length) {
           nodeId = Math.max(0, ...cb.nodes.map((n) => parseInt(n.id.replace(/\D/g, ""), 10) || 0));
-          setNodes(cb.nodes);
-          setEdges(cb.edges || []);
         }
-        if (cb?.policy_name) setPolicyName(cb.policy_name);
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+        if (loadedName) setPolicyName(loadedName);
+        if (res?.policy_hash) setLastSavedHash(res.policy_hash);
+        baselineSignatureRef.current = JSON.stringify({
+          policyName: loadedName,
+          nodes: loadedNodes,
+          edges: loadedEdges,
+        });
+        setIsDirty(false);
+        hydratedRef.current = true;
       })
       .catch(() => {})
       .finally(() => {
@@ -420,6 +436,12 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       });
     return () => { cancelled = true; };
   }, [address, setNodes, setEdges]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const current = JSON.stringify({ policyName, nodes, edges });
+    setIsDirty(current !== baselineSignatureRef.current);
+  }, [nodes, edges, policyName]);
 
   // Load available models
   useEffect(() => {
@@ -464,7 +486,7 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
     }
     setSaving(true);
     try {
-      await apiFetch(`/api/v1/zkdefi/mc/policy/${address}`, {
+      const res = await apiFetch<{ policy_hash?: string }>(`/api/v1/zkdefi/mc/policy/${address}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -477,6 +499,9 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
           },
         }),
       });
+      if (res?.policy_hash) setLastSavedHash(res.policy_hash);
+      baselineSignatureRef.current = JSON.stringify({ policyName, nodes, edges });
+      setIsDirty(false);
       toastSuccess("Policy saved");
     } catch (e) {
       toastError(e instanceof Error ? e.message : "Save failed");
@@ -560,6 +585,14 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
             className="w-48 rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-xs text-zinc-200 placeholder-zinc-500"
             placeholder="Policy name"
           />
+          {lastSavedHash && (
+            <span className="text-[10px] text-zinc-500">
+              hash: {lastSavedHash.slice(0, 12)}...
+            </span>
+          )}
+          <span className={`text-[10px] ${isDirty ? "text-amber-400" : "text-emerald-400"}`}>
+            {isDirty ? "dirty" : "saved"}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <select

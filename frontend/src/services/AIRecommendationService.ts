@@ -1,4 +1,4 @@
-import { apiUrl } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 import type { Recommendation, RebalanceSuggestion, MarketInsights } from './types';
 
 export class AIRecommendationService {
@@ -19,30 +19,33 @@ export class AIRecommendationService {
       return this.recommendationsCache;
     }
 
-    // Try live endpoint first, fallback to mock
-    const urls = [
-      apiUrl('/api/v1/zkdefi/ai/recommendations/live'),
-      apiUrl('/api/v1/zkdefi/ai/recommendations')
-    ];
-    
     let recommendations: Recommendation[] = [];
-    
-    for (const url of urls) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(context),
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          recommendations = Array.isArray(data) ? data : (data.recommendations || []);
-          break;
-        }
+    // Live endpoint is GET in backend route.
+    try {
+      const live = await apiFetch<Recommendation[] | { recommendations?: Recommendation[] }>(
+        '/api/v1/zkdefi/ai/recommendations/live',
+        {
+          method: 'GET',
+        },
+      );
+      recommendations = Array.isArray(live) ? live : (live.recommendations || []);
+    } catch (e) {
+      console.warn("Live recommendation fetch failed, trying fallback...");
+    }
+
+    if (recommendations.length === 0) {
+      try {
+        const data = await apiFetch<Recommendation[] | { recommendations?: Recommendation[] }>(
+          '/api/v1/zkdefi/ai/recommendations',
+          {
+            method: 'POST',
+            body: JSON.stringify(context),
+          },
+        );
+        recommendations = Array.isArray(data) ? data : (data.recommendations || []);
       } catch (e) {
-        console.warn(`AI fetch from ${url} failed, trying next...`);
-        continue;
+        console.warn("Fallback recommendation fetch failed");
       }
     }
     
@@ -58,67 +61,25 @@ export class AIRecommendationService {
   }
 
   async getRebalancingSuggestion(portfolio: any): Promise<RebalanceSuggestion> {
-    const url = apiUrl('/api/v1/zkdefi/ai/rebalance');
-
-    const response = await fetch(url, {
+    return await apiFetch<RebalanceSuggestion>('/api/v1/zkdefi/ai/rebalance', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ portfolio }),
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch rebalancing suggestion (${response.status})`;
-      throw new Error(detail);
-    }
-
-    return await response.json();
   }
 
   async getMarketInsights(): Promise<MarketInsights> {
-    const url = apiUrl('/api/v1/zkdefi/ai/insights');
-
-    const response = await fetch(url, {
+    return await apiFetch<MarketInsights>('/api/v1/zkdefi/ai/insights', {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch market insights (${response.status})`;
-      throw new Error(detail);
-    }
-
-    return await response.json();
   }
 
   async explainDecision(decision: {
     type: 'swap' | 'lp' | 'lending' | 'dca';
     parameters: any;
   }): Promise<{ explanation: string; alternatives: any[] }> {
-    const url = apiUrl('/api/v1/zkdefi/ai/explain');
-
-    const response = await fetch(url, {
+    return await apiFetch<{ explanation: string; alternatives: any[] }>('/api/v1/zkdefi/ai/explain', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(decision),
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to explain decision (${response.status})`;
-      throw new Error(detail);
-    }
-
-    return await response.json();
   }
 }

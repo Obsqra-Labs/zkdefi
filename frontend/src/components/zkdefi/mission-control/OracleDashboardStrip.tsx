@@ -22,6 +22,10 @@ interface Opportunity {
   volatility?: number;
   liquidity_score?: number;
   efficiency?: number;
+  signal?: string;
+  signal_strength?: number;
+  signal_reason?: string;
+  signal_features?: Record<string, unknown>;
 }
 
 interface OracleDashboardStripProps {
@@ -31,11 +35,62 @@ interface OracleDashboardStripProps {
 
 const LS_KEY = "zkdefi_oracle_collapsed";
 
-const RISK_DOT: Record<string, string> = {
-  low: "bg-emerald-400",
-  medium: "bg-amber-400",
-  high: "bg-red-400",
+const SIGNAL_META: Record<string, { label: string; dot: string; text: string }> = {
+  top_pick: { label: "Top Pick", dot: "bg-fuchsia-400", text: "text-fuchsia-300" },
+  trending: { label: "Trending", dot: "bg-orange-400", text: "text-orange-300" },
+  rising: { label: "Rising", dot: "bg-cyan-400", text: "text-cyan-300" },
+  active: { label: "Active", dot: "bg-emerald-400", text: "text-emerald-300" },
+  stable: { label: "Stable", dot: "bg-zinc-500", text: "text-zinc-400" },
 };
+
+function signalMeta(signal?: string) {
+  return SIGNAL_META[signal ?? ""] ?? SIGNAL_META.stable;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function asOptionalNumber(value: unknown): number | undefined {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function asText(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value == null) return fallback;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeOpportunity(raw: unknown, index: number): Opportunity | null {
+  if (!isRecord(raw)) return null;
+  const id = asText(raw.id) || `opp-${index}`;
+  const name = asText(raw.name) || asText(raw.pair) || `Opportunity ${index + 1}`;
+  return {
+    id,
+    name,
+    venue: asText(raw.venue) || undefined,
+    apy_bps: asNumber(raw.apy_bps, asNumber(raw.currentYield, 0) * 100),
+    risk_level: asText(raw.risk_level).toLowerCase() || undefined,
+    volatility: asOptionalNumber(raw.volatility),
+    liquidity_score: asOptionalNumber(raw.liquidity_score),
+    efficiency: asOptionalNumber(raw.efficiency),
+    signal: asText(raw.signal) || undefined,
+    signal_strength: asOptionalNumber(raw.signal_strength),
+    signal_reason: asText(raw.signal_reason) || undefined,
+    signal_features: isRecord(raw.signal_features) ? raw.signal_features : undefined,
+  };
+}
 
 function riskScore(level?: string): number {
   if (level === "low") return 25;
@@ -44,8 +99,8 @@ function riskScore(level?: string): number {
   return 50;
 }
 
-function apyPercent(bps?: number): number {
-  return bps != null ? bps / 100 : 0;
+function apyPercent(bps?: unknown): number {
+  return asNumber(bps, 0) / 100;
 }
 
 function readCollapsed(): boolean {
@@ -116,6 +171,20 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
     setLoading(true);
     setError(null);
     try {
+      // Prefer mission-control signal/top (same curated opportunities as stream; no JediSwap)
+      const signalRes = await apiFetch<{ opportunities?: Opportunity[]; count?: number }>(
+        "/api/v1/zkdefi/mc/signal/top?limit=12",
+      ).catch(() => null);
+      const signalData = Array.isArray(signalRes?.opportunities)
+        ? signalRes.opportunities
+            .map((opp, idx) => normalizeOpportunity(opp, idx))
+            .filter((opp): opp is Opportunity => opp !== null)
+        : [];
+      if (signalData.length > 0) {
+        setData(signalData);
+        return;
+      }
+      // Fallback: strategies/opportunities
       const res = await apiFetch<Opportunity[] | { opportunities?: Opportunity[] }>(
         "/api/v1/strategies/opportunities",
         {
@@ -129,9 +198,12 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
         },
       );
       const list = Array.isArray(res) ? res : res?.opportunities ?? [];
-      setData(list);
-    } catch (e: any) {
-      setError(e?.message ?? "Fetch failed");
+      const normalized = list
+        .map((opp, idx) => normalizeOpportunity(opp, idx))
+        .filter((opp): opp is Opportunity => opp !== null);
+      setData(normalized);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Fetch failed");
     } finally {
       setLoading(false);
     }
@@ -160,12 +232,13 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
           <>
             <span className="text-zinc-600">|</span>
             <span>
-              Top: <span className="text-zinc-200">{top.name}</span>{" "}
+              Top: <span className="text-zinc-200">{asText(top.name)}</span>{" "}
               <span className="text-cyan-400">{apyPercent(top.apy_bps).toFixed(1)}%</span>
             </span>
             <span className="text-zinc-600">|</span>
             <span>
-              Risk: <span className="text-zinc-200 capitalize">{top.risk_level ?? "—"}</span>
+              Signal:{" "}
+              <span className={`font-medium ${signalMeta(top.signal).text}`}>{signalMeta(top.signal).label}</span>
             </span>
           </>
         )}
@@ -240,18 +313,36 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-zinc-800/60 transition-colors text-left group"
                   >
                     <span
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${RISK_DOT[opp.risk_level ?? ""] ?? "bg-zinc-500"}`}
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${signalMeta(opp.signal).dot}`}
                     />
                     <span className="text-xs text-zinc-300 truncate flex-1">
-                      {opp.venue ? `${opp.venue} / ` : ""}
-                      {opp.name}
+                      {opp.venue ? `${asText(opp.venue)} / ` : ""}
+                      {asText(opp.name)}
                     </span>
-                    <span className="text-[11px] font-mono text-cyan-400 flex-shrink-0">
-                      {apyPercent(opp.apy_bps).toFixed(1)}%
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className={`text-[10px] uppercase tracking-wide ${signalMeta(opp.signal).text}`}
+                        title={asText(opp.signal_reason) || "Signal tier from ranked composite score"}
+                      >
+                        {signalMeta(opp.signal).label}
+                      </span>
+                      {typeof opp.signal_strength === "number" && (
+                        <span className="text-[10px] text-zinc-500">
+                          {Math.max(0, Math.min(100, opp.signal_strength))}%
+                        </span>
+                      )}
+                      <span className="text-[11px] font-mono text-cyan-400">
+                        {apyPercent(opp.apy_bps).toFixed(1)}%
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
+              {topOpp?.signal_reason && (
+                <div className="text-[10px] text-zinc-500 border-t border-zinc-800 mt-1 pt-1 line-clamp-2">
+                  {asText(topOpp.signal_reason)}
+                </div>
+              )}
             </div>
 
             {/* CENTER: Radar (~30%) */}

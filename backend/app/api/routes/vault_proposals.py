@@ -5,10 +5,7 @@ from typing import List, Any, Optional
 from app.services.vault_proposal_service import VaultProposalService
 from app.services.constraint_hash_service import compute_constraint_hash
 
-router = APIRouter(
-    prefix="/api/v1/zkdefi/vault/proposals",
-    tags=["vault-proposals"],
-)
+router = APIRouter(tags=["vault-proposals"])
 
 _svc = VaultProposalService()
 

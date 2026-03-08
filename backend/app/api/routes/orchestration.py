@@ -25,3 +25,8 @@ async def orchestrate_deploy_endpoint(request: OrchestrateDeployRequest):
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Deploy temporarily unavailable; try again later.",
+        )

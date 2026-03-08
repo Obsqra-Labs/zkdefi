@@ -1,6 +1,7 @@
 "use client";
 
 import { type SetStateAction, useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -245,11 +246,6 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
 // Hook
 // ---------------------------------------------------------------------------
 
-const API_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL
-    : "";
-
 export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
   const [method, setMethodRaw] = useState<PrivacyMethod>("commitment_shield");
   const [commitments, setCommitments] = useState<VaultCommitment[]>([]);
@@ -269,17 +265,66 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
   }, [address]);
 
   useEffect(() => {
+    if (!address) return;
+    let dead = false;
+
+    (async () => {
+      try {
+        const data = await apiFetch<{ notes?: Record<string, unknown>[] }>(`/api/v1/zkdefi/ledger/notes/${address}`, {
+          method: "GET",
+        });
+        if (dead) return;
+        const notes: Record<string, unknown>[] = Array.isArray(data?.notes) ? data.notes : [];
+        if (notes.length === 0) return;
+
+        setCommitments((prev) => {
+          const known = new Set(prev.map((c) => c.commitment_hash));
+          const imported: VaultCommitment[] = [];
+          for (const note of notes) {
+            const rail = String(note?.rail_type ?? "").toLowerCase();
+            if (rail && rail !== "dark_ledger") continue;
+
+            const commitment = String(note?.commitment ?? "");
+            if (!commitment || known.has(commitment)) continue;
+            known.add(commitment);
+
+            const amountWei = String(note?.amount_wei ?? "0");
+            const createdAt = Number(note?.created_at ?? Date.now() / 1000);
+            imported.push({
+              id: crypto.randomUUID(),
+              method: "dark_ledger",
+              asset: String(note?.token ?? "STRK"),
+              amount_wei: amountWei,
+              commitment_hash: commitment,
+              deposited_at: new Date(createdAt * 1000).toISOString(),
+            });
+          }
+          if (imported.length === 0) return prev;
+          const next = [...prev, ...imported];
+          saveCommitments(address, next);
+          return next;
+        });
+      } catch {
+        // best-effort reconciliation
+      }
+    })();
+
+    return () => {
+      dead = true;
+    };
+  }, [address]);
+
+  useEffect(() => {
     if (!address || commitments.length === 0) return;
     let dead = false;
 
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/private-yield/positions/${address}`,
-          { signal: AbortSignal.timeout(8000) },
+        const data = await apiFetch<{ positions?: Record<string, unknown>[] }>(
+          `/api/v1/zkdefi/private-yield/positions/${address}`,
+          { method: "GET" },
         );
-        if (!res.ok || dead) return;
-        const data = await res.json();
+        if (dead) return;
         const positions: Record<string, unknown>[] = Array.isArray(data.positions) ? data.positions : [];
         if (positions.length === 0) return;
 

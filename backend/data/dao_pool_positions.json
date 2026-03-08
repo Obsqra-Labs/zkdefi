@@ -1,0 +1,13 @@
+{
+  "0xabc": {
+    "address": "0xabc",
+    "pools": {
+      "CONSERVATIVE_POOL": {
+        "deposited_amount": 100.0,
+        "updated_at": "2026-03-07T07:56:58Z",
+        "source": "simulated"
+      }
+    },
+    "updated_at": "2026-03-07T07:56:58Z"
+  }
+}

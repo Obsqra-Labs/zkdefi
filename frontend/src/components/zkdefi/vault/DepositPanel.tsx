@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, Clock, Coins, Loader2 } from "lucide-react";
+import { ArrowDownToLine, ChevronDown, Clock, Coins, Loader2, Shield, TreePine, Hash, BookLock } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
+import { getDepositStepsForMethod } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
-import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
+import { AllocationEditor } from "@/components/zkdefi/vault/AllocationEditor";
 import { API_BASE } from "@/lib/api/client";
 import { getOperatorAddress } from "@/lib/api/vault";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -73,11 +74,40 @@ type DepositResult = {
   pathIndices?: number[];
 };
 
+type SettlementReport = {
+  status: string;
+  methodLabel: string;
+  amountLabel: string;
+  txHash?: string;
+  txUrl?: string;
+  receiptId?: string;
+  receiptUrl?: string;
+  noteId?: string;
+  commitmentHash?: string;
+  settlementDay?: string;
+  settlementEta?: string;
+  ledgerSynced: boolean;
+  vaultSynced: boolean;
+  warnings: string[];
+};
+
 function toWei(amount: string): string {
-  return (
-    BigInt(Math.floor(parseFloat(amount))) * BigInt(1e18)
-  ).toString();
+  // Handle decimal amounts: "1.5" → "1500000000000000000"
+  const parts = amount.split(".");
+  const whole = parts[0] || "0";
+  const frac = (parts[1] || "").padEnd(18, "0").slice(0, 18);
+  const raw = whole + frac;
+  // Strip leading zeros but keep at least "0"
+  const trimmed = raw.replace(/^0+/, "") || "0";
+  return BigInt(trimmed).toString();
 }
+
+const PRIVACY_OPTIONS: { method: PrivacyMethod; label: string; icon: React.ComponentType<{ className?: string }>; short: string }[] = [
+  { method: "commitment_shield", label: "Commitment Shield", icon: Shield, short: "Amount hidden via Pedersen" },
+  { method: "nullifier_set", label: "Full Privacy", icon: TreePine, short: "Unlinkable withdrawals" },
+  { method: "hashed_proof", label: "Hashed Proof", icon: Hash, short: "Prove claims, hide values" },
+  { method: "dark_ledger", label: "Dark Ledger", icon: BookLock, short: "Off-chain, no footprint" },
+];
 
 function splitU256(wei: string): { low: string; high: string } {
   const big = BigInt(wei);
@@ -121,6 +151,7 @@ function markError(steps: ProofStep[], failedIndex: number): ProofStep[] {
 
 interface DepositPanelProps {
   method: PrivacyMethod;
+  setMethod: (m: PrivacyMethod) => void;
   depositSteps: ProofStep[];
   setDepositSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   addCommitment: (c: VaultCommitment) => void;
@@ -134,6 +165,7 @@ interface DepositPanelProps {
 
 export function DepositPanel({
   method,
+  setMethod,
   depositSteps,
   setDepositSteps,
   addCommitment,
@@ -150,6 +182,14 @@ export function DepositPanel({
   const [balanceEpoch, setBalanceEpoch] = useState(0);
   const [allocationRows, setAllocationRows] = useState(DEFAULT_ALLOCATION_ROWS);
   const [blendedApy, setBlendedApy] = useState<string | null>(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [report, setReport] = useState<SettlementReport | null>(null);
+
+  const handleMethodChange = useCallback((m: PrivacyMethod) => {
+    setMethod(m);
+    setDepositSteps(getDepositStepsForMethod(m));
+    setPrivacyOpen(false);
+  }, [setMethod, setDepositSteps]);
 
   useEffect(() => {
     let dead = false;
@@ -266,7 +306,7 @@ export function DepositPanel({
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
     if (!account) throw new Error("Wallet not connected");
 
-    // Contract sig: private_deposit(commitment: felt252, amount_public: u256, proof_calldata: Span<felt252>)
+    // Contract sig (ConfidentialTransfer): private_deposit(commitment: felt252, amount_public: u256, proof_calldata: Span<felt252>)
     const result = await account.execute([
       {
         contractAddress: resolveTokenAddress(selectedAsset) as `0x${string}`,
@@ -450,26 +490,89 @@ export function DepositPanel({
       },
     });
 
-    // Step 2 — backend verifies the on-chain transfer
-    setDepositSteps((prev) => updateStep(prev, 1, "active", "Verifying on-chain..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_in/request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_address: address,
-        tx_hash: txHash,
-        asset: selectedAsset,
-        capital_source: "wallet_mode",
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Ledger verification failed");
-    setDepositSteps((prev) => updateStep(prev, 1, "done", "Verified"));
+    return { commitmentHash: txHash, txHash };
+  }
 
-    // Step 3 — ledger credited
-    setDepositSteps((prev) => updateStep(prev, 2, "done", `Credited ${data.amount_wei ? (Number(data.amount_wei) / 1e18).toFixed(4) : ""} ${selectedAsset}`));
+  async function syncDepositRecord(
+    amountWei: string,
+    result: DepositResult,
+  ): Promise<{
+    commitmentHash: string;
+    ledger: Record<string, unknown> | null;
+    ledgerError: string | null;
+    vaultSynced: boolean;
+    vaultError: string | null;
+  }> {
+    let ledger: Record<string, unknown> | null = null;
+    let ledgerError: string | null = null;
+    let vaultSynced = false;
+    let vaultError: string | null = null;
 
-    return { commitmentHash: data.receipt_id || txHash, txHash };
+    try {
+      if (method === "dark_ledger") {
+        setDepositSteps((prev) => updateStep(prev, 1, "active", "Syncing ledger..."));
+      }
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_in/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          tx_hash: result.txHash,
+          amount_wei: amountWei,
+          asset: selectedAsset,
+          capital_source: method === "dark_ledger" ? "wallet_mode" : "private_capital",
+          method,
+          commitment_hash: result.commitmentHash,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.detail || "Failed to record deposit in ledger");
+      }
+      ledger = data;
+      if (method === "dark_ledger") {
+        setDepositSteps((prev) => updateStep(prev, 1, "done", "Verified"));
+        const credited = Number(data?.amount_wei || 0) / 1e18;
+        setDepositSteps((prev) =>
+          updateStep(prev, 2, "done", `Credited ${credited.toFixed(4)} ${selectedAsset}`),
+        );
+      } else {
+        setDepositSteps((prev) =>
+          updateStep(prev, prev.length - 1, "done", "Confirmed + backend synced"),
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ledgerError = msg;
+      if (method === "dark_ledger") {
+        setDepositSteps((prev) => markError(prev, 1));
+      }
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/zkdefi/private-yield/deposit/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commitment: (ledger?.commitment_hash as string) || result.commitmentHash,
+          amount_wei: amountWei,
+          user_address: address,
+        }),
+      });
+      if (res.ok) {
+        vaultSynced = true;
+      } else {
+        const data = await res.json().catch(() => ({}));
+        vaultError = String(data?.detail || "Vault position sync failed");
+      }
+    } catch (err: unknown) {
+      vaultError = err instanceof Error ? err.message : String(err);
+    }
+
+    const commitmentHash = String(
+      (ledger?.commitment_hash as string) || result.commitmentHash,
+    );
+    return { commitmentHash, ledger, ledgerError, vaultSynced, vaultError };
   }
 
   // -----------------------------------------------------------------------
@@ -479,10 +582,11 @@ export function DepositPanel({
   async function handleDeposit() {
     if (!amount || parseFloat(amount) <= 0) return;
     setBusy(true);
+    setReport(null);
 
     try {
       const amountWei = toWei(amount);
-      let result: DepositResult;
+      let result: DepositResult = { commitmentHash: "", txHash: "" };
 
       switch (method) {
         case "commitment_shield":
@@ -499,12 +603,15 @@ export function DepositPanel({
           break;
       }
 
+      const sync = await syncDepositRecord(amountWei, result);
+      const commitmentHash = sync.commitmentHash || result.commitmentHash;
+
       addCommitment({
         id: crypto.randomUUID(),
         method,
         asset: selectedAsset,
         amount_wei: toWei(amount),
-        commitment_hash: result.commitmentHash,
+        commitment_hash: commitmentHash,
         // Legacy compatibility fields:
         secret: result.userSecret,
         nullifier: result.nonce,
@@ -519,6 +626,35 @@ export function DepositPanel({
         path_indices: result.pathIndices,
         deposited_at: new Date().toISOString(),
       });
+
+      const receiptId = String(sync.ledger?.receipt_id || "");
+      const receiptPath = String(sync.ledger?.receipt_url || "");
+      setReport({
+        status: sync.ledger ? "Recorded" : "Pending backend sync",
+        methodLabel: METHOD_LABELS[method],
+        amountLabel: `${amount} ${selectedAsset}`,
+        txHash: result.txHash,
+        txUrl: result.txHash ? sepoliaVoyagerTxUrl(result.txHash) : undefined,
+        receiptId: receiptId || undefined,
+        receiptUrl: receiptPath ? `${API_BASE}${receiptPath}` : undefined,
+        noteId: String(sync.ledger?.note_id || "") || undefined,
+        commitmentHash,
+        settlementDay: String(sync.ledger?.settlement_day_utc || "") || undefined,
+        settlementEta: String(sync.ledger?.settlement_eta || "") || undefined,
+        ledgerSynced: Boolean(sync.ledger),
+        vaultSynced: sync.vaultSynced,
+        warnings: [sync.ledgerError, sync.vaultError].filter(
+          (w): w is string => Boolean(w),
+        ),
+      });
+
+      if (sync.ledgerError || sync.vaultError) {
+        toastError(
+          `Deposit submitted but backend sync is partial: ${[sync.ledgerError, sync.vaultError]
+            .filter(Boolean)
+            .join(" | ")}`,
+        );
+      }
 
       addActivityEvent(setActivityFeed, {
         type: "deposit",
@@ -572,9 +708,38 @@ export function DepositPanel({
           <ArrowDownToLine className="w-5 h-5 text-emerald-400" />
           <h3 className="text-lg font-semibold text-white">Deposit</h3>
         </div>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
-          {METHOD_LABELS[method]}
-        </span>
+      </div>
+
+      {/* Privacy method toggle */}
+      <div className="relative">
+        <button
+          onClick={() => setPrivacyOpen((o) => !o)}
+          className="w-full flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white hover:border-emerald-500/30 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            {(() => { const opt = PRIVACY_OPTIONS.find((o) => o.method === method); if (!opt) return null; const Icon = opt.icon; return <><Icon className="w-4 h-4 text-emerald-400" /><span>{opt.label}</span><span className="text-white/40 text-xs ml-1">— {opt.short}</span></>; })()}
+          </span>
+          <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${privacyOpen ? "rotate-180" : ""}`} />
+        </button>
+        {privacyOpen && (
+          <div className="absolute z-20 mt-1 w-full rounded-lg border border-white/10 bg-slate-900 shadow-xl overflow-hidden">
+            {PRIVACY_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              const active = opt.method === method;
+              return (
+                <button
+                  key={opt.method}
+                  onClick={() => handleMethodChange(opt.method)}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-colors ${active ? "bg-emerald-600/20 text-emerald-300" : "text-white/70 hover:bg-white/[0.06] hover:text-white"}`}
+                >
+                  <Icon className={`w-4 h-4 ${active ? "text-emerald-400" : "text-white/40"}`} />
+                  <span>{opt.label}</span>
+                  <span className="text-white/30 text-xs ml-auto">{opt.short}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Asset selector */}
@@ -631,7 +796,7 @@ export function DepositPanel({
       )}
 
       {/* Allocation preview */}
-      <AllocationPreview amount={amount} asset={selectedAsset} isDemo={isDemo} />
+      <AllocationEditor amount={amount} asset={selectedAsset} isDemo={isDemo} address={address} />
 
       {/* Proof stepper */}
       <ProofStepper steps={depositSteps} />
@@ -654,6 +819,59 @@ export function DepositPanel({
           <span className="text-emerald-400">Amount and wallet concealed on-chain</span>
         </div>
       </div>
+
+      {report && (
+        <div className="rounded-lg border border-emerald-700/40 bg-emerald-900/10 p-3 space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-emerald-300">Confirmation Report</span>
+            <span className="text-emerald-200">{report.status}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-zinc-300">
+            <span className="text-zinc-500">Method</span>
+            <span>{report.methodLabel}</span>
+            <span className="text-zinc-500">Amount</span>
+            <span>{report.amountLabel}</span>
+            <span className="text-zinc-500">Settlement Day (UTC)</span>
+            <span>{report.settlementDay || "--"}</span>
+            <span className="text-zinc-500">Ledger Sync</span>
+            <span>{report.ledgerSynced ? "yes" : "pending"}</span>
+            <span className="text-zinc-500">Vault Sync</span>
+            <span>{report.vaultSynced ? "yes" : "pending"}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {report.txUrl && (
+              <a
+                href={report.txUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded border border-emerald-500/30 px-2 py-1 text-emerald-300 hover:bg-emerald-500/10"
+              >
+                Tx
+              </a>
+            )}
+            {report.receiptUrl && (
+              <a
+                href={report.receiptUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded border border-cyan-500/30 px-2 py-1 text-cyan-300 hover:bg-cyan-500/10"
+              >
+                Receipt
+              </a>
+            )}
+          </div>
+          {report.commitmentHash && (
+            <p className="font-mono text-[11px] text-zinc-400 break-all">
+              commitment: {report.commitmentHash}
+            </p>
+          )}
+          {report.warnings.length > 0 && (
+            <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200">
+              {report.warnings.join(" | ")}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Submit */}
       <button

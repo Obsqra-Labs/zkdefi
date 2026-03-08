@@ -20,8 +20,9 @@ import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
 import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
 import { ZkRagAgentConsole } from "@/components/zkdefi/ZkRagAgentConsole";
 import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
-import { UnifiedStream } from "@/components/zkdefi/mission-control/UnifiedStream";
 import { DeployOverlay } from "@/components/zkdefi/mission-control/DeployOverlay";
+import { GovernanceOverlay } from "@/components/zkdefi/mission-control/GovernanceOverlay";
+import { CenterStageModes } from "@/components/zkdefi/mission-control/CenterStageModes";
 
 type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag";
 
@@ -108,6 +109,13 @@ export default function AgentPage() {
         </div>
       </div>
     );
+  } else if (activeOverlay === "governance") {
+    overlayContent = (
+      <GovernanceOverlay
+        address={address}
+        onClose={() => setActiveOverlay(null)}
+      />
+    );
   }
 
   return (
@@ -125,7 +133,7 @@ export default function AgentPage() {
           />
         }
         centerStage={
-          <UnifiedStream
+          <CenterStageModes
             address={address}
             onDeploy={() => setActiveOverlay("deploy")}
             onOpenGovernance={() => setActiveOverlay("governance")}
@@ -169,6 +177,7 @@ export default function AgentPage() {
             {slideout === "deposit" && (
               <DepositPanel
                 method={vault.method}
+                setMethod={vault.setMethod}
                 depositSteps={vault.depositSteps}
                 setDepositSteps={vault.setDepositSteps}
                 addCommitment={vault.addCommitment}

@@ -282,6 +282,93 @@ def sweep_to_vault(req: SweepToVaultRequest):
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+@router.get("/zkd/portfolio/{address}")
+async def get_zkd_portfolio(address: str, refresh: bool = False):
+    """
+    Live zkdETH/zkdAI portfolio: on-chain balances (Starknet Sepolia node) +
+    LP position summaries from market-maker-sim data.
+    """
+    from app.services.zkd_lp_reader import get_zkd_portfolio as _read_portfolio
+    portfolio = await _read_portfolio(address, force_refresh=refresh)
+    return portfolio.to_dict()
+
+
+@router.get("/yield-chart")
+async def get_yield_chart(days: int = 30):
+    """
+    Yield performance chart — aggregated from strategy_performance.json.
+    Returns daily cumulative yield % and APY bps for the chart.
+    """
+    import json as _json
+    import math
+    from datetime import datetime, timedelta, timezone
+    from pathlib import Path as _Path
+
+    perf_file = _Path(__file__).resolve().parents[3] / "data" / "strategy_performance.json"
+    raw: list[dict] = []
+    if perf_file.exists():
+        try:
+            raw = _json.loads(perf_file.read_text())
+            if not isinstance(raw, list):
+                raw = []
+        except Exception:
+            raw = []
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    # Build daily buckets
+    daily: dict[str, list[float]] = {}
+    for snap in raw:
+        ts_str = snap.get("timestamp") or snap.get("created_at") or ""
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if ts < cutoff:
+            continue
+        day_key = ts.strftime("%Y-%m-%d")
+        apy = snap.get("apy_bps", snap.get("apy", 0))
+        if isinstance(apy, (int, float)) and not math.isnan(apy):
+            daily.setdefault(day_key, []).append(float(apy))
+
+    # If no real data, synthesise a plausible yield curve from current known APYs
+    if not daily:
+        base_apy_bps = 420  # 4.2% baseline
+        points = []
+        cumulative = 0.0
+        for i in range(days):
+            day = (cutoff + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+            ts = (cutoff + timedelta(days=i + 1)).isoformat()
+            import random
+            daily_yield = (base_apy_bps / 365) / 100
+            noise = random.gauss(0, daily_yield * 0.15)
+            daily_yield = max(0, daily_yield + noise)
+            cumulative += daily_yield * 100
+            points.append({
+                "date": day,
+                "timestamp": ts,
+                "cumulative_yield": round(cumulative, 4),
+                "apy_bps": base_apy_bps,
+            })
+        return {"points": points, "source": "synthesised", "days": days}
+
+    points = []
+    cumulative = 0.0
+    for day_key in sorted(daily.keys()):
+        avg_apy = sum(daily[day_key]) / len(daily[day_key])
+        daily_yield = (avg_apy / 365) / 100
+        cumulative += daily_yield * 100
+        points.append({
+            "date": day_key,
+            "timestamp": f"{day_key}T00:00:00+00:00",
+            "cumulative_yield": round(cumulative, 4),
+            "apy_bps": int(avg_apy),
+        })
+
+    return {"points": points, "source": "strategy_performance", "days": days}
+
+
 @router.get("/{vault_id}/receipts")
 def list_receipts(vault_id: str):
     ledger, vaults, *_ = _get_services()

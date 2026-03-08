@@ -74,18 +74,14 @@ export function VaultGovernancePanel({
     setError(null);
 
     try {
-      const [policies, proposals, loans] = await Promise.all([
+      const [policies, loans] = await Promise.all([
         govService.getLendingPolicy(poolId),
-        govService.getActiveLoans(poolId).catch(() => []),
         govService.getActiveLoans(poolId).catch(() => []),
       ]);
 
       setCurrentPolicies(policies);
 
-      const filteredProposals = (proposals as any[])?.filter(
-        (p: any) => p.status === "open"
-      ) || [];
-      setActiveProposals(filteredProposals as Proposal[]);
+      setActiveProposals([]);
 
       if (loans && Array.isArray(loans)) {
         const totalLiquidity = 1000000;

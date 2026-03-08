@@ -730,32 +730,46 @@ export default function ForecasterPage() {
 
   const driftPerfRows = useMemo(() => {
     if (!analyticsDrift?.performance_drift) return [];
-    return [
-      {
+    const pd = analyticsDrift.performance_drift;
+    const rows = [];
+    
+    if (pd?.directional_accuracy && typeof pd.directional_accuracy.reference === "number") {
+      rows.push({
         metric: "Directional",
-        reference: analyticsDrift.performance_drift.directional_accuracy.reference * 100,
-        current: analyticsDrift.performance_drift.directional_accuracy.current * 100,
-        delta: analyticsDrift.performance_drift.directional_accuracy.delta * 100,
-      },
-      {
+        reference: pd.directional_accuracy.reference * 100,
+        current: (pd.directional_accuracy.current ?? 0) * 100,
+        delta: (pd.directional_accuracy.delta ?? 0) * 100,
+      });
+    }
+    
+    if (pd?.mae_bps && typeof pd.mae_bps.reference === "number") {
+      rows.push({
         metric: "MAE (bps)",
-        reference: analyticsDrift.performance_drift.mae_bps.reference,
-        current: analyticsDrift.performance_drift.mae_bps.current,
-        delta: analyticsDrift.performance_drift.mae_bps.delta,
-      },
-      {
+        reference: pd.mae_bps.reference,
+        current: pd.mae_bps.current ?? 0,
+        delta: pd.mae_bps.delta ?? 0,
+      });
+    }
+    
+    if (pd?.brier_score && typeof pd.brier_score.reference === "number") {
+      rows.push({
         metric: "Brier",
-        reference: analyticsDrift.performance_drift.brier_score.reference,
-        current: analyticsDrift.performance_drift.brier_score.current,
-        delta: analyticsDrift.performance_drift.brier_score.delta,
-      },
-      {
+        reference: pd.brier_score.reference,
+        current: pd.brier_score.current ?? 0,
+        delta: pd.brier_score.delta ?? 0,
+      });
+    }
+    
+    if (pd?.ece && typeof pd.ece.reference === "number") {
+      rows.push({
         metric: "ECE",
-        reference: analyticsDrift.performance_drift.ece.reference,
-        current: analyticsDrift.performance_drift.ece.current,
-        delta: analyticsDrift.performance_drift.ece.delta,
-      },
-    ];
+        reference: pd.ece.reference,
+        current: pd.ece.current ?? 0,
+        delta: pd.ece.delta ?? 0,
+      });
+    }
+    
+    return rows;
   }, [analyticsDrift]);
 
   const resetError = () => setError(null);
@@ -932,6 +946,67 @@ export default function ForecasterPage() {
     }
   };
 
+  const refreshAdvancedAnalytics = async () => {
+    setAnalyticsBusy(true);
+    try {
+      const query = new URLSearchParams({ limit: "3000" });
+      const subject = analyticsSubjectId.trim().toLowerCase();
+      const pair = analyticsPairId.trim().toUpperCase();
+      const model = analyticsModelHash.trim();
+
+      if (subject) query.set("subject_id", subject);
+      if (pair) query.set("pair_id", pair);
+      if (analyticsNetwork !== "all") query.set("network_id", analyticsNetwork);
+      if (model) query.set("model_hash", model);
+      if (analyticsStartTs !== "") query.set("start_ts", String(Number(analyticsStartTs)));
+      if (analyticsEndTs !== "") query.set("end_ts", String(Number(analyticsEndTs)));
+
+      const [bench, calibration, latency, drift, leaderboard] = await Promise.all([
+        apiFetch<AnalyticsBenchmarksResponse>(`/api/v1/zkdefi/snapshot-forecaster/analytics/benchmarks?${query.toString()}`),
+        apiFetch<CalibrationResponse>(
+          `/api/v1/zkdefi/snapshot-forecaster/analytics/calibration?${query.toString()}&bins=${Math.max(
+            2,
+            Math.min(50, analyticsBins),
+          )}`,
+        ),
+        apiFetch<LatencyResponse>(`/api/v1/zkdefi/snapshot-forecaster/analytics/latency?${query.toString()}`),
+        apiFetch<DriftResponse>(`/api/v1/zkdefi/snapshot-forecaster/analytics/drift?${query.toString()}`),
+        apiFetch<LeaderboardResponse>(`/api/v1/zkdefi/snapshot-forecaster/analytics/leaderboard?${query.toString()}`),
+      ]);
+
+      const pnlPayload = {
+        subject_id: subject || null,
+        pair_id: pair || null,
+        network_id: analyticsNetwork === "all" ? null : analyticsNetwork,
+        model_hash: model || null,
+        start_ts: analyticsStartTs === "" ? null : Number(analyticsStartTs),
+        end_ts: analyticsEndTs === "" ? null : Number(analyticsEndTs),
+        horizon_min: pnlHorizon,
+        long_prob_threshold: pnlLongThreshold,
+        short_prob_threshold: pnlShortThreshold,
+        min_abs_return_bps: pnlMinAbsBps,
+        cost_per_trade_bps: pnlCostBps,
+        limit: 3000,
+      };
+      const pnl = await apiFetch<PnlResponse>("/api/v1/zkdefi/snapshot-forecaster/analytics/pnl-sim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pnlPayload),
+      });
+
+      setAnalyticsBenchmarks(bench);
+      setAnalyticsCalibration(calibration);
+      setAnalyticsLatency(latency);
+      setAnalyticsDrift(drift);
+      setAnalyticsLeaderboard(leaderboard);
+      setAnalyticsPnl(pnl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to refresh advanced analytics");
+    } finally {
+      setAnalyticsBusy(false);
+    }
+  };
+
   const runAutomationTick = async () => {
     setAutoTickBusy(true);
     try {
@@ -940,6 +1015,7 @@ export default function ForecasterPage() {
       });
       setLastAutoTickTs(nowUnix());
       await refreshHistory(selectedForecastId ?? undefined);
+      await refreshAdvancedAnalytics();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to run automation tick");
     } finally {
@@ -985,6 +1061,9 @@ export default function ForecasterPage() {
   useEffect(() => {
     if (!subjectId.trim()) return;
     void refreshHistory();
+    if (analyticsSubjectId.trim().toLowerCase() === subjectId.trim().toLowerCase()) {
+      void refreshAdvancedAnalytics();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId]);
 
@@ -1007,10 +1086,11 @@ export default function ForecasterPage() {
           // worker may already be running or tick may be unavailable; history refresh still runs
         }
         await refreshHistory(selectedForecastId);
+        await refreshAdvancedAnalytics();
       })();
     }, 30000);
     return () => clearInterval(timer);
-  }, [liveTracking, selectedForecastId, subjectId]);
+  }, [liveTracking, selectedForecastId, subjectId, analyticsSubjectId, analyticsPairId, analyticsNetwork, analyticsModelHash, analyticsStartTs, analyticsEndTs, analyticsBins, pnlHorizon, pnlLongThreshold, pnlShortThreshold, pnlMinAbsBps, pnlCostBps]);
 
   const formatJsonBlock = (type: "snapshot" | "feature") => {
     try {
@@ -1209,6 +1289,7 @@ export default function ForecasterPage() {
       const rep = await apiFetch<ReputationSlice>(`/api/v1/zkdefi/snapshot-forecaster/reputation/${subjectId}`);
       setReputation(rep);
       await refreshHistory(prediction.forecast_id);
+      await refreshAdvancedAnalytics();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to score prediction");
     } finally {
@@ -1331,6 +1412,7 @@ export default function ForecasterPage() {
       const rep = await apiFetch<ReputationSlice>(`/api/v1/zkdefi/snapshot-forecaster/reputation/${subjectId}`);
       setReputation(rep);
       await refreshHistory(committed.forecast_id);
+      await refreshAdvancedAnalytics();
       storePayload(scored);
     } catch (e) {
       setError(e instanceof Error ? e.message : "End-to-end demo failed");
@@ -2239,6 +2321,345 @@ export default function ForecasterPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 pb-8">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-zinc-300">
+              <BarChart3 className="h-4 w-4 text-emerald-300" />
+              Advanced Analytics
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setAnalyticsSubjectId(subjectId.trim().toLowerCase());
+                  setAnalyticsPairId(pairId.trim().toUpperCase());
+                  setAnalyticsNetwork(networkId);
+                  setAnalyticsModelHash(modelHash.trim());
+                }}
+                className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500"
+              >
+                Use Current Context
+              </button>
+              <button
+                onClick={() => void refreshAdvancedAnalytics()}
+                disabled={analyticsBusy}
+                className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {analyticsBusy ? "Refreshing..." : "Refresh Analytics"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
+            <label className="text-xs text-zinc-400">
+              Subject
+              <input
+                value={analyticsSubjectId}
+                onChange={(e) => setAnalyticsSubjectId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Pair
+              <input
+                value={analyticsPairId}
+                onChange={(e) => setAnalyticsPairId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Network
+              <select
+                value={analyticsNetwork}
+                onChange={(e) => setAnalyticsNetwork(e.target.value as AnalyticsNetworkFilter)}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              >
+                <option value="all">All Networks</option>
+                {NETWORK_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs text-zinc-400">
+              Model Hash
+              <input
+                value={analyticsModelHash}
+                onChange={(e) => setAnalyticsModelHash(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Start (unix)
+              <input
+                type="number"
+                value={analyticsStartTs}
+                onChange={(e) => setAnalyticsStartTs(e.target.value === "" ? "" : Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              End (unix)
+              <input
+                type="number"
+                value={analyticsEndTs}
+                onChange={(e) => setAnalyticsEndTs(e.target.value === "" ? "" : Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 grid gap-2 md:grid-cols-6">
+            <label className="text-xs text-zinc-400">
+              Calibration bins
+              <input
+                type="number"
+                min={2}
+                max={50}
+                value={analyticsBins}
+                onChange={(e) => setAnalyticsBins(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              PnL horizon
+              <select
+                value={pnlHorizon}
+                onChange={(e) => setPnlHorizon(Number(e.target.value) as 5 | 30 | 240)}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              >
+                <option value={5}>5m</option>
+                <option value={30}>30m</option>
+                <option value={240}>4h</option>
+              </select>
+            </label>
+            <label className="text-xs text-zinc-400">
+              Long p threshold
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                max={1}
+                value={pnlLongThreshold}
+                onChange={(e) => setPnlLongThreshold(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Short p threshold
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                max={1}
+                value={pnlShortThreshold}
+                onChange={(e) => setPnlShortThreshold(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Min |return| bps
+              <input
+                type="number"
+                min={0}
+                value={pnlMinAbsBps}
+                onChange={(e) => setPnlMinAbsBps(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+            <label className="text-xs text-zinc-400">
+              Cost bps/trade
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={pnlCostBps}
+                onChange={(e) => setPnlCostBps(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-300">Benchmarks (Filtered)</div>
+              {!analyticsBenchmarks?.horizon_benchmarks?.length ? (
+                <p className="text-xs text-zinc-500">No benchmark samples for current filter.</p>
+              ) : (
+                <div className="space-y-2">
+                  {analyticsBenchmarks.horizon_benchmarks.map((row) => (
+                    <div key={row.horizon_min} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2 text-xs">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="font-semibold text-zinc-100">{horizonLabel(row.horizon_min)}</span>
+                        <span className="text-zinc-500">n={row.sample_size}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-zinc-400">
+                        <span>Directional: <span className="font-semibold text-zinc-100">{pretty(row.directional_accuracy * 100, 1)}%</span></span>
+                        <span>MAE: <span className="font-semibold text-zinc-100">{pretty(row.mae_bps, 1)} bps</span></span>
+                        <span>Bias: <span className="font-semibold text-zinc-100">{row.bias_bps >= 0 ? "+" : ""}{pretty(row.bias_bps, 1)} bps</span></span>
+                        <span>Cal gap: <span className="font-semibold text-zinc-100">{pretty(row.calibration_gap * 100, 1)}%</span></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-300">Calibration Curve</div>
+                <select
+                  value={calibrationHorizon}
+                  onChange={(e) => setCalibrationHorizon(Number(e.target.value) as 5 | 30 | 240)}
+                  className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px]"
+                >
+                  <option value={5}>5m</option>
+                  <option value={30}>30m</option>
+                  <option value={240}>4h</option>
+                </select>
+              </div>
+              {!analyticsCalibrationSeries.length ? (
+                <p className="text-xs text-zinc-500">No calibration points yet for selected horizon.</p>
+              ) : (
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsCalibrationSeries}>
+                      <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
+                      <XAxis dataKey="bucket" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                      <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} domain={[0, 100]} />
+                      <Tooltip
+                        formatter={(value, name) => [`${pretty(Number(value), 1)}%`, String(name)]}
+                        contentStyle={{ backgroundColor: "#09090b", border: "1px solid #3f3f46", borderRadius: 8 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Bar dataKey="confidencePct" fill="#38bdf8" name="Predicted %" />
+                      <Bar dataKey="actualPct" fill="#22c55e" name="Actual %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-300">Latency / SLA</div>
+              {!analyticsLatency ? (
+                <p className="text-xs text-zinc-500">No latency data yet.</p>
+              ) : (
+                <div className="space-y-2 text-xs">
+                  {([
+                    ["Commit→Reveal", analyticsLatency.stage_latencies_sec.commit_to_reveal],
+                    ["Reveal→Score", analyticsLatency.stage_latencies_sec.reveal_to_score],
+                    ["Commit→Score", analyticsLatency.stage_latencies_sec.commit_to_score],
+                  ] as const).map(([label, stats]) => (
+                    <div key={label} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
+                      <div className="font-semibold text-zinc-200">{label}</div>
+                      <div className="mt-1 grid grid-cols-3 gap-1 text-zinc-400">
+                        <span>p50: <span className="font-semibold text-zinc-100">{pretty(stats.p50, 1)}s</span></span>
+                        <span>p95: <span className="font-semibold text-zinc-100">{pretty(stats.p95, 1)}s</span></span>
+                        <span>mean: <span className="font-semibold text-zinc-100">{pretty(stats.mean, 1)}s</span></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-300">Model Leaderboard</div>
+              {!analyticsLeaderboard?.leaderboard?.length ? (
+                <p className="text-xs text-zinc-500">No model samples for leaderboard.</p>
+              ) : (
+                <div className="space-y-1">
+                  {analyticsLeaderboard.leaderboard.slice(0, 6).map((row, idx) => (
+                    <div key={row.model_hash} className="grid grid-cols-12 gap-1 rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-[11px] text-zinc-300">
+                      <span className="col-span-1 text-zinc-500">#{idx + 1}</span>
+                      <span className="col-span-4 truncate font-mono text-zinc-200">{shortId(row.model_hash)}</span>
+                      <span className="col-span-2">n {row.sample_size}</span>
+                      <span className="col-span-2">{pretty(row.directional_accuracy * 100, 1)}%</span>
+                      <span className="col-span-2">{pretty(row.mae_bps, 1)} bps</span>
+                      <span className="col-span-1 text-right">{pretty(row.composite_score * 100, 1)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-300">Feature Drift</div>
+              {!analyticsDrift?.feature_drift?.length ? (
+                <p className="text-xs text-zinc-500">No drift sample yet.</p>
+              ) : (
+                <div className="space-y-1">
+                  {analyticsDrift.feature_drift.slice(0, 8).map((row) => (
+                    <div key={row.feature} className="grid grid-cols-12 gap-1 rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-[11px] text-zinc-300">
+                      <span className="col-span-5 truncate">{row.feature}</span>
+                      <span className="col-span-3">{pretty(row.delta, 3)}</span>
+                      <span className="col-span-4 text-right">z {pretty(row.drift_z, 2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!!driftPerfRows.length && (
+                <div className="mt-3 grid gap-1 text-[11px]">
+                  {driftPerfRows.map((row) => (
+                    <div key={row.metric} className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-zinc-300">
+                      {row.metric}: ref {pretty(row.reference, 2)} → cur {pretty(row.current, 2)} ({row.delta >= 0 ? "+" : ""}
+                      {pretty(row.delta, 2)})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-300">PnL Simulation</div>
+              {!analyticsPnlSeries.length ? (
+                <p className="text-xs text-zinc-500">No PnL simulation points yet for selected filters.</p>
+              ) : (
+                <>
+                  <div className="h-44 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={analyticsPnlSeries}>
+                        <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
+                        <XAxis dataKey="label" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                        <Tooltip
+                          labelFormatter={(_, payload) => String(payload?.[0]?.payload?.scoredAtLabel || "")}
+                          formatter={(value, name) => [`${pretty(Number(value), 2)}%`, String(name)]}
+                          contentStyle={{ backgroundColor: "#09090b", border: "1px solid #3f3f46", borderRadius: 8 }}
+                        />
+                        <Area dataKey="equityPct" stroke="#22c55e" fill="#22c55e22" name="Equity %" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {analyticsPnl && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-zinc-300">
+                        Trades: <span className="font-semibold text-zinc-100">{analyticsPnl.stats.trade_count}</span>
+                      </div>
+                      <div className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-zinc-300">
+                        Win rate: <span className="font-semibold text-zinc-100">{pretty(analyticsPnl.stats.win_rate * 100, 1)}%</span>
+                      </div>
+                      <div className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-zinc-300">
+                        Cum return: <span className="font-semibold text-zinc-100">{formatBpsWithPct(analyticsPnl.stats.cumulative_return_bps)}</span>
+                      </div>
+                      <div className="rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-zinc-300">
+                        Max DD: <span className="font-semibold text-zinc-100">{formatBpsWithPct(-analyticsPnl.stats.max_drawdown_bps)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>

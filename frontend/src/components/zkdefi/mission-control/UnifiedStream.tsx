@@ -80,7 +80,11 @@ export function UnifiedStream({
     }
     try {
       const fetched = await fetchStream(limitToUse);
-      setItems(fetched);
+      const normalized = (fetched ?? []).map((i) => ({
+        ...i,
+        actions: Array.isArray(i?.actions) ? i.actions : [],
+      }));
+      setItems(normalized);
     } catch {
       setItems([]);
     } finally {
@@ -108,7 +112,13 @@ export function UnifiedStream({
     setLimit(newLimit);
     try {
       const fetched = await fetchStream(newLimit);
-      setItems(fetched);
+      const normalized = (fetched ?? []).map((i) => ({
+        ...i,
+        actions: Array.isArray(i?.actions) ? i.actions : [],
+      }));
+      setItems(normalized);
+    } catch {
+      setItems([]);
     } finally {
       setLoadingMore(false);
     }
@@ -161,59 +171,57 @@ export function UnifiedStream({
       <OracleDashboardStrip address={address} onDeploy={onDeploy} />
 
       {/* Filter bar */}
-      <div className="flex-shrink-0 p-2 border-b border-zinc-800">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex-shrink-0 px-2 py-1.5 border-b border-zinc-800 flex items-center gap-2">
+        <div className="flex gap-1 overflow-x-auto flex-1 scrollbar-none">
           {FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
               onClick={() => setFilter(f.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex-shrink-0 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
                 filter === f.id
                   ? "bg-zinc-700 text-zinc-100"
-                  : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+                  : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
-
-        {/* Search by receipt ID */}
-        <div className="relative mt-2">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+        {/* Search */}
+        <div className="relative flex-shrink-0 w-36">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
           <input
             type="text"
-            placeholder="Search by receipt ID..."
+            placeholder="Search…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-200 text-xs placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+            className="w-full pl-6 pr-2 py-1 rounded bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 text-[11px] placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600"
           />
         </div>
       </div>
 
       {/* Stream content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
           </div>
         ) : dateGroups.length === 0 ? (
-          <div className="py-12 text-center text-zinc-500 text-sm">
+          <div className="py-10 text-center text-zinc-600 text-xs">
             No items in stream
           </div>
         ) : (
           dateGroups.map(([label, groupItems]) => (
             <section key={label}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+              <div className="flex items-center gap-2 mb-1 px-1">
+                <span className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">
                   {label}
-                </h3>
-                <span className="text-[10px] text-zinc-600">
-                  {groupItems.length} item{groupItems.length !== 1 ? "s" : ""}
                 </span>
+                <div className="flex-1 h-px bg-zinc-800" />
+                <span className="text-[9px] text-zinc-700">{groupItems.length}</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-0.5">
                 {groupItems.map((item) => (
                   <StreamCard
                     key={item.id}

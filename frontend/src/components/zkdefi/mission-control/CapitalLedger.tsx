@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Landmark, Eye, Shield, TrendingUp, Heart, Lock, Layers } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 
 interface CapitalLedgerProps {
@@ -37,11 +37,46 @@ interface HealthData {
   proofs_required: number;
 }
 
+interface ZkdBalance { symbol: string; amount: number; raw_wei: number; }
+interface ZkdLpPos { pair: string; position_count: number; total_amount0: number; apy_estimate: number; status: string; }
+interface YieldPoint { date: string; cumulative_yield: number; apy_bps: number; }
+
+// Inline yield sparkline — pure SVG, no deps
+function YieldSparkline({ points }: { points: YieldPoint[] }) {
+  if (points.length < 2) return null;
+  const safePoints = points.filter((p) => p && typeof p?.cumulative_yield === "number");
+  if (safePoints.length < 2) return null;
+  const first = safePoints[0];
+  const latest = safePoints[safePoints.length - 1];
+  const dateStr = (d: YieldPoint) => (d?.date && String(d.date).length >= 5 ? String(d.date).slice(5) : "—");
+  const W = 220; const H = 36; const PAD = 4;
+  const ys = safePoints.map(p => p.cumulative_yield);
+  const yMin = Math.min(...ys); const yMax = Math.max(...ys); const yR = yMax - yMin || 0.001;
+  const toX = (i: number) => PAD + (i / (safePoints.length - 1)) * (W - PAD * 2);
+  const toY = (v: number) => PAD + (H - PAD * 2) - ((v - yMin) / yR) * (H - PAD * 2);
+  const d = safePoints.map((p, i) => `${i === 0 ? "M" : "L"}${toX(i).toFixed(1)},${toY(p.cumulative_yield).toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-9">
+        <path d={d} fill="none" stroke="#10b981" strokeWidth="1.5" />
+      </svg>
+      <div className="flex justify-between text-[10px] text-zinc-500 mt-0.5">
+        <span>{dateStr(first)}</span>
+        <span className="text-emerald-400 font-medium">+{latest.cumulative_yield.toFixed(2)}%</span>
+        <span>{dateStr(latest)}</span>
+      </div>
+    </div>
+  );
+}
+
 export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedger }: CapitalLedgerProps) {
   const [vault, setVault] = useState<VaultStats>({ total_usd: 0, strk_balance: 0, eth_balance: 0, strk_usd: 0, eth_usd: 0 });
   const [darkLedger, setDarkLedger] = useState({ note_count: 0, sweep_available_usd: 0, l3_block: 0 });
   const [positions, setPositions] = useState<DeployedPosition[]>([]);
   const [health, setHealth] = useState<HealthData | null>(null);
+  const [zkdBalances, setZkdBalances] = useState<ZkdBalance[]>([]);
+  const [zkdLp, setZkdLp] = useState<ZkdLpPos[]>([]);
+  const [yieldPoints, setYieldPoints] = useState<YieldPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,6 +84,21 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
 
     const load = async () => {
       try {
+        // zkd on-chain balances + LP positions (parallel)
+        const [zkdPortfolio, yieldChart] = await Promise.all([
+          apiFetch<any>(`/api/v1/zkdefi/zkd/portfolio/${address}`).catch(() => null),
+          apiFetch<any>("/api/v1/zkdefi/zkd/yield-chart?days=30").catch(() => null),
+        ]);
+        if (zkdPortfolio?.balances) {
+          setZkdBalances(zkdPortfolio.balances.filter((b: any) => b.amount > 0));
+        }
+        if (zkdPortfolio?.lp_positions) {
+          setZkdLp(zkdPortfolio.lp_positions.filter((p: any) => p.status === "active"));
+        }
+        if (yieldChart?.points && Array.isArray(yieldChart.points)) {
+          setYieldPoints(yieldChart.points);
+        }
+
         // Vault stats
         const stats = await apiFetch<any>("/api/v1/zkdefi/private-yield/vault/stats").catch(() => null);
         if (stats) {
@@ -146,6 +196,51 @@ export function CapitalLedger({ address, onDeposit, onWithdraw, onImportDarkLedg
           </button>
         </div>
       </section>
+
+      {/* Yield Performance Chart */}
+      {yieldPoints.length >= 2 && (
+        <section className="rounded-lg border border-zinc-800 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Performance (30d)</h3>
+          </div>
+          <YieldSparkline points={yieldPoints} />
+        </section>
+      )}
+
+      {/* zkd Synthetic Tokens — on-chain balances + LP positions */}
+      {(zkdBalances.length > 0 || zkdLp.length > 0) && (
+        <section className="rounded-lg border border-cyan-800/30 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Cpu className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">zkd Synthetic</h3>
+            <span className="ml-auto text-[10px] text-cyan-400/60">Sepolia</span>
+          </div>
+          {zkdBalances.length > 0 && (
+            <div className="space-y-1 mb-2">
+              {zkdBalances.map((b) => (
+                <div key={b.symbol} className="flex justify-between text-xs">
+                  <span className="text-zinc-400">{b.symbol}</span>
+                  <span className="text-zinc-200 font-mono">{b.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {zkdLp.length > 0 && (
+            <div className="space-y-1 pt-1 border-t border-zinc-800">
+              {zkdLp.slice(0, 4).map((p) => (
+                <div key={p.pair} className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-300">{p.pair}</span>
+                  <div className="text-right">
+                    <span className="text-zinc-500">{p.position_count} pos</span>
+                    <span className="text-emerald-400 ml-2">{p.apy_estimate.toFixed(1)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Dark Ledger */}
       <section className="rounded-lg border border-violet-800/40 p-3">

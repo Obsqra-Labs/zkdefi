@@ -181,6 +181,48 @@ async def get_similar_strategies(strategy_id: str, limit: int = 5):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/agent/capabilities")
+async def get_agent_capabilities():
+    """
+    Return the static capability manifest for the zkRAG/zkGraph agent.
+    The ZkRagAgentConsole queries this to populate its UI.
+    """
+    return {
+        "capabilities": [
+            {
+                "id": "market_context",
+                "name": "Market Context Query",
+                "description": "Attested pool-level market data with provenance hashes",
+                "input_schema": {"pool_id": "string"},
+                "output_schema": {"context": "object", "fact_hash": "string"},
+            },
+            {
+                "id": "pattern_analysis",
+                "name": "Historical Pattern Analysis",
+                "description": "zkRAG-indexed on-chain pattern matching with fact attestation",
+                "input_schema": {"pattern_type": "enum[volatility,volume_spike,yield_trend]"},
+                "output_schema": {"patterns": "array", "fact_hashes": "array"},
+            },
+            {
+                "id": "strategy_match",
+                "name": "Strategy Matching",
+                "description": "Match current conditions to proven strategy templates",
+                "input_schema": {"strategy_id": "string"},
+                "output_schema": {"matches": "array", "provenance": "array"},
+            },
+            {
+                "id": "agent_query",
+                "name": "Agent Intelligence Query",
+                "description": "Full zkRAG agent query: risk scoring, action recommendation, receipt generation",
+                "input_schema": {"query": "string", "context": "object"},
+                "output_schema": {"action": "string", "confidence": "float", "receipt_hash": "string"},
+            },
+        ],
+        "zkrag_status": "available",
+        "last_indexed_block": None,
+    }
+
+
 @router.post("/verify")
 async def verify_provenance(request: VerifyProvenanceRequest):
     """

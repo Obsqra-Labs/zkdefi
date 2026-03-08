@@ -6,13 +6,15 @@ import { ExecutionAdapter, TradeReceipt } from './ExecutionAdapter';
  */
 export interface PoolDepositReceipt {
   id: string;
-  pool: 'CONSERVATIVE_POOL' | 'MODERATE_POOL' | 'AGGRESSIVE_POOL';
+  pool: string;
   amount: number;
   privacyMode: 'public' | 'shielded' | 'dark_ledger';
   poolShare: number;
   txHash: string;
   timestamp: string; // ISO8601
   commitment?: string; // For private deposits
+  userPosition?: number;
+  source?: "live" | "simulated";
 }
 
 /**
@@ -26,6 +28,9 @@ export interface PoolStats {
   avgBorrowingRate: number;
   idleCapital: number;
   utilizationRate: number; // 0-1
+  daoApr?: number;
+  source?: "live" | "simulated";
+  updated_at?: string;
 }
 
 /**
@@ -49,15 +54,19 @@ export interface PoolWithdrawalReceipt {
   txHash: string;
   timestamp: string; // ISO8601
   commitment?: string; // For private withdrawals
+  userPosition?: number;
+  source?: "live" | "simulated";
 }
 
 /**
  * Parameters for depositToPool
  */
 export interface DepositParams {
-  pool: 'CONSERVATIVE_POOL' | 'MODERATE_POOL' | 'AGGRESSIVE_POOL';
+  pool: string;
   amount: number;
   privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  userAddress?: string;
+  source?: "live" | "simulated";
 }
 
 /**
@@ -139,7 +148,7 @@ export class PrivacyPoolAdapter implements ExecutionAdapter {
    * @returns PoolDepositReceipt with pool share and commitment
    */
   async depositToPool(params: DepositParams): Promise<PoolDepositReceipt> {
-    const { pool, amount, privacyMode } = params;
+    const { pool, amount, privacyMode, userAddress, source = "simulated" } = params;
 
     // Validate parameters
     this.validateDepositParams(amount);
@@ -152,6 +161,8 @@ export class PrivacyPoolAdapter implements ExecutionAdapter {
       body: JSON.stringify({
         amount,
         privacyMode,
+        userAddress,
+        source,
       }),
     });
 
@@ -244,6 +255,7 @@ export class PrivacyPoolAdapter implements ExecutionAdapter {
       body: JSON.stringify({
         amount,
         address,
+        source: "simulated",
       }),
     });
 

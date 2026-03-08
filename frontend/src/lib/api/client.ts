@@ -19,7 +19,12 @@ export function apiUrl(path: string): string {
 
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const resolvedUrl = apiUrl(path);
-  let response = await fetch(resolvedUrl, init);
+  const headers = new Headers(init?.headers);
+  if (init?.body && typeof init.body === "string" && ["POST", "PUT", "PATCH"].includes(init.method ?? "")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const mergedInit: RequestInit = { ...init, headers };
+  let response = await fetch(resolvedUrl, mergedInit);
 
   // Some hosts (e.g. zke.fi) do not proxy /api/* to this backend.
   // Retry once against canonical API origin for zkdefi routes on 404.
@@ -30,7 +35,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
 
   if (shouldRetryCanonical) {
     const canonicalUrl = `${CANONICAL_API_ORIGIN}${path}`;
-    response = await fetch(canonicalUrl, init);
+    response = await fetch(canonicalUrl, mergedInit);
   }
 
   if (!response.ok) {

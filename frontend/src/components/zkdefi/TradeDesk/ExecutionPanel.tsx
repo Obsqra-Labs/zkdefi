@@ -135,6 +135,7 @@ export const ExecutionPanel = React.memo(
             opportunity: opportunity.name,
             parameters,
             impact: estimatedImpact,
+            source: "simulated",
           },
         };
 

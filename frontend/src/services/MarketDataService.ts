@@ -1,10 +1,15 @@
-import { apiUrl } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 import type { Opportunity, PoolData, MarketContext } from './types';
 
 export class MarketDataService {
   private opportunitiesCache: Opportunity[] | null = null;
   private cacheTimestamp: number = 0;
   private readonly CACHE_DURATION = 30000; // 30 seconds
+
+  private buildPath(basePath: string, params?: URLSearchParams): string {
+    const query = params?.toString();
+    return query ? `${basePath}?${query}` : basePath;
+  }
 
   async getOpportunities(filters?: {
     type?: 'swap' | 'lp' | 'lending' | 'staking' | 'dca' | 'limit_orders';
@@ -27,26 +32,21 @@ export class MarketDataService {
     if (filters?.maxRisk !== undefined) params.append('maxRisk', String(filters.maxRisk));
     if (filters?.privacyMode) params.append('privacyMode', filters.privacyMode);
 
-    // Try live endpoint first, fallback to mock
+    // Try live endpoint first, fallback to list endpoint.
     const urls = [
-      apiUrl(`/api/v1/zkdefi/opportunities/live?${params}`),
-      apiUrl(`/api/v1/zkdefi/opportunities/list?${params}`)
+      this.buildPath('/api/v1/zkdefi/opportunities/live', params),
+      this.buildPath('/api/v1/zkdefi/opportunities/list', params),
     ];
     
     let opportunities: Opportunity[] = [];
     
     for (const url of urls) {
       try {
-        const response = await fetch(url, {
+        const data = await apiFetch<Opportunity[] | { opportunities?: Opportunity[] }>(url, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          opportunities = Array.isArray(data) ? data : (data.opportunities || []);
-          break;
-        }
+        opportunities = Array.isArray(data) ? data : (data.opportunities || []);
+        if (opportunities.length > 0) break;
       } catch (e) {
         console.warn(`Fetch from ${url} failed, trying next...`);
         continue;
@@ -67,43 +67,15 @@ export class MarketDataService {
   }
 
   async getPoolData(poolId: string): Promise<PoolData> {
-    const url = apiUrl(`/api/v1/zkdefi/pools/${poolId}/data`);
-
-    const response = await fetch(url, {
+    return await apiFetch<PoolData>(`/api/v1/zkdefi/pools/${poolId}/data`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch pool data (${response.status})`;
-      throw new Error(detail);
-    }
-
-    return await response.json();
   }
 
   async getMarketContext(): Promise<MarketContext> {
-    const url = apiUrl('/api/v1/zkdefi/market/context');
-
-    const response = await fetch(url, {
+    return await apiFetch<MarketContext>('/api/v1/zkdefi/market/context', {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : `Failed to fetch market context (${response.status})`;
-      throw new Error(detail);
-    }
-
-    return await response.json();
   }
 
   streamOpportunities() {

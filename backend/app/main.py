@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -21,6 +22,12 @@ from fastapi.middleware.cors import CORSMiddleware
 # Load backend-local .env first.
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
+
+# Ensure absolute imports like `app.api...` resolve whether the app is launched as
+# `app.main:app` (cwd=backend) or `backend.app.main:app` (cwd=repo root).
+backend_root = Path(__file__).resolve().parents[1]
+if str(backend_root) not in sys.path:
+    sys.path.insert(0, str(backend_root))
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +57,27 @@ async def _lifespan(app: FastAPI):
 
 def _optional_router(module_path: str, attr: str = "router") -> Optional[APIRouter]:
     """Load a router module without crashing app startup if it's unavailable."""
-    try:
-        module = importlib.import_module(module_path)
-        router = getattr(module, attr, None)
-        if router is None:
-            logger.warning("Router attribute %s missing in %s", attr, module_path)
-            return None
-        return router
-    except Exception as exc:  # pragma: no cover - defensive startup guard
-        logger.warning("Skipping router %s: %s", module_path, exc)
-        return None
+    candidates = [module_path]
+    if module_path.startswith("app."):
+        candidates.append(f"backend.{module_path}")
+    elif module_path.startswith("backend.app."):
+        candidates.append(module_path[len("backend.") :])
+
+    last_exc: Exception | None = None
+    for candidate in dict.fromkeys(candidates):
+        try:
+            module = importlib.import_module(candidate)
+            router = getattr(module, attr, None)
+            if router is None:
+                logger.warning("Router attribute %s missing in %s", attr, candidate)
+                continue
+            return router
+        except Exception as exc:  # pragma: no cover - defensive startup guard
+            last_exc = exc
+            continue
+
+    logger.warning("Skipping router %s: %s", module_path, last_exc)
+    return None
 
 
 app = FastAPI(
@@ -96,11 +114,14 @@ risk_passport_router = _optional_router("app.api.risk_passport")
 linked_addresses_router = _optional_router("app.api.linked_addresses")
 full_privacy_router = _optional_router("app.api.routes.full_privacy")
 dex_router = _optional_router("app.api.routes.dex")
+ekubo_router = _optional_router("app.api.routes.ekubo")
 onboarding_router = _optional_router("app.api.routes.onboarding")
 proofs_router = _optional_router("app.api.routes.proofs")
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
 snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaster")
 trade_desk_router = _optional_router("app.api.routes.trade_desk")
+skills_router = _optional_router("app.api.routes.skills")
+zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -144,6 +165,8 @@ if full_privacy_router:
     )
 if dex_router:
     app.include_router(dex_router, prefix="/api/v1/zkdefi", tags=["dex"])
+if ekubo_router:
+    app.include_router(ekubo_router, prefix="/api/v1/zkdefi", tags=["ekubo"])
 if onboarding_router:
     app.include_router(
         onboarding_router,
@@ -168,6 +191,18 @@ if zkgraph_router:
         zkgraph_router,
         prefix="/api/v1/zkdefi/zkgraph",
         tags=["zkgraph"],
+    )
+if skills_router:
+    app.include_router(
+        skills_router,
+        prefix="/api/v1/zkdefi/skills",
+        tags=["skills"],
+    )
+if zkd_portfolio_router:
+    app.include_router(
+        zkd_portfolio_router,
+        prefix="/api/v1/zkdefi/zkd",
+        tags=["zkd-portfolio"],
     )
 if orchestration_router:
     app.include_router(
@@ -234,6 +269,7 @@ strategies_router = _optional_router("app.api.routes.strategies")
 deployments_router = _optional_router("app.api.routes.deployments")
 vault_execute_router = _optional_router("app.api.routes.vault_execute")
 vault_execute_live_router = _optional_router("app.api.routes.vault_execute_live")
+vault_compat_router = _optional_router("app.api.routes.vault_compat")
 phase4a_router = _optional_router("app.api.routes.phase4a")
 
 if identity_router:
@@ -250,6 +286,8 @@ if deployments_router:
     )
 if vault_execute_router:
     app.include_router(vault_execute_router, prefix="/api/v1/vault", tags=["vault"])
+if vault_compat_router:
+    app.include_router(vault_compat_router, prefix="/api/v1/vault", tags=["vault-compat"])
 if vault_execute_live_router:
     app.include_router(
         vault_execute_live_router,

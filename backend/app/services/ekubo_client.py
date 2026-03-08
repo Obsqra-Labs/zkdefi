@@ -107,6 +107,43 @@ async def get_pair_volume(chain_id: str, token_a: str, token_b: str) -> dict[str
         return r.json()
 
 
+async def get_pair_positions(chain_id: str, token_a: str, token_b: str) -> dict[str, Any]:
+    """
+    Return pair positions/pools for swap discovery. Uses get_pair_pools and normalizes to
+    { "data": [ { "pool_key": { "token0", "token1", "fee", "tick_spacing", "extension" }, "liquidity" } ] }
+    for consumption by ekubo_execution_service.discover_pool_from_positions.
+    """
+    try:
+        data = await get_pair_pools(chain_id, token_a, token_b)
+    except Exception:
+        return {"data": []}
+    pools = data.get("pools") or data.get("data") or (data if isinstance(data, list) else [])
+    if not isinstance(pools, list):
+        return {"data": []}
+    out: list[dict[str, Any]] = []
+    for p in pools:
+        if not isinstance(p, dict):
+            continue
+        pk = p.get("poolKey") or p.get("pool_key") or {}
+        if not isinstance(pk, dict):
+            continue
+        token0 = pk.get("token0") or pk.get("tokenA") or ""
+        token1 = pk.get("token1") or pk.get("tokenB") or ""
+        if not token0 or not token1:
+            continue
+        out.append({
+            "pool_key": {
+                "token0": token0,
+                "token1": token1,
+                "fee": pk.get("fee"),
+                "tick_spacing": pk.get("tick_spacing"),
+                "extension": str(pk.get("extension") or "0"),
+            },
+            "liquidity": p.get("liquidity") or p.get("liquidityNet") or 0,
+        })
+    return {"data": out}
+
+
 async def get_price_history(
     chain_id: str, base_token: str, quote_token: str, interval: int | None = None
 ) -> dict[str, Any]:
