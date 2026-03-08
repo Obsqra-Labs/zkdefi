@@ -23,6 +23,28 @@ from app.services.trust_version_matrix import get_backend_trust_flags, get_trust
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
 
+def compute_reputation_score(tier: int, tenure: int, txns: int, collateral: float) -> int:
+    tier_weight = tier * 25
+    tenure_weight = min(tenure / 365, 1) * 10
+    txn_weight = min(txns / 100, 1) * 10
+    coll_weight = min(collateral / 10, 1) * 5
+    return min(int(tier_weight + tenure_weight + txn_weight + coll_weight), 100)
+
+
+def compute_gates(tier: int) -> dict[str, bool]:
+    return {
+        "canSwap": tier >= 1,
+        "canLP": tier >= 1,
+        "canLend": tier >= 1,
+        "canBorrow": tier >= 2,
+        "canStake": tier >= 1,
+        "canPrivacy": tier >= 1,
+        "canDarkLedger": tier >= 2,
+        "canDCA": tier >= 2,
+        "canLimits": tier >= 1,
+    }
+
+
 class TierInfo(BaseModel):
     tier: int
     tier_name: str
@@ -46,6 +68,8 @@ class UserReputationResponse(BaseModel):
     collateral_eth: float
     upgrade_eligible: bool
     upgrade_requirements: Optional[dict]
+    reputation_score: int = 0
+    gates: dict[str, bool] = {}
 
 
 class TierUpgradeRequest(BaseModel):
@@ -445,6 +469,7 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
 
     in_app_tx_count = int(user.get("transaction_count", 0) or 0)
     transaction_count = in_app_tx_count + chain_tx_count if chain_tx_count > 0 else in_app_tx_count
+    collateral_eth = float(user.get("collateral", 0) or 0) / 1e18
 
     return UserReputationResponse(
         address=address,
@@ -454,9 +479,11 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
         total_volume_eth=float(user.get("total_volume", 0) or 0) / 1e18,
         tenure_days=tenure_days,
         successful_txns=successful_txns,
-        collateral_eth=float(user.get("collateral", 0) or 0) / 1e18,
+        collateral_eth=collateral_eth,
         upgrade_eligible=upgrade_eligible,
         upgrade_requirements=upgrade_requirements,
+        reputation_score=compute_reputation_score(tier, tenure_days, successful_txns, collateral_eth),
+        gates=compute_gates(tier),
     )
 
 
