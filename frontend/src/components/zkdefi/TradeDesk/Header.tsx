@@ -1,6 +1,7 @@
 "use client";
 
 import type { UserReputation } from "@/services/ReputationGatingService";
+import type { TrustGateView } from "@/lib/trust/adapters";
 
 interface HeaderProps {
   userReputation: UserReputation | null;
@@ -11,9 +12,15 @@ interface HeaderProps {
     riskScore: number;
     borrowingPower: number;
   };
+  trust?: {
+    enabled: boolean;
+    executionGate: TrustGateView;
+    lendingGate: TrustGateView;
+    routeHint: string;
+  };
 }
 
-export function Header({ userReputation, stats }: HeaderProps) {
+export function Header({ userReputation, stats, trust }: HeaderProps) {
   return (
     <div className="bg-slate-900 border-b border-slate-700 px-6 py-4">
       <div className="flex justify-between items-center">
@@ -42,6 +49,22 @@ export function Header({ userReputation, stats }: HeaderProps) {
                 <span className="ml-2 font-medium">{userReputation.tier}</span>
               </div>
             )}
+            {trust?.enabled ? (
+              <>
+                <div>
+                  <span className="text-slate-400">Execution:</span>
+                  <span className="ml-2 font-medium uppercase">{trust.executionGate.mode}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Lending:</span>
+                  <span className="ml-2 font-medium uppercase">{trust.lendingGate.mode}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Route:</span>
+                  <span className="ml-2 font-medium">{trust.routeHint}</span>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

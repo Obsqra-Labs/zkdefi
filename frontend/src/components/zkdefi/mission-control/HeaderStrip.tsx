@@ -5,6 +5,7 @@ import { Shield, Activity } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate } from "@/lib/trust/adapters";
+import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { ConnectButton } from "../ConnectButton";
 import type { OverlayMode } from "./MissionControlLayout";
 
@@ -21,6 +22,7 @@ interface AgentStatus {
 }
 
 export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderStripProps) {
+  const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [gateStatus, setGateStatus] = useState<string>("--");
   const [tierData, setTierData] = useState<{ tier: number; tier_name: string } | null>(null);
@@ -38,10 +40,14 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
         const tierName = String(d?.reputation?.tier_name ?? "Strict");
         setTierData({ tier, tier_name: tierName });
 
-        const execGate = getExecutionGate(d);
-        if (execGate.mode === "block") setGateStatus("PAUSED");
-        else if (execGate.mode === "allow") setGateStatus("PASS");
-        else setGateStatus("READY");
+        if (trustSurfaceWiringEnabled) {
+          const execGate = getExecutionGate(d);
+          if (execGate.mode === "block") setGateStatus("PAUSED");
+          else if (execGate.mode === "allow") setGateStatus("PASS");
+          else setGateStatus("READY");
+        } else {
+          setGateStatus("READY");
+        }
       })
       .catch(() => {
         apiFetch<any>(`/api/v1/zkdefi/mc/execution/current/${address}`)
@@ -61,7 +67,7 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
           })
           .catch(() => {});
       });
-  }, [address]);
+  }, [address, trustSurfaceWiringEnabled]);
 
   const agentId = agentStatus?.state === "monitoring" || agentStatus?.state === "running"
     ? "STRC-8004"

@@ -179,6 +179,7 @@ risk_passport_router = _optional_router("app.api.risk_passport")
 risk_profile_router = _optional_router("app.api.risk_profile")
 profile_router = _optional_router("app.api.profile")
 linked_addresses_router = _optional_router("app.api.linked_addresses")
+portable_identity_router = _optional_router("app.api.portable_identity")
 auth_session_router = _optional_router("app.api.routes.auth_session")
 full_privacy_router = _optional_router("app.api.routes.full_privacy")
 dex_router = _optional_router("app.api.routes.dex")
@@ -241,6 +242,12 @@ if linked_addresses_router:
         linked_addresses_router,
         prefix="/api/v1/zkdefi",
         tags=["linked_addresses"],
+    )
+if portable_identity_router:
+    app.include_router(
+        portable_identity_router,
+        prefix="/api/v1/zkdefi",
+        tags=["portable-identity"],
     )
 if auth_session_router:
     app.include_router(

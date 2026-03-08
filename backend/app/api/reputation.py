@@ -6,7 +6,11 @@ visibility, and proof lifecycle/status while preserving legacy contracts.
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -14,6 +18,7 @@ from pydantic import BaseModel
 
 from app.services.json_store import JsonStore
 from app.services.trust_event_service import log_trust_event
+from app.services.trust_version_matrix import get_backend_trust_flags, get_trust_version_matrix
 
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
@@ -115,6 +120,14 @@ class ExecutionIntegrityProofRequest(BaseModel):
     max_price_deviation_bps: int = 50
 
 
+class CreditEligibilityProofRequest(BaseModel):
+    user_address: str
+    credit_score: int
+    collateral_wei: int
+    min_credit_score: int = 600
+    min_collateral: int = 0
+
+
 class ProofStatus(BaseModel):
     proof_type: str
     status: str
@@ -170,6 +183,15 @@ TIER_INFO = {
 _user_store = JsonStore("reputation_users")
 _staking_store = JsonStore("staking_positions")
 _proofs_store = JsonStore("reputation_proofs")
+_circuits_build = Path(__file__).resolve().parents[3] / "circuits" / "build"
+_zkfico_pack_circuits: list[tuple[str, str]] = [
+    ("solvency", "SolvencyProof"),
+    ("risk_passport", "RiskPassportTier"),
+    ("trader_performance", "TraderPerformanceProof"),
+    ("strategy_integrity", "StrategyIntegrity"),
+    ("execution_integrity", "ExecutionIntegrity"),
+    ("credit_eligibility", "CreditEligibility"),
+]
 
 STAKING_POOLS = [
     StakingPoolInfo(
@@ -195,6 +217,61 @@ STAKING_POOLS = [
 
 def _norm_addr(address: str) -> str:
     return str(address or "").strip().lower()
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else None
+    except Exception:
+        return None
+
+
+def _file_sha256(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        return "0x" + hashlib.sha256(path.read_bytes()).hexdigest()
+    except Exception:
+        return None
+
+
+def _circuit_manifest_entry(proof_type: str, circuit_id: str) -> dict[str, Any]:
+    wasm_path = _circuits_build / f"{circuit_id}_js" / f"{circuit_id}.wasm"
+    zkey_path = _circuits_build / f"{circuit_id}_final.zkey"
+    vkey_candidates = [
+        _circuits_build / f"{circuit_id}_verification_key.json",
+        _circuits_build / f"{circuit_id}_vkey.json",
+    ]
+    vkey_path = next((candidate for candidate in vkey_candidates if candidate.exists()), None)
+    vkey_payload = _read_json(vkey_path) if vkey_path is not None else None
+
+    return {
+        "proof_type": proof_type,
+        "circuit_id": circuit_id,
+        "version": "1.0",
+        "artifacts": {
+            "wasm": str(wasm_path) if wasm_path.exists() else None,
+            "zkey": str(zkey_path) if zkey_path.exists() else None,
+            "vkey": str(vkey_path) if vkey_path is not None and vkey_path.exists() else None,
+        },
+        "artifact_hashes": {
+            "wasm_sha256": _file_sha256(wasm_path),
+            "zkey_sha256": _file_sha256(zkey_path),
+            "vkey_sha256": _file_sha256(vkey_path) if vkey_path is not None else None,
+        },
+        "vkey_schema": {
+            "protocol": vkey_payload.get("protocol") if isinstance(vkey_payload, dict) else None,
+            "curve": vkey_payload.get("curve") if isinstance(vkey_payload, dict) else None,
+            "nPublic": vkey_payload.get("nPublic") if isinstance(vkey_payload, dict) else None,
+        },
+        "toolchain": {
+            "prover": "snarkjs.groth16",
+            "settlement_envelope": "stark_wrapped_async_envelope_v1",
+        },
+    }
 
 
 def _parse_user_addr_int(value: str) -> int:
@@ -661,6 +738,7 @@ async def get_user_proofs(address: str) -> UserProofsResponse:
         "trader_performance",
         "strategy_integrity",
         "execution_integrity",
+        "credit_eligibility",
     ]
 
     for proof_type in proof_types:
@@ -689,6 +767,100 @@ async def get_user_proofs(address: str) -> UserProofsResponse:
         tier_name=tier_name,
         total_proofs_complete=complete_count,
     )
+
+
+@router.get("/pack/manifest")
+async def get_zkfico_pack_manifest() -> dict[str, Any]:
+    """Expose zkFICO circuit pack metadata for integrity checks."""
+    circuits = [_circuit_manifest_entry(proof_type, circuit_id) for proof_type, circuit_id in _zkfico_pack_circuits]
+    return {
+        "pack_id": "zkfico_pack_v1",
+        "pack_version": get_trust_version_matrix().get("zkfico_pack_v1", "1.0"),
+        "proof_policy": {
+            "mode": "hybrid",
+            "ux_verifier": "groth16",
+            "canonical_settlement_envelope": "stark_wrapped_async_v1",
+        },
+        "toolchain": {
+            "snark": "snarkjs.groth16",
+            "stark_envelope": "stone_or_integrity_async_envelope",
+        },
+        "flags": get_backend_trust_flags(),
+        "circuits": circuits,
+        "generated_at": int(time.time()),
+    }
+
+
+@router.get("/zkfico/{address}")
+async def get_zkfico_aggregate(address: str) -> dict[str, Any]:
+    """Aggregate proof readiness + dual-scale score for policy and UX."""
+    key = _norm_addr(address)
+    user = get_user_data(key)
+    proofs = await get_user_proofs(key)
+    proofs_payload = proofs.model_dump() if hasattr(proofs, "model_dump") else proofs.dict()
+    proof_rows = list(proofs_payload.get("proofs", []))
+    complete_count = int(proofs_payload.get("total_proofs_complete", 0) or 0)
+    total_count = max(1, len(proof_rows))
+    readiness_ratio = complete_count / total_count
+
+    tier = int(user.get("tier", 0) or 0)
+    tx_count = int(user.get("transaction_count", 0) or 0)
+    collateral_eth = float(user.get("collateral", 0) or 0) / 1e18
+    tenure_days = 0
+    first_interaction = int(user.get("first_interaction", 0) or 0)
+    if first_interaction > 0:
+        tenure_days = int((time.time() - first_interaction) / 86400)
+
+    # Canonical policy score for gates.
+    trust_score_0_100 = min(
+        100.0,
+        round(
+            15.0
+            + readiness_ratio * 55.0
+            + min(15.0, tier * 7.5)
+            + min(10.0, tx_count / 5.0)
+            + min(5.0, collateral_eth),
+            2,
+        ),
+    )
+    # Display-only FICO style score.
+    fico_display_300_850 = int(round(300 + (trust_score_0_100 / 100.0) * 550))
+
+    credit_eligibility = next((row for row in proof_rows if row.get("proof_type") == "credit_eligibility"), None)
+    has_credit_eligibility = bool(credit_eligibility and credit_eligibility.get("status") == "complete")
+
+    return {
+        "address": key,
+        "pack_id": "zkfico_pack_v1",
+        "pack_version": get_trust_version_matrix().get("zkfico_pack_v1", "1.0"),
+        "proofs": proof_rows,
+        "readiness": {
+            "complete": complete_count,
+            "total": total_count,
+            "ratio": round(readiness_ratio, 4),
+            "ready_for_policy": readiness_ratio >= 0.5,
+            "ready_for_credit": has_credit_eligibility,
+        },
+        "scores": {
+            "trust_score_0_100": trust_score_0_100,
+            "fico_display_300_850": fico_display_300_850,
+            "components": {
+                "tier": tier,
+                "tenure_days": tenure_days,
+                "transaction_count": tx_count,
+                "collateral_eth": round(collateral_eth, 6),
+                "proof_completion_ratio": round(readiness_ratio, 4),
+            },
+        },
+        "proof_policy": {
+            "mode": "hybrid",
+            "groth16_for_ux": True,
+            "stark_envelope_async": True,
+        },
+        "flags": get_backend_trust_flags(),
+        "version_matrix": get_trust_version_matrix(),
+        "generated_at": int(time.time()),
+    }
 
 
 async def _run_proof_scan(
@@ -860,3 +1032,71 @@ async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Proof generation failed: {exc}")
+
+
+@router.post("/proof/credit-eligibility")
+async def generate_credit_eligibility(req: CreditEligibilityProofRequest) -> dict[str, Any]:
+    """Generate Groth16 credit eligibility proof + async STARK envelope metadata."""
+    from app.services.credit_eligibility_proof_service import generate_credit_eligibility_proof
+
+    try:
+        proof_payload = await asyncio.to_thread(
+            generate_credit_eligibility_proof,
+            req.credit_score,
+            req.collateral_wei,
+            req.min_credit_score,
+            req.min_collateral,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=f"credit_eligibility_artifacts_unavailable: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Credit eligibility proof generation failed: {exc}")
+
+    proof_hash = "0x" + hashlib.sha256(
+        json.dumps(
+            {
+                "proof": proof_payload.get("proof"),
+                "public_signals": proof_payload.get("public_signals"),
+                "commitment_hash": proof_payload.get("commitment_hash"),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        ).encode("utf-8")
+    ).hexdigest()
+    envelope_id = f"env_{int(time.time())}_{_norm_addr(req.user_address)[:10]}"
+
+    _persist_proof_completion(req.user_address, "credit_eligibility", proof_hash)
+    await log_trust_event(
+        req.user_address,
+        "proof_generated",
+        gate="credit",
+        outcome="success",
+        metadata={
+            "proof_type": "credit_eligibility",
+            "proof_hash": proof_hash,
+            "envelope_id": envelope_id,
+        },
+        receipt_proof_type="proof_credit_eligibility",
+    )
+
+    return {
+        "success": bool(proof_payload.get("verified", False)),
+        "proof_type": "credit_eligibility",
+        "proof_hash": proof_hash,
+        "groth16": {
+            "verified": bool(proof_payload.get("verified", False)),
+            "public_signals": proof_payload.get("public_signals"),
+            "calldata": proof_payload.get("calldata"),
+            "circuit": proof_payload.get("circuit"),
+        },
+        "inputs": proof_payload.get("inputs"),
+        "commitment_hash": proof_payload.get("commitment_hash"),
+        "envelope": {
+            "envelope_id": envelope_id,
+            "status": "queued",
+            "settlement_mode": "stark_wrapped_async_v1",
+            "created_at": int(time.time()),
+        },
+        "version_matrix": get_trust_version_matrix(),
+    }

@@ -76,10 +76,17 @@ export interface RiskDecisionGate {
 
 export interface RiskProfileV2 {
   profile_version: string;
+  version_matrix?: {
+    builder_v2?: string;
+    profile_v2?: string;
+    portable_v3?: string;
+    zkfico_pack_v1?: string;
+  };
   address: string;
   identity: {
     has_agent: boolean;
     identity_commitment?: string | null;
+    subject_id?: string;
     linked_addresses: Array<{
       chain: string;
       address: string;
@@ -95,6 +102,16 @@ export interface RiskProfileV2 {
       expires_at?: number | null;
       verified_at?: string | null;
     };
+  };
+  attribution_summary?: {
+    event_count: number;
+    chains: string[];
+  };
+  credential_summary?: {
+    issued_count: number;
+    active_count: number;
+    revoked_count: number;
+    latest_issued_at?: string | null;
   };
   reputation: {
     tier: number;

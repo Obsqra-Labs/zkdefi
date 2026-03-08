@@ -18,6 +18,7 @@ import { AgentInsightsStrip } from "./AgentInsightsStrip";
 import { ZkmlResultCards } from "@/components/zkdefi/ZkmlResultCards";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate, getGovernancePower, getLendingGate } from "@/lib/trust/adapters";
+import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 
 const POLL_INTERVAL_MS = 15000;
 
@@ -147,6 +148,7 @@ function Section({
 }
 
 export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeploy, onOpenZkRag }: ControlPlaneProps) {
+  const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const [showSessionManager, setShowSessionManager] = useState(false);
   const [emergencyPaused, setEmergencyPaused] = useState(false);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
@@ -398,9 +400,22 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
   const agentState = agentStatus?.state ?? "stopped";
   const agentRunning = agentState === "running" || agentState === "monitoring";
   const agentPaused = agentState === "paused";
-  const executionGate = getExecutionGate(profileV2);
-  const lendingGate = getLendingGate(profileV2);
-  const governancePower = getGovernancePower(profileV2);
+  const executionGate = trustSurfaceWiringEnabled
+    ? getExecutionGate(profileV2)
+    : { mode: "advisory" as const, reasons: [], limits: {} };
+  const lendingGate = trustSurfaceWiringEnabled
+    ? getLendingGate(profileV2)
+    : { mode: "advisory" as const, reasons: [], limits: {} };
+  const governancePower = trustSurfaceWiringEnabled
+    ? getGovernancePower(profileV2)
+    : {
+        votingPower: 0,
+        lpUsd: 0,
+        lendingUsd: 0,
+        stakingUsd: 0,
+        tierMultiplier: 1,
+        formulaVersion: "vp_v2_sqrt_capital_tier_multiplier",
+      };
   const tier = Number(profileV2?.reputation?.tier ?? reputation?.tier ?? 0);
   const tierName =
     profileV2?.reputation?.tier_name ??

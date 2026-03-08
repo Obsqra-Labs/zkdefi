@@ -15,6 +15,9 @@ import { ExecutionPanel } from "./TradeDesk/ExecutionPanel";
 import { MemoryLane } from "./TradeDesk/MemoryLane";
 import { Header } from "./TradeDesk/Header";
 import { MarketInfoPanel } from "./TradeDesk/MarketInfoPanel";
+import { useRiskProfileV2 } from "@/hooks/useProfile";
+import { getExecutionGate, getLendingGate } from "@/lib/trust/adapters";
+import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 
 export interface TradeDeskProps {
   userAddress?: string;
@@ -37,11 +40,35 @@ export function TradeDesk({
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
+  const { profile: trustProfile } = useRiskProfileV2(
+    trustSurfaceWiringEnabled ? userAddress : undefined
+  );
 
   const marketDataService = useMemo(() => new MarketDataService(), []);
   const reputationService = useMemo(() => new ReputationGatingService(), []);
   const aiService = useMemo(() => new AIRecommendationService(), []);
   const receiptService = useMemo(() => new ReceiptService(), []);
+  const executionGate = useMemo(
+    () =>
+      trustSurfaceWiringEnabled
+        ? getExecutionGate(trustProfile)
+        : { mode: "allow" as const, reasons: [], limits: {} },
+    [trustSurfaceWiringEnabled, trustProfile]
+  );
+  const lendingGate = useMemo(
+    () =>
+      trustSurfaceWiringEnabled
+        ? getLendingGate(trustProfile)
+        : { mode: "allow" as const, reasons: [], limits: {} },
+    [trustSurfaceWiringEnabled, trustProfile]
+  );
+  const routeHint = useMemo(() => {
+    if (!trustSurfaceWiringEnabled) return "legacy-routing";
+    if (executionGate.mode === "block") return "policy-blocked";
+    if (executionGate.mode === "advisory") return "guarded-routing";
+    return "full-routing";
+  }, [trustSurfaceWiringEnabled, executionGate.mode]);
 
   // Load initial data
   useEffect(() => {
@@ -108,6 +135,18 @@ export function TradeDesk({
 
   const handleExecute = useCallback(
     async (receipt: TradeReceipt) => {
+      if (trustSurfaceWiringEnabled && executionGate.mode === "block") {
+        setError(`Execution blocked by policy gate (${executionGate.reasons.join(", ") || "no_reason"})`);
+        return;
+      }
+      if (
+        trustSurfaceWiringEnabled &&
+        lendingGate.mode === "block" &&
+        selectedOpportunity?.type === "lending"
+      ) {
+        setError(`Lending blocked by policy gate (${lendingGate.reasons.join(", ") || "no_reason"})`);
+        return;
+      }
       try {
         await receiptService.recordReceipt(receipt as any);
         const [newReceipts, newOpps] = await Promise.all([
@@ -122,7 +161,17 @@ export function TradeDesk({
         console.error("Trade execution error:", err);
       }
     },
-    [receiptService, marketDataService]
+    [
+      trustSurfaceWiringEnabled,
+      executionGate.mode,
+      executionGate.reasons,
+      lendingGate.mode,
+      lendingGate.reasons,
+      selectedOpportunity?.type,
+      receiptService,
+      marketDataService,
+      userAddress,
+    ]
   );
 
   const handleCancel = useCallback(() => {
@@ -177,7 +226,16 @@ export function TradeDesk({
   if (loading && opportunities.length === 0) {
     return (
       <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
-        <Header userReputation={userReputation} stats={headerStats} />
+        <Header
+          userReputation={userReputation}
+          stats={headerStats}
+          trust={{
+            enabled: trustSurfaceWiringEnabled,
+            executionGate,
+            lendingGate,
+            routeHint,
+          }}
+        />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin mb-4">
@@ -210,8 +268,24 @@ export function TradeDesk({
         </motion.div>
       )}
 
+      {trustSurfaceWiringEnabled && executionGate.mode !== "allow" && (
+        <div className="px-4 py-2 bg-amber-900/20 border border-amber-700 text-amber-200 text-xs">
+          Execution gate: {executionGate.mode.toUpperCase()}
+          {executionGate.reasons.length ? ` (${executionGate.reasons.join(", ")})` : ""}
+        </div>
+      )}
+
       {/* Header */}
-      <Header userReputation={userReputation} stats={headerStats} />
+      <Header
+        userReputation={userReputation}
+        stats={headerStats}
+        trust={{
+          enabled: trustSurfaceWiringEnabled,
+          executionGate,
+          lendingGate,
+          routeHint,
+        }}
+      />
 
       {/* Main Layout */}
       <div className="flex flex-1 gap-4 p-4 overflow-hidden">

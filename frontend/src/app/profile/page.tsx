@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
+import { TrustFlowChecklist } from "@/components/zkdefi/TrustFlowChecklist";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { apiFetch, apiUrl } from "@/lib/api/client";
 import {
@@ -39,6 +40,12 @@ import {
   getLendingGate,
   type DisclosureClaimKey,
 } from "@/lib/trust/adapters";
+import {
+  isPortableIdentityV3Enabled,
+  isProfileV3Enabled,
+  isTrustSurfaceWiringEnabled,
+  isZkficoFinisherEnabled,
+} from "@/lib/trust/flags";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
   useLinkedAddresses,
@@ -64,6 +71,41 @@ const DISCLOSURE_OPTIONS: Array<{ key: DisclosureClaimKey; label: string }> = [
   { key: "execution_gate", label: "Execution Gate" },
 ];
 
+interface ZkficoAggregate {
+  pack_id?: string;
+  pack_version?: string;
+  readiness?: {
+    complete?: number;
+    total?: number;
+    ratio?: number;
+    ready_for_policy?: boolean;
+    ready_for_credit?: boolean;
+  };
+  scores?: {
+    trust_score_0_100?: number;
+    fico_display_300_850?: number;
+  };
+}
+
+interface ZkficoManifest {
+  pack_id?: string;
+  pack_version?: string;
+  proof_policy?: {
+    mode?: string;
+    ux_verifier?: string;
+    canonical_settlement_envelope?: string;
+  };
+  circuits?: Array<{
+    proof_type?: string;
+    circuit_id?: string;
+    artifact_hashes?: {
+      wasm_sha256?: string | null;
+      zkey_sha256?: string | null;
+      vkey_sha256?: string | null;
+    };
+  }>;
+}
+
 function downloadJson(filename: string, payload: unknown): void {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const href = URL.createObjectURL(blob);
@@ -85,6 +127,10 @@ export default function ProfilePage() {
   const { settled } = useWalletSettled();
   const [mounted, setMounted] = useState(false);
   const [activeLens, setActiveLens] = useState<LensKey>("identity");
+  const profileV3Enabled = isProfileV3Enabled();
+  const portableV3Enabled = isPortableIdentityV3Enabled();
+  const zkficoEnabled = isZkficoFinisherEnabled();
+  const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
 
   const { profile: bundle, loading: bundleLoading, refetch: refetchBundle } = useRiskProfile(address);
   const {
@@ -111,6 +157,8 @@ export default function ProfilePage() {
   const [stakeCollateralEth, setStakeCollateralEth] = useState("0.10");
   const [proofs, setProofs] = useState<Array<Record<string, unknown>>>([]);
   const [proofsLoading, setProofsLoading] = useState(false);
+  const [zkficoAggregate, setZkficoAggregate] = useState<ZkficoAggregate | null>(null);
+  const [zkficoManifest, setZkficoManifest] = useState<ZkficoManifest | null>(null);
 
   const [verificationDrafts, setVerificationDrafts] = useState<Record<ChainKey, { signature: string }>>({
     eth: { signature: "" },
@@ -150,6 +198,36 @@ export default function ProfilePage() {
     void refreshProofs(address, setProofs, setProofsLoading);
   }, [address]);
 
+  useEffect(() => {
+    if (!address || !zkficoEnabled) {
+      setZkficoAggregate(null);
+      setZkficoManifest(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadZkfico = async () => {
+      try {
+        const [aggregate, manifest] = await Promise.all([
+          apiFetch<ZkficoAggregate>(`/api/v1/zkdefi/reputation/zkfico/${address}`),
+          apiFetch<ZkficoManifest>("/api/v1/zkdefi/reputation/pack/manifest"),
+        ]);
+        if (cancelled) return;
+        setZkficoAggregate(aggregate ?? null);
+        setZkficoManifest(manifest ?? null);
+      } catch {
+        if (cancelled) return;
+        setZkficoAggregate(null);
+        setZkficoManifest(null);
+      }
+    };
+
+    void loadZkfico();
+    return () => {
+      cancelled = true;
+    };
+  }, [address, zkficoEnabled]);
+
   const executionGate = useMemo(() => getExecutionGate(profileV2), [profileV2]);
   const lendingGate = useMemo(() => getLendingGate(profileV2), [profileV2]);
   const governancePower = useMemo(() => getGovernancePower(profileV2), [profileV2]);
@@ -160,6 +238,21 @@ export default function ProfilePage() {
     [profileV2, selectedClaims]
   );
 
+  const trustFlowState = useMemo(
+    () => ({
+      rootIdentityConnected: Boolean(address && (profileV2?.identity?.identity_commitment || profileV2?.identity?.has_agent)),
+      walletsLinked: (profileV2?.identity?.linked_addresses?.length ?? 0) > 0,
+      walletsVerified: identityBinding.linkedVerifiedCount > 0,
+      attributionsSynced: Number(profileV2?.attribution_summary?.event_count ?? 0) > 0,
+      claimsDerived: Number(profileV2?.passport?.composite_score ?? 0) > 0,
+      disclosurePackIssued: Number(profileV2?.credential_summary?.active_count ?? 0) > 0,
+      scopedSessionBound:
+        Number(profileV2?.identity?.session_summary?.active_count ?? 0) > 0 ||
+        Boolean(profileV2?.identity?.dual_wallet_session?.active),
+    }),
+    [address, profileV2, identityBinding.linkedVerifiedCount]
+  );
+
   const linkedVerification = ((linked as Record<string, unknown>)?.verification ?? {}) as Record<
     ChainKey,
     { verified?: boolean; verified_at?: string; address?: string }
@@ -168,10 +261,18 @@ export default function ProfilePage() {
   const refreshing = async () => {
     await Promise.all([refetchBundle(), refetchV2()]);
     if (address) {
-      await Promise.all([
+      const tasks: Array<Promise<unknown>> = [
         refreshSessions(address, setSessions, setSessionLoading),
         refreshProofs(address, setProofs, setProofsLoading),
-      ]);
+      ];
+      if (zkficoEnabled) {
+        tasks.push(
+          apiFetch<ZkficoAggregate>(`/api/v1/zkdefi/reputation/zkfico/${address}`)
+            .then((payload) => setZkficoAggregate(payload ?? null))
+            .catch(() => setZkficoAggregate(null))
+        );
+      }
+      await Promise.all(tasks);
     }
   };
 
@@ -505,6 +606,36 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {profileV3Enabled ? (
+                <div className="mb-3">
+                  <TrustFlowChecklist state={trustFlowState} />
+                </div>
+              ) : null}
+
+              {portableV3Enabled ? (
+                <div className="mb-3 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-300">
+                  <div className="mb-2 flex items-center justify-between text-zinc-200">
+                    <span className="font-medium">Portable Reputation V3</span>
+                    <span className="text-zinc-500">subject: {profileV2?.identity?.subject_id ?? "n/a"}</span>
+                  </div>
+                  <MetricRow
+                    label="Attribution events"
+                    value={String(profileV2?.attribution_summary?.event_count ?? 0)}
+                    compact
+                  />
+                  <MetricRow
+                    label="Active credentials"
+                    value={String(profileV2?.credential_summary?.active_count ?? 0)}
+                    compact
+                  />
+                  <MetricRow
+                    label="Credential revocations"
+                    value={String(profileV2?.credential_summary?.revoked_count ?? 0)}
+                    compact
+                  />
+                </div>
+              ) : null}
+
               <div className="space-y-3">
                 {CHAIN_INFO.map(({ short, full, label }) => (
                   <div key={short} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
@@ -793,6 +924,64 @@ export default function ProfilePage() {
                 </div>
               )}
             </Panel>
+
+            {zkficoEnabled ? (
+              <Panel title="zkFICO Finisher" icon={<Shield className="h-4 w-4" />} className="lg:col-span-2">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-sm">
+                    <MetricRow
+                      label="Trust score (0-100)"
+                      value={String(
+                        Number(zkficoAggregate?.scores?.trust_score_0_100 ?? 0).toFixed(2)
+                      )}
+                    />
+                    <MetricRow
+                      label="FICO display (300-850)"
+                      value={String(Math.round(Number(zkficoAggregate?.scores?.fico_display_300_850 ?? 300)))}
+                    />
+                    <MetricRow
+                      label="Proof readiness"
+                      value={`${zkficoAggregate?.readiness?.complete ?? 0}/${zkficoAggregate?.readiness?.total ?? 0}`}
+                    />
+                    <MetricRow
+                      label="Policy ready"
+                      value={zkficoAggregate?.readiness?.ready_for_policy ? "yes" : "no"}
+                    />
+                    <MetricRow
+                      label="Credit ready"
+                      value={zkficoAggregate?.readiness?.ready_for_credit ? "yes" : "no"}
+                    />
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-xs text-zinc-300">
+                    <div className="mb-2 text-zinc-200 font-medium">Proof envelope</div>
+                    <MetricRow
+                      label="Pack"
+                      value={`${zkficoManifest?.pack_id ?? "zkfico_pack_v1"}@${zkficoManifest?.pack_version ?? "1.0"}`}
+                      compact
+                    />
+                    <MetricRow
+                      label="Policy mode"
+                      value={zkficoManifest?.proof_policy?.mode ?? "hybrid"}
+                      compact
+                    />
+                    <MetricRow
+                      label="UX verifier"
+                      value={zkficoManifest?.proof_policy?.ux_verifier ?? "groth16"}
+                      compact
+                    />
+                    <MetricRow
+                      label="Settlement envelope"
+                      value={zkficoManifest?.proof_policy?.canonical_settlement_envelope ?? "stark_wrapped_async_v1"}
+                      compact
+                    />
+                    <div className="mt-2 text-zinc-500">
+                      circuits: {Array.isArray(zkficoManifest?.circuits) ? zkficoManifest?.circuits?.length : 0}
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            ) : null}
           </section>
         )}
 
@@ -884,6 +1073,15 @@ export default function ProfilePage() {
           </span>
           <span className="mx-2">|</span>
           <span>identity commitment: {identityBinding.identityCommitment ? "present" : "missing"}</span>
+          <span className="mx-2">|</span>
+          <span>
+            trust matrix: {profileV2?.version_matrix?.builder_v2 ?? "2.x"}/
+            {profileV2?.version_matrix?.profile_v2 ?? "2.x"}/
+            {profileV2?.version_matrix?.portable_v3 ?? "3.x"}/
+            {profileV2?.version_matrix?.zkfico_pack_v1 ?? "1.x"}
+          </span>
+          <span className="mx-2">|</span>
+          <span>wiring: {trustSurfaceWiringEnabled ? "on" : "off"}</span>
           <span className="mx-2">|</span>
           <span>
             API base: <code>{apiUrl("/api/v1/zkdefi")}</code>

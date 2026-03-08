@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { StreamCard, type StreamItem } from "./StreamCard";
 import { OracleDashboardStrip } from "./OracleDashboardStrip";
+import { useRiskProfileV2 } from "@/hooks/useProfile";
+import { getExecutionGate, getGovernancePower, getLendingGate } from "@/lib/trust/adapters";
+import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 
 const POLL_INTERVAL_MS = 15000;
 const INITIAL_LIMIT = 30;
@@ -56,12 +59,34 @@ export function UnifiedStream({
   onOpenCircuitBoard,
   onOpenZkRag,
 }: UnifiedStreamProps) {
+  const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const [items, setItems] = useState<StreamItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [limit, setLimit] = useState(INITIAL_LIMIT);
   const [loadingMore, setLoadingMore] = useState(false);
+  const { profile: trustProfile } = useRiskProfileV2(
+    trustSurfaceWiringEnabled ? address : undefined
+  );
+  const executionGate = useMemo(
+    () =>
+      trustSurfaceWiringEnabled
+        ? getExecutionGate(trustProfile)
+        : { mode: "allow" as const, reasons: [], limits: {} },
+    [trustSurfaceWiringEnabled, trustProfile]
+  );
+  const lendingGate = useMemo(
+    () =>
+      trustSurfaceWiringEnabled
+        ? getLendingGate(trustProfile)
+        : { mode: "allow" as const, reasons: [], limits: {} },
+    [trustSurfaceWiringEnabled, trustProfile]
+  );
+  const governance = useMemo(
+    () => getGovernancePower(trustProfile),
+    [trustProfile]
+  );
 
   const fetchStream = useCallback(async (limitToUse: number): Promise<StreamItem[]> => {
     if (!address) return [];
@@ -126,6 +151,13 @@ export function UnifiedStream({
 
   const handleAction = useCallback(
     (action: string, itemId: string) => {
+      if (
+        trustSurfaceWiringEnabled &&
+        action === "deploy" &&
+        executionGate.mode === "block"
+      ) {
+        return;
+      }
       if (action === "deploy" && onDeploy) {
         onDeploy(itemId);
       } else if (action === "open_governance" && onOpenGovernance) {
@@ -139,7 +171,14 @@ export function UnifiedStream({
         onOpenZkRag();
       }
     },
-    [onDeploy, onOpenGovernance, onOpenCircuitBoard, onOpenZkRag]
+    [
+      trustSurfaceWiringEnabled,
+      executionGate.mode,
+      onDeploy,
+      onOpenGovernance,
+      onOpenCircuitBoard,
+      onOpenZkRag,
+    ]
   );
 
   const filteredItems = searchQuery.trim()
@@ -169,6 +208,29 @@ export function UnifiedStream({
     <div className="flex flex-col h-full">
       {/* Oracle Dashboard Strip */}
       <OracleDashboardStrip address={address} onDeploy={onDeploy} />
+
+      {trustSurfaceWiringEnabled ? (
+        <div className="flex-shrink-0 px-2 py-1 border-b border-zinc-800 bg-zinc-900/60 text-[10px] text-zinc-400">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              execution:{" "}
+              <span className="text-zinc-200 uppercase">{executionGate.mode}</span>
+            </span>
+            <span>
+              lending: <span className="text-zinc-200 uppercase">{lendingGate.mode}</span>
+            </span>
+            <span>
+              governance:{" "}
+              <span className="text-zinc-200">{governance.votingPower.toFixed(2)} vp</span>
+            </span>
+            {executionGate.reasons.length ? (
+              <span className="truncate">
+                reason: <span className="text-zinc-300">{executionGate.reasons.join(", ")}</span>
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* Filter bar */}
       <div className="flex-shrink-0 px-2 py-1.5 border-b border-zinc-800 flex items-center gap-2">
