@@ -170,6 +170,13 @@ try:
 except Exception as exc:
     logger.warning("Rate limiting middleware skipped: %s", exc)
 
+try:
+    from app.middleware.request_timing import RequestTimingMiddleware
+    app.add_middleware(RequestTimingMiddleware)
+    logger.info("Request timing middleware enabled")
+except Exception as exc:
+    logger.warning("Request timing middleware skipped: %s", exc)
+
 
 # -----------------------------------------------------------------------------
 # Core zkde.fi API surface (consumed by /agent and /profile)
@@ -476,6 +483,39 @@ if strategies_router:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "zkdefi-backend"}
+
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check including cache stats and circuit breakers."""
+    result: dict = {"status": "ok", "service": "zkdefi-backend"}
+
+    try:
+        from app.services.ttl_cache import fico_cache, collateral_cache, market_cache
+        result["caches"] = {
+            "fico": fico_cache.stats,
+            "collateral": collateral_cache.stats,
+            "market": market_cache.stats,
+        }
+    except Exception:
+        pass
+
+    try:
+        from app.services.circuit_breaker import ekubo_breaker, starknet_rpc_breaker
+        result["circuit_breakers"] = {
+            "ekubo": ekubo_breaker.stats,
+            "starknet_rpc": starknet_rpc_breaker.stats,
+        }
+    except Exception:
+        pass
+
+    try:
+        from app.middleware.request_timing import get_latency_percentiles
+        result["latency"] = get_latency_percentiles(1000)
+    except Exception:
+        pass
+
+    return result
 
 
 @app.get("/")
