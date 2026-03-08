@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api/client';
+import { apiUrl } from '@/lib/api/client';
 
 /**
  * Reputation score thresholds for tier mapping
@@ -24,19 +24,24 @@ const BORROWING_RATE_BY_TIER = {
   Tier3: 4,
 } as const;
 
-const DEFAULT_SCORE_BY_TIER: Record<Tier, number> = {
-  Tier1: 45,
-  Tier2: 65,
-  Tier3: 85,
-};
-
 export type Tier = 'Tier1' | 'Tier2' | 'Tier3';
+
+export interface ReputationGates {
+  canSwap?: boolean;
+  canLP?: boolean;
+  canLend?: boolean;
+  canBorrow?: boolean;
+  canStake?: boolean;
+  canPrivacy?: boolean;
+  [key: string]: boolean | undefined;
+}
 
 export interface UserReputation {
   address: string;
   reputationScore: number;
   tier: Tier;
   updatedAt: string;
+  gates?: ReputationGates | null;
 }
 
 export type AccessEventType = 'borrow' | 'repay';
@@ -46,60 +51,6 @@ export interface AccessEvent {
   event: AccessEventType;
   amount: number;
   rate?: number;
-}
-
-function asNumber(value: unknown): number | null {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
-}
-
-function clampScore(score: number): number {
-  if (!Number.isFinite(score)) return 0;
-  return Math.max(0, Math.min(100, score));
-}
-
-function normalizeTierFromRaw(rawTier: unknown, rawTierName: unknown): Tier | null {
-  const numeric = asNumber(rawTier);
-  if (numeric !== null) {
-    if (numeric >= 2) return 'Tier3';
-    if (numeric >= 1) return 'Tier2';
-    return 'Tier1';
-  }
-
-  const text = String(rawTierName ?? rawTier ?? '').trim().toLowerCase();
-  if (text.includes('tier3') || text.includes('trusted') || text.includes('express')) return 'Tier3';
-  if (text.includes('tier2') || text.includes('standard')) return 'Tier2';
-  if (text.includes('tier1') || text.includes('strict') || text.includes('anon')) return 'Tier1';
-  return null;
-}
-
-function isLikelyRiskProfileV2(payload: Record<string, unknown>): boolean {
-  return (
-    typeof payload.profile_version === 'string' ||
-    typeof payload.reputation === 'object' ||
-    typeof payload.passport === 'object'
-  );
-}
-
-function normalizeFromLegacyPayload(data: Record<string, unknown>, fallbackAddress: string, nowIso: string, mapScoreToTier: (score: number) => Tier): UserReputation {
-  const score = clampScore(
-    asNumber(data.reputationScore) ??
-      asNumber(data.trust_score) ??
-      asNumber(data.composite_score) ??
-      0
-  );
-
-  const explicitTier =
-    normalizeTierFromRaw(data.tier ?? data.current_tier, data.tier_name) ??
-    mapScoreToTier(score || DEFAULT_SCORE_BY_TIER.Tier1);
-  const normalizedScore = score || DEFAULT_SCORE_BY_TIER[explicitTier];
-
-  return {
-    address: String(data.address ?? fallbackAddress),
-    reputationScore: normalizedScore,
-    tier: explicitTier,
-    updatedAt: String(data.updatedAt ?? nowIso),
-  };
 }
 
 /**
@@ -117,39 +68,36 @@ export class ReputationGatingService {
    * @returns UserReputation with computed tier
    */
   async getUserReputation(address: string): Promise<UserReputation> {
-    const nowIso = new Date().toISOString();
-    try {
-      const profileV2 = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/risk_profile/v2/${address}`, {
-        method: 'GET',
-      });
+    const url = apiUrl(`/api/v1/zkdefi/reputation/user/${address}`);
 
-      if (!isLikelyRiskProfileV2(profileV2)) {
-        return normalizeFromLegacyPayload(profileV2, address, nowIso, this.mapScoreToTier.bind(this));
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-      const profileRep = (profileV2.reputation as Record<string, unknown> | undefined) ?? {};
-      const profilePassport = (profileV2.passport as Record<string, unknown> | undefined) ?? {};
-      const tier =
-        normalizeTierFromRaw(profileRep.tier, profileRep.tier_name) ??
-        this.mapScoreToTier(clampScore(asNumber(profilePassport.composite_score) ?? 0));
-      const score = clampScore(asNumber(profilePassport.composite_score) ?? DEFAULT_SCORE_BY_TIER[tier]);
-
-      return {
-        address: String(profileV2.address ?? address),
-        reputationScore: score,
-        tier,
-        updatedAt: String(profileV2.generated_at ?? nowIso),
-      };
-    } catch (v2Error) {
-      try {
-        const data = await apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`, {
-          method: 'GET',
-        });
-        return normalizeFromLegacyPayload(data, address, nowIso, this.mapScoreToTier.bind(this));
-      } catch {
-        throw v2Error;
-      }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === 'string'
+          ? payload.detail
+          : `Failed to fetch reputation (${response.status})`;
+      throw new Error(detail);
     }
+
+    const data = await response.json();
+
+    const score = data.reputation_score ?? data.reputationScore ?? 0;
+    const tierName = data.tier_name ?? data.tierName ?? this.mapScoreToTier(score);
+
+    return {
+      address: data.address,
+      reputationScore: score,
+      tier: (["Tier1", "Tier2", "Tier3"].includes(tierName)
+        ? tierName
+        : this.mapScoreToTier(score)) as Tier,
+      updatedAt: data.updatedAt ?? data.updated_at ?? new Date().toISOString(),
+      gates: data.gates ?? null,
+    };
   }
 
   /**
@@ -201,9 +149,23 @@ export class ReputationGatingService {
    * @returns Array of access events (borrows, repays, etc)
    */
   async getAccessHistory(address: string): Promise<AccessEvent[]> {
-    const data = await apiFetch<unknown>(`/api/v1/zkdefi/reputation/access-history/${address}`, {
+    const url = apiUrl(`/api/v1/zkdefi/reputation/access-history/${address}`);
+
+    const response = await fetch(url, {
       method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
     });
-    return Array.isArray(data) ? (data as AccessEvent[]) : [];
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === 'string'
+          ? payload.detail
+          : `Failed to fetch access history (${response.status})`;
+      throw new Error(detail);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   }
 }
