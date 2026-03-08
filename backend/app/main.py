@@ -177,6 +177,7 @@ trade_desk_router = _optional_router("app.api.routes.trade_desk")
 signals_router = _optional_router("app.api.routes.signals")
 oracle_gating_router = _optional_router("app.api.routes.oracle_gating")
 agent_execution_router = _optional_router("app.api.routes.agent_execution")
+archive_query_router = _optional_router("app.api.routes.archive_query")
 skills_router = _optional_router("app.api.routes.skills")
 zkd_portfolio_router = _optional_router("app.api.routes.zkd_portfolio")
 
@@ -266,6 +267,11 @@ if zkgraph_router:
         zkgraph_router,
         prefix="/api/v1/zkdefi/zkgraph",
         tags=["zkgraph"],
+    )
+if archive_query_router:
+    app.include_router(
+        archive_query_router,
+        tags=["archive-query"],
     )
 if skills_router:
     app.include_router(
