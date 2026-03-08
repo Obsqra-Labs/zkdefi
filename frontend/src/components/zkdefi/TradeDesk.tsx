@@ -1,52 +1,39 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Opportunity, MarketContext, MarketInsights, TradeReceipt as ExecutionTradeReceipt } from "@/services/types";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import type { Opportunity, MarketContext, MarketInsights, ReceiptWithImpact, TradeReceipt } from "@/services/types";
 import type { UserReputation } from "@/services/ReputationGatingService";
 import { MarketDataService } from "@/services/MarketDataService";
 import { ReputationGatingService } from "@/services/ReputationGatingService";
 import { AIRecommendationService } from "@/services/AIRecommendationService";
-import { ReceiptService, type ReceiptWithImpact } from "@/services/ReceiptService";
-import { OpportunityList } from "@/components/zkdefi/TradeDesk/OpportunityList";
-import { ExecutionPanel } from "@/components/zkdefi/TradeDesk/ExecutionPanel";
-import { MarketInfoPanel } from "@/components/zkdefi/TradeDesk/MarketInfoPanel";
-import { MemoryLane } from "@/components/zkdefi/TradeDesk/MemoryLane";
+import { ReceiptService } from "@/services/ReceiptService";
+import { OpportunityList } from "./TradeDesk/OpportunityList";
+import { ExecutionPanel } from "./TradeDesk/ExecutionPanel";
+import { MemoryLane } from "./TradeDesk/MemoryLane";
+import { Header } from "./TradeDesk/Header";
+import { MarketInfoPanel } from "./TradeDesk/MarketInfoPanel";
 
 export interface TradeDeskProps {
   userAddress?: string;
   autoRefresh?: boolean;
   showMemoryLane?: boolean;
-}
-
-function normalizeExecutionReceipt(
-  source: ExecutionTradeReceipt,
-  opportunity?: Opportunity | null
-) {
-  return {
-    id: source.id,
-    timestamp: source.executedAt || new Date().toISOString(),
-    action: source.type || "execute",
-    adapter: source.adapter || "trade_desk",
-    opportunityName: opportunity?.name || String(source?.details?.opportunity || "Execution"),
-    amount: Number(source?.details?.parameters?.amount || 0),
-    privacyLevel: (source?.details?.parameters?.privacyLevel || "public") as "public" | "shielded" | "dark_ledger",
-    yieldImpact: Number(source?.details?.impact?.estimatedYield || 0),
-    trustDelta: source.status === "executed" ? 2 : 0,
-    txHash: source.transactionHash,
-    status: source.status === "executed" ? "confirmed" : source.status === "failed" ? "failed" : "pending",
-  };
+  onClose?: () => void;
 }
 
 export function TradeDesk({
   userAddress,
   autoRefresh = true,
   showMemoryLane = true,
+  onClose,
 }: TradeDeskProps) {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [userReputation, setUserReputation] = useState<UserReputation | null>(null);
   const [marketContext, setMarketContext] = useState<MarketContext | null>(null);
   const [insights, setInsights] = useState<MarketInsights | null>(null);
   const [receipts, setReceipts] = useState<ReceiptWithImpact[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,111 +42,243 @@ export function TradeDesk({
   const aiService = useMemo(() => new AIRecommendationService(), []);
   const receiptService = useMemo(() => new ReceiptService(), []);
 
-  const refreshReceipts = useCallback(async () => {
-    try {
-      const r = await receiptService.getReceipts({ address: userAddress });
-      setReceipts(r);
-    } catch {
-      setReceipts([]);
-    }
-  }, [receiptService, userAddress]);
-
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [context, aiInsights] = await Promise.all([
-        marketDataService.getMarketContext().catch(() => null),
-        aiService.getMarketInsights().catch(() => null),
-      ]);
-      setMarketContext(context);
-      setInsights(aiInsights);
-
-      if (userAddress) {
-        const rep = await reputationService.getUserReputation(userAddress).catch(() => null);
-        setUserReputation(rep);
-      } else {
-        setUserReputation(null);
-      }
-
-      await refreshReceipts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Trade Desk load failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [marketDataService, aiService, userAddress, reputationService, refreshReceipts]);
-
+  // Load initial data
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
+        const [opps, context] = await Promise.all([
+          marketDataService.getOpportunities(),
+          marketDataService.getMarketContext(),
+        ]);
+
+        setOpportunities(opps);
+        setMarketContext(context);
+
+        if (userAddress) {
+          const [reputation, rcpts] = await Promise.all([
+            reputationService.getUserReputation(userAddress),
+            receiptService.getReceipts(),
+          ]);
+          setUserReputation(reputation);
+          setReceipts(rcpts as unknown as ReceiptWithImpact[]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load Trade Desk data");
+        console.error("TradeDesk load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [userAddress, marketDataService, reputationService, receiptService]);
+
+  // Real-time polling
   useEffect(() => {
     if (!autoRefresh) return;
-    const t = setInterval(loadData, 30_000);
-    return () => clearInterval(t);
-  }, [autoRefresh, loadData]);
+
+    const marketContextInterval = setInterval(async () => {
+      try {
+        const context = await marketDataService.getMarketContext();
+        setMarketContext(context);
+      } catch (err) {
+        console.warn("Failed to refresh market context:", err);
+      }
+    }, 30000);
+
+    const receiptsInterval = setInterval(async () => {
+      if (!userAddress) return;
+      try {
+        const newReceipts = await receiptService.getReceipts();
+        setReceipts(newReceipts as unknown as ReceiptWithImpact[]);
+      } catch (err) {
+        console.warn("Failed to refresh receipts:", err);
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(marketContextInterval);
+      clearInterval(receiptsInterval);
+    };
+  }, [autoRefresh, userAddress, marketDataService, receiptService]);
 
   const handleExecute = useCallback(
-    async (receipt: ExecutionTradeReceipt) => {
+    async (receipt: TradeReceipt) => {
       try {
-        const normalized = normalizeExecutionReceipt(receipt, selectedOpportunity);
-        await receiptService.recordReceipt(normalized as any);
-        await refreshReceipts();
+        await receiptService.recordReceipt(receipt as any);
+        const [newReceipts, newOpps] = await Promise.all([
+          receiptService.getReceipts(),
+          marketDataService.getOpportunities(),
+        ]);
+        setReceipts(newReceipts as unknown as ReceiptWithImpact[]);
+        setOpportunities(newOpps);
         setSelectedOpportunity(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Execution failed");
+        setError(err instanceof Error ? err.message : "Failed to execute trade");
+        console.error("Trade execution error:", err);
       }
     },
-    [receiptService, selectedOpportunity, refreshReceipts]
+    [receiptService, marketDataService]
   );
 
-  const tierForExecution = userReputation?.tier ?? "Tier1";
-  const scoreForExecution = userReputation?.reputationScore ?? 0;
+  const handleCancel = useCallback(() => {
+    setSelectedOpportunity(null);
+  }, []);
 
-  return (
-    <div className="h-full flex flex-col bg-zinc-950 text-zinc-100">
-      {error && (
-        <div className="px-4 py-2 text-sm bg-red-900/20 border-b border-red-900/40 text-red-300">
-          {error}
-        </div>
-      )}
+  // Compute stats for header
+  const headerStats = useMemo(() => {
+    const totalYield24h = receipts
+      .filter(r => {
+        const receiptTime = new Date(r.timestamp).getTime();
+        const now = Date.now();
+        return now - receiptTime <= 24 * 60 * 60 * 1000;
+      })
+      .reduce((sum, r) => sum + (r.yieldImpact || 0), 0);
 
-      <div className="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3">
-        <div className="col-span-12 lg:col-span-3 min-h-0">
-          <OpportunityList onSelectOpportunity={setSelectedOpportunity} />
-        </div>
+    const totalYield7d = receipts
+      .filter(r => {
+        const receiptTime = new Date(r.timestamp).getTime();
+        const now = Date.now();
+        return now - receiptTime <= 7 * 24 * 60 * 60 * 1000;
+      })
+      .reduce((sum, r) => sum + (r.yieldImpact || 0), 0);
 
-        <div className="col-span-12 lg:col-span-6 min-h-0 flex flex-col gap-3">
-          <div className="flex-1 min-h-0">
-            {selectedOpportunity ? (
-              <div className="h-full overflow-auto">
-                <ExecutionPanel
-                  opportunity={selectedOpportunity}
-                  onExecute={handleExecute}
-                  onCancel={() => setSelectedOpportunity(null)}
-                  userReputation={{ tier: tierForExecution, score: scoreForExecution }}
-                />
-              </div>
-            ) : (
-              <div className="h-full rounded border border-zinc-800 bg-zinc-900/40 flex items-center justify-center text-zinc-500 text-sm">
-                Select an opportunity to execute.
-              </div>
-            )}
-          </div>
+    const avgRiskScore = opportunities.length > 0
+      ? opportunities.reduce((sum, o) => sum + o.riskScore, 0) / opportunities.length
+      : 0;
 
-          {showMemoryLane && (
-            <div className="h-[280px] min-h-[220px]">
-              <MemoryLane receipts={receipts} compact={false} showFilters={true} loading={loading} />
+    const borrowingPower = userReputation
+      ? userReputation.tier === "Tier3"
+        ? 1.5
+        : userReputation.tier === "Tier2"
+          ? 0.5
+          : 0
+      : 0;
+
+    return {
+      totalYield24h,
+      totalYield7d,
+      apy: (totalYield24h * 365) / 100,
+      riskScore: avgRiskScore,
+      borrowingPower,
+    };
+  }, [receipts, opportunities, userReputation]);
+
+  if (loading && opportunities.length === 0) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
+        <Header userReputation={userReputation} stats={headerStats} />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin mb-4">
+              <div className="w-8 h-8 border-2 border-slate-700 border-t-cyan-400 rounded-full" />
             </div>
-          )}
-        </div>
-
-        <div className="col-span-12 lg:col-span-3 min-h-0">
-          <MarketInfoPanel marketContext={marketContext} insights={insights} loading={loading} />
+            <p className="text-slate-400">Loading Trade Desk...</p>
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
+      {/* Error Bar */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="px-4 py-3 bg-red-900/20 border border-red-700 text-red-200 text-sm flex items-center justify-between"
+        >
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-300 hover:text-red-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
+
+      {/* Header */}
+      <Header userReputation={userReputation} stats={headerStats} />
+
+      {/* Main Layout */}
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        {/* Left: Opportunity List */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <OpportunityList
+            onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
+            autoHighlight={true}
+            maxOpportunities={20}
+          />
+        </div>
+
+        {/* Right: Execution Panel or Market Info */}
+        <AnimatePresence mode="wait">
+          {selectedOpportunity ? (
+            <motion.div
+              key="execution-panel"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="w-96 flex flex-col min-w-0 overflow-hidden"
+            >
+              <ExecutionPanel
+                opportunity={selectedOpportunity}
+                onExecute={handleExecute}
+                onCancel={handleCancel}
+                userReputation={userReputation || undefined}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="market-info"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="w-96 flex flex-col min-w-0 overflow-hidden"
+            >
+              <MarketInfoPanel
+                marketContext={marketContext}
+                insights={insights}
+                loading={loading}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Memory Lane - Optional Bottom Panel */}
+      {showMemoryLane && receipts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-t border-slate-700 bg-slate-900/50"
+        >
+          <MemoryLane
+            receipts={receipts}
+            userAddress={userAddress}
+            compact={true}
+            showFilters={true}
+            limit={10}
+            loading={false}
+          />
+        </motion.div>
+      )}
+
+      {/* Close Button (if provided) */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }
