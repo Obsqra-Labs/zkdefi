@@ -44,10 +44,36 @@ async def _lifespan(app: FastAPI):
     except Exception as exc:  # pragma: no cover - defensive startup guard
         logger.warning("Snapshot forecaster worker startup skipped: %s", exc)
         stop_snapshot_forecaster_worker = None
+    
+    # Start transaction confirmation worker (Phase 2)
+    try:
+        import asyncio
+        from app.workers.tx_confirmation_worker import get_confirmation_worker
+        
+        confirmation_worker = get_confirmation_worker()
+        worker_task = asyncio.create_task(confirmation_worker.start())
+        logger.info("Transaction confirmation worker started")
+    except Exception as exc:
+        logger.warning("Transaction confirmation worker startup skipped: %s", exc)
+        worker_task = None
 
     try:
         yield
     finally:
+        # Stop confirmation worker
+        try:
+            if worker_task:
+                await confirmation_worker.stop()
+                worker_task.cancel()
+                try:
+                    await worker_task
+                except asyncio.CancelledError:
+                    pass
+                logger.info("Transaction confirmation worker stopped")
+        except Exception as exc:
+            logger.warning("Transaction confirmation worker shutdown warning: %s", exc)
+        
+        # Stop forecaster worker
         try:
             if stop_snapshot_forecaster_worker:
                 await stop_snapshot_forecaster_worker()

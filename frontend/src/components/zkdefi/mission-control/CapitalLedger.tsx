@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api/client";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { ShieldedBreakdown, formatWei, METHOD_LABELS } from "@/components/zkdefi/vault/ShieldedBreakdown";
+import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
 
 interface CapitalLedgerProps {
   address: string | undefined;
@@ -85,6 +86,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
   const [zkdLp, setZkdLp] = useState<ZkdLpPos[]>([]);
   const [yieldPoints, setYieldPoints] = useState<YieldPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const { prices } = useTokenPrices();
 
   useEffect(() => {
     if (!address) { setLoading(false); return; }
@@ -261,6 +263,23 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
 
   const totalPrivateNotes = privacyCommitments.length + backendDarkNotes.length;
 
+  // Compute per-asset USD and grand total
+  const assetRows = useMemo(() => {
+    return assetTotals.map((a) => {
+      const shieldedFloat = Number(a.shielded_wei) / 1e18;
+      const darkFloat = Number(a.dark_wei) / 1e18;
+      const totalFloat = a.api_balance + shieldedFloat + darkFloat;
+      const usdPrice = priceOf(prices, a.asset);
+      const totalUsd = totalFloat * usdPrice;
+      return { ...a, shieldedFloat, darkFloat, totalFloat, usdPrice, totalUsd };
+    });
+  }, [assetTotals, prices]);
+
+  const grandTotalUsd = useMemo(
+    () => assetRows.reduce((s, r) => s + r.totalUsd, 0),
+    [assetRows],
+  );
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
@@ -275,7 +294,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
     <div className="p-3 space-y-1">
       {/* ── Vault — canonical private identity ── */}
       <section className="rounded-lg border border-zinc-800 p-3">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1">
           <Landmark className="w-4 h-4 text-emerald-400" />
           <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Vault</h3>
           {totalPrivateNotes > 0 && (
@@ -286,30 +305,35 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           )}
         </div>
 
+        {/* Grand total USD */}
+        <div className="mb-3 text-right">
+          <span className="text-lg font-semibold text-zinc-100 font-mono">
+            ${grandTotalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+
         {/* Per-asset rows: API balance + shielded + dark-ledger */}
-        {assetTotals.length > 0 ? (
+        {assetRows.length > 0 ? (
           <div className="space-y-2">
-            {assetTotals.map((a) => {
-              const shieldedFloat = Number(a.shielded_wei) / 1e18;
-              const darkFloat = Number(a.dark_wei) / 1e18;
-              const totalFloat = a.api_balance + shieldedFloat + darkFloat;
-              return (
-                <div key={a.asset}>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-300 font-medium">{a.asset}</span>
-                    <span className="text-zinc-100 font-mono">{totalFloat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+            {assetRows.map((a) => (
+              <div key={a.asset}>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-300 font-medium">{a.asset}</span>
+                  <div className="text-right">
+                    <span className="text-zinc-100 font-mono">{a.totalFloat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                    <span className="text-zinc-500 font-mono ml-1.5 text-[10px]">${a.totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  {/* Breakdown when there's more than one source */}
-                  {(a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0)) ? (
-                    <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
-                      {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
-                      {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
-                      {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Dark Ledger</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
-                    </div>
-                  ) : null}
                 </div>
-              );
-            })}
+                {/* Breakdown when there's more than one source */}
+                {(a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0)) ? (
+                  <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
+                    {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
+                    {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
+                    {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Dark Ledger</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
+                  </div>
+                ) : null}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-sm text-zinc-500 py-1">No balances</p>

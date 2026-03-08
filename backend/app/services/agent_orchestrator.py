@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from app.services.json_store import JsonStore
+from app.services.relayer_client import get_relayer_client
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class AgentOrchestrator:
     def __init__(self):
         self._execution_store = JsonStore("execution_queue")
         self._execution_history = JsonStore("execution_history")
+        self._relayer = get_relayer_client()  # ← NEW: Real relayer
     
     def prepare_execution(
         self,
@@ -97,13 +99,13 @@ class AgentOrchestrator:
             logger.error(f"Failed to prepare execution for signal {signal_id}: {e}")
             raise
     
-    def submit_execution(
+    async def submit_execution(
         self,
         call: ContractCall,
         relayer_url: str = "http://localhost:8004",
     ) -> dict[str, Any]:
         """
-        Submit contract call to relayer for execution.
+        Submit contract call to REAL relayer (Phase 2).
         
         Args:
             call: ContractCall from prepare_execution
@@ -113,23 +115,20 @@ class AgentOrchestrator:
             {tx_hash, submitted_at, status}
         """
         try:
-            # TODO: Integrate with actual relayer service
-            # For now, return mock submission
+            # Submit to REAL relayer
+            submission = await self._relayer.submit_call(
+                address=call.address,
+                adapter=call.adapter,
+                method=call.method,
+                calldata=call.calldata,
+            )
             
-            submission = {
-                "call_id": call.id,
-                "tx_hash": f"0x{call.id[:62]}",  # Mock tx hash
-                "submitted_at": datetime.now(timezone.utc).isoformat(),
-                "status": "pending",
-                "relayer": "mock-relayer-v1",
-            }
-            
-            # Update execution history
+            # Store with REAL tx_hash (no longer mocked)
             execution_record = self._call_to_dict(call)
             execution_record.update(submission)
             self._execution_history.set(call.id, execution_record)
             
-            logger.info(f"Submitted execution: {call.id}")
+            logger.info(f"Submitted execution: {call.id} → {submission['tx_hash']}")
             return submission
             
         except Exception as e:
