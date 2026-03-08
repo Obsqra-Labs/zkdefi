@@ -282,9 +282,24 @@ class EkuboPoolAggregator:
             self.chain_id = chain_id
 
     async def fetch_pools(self, min_tvl_usd: float = 0.0, limit: int = 50) -> list[AggregatedPool]:
+        from app.services.circuit_breaker import ekubo_breaker, retry_with_backoff, CircuitBreakerError
+
         # Refresh live oracle prices before computing TVLs
-        await refresh_live_prices()
-        payload = await get_overview_pairs(chain_id=self.chain_id, min_tvl_usd=min_tvl_usd)
+        try:
+            await ekubo_breaker.call(refresh_live_prices)
+        except CircuitBreakerError:
+            logger.warning("Ekubo circuit breaker open - using stale prices")
+        except Exception:
+            logger.warning("Price refresh failed - continuing with cached prices")
+
+        try:
+            payload = await retry_with_backoff(
+                get_overview_pairs, chain_id=self.chain_id, min_tvl_usd=min_tvl_usd,
+                max_retries=2, base_delay=1.0,
+            )
+        except Exception as e:
+            logger.error("Failed to fetch Ekubo pools after retries: %s", e)
+            return []
         items = _extract_items(payload)
         pools: list[AggregatedPool] = []
 

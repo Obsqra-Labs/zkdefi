@@ -194,11 +194,20 @@ async def main() -> None:
         "Limit Grid Worker starting (%s mode, interval=%ds, levels=%d, step=%d, size=%d wei)",
         mode_label, INTERVAL_SEC, GRID_LEVELS, GRID_STEP, ORDER_SIZE_WEI,
     )
+    consecutive_failures = 0
     while True:
         try:
             await _run_cycle()
+            consecutive_failures = 0
         except Exception as exc:
-            logger.exception("Cycle error: %s", exc)
+            consecutive_failures += 1
+            backoff = min(INTERVAL_SEC * (2 ** consecutive_failures), 600)
+            logger.exception(
+                "Cycle error (failure #%d, backoff %ds): %s",
+                consecutive_failures, backoff, exc,
+            )
+            await asyncio.sleep(backoff)
+            continue
         await asyncio.sleep(INTERVAL_SEC)
 
 
