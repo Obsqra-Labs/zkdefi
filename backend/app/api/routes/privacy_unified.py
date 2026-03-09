@@ -8,6 +8,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner
+
 from app.services.ekubo_config import EKUBO_ROUTER_SEPOLIA, get_ekubo_chain_id
 from app.services.ekubo_execution_service import build_swap_calldata
 from app.services.policy_compiler_service import get_policy_compiler_service
@@ -171,7 +173,7 @@ async def _run_action(action_type: Literal["deposit", "withdraw"], data: Privacy
 
 
 @router.post("/deposit")
-async def privacy_deposit(data: PrivacyActionRequest):
+async def privacy_deposit(data: PrivacyActionRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="privacy unified routes disabled")
     try:
@@ -185,7 +187,7 @@ async def privacy_deposit(data: PrivacyActionRequest):
 
 
 @router.post("/withdraw")
-async def privacy_withdraw(data: PrivacyActionRequest):
+async def privacy_withdraw(data: PrivacyActionRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="privacy unified routes disabled")
     try:

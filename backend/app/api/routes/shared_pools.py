@@ -8,6 +8,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner
+
 from app.services.shared_pool_executor import get_shared_pool_executor
 from app.services.shared_pool_service import get_shared_pool_service
 
@@ -56,7 +58,7 @@ def _enabled() -> bool:
 
 
 @router.post("")
-async def create_shared_pool(data: CreateSharedPoolRequest):
+async def create_shared_pool(data: CreateSharedPoolRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     try:
@@ -84,7 +86,7 @@ async def get_shared_pool(shared_pool_id: str):
 
 
 @router.put("/{shared_pool_id}/envelope")
-async def put_shared_pool_envelope(shared_pool_id: str, data: UpdateEnvelopeRequest):
+async def put_shared_pool_envelope(shared_pool_id: str, data: UpdateEnvelopeRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     try:
@@ -96,7 +98,7 @@ async def put_shared_pool_envelope(shared_pool_id: str, data: UpdateEnvelopeRequ
 
 
 @router.post("/{shared_pool_id}/join")
-async def join_shared_pool(shared_pool_id: str, data: JoinSharedPoolRequest):
+async def join_shared_pool(shared_pool_id: str, data: JoinSharedPoolRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     try:
@@ -114,7 +116,7 @@ async def join_shared_pool(shared_pool_id: str, data: JoinSharedPoolRequest):
 
 
 @router.put("/{shared_pool_id}/member/{member_address}")
-async def put_shared_pool_member(shared_pool_id: str, member_address: str, data: UpdateMemberRequest):
+async def put_shared_pool_member(shared_pool_id: str, member_address: str, data: UpdateMemberRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     try:
@@ -133,7 +135,7 @@ async def put_shared_pool_member(shared_pool_id: str, member_address: str, data:
 
 
 @router.post("/{shared_pool_id}/proposals")
-async def create_shared_pool_proposal(shared_pool_id: str, data: CreateProposalRequest):
+async def create_shared_pool_proposal(shared_pool_id: str, data: CreateProposalRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     try:
@@ -149,7 +151,7 @@ async def create_shared_pool_proposal(shared_pool_id: str, data: CreateProposalR
 
 
 @router.post("/{shared_pool_id}/execute")
-async def execute_shared_pool_proposal(shared_pool_id: str, data: ExecuteProposalRequest):
+async def execute_shared_pool_proposal(shared_pool_id: str, data: ExecuteProposalRequest, _caller: str = WalletOwner):
     if not _enabled():
         raise HTTPException(status_code=404, detail="shared pools disabled")
     proposal_id = str(data.proposal_id or "")

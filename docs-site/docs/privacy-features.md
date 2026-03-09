@@ -1,108 +1,66 @@
-# Privacy Features
+# Privacy And Unlocks
 
-zkde.fi is built on **zero-knowledge cryptography** to keep your financial data private while proving everything is correct. Every privacy feature uses zero-knowledge proofs (zkSNARKs/zkSTARKs) to verify computation without revealing inputs.
+Privacy is not a side feature in zkde.fi. It is the operating model.
 
-## The Privacy Problem in DeFi
+## What Stays Private Vs What Is Shared
 
-Traditional DeFi exposes **everything**:
-- Your wallet balance is public
-- Every trade is linked to your address
-- AI services require sending private data to centralized servers
-- Risk scores reveal your portfolio composition
-- Strategy preferences are visible to MEV bots
+Private by default:
 
-You're forced to choose: **privacy** (hide your data, lose verification) OR **transparency** (prove correctness, expose everything).
+- Strategy intent and portfolio-sensitive inputs
+- Private deposit/withdraw secrets and commitment material
+- Internal decision context used by policy and model layers
 
-## Why Zero-Knowledge Privacy Matters
+Shared when needed:
 
-zkde.fi eliminates this tradeoff. Zero-knowledge proofs let you **prove a computation was done correctly WITHOUT revealing the inputs**. You can verify AI decisions, risk calculations, and strategy recommendations while keeping your data completely private.
+- Proofs that a check passed
+- Receipts that an execution happened
+- Disclosure artifacts for partner/compliance workflows
 
-**Real-world impact:**
-- Institutional users can prove compliance without exposing trading strategies to competitors
-- Retail users can get personalized recommendations without data harvesting
-- DAO treasuries can prove risk management without revealing portfolio positions
-- Protocols can verify agent behavior without accessing user secrets
+## Privacy Modes You Will See In Product
 
-## Core Privacy Technologies
+Trade and execution flows can run with different privacy levels.
 
-### 1) Private Deposits & Withdrawals (Shielded Pools)
+- `public`: standard transparent route
+- `shielded`: partial privacy with proof-linked controls
+- `fully_private`: commitment/proof-first flow with minimal disclosure
 
-**What it does:** Deposit/withdraw funds without linking transactions to your identity.
+## What Privacy Unlocks
 
-**How it works:**
-- Deposits create a **Poseidon commitment** (cryptographic hash) stored on-chain
-- Your deposit amount and nullifier stay private (stored locally)
-- Withdrawals use a **zero-knowledge proof** to show you own a valid commitment
-- No on-chain link between deposit and withdrawal addresses
+- Access to sensitive strategies without exposing full intent on every step
+- Policy-aware automation with proof checkpoints
+- Better trust posture over time via verifiable outcomes
+- Credit and partner workflows that consume artifacts, not raw private state
 
-**Circuits:** `private_deposit.cairo`, `private_withdraw.cairo`, `full_privacy_withdraw.cairo`
+## Where This Appears In The App
 
-**Contracts:** `ConfidentialTransfer`, `FullyShieldedPool`, `HashedWithdrawPool`
+- `/profile`: trust, reputation, compliance and disclosure context
+- `/agent` (Capital OS): privacy vault actions, controls, and orchestration
+- `/trade` (Trade Desk): privacy level per opportunity, adapter routes, slippage simulation, execution receipts
 
-### 2) Privacy-Preserving AI Risk Scoring (zkML)
-
-**What it does:** AI models analyze your portfolio and generate risk scores **without seeing your data**.
-
-**How it works:**
-- zkML circuits run machine learning inference **inside a zero-knowledge proof**
-- Input: Your private positions, balances, risk tolerance
-- Output: Risk score + proof that the score was computed correctly
-- Smart contracts verify proofs before allowing capital movement
-
-**Circuits:** `pool_risk_evaluator.cairo`, `yield_predictor.cairo`, `il_estimator.cairo`, `liquidation_risk.cairo`
-
-**Privacy guarantee:** The AI never sees your raw data. You get a proven risk score without revealing portfolio details.
-
-### 3) Confidential Strategy Recommendations
-
-**What it does:** Get personalized DeFi strategy suggestions without exposing preferences.
-
-**How it works:**
-- Your risk profile, capital allocation, and preferences stay on your device
-- Strategy Intelligence Service computes recommendations using **homomorphic properties** of Poseidon hashes
-- Proofs verify the strategy was computed using real market data + your hidden profile
-- Oracle recommendations are proven without revealing your targets
-
-## Capability Map
+## Core Privacy Flow
 
 ```mermaid
 flowchart LR
-  U[User intent] --> D[Disclosure paths]
-  U --> V[Vault privacy paths]
-  U --> P[Profile trust context]
-  D --> C[Compliance artifacts]
-  V --> R[Receipts and reconciled state]
-  P --> C
+  I[Private inputs] --> P[Policy and proof checks]
+  P --> E[Execution route]
+  E --> R[Receipt trail]
+  P --> D[Optional disclosure artifact]
+  R --> U[Trust and reputation updates]
+  D --> U
 ```
 
-## Problem It Solves In Real Workflows
-
-### For users
-
-Allows users to share enough information to move forward in integrations without fully disclosing private strategy state.
-
-### For integrators
-
-Creates explicit artifact surfaces that can be consumed in policy workflows and verifier dashboards.
-
-## Why It Matters Operationally
-
-Teams can support user privacy while still preserving traceability for action outcomes and verification checkpoints.
-
-## API Surfaces (Representative)
+## Representative APIs
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/zkdefi/compliance/profiles/{user_address}` | Read disclosure/compliance profiles |
-| `POST` | `/api/v1/zkdefi/disclosure/generate` | Generate disclosure artifact |
-| `POST` | `/api/v1/zkdefi/disclosure/risk_compliance` | Risk compliance disclosure flow |
-| `POST` | `/api/v1/zkdefi/disclosure/performance` | Performance disclosure flow |
-| `POST` | `/api/v1/zkdefi/disclosure/aggregation` | Aggregated-value disclosure flow |
-| `POST` | `/api/v1/zkdefi/full_privacy/deposit/generate_commitment` | Privacy commitment generation |
-| `POST` | `/api/v1/zkdefi/full_privacy/withdraw/generate_proof` | Withdrawal proof generation |
+| `POST` | `/api/v1/zkdefi/full_privacy/deposit/generate_commitment` | Build privacy commitment |
+| `POST` | `/api/v1/zkdefi/full_privacy/withdraw/generate_proof` | Build withdrawal proof |
+| `POST` | `/api/v1/zkdefi/privacy/deposit` | Unified privacy deposit flow |
+| `POST` | `/api/v1/zkdefi/privacy/withdraw` | Unified privacy withdraw flow |
+| `GET` | `/api/v1/zkdefi/compliance/profiles/{user_address}` | Read compliance/disclosure profile |
 
-## Legal Boundary
+## Boundary
 
-These privacy features are technical capabilities, not legal determinations. They do not constitute legal advice, and they do not guarantee that a specific disclosure artifact satisfies jurisdiction-specific compliance obligations.
+These are technical capabilities. They are not legal, tax, or investment advice.
 
-Next: [Compliance and disclosure](/compliance-and-disclosure) | [Risk Passport](/risk-passport) | [Concepts](/concepts)
+Next: [Profile And Identity](/profile-and-identity) | [Capital OS](/capital-os) | [Trade Desk](/trade-desk)

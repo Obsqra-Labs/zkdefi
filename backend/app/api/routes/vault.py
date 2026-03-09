@@ -17,6 +17,8 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from app.middleware.auth import WalletOwner
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["vault"])
 
@@ -203,7 +205,7 @@ async def _verify_strk_transfer(tx_hash: str, expected_sender: str, expected_rec
 # ── POST /deposit ────────────────────────────────────────────────────────
 
 @router.post("/deposit", response_model=VaultDepositResponse)
-async def vault_deposit(request: VaultDepositRequest):
+async def vault_deposit(request: VaultDepositRequest, _caller: str = WalletOwner):
     """Verify an on-chain STRK transfer to the operator wallet, then credit the user's internal ledger.
 
     Flow:

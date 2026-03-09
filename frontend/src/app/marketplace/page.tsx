@@ -6,6 +6,7 @@ import { Brain, Boxes, Sparkles, Shield, Zap, ArrowRight, ExternalLink } from "l
 import { ModelComposer } from "@/components/zkdefi/ModelComposer";
 import { MyAgents } from "@/components/zkdefi/MyAgents";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
+import { AppNavbar } from "@/components/zkdefi/AppNavbar";
 import { apiFetch } from "@/lib/api/client";
 
 interface Model {
@@ -64,8 +65,11 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Shared navigation */}
+      <AppNavbar />
+
       {/* Header */}
-      <header className="border-b border-zinc-800 sticky top-0 bg-zinc-950/90 backdrop-blur-xl z-50">
+      <header className="border-b border-zinc-800 sticky top-10 bg-zinc-950/90 backdrop-blur-xl z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-6">

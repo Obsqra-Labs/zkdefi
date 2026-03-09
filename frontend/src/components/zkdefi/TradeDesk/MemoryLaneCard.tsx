@@ -46,10 +46,10 @@ export function MemoryLaneCard({ receipt, isExpanded, onToggle, actionIcon }: Me
         </div>
         <div className="flex justify-between mt-3 text-xs text-slate-400 gap-2">
           <span>
-            Amount: {receipt.privacyLevel !== "public" ? "***" : receipt.amount.toFixed(4)}
+            Amount: {receipt.privacyLevel !== "public" ? "***" : Number(receipt.amount).toFixed(4)}
           </span>
-          <span className={receipt.yieldImpact >= 0 ? "text-green-400" : "text-red-400"}>
-            {receipt.yieldImpact >= 0 ? "+" : ""}{receipt.yieldImpact.toFixed(2)}% yield
+          <span className={Number(receipt.yieldImpact) >= 0 ? "text-green-400" : "text-red-400"}>
+            {Number(receipt.yieldImpact) >= 0 ? "+" : ""}{Number(receipt.yieldImpact).toFixed(2)}% yield
           </span>
           <span className="text-blue-400">+{receipt.reputationImpact} rep</span>
         </div>

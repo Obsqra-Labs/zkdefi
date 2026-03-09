@@ -13,6 +13,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner, AdminOnly
 from app.services.dao_voting_service import get_dao_voting_service
 from app.services.json_store import JsonStore
 from app.services.privacy_pool_service import get_privacy_pool_service
@@ -91,7 +92,7 @@ class GovernanceVoteRequest(BaseModel):
 
 @router.post("/proposals")
 @router.post("/dao/proposals")
-async def create_proposal(request: CreateProposalRequest) -> dict[str, Any]:
+async def create_proposal(request: CreateProposalRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     pid = _new_proposal_id()
     created_at = int(time.time())
     voting_ends_at = created_at + int(request.vote_duration_seconds)
@@ -121,7 +122,7 @@ async def create_proposal(request: CreateProposalRequest) -> dict[str, Any]:
 
 @router.post("/vote/generate_proof")
 @router.post("/dao/vote/generate_proof")
-async def generate_vote_proof(request: VoteRequest) -> dict[str, Any]:
+async def generate_vote_proof(request: VoteRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     voting_service = get_dao_voting_service()
     try:
         proof = await voting_service.generate_voting_proof(
@@ -141,7 +142,7 @@ async def generate_vote_proof(request: VoteRequest) -> dict[str, Any]:
 
 @router.post("/vote/cast")
 @router.post("/dao/vote/cast")
-async def cast_vote(request: CastVoteRequest) -> dict[str, Any]:
+async def cast_vote(request: CastVoteRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     proof = await generate_vote_proof(
         VoteRequest(
             user_address=request.user_address,
@@ -193,7 +194,7 @@ async def list_proposals(
 
 @router.post("/proposals/{proposal_id}/tally")
 @router.post("/dao/proposals/{proposal_id}/tally")
-async def tally_proposal(proposal_id: int) -> dict[str, Any]:
+async def tally_proposal(proposal_id: int, _admin: str = AdminOnly) -> dict[str, Any]:
     row = _proposal_store.get(str(proposal_id))
     if not isinstance(row, dict):
         raise HTTPException(status_code=404, detail="Proposal not found")
@@ -214,7 +215,7 @@ async def tally_proposal(proposal_id: int) -> dict[str, Any]:
 
 @router.post("/proposals/{proposal_id}/execute")
 @router.post("/dao/proposals/{proposal_id}/execute")
-async def execute_proposal(proposal_id: int) -> dict[str, Any]:
+async def execute_proposal(proposal_id: int, _admin: str = AdminOnly) -> dict[str, Any]:
     row = _proposal_store.get(str(proposal_id))
     if not isinstance(row, dict):
         raise HTTPException(status_code=404, detail="Proposal not found")
@@ -339,7 +340,7 @@ async def get_governance_proposal_status(proposal_id: str) -> dict[str, Any]:
 
 
 @router.post("/governance/vote")
-async def governance_vote(req: GovernanceVoteRequest) -> dict[str, Any]:
+async def governance_vote(req: GovernanceVoteRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     vote_id = f"{req.proposalId}:{req.userAddress or 'anon'}:{int(time.time())}"
     _vote_store.set(
         vote_id,
@@ -401,7 +402,7 @@ async def pool_yield_distributions() -> list[dict[str, Any]]:
 
 
 @router.post("/pools/{pool}/deposit")
-async def pool_deposit(pool: str, req: PoolDepositRequest) -> dict[str, Any]:
+async def pool_deposit(pool: str, req: PoolDepositRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     svc = get_privacy_pool_service()
     address = req.userAddress or "0x0000000000000000000000000000000000000000"
     try:
@@ -417,7 +418,7 @@ async def pool_deposit(pool: str, req: PoolDepositRequest) -> dict[str, Any]:
 
 
 @router.post("/pools/{pool}/withdraw")
-async def pool_withdraw(pool: str, req: PoolWithdrawRequest) -> dict[str, Any]:
+async def pool_withdraw(pool: str, req: PoolWithdrawRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     svc = get_privacy_pool_service()
     try:
         return svc.withdraw(
@@ -449,7 +450,7 @@ async def pool_active_loans(pool: str) -> list[dict[str, Any]]:
 
 
 @router.post("/pools/{pool}/governance/propose")
-async def pool_governance_propose(pool: str, req: PoolGovernanceProposalRequest) -> dict[str, Any]:
+async def pool_governance_propose(pool: str, req: PoolGovernanceProposalRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     svc = get_privacy_pool_service()
     try:
         proposal = svc.create_governance_proposal(

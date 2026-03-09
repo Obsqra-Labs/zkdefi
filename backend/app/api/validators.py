@@ -5,7 +5,7 @@ from pydantic import field_validator
 
 STARKNET_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{1,64}$")
 HEX_RE = re.compile(r"^0x[0-9a-fA-F]+$")
-ALLOWED_TOKENS = {"ETH", "USDC", "USDT", "DAI", "STRK", "WBTC"}
+ALLOWED_TOKENS = {"ETH", "USDC", "USDT", "DAI", "STRK", "WBTC", "STRKBTC"}
 MAX_WEI = 10**30  # ~1 trillion ETH equivalent
 
 

@@ -106,10 +106,10 @@ class RebalanceRequest(BaseModel):
 # ============================================================================
 
 @router.post("/execute", response_model=ExecuteStrategyResponse)
-async def execute_strategy(request: ExecuteStrategyRequest):
+async def execute_strategy(request: ExecuteStrategyRequest, _admin: str = AdminOnly):
     """
-    Execute a strategy deployment on Sepolia with REAL contracts
-    
+    Execute a strategy deployment on Sepolia with REAL contracts.
+
     This endpoint:
     1. Calls VaultManager.deposit() with risk profile
     2. Records analysis in AuditTrail contract
@@ -221,14 +221,7 @@ async def get_user_positions(user_address: str):
 
 
 @router.post("/rebalance", response_model=ExecuteStrategyResponse)
-async def rebalance_positions(request: RebalanceRequest):
-    """
-    Manually rebalance existing positions
-    
-    Takes current positions and reallocates to new strategy
-    """
-    
-    logger.info(f"Rebalancing positions for {request.user_address}")
+async def rebalance_positions(request: RebalanceRequest, _admin: str = AdminOnly):
     
     # In production:
     # 1. Fetch current positions from contracts

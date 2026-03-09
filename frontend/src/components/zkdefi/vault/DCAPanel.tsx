@@ -75,7 +75,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
 
     const fetchSchedules = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/vault/dca/list/${address}`, {
+        const res = await fetch(`${API_BASE}/v1/vault/dca/list/${address}`, {
           signal: AbortSignal.timeout(8000),
         });
         if (res.ok && !dead) {
@@ -138,7 +138,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/vault/dca/schedule`, {
+      const res = await fetch(`${API_BASE}/v1/vault/dca/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,7 +173,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/vault/dca/stop/${id}`, {
+      const res = await fetch(`${API_BASE}/v1/vault/dca/stop/${id}`, {
         method: "POST",
       });
       if (res.ok) {

@@ -100,7 +100,7 @@ export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
               ) : (
                 <>
                   <div className="text-lg font-bold text-violet-300">
-                    ${totalShielded.toFixed(2)}
+                    ${Number(totalShielded).toFixed(2)}
                   </div>
                   <div className="space-y-1">
                     {pools.map((p) => (
@@ -109,7 +109,7 @@ export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
                         className="flex justify-between text-xs px-2 py-1.5 bg-slate-800 rounded border border-slate-700"
                       >
                         <span className="text-slate-300">{p.token}</span>
-                        <span className="font-medium">{p.amount.toFixed(4)}</span>
+                        <span className="font-medium">{Number(p.amount).toFixed(4)}</span>
                       </div>
                     ))}
                   </div>

@@ -4,28 +4,38 @@ Execution Store - SQLite persistence for execution history.
 Replaces JSON stores with indexed SQLite for fast queries.
 """
 
+from __future__ import annotations
+
 import sqlite3
 import json
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
+# Resolve backend data dir: this file is backend/app/db/execution_store.py
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_DB_PATH = _BACKEND_ROOT / "data" / "executions.db"
+
 
 class ExecutionStore:
     """SQLite persistence for execution history and status tracking."""
     
-    def __init__(self, db_path: str = "backend/data/executions.db"):
+    def __init__(self, db_path: str | Path = None):
         """Initialize execution store with SQLite."""
-        self.db_path = db_path
+        if db_path is None:
+            db_path = _DEFAULT_DB_PATH
+        self.db_path = str(Path(db_path).resolve())
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
     
     def _init_schema(self):
         """Create tables if they don't exist."""
         try:
             with sqlite3.connect(self.db_path) as conn:
-                # Executions table
+                # Executions table (no inline INDEX - SQLite uses separate CREATE INDEX)
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS executions (
                         call_id TEXT PRIMARY KEY,
@@ -41,15 +51,19 @@ class ExecutionStore:
                         submitted_at TEXT,
                         confirmed_at TEXT,
                         block_number INTEGER,
-                        last_checked TEXT,
-                        
-                        INDEX idx_address (address),
-                        INDEX idx_status (status),
-                        INDEX idx_created_at (created_at),
-                        INDEX idx_tx_hash (tx_hash)
+                        last_checked TEXT
                     )
                 """)
-                
+                for idx, cols in [
+                    ("idx_exec_address", "address"),
+                    ("idx_exec_status", "status"),
+                    ("idx_exec_created_at", "created_at"),
+                    ("idx_exec_tx_hash", "tx_hash"),
+                ]:
+                    conn.execute(
+                        f"CREATE INDEX IF NOT EXISTS {idx} ON executions({cols})"
+                    )
+
                 # Events table for tracking
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS execution_events (
@@ -58,14 +72,18 @@ class ExecutionStore:
                         event_type TEXT NOT NULL,
                         data TEXT,
                         created_at TEXT NOT NULL,
-                        
-                        FOREIGN KEY (call_id) REFERENCES executions(call_id),
-                        INDEX idx_call_id (call_id),
-                        INDEX idx_event_type (event_type),
-                        INDEX idx_created_at (created_at)
+                        FOREIGN KEY (call_id) REFERENCES executions(call_id)
                     )
                 """)
-                
+                for idx, cols in [
+                    ("idx_events_call_id", "call_id"),
+                    ("idx_events_event_type", "event_type"),
+                    ("idx_events_created_at", "created_at"),
+                ]:
+                    conn.execute(
+                        f"CREATE INDEX IF NOT EXISTS {idx} ON execution_events({cols})"
+                    )
+
                 # Archive table for old events
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS execution_events_archive (
@@ -77,16 +95,21 @@ class ExecutionStore:
                         is_compressed INTEGER DEFAULT 0,
                         created_at TEXT NOT NULL,
                         archived_at TEXT NOT NULL,
-                        compressed_at TEXT,
-                        
-                        INDEX idx_created_at (created_at),
-                        INDEX idx_archived_at (archived_at),
-                        INDEX idx_is_compressed (is_compressed)
+                        compressed_at TEXT
                     )
                 """)
-                
+                for idx, cols in [
+                    ("idx_archive_created_at", "created_at"),
+                    ("idx_archive_archived_at", "archived_at"),
+                    ("idx_archive_is_compressed", "is_compressed"),
+                ]:
+                    conn.execute(
+                        f"CREATE INDEX IF NOT EXISTS {idx} ON execution_events_archive({cols})"
+                    )
+
                 conn.commit()
-                logger.info(f"Execution store initialized: {db_path}")
+                logger.info(f"Execution store initialized: {self.db_path}")
+
                 
         except Exception as e:
             logger.error(f"Failed to initialize execution store: {e}")
@@ -331,7 +354,7 @@ class ExecutionStore:
 _execution_store: Optional[ExecutionStore] = None
 
 
-def get_execution_store(db_path: str = "backend/data/executions.db") -> ExecutionStore:
+def get_execution_store(db_path: str | Path = None) -> ExecutionStore:
     """Get or create singleton ExecutionStore."""
     global _execution_store
     if _execution_store is None:

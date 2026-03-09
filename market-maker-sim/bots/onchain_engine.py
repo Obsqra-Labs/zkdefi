@@ -122,6 +122,9 @@ class OnChainEngine:
             "limit": bool(limit_enabled_on_start),
         }
 
+        # Fleet runner (attached after construction by api/main.py startup)
+        self.fleet: Any = None
+
         # Real activity bots (only created if wallet is configured)
         self.swap_bot: SwapBot | None = None
         self.lp_bot: LPBot | None = None
@@ -244,6 +247,17 @@ class OnChainEngine:
             "last_result": "idle",
             "last_actions": [],
         }
+
+    def set_startup_flags(
+        self, *, swap: bool | None = None, lp: bool | None = None, limit: bool | None = None
+    ) -> None:
+        """Override bot startup flags (call before start())."""
+        if swap is not None:
+            self._bot_startup_flags["swap"] = swap
+        if lp is not None:
+            self._bot_startup_flags["lp"] = lp
+        if limit is not None:
+            self._bot_startup_flags["limit"] = limit
 
     async def start(self) -> None:
         if self._running:
@@ -687,6 +701,12 @@ class OnChainEngine:
             out["fee_automation"] = dict(self._fee_automation)
             out["coordination_policy"] = dict(self._coordination_policy)
             out["coordination"] = dict(self._coordination_state)
+            # Include fleet summary if available
+            if self.fleet is not None:
+                try:
+                    out["fleet"] = self.fleet.fleet_status()
+                except Exception:
+                    out["fleet"] = None
             return out
 
     async def admin_state(self) -> dict[str, Any]:
@@ -982,6 +1002,12 @@ class OnChainEngine:
         if not bool(self._coordination_policy.get("enabled", True)):
             return None
 
+        # When fleet is active, it handles all trading — skip coordination's
+        # direct swap/LP/limit calls to avoid nonce contention on the shared wallet.
+        fleet_active = self.fleet is not None and getattr(self.fleet, "_running", False)
+        if fleet_active:
+            return None
+
         now = time.time()
         cycle_sec = max(20.0, float(self._coordination_policy.get("cycle_sec", 180.0)))
         if (not force) and (now - self._last_coordination_ts < cycle_sec):
@@ -1060,6 +1086,16 @@ class OnChainEngine:
                 for pair, count in pool_usage.items()
                 if int(count or 0) > 0 and str(pair).strip().lower() in target_pair_keys
             }
+        # Also count fleet agent swap coverage
+        if self.fleet is not None:
+            try:
+                fleet_usage = self.fleet.agent_pool_usage()
+                for pair, count in fleet_usage.items():
+                    if int(count or 0) > 0 and str(pair).strip().lower() in target_pair_keys:
+                        covered_pair_keys.add(str(pair).strip().lower())
+            except Exception:
+                pass
+        if target_pairs:
             pools_covered_before = len(covered_pair_keys)
             coverage_ratio_before = pools_covered_before / max(1, pools_targeted)
 
@@ -1363,6 +1399,10 @@ class OnChainEngine:
         pair = str(pair_name or "").strip()
         if not pair:
             return
+        # Skip when fleet is active — fleet agents handle their own recovery via
+        # allow_extreme_tick=True in their swap loops.
+        if self.fleet is not None and getattr(self.fleet, "_running", False):
+            return
         now = time.time()
         last_ts = float(self._boundary_recovery_last_ts.get(pair, 0.0) or 0.0)
         if now - last_ts < max(120.0, self._boundary_recovery_cooldown_sec):
@@ -1507,6 +1547,21 @@ class OnChainEngine:
             if bot_overlay > 0:
                 pool["volume_24h_usd"] = max(0.0, float(pool.get("volume_24h_usd", 0)) + bot_overlay)
                 pool["bot_generated_volume_usd"] = round(bot_overlay, 2)
+
+        # Overlay fleet agent volume into each pool.
+        if self.fleet is not None:
+            try:
+                fleet_overlay = self.fleet.agent_volume_overlay()
+                for pool in pools:
+                    name = str(pool.get("name", "")).strip()
+                    fleet_vol = float(fleet_overlay.get(name, 0.0) or 0.0)
+                    if fleet_vol > 0:
+                        pool["volume_24h_usd"] = max(0.0, float(pool.get("volume_24h_usd", 0)) + fleet_vol)
+                        existing_bot = float(pool.get("bot_generated_volume_usd", 0.0) or 0.0)
+                        pool["bot_generated_volume_usd"] = round(existing_bot + fleet_vol, 2)
+                        pool["fleet_volume_usd"] = round(fleet_vol, 2)
+            except Exception:
+                pass  # fleet overlay is best-effort
 
         # Scenario shock
         if self._scenario_ticks_remaining > 0 and self._scenario_kind:

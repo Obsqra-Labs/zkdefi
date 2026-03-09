@@ -3,7 +3,18 @@ export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:80
 export function apiUrl(path: string): string {
   if (!path) return API_BASE;
   if (/^https?:\/\//i.test(path)) return path;
-  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  // Normalize duplicate `/api` prefix when API_BASE already targets `/api`.
+  // Example:
+  //   API_BASE=/api + path=/api/v1/zkdefi/...  -> /api/v1/zkdefi/...
+  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (/\/api$/i.test(API_BASE) && /^\/api(\/|$)/i.test(normalizedPath)) {
+    normalizedPath = normalizedPath.replace(/^\/api/i, "");
+    if (!normalizedPath.startsWith("/")) normalizedPath = `/${normalizedPath}`;
+    if (normalizedPath === "/") normalizedPath = "";
+  }
+
+  return `${API_BASE}${normalizedPath}`;
 }
 
 /** Generic typed fetch wrapper for API calls */

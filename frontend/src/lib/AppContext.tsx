@@ -22,7 +22,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const ONBOARDING_KEY = "zkdefi-onboarding-completed";
+const ONBOARDING_KEY = "zkdefi-intro-modal-dismissed";
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);

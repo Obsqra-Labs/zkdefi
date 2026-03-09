@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import {
   ArrowLeftRight,
   Droplets,
@@ -10,20 +9,28 @@ import {
   RefreshCw,
   EyeOff,
   BookLock,
+  LayoutGrid,
 } from "lucide-react";
-import type { OpportunityFilters } from "@/services/TradeDeskApiService";
 
-interface FilterBarProps {
-  filters: OpportunityFilters;
-  onChange: (filters: OpportunityFilters) => void;
-}
+/** Section tab: one active at a time — where you browse that category. */
+export type OpportunitySectionTab =
+  | "all"
+  | "swap"
+  | "lp"
+  | "lending"
+  | "staking"
+  | "limit"
+  | "dca"
+  | "privacy"
+  | "dark_ledger";
 
-const TYPE_BUTTONS: {
-  key: string;
+export const SECTION_TABS: {
+  key: OpportunitySectionTab;
   label: string;
   icon: React.ElementType;
   color: string;
 }[] = [
+  { key: "all", label: "All", icon: LayoutGrid, color: "bg-slate-600" },
   { key: "swap", label: "Swap", icon: ArrowLeftRight, color: "bg-cyan-600" },
   { key: "lp", label: "LP", icon: Droplets, color: "bg-emerald-600" },
   { key: "lending", label: "Lend", icon: Landmark, color: "bg-amber-600" },
@@ -34,48 +41,52 @@ const TYPE_BUTTONS: {
   { key: "dark_ledger", label: "Dark", icon: BookLock, color: "bg-slate-600" },
 ];
 
-export function FilterBar({ filters, onChange }: FilterBarProps) {
-  const activeTypes = filters.type ? filters.type.split(",") : [];
-  const allActive = activeTypes.length === 0;
+export interface SectionTabBarProps {
+  activeTab: OpportunitySectionTab;
+  onTabChange: (tab: OpportunitySectionTab) => void;
+  /** Count per type (swap, lp, lending, ...). "all" uses total. */
+  typeCounts: Record<string, number>;
+  totalCount: number;
+}
 
-  const toggleType = useCallback(
-    (key: string) => {
-      let next: string[];
-      if (allActive) {
-        next = TYPE_BUTTONS.map((b) => b.key).filter((k) => k !== key);
-      } else if (activeTypes.includes(key)) {
-        next = activeTypes.filter((t) => t !== key);
-      } else {
-        next = [...activeTypes, key];
-      }
-      if (next.length === 0 || next.length === TYPE_BUTTONS.length) {
-        onChange({ ...filters, type: undefined });
-      } else {
-        onChange({ ...filters, type: next.join(",") });
-      }
-    },
-    [filters, onChange, activeTypes, allActive],
-  );
-
+export function SectionTabBar({
+  activeTab,
+  onTabChange,
+  typeCounts,
+  totalCount,
+}: SectionTabBarProps) {
   return (
-    <div className="flex items-center gap-1.5 px-2 py-2 bg-slate-900 rounded-lg border border-slate-700 overflow-x-auto">
-      {TYPE_BUTTONS.map(({ key, label, icon: Icon, color }) => {
-        const active = allActive || activeTypes.includes(key);
+    <div
+      className="flex items-center gap-1 px-2 py-2 bg-slate-900 rounded-lg border border-slate-700 overflow-x-auto scrollbar-thin"
+      role="tablist"
+      aria-label="Opportunity sections"
+    >
+      {SECTION_TABS.map(({ key, label, icon: Icon, color }) => {
+        const count = key === "all" ? totalCount : typeCounts[key] ?? 0;
+        const isActive = activeTab === key;
         return (
           <button
             key={key}
-            onClick={() => toggleType(key)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
-              active
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onTabChange(key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+              isActive
                 ? `${color} text-white`
-                : "bg-slate-800 text-slate-500 hover:text-slate-300"
+                : "bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
             }`}
           >
-            <Icon className="w-3 h-3" />
-            {label}
+            <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>{label}</span>
+            <span
+              className={`tabular-nums ${isActive ? "text-white/80" : "text-slate-500"}`}
+            >
+              {count}
+            </span>
           </button>
         );
       })}
     </div>
   );
 }
+

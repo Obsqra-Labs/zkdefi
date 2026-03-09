@@ -7,14 +7,18 @@ real market context, AI advisory, and execution pipeline (simulate → prepare �
 from __future__ import annotations
 
 import logging
+import sqlite3
+import threading
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner
 from app.services.opportunity_aggregator import get_aggregator
 
 router = APIRouter(tags=["trade-desk-v2"])
@@ -23,7 +27,82 @@ logger = logging.getLogger(__name__)
 _API_BASE = "http://127.0.0.1:8003/api/v1/zkdefi"
 _HTTPX_TIMEOUT = 8.0
 
-_execution_store: dict[str, dict[str, Any]] = {}
+# ── Execution store (SQLite-backed) ──────────────────────────────────────────
+
+_EXEC_DB_PATH = Path(__file__).resolve().parents[3] / "data" / "trade_executions.db"
+_exec_db_lock = threading.RLock()
+
+
+def _exec_db_connect() -> sqlite3.Connection:
+    _EXEC_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_EXEC_DB_PATH), timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_exec_db() -> None:
+    with _exec_db_lock, _exec_db_connect() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS executions (
+                tx_hash        TEXT PRIMARY KEY,
+                status         TEXT NOT NULL DEFAULT 'PENDING',
+                receipt_id     TEXT,
+                opportunity_id TEXT,
+                amount         REAL,
+                user_address   TEXT,
+                submitted_at   INTEGER,
+                confirmations  INTEGER DEFAULT 0
+            )
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_exec_user
+            ON executions(user_address)
+        """)
+
+
+_init_exec_db()
+
+
+def _store_execution(data: dict[str, Any]) -> None:
+    with _exec_db_lock, _exec_db_connect() as conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO executions
+               (tx_hash, status, receipt_id, opportunity_id, amount,
+                user_address, submitted_at, confirmations)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (
+                data["txHash"],
+                data.get("status", "PENDING"),
+                data.get("receiptId"),
+                data.get("opportunityId"),
+                data.get("amount"),
+                data.get("userAddress"),
+                data.get("submittedAt"),
+                data.get("confirmations", 0),
+            ),
+        )
+
+
+def _get_execution(tx_hash: str) -> dict[str, Any] | None:
+    with _exec_db_lock, _exec_db_connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM executions WHERE tx_hash=?", (tx_hash,)
+        ).fetchone()
+    if not row:
+        return None
+    r = dict(row)
+    return {
+        "txHash": r["tx_hash"],
+        "status": r["status"],
+        "receiptId": r["receipt_id"],
+        "opportunityId": r["opportunity_id"],
+        "amount": r["amount"],
+        "userAddress": r["user_address"],
+        "submittedAt": r["submitted_at"],
+        "confirmations": r["confirmations"],
+    }
 
 
 # ── GET /v2/opportunities ────────────────────────────────────────────────────
@@ -101,8 +180,19 @@ async def market_context():
     except Exception:
         prices = {"eth_usd": 1800, "strk_usd": 0.45}
 
+    # Normalize for frontend (TradeDeskHeader expects ETH, STRK or eth, strk)
+    eth = prices.get("eth_usd") or prices.get("ETH") or prices.get("eth")
+    strk = prices.get("strk_usd") or prices.get("STRK") or prices.get("strk")
+    normalized = dict(prices)
+    if eth is not None:
+        normalized["ETH"] = float(eth)
+        normalized["eth"] = float(eth)
+    if strk is not None:
+        normalized["STRK"] = float(strk)
+        normalized["strk"] = float(strk)
+
     return {
-        "prices": prices,
+        "prices": normalized,
         "stakingApy": staking_apy,
         "timestamp": int(time.time()),
         "network": "starknet-sepolia",
@@ -178,7 +268,7 @@ class SimulateRequest(BaseModel):
 
 
 @router.post("/v2/execute/simulate", summary="Simulate execution impact")
-async def simulate_execution(req: SimulateRequest):
+async def simulate_execution(req: SimulateRequest, _caller: str = WalletOwner):
     agg = get_aggregator()
     opps = await agg.fetch_all(limit=300)
     opp = next((o for o in opps if o.id == req.opportunityId), None)
@@ -213,7 +303,7 @@ class PrepareRequest(BaseModel):
 
 
 @router.post("/v2/execute/prepare", summary="Prepare calldata for wallet signing")
-async def prepare_execution(req: PrepareRequest):
+async def prepare_execution(req: PrepareRequest, _caller: str = WalletOwner):
     agg = get_aggregator()
     opps = await agg.fetch_all(limit=300)
     opp = next((o for o in opps if o.id == req.opportunityId), None)
@@ -330,7 +420,7 @@ class SubmitRequest(BaseModel):
 
 
 @router.post("/v2/execute/submit", summary="Submit transaction via relayer")
-async def submit_execution(req: SubmitRequest):
+async def submit_execution(req: SubmitRequest, _caller: str = WalletOwner):
     receipt_id = str(uuid.uuid4())
 
     try:
@@ -344,7 +434,7 @@ async def submit_execution(req: SubmitRequest):
         tx_hash = f"0x{uuid.uuid4().hex}"
         status = "PENDING"
 
-    _execution_store[tx_hash] = {
+    _store_execution({
         "txHash": tx_hash,
         "status": status,
         "receiptId": receipt_id,
@@ -353,7 +443,7 @@ async def submit_execution(req: SubmitRequest):
         "userAddress": req.userAddress,
         "submittedAt": int(time.time()),
         "confirmations": 0,
-    }
+    })
 
     return {"txHash": tx_hash, "status": status, "receiptId": receipt_id}
 
@@ -362,16 +452,57 @@ async def submit_execution(req: SubmitRequest):
 
 @router.get("/v2/execute/status/{tx_hash}", summary="Track transaction status")
 async def execution_status(tx_hash: str):
-    stored = _execution_store.get(tx_hash)
-    if stored:
-        elapsed = int(time.time()) - stored.get("submittedAt", int(time.time()))
-        if elapsed > 30 and stored["status"] == "PENDING":
-            stored["status"] = "ACCEPTED_ON_L2"
-            stored["confirmations"] = 1
+    # Try real on-chain lookup first
+    try:
+        async with httpx.AsyncClient(timeout=_HTTPX_TIMEOUT) as client:
+            rpc_url = "https://starknet-sepolia.cartridge.gg/"
+            resp = await client.post(
+                rpc_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "method": "starknet_getTransactionReceipt",
+                    "params": {"transaction_hash": tx_hash},
+                    "id": 1,
+                },
+            )
+            data = resp.json()
+            result = data.get("result")
+            if result:
+                status_str = result.get("finality_status") or result.get("status") or "UNKNOWN"
+                # Map RPC statuses to our simplified model
+                status_map = {
+                    "ACCEPTED_ON_L2": "ACCEPTED_ON_L2",
+                    "ACCEPTED_ON_L1": "ACCEPTED_ON_L1",
+                    "RECEIVED": "PENDING",
+                    "PENDING": "PENDING",
+                    "REJECTED": "REJECTED",
+                }
+                mapped = status_map.get(status_str, status_str)
+                confirmations = 2 if mapped == "ACCEPTED_ON_L1" else (1 if mapped == "ACCEPTED_ON_L2" else 0)
 
+                stored = _get_execution(tx_hash) or {}
+                return {
+                    "txHash": tx_hash,
+                    "status": mapped,
+                    "confirmations": confirmations,
+                    "receipt": {
+                        **stored,
+                        "txHash": tx_hash,
+                        "status": mapped,
+                        "confirmations": confirmations,
+                        "executionStatus": result.get("execution_status"),
+                        "blockNumber": result.get("block_number"),
+                    },
+                }
+    except Exception as exc:
+        logger.debug("on-chain receipt lookup failed for %s: %s", tx_hash, exc)
+
+    # Fall back to SQLite store
+    stored = _get_execution(tx_hash)
+    if stored:
         return {
             "txHash": tx_hash,
-            "status": stored["status"],
+            "status": stored.get("status", "PENDING"),
             "confirmations": stored.get("confirmations", 0),
             "receipt": stored,
         }

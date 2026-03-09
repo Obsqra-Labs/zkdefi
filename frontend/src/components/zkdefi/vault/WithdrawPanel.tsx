@@ -33,7 +33,7 @@ const FULL_PRIVACY_POOL_ADDRESS =
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
-  hashed_proof: "Selective Proof",
+  hashed_proof: "Max Privacy",
   dark_ledger: "Operator Vault",
 };
 
@@ -43,9 +43,9 @@ const METHOD_TIPS: Record<PrivacyMethod, string> = {
   nullifier_set:
     "Groth16 proof + nullifier ensures unlinkability. Toggle relayer below so a separate wallet submits the tx — your address never appears.",
   hashed_proof:
-    "Same ZK engine as Full Privacy (aggressive pool). Relayer-compatible for full unlinkability.",
+    "Hash-committed withdrawal with Groth16 proof. Relayer-compatible for full address separation. Your identity stays private.",
   dark_ledger:
-    "Operator Vault processes your withdrawal from the Dark Ledger. No on-chain proof needed.",
+    "Legacy operator vault path.",
 };
 
 const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
@@ -147,7 +147,7 @@ interface WithdrawPanelProps {
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   selectedCommitmentId?: string | null;
-  /** Record withdrawal in V2 Dark Ledger. Best-effort. */
+  /** Record withdrawal in V2 ledger. Best-effort. */
   onRecordWithdrawal?: (amountWei: string, token: string, destination: string, route: string) => Promise<void>;
 }
 
@@ -579,7 +579,7 @@ export function WithdrawPanel({
 
       const isRelayed = useRelayer && (method === "nullifier_set" || method === "hashed_proof");
 
-      // Best-effort: record withdrawal in V2 Dark Ledger
+      // Best-effort: record withdrawal in V2 ledger
       onRecordWithdrawal?.(
         amountWei,
         selectedCommitment.asset,
@@ -589,8 +589,7 @@ export function WithdrawPanel({
 
       addActivityEvent(setActivityFeed, {
         type: "withdraw",
-        pool:
-          method === "dark_ledger" ? "dark_ledger" : method === "commitment_shield" ? "shielded" : "full_privacy",
+        pool: method === "commitment_shield" ? "shielded" : "full_privacy",
         text: isRelayed
           ? `Queued relayed withdrawal of ${amount} ${selectedCommitment!.asset} via ${METHOD_LABELS[method]}`
           : `Withdrew ${amount} ${selectedCommitment!.asset} via ${METHOD_LABELS[method]}`,
@@ -676,10 +675,12 @@ export function WithdrawPanel({
         </span>
       </div>
 
-      {/* Privacy tier explainer */}
-      <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-        <Info className="w-3.5 h-3.5 text-white/30 mt-0.5 flex-shrink-0" />
-        <p className="text-[11px] text-white/40 leading-relaxed">{METHOD_TIPS[method]}</p>
+      {/* Privacy info */}
+      <div className="flex items-start gap-2 rounded-lg border border-rose-500/10 bg-rose-500/[0.03] px-3 py-2">
+        <Info className="w-3.5 h-3.5 text-rose-400/50 mt-0.5 flex-shrink-0" />
+        <p className="text-[11px] text-rose-400/60 leading-relaxed">
+          Hash-committed withdrawal with Groth16 proof. Enable the relayer below for full address separation.
+        </p>
       </div>
 
       {/* Commitment picker */}

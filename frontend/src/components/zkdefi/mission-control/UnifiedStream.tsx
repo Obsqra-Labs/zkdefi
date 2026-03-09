@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import { toFixed } from "@/lib/format";
 import { StreamCard, type StreamItem } from "./StreamCard";
 import { OracleDashboardStrip } from "./OracleDashboardStrip";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
@@ -221,7 +222,7 @@ export function UnifiedStream({
             </span>
             <span>
               governance:{" "}
-              <span className="text-zinc-200">{governance.votingPower.toFixed(2)} vp</span>
+              <span className="text-zinc-200">{toFixed(governance.votingPower, 2)} vp</span>
             </span>
             {executionGate.reasons.length ? (
               <span className="truncate">

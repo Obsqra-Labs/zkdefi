@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { UserReputation } from "@/services/ReputationGatingService";
 import type { ReceiptWithImpact } from "@/services/ReceiptService";
@@ -12,8 +12,10 @@ import { ReceiptService } from "@/services/ReceiptService";
 import { TradeDeskHeader } from "./TradeDesk/TradeDeskHeader";
 import { OpportunityExplorer } from "./TradeDesk/OpportunityExplorer";
 import { ActionPanel } from "./TradeDesk/ActionPanel";
+import { SwapModal } from "./TradeDesk/SwapModal";
 import { MemoryLane } from "./TradeDesk/MemoryLane";
-import { PrivacySidebar } from "./TradeDesk/PrivacySidebar";
+import { PrivacyPoolPanel } from "./TradeDesk/PrivacyPoolPanel";
+import { CreditLinePanel } from "./TradeDesk/CreditLinePanel";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OpportunityListSkeleton } from "@/components/ui/Skeleton";
 
@@ -37,6 +39,9 @@ export function TradeDesk({
   const [receipts, setReceipts] = useState<ReceiptWithImpact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [swapPreselectedPair, setSwapPreselectedPair] = useState<string | null>(null);
+  const [rightPanelMode, setRightPanelMode] = useState<"market" | "privacy" | "credit">("market");
 
   const reputationService = useMemo(() => new ReputationGatingService(), []);
   const receiptService = useMemo(() => new ReceiptService(), []);
@@ -50,7 +55,7 @@ export function TradeDesk({
         setError(null);
 
         const [oppData, ctx] = await Promise.all([
-          tradeDeskApi.getOpportunities(),
+          tradeDeskApi.getOpportunities({ limit: 100 }),
           tradeDeskApi.getMarketContext(),
         ]);
 
@@ -107,9 +112,19 @@ export function TradeDesk({
     };
   }, [autoRefresh, userAddress, receiptService]);
 
-  // --- handlers ---
+  const swapOpportunities = useMemo(
+    () => opportunities.filter((o) => o.type === "swap"),
+    [opportunities],
+  );
+
   const handleSelect = useCallback((opp: UnifiedOpportunity) => {
     setSelectedOpportunity(opp);
+    setRightPanelMode("market");
+  }, []);
+
+  const handleOpenSwapWorkspace = useCallback((pair?: string | null) => {
+    setSwapPreselectedPair(pair ?? null);
+    setSwapModalOpen(true);
   }, []);
 
   const handleExecute = useCallback(
@@ -118,10 +133,10 @@ export function TradeDesk({
         if (userAddress) {
           const [newReceipts, newOpps] = await Promise.all([
             receiptService.getReceipts({ address: userAddress }),
-            tradeDeskApi.getOpportunities(),
+            tradeDeskApi.getOpportunities({ limit: 100 }),
           ]);
           setReceipts(newReceipts);
-          setOpportunities(newOpps.opportunities);
+          setOpportunities(newOpps?.opportunities ?? []);
         }
         setSelectedOpportunity(null);
       } catch (err) {
@@ -165,13 +180,16 @@ export function TradeDesk({
           reputation={userReputation}
           receipts={receipts}
           marketContext={marketContext}
+          onOpenSwap={() => {
+            handleOpenSwapWorkspace(null);
+          }}
         />
       </ErrorBoundary>
 
       {/* Main layout */}
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+      <div className="flex flex-col xl:flex-row flex-1 gap-4 p-4 overflow-hidden min-h-0">
         {/* Left ~60% — opportunity explorer */}
-        <div className="flex-[3] flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-[3] flex flex-col min-w-0 overflow-hidden min-h-0">
           <ErrorBoundary>
             <OpportunityExplorer
               opportunities={opportunities}
@@ -182,23 +200,126 @@ export function TradeDesk({
           </ErrorBoundary>
         </div>
 
-        {/* Right ~40% — action panel */}
-        <div className="flex-[2] flex flex-col min-w-0 overflow-hidden">
-          <ErrorBoundary>
-            <ActionPanel
-              opportunity={selectedOpportunity}
-              marketContext={marketContext}
-              userAddress={userAddress ?? null}
-              onExecute={handleExecute}
-            />
-          </ErrorBoundary>
+        {/* Right workspace */}
+        <div className="xl:w-96 w-full flex flex-col overflow-hidden min-h-[340px] xl:min-h-0 flex-shrink-0">
+          <AnimatePresence mode="wait">
+            {selectedOpportunity ? (
+              <motion.div
+                key={`selected-${selectedOpportunity.id}`}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                className="h-full min-h-0"
+              >
+                <ErrorBoundary>
+                  <ActionPanel
+                    opportunity={selectedOpportunity}
+                    marketContext={marketContext}
+                    userAddress={userAddress ?? null}
+                    opportunities={opportunities}
+                    onExecute={handleExecute}
+                    onBack={() => setSelectedOpportunity(null)}
+                    onOpenSwap={handleOpenSwapWorkspace}
+                  />
+                </ErrorBoundary>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="workspace-tabs"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                className="h-full min-h-0 flex flex-col"
+              >
+                <div className="flex gap-2 mb-3 p-1 bg-slate-900 rounded-lg border border-slate-700">
+                  <button
+                    onClick={() => setRightPanelMode("market")}
+                    className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                      rightPanelMode === "market"
+                        ? "bg-slate-700 text-cyan-300"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Market
+                  </button>
+                  <button
+                    onClick={() => setRightPanelMode("privacy")}
+                    className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                      rightPanelMode === "privacy"
+                        ? "bg-slate-700 text-cyan-300"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Privacy
+                  </button>
+                  <button
+                    onClick={() => setRightPanelMode("credit")}
+                    className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors ${
+                      rightPanelMode === "credit"
+                        ? "bg-slate-700 text-cyan-300"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Credit
+                  </button>
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <ErrorBoundary>
+                    {rightPanelMode === "market" && (
+                      <ActionPanel
+                        opportunity={null}
+                        marketContext={marketContext}
+                        userAddress={userAddress ?? null}
+                        opportunities={opportunities}
+                        onExecute={handleExecute}
+                        onOpenSwap={handleOpenSwapWorkspace}
+                      />
+                    )}
+
+                    {rightPanelMode === "privacy" && (
+                      <div className="h-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-4">
+                        {userAddress ? (
+                          <PrivacyPoolPanel
+                            userAddress={userAddress}
+                            onSuccess={() => {}}
+                            onError={() => {}}
+                          />
+                        ) : (
+                          <p className="text-sm text-slate-400">Connect wallet to manage privacy pools.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {rightPanelMode === "credit" && (
+                      <div className="h-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-4">
+                        {userAddress ? (
+                          <CreditLinePanel userAddress={userAddress} />
+                        ) : (
+                          <p className="text-sm text-slate-400">Connect wallet to manage credit lines.</p>
+                        )}
+                      </div>
+                    )}
+                  </ErrorBoundary>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Privacy sidebar */}
-        <ErrorBoundary>
-          <PrivacySidebar userAddress={userAddress ?? null} />
-        </ErrorBoundary>
       </div>
+
+      <SwapModal
+        open={swapModalOpen}
+        onClose={() => {
+          setSwapModalOpen(false);
+          setSwapPreselectedPair(null);
+        }}
+        swapOpportunities={swapOpportunities}
+        userAddress={userAddress ?? null}
+        onExecute={handleExecute}
+        preselectedPair={swapPreselectedPair}
+      />
 
       {/* Memory Lane */}
       {showMemoryLane && receipts.length > 0 && (

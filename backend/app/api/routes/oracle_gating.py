@@ -13,6 +13,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException, Body
+from app.middleware.auth import AdminOnly
 from app.services.execution_policy_service import get_execution_policy_service
 
 router = APIRouter(tags=["oracle-gating"])
@@ -41,7 +42,8 @@ async def get_policy(address: str):
 @router.post("/api/v1/zkdefi/policies")
 async def set_policy(
     address: str = Query(...),
-    policy_data: dict = Body(...)
+    policy_data: dict = Body(...),
+    _admin: str = AdminOnly,
 ):
     """Create or update policy for an address."""
     try:
@@ -60,7 +62,8 @@ async def set_policy(
 @router.post("/api/v1/zkdefi/oracle/should-execute")
 async def should_execute(
     address: str = Query(...),
-    signal: dict = Body(...)
+    signal: dict = Body(...),
+    _admin: str = AdminOnly,
 ):
     """
     Evaluate if a signal is gated for execution.

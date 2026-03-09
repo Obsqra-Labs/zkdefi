@@ -44,7 +44,7 @@ const FULL_PRIVACY_TOKEN =
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
-  hashed_proof: "Selective Proof",
+  hashed_proof: "Max Privacy",
   dark_ledger: "Operator Vault",
 };
 
@@ -54,9 +54,9 @@ const METHOD_TIPS: Record<PrivacyMethod, string> = {
   nullifier_set:
     "Poseidon + Groth16 in a shared anonymity set. Enable relayer on withdrawal for fully unlinkable transactions.",
   hashed_proof:
-    "Same ZK engine as Full Privacy (aggressive pool). Prove claims about your position without revealing values.",
+    "Hash-committed deposit with Groth16 proof. Your identity is never linked on-chain. Withdrawals use nullifier sets for full unlinkability.",
   dark_ledger:
-    "Fastest deposit via Operator Vault. Funds tracked in the Dark Ledger. Trust-based, lowest latency.",
+    "Legacy operator vault path. Use Max Privacy instead.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -137,7 +137,7 @@ interface DepositPanelProps {
   addCommitment: (c: VaultCommitment) => void;
   address?: string;
   isDemo?: boolean;
-  /** Record deposit in V2 Dark Ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
+  /** Record deposit in V2 ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
   onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
 }
 
@@ -545,7 +545,7 @@ export function DepositPanel({
 
       addActivityEvent(setActivityFeed, {
         type: "deposit",
-        pool: method === "dark_ledger" ? "dark_ledger" : method === "commitment_shield" ? "shielded" : "full_privacy",
+        pool: method === "commitment_shield" ? "shielded" : "full_privacy",
         text: `Deposited ${amount} ${selectedAsset} via ${METHOD_LABELS[method]}`,
         txHash: result.txHash,
       });
@@ -600,10 +600,12 @@ export function DepositPanel({
         </span>
       </div>
 
-      {/* Privacy tier explainer */}
-      <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-        <Info className="w-3.5 h-3.5 text-white/30 mt-0.5 flex-shrink-0" />
-        <p className="text-[11px] text-white/40 leading-relaxed">{METHOD_TIPS[method]}</p>
+      {/* Privacy info */}
+      <div className="flex items-start gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] px-3 py-2">
+        <Info className="w-3.5 h-3.5 text-emerald-400/50 mt-0.5 flex-shrink-0" />
+        <p className="text-[11px] text-emerald-400/60 leading-relaxed">
+          Hash-committed deposit with Groth16 proof. Your identity is never linked on-chain.
+        </p>
       </div>
 
       {/* Asset selector */}
@@ -650,14 +652,6 @@ export function DepositPanel({
           Balance: {balance !== null ? `${balance} ${selectedAsset}` : `-- ${selectedAsset}`}
         </p>
       </div>
-
-      {/* Operator Vault info callout */}
-      {method === "dark_ledger" && (
-        <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs text-violet-300/80">
-          Tokens transfer directly to the Operator Vault. The system verifies the
-          on-chain receipt and credits your Dark Ledger balance automatically.
-        </div>
-      )}
 
       {/* Allocation preview */}
       <AllocationPreview amount={amount} asset={selectedAsset} isDemo={isDemo} />

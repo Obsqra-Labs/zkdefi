@@ -1,57 +1,58 @@
-# Quick Start (Live App)
+# Quick Start (First 15 Minutes)
 
-This quick start is for users who want to move from zero setup to first meaningful execution in the live app.
+This guide takes you from wallet connect to first controlled execution.
 
-## The Problem This Solves
+## 1) Connect Wallet
 
-New users frequently connect a wallet but do not know which surface to open first, which route state to use, or how to avoid legacy links.
+1. Install ArgentX or Braavos.
+2. Switch to Starknet Sepolia for test flows.
+3. Open `https://zkde.fi` and connect.
 
-## Why This Matters
+Expected result:
+- Wallet shows connected.
+- App routes are available (`/profile`, `/agent`, `/trade`).
 
-A clean first session reduces user error, lowers support load, and makes later automation and compliance flows easier to complete.
+## 2) Set Trust Context In Profile
 
-## Fast Path
+1. Open `/profile`.
+2. Confirm identity/binding status.
+3. Check trust/reputation state and any gating warnings.
 
-1. Install a Starknet wallet (ArgentX or Braavos).
-2. Select Starknet Sepolia in wallet settings.
-3. Open `https://zkde.fi` and connect wallet.
-4. Open `/agent?v=vault` for capital and deployment context.
-5. Open `/profile?tab=trust` to verify trust/reputation posture.
+Why this is first:
+- Borrowing, automation, and some execution paths are policy/gate dependent.
 
-## First Session Flow
+## 3) Prepare In Capital OS
 
-```mermaid
-flowchart LR
-  A[Install wallet] --> B[Switch to Sepolia]
-  B --> C[Connect at zkde.fi]
-  C --> D[/agent?v=vault]
-  D --> E[/agent?v=oracle]
-  D --> F[/agent?v=brain]
-  C --> G[/profile?tab=trust]
-```
+1. Open `/agent`.
+2. In Capital Ledger, confirm your capital posture.
+3. In Control Plane, confirm system health and readiness.
+4. Decide your mode: guided/manual first, automation later.
 
-## What To Do Next
+Expected result:
+- You can hand off to Trade Desk with a clear posture and policy state.
 
-### Problem it solves
+## 4) Execute In Trade Desk
 
-After first connection, users often jump directly into execution without understanding constraints and profile context.
+1. Open `/trade`.
+2. Pick an opportunity from the stream/list.
+3. Select adapter route (do not skip this).
+4. Run simulation with explicit slippage settings.
+5. Execute via wallet signature.
 
-### Why it matters
+Expected result:
+- Tx hash/receipt is produced.
+- Opportunity state refreshes after confirmation.
 
-Working through the intended order improves outcome quality:
+## 5) Verify Outcome
 
-- `vault` first for capital posture
-- `oracle` next for signal and market context
-- `vault` trade sub-surface for execution: `/agent?v=vault&sub=trade`
-- `brain` last for automation controls
-- `profile` in parallel for trust/compliance visibility
+1. Return to `/profile` and check updated trust/reputation context.
+2. Review receipts/history and confirm result matches simulation intent.
+3. Adjust constraints or strategy and repeat.
 
-## Key Fixtures (Verified 2026-03-05)
+## Common Mistakes
 
-- `/agent?v=vault`
-- `/agent?v=oracle`
-- `/agent?v=vault&sub=trade`
-- `/agent?v=brain&sub=agent`
-- `/profile?tab=trust`
+- Executing before profile/trust checks.
+- Ignoring adapter route and slippage.
+- Forcing execution through a mismatched gate state.
 
-Next: [First-time setup](/guide-first-time-setup) | [Agent workspace](/agent-dashboard) | [Profile and identity](/profile-and-identity)
+Next: [Capital OS](/capital-os) | [Trade Desk](/trade-desk) | [How Systems Work](/how-systems-work)

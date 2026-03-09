@@ -2,9 +2,14 @@
 Privacy Vault Service: Shielded deposits and withdrawals through FullyShieldedPool
 """
 
+import json
 import logging
 import os
+import sqlite3
+import threading
+from pathlib import Path
 from typing import Any, Dict, List
+
 from app.services.circomlib_poseidon import poseidon_hash_many as poseidon_hash
 from app.services.proof_pipeline import ProofPipeline
 from app.services.receipt_service import get_receipt_service
@@ -16,6 +21,8 @@ FULLY_SHIELDED_POOL_ADDRESS = os.getenv(
     "0x03dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559"
 )
 
+_NULLIFIER_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "nullifiers.db"
+
 
 class PrivacyVaultService:
     """
@@ -25,7 +32,77 @@ class PrivacyVaultService:
     def __init__(self):
         self.proof_pipeline = ProofPipeline()
         self.receipt_svc = get_receipt_service()
-        self.nullifier_store: Dict[str, Dict[str, Any]] = {}  # In-memory for now
+        self._db_lock = threading.RLock()
+        self._init_nullifier_db()
+
+        # Initialize admin account for on-chain calls (Phase 2)
+        self.admin_account = None
+        self._init_admin_account()
+
+    # ── SQLite nullifier persistence ─────────────────────────────────────
+
+    def _nullifier_db_connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(_NULLIFIER_DB_PATH))
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        return conn
+
+    def _init_nullifier_db(self) -> None:
+        _NULLIFIER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with self._db_lock:
+            conn = self._nullifier_db_connect()
+            try:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS nullifiers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_address TEXT NOT NULL,
+                        commitment TEXT NOT NULL,
+                        nullifier TEXT NOT NULL,
+                        amount_wei INTEGER NOT NULL,
+                        spent INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                        UNIQUE(user_address, commitment)
+                    )
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_nullifiers_user
+                    ON nullifiers(user_address)
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_nullifiers_commitment
+                    ON nullifiers(commitment)
+                """)
+                conn.commit()
+            finally:
+                conn.close()
+        logger.info("Nullifier DB initialized at %s", _NULLIFIER_DB_PATH)
+
+    def _init_admin_account(self) -> None:
+        """Initialize starknet admin account from env vars if available."""
+        admin_addr = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS")
+        admin_pk = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY")
+        if not admin_addr or not admin_pk:
+            logger.warning("Privacy vault admin account not configured — on-chain calls will be mocked")
+            return
+        try:
+            from starknet_py.net.account import Account
+            from starknet_py.net.full_node_client import FullNodeClient
+            from starknet_py.net.models import StarknetChainId
+            from starknet_py.net.signer.stark_curve_signer import KeyPair
+
+            rpc_url = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.cartridge.gg/")
+            client = FullNodeClient(node_url=rpc_url)
+            key_pair = KeyPair.from_private_key(int(admin_pk, 16))
+            self.admin_account = Account(
+                address=int(admin_addr, 16),
+                client=client,
+                key_pair=key_pair,
+                chain=StarknetChainId.SEPOLIA,
+            )
+            logger.info("Privacy vault admin account initialized: %s", admin_addr)
+        except Exception as exc:
+            logger.warning("Failed to initialize admin account: %s", exc)
+            self.admin_account = None
     
     async def shielded_deposit(
         self,
@@ -82,7 +159,7 @@ class PrivacyVaultService:
             )
             
             # 5. Create receipt (commitment only, amount hidden)
-            receipt = self.receipt_svc.create_receipt(
+            receipt = await self.receipt_svc.create_receipt(
                 user_address=user_address,
                 action_type="shielded_deposit",
                 amount=0,  # Amount hidden on-chain
@@ -167,7 +244,7 @@ class PrivacyVaultService:
             self._mark_spent(user_address, commitment_hex)
             
             # 5. Create receipt (amount now revealed)
-            receipt = self.receipt_svc.create_receipt(
+            receipt = await self.receipt_svc.create_receipt(
                 user_address=user_address,
                 action_type="shielded_withdraw",
                 amount=amount_wei,  # Revealed on withdrawal
@@ -193,21 +270,19 @@ class PrivacyVaultService:
     async def _call_shielded_pool_deposit(self, commitment: str, amount_wei: int) -> str:
         """
         Call FullyShieldedPool.deposit(commitment)
-        
-        TODO: Implement actual contract call when admin account is configured
         """
         if not self.admin_account:
             logger.warning("Shielded deposit call skipped: admin account not configured")
             return "0xmock_deposit_tx"
         
         try:
-            # Load FullyShieldedPool contract
+            from starknet_py.contract import Contract
+
             pool = await Contract.from_address(
                 address=int(FULLY_SHIELDED_POOL_ADDRESS, 16),
                 provider=self.admin_account,
             )
             
-            # Call deposit
             invocation = await pool.functions["deposit"].invoke_v1(
                 commitment=int(commitment, 16),
                 max_fee=int(1e16),
@@ -235,6 +310,8 @@ class PrivacyVaultService:
             return "0xmock_withdraw_tx"
         
         try:
+            from starknet_py.contract import Contract
+
             pool = await Contract.from_address(
                 address=int(FULLY_SHIELDED_POOL_ADDRESS, 16),
                 provider=self.admin_account,
@@ -255,31 +332,62 @@ class PrivacyVaultService:
             logger.error(f"Shielded pool withdraw failed: {e}")
             return "0x0"
     
+    # ── SQLite-backed nullifier CRUD ─────────────────────────────────────
+
     def _store_nullifier(self, user_address: str, commitment: str, data: Dict[str, Any]):
-        """
-        Store nullifier (encrypted in production)
-        
-        TODO: Encrypt with user's wallet pubkey before storage
-        """
-        if user_address not in self.nullifier_store:
-            self.nullifier_store[user_address] = {}
-        
-        self.nullifier_store[user_address][commitment] = data
-        logger.debug(f"Stored nullifier for {user_address}, commitment: {commitment}")
+        """Persist nullifier to SQLite."""
+        with self._db_lock:
+            conn = self._nullifier_db_connect()
+            try:
+                conn.execute(
+                    """INSERT OR REPLACE INTO nullifiers
+                       (user_address, commitment, nullifier, amount_wei, spent)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (
+                        user_address.lower(),
+                        commitment,
+                        data["nullifier"],
+                        data["amount_wei"],
+                        1 if data.get("spent") else 0,
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        logger.debug("Stored nullifier for %s, commitment: %s", user_address, commitment)
     
     def _get_nullifier(self, user_address: str, commitment: str) -> Dict[str, Any] | None:
-        """
-        Retrieve nullifier data
-        """
-        return self.nullifier_store.get(user_address, {}).get(commitment)
+        """Retrieve nullifier data from SQLite."""
+        with self._db_lock:
+            conn = self._nullifier_db_connect()
+            try:
+                row = conn.execute(
+                    "SELECT nullifier, amount_wei, spent FROM nullifiers WHERE user_address = ? AND commitment = ?",
+                    (user_address.lower(), commitment),
+                ).fetchone()
+            finally:
+                conn.close()
+        if not row:
+            return None
+        return {
+            "nullifier": row[0],
+            "amount_wei": row[1],
+            "spent": bool(row[2]),
+        }
     
     def _mark_spent(self, user_address: str, commitment: str):
-        """
-        Mark nullifier as spent (prevent double-spend)
-        """
-        if user_address in self.nullifier_store and commitment in self.nullifier_store[user_address]:
-            self.nullifier_store[user_address][commitment]["spent"] = True
-            logger.info(f"Marked nullifier spent: {commitment}")
+        """Mark nullifier as spent in SQLite (prevent double-spend)."""
+        with self._db_lock:
+            conn = self._nullifier_db_connect()
+            try:
+                conn.execute(
+                    "UPDATE nullifiers SET spent = 1 WHERE user_address = ? AND commitment = ?",
+                    (user_address.lower(), commitment),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        logger.info("Marked nullifier spent: %s", commitment)
 
 
 # Singleton

@@ -12,6 +12,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
+from app.middleware.auth import WalletOwner, AdminOnly
+
 from app.services.private_yield_service import (
     get_vault_stats,
     register_deposit,
@@ -44,7 +46,7 @@ async def vault_stats():
 
 
 @router.post("/private-yield/deposit/register")
-async def register_yield_deposit(req: DepositRegistration):
+async def register_yield_deposit(req: DepositRegistration, _caller: str = WalletOwner):
     """
     Register a private deposit in the yield vault ledger.
     Called after the on-chain deposit commitment is confirmed.
@@ -91,7 +93,7 @@ async def prepare_yield_withdrawal(commitment: str):
 
 
 @router.post("/private-yield/withdrawal/complete/{commitment}")
-async def complete_yield_withdrawal(commitment: str):
+async def complete_yield_withdrawal(commitment: str, _caller: str = WalletOwner):
     """Mark position as withdrawn after on-chain ZK withdrawal succeeds."""
     success = complete_withdrawal(commitment)
     if not success:
@@ -104,7 +106,7 @@ class DeployRequest(BaseModel):
 
 
 @router.post("/private-yield/deploy")
-async def deploy_idle(req: DeployRequest):
+async def deploy_idle(req: DeployRequest, _admin: str = AdminOnly):
     """Deploy idle vault capital to Ekubo LP and/or LendingPool."""
     try:
         result = await deploy_idle_capital(req.risk_profile)
@@ -121,7 +123,7 @@ async def preview_allocation(amount_wei: int, risk_profile: str = "balanced"):
 
 
 @router.post("/private-yield/yield/accrue")
-async def trigger_accrual():
+async def trigger_accrual(_admin: str = AdminOnly):
     """Manually trigger yield accrual across all active deployments."""
     return accrue_yield()
 

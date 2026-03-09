@@ -62,7 +62,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
 
   const { adapters } = useAdapterRegistry();
 
-  // V2 vault (Dark Ledger double-entry accounting)
+  // V2 vault (internal double-entry accounting — invisible to user)
   const v2 = useVaultV2(address);
 
   const resolveTab = (subTab?: string): Tab => {
@@ -262,7 +262,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-400" />
-          <h2 className="text-lg font-semibold text-white">Dark Ledger</h2>
+          <h2 className="text-lg font-semibold text-white">Privacy Pools</h2>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
           <span className="text-white/40">STRK/ETH</span>

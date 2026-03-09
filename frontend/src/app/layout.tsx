@@ -17,8 +17,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const criticalCSS = "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#09090b;color:#f4f4f5;font-family:ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.min-h-screen{min-height:100vh}.bg-zinc-950{background:#09090b}.text-zinc-100{color:#f4f4f5}";
   return (
     <html lang="en" className="antialiased" suppressHydrationWarning>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
+      </head>
       <body
         className="min-h-screen bg-zinc-950 text-zinc-100"
         style={{
@@ -28,6 +32,7 @@ export default function RootLayout({
           WebkitFontSmoothing: "antialiased",
         }}
       >
+        <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
         <ErrorBoundary>
           <StarknetProvider>
             <AppProvider>

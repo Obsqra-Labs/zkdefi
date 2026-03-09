@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 
+from app.middleware.auth import WalletOwner, AdminOnly
 from ...services.full_privacy_proof_service import get_full_privacy_service
 from ...services.merkle_tree_service import (
     get_merkle_tree,
@@ -183,7 +184,7 @@ class MerkleRootResponse(BaseModel):
 # ==================== Endpoints ====================
 
 @router.post("/deposit/generate_commitment", response_model=DepositCommitmentResponse)
-async def generate_deposit_commitment(request: DepositCommitmentRequest):
+async def generate_deposit_commitment(request: DepositCommitmentRequest, _caller: str = WalletOwner):
     """
     Generate a commitment for deposit.
     
@@ -205,7 +206,7 @@ async def generate_deposit_commitment(request: DepositCommitmentRequest):
 
 
 @router.post("/deposit/register_commitment", response_model=RegisterCommitmentResponse)
-async def register_commitment(request: RegisterCommitmentRequest):
+async def register_commitment(request: RegisterCommitmentRequest, _caller: str = WalletOwner):
     """
     Register a commitment in the merkle tree after on-chain deposit.
     
@@ -245,7 +246,7 @@ async def register_commitment(request: RegisterCommitmentRequest):
 
 
 @router.post("/merkle/reconcile")
-async def reconcile_merkle_roots_endpoint():
+async def reconcile_merkle_roots_endpoint(_admin: str = AdminOnly):
     """
     Compare all backend roots against on-chain state and register any missing ones.
     Can be called manually or triggered by monitoring.
@@ -255,7 +256,7 @@ async def reconcile_merkle_roots_endpoint():
 
 
 @router.post("/merkle/reset")
-async def reset_merkle_tree_endpoint():
+async def reset_merkle_tree_endpoint(_admin: str = AdminOnly):
     """
     Reset the backend merkle tree to empty state.
     Use after pool contract redeployment or desync.
@@ -278,7 +279,7 @@ class EnsureRootRequest(BaseModel):
 
 
 @router.post("/merkle/ensure_root")
-async def ensure_root_on_chain(request: EnsureRootRequest):
+async def ensure_root_on_chain(request: EnsureRootRequest, _admin: str = AdminOnly):
     """
     Ensure the given merkle root is registered on-chain before the user signs a withdraw tx.
     Call this with commitmentData.root right before account.execute(withdraw).
@@ -308,7 +309,7 @@ async def ensure_root_on_chain(request: EnsureRootRequest):
 
 
 @router.post("/merkle/verify_root")
-async def verify_merkle_root(request: VerifyRootRequest):
+async def verify_merkle_root(request: VerifyRootRequest, _admin: str = AdminOnly):
     """
     Check if merkle root is registered on-chain.
     Polls MerkleTree contract's is_known_root function.
@@ -340,7 +341,7 @@ async def verify_merkle_root(request: VerifyRootRequest):
 
 
 @router.post("/withdraw/generate_proof", response_model=WithdrawProofResponse)
-async def generate_withdraw_proof(request: WithdrawProofRequest):
+async def generate_withdraw_proof(request: WithdrawProofRequest, _caller: str = WalletOwner):
     """
     Generate a withdrawal proof.
     
@@ -475,7 +476,7 @@ async def generate_withdraw_proof(request: WithdrawProofRequest):
 
 
 @router.post("/withdraw/generate_claim_proof", response_model=WithdrawClaimProofResponse)
-async def generate_withdraw_claim_proof(request: WithdrawClaimProofRequest):
+async def generate_withdraw_claim_proof(request: WithdrawClaimProofRequest, _caller: str = WalletOwner):
     """
     Generate a Tier-2H withdrawal claim proof.
     """
@@ -541,7 +542,7 @@ async def generate_withdraw_claim_proof(request: WithdrawClaimProofRequest):
 
 
 @router.post("/withdraw/generate_proof_with_change", response_model=WithdrawProofWithChangeResponse)
-async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
+async def generate_withdraw_proof_with_change(request: WithdrawProofRequest, _caller: str = WalletOwner):
     """
     Generate a withdrawal-with-change proof (V2 partial withdraw).
     Proves withdraw_amount + change_amount == commitment amount; returns change commitment for pool to insert.
@@ -638,7 +639,7 @@ async def generate_withdraw_proof_with_change(request: WithdrawProofRequest):
 
 
 @router.post("/merkle/register_change_commitment")
-async def register_change_commitment(request: RegisterChangeCommitmentRequest):
+async def register_change_commitment(request: RegisterChangeCommitmentRequest, _caller: str = WalletOwner):
     """
     After a successful withdraw_with_change tx, register the change commitment in the backend tree
     and sync the new root on-chain. Call this so future withdrawals using the new root succeed.
@@ -672,7 +673,7 @@ async def register_change_commitment(request: RegisterChangeCommitmentRequest):
 
 
 @router.post("/disclosure/balance_above", response_model=DisclosureResponse)
-async def prove_balance_above(request: BalanceDisclosureRequest):
+async def prove_balance_above(request: BalanceDisclosureRequest, _caller: str = WalletOwner):
     """
     Generate a selective disclosure proof that balance > threshold.
     
@@ -709,7 +710,7 @@ async def prove_balance_above(request: BalanceDisclosureRequest):
 
 
 @router.post("/disclosure/pool_membership", response_model=DisclosureResponse)
-async def prove_pool_membership(request: PoolDisclosureRequest):
+async def prove_pool_membership(request: PoolDisclosureRequest, _caller: str = WalletOwner):
     """
     Generate a selective disclosure proof of pool membership.
     

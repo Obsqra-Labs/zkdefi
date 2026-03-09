@@ -5,6 +5,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
+from app.middleware.auth import WalletOwner
+
 try:
     from app.services.credit_line_service import get_credit_line_service
     from app.services.credit_eligibility_proof_service import get_credit_eligibility_service
@@ -121,7 +123,7 @@ class CreditTransactionResponse(BaseModel):
     summary="Open credit line",
     description="Open a new credit line against collateral",
 )
-async def open_credit_line(request: CreditLineRequest) -> CreditLineResponse:
+async def open_credit_line(request: CreditLineRequest, _caller: str = WalletOwner) -> CreditLineResponse:
     """
     Open a credit line with collateral.
     
@@ -262,6 +264,7 @@ async def get_credit_score(
 async def borrow_against_line(
     line_id: str,
     request: CreditTransactionRequest,
+    _caller: str = WalletOwner,
 ) -> CreditTransactionResponse:
     """Borrow against credit line."""
     service = get_credit_line_service()
@@ -297,6 +300,7 @@ async def borrow_against_line(
 async def repay_credit_line(
     line_id: str,
     request: CreditTransactionRequest,
+    _caller: str = WalletOwner,
 ) -> CreditTransactionResponse:
     """Repay credit line balance."""
     service = get_credit_line_service()

@@ -25,6 +25,17 @@ export interface LendingPolicy {
 }
 
 /**
+ * Mutable policy fields for governance proposals.
+ * Nested tier fields are partial to support targeted updates
+ * (e.g. APR-only changes without restating LTV).
+ */
+export interface LendingPolicyChanges {
+  tier1?: Partial<LendingPolicy['tier1']>;
+  tier2?: Partial<LendingPolicy['tier2']>;
+  tier3?: Partial<LendingPolicy['tier3']>;
+}
+
+/**
  * Active loan record in a vault
  */
 export interface LoanRecord {
@@ -42,7 +53,7 @@ export interface LoanRecord {
 export interface Proposal {
   id: string;
   pool: string;
-  proposedChanges: Partial<LendingPolicy>;
+  proposedChanges: LendingPolicyChanges;
   proposer: string;
   votingDeadline: string; // ISO8601
   votes: { yes: number; no: number };
@@ -169,7 +180,7 @@ export class VaultLendingGovernanceService {
    */
   async proposeRateChange(
     pool: string,
-    changes: Partial<LendingPolicy>
+    changes: LendingPolicyChanges
   ): Promise<string> {
     const url = apiUrl(`/api/v1/dao/pools/${pool}/governance/propose`);
 

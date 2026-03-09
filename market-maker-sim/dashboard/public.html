@@ -6,353 +6,151 @@
   <title>zkDeFi Public Dashboard</title>
   <style>
     :root {
-      --bg: #060c16;
-      --bg-elev: #0d1729;
-      --card: #111f35;
-      --card-2: #0f1930;
-      --line: #203252;
-      --text: #e6f0ff;
-      --muted: #93a6c8;
-      --green: #22c55e;
-      --amber: #f59e0b;
-      --red: #ef4444;
-      --cyan: #22d3ee;
-      --blue: #60a5fa;
-      --violet: #818cf8;
+      --bg: #060c16; --bg-elev: #0d1729; --card: #111f35; --card-2: #0f1930;
+      --line: #203252; --text: #e6f0ff; --muted: #93a6c8;
+      --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+      --cyan: #22d3ee; --blue: #60a5fa; --violet: #818cf8; --orange: #f97316;
     }
-
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      color: var(--text);
-      background:
-        radial-gradient(1200px 500px at 95% -5%, rgba(34, 211, 238, 0.11), transparent),
-        radial-gradient(900px 500px at -10% 0%, rgba(129, 140, 248, 0.14), transparent),
+      margin: 0; color: var(--text);
+      background: radial-gradient(1200px 500px at 95% -5%, rgba(34,211,238,.11), transparent),
+        radial-gradient(900px 500px at -10% 0%, rgba(129,140,248,.14), transparent),
         linear-gradient(180deg, #050a12 0%, #070f1d 45%, #060b15 100%);
-      font-family: "Space Grotesk", "Segoe UI", sans-serif;
-      min-height: 100vh;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif; min-height: 100vh;
     }
+    .wrap { max-width: 1380px; margin: 0 auto; padding: 20px; }
 
-    .wrap {
-      max-width: 1320px;
-      margin: 0 auto;
-      padding: 22px;
-    }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .title h1 { margin: 0; font-size: 24px; letter-spacing: .2px; }
+    .subtitle { margin-top: 6px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot.online { background: var(--green); box-shadow: 0 0 0 6px rgba(34,197,94,.18); }
+    .dot.offline { background: var(--red); box-shadow: 0 0 0 6px rgba(239,68,68,.15); }
+    .pill { border: 1px solid var(--line); background: #0c1530; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #bfd6ff; }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
+    .top-right { text-align: right; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-links a { color: #d6e6ff; text-decoration: none; border: 1px solid #294068; background: #0e1b34; padding: 6px 12px; border-radius: 10px; font-size: 12px; transition: border-color .15s; }
+    .nav-links a:hover { border-color: var(--cyan); }
+    .nav-links a.active { border-color: var(--cyan); color: var(--cyan); }
 
-    .title h1 {
-      margin: 0;
-      font-size: 26px;
-      letter-spacing: 0.2px;
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 9px; margin-bottom: 12px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+    .stat .k { color: var(--muted); font-size: 10px; letter-spacing: .4px; text-transform: uppercase; }
+    .stat .v { margin-top: 4px; font-size: 18px; font-weight: 700; }
+    .stat .s { margin-top: 3px; font-size: 11px; color: var(--muted); }
+    .stat.accent { border-color: rgba(34,211,238,.3); background: linear-gradient(135deg, #0e2235, #0f1930); }
 
-    .subtitle {
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .fleet-banner { background: linear-gradient(90deg, #0f1e38, #13243f); border: 1px solid #1e3b65; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .fleet-banner .fb-title { font-size: 14px; font-weight: 700; color: var(--cyan); white-space: nowrap; }
+    .fleet-banner .fb-stats { display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap; }
+    .fleet-banner .fb-stats span { color: var(--muted); }
+    .fleet-banner .fb-stats b { color: var(--text); }
 
-    .dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      display: inline-block;
-    }
+    .fleet-agents-mini { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+    .agent-dot { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 1px solid var(--line); position: relative; cursor: default; }
+    .agent-dot.ok { background: rgba(34,197,94,.15); color: var(--green); border-color: rgba(34,197,94,.3); }
+    .agent-dot.warn { background: rgba(245,158,11,.12); color: var(--amber); border-color: rgba(245,158,11,.25); }
+    .agent-dot.bad { background: rgba(239,68,68,.12); color: var(--red); border-color: rgba(239,68,68,.25); }
+    .agent-dot.off { background: #0b1525; color: var(--muted); }
 
-    .dot.online { background: var(--green); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.18); }
-    .dot.offline { background: var(--red); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15); }
-
-    .top-right {
-      text-align: right;
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-end;
-    }
-
-    .pill {
-      border: 1px solid var(--line);
-      background: #0c1530;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      color: #bfd6ff;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 8px;
-    }
-
-    .nav-links a {
-      color: #d6e6ff;
-      text-decoration: none;
-      border: 1px solid #294068;
-      background: #0e1b34;
-      padding: 6px 11px;
-      border-radius: 10px;
-      font-size: 12px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .stat {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 11px;
-    }
-
-    .stat .k {
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-    }
-
-    .stat .v {
-      margin-top: 4px;
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .stat .s {
-      margin-top: 3px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .card {
-      background: var(--card-2);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-    }
-
-    .card h2 {
-      margin: 0;
-      font-size: 15px;
-      letter-spacing: 0.25px;
-    }
-
-    .hint {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .progress {
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
-      background: #10203a;
-      border: 1px solid #1f3659;
-      overflow: hidden;
-      margin-top: 9px;
-    }
-
-    .progress > span {
-      display: block;
-      height: 100%;
-      background: linear-gradient(90deg, #22d3ee, #22c55e);
-      width: 0%;
-    }
-
-    .mini {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .mini .m {
-      background: #0e1830;
-      border: 1px solid #1e3353;
-      border-radius: 10px;
-      padding: 8px;
-      min-height: 58px;
-    }
-
+    .layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .card { background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    .card h2 { margin: 0; font-size: 15px; letter-spacing: .25px; }
+    .hint { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .progress { width: 100%; height: 10px; border-radius: 999px; background: #10203a; border: 1px solid #1f3659; overflow: hidden; margin-top: 9px; }
+    .progress > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #22d3ee, #22c55e); transition: width .4s; }
+    .mini { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 10px; }
+    .mini .m { background: #0e1830; border: 1px solid #1e3353; border-radius: 10px; padding: 8px; min-height: 54px; }
     .mini .m .k { font-size: 10px; color: var(--muted); text-transform: uppercase; }
     .mini .m .v { margin-top: 4px; font-size: 16px; font-weight: 700; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 12px;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 8px 6px;
-      border-bottom: 1px solid #1b2c49;
-      vertical-align: top;
-    }
-
-    th {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-
-    .mono {
-      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-    }
-
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #1b2c49; vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+    .mono { font-family: "IBM Plex Mono", "SFMono-Regular", monospace; }
     .ok { color: var(--green); }
     .warn { color: var(--amber); }
     .bad { color: var(--red); }
+    .accent-text { color: var(--cyan); }
 
-    .activity {
-      max-height: 280px;
-      overflow: auto;
-      margin-top: 10px;
-      border: 1px solid #1b2c49;
-      border-radius: 10px;
-      background: #091426;
-    }
-
-    .activity-item {
-      border-bottom: 1px solid #172744;
-      padding: 8px 10px;
-      font-size: 12px;
-    }
-
+    .activity { max-height: 260px; overflow: auto; margin-top: 10px; border: 1px solid #1b2c49; border-radius: 10px; background: #091426; }
+    .activity-item { border-bottom: 1px solid #172744; padding: 8px 10px; font-size: 12px; }
     .activity-item:last-child { border-bottom: 0; }
-
-    .feed {
-      max-height: 280px;
-      overflow: auto;
-      border: 1px solid #1b2c49;
-      border-radius: 10px;
-      background: #081122;
-      margin-top: 10px;
-      font-size: 11px;
-      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-    }
-
-    .event {
-      border-bottom: 1px solid #15233d;
-      padding: 8px 10px;
-      color: #cadaff;
-    }
-
+    .feed { max-height: 260px; overflow: auto; border: 1px solid #1b2c49; border-radius: 10px; background: #081122; margin-top: 10px; font-size: 11px; font-family: "IBM Plex Mono", "SFMono-Regular", monospace; }
+    .event { border-bottom: 1px solid #15233d; padding: 8px 10px; color: #cadaff; }
     .event:last-child { border-bottom: 0; }
+    .section { margin-top: 12px; }
 
-    .section {
-      margin-top: 12px;
-    }
+    .tabs { display: flex; gap: 0; margin-top: 10px; margin-bottom: -1px; position: relative; z-index: 1; }
+    .tab { padding: 7px 14px; font-size: 12px; color: var(--muted); border: 1px solid transparent; border-bottom: 0; background: transparent; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; }
+    .tab.active { color: var(--text); background: var(--card-2); border-color: var(--line); }
+    .tab-body { display: none; }
+    .tab-body.active { display: block; }
+    .footer { margin-top: 18px; color: #7f93b8; font-size: 11px; text-align: center; }
 
-    .footer {
-      margin-top: 18px;
-      color: #7f93b8;
-      font-size: 11px;
-      text-align: center;
-    }
-
-    @media (max-width: 1200px) {
-      .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .layout { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 700px) {
-      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .mini { grid-template-columns: 1fr; }
-      .header { flex-direction: column; }
-      .top-right { align-items: flex-start; text-align: left; }
-    }
+    @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .mini { grid-template-columns: 1fr; } .header { flex-direction: column; } .top-right { align-items: flex-start; text-align: left; } .fleet-banner { flex-direction: column; align-items: flex-start; } .fleet-agents-mini { margin-left: 0; } }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="header">
       <div class="title">
-        <h1>zkDeFi Public Control Surface</h1>
+        <h1>zkDeFi Market Maker</h1>
         <div class="subtitle">
           <span id="connDot" class="dot offline"></span>
           <span id="connLabel">connecting...</span>
           <span class="pill">Sepolia</span>
+          <span id="uptimeLabel" class="pill" style="display:none"></span>
         </div>
       </div>
       <div class="top-right">
         <div id="blockLabel">Block: --</div>
         <div class="nav-links">
-          <a href="/dashboard">Public</a>
+          <a href="/dashboard" class="active">Public</a>
           <a href="/dashboard/admin">Admin</a>
+          <a href="/dashboard/fleet">Fleet</a>
         </div>
       </div>
+    </div>
+
+    <div class="fleet-banner" id="fleetBanner" style="display:none">
+      <div class="fb-title">&#9889; Agent Fleet Active</div>
+      <div class="fb-stats" id="fleetBannerStats"></div>
+      <div class="fleet-agents-mini" id="fleetAgentDots"></div>
     </div>
 
     <div class="stats-grid" id="statsGrid"></div>
 
     <div class="layout">
       <div class="card">
-        <h2>Pool Coverage + Volume Targets</h2>
-        <div class="hint">Tracks whether swap flow has touched most targeted pools and how far each target pair is from daily volume goals.</div>
+        <h2>Volume Targets &amp; Pool Coverage</h2>
+        <div class="hint">Daily volume targets across all pools. Includes both fleet + engine volume.</div>
         <div class="progress"><span id="coverageBar"></span></div>
         <div class="mini" id="coverageMini"></div>
         <table>
-          <thead>
-            <tr>
-              <th>Pair</th>
-              <th>Target</th>
-              <th>Current</th>
-              <th>Deficit</th>
-              <th>Coverage</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Pair</th><th>Target</th><th>Current</th><th>Fleet</th><th>Deficit</th><th>Progress</th></tr></thead>
           <tbody id="targetRows"></tbody>
         </table>
       </div>
-
       <div class="card">
-        <h2>Latest Coordination Actions</h2>
-        <div class="hint">Recent automated decisions (coverage swaps, recenter actions, and ramp swaps).</div>
-        <div class="activity" id="coordActions"></div>
+        <h2>Recent Activity</h2>
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab(this,'coordTab')">Coordination</div>
+          <div class="tab" onclick="switchTab(this,'agentTab')">Agents</div>
+        </div>
+        <div id="coordTab" class="tab-body active"><div class="activity" id="coordActions"></div></div>
+        <div id="agentTab" class="tab-body"><div class="activity" id="agentActivity"></div></div>
       </div>
     </div>
 
     <div class="section card">
       <h2>Pools</h2>
-      <div class="hint">Coverage shows whether swap flow has touched each pool in current runtime.</div>
+      <div class="hint">Live pool state with fleet agent swap counts and volume overlay.</div>
       <table>
-        <thead>
-          <tr>
-            <th>Pair</th>
-            <th>TVL</th>
-            <th>24h Vol</th>
-            <th>Bot Vol</th>
-            <th>Swap Hits</th>
-            <th>Tick</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Pair</th><th>TVL</th><th>24h Vol</th><th>Bot Vol</th><th>Fleet Swaps</th><th>Engine Swaps</th><th>Tick</th><th>Status</th></tr></thead>
         <tbody id="poolRows"></tbody>
       </table>
     </div>
@@ -362,217 +160,159 @@
       <div class="feed" id="eventFeed"></div>
     </div>
 
-    <div class="footer">zkDeFi market maker monitor | data: /public/state + /public/events</div>
+    <div class="footer">zkDeFi market maker &middot; Sepolia testnet &middot; data: /public/state + /public/fleet + /public/events</div>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const fmtUsd = (v) => "$" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    const fmtInt = (v) => Number(v || 0).toLocaleString();
-    const API_BASE = (window.location.port === "8099" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-      ? ""
-      : "/sim";
+    const fmtUsd = (v) => "$" + Number(v||0).toLocaleString(undefined, {maximumFractionDigits:0});
+    const fmtUsd2 = (v) => "$" + Number(v||0).toLocaleString(undefined, {maximumFractionDigits:2});
+    const fmtInt = (v) => Number(v||0).toLocaleString();
+    const fmtPct = (v) => Number(v||0).toFixed(1) + "%";
+    const fmtDur = (sec) => { sec = Math.round(sec||0); if (sec < 60) return sec+"s"; if (sec < 3600) return Math.floor(sec/60)+"m"; return Math.floor(sec/3600)+"h "+Math.floor((sec%3600)/60)+"m"; };
+    const API_BASE = (window.location.port==="8099"||window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1") ? "" : "/sim";
 
-    let cachedEvents = [];
+    let cachedEvents = [], cachedFleet = null;
 
-    function setConnection(ok) {
-      const dot = $("connDot");
-      const label = $("connLabel");
-      dot.className = ok ? "dot online" : "dot offline";
-      label.textContent = ok ? "live" : "disconnected";
+    function setConnection(ok) { $("connDot").className = ok ? "dot online" : "dot offline"; $("connLabel").textContent = ok ? "live" : "disconnected"; }
+    function switchTab(el, tabId) {
+      el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      el.parentElement.parentElement.querySelectorAll('.tab-body').forEach(b => b.classList.remove('active'));
+      $(tabId).classList.add('active');
     }
 
     function computeCoverage(state) {
-      const pools = state?.pools || [];
-      const swapUsage = state?.bots?.swap?.pool_usage || {};
-      const policy = state?.coordination_policy || {};
-
-      const targetPairs = Array.isArray(policy.target_pairs) && policy.target_pairs.length
-        ? policy.target_pairs.map((p) => String(p || "").toLowerCase())
-        : pools.map((p) => String(p.name || "").toLowerCase());
-
+      const pools = state?.pools || [], swapUsage = state?.bots?.swap?.pool_usage || {}, policy = state?.coordination_policy || {}, fleetUsage = cachedFleet?.aggregate_pool_usage || {};
+      const targetPairs = Array.isArray(policy.target_pairs) && policy.target_pairs.length ? policy.target_pairs.map(p => String(p||"").toLowerCase()) : pools.map(p => String(p.name||"").toLowerCase());
       const uniqueTargets = Array.from(new Set(targetPairs.filter(Boolean)));
-      const covered = uniqueTargets.filter((pair) => Number(swapUsage[pair] || swapUsage[pair.toUpperCase()] || 0) > 0);
-      const ratio = covered.length / Math.max(1, uniqueTargets.length);
+      const covered = uniqueTargets.filter(pair => Number(swapUsage[pair]||0) > 0 || Number(fleetUsage[pair]||0) > 0);
+      return { targetPairs: uniqueTargets, coveredSet: new Set(covered), covered: covered.length, targeted: uniqueTargets.length, ratio: covered.length / Math.max(1, uniqueTargets.length) };
+    }
 
-      return {
-        targetPairs: uniqueTargets,
-        coveredSet: new Set(covered),
-        covered: covered.length,
-        targeted: uniqueTargets.length,
-        ratio,
-      };
+    function renderFleetBanner(fleet) {
+      if (!fleet || !fleet.fleet_running) { $("fleetBanner").style.display = "none"; $("uptimeLabel").style.display = "none"; return; }
+      $("fleetBanner").style.display = "flex";
+      const fleetVol = Object.values(fleet.pair_volume_usd||{}).reduce((s,v) => s+v, 0);
+      $("fleetBannerStats").innerHTML = '<div><span>Agents:</span> <b>'+fleet.active_agents+'/'+fleet.total_agents+'</b></div><div><span>Swaps:</span> <b>'+fmtInt(fleet.total_swaps)+'</b></div><div><span>Success:</span> <b class="'+(fleet.overall_success_rate>=80?'ok':fleet.overall_success_rate>=50?'warn':'bad')+'">'+fmtPct(fleet.overall_success_rate)+'</b></div><div><span>Fleet Vol:</span> <b class="accent-text">'+fmtUsd(fleetVol)+'</b></div><div><span>Uptime:</span> <b>'+fmtDur(fleet.uptime_sec)+'</b></div>';
+      $("fleetAgentDots").innerHTML = (fleet.agents||[]).map(a => {
+        const cls = !a.enabled ? "off" : a.success_rate >= 80 ? "ok" : a.success_rate >= 50 ? "warn" : "bad";
+        return '<div class="agent-dot '+cls+'" title="'+a.name+': '+fmtPct(a.success_rate)+' success, '+a.total_swaps+' swaps">'+a.agent_id+'</div>';
+      }).join("");
+      $("uptimeLabel").style.display = "inline-block";
+      $("uptimeLabel").textContent = "Fleet " + fmtDur(fleet.uptime_sec);
     }
 
     function renderStats(state) {
-      const coverage = computeCoverage(state);
-      const pools = state?.pools || [];
-      const botVolume = pools.reduce((sum, p) => sum + Number(p.bot_generated_volume_usd || 0), 0);
-      const txs = Object.values(state?.bots || {}).reduce((sum, bot) => sum + Number(bot?.total || 0), 0);
+      const coverage = computeCoverage(state), pools = state?.pools || [];
+      const botVolume = pools.reduce((s,p) => s + Number(p.bot_generated_volume_usd||0), 0);
+      const totalVol24h = pools.reduce((s,p) => s + Number(p.volume_24h_usd||0), 0);
       const coord = state?.coordination || {};
+      const fleetVol = cachedFleet ? Object.values(cachedFleet.pair_volume_usd||{}).reduce((s,v) => s+v, 0) : 0;
+      const fleetSwaps = cachedFleet?.total_swaps || 0;
+      const fleetRate = cachedFleet?.overall_success_rate || 0;
 
       const stats = [
-        { k: "Total TVL", v: fmtUsd(state?.total_tvl_usd || 0), s: "on-chain pool balances" },
-        { k: "Pools Active", v: `${state?.initialized_pools || 0}/${state?.total_pools || 0}`, s: "initialized/registered" },
-        { k: "Pool Coverage", v: `${coverage.covered}/${coverage.targeted}`, s: `${(coverage.ratio * 100).toFixed(1)}% touched` },
-        { k: "Bot Transactions", v: fmtInt(txs), s: "swap + lp + limit" },
-        { k: "Bot Volume", v: fmtUsd(botVolume), s: "display overlay" },
-        { k: "Coordination", v: fmtInt(coord.cycles || 0), s: `last: ${coord.last_result || "idle"}` },
+        {k:"Total TVL", v:fmtUsd2(state?.total_tvl_usd||0), s:"on-chain balances"},
+        {k:"Pools Active", v:(state?.initialized_pools||0)+"/"+(state?.total_pools||0), s:"initialized"},
+        {k:"Coverage", v:coverage.covered+"/"+coverage.targeted, s:fmtPct(coverage.ratio*100)+" touched"},
+        {k:"24h Volume", v:fmtUsd(totalVol24h), s:"all pools"},
+        {k:"Bot Volume", v:fmtUsd(botVolume), s:"overlay"},
+        {k:"Fleet Volume", v:fmtUsd(fleetVol), s:fmtInt(fleetSwaps)+" swaps", accent:true},
+        {k:"Fleet Success", v:fmtPct(fleetRate), s:(cachedFleet?.active_agents||0)+" agents", accent:true},
+        {k:"Coordination", v:fmtInt(coord.cycles||0), s:coord.last_result||"idle"},
       ];
-
-      $("statsGrid").innerHTML = stats.map((m) => `
-        <div class="stat">
-          <div class="k">${m.k}</div>
-          <div class="v">${m.v}</div>
-          <div class="s">${m.s}</div>
-        </div>
-      `).join("");
-
-      const pct = Math.max(0, Math.min(100, coverage.ratio * 100));
-      $("coverageBar").style.width = `${pct}%`;
-
+      $("statsGrid").innerHTML = stats.map(m => '<div class="stat'+(m.accent?' accent':'')+'"><div class="k">'+m.k+'</div><div class="v">'+m.v+'</div><div class="s">'+m.s+'</div></div>').join("");
+      $("coverageBar").style.width = Math.max(0, Math.min(100, coverage.ratio*100))+"%";
       const uncovered = Math.max(0, coverage.targeted - coverage.covered);
       const policy = state?.coordination_policy || {};
-      $("coverageMini").innerHTML = `
-        <div class="m"><div class="k">Target Coverage</div><div class="v">${Math.round((Number(policy.min_pool_coverage_ratio || 0) * 100))}%</div></div>
-        <div class="m"><div class="k">Current Coverage</div><div class="v">${pct.toFixed(1)}%</div></div>
-        <div class="m"><div class="k">Uncovered Pools</div><div class="v">${uncovered}</div></div>
-      `;
-
+      $("coverageMini").innerHTML = '<div class="m"><div class="k">Target Coverage</div><div class="v">'+Math.round(Number(policy.min_pool_coverage_ratio||0)*100)+'%</div></div><div class="m"><div class="k">Current Coverage</div><div class="v">'+fmtPct(coverage.ratio*100)+'</div></div><div class="m"><div class="k">Uncovered Pools</div><div class="v">'+uncovered+'</div></div>';
       return coverage;
     }
 
     function renderTargetTable(state, coverage) {
-      const pools = state?.pools || [];
-      const poolMap = new Map(pools.map((p) => [String(p.name || "").toLowerCase(), p]));
-      const usage = state?.bots?.swap?.pool_usage || {};
-      const policy = state?.coordination_policy || {};
-      const targets = policy.volume_targets_usd || {};
-
-      const rows = Object.entries(targets).map(([pairKey, target]) => {
-        const key = String(pairKey || "").toLowerCase();
-        const pool = poolMap.get(key) || {};
-        const current = Number(pool.volume_24h_usd || 0);
-        const deficit = Math.max(0, Number(target || 0) - current);
-        const hits = Number(usage[key] || 0);
-        const isCovered = coverage.coveredSet.has(key);
-        return {
-          pair: pool.name || pairKey,
-          target: Number(target || 0),
-          current,
-          deficit,
-          hits,
-          isCovered,
-        };
-      }).sort((a, b) => b.deficit - a.deficit);
-
-      $("targetRows").innerHTML = rows.length ? rows.map((r) => `
-        <tr>
-          <td>${r.pair}</td>
-          <td class="mono">${fmtUsd(r.target)}</td>
-          <td class="mono">${fmtUsd(r.current)}</td>
-          <td class="mono ${r.deficit > 0 ? "warn" : "ok"}">${fmtUsd(r.deficit)}</td>
-          <td class="${r.isCovered ? "ok" : "warn"}">${r.isCovered ? `hit (${r.hits})` : "not hit"}</td>
-        </tr>
-      `).join("") : `<tr><td colspan="5" class="hint">No volume targets configured.</td></tr>`;
+      const pools = state?.pools || [], poolMap = new Map(pools.map(p => [String(p.name||"").toLowerCase(), p]));
+      const targets = (state?.coordination_policy||{}).volume_targets_usd || {};
+      const fleetVol = cachedFleet?.pair_volume_usd || {};
+      const rows = Object.entries(targets).map(([k, target]) => {
+        const key = k.toLowerCase(), pool = poolMap.get(key)||{};
+        const current = Number(pool.volume_24h_usd||0), fleetV = Number(fleetVol[key]||fleetVol[pool.name]||0);
+        const deficit = Math.max(0, target - current), pct = Math.min(100, (current / Math.max(target,1))*100);
+        return {pair:pool.name||k, target, current, fleetV, deficit, pct};
+      }).sort((a,b) => b.deficit - a.deficit);
+      $("targetRows").innerHTML = rows.length ? rows.map(r => '<tr><td>'+r.pair+'</td><td class="mono">'+fmtUsd(r.target)+'</td><td class="mono">'+fmtUsd(r.current)+'</td><td class="mono accent-text">'+fmtUsd(r.fleetV)+'</td><td class="mono '+(r.deficit>0?'warn':'ok')+'">'+fmtUsd(r.deficit)+'</td><td style="min-width:80px"><div class="progress" style="margin:0"><span style="width:'+r.pct.toFixed(1)+'%"></span></div></td></tr>').join("") : '<tr><td colspan="6" class="hint">No volume targets configured.</td></tr>';
     }
 
     function renderPools(state, coverage) {
-      const pools = (state?.pools || []).slice().sort((a, b) => Number(b.tvl_usd || 0) - Number(a.tvl_usd || 0));
-      const usage = state?.bots?.swap?.pool_usage || {};
-
-      $("poolRows").innerHTML = pools.map((p) => {
-        const key = String(p.name || "").toLowerCase();
-        const hits = Number(usage[key] || 0);
+      const pools = (state?.pools||[]).slice().sort((a,b) => Number(b.tvl_usd||0) - Number(a.tvl_usd||0));
+      const engineUsage = state?.bots?.swap?.pool_usage || {}, fleetUsage = cachedFleet?.aggregate_pool_usage || {};
+      $("poolRows").innerHTML = pools.map(p => {
+        const key = String(p.name||"").toLowerCase();
+        const fH = Number(fleetUsage[key]||0), eH = Number(engineUsage[key]||0);
         const covered = coverage.coveredSet.has(key);
-        const status = !p.initialized ? "not-init" : (covered ? "covered" : "uncovered");
-        const statusClass = !p.initialized ? "bad" : (covered ? "ok" : "warn");
-
-        return `
-          <tr>
-            <td>${p.name || "--"}</td>
-            <td class="mono">${fmtUsd(p.tvl_usd || 0)}</td>
-            <td class="mono">${fmtUsd(p.volume_24h_usd || 0)}</td>
-            <td class="mono">${fmtUsd(p.bot_generated_volume_usd || 0)}</td>
-            <td class="mono">${fmtInt(hits)}</td>
-            <td class="mono">${fmtInt(p.tick || 0)}</td>
-            <td class="${statusClass}">${status}</td>
-          </tr>
-        `;
+        const status = !p.initialized ? "not-init" : (covered ? "active" : "uncovered");
+        const sCls = !p.initialized ? "bad" : (covered ? "ok" : "warn");
+        return '<tr><td>'+p.name+'</td><td class="mono">'+fmtUsd2(p.tvl_usd||0)+'</td><td class="mono">'+fmtUsd(p.volume_24h_usd||0)+'</td><td class="mono">'+fmtUsd(p.bot_generated_volume_usd||0)+'</td><td class="mono accent-text">'+fmtInt(fH)+'</td><td class="mono">'+fmtInt(eH)+'</td><td class="mono">'+fmtInt(p.tick||0)+'</td><td class="'+sCls+'">'+status+'</td></tr>';
       }).join("");
     }
 
     function renderCoordActions(state) {
       const actions = state?.coordination?.last_actions || [];
-      if (!actions.length) {
-        $("coordActions").innerHTML = `<div class="activity-item hint">No coordination actions yet.</div>`;
-        return;
-      }
+      if (!actions.length) { $("coordActions").innerHTML = '<div class="activity-item hint">No coordination actions yet.</div>'; return; }
+      $("coordActions").innerHTML = actions.slice().reverse().map(a => {
+        const r = a.success===true?"ok":(a.success===false?"failed":"info"), cls = r==="ok"?"ok":(r==="failed"?"bad":"warn");
+        const details = [a.side?"side="+a.side:"", a.size_multiplier?"mult="+a.size_multiplier:"", a.behavior?"profile="+a.behavior:"", a.deficit_usd!=null?"deficit="+fmtUsd(a.deficit_usd):""].filter(Boolean).join(" | ");
+        return '<div class="activity-item"><span class="mono">'+(a.action||"action")+'</span> on <b>'+(a.pair||"--")+'</b> <span class="'+cls+'">'+r+'</span>'+(details?'<div class="hint">'+details+'</div>':'')+'</div>';
+      }).join("");
+    }
 
-      $("coordActions").innerHTML = actions.slice().reverse().map((a) => {
-        const action = a.action || "action";
-        const pair = a.pair || "--";
-        const result = a.success === true ? "ok" : (a.success === false ? "failed" : "info");
-        const cls = result === "ok" ? "ok" : (result === "failed" ? "bad" : "warn");
-        const details = [
-          a.side ? `side=${a.side}` : "",
-          a.size_multiplier ? `mult=${a.size_multiplier}` : "",
-          a.behavior ? `profile=${a.behavior}` : "",
-          a.deficit_usd != null ? `deficit=${fmtUsd(a.deficit_usd)}` : "",
-        ].filter(Boolean).join(" | ");
-
-        return `<div class="activity-item"><span class="mono">${action}</span> on <b>${pair}</b> <span class="${cls}">${result}</span>${details ? `<div class="hint">${details}</div>` : ""}</div>`;
+    function renderAgentActivity(fleet) {
+      if (!fleet || !(fleet.agents||[]).length) { $("agentActivity").innerHTML = '<div class="activity-item hint">No fleet agents.</div>'; return; }
+      const agents = (fleet.agents||[]).filter(a => a.last_swap_ts).sort((a,b) => b.last_swap_ts - a.last_swap_ts);
+      if (!agents.length) { $("agentActivity").innerHTML = '<div class="activity-item hint">Agents haven\'t swapped yet.</div>'; return; }
+      $("agentActivity").innerHTML = agents.map(a => {
+        const ago = Math.round(Date.now()/1000 - a.last_swap_ts);
+        const ageStr = ago < 60 ? ago+"s ago" : ago < 3600 ? Math.floor(ago/60)+"m ago" : Math.floor(ago/3600)+"h ago";
+        const sCls = a.success_rate>=80?"ok":a.success_rate>=50?"warn":"bad";
+        const errLine = a.last_error ? '<div class="hint" style="color:var(--red)">'+a.last_error.slice(0,80)+'</div>' : '';
+        return '<div class="activity-item"><b>'+a.name+'</b> → <span class="mono">'+(a.last_swap_pair||"?")+'</span> <span style="color:var(--muted)">'+ageStr+'</span><span class="'+sCls+'" style="float:right">'+fmtPct(a.success_rate)+'</span>'+errLine+'</div>';
       }).join("");
     }
 
     function renderEvents(items) {
-      const list = (items || []).slice(-120).reverse();
-      if (!list.length) {
-        $("eventFeed").innerHTML = `<div class="event">No events yet.</div>`;
-        return;
-      }
-      $("eventFeed").innerHTML = list.map((ev) => {
-        const ts = new Date(Number(ev.ts || 0) * 1000);
-        const hh = ts.toISOString().slice(11, 19);
-        return `<div class="event">[${hh}] <b>${ev.category || "event"}</b> ${ev.message || ""}</div>`;
+      const list = (items||[]).slice(-120).reverse();
+      if (!list.length) { $("eventFeed").innerHTML = '<div class="event">No events yet.</div>'; return; }
+      $("eventFeed").innerHTML = list.map(ev => {
+        const ts = new Date(Number(ev.ts||0)*1000).toISOString().slice(11,19);
+        return '<div class="event">['+ts+'] <b>'+(ev.category||"event")+'</b> '+(ev.message||"")+'</div>';
       }).join("");
     }
 
-    async function loadEvents() {
-      try {
-        const res = await fetch(`${API_BASE}/public/events?limit=250`);
-        const data = await res.json();
-        cachedEvents = data.items || [];
-      } catch (_err) {
-        cachedEvents = [];
-      }
-    }
+    async function loadEvents() { try { const r = await fetch(API_BASE+"/public/events?limit=250"); cachedEvents = (await r.json()).items||[]; } catch { cachedEvents = []; } }
+    async function loadFleet() { try { const r = await fetch(API_BASE+"/public/fleet"); cachedFleet = await r.json(); } catch { cachedFleet = null; } }
 
     async function refresh() {
       try {
-        const res = await fetch(`${API_BASE}/public/state`);
-        const state = await res.json();
-
+        const r = await fetch(API_BASE+"/public/state"); const state = await r.json();
         setConnection(true);
-        $("blockLabel").textContent = `Block: ${fmtInt(state.block_number || 0)}`;
-
+        $("blockLabel").textContent = "Block: " + fmtInt(state.block_number||0);
+        renderFleetBanner(cachedFleet);
         const coverage = renderStats(state);
         renderTargetTable(state, coverage);
         renderPools(state, coverage);
         renderCoordActions(state);
+        renderAgentActivity(cachedFleet);
         renderEvents(cachedEvents);
-      } catch (_err) {
-        setConnection(false);
-      }
+      } catch { setConnection(false); }
     }
 
     async function boot() {
-      await loadEvents();
+      await Promise.all([loadEvents(), loadFleet()]);
       await refresh();
       setInterval(loadEvents, 8000);
+      setInterval(loadFleet, 6000);
       setInterval(refresh, 4500);
     }
-
     boot();
   </script>
 </body>

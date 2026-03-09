@@ -20,9 +20,12 @@ import {
 } from "lucide-react";
 
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
+import { AppNavbar } from "@/components/zkdefi/AppNavbar";
 import { TrustFlowChecklist } from "@/components/zkdefi/TrustFlowChecklist";
+import { TrustFlowProgressSummary } from "@/components/zkdefi/trust-flow/TrustFlowProgressSummary";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { apiFetch, apiUrl } from "@/lib/api/client";
+import { toFixed, formatUsdSafe } from "@/lib/format";
 import {
   confirmSessionGrant,
   confirmSessionRevoke,
@@ -41,11 +44,27 @@ import {
   type DisclosureClaimKey,
 } from "@/lib/trust/adapters";
 import {
+  deriveClaims,
+  fetchIdentityGraph,
+  issueCredential,
+  normalizeSubject,
+  revokeCredential,
+  syncAttributions,
+  verifyCredential,
+  type AttributionQueryResponse,
+  type ClaimsDeriveResponse,
+  type CredentialIssueResponse,
+  type CredentialRevokeResponse,
+  type CredentialVerifyResponse,
+  type IdentityGraphResponse,
+} from "@/lib/trust/lifecycle";
+import {
   isPortableIdentityV3Enabled,
   isProfileV3Enabled,
   isTrustSurfaceWiringEnabled,
   isZkficoFinisherEnabled,
 } from "@/lib/trust/flags";
+import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
   useLinkedAddresses,
@@ -179,6 +198,22 @@ export default function ProfilePage() {
   const [selectedClaims, setSelectedClaims] = useState<DisclosureClaimKey[]>(
     DISCLOSURE_OPTIONS.map((item) => item.key)
   );
+  const [trustOpsLoading, setTrustOpsLoading] = useState({
+    graph: false,
+    sync: false,
+    derive: false,
+    issue: false,
+    verify: false,
+    revoke: false,
+  });
+  const [identityGraphSnapshot, setIdentityGraphSnapshot] = useState<IdentityGraphResponse | null>(null);
+  const [attributionSnapshot, setAttributionSnapshot] = useState<AttributionQueryResponse | null>(null);
+  const [derivedClaimsSnapshot, setDerivedClaimsSnapshot] = useState<ClaimsDeriveResponse | null>(null);
+  const [issuedCredential, setIssuedCredential] = useState<CredentialIssueResponse["credential"] | null>(null);
+  const [credentialVerification, setCredentialVerification] = useState<CredentialVerifyResponse | null>(null);
+  const [credentialRevocation, setCredentialRevocation] = useState<CredentialRevokeResponse | null>(null);
+  const [credentialVerifyInput, setCredentialVerifyInput] = useState("");
+  const [credentialRevokeInput, setCredentialRevokeInput] = useState("");
 
   useEffect(() => setMounted(true), []);
 
@@ -232,31 +267,28 @@ export default function ProfilePage() {
   const lendingGate = useMemo(() => getLendingGate(profileV2), [profileV2]);
   const governancePower = useMemo(() => getGovernancePower(profileV2), [profileV2]);
   const identityBinding = useMemo(() => getIdentityBindingStatus(profileV2), [profileV2]);
+  const trustFlow = useTrustFlowState(profileV2, address);
 
   const disclosureClaims = useMemo(
     () => getDisclosureClaims(profileV2, selectedClaims),
     [profileV2, selectedClaims]
   );
 
-  const trustFlowState = useMemo(
-    () => ({
-      rootIdentityConnected: Boolean(address && (profileV2?.identity?.identity_commitment || profileV2?.identity?.has_agent)),
-      walletsLinked: (profileV2?.identity?.linked_addresses?.length ?? 0) > 0,
-      walletsVerified: identityBinding.linkedVerifiedCount > 0,
-      attributionsSynced: Number(profileV2?.attribution_summary?.event_count ?? 0) > 0,
-      claimsDerived: Number(profileV2?.passport?.composite_score ?? 0) > 0,
-      disclosurePackIssued: Number(profileV2?.credential_summary?.active_count ?? 0) > 0,
-      scopedSessionBound:
-        Number(profileV2?.identity?.session_summary?.active_count ?? 0) > 0 ||
-        Boolean(profileV2?.identity?.dual_wallet_session?.active),
-    }),
-    [address, profileV2, identityBinding.linkedVerifiedCount]
-  );
-
   const linkedVerification = ((linked as Record<string, unknown>)?.verification ?? {}) as Record<
     ChainKey,
     { verified?: boolean; verified_at?: string; address?: string }
   >;
+  const trustSubject = useMemo(
+    () => normalizeSubject(profileV2?.identity?.subject_id ?? address ?? ""),
+    [profileV2?.identity?.subject_id, address]
+  );
+
+  const setTrustLoading = (
+    key: keyof typeof trustOpsLoading,
+    value: boolean
+  ) => {
+    setTrustOpsLoading((prev) => ({ ...prev, [key]: value }));
+  };
 
   const refreshing = async () => {
     await Promise.all([refetchBundle(), refetchV2()]);
@@ -273,6 +305,110 @@ export default function ProfilePage() {
         );
       }
       await Promise.all(tasks);
+    }
+  };
+
+  const handleFetchIdentityGraph = async () => {
+    if (!trustSubject) return;
+    setTrustLoading("graph", true);
+    try {
+      const graph = await fetchIdentityGraph(trustSubject);
+      setIdentityGraphSnapshot(graph ?? null);
+      toastSuccess("Identity graph loaded");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to load identity graph");
+    } finally {
+      setTrustLoading("graph", false);
+    }
+  };
+
+  const handleSyncAttributions = async () => {
+    if (!trustSubject) return;
+    setTrustLoading("sync", true);
+    try {
+      const payload = await syncAttributions(trustSubject, 90, false);
+      setAttributionSnapshot(payload ?? null);
+      await refreshing();
+      toastSuccess("Attributions synced");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to sync attributions");
+    } finally {
+      setTrustLoading("sync", false);
+    }
+  };
+
+  const handleDeriveClaims = async () => {
+    if (!trustSubject) return;
+    setTrustLoading("derive", true);
+    try {
+      const payload = await deriveClaims(trustSubject, 90, 0.0);
+      setDerivedClaimsSnapshot(payload ?? null);
+      await refreshing();
+      toastSuccess("Claims derived");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to derive claims");
+    } finally {
+      setTrustLoading("derive", false);
+    }
+  };
+
+  const handleIssueCredential = async () => {
+    if (!trustSubject) return;
+    setTrustLoading("issue", true);
+    try {
+      const payload = await issueCredential(trustSubject, {
+        template: "portable_identity_v3",
+        audience: "self",
+        ttlHours: 24,
+      });
+      setIssuedCredential(payload?.credential ?? null);
+      if (payload?.credential?.credential_id) {
+        setCredentialVerifyInput(payload.credential.credential_id);
+        setCredentialRevokeInput(payload.credential.credential_id);
+      }
+      await refreshing();
+      toastSuccess("Credential issued");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to issue credential");
+    } finally {
+      setTrustLoading("issue", false);
+    }
+  };
+
+  const handleVerifyCredential = async () => {
+    const credentialId = credentialVerifyInput.trim();
+    if (!credentialId) {
+      toastError("Enter a credential id");
+      return;
+    }
+    setTrustLoading("verify", true);
+    try {
+      const payload = await verifyCredential(credentialId);
+      setCredentialVerification(payload ?? null);
+      toastSuccess(payload?.valid ? "Credential verified" : "Credential not valid");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to verify credential");
+    } finally {
+      setTrustLoading("verify", false);
+    }
+  };
+
+  const handleRevokeCredential = async () => {
+    const credentialId = credentialRevokeInput.trim();
+    if (!credentialId) {
+      toastError("Enter a credential id");
+      return;
+    }
+    setTrustLoading("revoke", true);
+    try {
+      const payload = await revokeCredential(credentialId, "profile_user_request");
+      setCredentialRevocation(payload ?? null);
+      await refreshing();
+      toastSuccess(payload?.revoked ? "Credential revoked" : "Credential revoke not applied");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to revoke credential");
+    } finally {
+      setTrustLoading("revoke", false);
     }
   };
 
@@ -531,6 +667,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
+      <AppNavbar />
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -566,7 +703,7 @@ export default function ProfilePage() {
           <StatCard label="Reputation Tier" value={String(rep?.tier_name ?? "Unknown")} />
           <StatCard label="Passport Score" value={String(passport?.composite_score ?? 0)} />
           <StatCard label="Execution Gate" value={executionGate.mode.toUpperCase()} />
-          <StatCard label="Voting Power" value={governancePower.votingPower.toFixed(2)} />
+          <StatCard label="Voting Power" value={toFixed(governancePower?.votingPower, 2)} />
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -608,7 +745,15 @@ export default function ProfilePage() {
 
               {profileV3Enabled ? (
                 <div className="mb-3">
-                  <TrustFlowChecklist state={trustFlowState} />
+                  <TrustFlowProgressSummary
+                    complete={trustFlow.progress.complete}
+                    total={trustFlow.progress.total}
+                    ready={trustFlow.readyForAgent}
+                    progressLabel="progress"
+                    readinessLabel="ready for agent"
+                  />
+                  <div className="mb-2 text-xs text-zinc-500">complete flow: {trustFlow.complete ? "yes" : "no"}</div>
+                  <TrustFlowChecklist state={trustFlow.state} />
                 </div>
               ) : null}
 
@@ -886,6 +1031,148 @@ export default function ProfilePage() {
                 </pre>
               </div>
             </Panel>
+
+            {portableV3Enabled ? (
+              <Panel title="Trust Lifecycle Actions" icon={<Shield className="h-4 w-4" />} className="lg:col-span-2">
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                    <div className="mb-2 text-sm font-medium text-zinc-100">Identity Graph</div>
+                    <button
+                      onClick={() => void handleFetchIdentityGraph()}
+                      disabled={trustOpsLoading.graph}
+                      className="mb-2 rounded-lg border border-zinc-700 px-3 py-2 text-xs hover:border-zinc-500 disabled:opacity-60"
+                    >
+                      {trustOpsLoading.graph ? "Loading..." : "Load graph"}
+                    </button>
+                    <MetricRow
+                      label="links"
+                      value={String(identityGraphSnapshot?.links?.length ?? 0)}
+                      compact
+                    />
+                    <MetricRow
+                      label="sessions"
+                      value={String(identityGraphSnapshot?.sessions?.length ?? 0)}
+                      compact
+                    />
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                    <div className="mb-2 text-sm font-medium text-zinc-100">Attributions + Claims</div>
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => void handleSyncAttributions()}
+                        disabled={trustOpsLoading.sync}
+                        className="rounded-lg border border-zinc-700 px-3 py-2 text-xs hover:border-zinc-500 disabled:opacity-60"
+                      >
+                        {trustOpsLoading.sync ? "Syncing..." : "Sync attributions"}
+                      </button>
+                      <button
+                        onClick={() => void handleDeriveClaims()}
+                        disabled={trustOpsLoading.derive}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium hover:bg-emerald-500 disabled:opacity-60"
+                      >
+                        {trustOpsLoading.derive ? "Deriving..." : "Derive claims"}
+                      </button>
+                    </div>
+                    <MetricRow
+                      label="events"
+                      value={String(attributionSnapshot?.summary?.total_events ?? 0)}
+                      compact
+                    />
+                    <MetricRow
+                      label="coverage"
+                      value={String(attributionSnapshot?.summary?.coverage_score ?? 0)}
+                      compact
+                    />
+                    <MetricRow
+                      label="reputation score"
+                      value={String(
+                        Number(derivedClaimsSnapshot?.claims?.reputation_score_0_100 ?? 0).toFixed(2)
+                      )}
+                      compact
+                    />
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                    <div className="mb-2 text-sm font-medium text-zinc-100">Credential Lifecycle</div>
+                    <button
+                      onClick={() => void handleIssueCredential()}
+                      disabled={trustOpsLoading.issue}
+                      className="mb-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium hover:bg-emerald-500 disabled:opacity-60"
+                    >
+                      {trustOpsLoading.issue ? "Issuing..." : "Issue disclosure pack"}
+                    </button>
+
+                    <input
+                      value={credentialVerifyInput}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setCredentialVerifyInput(next);
+                        setCredentialRevokeInput(next);
+                      }}
+                      placeholder="Credential id"
+                      className="mb-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                    />
+                    <div className="mb-2 flex gap-2">
+                      <button
+                        onClick={() => void handleVerifyCredential()}
+                        disabled={trustOpsLoading.verify}
+                        className="rounded-lg border border-zinc-700 px-3 py-2 text-xs hover:border-zinc-500 disabled:opacity-60"
+                      >
+                        {trustOpsLoading.verify ? "Verifying..." : "Verify"}
+                      </button>
+                      <button
+                        onClick={() => void handleRevokeCredential()}
+                        disabled={trustOpsLoading.revoke}
+                        className="rounded-lg border border-amber-700/50 bg-amber-900/10 px-3 py-2 text-xs hover:border-amber-600 disabled:opacity-60"
+                      >
+                        {trustOpsLoading.revoke ? "Revoking..." : "Revoke"}
+                      </button>
+                    </div>
+                    <MetricRow
+                      label="issued"
+                      value={issuedCredential?.credential_id ? "yes" : "no"}
+                      compact
+                    />
+                    <MetricRow
+                      label="verified"
+                      value={
+                        credentialVerification?.valid == null
+                          ? "n/a"
+                          : credentialVerification.valid
+                          ? "yes"
+                          : "no"
+                      }
+                      compact
+                    />
+                    <MetricRow
+                      label="revoked"
+                      value={
+                        credentialRevocation?.revoked == null
+                          ? "n/a"
+                          : credentialRevocation.revoked
+                          ? "yes"
+                          : "no"
+                      }
+                      compact
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-300">
+                  <div className="mb-1 text-zinc-200">subject</div>
+                  <div className="font-mono break-all text-zinc-400">{trustSubject || "n/a"}</div>
+                  {issuedCredential?.credential_id ? (
+                    <div className="mt-2">
+                      <div className="text-zinc-200">last credential</div>
+                      <div className="font-mono break-all text-zinc-400">
+                        {issuedCredential.credential_id}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </Panel>
+            ) : null}
           </section>
         )}
 
@@ -1041,11 +1328,11 @@ export default function ProfilePage() {
         {activeLens === "governance" && (
           <section className="grid gap-4 lg:grid-cols-2">
             <Panel title="Governance Domain" icon={<Vote className="h-4 w-4" />}>
-              <MetricRow label="Voting power" value={governancePower.votingPower.toFixed(4)} />
-              <MetricRow label="LP capital" value={`$${governancePower.lpUsd.toFixed(2)}`} />
-              <MetricRow label="Lending capital" value={`$${governancePower.lendingUsd.toFixed(2)}`} />
-              <MetricRow label="Staking capital" value={`$${governancePower.stakingUsd.toFixed(2)}`} />
-              <MetricRow label="Tier multiplier" value={governancePower.tierMultiplier.toFixed(2)} />
+              <MetricRow label="Voting power" value={toFixed(governancePower?.votingPower, 4)} />
+              <MetricRow label="LP capital" value={formatUsdSafe(governancePower?.lpUsd)} />
+              <MetricRow label="Lending capital" value={formatUsdSafe(governancePower?.lendingUsd)} />
+              <MetricRow label="Staking capital" value={formatUsdSafe(governancePower?.stakingUsd)} />
+              <MetricRow label="Tier multiplier" value={toFixed(governancePower?.tierMultiplier, 2)} />
               <MetricRow label="Formula" value={governancePower.formulaVersion} />
             </Panel>
 
@@ -1059,7 +1346,7 @@ export default function ProfilePage() {
                     value={String(profileV2?.predictive_credit?.grade ?? "N/A")}
                     compact
                   />
-                  <MetricRow label="Governance voting power" value={governancePower.votingPower.toFixed(3)} compact />
+                  <MetricRow label="Governance voting power" value={toFixed(governancePower?.votingPower, 3)} compact />
                 </div>
               </div>
             </Panel>

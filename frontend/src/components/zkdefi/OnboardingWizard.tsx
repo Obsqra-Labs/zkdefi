@@ -4,14 +4,42 @@ import { useState, useEffect } from "react";
 import { useAccount, useConnect, useSignTypedData } from "@starknet-react/core";
 import { constants } from "starknet";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ChevronRight, ChevronLeft, Check, Loader2, Wallet, Settings, FileCheck, Zap, Lock, AlertTriangle } from "lucide-react";
-import Link from "next/link";
+
+import { apiFetch } from "@/lib/api/client";
+import {
+  confirmSessionGrant,
+  formatTimeRemaining,
+  generateSessionRequest,
+  getUserSessions,
+  type Session,
+} from "@/lib/sessionKeys";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { ProofVisualizer } from "./ProofVisualizer";
 import {
   buildRiskDisclosureTypedData,
   RISK_DISCLOSURE_STATEMENT,
 } from "@/lib/riskDisclosureTypedData";
+import { markOnboardingComplete } from "@/lib/trust/onboardingState";
+import {
+  deriveClaims,
+  issueCredential,
+  normalizeSubject,
+  syncAttributions,
+} from "@/lib/trust/lifecycle";
+import { useLinkedAddresses } from "@/hooks/useProfile";
+import {
+  OnboardingAuthorizeStep,
+  OnboardingClaimsStep,
+  OnboardingCompleteStep,
+  OnboardingConfigureStep,
+  OnboardingConnectStep,
+  OnboardingReviewStep,
+  OnboardingStepProgress,
+  OnboardingSubmitStep,
+  OnboardingTrustProgress,
+  type OnboardingClaimConfig,
+  type OnboardingConstraintConfig,
+  type OnboardingPortableLifecycleStatus,
+} from "@/components/zkdefi/trust-flow/OnboardingSteps";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -20,15 +48,13 @@ interface OnboardingWizardProps {
 }
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type ChainKey = "eth" | "arb" | "base" | "opt";
 
-const STEPS = [
-  { id: 1, title: "Connect", icon: Wallet },
-  { id: 2, title: "Configure", icon: Settings },
-  { id: 3, title: "Claims", icon: FileCheck },
-  { id: 4, title: "Authorize", icon: Shield },
-  { id: 5, title: "Review", icon: AlertTriangle },
-  { id: 6, title: "Submit", icon: Zap },
-  { id: 7, title: "Complete", icon: Check },
+const CHAIN_INFO: Array<{ short: ChainKey; full: string; label: string }> = [
+  { short: "eth", full: "ethereum", label: "Ethereum" },
+  { short: "arb", full: "arbitrum", label: "Arbitrum" },
+  { short: "base", full: "base", label: "Base" },
+  { short: "opt", full: "optimism", label: "Optimism" },
 ];
 
 const RISK_LEVELS = [
@@ -41,29 +67,79 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors } = useConnect();
   const { signTypedDataAsync } = useSignTypedData({});
-  
+  const { linked, draft, setDraft, save: saveLinkedAddresses, saving: savingLinkedAddresses } =
+    useLinkedAddresses(address);
+
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [proofState, setProofState] = useState<"idle" | "generating" | "valid">("idle");
-  
-  // User configuration
-  const [constraints, setConstraints] = useState({ 
-    maxPosition: "5", 
-    riskTolerance: 50, 
-    sessionDuration: 24 
+
+  const [constraints, setConstraints] = useState<OnboardingConstraintConfig>({
+    maxPosition: "5",
+    riskTolerance: 50,
+    sessionDuration: 24,
   });
-  const [claims, setClaims] = useState([
-    { id: "compliance", label: "Compliance", description: "Not in sanctioned set", enabled: true, required: true },
-    { id: "tenure", label: "Tenure > 30 days", description: "Account age proof", enabled: false },
+  const [claims, setClaims] = useState<OnboardingClaimConfig[]>([
+    {
+      id: "compliance",
+      label: "Compliance",
+      description: "Not in sanctioned set",
+      enabled: true,
+      required: true,
+    },
+    {
+      id: "tenure",
+      label: "Tenure > 30 days",
+      description: "Account age proof",
+      enabled: false,
+    },
   ]);
-  
-  // Generated data
+
   const [factHash, setFactHash] = useState<string | null>(null);
   const [identityCommitment, setIdentityCommitment] = useState<string | null>(null);
   const [riskSignature, setRiskSignature] = useState<{ r: string; s: string } | null>(null);
   const [agentTxHash, setAgentTxHash] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionTxById, setSessionTxById] = useState<Record<string, string>>({});
+  const [pendingGrant, setPendingGrant] = useState<{ sessionId: string } | null>(null);
+  const [createSessionConfig, setCreateSessionConfig] = useState({
+    sessionKeyAddress: "",
+    maxPositionEth: "0.2",
+    durationHours: "24",
+    protocolPools: true,
+    protocolEkubo: true,
+    protocolJediswap: false,
+  });
+  const [verificationDrafts, setVerificationDrafts] = useState<Record<ChainKey, { signature: string }>>({
+    eth: { signature: "" },
+    arb: { signature: "" },
+    base: { signature: "" },
+    opt: { signature: "" },
+  });
+  const [verificationChallenges, setVerificationChallenges] = useState<
+    Record<ChainKey, { nonceId: string; challenge: string } | null>
+  >({ eth: null, arb: null, base: null, opt: null });
+  const [verifyBusy, setVerifyBusy] = useState<Record<ChainKey, boolean>>({
+    eth: false,
+    arb: false,
+    base: false,
+    opt: false,
+  });
+  const [portableLifecycle, setPortableLifecycle] = useState<OnboardingPortableLifecycleStatus>({
+    walletsLinked: false,
+    walletsVerified: false,
+    scopedSessionBound: false,
+    attributionsSynced: false,
+    claimsDerived: false,
+    disclosurePackIssued: false,
+    verifiedWalletCount: 0,
+    activeSessionCount: 0,
+    attributionEvents: 0,
+    reputationScore: 0,
+    credentialId: null,
+  });
 
-  // Auto-advance when wallet connects
   useEffect(() => {
     if (isConnected && step === 1) {
       toastSuccess("Wallet connected");
@@ -71,14 +147,181 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
   }, [isConnected, step]);
 
+  useEffect(() => {
+    if (!address) {
+      setSessions([]);
+      return;
+    }
+    void refreshSessions(address, setSessions, setSessionLoading);
+  }, [address]);
+
+  const linkedVerification = ((linked as Record<string, unknown>)?.verification ?? {}) as Record<
+    ChainKey,
+    { verified?: boolean }
+  >;
+
+  useEffect(() => {
+    const linkedCount = CHAIN_INFO.reduce((count, { short }) => {
+      const value = (linked as Record<string, unknown>)?.[short];
+      if (typeof value === "string" && value.trim()) return count + 1;
+      return count;
+    }, 0);
+    const verifiedWalletCount = CHAIN_INFO.reduce((count, { short }) => {
+      return count + (linkedVerification?.[short]?.verified ? 1 : 0);
+    }, 0);
+    const activeSessionCount = sessions.filter((session) => session.isActive && !session.isExpired).length;
+
+    setPortableLifecycle((prev) => ({
+      ...prev,
+      walletsLinked: linkedCount > 0,
+      walletsVerified: verifiedWalletCount > 0,
+      scopedSessionBound: activeSessionCount > 0,
+      verifiedWalletCount,
+      activeSessionCount,
+    }));
+  }, [linked, linkedVerification, sessions]);
+
   const handleConnect = async (connectorId: string) => {
-    const connector = connectors.find((c) => c.id === connectorId);
-    if (connector) {
-      try {
-        await connect({ connector });
-      } catch (e) {
-        toastError("Connection failed");
+    const connector = connectors.find((item) => item.id === connectorId);
+    if (!connector) {
+      return;
+    }
+    try {
+      await connect({ connector });
+    } catch {
+      toastError("Connection failed");
+    }
+  };
+
+  const handleStartVerify = async (short: ChainKey, full: string) => {
+    if (!address) return;
+    const chainAddress = (draft as Record<ChainKey, string>)[short]?.trim();
+    if (!chainAddress) {
+      toastError(`Enter a ${full} address first`);
+      return;
+    }
+
+    setVerifyBusy((prev) => ({ ...prev, [short]: true }));
+    try {
+      const response = await apiFetch<{ nonce_id: string; challenge: string }>(
+        "/api/v1/zkdefi/linked_addresses/verify/start",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            starknet_address: address,
+            chain: full,
+            address: chainAddress,
+          }),
+        }
+      );
+
+      setVerificationChallenges((prev) => ({
+        ...prev,
+        [short]: { nonceId: response.nonce_id, challenge: response.challenge },
+      }));
+      toastSuccess(`${full} verification challenge created`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to start verification");
+    } finally {
+      setVerifyBusy((prev) => ({ ...prev, [short]: false }));
+    }
+  };
+
+  const handleCompleteVerify = async (short: ChainKey, full: string) => {
+    if (!address) return;
+    const challenge = verificationChallenges[short];
+    const chainAddress = (draft as Record<ChainKey, string>)[short]?.trim();
+    const signature = verificationDrafts[short]?.signature?.trim();
+    if (!challenge || !chainAddress || !signature) {
+      toastError("Challenge, address, and signature are required");
+      return;
+    }
+
+    setVerifyBusy((prev) => ({ ...prev, [short]: true }));
+    try {
+      await apiFetch("/api/v1/zkdefi/linked_addresses/verify/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          starknet_address: address,
+          chain: full,
+          address: chainAddress,
+          nonce_id: challenge.nonceId,
+          signature,
+        }),
+      });
+
+      setVerificationChallenges((prev) => ({ ...prev, [short]: null }));
+      setVerificationDrafts((prev) => ({ ...prev, [short]: { signature: "" } }));
+      const ok = await saveLinkedAddresses();
+      if (!ok) {
+        toastError("Address verified, but save failed");
       }
+      toastSuccess(`${full} address verified`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to verify address");
+    } finally {
+      setVerifyBusy((prev) => ({ ...prev, [short]: false }));
+    }
+  };
+
+  const handleSaveLinkedAddresses = async () => {
+    const ok = await saveLinkedAddresses();
+    if (ok) {
+      toastSuccess("Linked wallets saved");
+    } else {
+      toastError("Failed to save linked wallets");
+    }
+  };
+
+  const handleCreateSession = async () => {
+    if (!address) return;
+    const maxPositionEth = Number(createSessionConfig.maxPositionEth);
+    const maxPositionWei = Number.isFinite(maxPositionEth) ? Math.floor(maxPositionEth * 1e18) : 0;
+    if (!createSessionConfig.sessionKeyAddress.trim() || maxPositionWei <= 0) {
+      toastError("Session key address and max position are required");
+      return;
+    }
+
+    const protocols: string[] = [];
+    if (createSessionConfig.protocolPools) protocols.push("pools");
+    if (createSessionConfig.protocolEkubo) protocols.push("ekubo");
+    if (createSessionConfig.protocolJediswap) protocols.push("jediswap");
+    if (!protocols.length) {
+      toastError("Select at least one protocol scope");
+      return;
+    }
+
+    try {
+      const result = await generateSessionRequest(address, {
+        sessionKeyAddress: createSessionConfig.sessionKeyAddress.trim(),
+        maxPosition: maxPositionWei,
+        allowedProtocols: protocols,
+        durationHours: Number(createSessionConfig.durationHours) || 24,
+      });
+      setPendingGrant({ sessionId: result.sessionId });
+      toastSuccess("Session request created. Confirm with on-chain tx hash.");
+      await refreshSessions(address, setSessions, setSessionLoading);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to create session request");
+    }
+  };
+
+  const handleConfirmGrant = async () => {
+    if (!pendingGrant || !address) return;
+    const txHash = sessionTxById[pendingGrant.sessionId]?.trim();
+    if (!txHash) {
+      toastError("Enter tx hash to confirm grant");
+      return;
+    }
+
+    try {
+      await confirmSessionGrant(pendingGrant.sessionId, txHash);
+      setPendingGrant(null);
+      setSessionTxById((prev) => ({ ...prev, [pendingGrant.sessionId]: "" }));
+      await refreshSessions(address, setSessions, setSessionLoading);
+      toastSuccess("Session grant confirmed");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to confirm grant");
     }
   };
 
@@ -86,16 +329,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     if (!address) return;
     setIsLoading(true);
     setProofState("generating");
-    
+
     try {
-      console.log("🔐 Generating REAL authorization proof...");
-      console.log("User:", address);
-      console.log("Constraints:", constraints);
-      console.log("Claims:", claims.filter(c => c.enabled).map(c => c.id));
-      
-      const enabledClaims = claims.filter(c => c.enabled).map(c => c.id);
-      const maxPositionWei = (parseFloat(constraints.maxPosition) * 1e18).toString();
-      
+      const enabledClaims = claims.filter((item) => item.enabled).map((item) => item.id);
+      const maxPositionWei = (Number.parseFloat(constraints.maxPosition) * 1e18).toString();
+
       const response = await fetch(`${API_BASE}/v1/zkdefi/onboarding/generate_authorization`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,29 +342,54 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           constraints: {
             max_position: maxPositionWei,
             risk_tolerance: constraints.riskTolerance,
-            session_duration: constraints.sessionDuration
+            session_duration: constraints.sessionDuration,
           },
-          claims: enabledClaims
+          claims: enabledClaims,
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || "Authorization failed");
       }
-      
+
       const data = await response.json();
-      console.log("✅ Authorization proof generated:", data);
-      
       setFactHash(data.fact_hash);
       setIdentityCommitment(data.identity_commitment);
       setProofState("valid");
+      const subject = normalizeSubject(address);
+
+      try {
+        const attribution = await syncAttributions(subject, 90, false);
+        setPortableLifecycle((prev) => ({
+          ...prev,
+          attributionsSynced: true,
+          attributionEvents: Number(attribution?.summary?.total_events ?? 0),
+        }));
+        toastSuccess("Attributions synced");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Attribution sync unavailable";
+        toastError(`Non-blocking: ${message}`);
+      }
+
+      try {
+        const derived = await deriveClaims(subject, 90, 0);
+        setPortableLifecycle((prev) => ({
+          ...prev,
+          claimsDerived: true,
+          reputationScore: Number(derived?.claims?.reputation_score_0_100 ?? 0),
+        }));
+        toastSuccess("Portable claims derived");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Claim derivation unavailable";
+        toastError(`Non-blocking: ${message}`);
+      }
+
       toastSuccess("Authorization proof generated");
-      setStep(5); // Move to Review & Sign Risk Disclosure
-      
-    } catch (e: any) {
-      console.error("❌ Authorization generation failed:", e);
-      toastError(`Failed: ${e.message}`);
+      setStep(5);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Authorization failed";
+      toastError(`Failed: ${message}`);
       setProofState("idle");
     } finally {
       setIsLoading(false);
@@ -136,59 +399,54 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const handleSignRiskDisclosure = async () => {
     if (!address || !factHash || !identityCommitment) return;
     setIsLoading(true);
-    
+
     try {
-      // Use wallet's chain so domain.chainId matches (avoids wallet rejection)
       const chainIdHex =
         chainId != null
           ? typeof chainId === "bigint"
-            ? "0x" + chainId.toString(16)
+            ? `0x${chainId.toString(16)}`
             : String(chainId)
           : constants.StarknetChainId.SN_SEPOLIA;
       const typedData = buildRiskDisclosureTypedData(chainIdHex);
-      
       const sig = await signTypedDataAsync(typedData as Parameters<typeof signTypedDataAsync>[0]);
-      
+
       let r: string | undefined;
       let s: string | undefined;
-      
+
       if (Array.isArray(sig) && sig.length >= 2) {
         r = sig[0] != null ? String(sig[0]) : undefined;
         s = sig[1] != null ? String(sig[1]) : undefined;
       } else if (sig && typeof sig === "object") {
-        const o = sig as unknown as Record<string, unknown>;
-        const rVal = o.r ?? o.r_low ?? o[0];
-        const sVal = o.s ?? o.s_low ?? o[1];
-        if (rVal != null && sVal != null) {
-          r = typeof rVal === "bigint" ? rVal.toString() : String(rVal);
-          s = typeof sVal === "bigint" ? sVal.toString() : String(sVal);
+        const obj = sig as unknown as Record<string, unknown>;
+        const rValue = obj.r ?? obj.r_low ?? obj[0];
+        const sValue = obj.s ?? obj.s_low ?? obj[1];
+        if (rValue != null && sValue != null) {
+          r = typeof rValue === "bigint" ? rValue.toString() : String(rValue);
+          s = typeof sValue === "bigint" ? sValue.toString() : String(sValue);
         }
       }
-      
+
       if (!r || !s) {
-        console.error("Unsupported signature shape:", sig);
         throw new Error("Invalid signature");
       }
-      
+
       setRiskSignature({ r, s });
       localStorage.setItem("risk-acknowledged", "true");
       localStorage.setItem(
         `zkdefi_risk_sig_${address.toLowerCase()}`,
         JSON.stringify({ signature: { r, s }, signedAt: new Date().toISOString() })
       );
-      
+
       toastSuccess("Risk disclosure signed");
       setStep(6);
-      
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const lower = msg.toLowerCase();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const lower = message.toLowerCase();
       const isReject =
         lower.includes("reject") ||
         lower.includes("denied") ||
         lower.includes("cancel") ||
         lower.includes("user");
-      console.error("Signature failed:", e);
       toastError(isReject ? "Signing was rejected" : "Signing failed. Try again or use another wallet.");
     } finally {
       setIsLoading(false);
@@ -198,12 +456,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const handleSubmitAgent = async () => {
     if (!address || !factHash || !identityCommitment || !riskSignature) return;
     setIsLoading(true);
-    
+
     try {
-      console.log("🚀 Submitting agent on-chain...");
-      console.log("Fact Hash:", factHash);
-      console.log("Identity Commitment:", identityCommitment);
-      
       const response = await fetch(`${API_BASE}/v1/zkdefi/onboarding/submit_agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,419 +465,335 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           user_address: address,
           fact_hash: factHash,
           identity_commitment: identityCommitment,
-          risk_signature: riskSignature
+          risk_signature: riskSignature,
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || "Submission failed");
       }
-      
+
       const data = await response.json();
-      console.log("✅ Agent initialized:", data);
-      
       setAgentTxHash(data.tx_hash);
-      
-      // Mark onboarding complete
-      localStorage.setItem("onboarding-complete", "true");
-      localStorage.setItem(
-        `zkdefi_agent_${address.toLowerCase()}`,
-        JSON.stringify({
-          fact_hash: factHash,
-          identity_commitment: identityCommitment,
-          initialized_at: new Date().toISOString()
-        })
-      );
-      
+
+      try {
+        const subject = normalizeSubject(address);
+        const issued = await issueCredential(subject, {
+          template: "portable_identity_v3",
+          audience: "self",
+          ttlHours: 24,
+        });
+        setPortableLifecycle((prev) => ({
+          ...prev,
+          disclosurePackIssued: true,
+          credentialId: issued?.credential?.credential_id ?? null,
+        }));
+        toastSuccess("Disclosure credential issued");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Credential issue unavailable";
+        toastError(`Agent initialized, but credential issue failed: ${message}`);
+      }
+
+      markOnboardingComplete(address, "onboarding_wizard_submit_agent");
       toastSuccess("Agent initialized successfully!");
       setStep(7);
-      
-    } catch (e: any) {
-      console.error("❌ Agent submission failed:", e);
-      toastError(`Failed: ${e.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Submission failed";
+      toastError(`Failed: ${message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const trustProgressComplete = Math.max(0, Math.min(7, step - 1));
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
-        <div className="flex justify-between mb-8">
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step > s.id ? "bg-emerald-600" : step === s.id ? "bg-emerald-600/20 border-2 border-emerald-500" : "bg-zinc-800"}`}>
-                {step > s.id ? <Check className="w-5 h-5" /> : <s.icon className={`w-5 h-5 ${step === s.id ? "text-emerald-400" : "text-zinc-500"}`} />}
-              </div>
-              {i < STEPS.length - 1 && <div className={`w-6 h-0.5 mx-1 ${step > s.id ? "bg-emerald-600" : "bg-zinc-700"}`} />}
-            </div>
-          ))}
-        </div>
+        <OnboardingStepProgress currentStep={step} />
+        <OnboardingTrustProgress
+          complete={trustProgressComplete}
+          total={7}
+          ready={step === 7}
+        />
 
         <AnimatePresence mode="wait">
-          <motion.div key={step} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
-            
-            {/* Step 1: Connect Wallet */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center">Connect Wallet</h2>
-                <p className="text-sm text-zinc-400 text-center">
-                  Connect your Starknet wallet to initialize your autonomous agent
-                </p>
-                {connectors.map((c) => (
-                  <button 
-                    key={c.id} 
-                    onClick={() => handleConnect(c.id)} 
-                    className="w-full p-4 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 rounded-lg flex justify-between items-center transition-colors"
-                  >
-                    <span>{c.name}</span>
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                ))}
-              </div>
-            )}
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6"
+          >
+            {step === 1 ? (
+              <OnboardingConnectStep
+                connectors={connectors.map((item) => ({ id: item.id, name: item.name }))}
+                onConnect={handleConnect}
+              />
+            ) : null}
 
-            {/* Step 2: Configure Constraints */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center">Configure Constraints</h2>
-                <p className="text-sm text-zinc-400 text-center">
-                  Set guardrails for your autonomous agent
-                </p>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">Max Position (ETH)</label>
-                  <input 
-                    type="number" 
-                    value={constraints.maxPosition} 
-                    onChange={(e) => setConstraints({ ...constraints, maxPosition: e.target.value })} 
-                    className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:border-emerald-500 outline-none"
-                    placeholder="5.0"
-                  />
-                  <p className="text-xs text-zinc-500 mt-1">Maximum ETH per position</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">Risk Tolerance</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {RISK_LEVELS.map((l) => (
-                      <button 
-                        key={l.value} 
-                        onClick={() => setConstraints({ ...constraints, riskTolerance: l.value })} 
-                        className={`p-3 rounded-lg border transition-all ${
-                          constraints.riskTolerance === l.value 
-                            ? "bg-emerald-600/20 border-emerald-500 text-emerald-400" 
-                            : "bg-zinc-800/50 border-zinc-700 hover:border-zinc-600"
-                        }`}
+            {step === 2 ? (
+              <OnboardingConfigureStep
+                constraints={constraints}
+                onConstraintsChange={setConstraints}
+                riskLevels={RISK_LEVELS}
+                onContinue={() => setStep(3)}
+              />
+            ) : null}
+
+            {step === 3 ? (
+              <OnboardingClaimsStep
+                claims={claims}
+                extraContent={
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                      <div className="mb-2 text-sm font-medium">Link + Verify Wallets</div>
+                      <div className="mb-2 text-xs text-zinc-400">
+                        Verify at least one linked wallet for cross-chain trust attribution.
+                      </div>
+                      <div className="space-y-2">
+                        {CHAIN_INFO.map(({ short, full, label }) => (
+                          <div key={short} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2">
+                            <div className="mb-1 flex items-center justify-between text-xs">
+                              <span className="text-zinc-300">{label}</span>
+                              <span className={linkedVerification?.[short]?.verified ? "text-emerald-300" : "text-zinc-500"}>
+                                {linkedVerification?.[short]?.verified ? "verified" : "unverified"}
+                              </span>
+                            </div>
+                            <input
+                              value={(draft as Record<ChainKey, string>)[short] ?? ""}
+                              onChange={(e) => setDraft((prev) => ({ ...prev, [short]: e.target.value }))}
+                              placeholder={`0x... ${label} address`}
+                              className="mb-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                            />
+                            {verificationChallenges[short] ? (
+                              <div className="mb-2 rounded border border-zinc-700 bg-zinc-900 p-2 text-[11px] text-zinc-400">
+                                {verificationChallenges[short]?.challenge}
+                              </div>
+                            ) : null}
+                            <input
+                              value={verificationDrafts[short].signature}
+                              onChange={(e) =>
+                                setVerificationDrafts((prev) => ({
+                                  ...prev,
+                                  [short]: { signature: e.target.value },
+                                }))
+                              }
+                              placeholder="Paste EVM signature"
+                              className="mb-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => void handleStartVerify(short, full)}
+                                disabled={verifyBusy[short]}
+                                className="rounded border border-zinc-700 px-2 py-1 text-[11px] hover:border-zinc-500 disabled:opacity-60"
+                              >
+                                {verifyBusy[short] ? "..." : "start"}
+                              </button>
+                              <button
+                                onClick={() => void handleCompleteVerify(short, full)}
+                                disabled={verifyBusy[short]}
+                                className="rounded bg-emerald-700 px-2 py-1 text-[11px] font-medium hover:bg-emerald-600 disabled:opacity-60"
+                              >
+                                complete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => void handleSaveLinkedAddresses()}
+                        disabled={savingLinkedAddresses}
+                        className="mt-2 rounded border border-zinc-700 px-2 py-1 text-xs hover:border-zinc-500 disabled:opacity-60"
                       >
-                        <div className="text-sm font-medium">{l.label}</div>
-                        <div className="text-xs text-zinc-500">{l.description}</div>
+                        {savingLinkedAddresses ? "saving..." : "save linked wallets"}
                       </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">Session Duration (hours)</label>
-                  <input 
-                    type="number" 
-                    value={constraints.sessionDuration} 
-                    onChange={(e) => setConstraints({ ...constraints, sessionDuration: parseInt(e.target.value) })} 
-                    className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:border-emerald-500 outline-none"
-                    placeholder="24"
-                  />
-                  <p className="text-xs text-zinc-500 mt-1">How long agent can execute without re-authorization</p>
-                </div>
-                
-                <button 
-                  onClick={() => setStep(3)} 
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
-                >
-                  Continue
-                </button>
-              </div>
-            )}
+                    </div>
 
-            {/* Step 3: Select Claims */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center">Reputation Claims</h2>
-                <p className="text-sm text-zinc-400 text-center">
-                  Select optional privacy-preserving claims about your account
-                </p>
-                
-                {claims.map((c) => (
-                  <div 
-                    key={c.id} 
-                    onClick={() => !c.required && setClaims(claims.map(cl => cl.id === c.id ? { ...cl, enabled: !cl.enabled } : cl))}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      c.enabled 
-                        ? "bg-emerald-600/20 border-emerald-500" 
-                        : "bg-zinc-800/50 border-zinc-700 hover:border-zinc-600"
-                    } ${c.required ? "opacity-80 cursor-not-allowed" : ""}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium flex items-center gap-2">
-                          {c.label}
-                          {c.required && <span className="text-xs px-2 py-0.5 bg-zinc-700 rounded">Required</span>}
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                      <div className="mb-2 text-sm font-medium">Bind Scoped Session</div>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <input
+                          value={createSessionConfig.sessionKeyAddress}
+                          onChange={(e) =>
+                            setCreateSessionConfig((prev) => ({ ...prev, sessionKeyAddress: e.target.value }))
+                          }
+                          placeholder="Session key address"
+                          className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                        />
+                        <input
+                          value={createSessionConfig.maxPositionEth}
+                          onChange={(e) =>
+                            setCreateSessionConfig((prev) => ({ ...prev, maxPositionEth: e.target.value }))
+                          }
+                          placeholder="Max position (ETH)"
+                          className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                        />
+                        <input
+                          value={createSessionConfig.durationHours}
+                          onChange={(e) =>
+                            setCreateSessionConfig((prev) => ({ ...prev, durationHours: e.target.value }))
+                          }
+                          placeholder="Duration hours"
+                          className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                        />
+                        <div className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px]">
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={createSessionConfig.protocolPools}
+                              onChange={(e) =>
+                                setCreateSessionConfig((prev) => ({ ...prev, protocolPools: e.target.checked }))
+                              }
+                            />
+                            pools
+                          </label>
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={createSessionConfig.protocolEkubo}
+                              onChange={(e) =>
+                                setCreateSessionConfig((prev) => ({ ...prev, protocolEkubo: e.target.checked }))
+                              }
+                            />
+                            ekubo
+                          </label>
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={createSessionConfig.protocolJediswap}
+                              onChange={(e) =>
+                                setCreateSessionConfig((prev) => ({ ...prev, protocolJediswap: e.target.checked }))
+                              }
+                            />
+                            jediswap
+                          </label>
                         </div>
-                        <div className="text-sm text-zinc-400 mt-1">{c.description}</div>
                       </div>
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        c.enabled ? "border-emerald-500 bg-emerald-500" : "border-zinc-600"
-                      }`}>
-                        {c.enabled && <Check className="w-3 h-3" />}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setStep(2)} 
-                    className="px-6 py-3 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setStep(4)} 
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
-                  >
-                    Continue
-                  </button>
-                </div>
-              </div>
-            )}
+                      <button
+                        onClick={() => void handleCreateSession()}
+                        className="mt-2 rounded bg-emerald-700 px-2 py-1 text-xs font-medium hover:bg-emerald-600"
+                      >
+                        create session request
+                      </button>
 
-            {/* Step 4: Generate Authorization (REAL STARK PROOF) */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center">Generate Authorization</h2>
-                <p className="text-sm text-zinc-400 text-center">
-                  Creating privacy-preserving identity proof (STARK)
-                </p>
-                
-                <ProofVisualizer state={proofState} />
-                
-                {proofState === "generating" && (
-                  <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-4">
-                    <p className="text-sm text-violet-300 font-medium text-center">
-                      Generating STARK proof (~2-3 minutes)
-                    </p>
-                    <p className="text-xs text-zinc-500 text-center mt-2">
-                      This creates your privacy-preserving on-chain identity
-                    </p>
-                  </div>
-                )}
-                
-                {proofState === "valid" && factHash && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 space-y-2">
-                    <p className="text-sm text-emerald-300 font-medium">✅ Proof Generated</p>
-                    <p className="text-xs text-zinc-400 font-mono break-all">Fact: {factHash.slice(0, 20)}...{factHash.slice(-10)}</p>
-                  </div>
-                )}
-                
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setStep(3)} 
-                    disabled={isLoading}
-                    className="px-6 py-3 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={handleGenerateAuthorization} 
-                    disabled={isLoading || proofState === "valid"}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating STARK Proof...
-                      </>
-                    ) : proofState === "valid" ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Proof Generated
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="w-4 h-4" />
-                        Generate Authorization Proof
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
+                      {pendingGrant ? (
+                        <div className="mt-2 rounded-lg border border-emerald-600/30 bg-emerald-900/10 p-2 text-xs">
+                          <div className="mb-1 text-zinc-300">
+                            pending: {pendingGrant.sessionId.slice(0, 18)}...
+                          </div>
+                          <input
+                            value={sessionTxById[pendingGrant.sessionId] ?? ""}
+                            onChange={(e) =>
+                              setSessionTxById((prev) => ({ ...prev, [pendingGrant.sessionId]: e.target.value }))
+                            }
+                            placeholder="Grant tx hash"
+                            className="mb-1 w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px] outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            onClick={() => void handleConfirmGrant()}
+                            className="rounded bg-emerald-700 px-2 py-1 text-[11px] font-medium hover:bg-emerald-600"
+                          >
+                            confirm grant
+                          </button>
+                        </div>
+                      ) : null}
 
-            {/* Step 5: Review & Sign Risk Disclosure (FINAL) */}
-            {step === 5 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 justify-center">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Final Authorization</h2>
-                </div>
-                
-                <p className="text-sm text-zinc-300 text-center">
-                  Review your settings and sign to authorize on-chain submission
-                </p>
-                
-                {/* Review configured settings */}
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4 space-y-3">
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase">Constraints</div>
-                    <div className="text-sm text-zinc-300 mt-1">
-                      Max Position: {constraints.maxPosition} ETH<br />
-                      Risk: {RISK_LEVELS.find(r => r.value === constraints.riskTolerance)?.label}<br />
-                      Duration: {constraints.sessionDuration}h
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase">Claims</div>
-                    <div className="text-sm text-zinc-300 mt-1">
-                      {claims.filter(c => c.enabled).map(c => c.label).join(", ")}
-                    </div>
-                  </div>
-                  {factHash && (
-                    <div>
-                      <div className="text-xs text-zinc-500 uppercase">Fact Hash</div>
-                      <div className="text-xs text-emerald-400 font-mono mt-1 break-all">
-                        {factHash.slice(0, 30)}...
+                      <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-[11px] text-zinc-400">
+                        <div className="mb-1 text-zinc-300">
+                          active sessions: {sessionLoading ? "loading..." : sessions.length}
+                        </div>
+                        {sessions.slice(0, 2).map((session) => (
+                          <div key={session.sessionId} className="mb-1">
+                            {session.sessionId.slice(0, 10)}... {session.isActive && !session.isExpired ? "active" : "inactive"} ({formatTimeRemaining(session.expiresAt)})
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  )}
-                </div>
-                
-                {/* Risk Disclosure */}
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-                  <p className="text-sm text-amber-200 leading-relaxed">
-                    {RISK_DISCLOSURE_STATEMENT}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-3">
-                    Full text: <Link href="/terms" target="_blank" className="text-emerald-400 hover:text-emerald-300">Terms</Link>
-                  </p>
-                </div>
-                
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setStep(4)} 
-                    disabled={isLoading}
-                    className="px-6 py-3 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={handleSignRiskDisclosure} 
-                    disabled={isLoading}
-                    className="flex-1 py-3 bg-amber-600 hover:bg-amber-500 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors font-medium"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Signing...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="w-4 h-4" />
-                        Sign & Authorize
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {/* Step 6: Submit Agent On-Chain */}
-            {step === 6 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-center">Initialize Agent</h2>
-                <p className="text-sm text-zinc-400 text-center">
-                  Submitting your privacy-preserving identity on-chain
-                </p>
-                
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-emerald-300 font-medium mb-2">
-                    <Check className="w-4 h-4" />
-                    Authorization Signed
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-xs">
+                      <div className="mb-1 text-zinc-300">Trust readiness</div>
+                      <div className="grid grid-cols-2 gap-1 text-zinc-400">
+                        <span>wallets linked</span>
+                        <span>{portableLifecycle.walletsLinked ? "yes" : "no"}</span>
+                        <span>wallets verified</span>
+                        <span>{portableLifecycle.walletsVerified ? "yes" : "no"}</span>
+                        <span>active session</span>
+                        <span>{portableLifecycle.scopedSessionBound ? "yes" : "no"}</span>
+                      </div>
+                    </div>
                   </div>
-                  {identityCommitment && (
-                    <p className="text-xs text-zinc-400 font-mono break-all">
-                      Identity: {identityCommitment.slice(0, 30)}...
-                    </p>
-                  )}
-                </div>
-                
-                <button 
-                  onClick={handleSubmitAgent} 
-                  disabled={isLoading}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors font-medium"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Submitting Transaction...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4" />
-                      Initialize Agent On-Chain
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+                }
+                continueLabel={
+                  portableLifecycle.walletsVerified && portableLifecycle.scopedSessionBound
+                    ? "Continue"
+                    : "Continue (recommended: verify + bind session)"
+                }
+                onClaimsChange={setClaims}
+                onBack={() => setStep(2)}
+                onContinue={() => setStep(4)}
+              />
+            ) : null}
 
-            {/* Step 7: Complete */}
-            {step === 7 && (
-              <div className="space-y-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center mx-auto">
-                  <Check className="w-8 h-8 text-emerald-400" />
-                </div>
-                <h2 className="text-2xl font-bold">Agent Initialized</h2>
-                <p className="text-zinc-400">
-                  Your autonomous agent is now live with privacy-preserving identity
-                </p>
-                
-                {agentTxHash && (
-                  <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                    <p className="text-xs text-zinc-500 uppercase mb-1">Transaction</p>
-                    <a 
-                      href={`https://sepolia.starkscan.co/tx/${agentTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-emerald-400 hover:text-emerald-300 font-mono break-all"
-                    >
-                      {agentTxHash.slice(0, 20)}...{agentTxHash.slice(-10)}
-                    </a>
-                  </div>
-                )}
-                
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 text-left space-y-2 text-sm">
-                  <p className="text-emerald-300 font-medium">✅ Privacy Preserved:</p>
-                  <ul className="text-zinc-400 space-y-1 ml-4">
-                    <li>• Constraints hidden (only hash on-chain)</li>
-                    <li>• Claims private (provable when needed)</li>
-                    <li>• Identity commitment stored</li>
-                  </ul>
-                </div>
-                
-                <button 
-                  onClick={onComplete} 
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
-                >
-                  Go to Dashboard
-                </button>
-              </div>
-            )}
-            
+            {step === 4 ? (
+              <OnboardingAuthorizeStep
+                proofState={proofState}
+                isLoading={isLoading}
+                factHash={factHash}
+                onBack={() => setStep(3)}
+                onGenerate={handleGenerateAuthorization}
+              />
+            ) : null}
+
+            {step === 5 ? (
+              <OnboardingReviewStep
+                constraints={constraints}
+                claims={claims}
+                factHash={factHash}
+                portableLifecycle={portableLifecycle}
+                isLoading={isLoading}
+                riskDisclosureStatement={RISK_DISCLOSURE_STATEMENT}
+                riskLevels={RISK_LEVELS}
+                onBack={() => setStep(4)}
+                onSign={handleSignRiskDisclosure}
+              />
+            ) : null}
+
+            {step === 6 ? (
+              <OnboardingSubmitStep
+                identityCommitment={identityCommitment}
+                isLoading={isLoading}
+                onSubmit={handleSubmitAgent}
+              />
+            ) : null}
+
+            {step === 7 ? (
+              <OnboardingCompleteStep
+                agentTxHash={agentTxHash}
+                portableLifecycle={portableLifecycle}
+                onComplete={onComplete}
+              />
+            ) : null}
           </motion.div>
         </AnimatePresence>
       </div>
     </div>
   );
+}
+
+async function refreshSessions(
+  address: string,
+  setSessions: (sessions: Session[]) => void,
+  setLoading: (loading: boolean) => void
+): Promise<void> {
+  setLoading(true);
+  try {
+    const data = await getUserSessions(address);
+    setSessions(data);
+  } catch {
+    setSessions([]);
+  } finally {
+    setLoading(false);
+  }
 }

@@ -30,7 +30,7 @@ _sfc_main$14.setup = (props, ctx) => {
 function deserializeFunctions(r) {
   return Array.isArray(r) ? r.map(deserializeFunctions) : typeof r == "object" && r !== null ? Object.keys(r).reduce((t, n) => (t[n] = deserializeFunctions(r[n]), t), {}) : typeof r == "string" && r.startsWith("_vp-fn_") ? new Function(`return ${r.slice(7)}`)() : r;
 }
-const siteData = deserializeFunctions(JSON.parse('{"lang":"en-US","dir":"ltr","title":"zkde.fi","description":"AI capital allocation with verifiable risk analysis — by Obsqra Labs","base":"/docs/","head":[],"router":{"prefetchLinks":true},"appearance":true,"themeConfig":{"logo":"/logo.svg","nav":[{"text":"Home","link":"/"},{"text":"Start","link":"/intro"},{"text":"Operate","link":"/app-overview"},{"text":"Build (GATE)","link":"/developers"},{"text":"API","link":"/api-overview"},{"text":"App","link":"https://zkde.fi"}],"sidebar":[{"text":"Start Here","items":[{"text":"Introduction","link":"/intro"},{"text":"Why zkde.fi?","link":"/why"},{"text":"Concepts","link":"/concepts"},{"text":"Quick start (live app)","link":"/quick-start"},{"text":"First-time setup (live app)","link":"/guide-first-time-setup"},{"text":"Real-Time Updates","link":"/real-time-updates"},{"text":"Oracle Execution","link":"/oracle-execution"}]},{"text":"Operate The App","items":[{"text":"App overview and routes","link":"/app-overview"},{"text":"Agent workspace","link":"/agent-dashboard"},{"text":"Deploy to Ekubo","link":"/guide-deploy-to-ekubo"},{"text":"Profile and identity","link":"/profile-and-identity"},{"text":"How execution flows","link":"/flow"}]},{"text":"Verify And Control Risk","items":[{"text":"Reputation system","link":"/reputation-system"},{"text":"Reputation proofs (FICO pack)","link":"/reputation-proofs"},{"text":"Risk Passport","link":"/risk-passport"},{"text":"Compliance and disclosure","link":"/compliance-and-disclosure"},{"text":"Privacy features","link":"/privacy-features"},{"text":"Session keys","link":"/session-keys"},{"text":"Rebalancing","link":"/rebalancing"},{"text":"zkML models","link":"/zkml-models"},{"text":"zkGraph Integration","link":"/zkgraph-integration"}]},{"text":"Build And Integrate (GATE)","items":[{"text":"Architecture summary","link":"/architecture-summary"},{"text":"API overview","link":"/api-overview"},{"text":"Reputation proofs API","link":"/reputation-proofs"},{"text":"Developers","link":"/developers"},{"text":"Contracts","link":"/contracts"},{"text":"Zero-Knowledge Circuits","link":"/circuits"},{"text":"Deploying zkde.fi","link":"/deploying-zkde-fi"},{"text":"AEGIS-1 (GATE standard)","link":"/aegis"}]},{"text":"Reference","items":[{"text":"Innovation","link":"/innovation"},{"text":"Troubleshooting","link":"/troubleshooting"},{"text":"RPC Compatibility","link":"/rpc-compatibility"},{"text":"FAQ","link":"/faq"}]}],"socialLinks":[{"icon":"github","link":"https://github.com/obsqra-labs/zkdefi"}],"footer":{"message":"Built by Obsqra Labs","copyright":"Copyright 2026 Obsqra Labs"},"search":{"provider":"local"}},"locales":{},"scrollOffset":134,"cleanUrls":false}'));
+const siteData = deserializeFunctions(JSON.parse('{"lang":"en-US","dir":"ltr","title":"zkde.fi","description":"Privacy-first Capital OS and Trade Desk on Starknet","base":"/docs/","head":[],"router":{"prefetchLinks":true},"appearance":true,"themeConfig":{"logo":"/logo.svg","nav":[{"text":"Home","link":"/"},{"text":"Start","link":"/intro"},{"text":"Quick Start","link":"/quick-start"},{"text":"Capital OS","link":"/capital-os"},{"text":"Trade Desk","link":"/trade-desk"},{"text":"Systems","link":"/how-systems-work"},{"text":"API","link":"/api-overview"},{"text":"App","link":"https://zkde.fi"}],"sidebar":[{"text":"Start","items":[{"text":"Introduction","link":"/intro"},{"text":"Quick Start","link":"/quick-start"},{"text":"App Overview","link":"/app-overview"}]},{"text":"Use The Product","items":[{"text":"Capital OS","link":"/capital-os"},{"text":"Trade Desk","link":"/trade-desk"},{"text":"Profile And Identity","link":"/profile-and-identity"}]},{"text":"How It Works","items":[{"text":"Privacy Features","link":"/privacy-features"},{"text":"How Systems Work","link":"/how-systems-work"}]},{"text":"Technical Foundations","items":[{"text":"Technical Foundations","link":"/technical-foundations"},{"text":"Reputation System","link":"/reputation-system"},{"text":"Architecture Summary","link":"/architecture-summary"}]},{"text":"Builders","items":[{"text":"API Overview","link":"/api-overview"},{"text":"Developers","link":"/developers"},{"text":"Contracts","link":"/contracts"},{"text":"Deploying zkde.fi","link":"/deploying-zkde-fi"}]},{"text":"Reference","items":[{"text":"FAQ","link":"/faq"},{"text":"Troubleshooting","link":"/troubleshooting"}]}],"socialLinks":[{"icon":"github","link":"https://github.com/obsqra-labs/zkdefi"}],"footer":{"message":"Built by Obsqra Labs","copyright":"Copyright 2026 Obsqra Labs"},"search":{"provider":"local"}},"locales":{},"scrollOffset":134,"cleanUrls":false}'));
 const __vite_import_meta_env__ = {};
 const EXTERNAL_URL_RE = /^(?:[a-z]+:|\/\/)/i;
 const APPEARANCE_KEY = "vitepress-theme-appearance";
@@ -3102,7 +3102,7 @@ const _sfc_main$s = /* @__PURE__ */ defineComponent({
   __name: "VPNavBarSearch",
   __ssrInlineRender: true,
   setup(__props) {
-    const VPLocalSearchBox = defineAsyncComponent(() => import("./VPLocalSearchBox.DkoyGWyM.js"));
+    const VPLocalSearchBox = defineAsyncComponent(() => import("./VPLocalSearchBox.BUgL6q0B.js"));
     const VPAlgoliaSearchBox = () => null;
     const { theme: theme2 } = useData();
     const loaded = ref(false);
@@ -4825,10 +4825,18 @@ _sfc_main.setup = (props, ctx) => {
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("../node_modules/vitepress/dist/client/theme-default/components/VPTeamPageTitle.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
-const theme = {
+const theme$1 = {
   Layout,
   enhanceApp: ({ app }) => {
     app.component("Badge", _sfc_main$14);
+  }
+};
+const theme = {
+  ...theme$1,
+  enhanceApp(ctx) {
+    var _a;
+    (_a = theme$1.enhanceApp) == null ? void 0 : _a.call(theme$1, ctx);
+    return;
   }
 };
 const ClientOnly = defineComponent({

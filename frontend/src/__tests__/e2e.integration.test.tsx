@@ -13,6 +13,7 @@ const opportunities: Opportunity[] = opportunitiesFixture as any;
 const receipts: ReceiptWithImpact[] = receiptsFixture as any;
 const policies = policiesFixture;
 const testUserAddress = '0x1234567890abcdef1234567890abcdef';
+const testPoolId = 'pool-1';
 
 // Mock services BEFORE importing components
 vi.mock('@/services/MarketDataService', () => ({
@@ -153,7 +154,7 @@ describe('Trade Desk E2E Integration Tests', () => {
 
   describe('Workflow: Governance Vote → Policy Update', () => {
     it('should complete governance workflow', async () => {
-      render(<VaultGovernancePanel userAddress={testUserAddress} />);
+      render(<VaultGovernancePanel poolId={testPoolId} userAddress={testUserAddress} />);
 
       await waitFor(
         () => {
@@ -166,7 +167,7 @@ describe('Trade Desk E2E Integration Tests', () => {
     });
 
     it('should display voting power and proposal', async () => {
-      render(<VaultGovernancePanel userAddress={testUserAddress} />);
+      render(<VaultGovernancePanel poolId={testPoolId} userAddress={testUserAddress} />);
 
       await waitFor(
         () => {
@@ -211,7 +212,7 @@ describe('Trade Desk E2E Integration Tests', () => {
     });
 
     it('should display active loans', async () => {
-      render(<ActiveLoansDisplay userAddress={testUserAddress} />);
+      render(<ActiveLoansDisplay poolId={testPoolId} userAddress={testUserAddress} />);
 
       await waitFor(
         () => {

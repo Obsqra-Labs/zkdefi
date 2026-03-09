@@ -60,7 +60,14 @@ async def require_wallet_owner(
     if not target and request.method in {"POST", "PUT", "PATCH"}:
         try:
             body = await request.json()
-            target = body.get("user_address") or body.get("address") or body.get("owner_address")
+            target = (
+                body.get("user_address")
+                or body.get("address")
+                or body.get("owner_address")
+                or body.get("userAddress")        # camelCase variant (trade desk)
+                or body.get("manager_address")    # shared pools
+                or body.get("member_address")     # shared pool joins
+            )
         except Exception:
             target = None
 

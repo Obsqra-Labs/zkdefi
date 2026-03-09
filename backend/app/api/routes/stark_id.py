@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 
+from app.middleware.auth import WalletOwner
 from app.services.json_store import JsonStore
 
 router = APIRouter(prefix="/stark_id", tags=["stark_id"])
@@ -30,7 +31,7 @@ async def get_stark_id(address: str):
 
 
 @router.put("/{address}")
-async def set_stark_id(address: str, req: StarkIdBinding):
+async def set_stark_id(address: str, req: StarkIdBinding, _caller: str = WalletOwner):
     """Store a .stark name binding for an address."""
     key = address.lower().strip()
     _stark_id_store.set(key, {

@@ -38,16 +38,22 @@ _reputation_adapter = ReputationAdapter()
 
 
 async def fetch_opportunities() -> List[dict]:
-    """Fetch real opportunities from trade_desk endpoint."""
+    """Fetch real opportunities from TradeDesk V2 or legacy list."""
     try:
         async with httpx.AsyncClient(timeout=AGGREGATION_TIMEOUT) as client:
+            response = await client.get(f"{BACKEND_BASE}/api/v1/zkdefi/v2/opportunities?limit=50")
+            if response.status_code == 200:
+                data = response.json()
+                opps = data.get("opportunities", [])
+                if opps:
+                    return opps
             response = await client.get(f"{BACKEND_BASE}/api/v1/zkdefi/opportunities/list")
             if response.status_code == 200:
                 data = response.json()
                 return data.get("opportunities", [])
     except Exception as e:
         logger.warning(f"Failed to fetch opportunities: {e}")
-    
+
     return []
 
 
@@ -73,16 +79,20 @@ def opportunity_to_signal(opportunity: dict, index: int) -> dict:
     elif opp_type == "staking":
         constitution["entity"] = "zkdefi-staking"
         constitution["asset"] = opportunity.get("stakingToken", "STRK")
-    elif opp_type == "dex":
-        constitution["entity"] = opportunity.get("dex", "ekubo")
-        constitution["pool"] = f"{opportunity.get('tokenA', 'ETH')}-{opportunity.get('tokenB', 'USDC')}"
+    elif opp_type == "dex" or opp_type == "swap":
+        constitution["entity"] = opportunity.get("protocol", opportunity.get("dex", "ekubo"))
+        constitution["pool"] = opportunity.get("pair", "ETH-USDC").replace("/", "-")
     
     # Get real predictions from adapters
-    token_a = opportunity.get("tokenA", "UNKNOWN")
-    token_b = opportunity.get("tokenB", "USDC")
+    pair_str = opportunity.get("pair", "")
+    if "/" in str(pair_str):
+        token_a, _, token_b = str(pair_str).partition("/")
+        token_a, token_b = token_a.strip(), token_b.strip()
+    else:
+        token_a = opportunity.get("tokenA", "UNKNOWN")
+        token_b = opportunity.get("tokenB", "USDC")
     pair_id = f"{token_a}/{token_b}" if token_b else token_a
-    
-    # Fetch market forecast from forecaster adapter
+    entity = constitution.get("entity", f"zkdefi-{opp_type}")
     try:
         market_forecast = _forecaster_adapter.get_market_forecast(pair_id)
     except Exception as e:
@@ -96,8 +106,10 @@ def opportunity_to_signal(opportunity: dict, index: int) -> dict:
         logger.warning(f"Reputation failed for {entity}: {e}")
         rep = _reputation_adapter._fallback_reputation(entity)
     
-    # Build yield forecast from opportunity APY
-    opportunity_apy = opportunity.get("apy", opportunity.get("estimatedApy", 0.0))
+    # Build yield forecast from opportunity APY (support both camelCase and snake_case from V2)
+    opportunity_apy = float(
+        opportunity.get("currentYield") or opportunity.get("apy") or opportunity.get("estimatedApy", 0.0)
+    )
     # Adjust predicted yield based on market forecast confidence
     market_confidence = market_forecast.get("calibration_score", 0.7)
     predicted_apy = opportunity_apy * (1.0 + (market_forecast.get("predicted_apy", 0.0) / 100.0) * market_confidence)
@@ -196,8 +208,8 @@ async def get_signals_top(
             "total": len(signals),
             "filtered_by": list(filter(None, [type, "riskScore" if riskScore else None])),
             "ranking_model": "opportunity-priority-v1",
-            "phase": "phase-1-placeholder",
-            "ready_for_predictions": True
+            "phase": "phase-2-predictions",
+            "ready_for_predictions": True,
         }
     }
 
@@ -226,16 +238,16 @@ async def get_signals_status() -> dict:
     """Health check for signals pipeline."""
     return {
         "status": "operational",
-        "phase": "phase-1-placeholder",
+        "phase": "phase-2-predictions",
         "components": {
             "opportunities_aggregation": "active",
             "signal_transformation": "active",
-            "predictions": "placeholder",
-            "zkml_verification": "pending"
+            "predictions": "forecaster_and_reputation_adapters",
+            "zkml_verification": "pending",
         },
         "readiness": {
             "phase_1": True,
             "phase_2_ready": True,
-            "phase_3_ready": False
-        }
+            "phase_3_ready": False,
+        },
     }

@@ -11,6 +11,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException, Body
+from app.middleware.auth import AdminOnly
 from app.services.agent_orchestrator import get_agent_orchestrator
 from app.services.execution_policy_service import get_execution_policy_service
 
@@ -25,6 +26,7 @@ policy_service = get_execution_policy_service()
 async def execute_signal(
     address: str = Query(..., description="User address"),
     request_body: dict = Body(...),
+    _admin: str = AdminOnly,
 ):
     """
     Submit a signal for execution.
@@ -155,6 +157,7 @@ async def get_execution_history(
 async def simulate_execution(
     address: str = Query(..., description="User address"),
     request_body: dict = Body(...),
+    _admin: str = AdminOnly,
 ):
     """
     Simulate execution without submitting to relayer.

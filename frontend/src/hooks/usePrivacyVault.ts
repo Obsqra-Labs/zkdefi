@@ -247,13 +247,15 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
 // ---------------------------------------------------------------------------
 
 export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
-  const [method, setMethodRaw] = useState<PrivacyMethod>("commitment_shield");
+  // Default to hashed_proof — maximum privacy (hash-committed deposits + withdrawals).
+  // Users never choose a privacy method; they always get the strongest one.
+  const [method, setMethodRaw] = useState<PrivacyMethod>("hashed_proof");
   const [commitments, setCommitments] = useState<VaultCommitment[]>([]);
   const [depositSteps, setDepositSteps] = useState<ProofStep[]>(() =>
-    getDepositStepsForMethod("commitment_shield"),
+    getDepositStepsForMethod("hashed_proof"),
   );
   const [withdrawSteps, setWithdrawSteps] = useState<ProofStep[]>(() =>
-    getWithdrawStepsForMethod("commitment_shield"),
+    getWithdrawStepsForMethod("hashed_proof"),
   );
 
   useEffect(() => {

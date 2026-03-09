@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query
+from app.middleware.auth import AdminOnly
 import httpx
 from pydantic import BaseModel, Field
 from starknet_py.hash.selector import get_selector_from_name
@@ -631,7 +632,7 @@ class PositionStatusUpdateRequest(BaseModel):
 
 
 @router.post("/lp/status")
-async def ekubo_lp_status_update(body: PositionStatusUpdateRequest):
+async def ekubo_lp_status_update(body: PositionStatusUpdateRequest, _admin: str = AdminOnly):
     """Update a position's status after on-chain confirmation."""
     allowed = {"active", "confirmed", "failed", "closed", "built", "remove_built"}
     if body.status not in allowed:
@@ -645,7 +646,7 @@ async def ekubo_lp_status_update(body: PositionStatusUpdateRequest):
 
 
 @router.post("/lp/sync")
-async def ekubo_lp_sync(owner: str = Query(...)):
+async def ekubo_lp_sync(owner: str = Query(...), _admin: str = AdminOnly):
     """Sync local positions against on-chain NFT balance."""
     result = await sync_onchain_balance(owner)
     return result
@@ -655,6 +656,7 @@ async def ekubo_lp_sync(owner: str = Query(...)):
 async def ekubo_lp_purge_stale(
     owner: str = Query(...),
     max_age_hours: int = Query(default=1, ge=0),
+    _admin: str = AdminOnly,
 ):
     """Purge old 'built' positions that were never confirmed on-chain."""
     result = purge_stale_positions(owner, max_age_hours)
@@ -666,6 +668,7 @@ async def ekubo_lp_verify_tx(
     tx_hash: str = Query(...),
     owner: str = Query(...),
     position_id: str | None = Query(default=None),
+    _admin: str = AdminOnly,
 ):
     """Verify a tx receipt and extract the on-chain NFT token_id.
 
@@ -681,7 +684,7 @@ async def ekubo_lp_verify_tx(
 
 
 @router.post("/lp/import-onchain")
-async def ekubo_lp_import_onchain(owner: str = Query(...)):
+async def ekubo_lp_import_onchain(owner: str = Query(...), _admin: str = AdminOnly):
     """Scan on-chain NFT Transfer events and import all positions owned by *owner*.
 
     Discovers NFT IDs, fetches tx receipts, extracts pool/bounds data, and

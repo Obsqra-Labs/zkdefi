@@ -5,6 +5,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel, Field, field_validator
 
+from app.middleware.auth import WalletOwner
+
 try:
     from app.services.privacy_vault_service import get_privacy_vault_service
     from app.api.validators import (
@@ -101,7 +103,7 @@ class WithdrawResponse(BaseModel):
     summary="Deposit into shielded pool",
     description="Deposit tokens into a privacy pool with commitment-based shielding",
 )
-async def deposit_to_shielded_pool(request: ShieldedDepositRequest) -> DepositResponse:
+async def deposit_to_shielded_pool(request: ShieldedDepositRequest, _caller: str = WalletOwner) -> DepositResponse:
     """
     Deposit tokens into shielded pool.
     
@@ -159,6 +161,7 @@ async def deposit_to_shielded_pool(request: ShieldedDepositRequest) -> DepositRe
 )
 async def withdraw_from_shielded_pool(
     request: ShieldedWithdrawRequest,
+    _caller: str = WalletOwner,
 ) -> WithdrawResponse:
     """
     Withdraw tokens from shielded pool.

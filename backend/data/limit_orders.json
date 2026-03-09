@@ -71,7 +71,79 @@
       "created_at": "2026-03-07T19:48:31.696135+00:00",
       "filled_at": null,
       "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "buy_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "amount_wei": 5000000000000000000,
+      "limit_tick": -2000,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.142972+00:00",
+      "filled_at": null,
+      "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "buy_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 50000000000000000,
+      "limit_tick": 0,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.152913+00:00",
+      "filled_at": null,
+      "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "buy_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "amount_wei": 5000000000000000000,
+      "limit_tick": -3000,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.154486+00:00",
+      "filled_at": null,
+      "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "buy_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 50000000000000000,
+      "limit_tick": 1000,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.157793+00:00",
+      "filled_at": null,
+      "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "buy_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "amount_wei": 5000000000000000000,
+      "limit_tick": -4000,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.159401+00:00",
+      "filled_at": null,
+      "cancelled_at": null
+    },
+    {
+      "order_id": null,
+      "sell_token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "buy_token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+      "amount_wei": 50000000000000000,
+      "limit_tick": 2000,
+      "status": "open",
+      "tx_hash": "shadow",
+      "created_at": "2026-03-08T20:39:29.161399+00:00",
+      "filled_at": null,
+      "cancelled_at": null
     }
   ],
-  "updated_at": "2026-03-07T19:48:31.696164+00:00"
+  "updated_at": "2026-03-08T20:39:29.161435+00:00"
 }

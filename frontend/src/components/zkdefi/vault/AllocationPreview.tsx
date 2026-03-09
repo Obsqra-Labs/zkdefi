@@ -9,6 +9,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "@/lib/api/client";
 import { DEMO_ALLOCATION } from "@/lib/demoCapitalOS";
+import { toFixed } from "@/lib/format";
 import { ErrorAlert } from "@/components/ui/Spinner";
 
 export interface AllocationPreviewProps {
@@ -46,7 +47,7 @@ export function AllocationPreview({ amount, asset, riskProfile = "balanced", isD
 
     const fetchAllocation = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/strategies/recommend`, {
+        const res = await fetch(`${API_BASE}/v1/strategies/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount: amountNum, risk_profile: riskProfile, asset }),
@@ -132,26 +133,26 @@ export function AllocationPreview({ amount, asset, riskProfile = "balanced", isD
     >
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-zinc-200">Capital Deployment</h4>
-        <span className="text-xs text-emerald-400 font-medium">{data.blendedApy.toFixed(1)}% APY</span>
+        <span className="text-xs text-emerald-400 font-medium">{toFixed(data.blendedApy, 1)}% APY</span>
       </div>
 
       {/* Allocation breakdown */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-400">Ekubo LP</span>
-          <span className="text-zinc-200 font-medium">{data.ekubo.toFixed(0)}%</span>
+          <span className="text-zinc-200 font-medium">{toFixed(data.ekubo, 0)}%</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-400">Lending</span>
-          <span className="text-zinc-200 font-medium">{data.lending.toFixed(0)}%</span>
+          <span className="text-zinc-200 font-medium">{toFixed(data.lending, 0)}%</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-400">Staking</span>
-          <span className="text-zinc-200 font-medium">{data.staking.toFixed(0)}%</span>
+          <span className="text-zinc-200 font-medium">{toFixed(data.staking, 0)}%</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-400">Idle</span>
-          <span className="text-zinc-200 font-medium">{data.idle.toFixed(0)}%</span>
+          <span className="text-zinc-200 font-medium">{toFixed(data.idle, 0)}%</span>
         </div>
       </div>
 

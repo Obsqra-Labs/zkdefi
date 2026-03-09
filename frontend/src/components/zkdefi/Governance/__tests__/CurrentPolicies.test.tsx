@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CurrentPolicies } from "../CurrentPolicies";
+import type { LendingPolicy } from "@/services/VaultLendingGovernanceService";
 
-const mockLendingPolicy = {
+const mockLendingPolicy: LendingPolicy = {
   poolId: "pool-1",
   tier1: { canBorrow: false },
   tier2: { ltv: 0.5, apr: 6 },
@@ -159,7 +160,7 @@ describe("CurrentPolicies", () => {
     await user.click(proposeButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Propose Policy Change")).toBeInTheDocument();
+      expect(screen.getByText("Create Governance Proposal")).toBeInTheDocument();
     });
   });
 
@@ -253,7 +254,7 @@ describe("CurrentPolicies", () => {
     await user.click(proposeButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Propose Policy Change")).toBeInTheDocument();
+      expect(screen.getByText("Create Governance Proposal")).toBeInTheDocument();
     });
   });
 });

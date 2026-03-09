@@ -30,6 +30,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner, AdminOnly
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -800,7 +802,7 @@ async def get_constraints(address: str) -> dict[str, Any]:
 
 
 @router.put("/constraints/{address}")
-async def put_constraints(address: str, body: ConstraintsPutRequest) -> dict[str, Any]:
+async def put_constraints(address: str, body: ConstraintsPutRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """Save user constraints by patching the vault policy."""
     patch: dict[str, Any] = {}
 
@@ -903,7 +905,7 @@ async def get_policy(address: str) -> dict[str, Any]:
 
 
 @router.put("/policy/{address}")
-async def put_policy(address: str, body: PolicyPutRequest) -> dict[str, Any]:
+async def put_policy(address: str, body: PolicyPutRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """Save (patch-merge) Circuit Board policy."""
     try:
         updated = _vault_policy_svc().put_policy(address, body.patch)
@@ -926,7 +928,7 @@ async def put_policy(address: str, body: PolicyPutRequest) -> dict[str, Any]:
 # ============================================================================
 
 @router.post("/emergency/pause")
-async def emergency_pause() -> dict[str, Any]:
+async def emergency_pause(_admin: str = AdminOnly) -> dict[str, Any]:
     """Set emergency_pause=true across ALL user policies (system-wide)."""
     svc = _vault_policy_svc()
 
@@ -949,7 +951,7 @@ async def emergency_pause() -> dict[str, Any]:
 
 
 @router.post("/emergency/unpause")
-async def emergency_unpause() -> dict[str, Any]:
+async def emergency_unpause(_admin: str = AdminOnly) -> dict[str, Any]:
     """Clear emergency_pause across ALL user policies."""
     svc = _vault_policy_svc()
 

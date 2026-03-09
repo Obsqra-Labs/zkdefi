@@ -216,8 +216,8 @@ export function YieldTab({ address }: YieldTabProps) {
     let dead = false;
 
     (async () => {
-      const statsUrl = API_BASE + "/api/v1/zkdefi/private-yield/vault/stats";
-      const blendedUrl = API_BASE + "/api/v1/zkdefi/private-yield/yield/blended";
+      const statsUrl = API_BASE + "/v1/zkdefi/private-yield/vault/stats";
+      const blendedUrl = API_BASE + "/v1/zkdefi/private-yield/yield/blended";
       const [vr, br] = await Promise.allSettled([
         fetch(statsUrl, { signal: AbortSignal.timeout(6000) }),
         fetch(blendedUrl, { signal: AbortSignal.timeout(6000) }),

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.middleware.auth import WalletOwner, AdminOnly
 from app.api.routes.mission_control import (
     ConstraintsPutRequest,
     PolicyPutRequest,
@@ -27,7 +28,7 @@ async def vault_get_constraints(address: str):
 
 
 @router.put("/constraints/{address}")
-async def vault_put_constraints(address: str, body: ConstraintsPutRequest):
+async def vault_put_constraints(address: str, body: ConstraintsPutRequest, _caller: str = WalletOwner):
     return await put_constraints(address, body)
 
 
@@ -37,5 +38,5 @@ async def vault_get_policy(address: str):
 
 
 @router.put("/policy/{address}")
-async def vault_put_policy(address: str, body: PolicyPutRequest):
+async def vault_put_policy(address: str, body: PolicyPutRequest, _caller: str = WalletOwner):
     return await put_policy(address, body)

@@ -198,7 +198,7 @@ export function OracleDashboardStrip({ address, onDeploy }: OracleDashboardStrip
                 efficiency: sig.predictions?.reputationScore?.score || 75,
                 signal: sig.riskScore <= 35 ? "top_pick" : sig.currentYield > 5 ? "trending" : "rising",
                 signal_strength: sig.predictions?.reputationScore?.score || 80,
-                signal_reason: `${sig.type} opportunity with ${sig.currentYield.toFixed(1)}% yield`,
+                signal_reason: `${sig.type} opportunity with ${asNumber(sig.currentYield).toFixed(1)}% yield`,
                 signal_features: sig.predictions,
               };
               return normalizeOpportunity(opportunity, idx);

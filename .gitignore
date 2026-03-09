@@ -54,3 +54,5 @@ circuits/build/**/*.zkey
 circuits/build/**/*.ptau
 backend/.env
 .worktrees/
+__pycache__/
+*.pyc

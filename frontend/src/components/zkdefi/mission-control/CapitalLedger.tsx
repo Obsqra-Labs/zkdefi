@@ -433,7 +433,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
                   <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
                     {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
                     {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
-                    {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Dark Ledger</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
+                    {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Private</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
                   </div>
                 ) : null}
               </div>
@@ -504,12 +504,12 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
         </section>
       )}
 
-      {/* Dark Ledger */}
+      {/* Private Notes (L3-settled commitments) */}
       <section className="rounded-lg border border-violet-800/40 p-3">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-4 h-4 text-violet-400" />
-          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Dark Ledger</h3>
-          <span className="ml-auto text-[10px] text-violet-400/60">L3 Madara</span>
+          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Private Notes</h3>
+          <span className="ml-auto text-[10px] text-violet-400/60">Commitment-verified</span>
         </div>
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between text-zinc-300">
@@ -550,7 +550,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           )}
           <div className="flex items-center gap-1 text-violet-400/80">
             <Eye className="w-3 h-3" />
-            <span className="text-[10px]">Commitment-shielded, L3-verified</span>
+            <span className="text-[10px]">Hash-committed, ZK-verified</span>
           </div>
         </div>
         <div className="mt-2 flex gap-2">

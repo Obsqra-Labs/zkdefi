@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,8 @@ from bots.chain_reader import (
     build_default_pools, get_token_balance,
 )
 from bots.wallet_manager import WalletManager
+from bots.agent_runner import AgentFleetRunner
+from config.agents import build_fleet_profiles
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -78,6 +81,15 @@ engine = OnChainEngine(
     coordination_volume_targets_usd=settings.coordination_volume_targets_usd,
 )
 
+# ── Agent Fleet ──────────────────────────────────────────────────────────────
+fleet_max_agents = max(1, min(10, int(os.getenv("FLEET_MAX_AGENTS", "10"))))
+fleet_profiles = build_fleet_profiles(max_agents=fleet_max_agents)
+fleet = AgentFleetRunner(
+    profiles=fleet_profiles,
+    pools=build_default_pools(),
+    rpc_url=settings.rpc_url,
+)
+
 
 async def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
     if x_admin_key != settings.admin_api_key:
@@ -86,12 +98,35 @@ async def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
 
 @app.on_event("startup")
 async def startup() -> None:
+    fleet_enabled = os.getenv("FLEET_ENABLED", "true").lower() in ("true", "1", "yes")
+
+    # When fleet is enabled, disable the engine's own swap/lp/limit bots
+    # to avoid nonce contention (fleet agents handle all trading).
+    if fleet_enabled:
+        engine.set_startup_flags(swap=False, lp=False, limit=False)
+
     await engine.start()
     logger.info("On-chain engine started (poll every %.1fs)", settings.poll_interval_sec)
+
+    # Start agent fleet in background (non-blocking so server can serve health)
+    if fleet_enabled:
+        engine.fleet = fleet
+
+        async def _launch_fleet() -> None:
+            try:
+                started = await fleet.start_all()
+                logger.info("Agent fleet started: %d agents (%s)", len(started), ", ".join(started))
+            except Exception as exc:
+                logger.error("Fleet startup failed: %s", exc)
+
+        asyncio.create_task(_launch_fleet())
+    else:
+        logger.info("Agent fleet disabled (set FLEET_ENABLED=true to enable)")
 
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
+    await fleet.stop_all()
     await engine.stop()
 
 
@@ -565,6 +600,61 @@ async def get_agent_stats() -> dict[str, Any]:
     }
 
 
+# ── Fleet endpoints ─────────────────────────────────────────────────────────
+
+@app.get("/public/fleet")
+async def get_fleet_status() -> dict[str, Any]:
+    """Public fleet overview — all agents, aggregate volume, per-pair stats."""
+    return fleet.fleet_status()
+
+
+@app.get("/admin/fleet", dependencies=[Depends(require_admin)])
+async def admin_fleet() -> dict[str, Any]:
+    """Detailed fleet state for admin dashboard."""
+    return {"ok": True, "fleet": fleet.fleet_status()}
+
+
+@app.post("/admin/fleet/start", dependencies=[Depends(require_admin)])
+async def fleet_start_all() -> dict[str, Any]:
+    """Start all agents in the fleet (non-blocking, agents stagger in)."""
+    engine.fleet = fleet
+
+    async def _bg_start() -> None:
+        try:
+            started = await fleet.start_all()
+            logger.info("Fleet started (admin): %d agents", len(started))
+        except Exception as exc:
+            logger.error("Fleet start error: %s", exc)
+
+    asyncio.create_task(_bg_start())
+    return {"ok": True, "message": "Fleet starting (agents will stagger in)", "total_agents": len(fleet.agents)}
+
+
+@app.post("/admin/fleet/stop", dependencies=[Depends(require_admin)])
+async def fleet_stop_all() -> dict[str, Any]:
+    """Stop all agents in the fleet."""
+    await fleet.stop_all()
+    return {"ok": True, "message": "All agents stopped"}
+
+
+@app.post("/admin/fleet/agent/{agent_id}/start", dependencies=[Depends(require_admin)])
+async def fleet_start_agent(agent_id: int) -> dict[str, Any]:
+    """Start a specific agent by ID."""
+    result = await fleet.start_agent(agent_id)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Not found"))
+    return result
+
+
+@app.post("/admin/fleet/agent/{agent_id}/stop", dependencies=[Depends(require_admin)])
+async def fleet_stop_agent(agent_id: int) -> dict[str, Any]:
+    """Stop a specific agent by ID."""
+    result = await fleet.stop_agent(agent_id)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Not found"))
+    return result
+
+
 # ── Static dashboards (kept for backwards compat) ───────────────────────────
 @app.get("/dashboard")
 async def dashboard_root() -> FileResponse:
@@ -579,3 +669,8 @@ async def dashboard_admin() -> FileResponse:
 @app.get("/dashboard/public")
 async def dashboard_public() -> FileResponse:
     return FileResponse("dashboard/public.html")
+
+
+@app.get("/dashboard/fleet")
+async def dashboard_fleet() -> FileResponse:
+    return FileResponse("dashboard/fleet.html")

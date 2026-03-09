@@ -18,6 +18,8 @@ from typing import Any, List
 from fastapi import APIRouter, Query, Request, HTTPException
 from pydantic import BaseModel, Field
 
+from app.middleware.auth import WalletOwner
+
 from app.services.ledger_service import get_ledger_service
 from app.services.note_store import NoteStore
 from app.services.receipt_service import get_receipt_service
@@ -202,7 +204,7 @@ class TransferOutRequest(BaseModel):
 
 
 @router.post("/transfer_in/request")
-async def transfer_in_request(req: TransferInRequest) -> dict[str, Any]:
+async def transfer_in_request(req: TransferInRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """
     Canonical backend sync for a commitment/deposit event.
     Used by the slideout steppers to keep Vault + Ledger state aligned.
@@ -289,7 +291,7 @@ async def transfer_in_request(req: TransferInRequest) -> dict[str, Any]:
 
 
 @router.post("/transfer_out/request")
-async def transfer_out_request(req: TransferOutRequest) -> dict[str, Any]:
+async def transfer_out_request(req: TransferOutRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """
     Canonical backend sync for a withdrawal/settlement request.
     Marks matching commitment notes spent and queues payout tracking.
@@ -427,7 +429,7 @@ class DemoCreditResponse(BaseModel):
 
 
 @router.post("/demo-credit", response_model=DemoCreditResponse)
-async def demo_credit(request: Request, body: DemoCreditRequest) -> dict[str, Any]:
+async def demo_credit(request: Request, body: DemoCreditRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """
     Credit the internal ledger for the given address. Only allowed when X-Demo-Mode: true.
     """

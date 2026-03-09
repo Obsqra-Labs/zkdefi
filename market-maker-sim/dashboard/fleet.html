@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>zkDeFi Agent Fleet Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --dim: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --purple: #bc8cff;
+      --orange: #f0883e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
+    .container { max-width: 1440px; margin: 0 auto; padding: 16px; }
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+    }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .header h1 span { color: var(--accent); }
+    .header .controls { display: flex; gap: 8px; align-items: center; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot.online { background: var(--green); }
+    .dot.offline { background: var(--red); }
+
+    /* Summary row */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .stat-card .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-card .value { font-size: 22px; font-weight: 700; color: var(--text); }
+    .stat-card .sub { color: var(--dim); font-size: 11px; margin-top: 2px; }
+
+    /* Agent grid */
+    .agents-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .agent-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; position: relative;
+    }
+    .agent-card.disabled { opacity: 0.5; }
+    .agent-card .agent-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+    }
+    .agent-card .agent-name { font-weight: 600; font-size: 14px; }
+    .agent-card .agent-id { color: var(--dim); font-size: 11px; }
+    .agent-card .agent-status {
+      padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+    .agent-card .agent-status.active { background: rgba(63,185,80,0.15); color: var(--green); }
+    .agent-card .agent-status.stopped { background: rgba(248,81,73,0.15); color: var(--red); }
+
+    .agent-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .agent-metrics .metric { }
+    .agent-metrics .metric .k { color: var(--dim); font-size: 11px; }
+    .agent-metrics .metric .v { font-size: 13px; font-weight: 600; }
+
+    .agent-pairs {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .pair-tag {
+      padding: 2px 6px; border-radius: 4px; font-size: 11px;
+      background: rgba(88,166,255,0.12); color: var(--accent);
+    }
+
+    .agent-last-tx {
+      margin-top: 6px; font-size: 11px; color: var(--dim);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .agent-last-tx a { color: var(--accent); text-decoration: none; }
+
+    /* Volume targets table */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; color: var(--dim); font-size: 11px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    td { padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .mono { font-family: 'SF Mono', Monaco, monospace; }
+    .ok { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+
+    /* Behaviour bar */
+    .behavior-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .behavior-bar .seg { }
+    .behavior-bar .seg.degen { background: var(--orange); }
+    .behavior-bar .seg.retail { background: var(--accent); }
+    .behavior-bar .seg.whale { background: var(--purple); }
+    .behavior-legend { display: flex; gap: 10px; margin-top: 4px; font-size: 10px; color: var(--dim); }
+    .behavior-legend span::before { content: '●'; margin-right: 3px; }
+    .behavior-legend .degen::before { color: var(--orange); }
+    .behavior-legend .retail::before { color: var(--accent); }
+    .behavior-legend .whale::before { color: var(--purple); }
+
+    /* Progress bar */
+    .progress { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+    .progress span { display: block; height: 100%; background: var(--green); border-radius: 4px; transition: width 0.5s; }
+
+    .footer { text-align: center; color: var(--dim); font-size: 11px; padding: 20px 0 10px; }
+
+    .btn {
+      padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--card); color: var(--text); cursor: pointer; font-size: 12px;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .btn.success { background: rgba(63,185,80,0.15); border-color: var(--green); color: var(--green); }
+    .btn.danger { background: rgba(248,81,73,0.15); border-color: var(--red); color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><span>⚡</span> zkDeFi Agent Fleet</h1>
+      <div class="controls">
+        <span class="dot" id="connDot"></span>
+        <span id="connLabel">connecting...</span>
+        <button class="btn success" onclick="startAll()">Start All</button>
+        <button class="btn danger" onclick="stopAll()">Stop All</button>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="card">
+      <h2>Volume Targets</h2>
+      <table>
+        <thead>
+          <tr><th>Pair</th><th>Target</th><th>Fleet Vol</th><th>Engine Vol</th><th>Total</th><th>Deficit</th><th>Progress</th></tr>
+        </thead>
+        <tbody id="volumeTargetRows"></tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-bottom: 12px; font-size: 16px;">Agents</h2>
+    <div class="agents-grid" id="agentsGrid"></div>
+
+    <div class="card">
+      <h2>Aggregate Pool Activity</h2>
+      <table>
+        <thead>
+          <tr><th>Pair</th><th>Fleet Swaps</th><th>Engine Swaps</th><th>Total Swaps</th><th>Fleet Vol (est)</th></tr>
+        </thead>
+        <tbody id="poolActivityRows"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">zkDeFi Agent Fleet Monitor | <a href="/dashboard" style="color:var(--accent)">Public</a> | <a href="/dashboard/admin" style="color:var(--accent)">Admin</a> | <a href="/dashboard/fleet" style="color:var(--accent)">Fleet</a></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const fmtUsd = (v) => "$" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtInt = (v) => Number(v || 0).toLocaleString();
+    const fmtPct = (v) => Number(v || 0).toFixed(1) + "%";
+    const fmtDuration = (sec) => {
+      sec = Math.round(sec || 0);
+      if (sec < 60) return `${sec}s`;
+      if (sec < 3600) return `${Math.floor(sec/60)}m ${sec%60}s`;
+      return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+    };
+    const API_BASE = (window.location.port === "8099" || window.location.hostname === "localhost") ? "" : "/sim";
+    const adminKey = localStorage.getItem("MM_SIM_ADMIN_KEY") || "dev-admin-key";
+
+    function setConnection(ok) {
+      $("connDot").className = ok ? "dot online" : "dot offline";
+      $("connLabel").textContent = ok ? "live" : "disconnected";
+    }
+
+    async function apiGet(path) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`);
+        setConnection(true);
+        return await res.json();
+      } catch {
+        setConnection(false);
+        return null;
+      }
+    }
+
+    async function apiPost(path) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-admin-key": adminKey },
+          body: "{}",
+        });
+        return await res.json();
+      } catch (err) {
+        alert(err.message);
+        return null;
+      }
+    }
+
+    async function startAll() { await apiPost("/admin/fleet/start"); await loadAll(); }
+    async function stopAll() { await apiPost("/admin/fleet/stop"); await loadAll(); }
+    async function toggleAgent(id, running) {
+      const path = running ? `/admin/fleet/agent/${id}/stop` : `/admin/fleet/agent/${id}/start`;
+      await apiPost(path);
+      await loadAll();
+    }
+
+    function renderSummary(fleet, state) {
+      const stats = [
+        { label: "Active Agents", value: `${fleet.active_agents}/${fleet.total_agents}`, sub: `${fleet.unique_wallets} wallets` },
+        { label: "Total Swaps", value: fmtInt(fleet.total_swaps), sub: `${fmtPct(fleet.overall_success_rate)} success` },
+        { label: "Fleet Volume", value: fmtUsd(Object.values(fleet.pair_volume_usd || {}).reduce((s,v) => s+v, 0)), sub: "USD-equivalent" },
+        { label: "Engine Volume", value: fmtUsd((state?.pools || []).reduce((s,p) => s + Number(p.bot_generated_volume_usd || 0), 0)), sub: "primary bots" },
+        { label: "Pools Active", value: `${state?.initialized_pools || 0}/${state?.total_pools || 0}`, sub: state?.data_quality || "loading" },
+        { label: "Fleet Uptime", value: fmtDuration(fleet.uptime_sec), sub: fleet.fleet_running ? "running" : "stopped" },
+      ];
+      $("summaryGrid").innerHTML = stats.map(s => `
+        <div class="stat-card">
+          <div class="label">${s.label}</div>
+          <div class="value">${s.value}</div>
+          <div class="sub">${s.sub}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderVolumeTargets(fleet, state) {
+      const policy = state?.coordination_policy || {};
+      const targets = policy.volume_targets_usd || {};
+      const pools = state?.pools || [];
+      const poolMap = new Map(pools.map(p => [String(p.name || "").toLowerCase(), p]));
+      const fleetVol = fleet.pair_volume_usd || {};
+
+      const rows = Object.entries(targets).map(([pair, target]) => {
+        const pool = poolMap.get(pair.toLowerCase()) || {};
+        const engineVol = Number(pool.bot_generated_volume_usd || 0);
+        const fleetV = Number(fleetVol[pair] || fleetVol[pool.name] || 0);
+        const total = Number(pool.volume_24h_usd || 0);
+        const deficit = Math.max(0, target - total);
+        const pct = Math.min(100, (total / Math.max(target, 1)) * 100);
+        return { pair: pool.name || pair, target, engineVol, fleetV, total, deficit, pct };
+      }).sort((a, b) => b.deficit - a.deficit);
+
+      $("volumeTargetRows").innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td>${r.pair}</td>
+          <td class="mono">${fmtUsd(r.target)}</td>
+          <td class="mono">${fmtUsd(r.fleetV)}</td>
+          <td class="mono">${fmtUsd(r.engineVol)}</td>
+          <td class="mono">${fmtUsd(r.total)}</td>
+          <td class="mono ${r.deficit > 0 ? 'warn' : 'ok'}">${fmtUsd(r.deficit)}</td>
+          <td style="min-width:100px">
+            <div class="progress"><span style="width:${r.pct.toFixed(1)}%"></span></div>
+          </td>
+        </tr>
+      `).join("") : `<tr><td colspan="7" style="color:var(--dim)">No targets configured</td></tr>`;
+    }
+
+    function renderAgents(fleet) {
+      const agents = fleet.agents || [];
+      $("agentsGrid").innerHTML = agents.map(a => {
+        const behaviorTotal = Object.values(a.behavior_counts || {}).reduce((s, v) => s + v, 0) || 1;
+        const degenPct = ((a.behavior_counts?.degen || 0) / behaviorTotal * 100);
+        const retailPct = ((a.behavior_counts?.retail || 0) / behaviorTotal * 100);
+        const whalePct = ((a.behavior_counts?.whale || 0) / behaviorTotal * 100);
+        const age = a.last_swap_ts ? Math.round((Date.now()/1000 - a.last_swap_ts)) : 0;
+        const lastAge = a.last_swap_ts ? (age < 60 ? `${age}s ago` : age < 3600 ? `${Math.floor(age/60)}m ago` : `${Math.floor(age/3600)}h ago`) : "never";
+        const txLink = a.last_swap_tx ? `<a href="https://sepolia.voyager.online/tx/${a.last_swap_tx}" target="_blank">${a.last_swap_tx.slice(0,14)}...</a>` : "—";
+
+        return `
+          <div class="agent-card ${a.enabled ? '' : 'disabled'}">
+            <div class="agent-header">
+              <div>
+                <div class="agent-name">${a.name}</div>
+                <div class="agent-id">Agent #${a.agent_id} · ${a.wallet || "?"}</div>
+              </div>
+              <button class="agent-status ${a.enabled ? 'active' : 'stopped'}" onclick="toggleAgent(${a.agent_id}, ${a.enabled})">
+                ${a.enabled ? 'Running' : 'Stopped'}
+              </button>
+            </div>
+            <div class="agent-metrics">
+              <div class="metric"><div class="k">Swaps</div><div class="v">${fmtInt(a.total_swaps)}</div></div>
+              <div class="metric"><div class="k">Success</div><div class="v ${a.success_rate >= 80 ? 'ok' : a.success_rate >= 50 ? 'warn' : 'bad'}">${fmtPct(a.success_rate)}</div></div>
+              <div class="metric"><div class="k">LP Created</div><div class="v">${fmtInt(a.lp_positions_created)}</div></div>
+              <div class="metric"><div class="k">Limits</div><div class="v">${fmtInt(a.limit_orders_placed)}</div></div>
+              <div class="metric"><div class="k">Last Swap</div><div class="v">${lastAge}</div></div>
+              <div class="metric"><div class="k">Uptime</div><div class="v">${fmtDuration(a.uptime_sec)}</div></div>
+            </div>
+            <div class="behavior-bar">
+              <div class="seg degen" style="width:${degenPct}%"></div>
+              <div class="seg retail" style="width:${retailPct}%"></div>
+              <div class="seg whale" style="width:${whalePct}%"></div>
+            </div>
+            <div class="behavior-legend">
+              <span class="degen">Degen ${Math.round(degenPct)}%</span>
+              <span class="retail">Retail ${Math.round(retailPct)}%</span>
+              <span class="whale">Whale ${Math.round(whalePct)}%</span>
+            </div>
+            <div class="agent-pairs">
+              ${(a.assigned_pairs || []).map(p => `<span class="pair-tag">${p}</span>`).join("")}
+            </div>
+            <div class="agent-last-tx">Last tx: ${txLink}</div>
+            ${a.last_error ? `<div style="font-size:11px;color:var(--red);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.last_error}">⚠ ${a.last_error}</div>` : ''}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderPoolActivity(fleet, state) {
+      const fleetUsage = fleet.aggregate_pool_usage || {};
+      const fleetVol = fleet.pair_volume_usd || {};
+      const engineUsage = state?.bots?.swap?.pool_usage || {};
+      const allPairs = new Set([...Object.keys(fleetUsage), ...Object.keys(engineUsage)]);
+
+      const rows = Array.from(allPairs).map(pair => ({
+        pair,
+        fleetSwaps: Number(fleetUsage[pair] || 0),
+        engineSwaps: Number(engineUsage[pair] || 0),
+        totalSwaps: Number(fleetUsage[pair] || 0) + Number(engineUsage[pair] || 0),
+        fleetVol: Number(fleetVol[pair] || 0),
+      })).sort((a, b) => b.totalSwaps - a.totalSwaps);
+
+      $("poolActivityRows").innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td>${r.pair}</td>
+          <td class="mono">${fmtInt(r.fleetSwaps)}</td>
+          <td class="mono">${fmtInt(r.engineSwaps)}</td>
+          <td class="mono">${fmtInt(r.totalSwaps)}</td>
+          <td class="mono">${fmtUsd(r.fleetVol)}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="5" style="color:var(--dim)">No pool activity yet</td></tr>`;
+    }
+
+    async function loadAll() {
+      const [fleetData, stateData] = await Promise.all([
+        apiGet("/public/fleet"),
+        apiGet("/public/state"),
+      ]);
+      if (!fleetData) return;
+
+      renderSummary(fleetData, stateData);
+      renderVolumeTargets(fleetData, stateData);
+      renderAgents(fleetData);
+      renderPoolActivity(fleetData, stateData);
+    }
+
+    // Auto-refresh every 10s
+    loadAll();
+    setInterval(loadAll, 10000);
+  </script>
+</body>
+</html>

@@ -10,24 +10,32 @@ interface OpportunityListProps {
   selectedId: string | null;
   onSelect: (opp: UnifiedOpportunity) => void;
   loading: boolean;
+  /** Shown when there are no opportunities (e.g. per-section empty state). */
+  emptyMessage?: string;
 }
 
 export const OpportunityList = React.memo(
-  ({ opportunities, selectedId, onSelect, loading }: OpportunityListProps) => {
+  ({
+    opportunities,
+    selectedId,
+    onSelect,
+    loading,
+    emptyMessage = "No opportunities match your filters",
+  }: OpportunityListProps) => {
     if (loading && opportunities.length === 0) {
       return <OpportunityListSkeleton count={8} />;
     }
 
     if (opportunities.length === 0) {
       return (
-        <div className="flex items-center justify-center py-12 text-slate-500 text-sm">
-          No opportunities match your filters
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <p className="text-slate-500 text-sm max-w-sm">{emptyMessage}</p>
         </div>
       );
     }
 
     return (
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
         {opportunities.map((opp) => (
           <OpportunityCard
             key={opp.id}

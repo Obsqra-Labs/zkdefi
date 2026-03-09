@@ -25,6 +25,13 @@ _RATE_LIMITS: dict[str, tuple[int, int]] = {
     "/api/v1/zkdefi/collateral/withdraw": (10, 60),
     "/api/v1/zkdefi/collateral/liquidate": (3, 60),
     "/api/v1/zkdefi/batch/verify": (20, 60),
+    "/api/v1/zkdefi/trade-desk/v2/execute/submit": (10, 60),
+    "/api/v1/zkdefi/trade-desk/v2/execute/simulate": (30, 60),
+    "/api/v1/zkdefi/trade-desk/v2/execute/prepare": (20, 60),
+    "/api/v1/zkdefi/dao/vote/cast": (5, 60),
+    "/api/v1/zkdefi/dao/proposals": (10, 60),
+    "/api/v1/zkdefi/lending/supply/calldata": (10, 60),
+    "/api/v1/zkdefi/lending/borrow/calldata": (10, 60),
 }
 
 _DEFAULT_LIMIT = (60, 60)

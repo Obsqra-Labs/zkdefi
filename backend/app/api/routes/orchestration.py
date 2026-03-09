@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.middleware.auth import AdminOnly
 from app.services.privacy_ekubo_orchestrator import orchestrate_deploy
 
 router = APIRouter(tags=["orchestration"])
@@ -14,7 +15,7 @@ class OrchestrateDeployRequest(BaseModel):
 
 
 @router.post("/deploy")
-async def orchestrate_deploy_endpoint(request: OrchestrateDeployRequest):
+async def orchestrate_deploy_endpoint(request: OrchestrateDeployRequest, _admin: str = AdminOnly):
     """Deploy user's deployable amount to Ekubo Sepolia only; record receipt."""
     try:
         result = await orchestrate_deploy(
