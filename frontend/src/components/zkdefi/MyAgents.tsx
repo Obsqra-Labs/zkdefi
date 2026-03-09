@@ -17,6 +17,63 @@ interface Agent {
   created_at: number;
 }
 
+const toRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const toDecisionType = (value: unknown): "AND" | "OR" => {
+  return value === "OR" ? "OR" : "AND";
+};
+
+const toTimestamp = (value: unknown): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return Date.now();
+};
+
+const normalizeAgent = (value: unknown, index: number): Agent | null => {
+  const record = toRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const llmRecord = toRecord(record.llm);
+  const decisionLogicRecord = toRecord(record.decision_logic);
+  const processors = Array.isArray(record.processors)
+    ? record.processors.filter((p): p is string => typeof p === "string")
+    : [];
+
+  const rawId = typeof record.id === "string" && record.id.trim() ? record.id : `agent-${index}`;
+  const rawName = typeof record.name === "string" && record.name.trim() ? record.name : "Unnamed Agent";
+
+  return {
+    id: rawId,
+    name: rawName,
+    processors,
+    decision_logic: {
+      type: toDecisionType(decisionLogicRecord?.type),
+    },
+    llm: llmRecord
+      ? {
+          provider: typeof llmRecord.provider === "string" ? llmRecord.provider : undefined,
+          model: typeof llmRecord.model === "string" ? llmRecord.model : undefined,
+        }
+      : undefined,
+    active: Boolean(record.active),
+    created_at: toTimestamp(record.created_at),
+  };
+};
+
 interface ProcessorResult {
   processor_id: string;
   passed: boolean;
@@ -40,9 +97,11 @@ interface ExecutionResult {
 export function MyAgents({
   userAddress,
   refreshTrigger,
+  highlightAgentId,
 }: {
   userAddress: string;
   refreshTrigger?: number;
+  highlightAgentId?: string | null;
 }) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,8 +117,11 @@ export function MyAgents({
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await apiFetch<{ agents?: Agent[] }>(`/api/v1/agents/user/${userAddress}`);
-      setAgents(data.agents || []);
+      const data = await apiFetch<{ agents?: unknown[] }>(`/api/v1/agents/user/${userAddress}`);
+      const normalizedAgents = (Array.isArray(data.agents) ? data.agents : [])
+        .map((agent, index) => normalizeAgent(agent, index))
+        .filter((agent): agent is Agent => agent !== null);
+      setAgents(normalizedAgents);
     } catch (e) {
       console.error("Failed to fetch agents:", e);
       setFetchError(e instanceof Error ? e.message : "Failed to fetch agents");
@@ -111,7 +173,11 @@ export function MyAgents({
 
   const formatDate = (ts: number) => {
     const millis = ts > 1_000_000_000_000 ? ts : ts * 1000;
-    return new Date(millis).toLocaleDateString();
+    const date = new Date(millis);
+    if (Number.isNaN(date.getTime())) {
+      return "Unknown";
+    }
+    return date.toLocaleDateString();
   };
 
   if (loading) {
@@ -147,9 +213,11 @@ export function MyAgents({
             <div
               key={agent.id}
               className={`p-4 rounded-lg border transition-all ${
-                agent.active
-                  ? "bg-zinc-800/50 border-zinc-700"
-                  : "bg-zinc-900/50 border-zinc-800 opacity-60"
+                highlightAgentId === agent.id
+                  ? "bg-emerald-900/20 border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.4)]"
+                  : agent.active
+                    ? "bg-zinc-800/50 border-zinc-700"
+                    : "bg-zinc-900/50 border-zinc-800 opacity-60"
               }`}
             >
               <div className="flex items-center justify-between mb-2">

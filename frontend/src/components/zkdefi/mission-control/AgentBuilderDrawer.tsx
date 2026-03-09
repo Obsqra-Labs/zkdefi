@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, Brain, RefreshCw } from "lucide-react";
 import {
   ModelComposer,
@@ -31,14 +31,19 @@ export function AgentBuilderDrawer({ userAddress, draft }: AgentBuilderDrawerPro
   const [activeTab, setActiveTab] = useState<"compose" | "agents">("compose");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [highlightAgentId, setHighlightAgentId] = useState<string | null>(null);
+  const activityIdRef = useRef(0);
 
   const addActivity = useCallback((level: ActivityEntry["level"], message: string) => {
-    setActivity((prev) => [{ id: Date.now(), level, message }, ...prev].slice(0, 10));
+    activityIdRef.current += 1;
+    const entryId = activityIdRef.current;
+    setActivity((prev) => [{ id: entryId, level, message }, ...prev].slice(0, 10));
   }, []);
 
   useEffect(() => {
     if (!draft) return;
     setActiveTab("compose");
+    setHighlightAgentId(null);
     const count = draft.processors?.length || 0;
     addActivity("info", `Loaded circuit draft (${count} model${count === 1 ? "" : "s"})`);
   }, [addActivity, draft]);
@@ -46,6 +51,7 @@ export function AgentBuilderDrawer({ userAddress, draft }: AgentBuilderDrawerPro
   const handleAgentCreated = useCallback(
     (agent: ComposedAgent) => {
       addActivity("success", `Created ${agent.name}`);
+      setHighlightAgentId(agent.id);
       setRefreshTrigger((prev) => prev + 1);
       setActiveTab("agents");
     },
@@ -117,7 +123,11 @@ export function AgentBuilderDrawer({ userAddress, draft }: AgentBuilderDrawerPro
               Refresh
             </button>
           </div>
-          <MyAgents userAddress={userAddress} refreshTrigger={refreshTrigger} />
+          <MyAgents
+            userAddress={userAddress}
+            refreshTrigger={refreshTrigger}
+            highlightAgentId={highlightAgentId}
+          />
         </div>
       )}
 
