@@ -32,10 +32,22 @@ const METHOD_LABELS: Record<PrivacyMethod, string> = {
   commitment_shield: "Commitment Shield",
   nullifier_set: "Nullifier Set",
   hashed_proof: "Hashed Proof",
-  dark_ledger: "Dark Ledger",
+  dark_ledger: "Private Pool",
 };
 
 const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof", "dark_ledger"];
+
+const POOL_VARIANT_COLORS: Record<string, { bg: string; text: string }> = {
+  conservative: { bg: "bg-blue-500/15", text: "text-blue-400" },
+  balanced: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
+  aggressive: { bg: "bg-orange-500/15", text: "text-orange-400" },
+};
+
+const POOL_VARIANT_LABELS: Record<string, string> = {
+  conservative: "Conservative",
+  balanced: "Balanced",
+  aggressive: "Aggressive",
+};
 
 const FALLBACK_DEPLOYMENT = [
   { source: "Ekubo LP", pct: 45, color: "bg-emerald-400" },
@@ -312,6 +324,7 @@ export default function PositionsOverview({
                   <tr className="text-white/30 text-left border-b border-white/5">
                     <th className="pb-2 font-medium">Position</th>
                     <th className="pb-2 font-medium">Method</th>
+                    <th className="pb-2 font-medium">Pool</th>
                     <th className="pb-2 font-medium">Deposited</th>
                     <th className="pb-2 font-medium text-right">Yield</th>
                     <th className="pb-2 font-medium text-right">Age</th>
@@ -333,6 +346,17 @@ export default function PositionsOverview({
                         >
                           {METHOD_LABELS[c.method]}
                         </span>
+                      </td>
+                      <td className="py-2">
+                        {c.pool_variant ? (
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] ${(POOL_VARIANT_COLORS[c.pool_variant] ?? POOL_VARIANT_COLORS.balanced).bg} ${(POOL_VARIANT_COLORS[c.pool_variant] ?? POOL_VARIANT_COLORS.balanced).text}`}
+                          >
+                            {POOL_VARIANT_LABELS[c.pool_variant] ?? c.pool_variant}
+                          </span>
+                        ) : (
+                          <span className="text-white/20 text-[11px]">—</span>
+                        )}
                       </td>
                       <td className="py-2 text-white/40">{timeAgo(c.deposited_at)}</td>
                       <td className="py-2 text-right text-white/50">

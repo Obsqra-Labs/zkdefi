@@ -109,7 +109,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     durationHours: "24",
     protocolPools: true,
     protocolEkubo: true,
-    protocolJediswap: false,
+    protocolLending: false,
   });
   const [verificationDrafts, setVerificationDrafts] = useState<Record<ChainKey, { signature: string }>>({
     eth: { signature: "" },
@@ -285,7 +285,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     const protocols: string[] = [];
     if (createSessionConfig.protocolPools) protocols.push("pools");
     if (createSessionConfig.protocolEkubo) protocols.push("ekubo");
-    if (createSessionConfig.protocolJediswap) protocols.push("jediswap");
+    if (createSessionConfig.protocolLending) protocols.push("lending");
     if (!protocols.length) {
       toastError("Select at least one protocol scope");
       return;
@@ -662,12 +662,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                           <label className="flex items-center gap-1">
                             <input
                               type="checkbox"
-                              checked={createSessionConfig.protocolJediswap}
+                              checked={createSessionConfig.protocolLending}
                               onChange={(e) =>
-                                setCreateSessionConfig((prev) => ({ ...prev, protocolJediswap: e.target.checked }))
+                                setCreateSessionConfig((prev) => ({ ...prev, protocolLending: e.target.checked }))
                               }
                             />
-                            jediswap
+                            lending
                           </label>
                         </div>
                       </div>

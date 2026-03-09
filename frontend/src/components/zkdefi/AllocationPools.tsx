@@ -8,7 +8,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 interface PoolData {
   type: "conservative" | "neutral" | "aggressive";
   label: string;
-  allocation: { jediswap: number; ekubo: number };
+  tickWidth: number;
   riskScore: number;
   projectedApy: number;
 }
@@ -19,9 +19,9 @@ interface AllocationPoolsProps {
 }
 
 const POOLS: PoolData[] = [
-  { type: "conservative", label: "Conservative", allocation: { jediswap: 80, ekubo: 20 }, riskScore: 32, projectedApy: 4.2 },
-  { type: "neutral", label: "Neutral", allocation: { jediswap: 50, ekubo: 50 }, riskScore: 48, projectedApy: 5.5 },
-  { type: "aggressive", label: "Aggressive", allocation: { jediswap: 20, ekubo: 80 }, riskScore: 67, projectedApy: 7.8 },
+  { type: "conservative", tickWidth: 6000, label: "Conservative", riskScore: 32, projectedApy: 4.2 },
+  { type: "neutral", tickWidth: 3000, label: "Balanced", riskScore: 48, projectedApy: 5.5 },
+  { type: "aggressive", tickWidth: 1200, label: "Aggressive", riskScore: 67, projectedApy: 7.8 },
 ];
 
 export function AllocationPools({ currentPool, onSelectPool }: AllocationPoolsProps) {
@@ -62,11 +62,11 @@ export function AllocationPools({ currentPool, onSelectPool }: AllocationPoolsPr
             </div>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-zinc-400">Mix</span><span>{pool.allocation.jediswap}/{pool.allocation.ekubo}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400">Ekubo Tick Width</span><span>±{pool.tickWidth}</span></div>
             <div className="flex justify-between"><span className="text-zinc-400">APY</span><span className="text-emerald-400">{pool.projectedApy.toFixed(1)}%</span></div>
           </div>
           <div className="h-2 bg-zinc-800 rounded-full mt-4 overflow-hidden">
-            <div className={`h-full ${pool.type === "conservative" ? "bg-blue-500" : pool.type === "neutral" ? "bg-emerald-500" : "bg-orange-500"}`} style={{ width: `${pool.allocation.ekubo}%` }} />
+            <div className={`h-full ${pool.type === "conservative" ? "bg-blue-500" : pool.type === "neutral" ? "bg-emerald-500" : "bg-orange-500"}`} style={{ width: `${Math.round(100 - pool.tickWidth / 60)}%` }} />
           </div>
         </button>
       ))}

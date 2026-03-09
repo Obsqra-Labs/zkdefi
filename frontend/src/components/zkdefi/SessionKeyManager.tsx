@@ -38,7 +38,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
   // Grant form state
   const [sessionKeyAddress, setSessionKeyAddress] = useState("");
   const [maxPosition, setMaxPosition] = useState(10000);
-  const [allowedProtocols, setAllowedProtocols] = useState<string[]>(["pools", "ekubo", "jediswap"]);
+  const [allowedProtocols, setAllowedProtocols] = useState<string[]>(["pools", "ekubo", "lending"]);
   const [durationHours, setDurationHours] = useState(24);
   
   useEffect(() => {
@@ -346,7 +346,7 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">Allowed Protocols</label>
                 <div className="flex gap-2">
-                  {["pools", "ekubo", "jediswap"].map((protocol) => (
+                  {["pools", "ekubo", "lending"].map((protocol) => (
                     <button
                       key={protocol}
                       onClick={() => toggleProtocol(protocol)}

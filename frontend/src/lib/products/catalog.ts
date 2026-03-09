@@ -41,7 +41,7 @@ export const PRODUCTS: ProductDefinition[] = [
       "Vault status + deposit history APIs for auditable state inspection.",
       "Policy-gated execution path connected to live strategy deployment endpoints.",
       "Position reporting through canonical vault execution routes.",
-      "Supports shadow operations via privacy pool and dark ledger rails.",
+      "Supports shadow operations via privacy pool rails.",
     ],
     docsHref: "/docs/agent-dashboard",
     advancedLink: { href: "/agent?v=vault", label: "Open advanced vault workspace" },
@@ -119,13 +119,13 @@ export const PRODUCTS: ProductDefinition[] = [
     ],
   },
   {
-    slug: "dark-ledger",
-    title: "Dark Ledger",
+    slug: "privacy-pools",
+    title: "Privacy Pools",
     status: "BUILT",
     categoryId: "private-ledger-vault",
     summary: "Internal private settlement rail for low-footprint capital movement.",
     description:
-      "Dark Ledger exposes internal transfer history and relayer-linked settlement activity without forcing full on-chain movement disclosure for every operation.",
+      "Privacy Pools expose internal transfer history and relayer-linked settlement activity without forcing full on-chain movement disclosure for every operation.",
     capabilities: [
       "Ledger transfer feed API for private settlement visibility.",
       "Relayer ledger event stream for payout and claim monitoring.",
@@ -133,7 +133,7 @@ export const PRODUCTS: ProductDefinition[] = [
       "Designed for private capital routing inside vault strategy flows.",
     ],
     docsHref: "/docs/privacy-features",
-    advancedLink: { href: "/agent?v=vault&sub=ledger", label: "Open advanced dark ledger workspace" },
+    advancedLink: { href: "/agent?v=vault&sub=ledger", label: "Open advanced privacy pool workspace" },
     featured: true,
     standaloneActions: [
       {
@@ -761,7 +761,7 @@ export const PRODUCTS: ProductDefinition[] = [
       {
         id: "market-snapshot",
         title: "Fetch market snapshot",
-        description: "Read latest oracle snapshot for Ekubo/JediSwap context.",
+        description: "Read latest oracle snapshot for Ekubo context.",
         method: "GET",
         endpointCandidates: ["/api/v1/zkdefi/oracle/market-data"],
       },

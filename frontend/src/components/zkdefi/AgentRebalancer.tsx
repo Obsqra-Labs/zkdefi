@@ -38,7 +38,7 @@ interface AgentRebalancerProps {
   positions?: { [key: string]: number };
 }
 
-const PROTOCOL_NAMES = ["Pools", "Ekubo", "JediSwap"];
+const PROTOCOL_NAMES = ["Pools", "Ekubo", "Lending"];
 
 export function AgentRebalancer({ 
   userAddress, 

@@ -84,7 +84,7 @@ const POLICY_TEMPLATES: Record<string, Partial<GateRules & ExecutionRules>> = {
     minReputationScore: 60,
     maxRiskScore: 40,
     requireCircuitVerified: true,
-    preferPrivacyMode: "dark_ledger",
+    preferPrivacyMode: "hashed_proof",
     maxAllocationPct: 15,
     dailyLimitUSD: 8000,
     autoExecute: false,
@@ -348,7 +348,7 @@ export default function OraclePage() {
                         <option value="none">No preference</option>
                         <option value="public">Public</option>
                         <option value="shielded">Shielded</option>
-                        <option value="dark_ledger">Dark Ledger</option>
+                        <option value="hashed_proof">Max Privacy</option>
                       </select>
                     </label>
                   </div>

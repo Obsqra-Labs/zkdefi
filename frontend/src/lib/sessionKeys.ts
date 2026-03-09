@@ -236,7 +236,8 @@ export function protocolsToBitmap(protocols: string[]): number {
   const protocolMap: Record<string, number> = {
     pools: 1,
     ekubo: 2,
-    jediswap: 4,
+    jediswap: 4, // deprecated, kept for backward compat
+    lending: 4,
   };
 
   return protocols.reduce((bitmap, protocol) => {
@@ -251,6 +252,6 @@ export function bitmapToProtocols(bitmap: number): string[] {
   const protocols: string[] = [];
   if (bitmap & 1) protocols.push("pools");
   if (bitmap & 2) protocols.push("ekubo");
-  if (bitmap & 4) protocols.push("jediswap");
+  if (bitmap & 4) protocols.push("lending");
   return protocols;
 }

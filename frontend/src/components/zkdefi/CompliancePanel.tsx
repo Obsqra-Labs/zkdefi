@@ -109,7 +109,7 @@ const STATEMENT_TYPES: StatementType[] = [
         options: [
           { value: "0", label: "Pools" },
           { value: "1", label: "Ekubo" },
-          { value: "2", label: "JediSwap" },
+          { value: "2", label: "Lending" },
         ],
       },
     ],

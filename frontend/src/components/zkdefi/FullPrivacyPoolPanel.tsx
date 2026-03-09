@@ -35,9 +35,9 @@ interface CommitmentData {
 }
 
 const POOL_INFO: Record<PoolType, { name: string; allocation: string }> = {
-  0: { name: "Conservative", allocation: "80% JediSwap / 20% Ekubo" },
-  1: { name: "Neutral", allocation: "50% JediSwap / 50% Ekubo" },
-  2: { name: "Aggressive", allocation: "20% JediSwap / 80% Ekubo" },
+  0: { name: "Conservative", allocation: "Ekubo ±6000 ticks" },
+  1: { name: "Balanced", allocation: "Ekubo ±3000 ticks" },
+  2: { name: "Aggressive", allocation: "Ekubo ±1200 ticks" },
 };
 
 export function FullPrivacyPoolPanel() {

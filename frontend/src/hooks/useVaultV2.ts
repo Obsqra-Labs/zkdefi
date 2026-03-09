@@ -134,7 +134,7 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
   // Actions
   // -----------------------------------------------------------------------
 
-  /** Record a deposit in the Dark Ledger (V2 intent→confirm) */
+  /** Record a deposit in the Privacy Pool (V2 intent→confirm) */
   const recordDeposit = useCallback(
     async (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => {
       if (!vaultId) return;
@@ -144,13 +144,13 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
         await refresh();
       } catch {
         // best-effort — on-chain deposit already succeeded
-        console.warn("[DarkLedger] Failed to record deposit in V2 ledger");
+        console.warn("[PrivacyPool] Failed to record deposit in V2 ledger");
       }
     },
     [vaultId, refresh],
   );
 
-  /** Record a withdrawal in the Dark Ledger */
+  /** Record a withdrawal in the Privacy Pool */
   const recordWithdrawal = useCallback(
     async (amountWei: string, token: string, destination: string, route: string) => {
       if (!vaultId) return;
@@ -158,7 +158,7 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
         await requestWithdrawal(vaultId, amountWei, token, destination, route);
         await refresh();
       } catch {
-        console.warn("[DarkLedger] Failed to record withdrawal in V2 ledger");
+        console.warn("[PrivacyPool] Failed to record withdrawal in V2 ledger");
       }
     },
     [vaultId, refresh],

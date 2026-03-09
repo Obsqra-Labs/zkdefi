@@ -19,7 +19,7 @@ export const METHOD_LABELS: Record<string, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
   hashed_proof: "Selective Proof",
-  dark_ledger: "Operator Vault",
+  dark_ledger: "Private Pool",
 };
 
 export function formatWei(weiStr: string, asset: string): string {
@@ -48,7 +48,7 @@ export interface ShieldedSummaryRow {
 
 export interface ShieldedBreakdownProps {
   commitments: VaultCommitment[];
-  /** Only show these methods (default: all non-dark_ledger) */
+  /** Only show these methods (default: all non-private-pool) */
   methods?: PrivacyMethod[];
   /** Additional CSS classes on the root div */
   className?: string;

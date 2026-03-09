@@ -22,7 +22,7 @@ interface AggregatedPosition {
 const PROTOCOL_COLORS: Record<string, string> = {
   pools: "#10b981", // emerald
   ekubo: "#3b82f6", // blue
-  jediswap: "#8b5cf6", // violet
+  lending: "#8b5cf6", // violet
 };
 
 export function PositionChart() {
@@ -49,7 +49,7 @@ export function PositionChart() {
         const protocols = [
           { id: 0, name: "pools" },
           { id: 1, name: "ekubo" },
-          { id: 2, name: "jediswap" },
+          { id: 2, name: "lending" },
         ];
 
         const results = await Promise.all(
