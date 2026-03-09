@@ -16,6 +16,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.middleware.auth import WalletOwner
 from app.services.json_store import JsonStore
 from app.services.trust_event_service import log_trust_event
 from app.services.trust_version_matrix import get_backend_trust_flags, get_trust_version_matrix
@@ -23,12 +24,19 @@ from app.services.trust_version_matrix import get_backend_trust_flags, get_trust
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
 
-def compute_reputation_score(tier: int, tenure: int, txns: int, collateral: float) -> int:
+def compute_reputation_score(tier: int, tenure: int, txns: int, collateral: float, failed_txns: int = 0) -> int:
     tier_weight = tier * 25
     tenure_weight = min(tenure / 365, 1) * 10
     txn_weight = min(txns / 100, 1) * 10
     coll_weight = min(collateral / 10, 1) * 5
-    return min(int(tier_weight + tenure_weight + txn_weight + coll_weight), 100)
+    # Penalty: lose up to 15 points based on failure ratio
+    total_txns = txns + failed_txns
+    failure_penalty = 0
+    if total_txns > 0:
+        failure_ratio = failed_txns / total_txns
+        failure_penalty = failure_ratio * 15
+    raw = tier_weight + tenure_weight + txn_weight + coll_weight - failure_penalty
+    return max(0, min(int(raw), 100))
 
 
 def compute_gates(tier: int) -> dict[str, bool]:
@@ -65,6 +73,7 @@ class UserReputationResponse(BaseModel):
     total_volume_eth: float
     tenure_days: int
     successful_txns: int
+    failed_txns: int = 0
     collateral_eth: float
     upgrade_eligible: bool
     upgrade_requirements: Optional[dict]
@@ -380,14 +389,37 @@ def _persist_proof_completion(
 
 
 def record_transaction_internal(address: str, volume_eth: float, success: bool = True) -> None:
-    """Internal helper used by lending/collateral flows."""
+    """Internal helper used by lending/collateral flows.
+
+    Tracks failed transactions and triggers automatic tier downgrade when the
+    recent failure ratio exceeds the threshold (>30% failures over last 10 txns).
+    """
     user = get_user_data(address)
     user["transaction_count"] = user.get("transaction_count", 0) + 1
     user["total_volume"] = user.get("total_volume", 0) + int(max(0.0, volume_eth) * 1e18)
     if success:
         user["successful_txns"] = user.get("successful_txns", 0) + 1
+    else:
+        user["failed_txns"] = user.get("failed_txns", 0) + 1
+
     if user.get("first_interaction", 0) == 0:
         user["first_interaction"] = int(time.time())
+
+    # --- Tier downgrade logic ---
+    # If failure ratio exceeds 30% (with at least 3 total txns), demote one tier
+    current_tier = int(user.get("tier", 0) or 0)
+    total = user.get("successful_txns", 0) + user.get("failed_txns", 0)
+    if current_tier > 0 and total >= 3:
+        failure_ratio = user.get("failed_txns", 0) / total
+        if failure_ratio > 0.3:
+            new_tier = current_tier - 1
+            user["tier"] = new_tier
+            import logging
+            logging.getLogger(__name__).warning(
+                "Reputation downgrade: %s tier %d -> %d (failure_ratio=%.2f)",
+                address, current_tier, new_tier, failure_ratio,
+            )
+
     _persist_user(address, user)
 
 
@@ -470,6 +502,7 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
     in_app_tx_count = int(user.get("transaction_count", 0) or 0)
     transaction_count = in_app_tx_count + chain_tx_count if chain_tx_count > 0 else in_app_tx_count
     collateral_eth = float(user.get("collateral", 0) or 0) / 1e18
+    failed_txns = int(user.get("failed_txns", 0) or 0)
 
     return UserReputationResponse(
         address=address,
@@ -479,21 +512,24 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
         total_volume_eth=float(user.get("total_volume", 0) or 0) / 1e18,
         tenure_days=tenure_days,
         successful_txns=successful_txns,
+        failed_txns=failed_txns,
         collateral_eth=collateral_eth,
         upgrade_eligible=upgrade_eligible,
         upgrade_requirements=upgrade_requirements,
-        reputation_score=compute_reputation_score(tier, tenure_days, successful_txns, collateral_eth),
+        reputation_score=compute_reputation_score(tier, tenure_days, successful_txns, collateral_eth, failed_txns),
         gates=compute_gates(tier),
     )
 
 
 @router.post("/record-transaction")
-async def record_transaction(address: str, volume_wei: int, success: bool = True) -> dict[str, Any]:
+async def record_transaction(address: str, volume_wei: int, success: bool = True, _caller: str = WalletOwner) -> dict[str, Any]:
     user = get_user_data(address)
     user["transaction_count"] = int(user.get("transaction_count", 0) or 0) + 1
     user["total_volume"] = int(user.get("total_volume", 0) or 0) + int(volume_wei)
     if success:
         user["successful_txns"] = int(user.get("successful_txns", 0) or 0) + 1
+    else:
+        user["failed_txns"] = int(user.get("failed_txns", 0) or 0) + 1
     if int(user.get("first_interaction", 0) or 0) == 0:
         user["first_interaction"] = int(time.time())
 
@@ -502,7 +538,7 @@ async def record_transaction(address: str, volume_wei: int, success: bool = True
 
 
 @router.post("/stake-collateral")
-async def stake_collateral(address: str, amount_wei: int) -> dict[str, Any]:
+async def stake_collateral(address: str, amount_wei: int, _caller: str = WalletOwner) -> dict[str, Any]:
     user = get_user_data(address)
     user["collateral"] = int(user.get("collateral", 0) or 0) + int(amount_wei)
     _persist_user(address, user)
@@ -549,7 +585,7 @@ async def staking_positions(address: str) -> dict[str, Any]:
 
 
 @router.post("/staking/stake")
-async def staking_stake(request: StakingActionRequest) -> dict[str, Any]:
+async def staking_stake(request: StakingActionRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     if request.amount_wei <= 0:
         raise HTTPException(status_code=400, detail="amount_wei must be positive")
     pool = next((p for p in STAKING_POOLS if p.pool_id == request.pool_id and p.active), None)
@@ -589,7 +625,7 @@ async def staking_stake(request: StakingActionRequest) -> dict[str, Any]:
 
 
 @router.post("/staking/claim")
-async def staking_claim(request: StakingActionRequest) -> dict[str, Any]:
+async def staking_claim(request: StakingActionRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     pool = next((p for p in STAKING_POOLS if p.pool_id == request.pool_id and p.active), None)
     if not pool:
         raise HTTPException(status_code=404, detail="staking pool not found")
@@ -618,7 +654,7 @@ async def staking_claim(request: StakingActionRequest) -> dict[str, Any]:
 
 
 @router.post("/staking/exit")
-async def staking_exit(request: StakingActionRequest) -> dict[str, Any]:
+async def staking_exit(request: StakingActionRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     pool = next((p for p in STAKING_POOLS if p.pool_id == request.pool_id and p.active), None)
     if not pool:
         raise HTTPException(status_code=404, detail="staking pool not found")
@@ -659,7 +695,7 @@ async def staking_exit(request: StakingActionRequest) -> dict[str, Any]:
 
 
 @router.post("/upgrade-tier")
-async def upgrade_tier(request: TierUpgradeRequest) -> dict[str, Any]:
+async def upgrade_tier(request: TierUpgradeRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     user = get_user_data(request.address)
     current_tier = int(user.get("tier", 0) or 0)
 
@@ -667,6 +703,32 @@ async def upgrade_tier(request: TierUpgradeRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Cannot downgrade via this endpoint")
     if request.target_tier > current_tier + 1:
         raise HTTPException(status_code=400, detail="Can only upgrade one tier at a time")
+
+    # Validate eligibility requirements
+    first_interaction = int(user.get("first_interaction", 0) or 0)
+    tenure_days = int((time.time() - first_interaction) / 86400) if first_interaction > 0 else 0
+    successful_txns = int(user.get("successful_txns", 0) or 0)
+    collateral_eth = float(user.get("collateral", 0) or 0) / 1e18
+    failed_txns = int(user.get("failed_txns", 0) or 0)
+
+    # Check failure ratio — block upgrade if too many failures
+    total = successful_txns + failed_txns
+    if total >= 3 and failed_txns / total > 0.3:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failure ratio too high ({failed_txns}/{total}). Improve repayment record first.",
+        )
+
+    if current_tier == 0:
+        if tenure_days < 30:
+            raise HTTPException(status_code=400, detail=f"Need 30 days tenure (have {tenure_days})")
+        if successful_txns < 5:
+            raise HTTPException(status_code=400, detail=f"Need 5 successful txns (have {successful_txns})")
+    elif current_tier == 1:
+        if tenure_days < 180:
+            raise HTTPException(status_code=400, detail=f"Need 180 days tenure (have {tenure_days})")
+        if collateral_eth < 1.0:
+            raise HTTPException(status_code=400, detail=f"Need 1.0 ETH collateral (have {collateral_eth:.4f})")
 
     user["tier"] = request.target_tier
     _persist_user(request.address, user)
@@ -693,7 +755,7 @@ async def upgrade_tier(request: TierUpgradeRequest) -> dict[str, Any]:
 
 
 @router.post("/opt-strict")
-async def opt_into_strict(address: str) -> dict[str, Any]:
+async def opt_into_strict(address: str, _caller: str = WalletOwner) -> dict[str, Any]:
     user = get_user_data(address)
     old_tier = int(user.get("tier", 0) or 0)
     user["tier"] = 0
@@ -924,7 +986,7 @@ async def _run_proof_scan(
 
 
 @router.post("/proof/solvency")
-async def generate_solvency_proof(req: SolvencyProofRequest) -> dict[str, Any]:
+async def generate_solvency_proof(req: SolvencyProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     from app.services.zkml.circuit_scanner import build_solvency_proof_inputs
 
     try:
@@ -945,7 +1007,7 @@ async def generate_solvency_proof(req: SolvencyProofRequest) -> dict[str, Any]:
 
 
 @router.post("/proof/risk-passport")
-async def generate_risk_passport_proof(req: RiskPassportProofRequest) -> dict[str, Any]:
+async def generate_risk_passport_proof(req: RiskPassportProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     from app.services.zkml.circuit_scanner import build_risk_passport_tier_inputs
 
     try:
@@ -970,7 +1032,7 @@ async def generate_risk_passport_proof(req: RiskPassportProofRequest) -> dict[st
 
 
 @router.post("/proof/performance")
-async def generate_trader_performance_proof(req: TraderPerformanceProofRequest) -> dict[str, Any]:
+async def generate_trader_performance_proof(req: TraderPerformanceProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     from app.services.zkml.circuit_scanner import build_trader_performance_inputs
 
     if len(req.returns_bps) != 30:
@@ -1002,7 +1064,7 @@ async def generate_trader_performance_proof(req: TraderPerformanceProofRequest) 
 
 
 @router.post("/proof/strategy-integrity")
-async def generate_strategy_integrity_proof(req: StrategyIntegrityProofRequest) -> dict[str, Any]:
+async def generate_strategy_integrity_proof(req: StrategyIntegrityProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     from app.services.zkml.circuit_scanner import build_strategy_integrity_inputs
 
     if len(req.position_weights_bps) != 8:
@@ -1036,7 +1098,7 @@ async def generate_strategy_integrity_proof(req: StrategyIntegrityProofRequest) 
 
 
 @router.post("/proof/execution-integrity")
-async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest) -> dict[str, Any]:
+async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     from app.services.zkml.circuit_scanner import build_execution_integrity_inputs
 
     try:
@@ -1062,7 +1124,7 @@ async def generate_execution_integrity_proof(req: ExecutionIntegrityProofRequest
 
 
 @router.post("/proof/credit-eligibility")
-async def generate_credit_eligibility(req: CreditEligibilityProofRequest) -> dict[str, Any]:
+async def generate_credit_eligibility(req: CreditEligibilityProofRequest, _caller: str = WalletOwner) -> dict[str, Any]:
     """Generate Groth16 credit eligibility proof + async STARK envelope metadata."""
     from app.services.credit_eligibility_proof_service import generate_credit_eligibility_proof
 

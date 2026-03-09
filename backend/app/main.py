@@ -13,10 +13,10 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load backend-local .env first.
@@ -71,6 +71,14 @@ async def _lifespan(app: FastAPI):
         logger.warning("Transaction confirmation worker startup skipped: %s", exc)
         worker_task = None
     
+    # Activate WebSocket event bridge (Phase 2 - Gap 25)
+    try:
+        from app.events.websocket_bridge import setup_websocket_bridge
+        await setup_websocket_bridge()
+        logger.info("WebSocket event bridge activated")
+    except Exception as exc:
+        logger.warning("WebSocket event bridge setup skipped: %s", exc)
+
     # Start event archival worker (Phase 2.4)
     try:
         import asyncio
@@ -202,7 +210,9 @@ onboarding_router = _optional_router("app.api.routes.onboarding")
 proofs_router = _optional_router("app.api.routes.proofs")
 zkgraph_router = _optional_router("app.api.routes.zkgraph")
 snapshot_forecaster_router = _optional_router("app.api.routes.snapshot_forecaster")
-trade_desk_router = _optional_router("app.api.routes.trade_desk")
+# DEPRECATED: V1 trade desk routes superseded by trade_desk_v2
+# trade_desk_router = _optional_router("app.api.routes.trade_desk")
+trade_desk_router = None
 signals_router = _optional_router("app.api.routes.signals")
 oracle_gating_router = _optional_router("app.api.routes.oracle_gating")
 agent_execution_router = _optional_router("app.api.routes.agent_execution")
@@ -453,8 +463,9 @@ if vault_execute_live_router:
     )
 if phase4a_router:
     app.include_router(phase4a_router, prefix="/api/v1/phase4a", tags=["phase4a"])
-if trade_desk_router:
-    app.include_router(trade_desk_router)
+# DEPRECATED: V1 trade desk routes superseded by trade_desk_v2
+# if trade_desk_router:
+#     app.include_router(trade_desk_router)
 if signals_router:
     app.include_router(signals_router)
 if oracle_gating_router:
@@ -474,6 +485,26 @@ trade_desk_v2_router = _optional_router("app.api.routes.trade_desk_v2")
 if trade_desk_v2_router:
     app.include_router(trade_desk_v2_router, prefix="/api/v1/zkdefi", tags=["trade-desk-v2"])
 
+dca_router = _optional_router("app.api.routes.dca")
+if dca_router:
+    app.include_router(dca_router, prefix="/api/v1/zkdefi", tags=["dca"])
+
+p2p_lending_router = _optional_router("app.api.routes.p2p_lending")
+if p2p_lending_router:
+    app.include_router(p2p_lending_router, prefix="/api/v1/zkdefi", tags=["p2p-lending"])
+
+reputation_export_router = _optional_router("app.api.routes.reputation_export")
+if reputation_export_router:
+    app.include_router(reputation_export_router, prefix="/api/v1/zkdefi", tags=["reputation-export"])
+
+marketplace_router = _optional_router("app.api.routes.marketplace")
+if marketplace_router:
+    app.include_router(marketplace_router, prefix="/api/v1/agents", tags=["marketplace"])
+
+madara_settlement_router = _optional_router("app.api.routes.madara_settlement")
+if madara_settlement_router:
+    app.include_router(madara_settlement_router, prefix="/api/v1/zkdefi/risk_passport", tags=["madara-settlement"])
+
 
 # -----------------------------------------------------------------------------
 # Backward compatibility aliases
@@ -484,9 +515,50 @@ if strategies_router:
     app.include_router(strategies_router, prefix="/api/v2/strategies", tags=["strategies-v2"])
 
 
+# ---------------------------------------------------------------------------
+# WebSocket endpoint (Phase 2 – Gap 25: real-time feeds)
+# ---------------------------------------------------------------------------
+
+@app.websocket("/ws/{user_address}")
+async def websocket_endpoint(websocket: WebSocket, user_address: str):
+    """Real-time WebSocket feed for a connected wallet."""
+    from app.websocket.manager import get_connection_manager
+
+    manager = get_connection_manager()
+    await manager.connect(user_address, websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "")
+            if msg_type == "ping":
+                await manager.send_to_user(user_address, {
+                    "type": "pong",
+                    "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+                })
+            elif msg_type == "subscribe":
+                # Future: per-topic subscriptions
+                await manager.send_to_user(user_address, {
+                    "type": "subscribed",
+                    "topics": data.get("topics", []),
+                })
+    except WebSocketDisconnect:
+        await manager.disconnect(user_address)
+    except Exception as exc:
+        logger.warning("WebSocket error for %s: %s", user_address, exc)
+        await manager.disconnect(user_address)
+
+
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "zkdefi-backend"}
+def health() -> dict[str, Any]:
+    import os
+    admin_key = os.getenv("ADMIN_API_KEY", "")
+    privacy_admin_pk = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "")
+    return {
+        "status": "ok",
+        "service": "zkdefi-backend",
+        "admin_configured": bool(admin_key),
+        "privacy_vault_admin_configured": bool(privacy_admin_pk),
+    }
 
 
 @app.get("/health/detailed")
@@ -527,7 +599,7 @@ def root() -> dict[str, str]:
     return {"service": "zkde.fi api", "health": "/health", "docs": "/docs"}
 
 
-# Live data routes (wired to Ekubo + zkGraph + zkRAG)
-trade_desk_live_router = _optional_router("app.api.routes.trade_desk_live")
-if trade_desk_live_router:
-    app.include_router(trade_desk_live_router)
+# DEPRECATED: trade_desk_live routes superseded by trade_desk_v2
+# trade_desk_live_router = _optional_router("app.api.routes.trade_desk_live")
+# if trade_desk_live_router:
+#     app.include_router(trade_desk_live_router)

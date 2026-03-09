@@ -352,40 +352,73 @@ class OpportunityAggregator:
 
     async def _fetch_dca(self) -> list[UnifiedOpportunity]:
         try:
-            return [
-                UnifiedOpportunity(
-                    id=_stable_id("dca", "eth-usdc"),
-                    type="dca",
-                    product_slug=_PRODUCT_SLUGS["dca"],
-                    title="DCA ETH → USDC",
-                    pair="ETH/USDC",
-                    protocol="zkde.fi",
-                    current_yield=0.0,
-                    risk_score=_BASE_RISK["dca"],
-                    tvl_usd=0.0,
-                    volume_24h=0.0,
-                    privacy_level="shielded",
-                    execution_mode="relayer",
-                    calldata_builder="dca_swap",
-                    metadata={"interval": "1h", "strategy": "dollar_cost_average"},
-                ),
-                UnifiedOpportunity(
-                    id=_stable_id("dca", "strk-eth"),
-                    type="dca",
-                    product_slug=_PRODUCT_SLUGS["dca"],
-                    title="DCA STRK → ETH",
-                    pair="STRK/ETH",
-                    protocol="zkde.fi",
-                    current_yield=0.0,
-                    risk_score=_BASE_RISK["dca"],
-                    tvl_usd=0.0,
-                    volume_24h=0.0,
-                    privacy_level="shielded",
-                    execution_mode="relayer",
-                    calldata_builder="dca_swap",
-                    metadata={"interval": "1h", "strategy": "dollar_cost_average"},
-                ),
-            ]
+            from app.services.dca_strategy_store import get_all_active
+
+            active = get_all_active()
+            if not active:
+                # Fallback: show two default templates so the UI isn't empty
+                return [
+                    UnifiedOpportunity(
+                        id=_stable_id("dca", "eth-usdc"),
+                        type="dca",
+                        product_slug=_PRODUCT_SLUGS["dca"],
+                        title="DCA ETH → USDC",
+                        pair="ETH/USDC",
+                        protocol="zkde.fi",
+                        current_yield=0.0,
+                        risk_score=_BASE_RISK["dca"],
+                        tvl_usd=0.0,
+                        volume_24h=0.0,
+                        privacy_level="shielded",
+                        execution_mode="relayer",
+                        calldata_builder="dca_swap",
+                        metadata={"interval": "1h", "strategy": "dollar_cost_average"},
+                    ),
+                    UnifiedOpportunity(
+                        id=_stable_id("dca", "strk-eth"),
+                        type="dca",
+                        product_slug=_PRODUCT_SLUGS["dca"],
+                        title="DCA STRK → ETH",
+                        pair="STRK/ETH",
+                        protocol="zkde.fi",
+                        current_yield=0.0,
+                        risk_score=_BASE_RISK["dca"],
+                        tvl_usd=0.0,
+                        volume_24h=0.0,
+                        privacy_level="shielded",
+                        execution_mode="relayer",
+                        calldata_builder="dca_swap",
+                        metadata={"interval": "1h", "strategy": "dollar_cost_average"},
+                    ),
+                ]
+
+            results: list[UnifiedOpportunity] = []
+            for strat in active:
+                pair = f"{strat['token_in'][:10]}/{strat['token_out'][:10]}"
+                results.append(
+                    UnifiedOpportunity(
+                        id=_stable_id("dca", strat["id"]),
+                        type="dca",
+                        product_slug=_PRODUCT_SLUGS["dca"],
+                        title=strat.get("label", f"DCA {pair}"),
+                        pair=pair,
+                        protocol="zkde.fi",
+                        current_yield=0.0,
+                        risk_score=_BASE_RISK["dca"],
+                        tvl_usd=strat.get("total_volume", 0.0),
+                        volume_24h=0.0,
+                        privacy_level="shielded",
+                        execution_mode="relayer",
+                        calldata_builder="dca_swap",
+                        metadata={
+                            "interval_secs": strat.get("interval_secs", 3600),
+                            "strategy": "dollar_cost_average",
+                            "strategy_id": strat["id"],
+                            "user_address": strat.get("user_address"),
+                        },
+                    )
+                )
+            return results
         except Exception as exc:
             logger.error("_fetch_dca failed: %s", exc)
             return []
