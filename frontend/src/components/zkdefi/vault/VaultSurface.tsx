@@ -158,13 +158,39 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       } catch { /* best effort */ }
 
       try {
-        const statsRes = await fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, {
-          signal: AbortSignal.timeout(6000),
-        });
-        if (statsRes.ok && !cancelled) {
-          const vd = await statsRes.json();
-          if (vd.tvl_eth != null && vd.tvl_eth > 0) {
-            setVaultTvl(`${Number(vd.tvl_eth).toFixed(2)} ETH`);
+        // Try V2 vault stats first (double-entry ledger)
+        let resolved = false;
+        if (address) {
+          const v2Acc = await fetch(`${API_BASE}/v2/vault/v2/account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner_address: address }),
+            signal: AbortSignal.timeout(6000),
+          }).then(r => r.ok ? r.json() : null).catch(() => null);
+          if (v2Acc?.vault_id) {
+            const v2Bal = await fetch(`${API_BASE}/v2/vault/v2/${v2Acc.vault_id}/balance`, {
+              signal: AbortSignal.timeout(6000),
+            }).then(r => r.ok ? r.json() : null).catch(() => null);
+            if (v2Bal?.by_token) {
+              const totalWei = Object.values(v2Bal.by_token as Record<string, any>)
+                .reduce((s: number, t: any) => s + Number(t.available ?? 0), 0);
+              if (totalWei > 0) {
+                setVaultTvl(`${(totalWei / 1e18).toFixed(2)} (V2 Ledger)`);
+                resolved = true;
+              }
+            }
+          }
+        }
+        // Fallback to V1 private-yield stats
+        if (!resolved) {
+          const statsRes = await fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, {
+            signal: AbortSignal.timeout(6000),
+          });
+          if (statsRes.ok && !cancelled) {
+            const vd = await statsRes.json();
+            if (vd.tvl_eth != null && vd.tvl_eth > 0) {
+              setVaultTvl(`${Number(vd.tvl_eth).toFixed(2)} ETH`);
+            }
           }
         }
       } catch { /* best effort */ }

@@ -109,19 +109,43 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           setYieldPoints(yieldChart.points);
         }
 
-        // Vault stats (private-yield pool stats)
-        const stats = await apiFetch<any>("/api/v1/zkdefi/private-yield/vault/stats").catch(() => null);
-        if (stats) {
-          // The pool is currently ETH-denominated; token field tells us which asset.
-          const isEth = !stats.token || stats.token?.toLowerCase().includes("049d365");
-          const tvl = stats.tvl_eth ?? stats.tvl ?? stats.total_deposits_eth ?? 0;
-          setVault({
-            total_usd: stats.total_value_usd ?? 0, // not yet provided by backend
-            strk_balance: isEth ? 0 : tvl,
-            eth_balance: isEth ? tvl : 0,
-            strk_usd: 0,
-            eth_usd: 0,
-          });
+        // Vault stats — try V2 double-entry ledger first, fallback to V1 private-yield
+        let vaultResolved = false;
+        if (address) {
+          const v2Account = await apiFetch<any>("/api/v2/vault/v2/account", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner_address: address }),
+          }).catch(() => null);
+          if (v2Account?.vault_id) {
+            const v2Bal = await apiFetch<any>(`/api/v2/vault/v2/${v2Account.vault_id}/balance`).catch(() => null);
+            if (v2Bal?.by_token) {
+              const strk = v2Bal.by_token.STRK?.available ?? 0;
+              const eth = v2Bal.by_token.ETH?.available ?? 0;
+              setVault({
+                total_usd: 0,
+                strk_balance: Number(strk) / 1e18,
+                eth_balance: Number(eth) / 1e18,
+                strk_usd: 0,
+                eth_usd: 0,
+              });
+              vaultResolved = true;
+            }
+          }
+        }
+        if (!vaultResolved) {
+          const stats = await apiFetch<any>("/api/v1/zkdefi/private-yield/vault/stats").catch(() => null);
+          if (stats) {
+            const isEth = !stats.token || stats.token?.toLowerCase().includes("049d365");
+            const tvl = stats.tvl_eth ?? stats.tvl ?? stats.total_deposits_eth ?? 0;
+            setVault({
+              total_usd: stats.total_value_usd ?? 0,
+              strk_balance: isEth ? 0 : tvl,
+              eth_balance: isEth ? tvl : 0,
+              strk_usd: 0,
+              eth_usd: 0,
+            });
+          }
         }
 
         // Dark Ledger notes from backend (if endpoint is available)

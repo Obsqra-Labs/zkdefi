@@ -14,6 +14,8 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.middleware.auth import WalletOwner
+
 router = APIRouter(prefix="/vault/v2", tags=["vault-v2"])
 
 from app.services.double_entry_ledger import DoubleEntryLedger
@@ -123,7 +125,7 @@ class SweepToVaultRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/account")
-def create_or_get_account(req: CreateAccountRequest):
+def create_or_get_account(req: CreateAccountRequest, _caller: str = WalletOwner):
     _, vaults, *_ = _get_services()
     try:
         return vaults.get_vault_by_address(req.owner_address)
@@ -159,7 +161,7 @@ def get_balance(vault_id: str):
 
 
 @router.post("/deposit/intent")
-def create_deposit_intent(req: DepositIntentRequest):
+def create_deposit_intent(req: DepositIntentRequest, _caller: str = WalletOwner):
     _, _, _, deposit_svc, *_ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -175,14 +177,20 @@ def create_deposit_intent(req: DepositIntentRequest):
 
 
 @router.post("/deposit/confirm")
-def confirm_deposit(req: DepositConfirmRequest):
+async def confirm_deposit(req: DepositConfirmRequest, _caller: str = WalletOwner):
     _, _, _, deposit_svc, *_ = _get_services()
     try:
-        return deposit_svc.confirm_deposit(
+        result = deposit_svc.confirm_deposit(
             intent_id=req.intent_id,
             tx_hash=req.tx_hash,
             commitment_hash=req.commitment_hash,
         )
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_deposit_fact
+        l3 = await post_deposit_fact(req.commitment_hash, req.tx_hash)
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -197,7 +205,7 @@ def list_notes(vault_id: str, status: Optional[str] = None):
 
 
 @router.post("/deploy/intent")
-def create_deploy_intent(req: DeployIntentRequest):
+def create_deploy_intent(req: DeployIntentRequest, _caller: str = WalletOwner):
     _, _, _, _, deploy_svc, *_ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -224,21 +232,27 @@ def deploy_commit(req: DeployCommitRequest):
 
 
 @router.post("/deploy/settle")
-def deploy_settle(req: DeploySettleRequest):
+async def deploy_settle(req: DeploySettleRequest):
     _, _, _, _, deploy_svc, *_ = _get_services()
     try:
         deploy_svc.settle_execution(req.proposal_hash, req.tx_hash)
-        return {"status": "EXECUTED", "proposal_hash": req.proposal_hash}
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_deploy_fact
+        l3 = await post_deploy_fact(req.proposal_hash, req.tx_hash)
+        result = {"status": "EXECUTED", "proposal_hash": req.proposal_hash}
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.post("/withdraw/request")
-def request_withdrawal(req: WithdrawRequest):
+async def request_withdrawal(req: WithdrawRequest, _caller: str = WalletOwner):
     *_, withdrawal_svc, _ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
-        return withdrawal_svc.request_withdrawal(
+        result = withdrawal_svc.request_withdrawal(
             vault_id=req.vault_id,
             amount_wei=int(req.amount_wei),
             token=req.token,
@@ -246,12 +260,19 @@ def request_withdrawal(req: WithdrawRequest):
             route=req.route,
             idempotency_key=idem,
         )
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_withdrawal_fact
+        wd_id = result.get("withdrawal_id", idem)
+        l3 = await post_withdrawal_fact(wd_id, result.get("tx_hash", idem))
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/sweep/to-ledger")
-def sweep_to_ledger(req: SweepToLedgerRequest):
+def sweep_to_ledger(req: SweepToLedgerRequest, _caller: str = WalletOwner):
     *_, sweep_svc = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -267,7 +288,7 @@ def sweep_to_ledger(req: SweepToLedgerRequest):
 
 
 @router.post("/sweep/to-vault")
-def sweep_to_vault(req: SweepToVaultRequest):
+def sweep_to_vault(req: SweepToVaultRequest, _caller: str = WalletOwner):
     *_, sweep_svc = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
