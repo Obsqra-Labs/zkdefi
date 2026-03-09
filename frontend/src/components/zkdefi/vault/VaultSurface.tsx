@@ -16,6 +16,8 @@ import { VaultTradeTab } from "./VaultTradeTab";
 import { VaultBanner } from "./VaultBanner";
 import { VaultHealthMeter } from "./VaultHealthMeter";
 import { NextRebalanceStrip } from "./NextRebalanceStrip";
+import { OracleIntelligenceStrip } from "./OracleIntelligenceStrip";
+import { ConstraintGuard } from "./ConstraintGuard";
 
 export interface VaultSurfaceProps {
   address: string | undefined;
@@ -342,9 +344,18 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
         vaultState={vaultState}
       />
 
+      {/* Constraint bounds (agent guardrails) */}
+      <ConstraintGuard address={address} />
+
       {/* Tab Content */}
       {tab === "portfolio" && (
-        <VaultTab
+        <>
+          <OracleIntelligenceStrip
+            address={address}
+            riskProfile="balanced"
+            onNavigateToOracle={onNavigateToOracle}
+          />
+          <VaultTab
           method={method}
           setMethod={setMethod}
           commitments={commitments}
@@ -359,6 +370,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           onRecordDeposit={v2.recordDeposit}
           onRecordWithdrawal={v2.recordWithdrawal}
         />
+        </>
       )}
 
       {tab === "yield" && (

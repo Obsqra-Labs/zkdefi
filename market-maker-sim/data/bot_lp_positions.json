@@ -74189,7 +74189,24 @@
       "tx_hash": "0x62ac8477690360d6e5f8939296afc06c9e25ebcdbe46470e1cc37bce1379b77",
       "created_at": 1773085113.700406,
       "status": "active"
+    },
+    {
+      "pair": "zkdAI/STRK",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -19000,
+      "upper_tick": 2000,
+      "amount0_wei": 5000000000000000,
+      "amount1_wei": 5000000000000000,
+      "tx_hash": "0x15737a2e051ba969a3ed1a422eb4212d74cef16a66afd937cef61086c5fcc35",
+      "created_at": 1773086010.1123664,
+      "status": "active"
     }
   ],
-  "updated_at": 1773085113.7004788
+  "updated_at": 1773086010.112738
 }

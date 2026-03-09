@@ -7,6 +7,7 @@ import { ArrowDownToLine, Clock, Coins, Loader2, Info } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
+import { PoolSelector, poolBucketToType, type PoolBucket } from "@/components/zkdefi/vault/PoolSelector";
 import { API_BASE } from "@/lib/api/client";
 import { getOperatorAddress } from "@/lib/api/vault";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -158,6 +159,7 @@ export function DepositPanel({
   const { setActivityFeed } = useApp();
 
   const [selectedAsset, setSelectedAsset] = useState<Asset>("STRK");
+  const [selectedPool, setSelectedPool] = useState<PoolBucket>("balanced");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
@@ -506,7 +508,7 @@ export function DepositPanel({
           result = await depositNullifierSet(amountWei, 0);
           break;
         case "hashed_proof":
-          result = await depositNullifierSet(amountWei, 2);
+          result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
           break;
         case "dark_ledger":
           result = await depositDarkLedger(amountWei);
@@ -527,6 +529,7 @@ export function DepositPanel({
         nonce: result.nonce,
         blinding: result.blinding,
         pool_type: result.poolType,
+        pool_variant: selectedPool,
         merkle_index: result.leafIndex,
         merkle_root: result.merkleRoot,
         path_elements: result.pathElements,
@@ -608,6 +611,9 @@ export function DepositPanel({
         </p>
       </div>
 
+      {/* Pool allocation bucket */}
+      <PoolSelector selected={selectedPool} onSelect={setSelectedPool} />
+
       {/* Asset selector */}
       <div className="flex items-center gap-2">
         <Coins className="w-4 h-4 text-white/40" />
@@ -654,7 +660,7 @@ export function DepositPanel({
       </div>
 
       {/* Allocation preview */}
-      <AllocationPreview amount={amount} asset={selectedAsset} isDemo={isDemo} />
+      <AllocationPreview amount={amount} asset={selectedAsset} riskProfile={selectedPool} isDemo={isDemo} />
 
       {/* Proof stepper */}
       <ProofStepper steps={depositSteps} />
