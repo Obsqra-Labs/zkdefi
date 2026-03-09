@@ -49,6 +49,9 @@ function resolveViewParam(v: string | null): CenterMode | undefined {
   if (lower === "execution" || lower === "execution_flow") return "execution_flow";
   if (lower === "history" || lower === "memory_lane" || lower === "receipts") return "memory_lane";
   if (lower === "pools" || lower === "pool" || lower === "pool_intelligence") return "pools";
+  if (lower === "oracle" || lower === "oracle_command") return "oracle";
+  if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow") return "lending";
+  if (lower === "marketplace" || lower === "models" || lower === "zkml") return "marketplace";
   if (lower === "governance" || lower === "policy") return "governance";
   return undefined;
 }

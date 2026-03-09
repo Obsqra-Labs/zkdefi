@@ -8,10 +8,13 @@ import { GovernanceOverlay } from "./GovernanceOverlay";
 import { TradeDesk } from "@/components/zkdefi/TradeDesk";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { PoolIntelligencePanel } from "./PoolIntelligencePanel";
+import { OracleConsole } from "@/components/zkdefi/OracleConsole";
+import { LendingConsole } from "@/components/zkdefi/LendingConsole";
+import { MarketplaceConsole } from "@/components/zkdefi/MarketplaceConsole";
 import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
 import type { UseVaultV2Return } from "@/hooks/useVaultV2";
 
-export type CenterMode = "intelligence" | "opportunities" | "pools" | "capital" | "execution_flow" | "memory_lane" | "governance";
+export type CenterMode = "intelligence" | "opportunities" | "pools" | "capital" | "oracle" | "lending" | "marketplace" | "execution_flow" | "memory_lane" | "governance";
 
 export interface CenterStageModesProps {
   address: string | undefined;
@@ -42,6 +45,9 @@ const MODES: Array<{ id: CenterMode; label: string }> = [
   { id: "pools", label: "Pools" },
   { id: "opportunities", label: "Opportunities" },
   { id: "capital", label: "Capital" },
+  { id: "oracle", label: "Oracle" },
+  { id: "lending", label: "Lending" },
+  { id: "marketplace", label: "Marketplace" },
   { id: "execution_flow", label: "Execution" },
   { id: "memory_lane", label: "History" },
   { id: "governance", label: "Governance" },
@@ -102,6 +108,21 @@ export function CenterStageModes(props: CenterStageModesProps) {
             onDeposit={props.onDeposit}
             onWithdraw={props.onWithdraw}
           />
+        )}
+        {mode === "oracle" && (
+          <ErrorBoundary>
+            <OracleConsole address={props.address} />
+          </ErrorBoundary>
+        )}
+        {mode === "lending" && (
+          <ErrorBoundary>
+            <LendingConsole address={props.address} />
+          </ErrorBoundary>
+        )}
+        {mode === "marketplace" && (
+          <ErrorBoundary>
+            <MarketplaceConsole address={props.address} />
+          </ErrorBoundary>
         )}
         {mode === "execution_flow" && <ExecutionFlowPanel address={props.address} />}
         {mode === "memory_lane" && <MemoryLaneForensicPanel address={props.address} />}
