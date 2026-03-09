@@ -35,8 +35,8 @@ describe("ProposalCard", () => {
       />
     );
 
-    expect(screen.getByText("0x123abc")).toBeInTheDocument();
-    expect(screen.getByText(/Voting/)).toBeInTheDocument();
+    expect(screen.getByText(/0x123abc\.\.\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Voting \(/)).toBeInTheDocument();
   });
 
   it("displays voting results with percentages", () => {
@@ -50,8 +50,8 @@ describe("ProposalCard", () => {
       />
     );
 
-    expect(screen.getByText(/78/)).toBeInTheDocument(); // Yes votes
-    expect(screen.getByText(/22/)).toBeInTheDocument(); // No votes
+    expect(screen.getByText("(78.0%)")).toBeInTheDocument();
+    expect(screen.getByText("(22.0%)")).toBeInTheDocument();
   });
 
   it("shows proposal status badge", () => {
@@ -65,7 +65,7 @@ describe("ProposalCard", () => {
       />
     );
 
-    expect(screen.getByText(/Voting/)).toBeInTheDocument();
+    expect(screen.getByText(/^Voting \(/)).toBeInTheDocument();
 
     const passedProposal = { ...mockProposal, status: "passed" as const };
     rerender(
@@ -193,7 +193,8 @@ describe("ProposalCard", () => {
       />
     );
 
-    expect(screen.getByText(/Your vote: YES/)).toBeInTheDocument();
+    const voteBanner = screen.getByText(/Your vote:/i);
+    expect(voteBanner).toHaveTextContent("YES");
   });
 
   it("handles error during voting", async () => {

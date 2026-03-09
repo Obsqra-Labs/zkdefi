@@ -224,8 +224,10 @@ describe("MemoryLane", () => {
       const swapCard = screen.getByText("Swap USDC → STRK");
       fireEvent.click(swapCard.closest("div") || swapCard);
       await waitFor(() => {
-        const txText = screen.queryAllByText(/0x1234567890abcdef/);
+        const txText = screen.queryAllByText(/0x12345678\.\.\.90abcdef/);
         expect(txText.length).toBeGreaterThan(0);
+        const explorerLink = screen.getByRole("link", { name: /voyager/i });
+        expect(explorerLink.getAttribute("href")).toContain("0x1234567890abcdef");
       });
     });
 

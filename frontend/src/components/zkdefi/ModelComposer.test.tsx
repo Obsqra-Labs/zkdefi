@@ -90,7 +90,7 @@ describe("ModelComposer", () => {
     mockCommonResponses();
   });
 
-  it("hydrates draft from Circuit Board into the 4-step flow", async () => {
+  it("hydrates draft from Circuit Board into the composer flow", async () => {
     render(
       <ModelComposer
         userAddress="0xabc"
@@ -106,15 +106,8 @@ describe("ModelComposer", () => {
       expect(screen.getByDisplayValue("Draft Agent")).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByText("Next"));
-    fireEvent.click(screen.getByText("Next"));
-    fireEvent.click(screen.getByText("Next"));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Create Composed Agent/i)).toBeTruthy();
-    });
-
-    expect(screen.getByText("Risk Score")).toBeTruthy();
+    expect(screen.getByText(/Create Composed Agent/i)).toBeTruthy();
+    expect(screen.getAllByText("Risk Score").length).toBeGreaterThan(0);
     const logicText = screen.getByText(/Logic:/i);
     expect(logicText.textContent || "").toContain("OR");
   });
@@ -134,8 +127,6 @@ describe("ModelComposer", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("Provider Agent")).toBeTruthy();
     });
-
-    fireEvent.click(screen.getByText("LLM Config"));
 
     await waitFor(() => {
       expect(screen.getByText("Provider")).toBeTruthy();

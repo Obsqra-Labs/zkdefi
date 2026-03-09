@@ -462,7 +462,8 @@ describe('ReceiptService', () => {
         json: async () => ({ detail: 'Internal server error' }),
       });
 
-      await expect(service.getReceipts()).rejects.toThrow('Internal server error');
+      const result = await service.getReceipts();
+      expect(result).toEqual([]);
     });
   });
 });

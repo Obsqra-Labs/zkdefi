@@ -11,6 +11,7 @@ describe('ReputationGatingService', () => {
   beforeEach(() => {
     service = new ReputationGatingService();
     vi.clearAllMocks();
+    (global.fetch as any).mockReset();
   });
 
   describe('getUserReputation', () => {
@@ -34,10 +35,11 @@ describe('ReputationGatingService', () => {
         reputationScore: 65,
         tier: 'Tier2',
         updatedAt: '2026-03-07T10:00:00Z',
+        gates: null,
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/v1/zkdefi/risk_profile/v2/${mockAddress}`),
+        expect.stringContaining(`/api/v1/zkdefi/reputation/user/${mockAddress}`),
         expect.any(Object)
       );
     });
@@ -45,11 +47,6 @@ describe('ReputationGatingService', () => {
     it('should handle API errors gracefully', async () => {
       const mockAddress = '0x123abc';
 
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        json: async () => ({ detail: 'User not found' }),
-      });
       (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -205,6 +202,7 @@ describe('ReputationGatingService', () => {
         address: mockAddress,
         reputationScore: 95,
         updatedAt: '2026-03-07T10:00:00Z',
+        gates: null,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -228,6 +226,7 @@ describe('ReputationGatingService', () => {
         address: mockAddress,
         reputationScore: 30,
         updatedAt: '2026-03-07T10:00:00Z',
+        gates: null,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
