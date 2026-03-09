@@ -2,18 +2,18 @@
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
     "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
     "gateRules": {
-      "minReputationScore": 50,
-      "maxRiskScore": 50,
-      "requireCircuitVerified": false,
+      "minReputationScore": 30,
+      "maxRiskScore": 80,
+      "requireCircuitVerified": true,
       "preferPrivacyMode": null
     },
     "executionRules": {
-      "maxAllocationPct": 20.0,
-      "dailyLimitUSD": 10000.0,
-      "autoExecute": false
+      "maxAllocationPct": 40.0,
+      "dailyLimitUSD": 50000.0,
+      "autoExecute": true
     },
     "isActive": true,
     "createdAt": "2026-03-08T12:37:21.505223+00:00",
-    "updatedAt": "2026-03-08T12:37:21.505223+00:00"
+    "updatedAt": "2026-03-09T20:25:15.297298+00:00"
   }
 }

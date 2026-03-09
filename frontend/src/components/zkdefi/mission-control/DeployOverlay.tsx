@@ -39,7 +39,7 @@ export function DeployOverlay({ address, onClose, initialMode = "trade_desk" }: 
   const tabs = useMemo(
     () => [
       { id: "trade_desk" as const, label: "Trade Desk", icon: LineChart },
-      { id: "privacy_pools" as const, label: "Privacy Pools", icon: Shield },
+      { id: "privacy_pools" as const, label: "Vault Rails (Advanced)", icon: Shield },
       ...(LEGACY_FLAG_ENABLED ? [{ id: "legacy" as const, label: "Legacy", icon: LineChart }] : []),
     ],
     []
@@ -95,7 +95,7 @@ export function DeployOverlay({ address, onClose, initialMode = "trade_desk" }: 
               <h3 className="text-sm font-semibold text-zinc-100">Legacy Deploy Tabs</h3>
               <p className="text-sm text-zinc-400">
                 Legacy Swap/LP/Lend/Stake/DCA/Limits panels are now feature-flagged. Keep this mode only for
-                migration fallback; Trade Desk and Privacy Pools are the canonical surfaces.
+                migration fallback; Trade Desk is canonical and Vault Rails is advanced-only.
               </p>
             </div>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck, CreditCard, ArrowUpDown } from "lucide-react";
+import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck, CreditCard, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
@@ -94,6 +94,8 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
 
   // V2 sweep state
   const [sweepBusy, setSweepBusy] = useState(false);
+  const [showAdvancedPrivacyRails, setShowAdvancedPrivacyRails] = useState(false);
+  const [lastAutoSweepSignature, setLastAutoSweepSignature] = useState<string>("");
 
   const handleSweepToVault = useCallback(async () => {
     if (!v2?.doSweepToVault) return;
@@ -115,17 +117,17 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
     }
   }, [v2]);
 
-  const handleSweepToLedger = useCallback(async () => {
-    if (!v2?.doSweepToLedger || !v2.notes.length) return;
-    setSweepBusy(true);
-    try {
-      for (const note of v2.notes) {
-        await v2.doSweepToLedger(note.note_id, note.amount_wei ?? "0", note.token ?? "STRK");
-      }
-    } catch { /* best effort */ } finally {
-      setSweepBusy(false);
-    }
-  }, [v2]);
+  useEffect(() => {
+    if (!v2?.vaultId || !v2?.doSweepToVault || sweepBusy) return;
+    const strkAvailable = v2.balances.find((b) => b.token === "STRK")?.available ?? 0;
+    const ethAvailable = v2.balances.find((b) => b.token === "ETH")?.available ?? 0;
+    if (strkAvailable <= 0 && ethAvailable <= 0) return;
+
+    const signature = `${strkAvailable.toFixed(8)}:${ethAvailable.toFixed(8)}`;
+    if (signature === lastAutoSweepSignature) return;
+    setLastAutoSweepSignature(signature);
+    void handleSweepToVault();
+  }, [v2?.vaultId, v2?.doSweepToVault, v2?.balances, sweepBusy, lastAutoSweepSignature, handleSweepToVault]);
 
   useEffect(() => {
     if (!address) { setLoading(false); return; }
@@ -388,11 +390,11 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
       <section className="rounded-lg border border-zinc-800 p-3">
         <div className="flex items-center gap-2 mb-1">
           <Landmark className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Vault</h3>
+          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Capital</h3>
           {totalPrivateNotes > 0 && (
             <span className="ml-auto flex items-center gap-1 text-[10px] text-emerald-400/80">
               <ShieldCheck className="w-3 h-3" />
-              {totalPrivateNotes} note{totalPrivateNotes !== 1 ? "s" : ""}
+              {totalPrivateNotes} private settlement{totalPrivateNotes !== 1 ? "s" : ""}
             </span>
           )}
         </div>
@@ -432,7 +434,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
                 {!v2 && ((a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0))) ? (
                   <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
                     {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
-                    {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
+                    {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Private</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
                     {a.dark_wei > BigInt(0) && <div className="flex justify-between"><span className="text-violet-400/70">Private</span><span>{formatWei(a.dark_wei.toString(), a.asset)}</span></div>}
                   </div>
                 ) : null}
@@ -443,11 +445,17 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           <p className="text-sm text-zinc-500 py-1">No balances</p>
         )}
 
-        {/* Shielded breakdown by method */}
-        <ShieldedBreakdown
-          commitments={privacyCommitments}
-          className="mt-3 pt-2 border-t border-zinc-800/60"
-        />
+        {privacyCommitments.length > 0 && (
+          <details className="mt-3 rounded border border-zinc-800/60 bg-zinc-900/30 px-2 py-1">
+            <summary className="cursor-pointer list-none text-[10px] text-zinc-500 uppercase tracking-wider">
+              Settlement Detail
+            </summary>
+            <ShieldedBreakdown
+              commitments={privacyCommitments}
+              className="mt-2"
+            />
+          </details>
+        )}
 
         <div className="mt-3 flex gap-2">
           <button onClick={onDeposit} className="flex-1 py-1.5 text-xs font-medium rounded bg-emerald-600 hover:bg-emerald-500 transition-colors">
@@ -504,16 +512,16 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
         </section>
       )}
 
-      {/* Private Notes (L3-settled commitments) */}
+      {/* Private Settlement Queue (internal/private processing state) */}
       <section className="rounded-lg border border-violet-800/40 p-3">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-4 h-4 text-violet-400" />
-          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Private Notes</h3>
-          <span className="ml-auto text-[10px] text-violet-400/60">Commitment-verified</span>
+          <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Private Settlement Queue</h3>
+          <span className="ml-auto text-[10px] text-violet-400/60">Auto-settles into Vault</span>
         </div>
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between text-zinc-300">
-            <span>Notes</span>
+            <span>Pending items</span>
             <span>{totalDarkNotes}</span>
           </div>
           {/* Backend notes */}
@@ -539,7 +547,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
             </div>
           )}
           <div className="flex justify-between text-zinc-300">
-            <span>Sweep Available</span>
+            <span>Pending settlement value</span>
             <span>${darkLedger.sweep_available_usd.toLocaleString()}</span>
           </div>
           {darkLedger.l3_block > 0 && (
@@ -550,30 +558,52 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           )}
           <div className="flex items-center gap-1 text-violet-400/80">
             <Eye className="w-3 h-3" />
-            <span className="text-[10px]">Hash-committed, ZK-verified</span>
+            <span className="text-[10px]">Hash-committed, ZK-verified private settlement</span>
           </div>
         </div>
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={onImportDarkLedger}
-            className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors"
-          >
-            Privacy Pool
-          </button>
-          <button
-            onClick={onOpenShielded}
-            className="flex-1 py-1 text-[10px] font-medium rounded border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/30 transition-colors"
-          >
-            Shielded Pool
-          </button>
+        <div className="mt-2">
           <button
             onClick={handleSweepToVault}
             disabled={sweepBusy || !v2?.vaultId}
-            className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {sweepBusy ? "Sweeping…" : "Sweep to Vault"}
+            {sweepBusy ? "Settling…" : "Settle to Vault Now"}
           </button>
         </div>
+        {(onImportDarkLedger || onOpenShielded) && (
+          <div className="mt-2 border-t border-violet-800/30 pt-2">
+            <button
+              onClick={() => setShowAdvancedPrivacyRails((v) => !v)}
+              className="w-full flex items-center justify-between rounded px-2 py-1 text-[10px] text-zinc-400 hover:bg-zinc-800/40"
+              aria-expanded={showAdvancedPrivacyRails}
+            >
+              <span>Advanced Privacy Rails</span>
+              {showAdvancedPrivacyRails ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+            </button>
+            {showAdvancedPrivacyRails && (
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={onImportDarkLedger}
+                  disabled={!onImportDarkLedger}
+                  className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Open Legacy Private Pool
+                </button>
+                <button
+                  onClick={onOpenShielded}
+                  disabled={!onOpenShielded}
+                  className="flex-1 py-1 text-[10px] font-medium rounded border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Open Legacy Shield Rail
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ── Credit Line ── */}

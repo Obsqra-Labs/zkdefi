@@ -63,7 +63,7 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
             adapter.getPoolStats(pool.id),
             liquidity.getPoolLiquidity(pool.id),
           ]);
-          let userDeposited = rows[pool.id]?.userDeposited ?? 0;
+          let userDeposited = 0;
           if (address) {
             try {
               const res = await fetch(apiUrl(`/api/v1/dao/pools/${pool.id}/positions/${address}`));
@@ -86,7 +86,7 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [adapter, liquidity, address, rows]);
+  }, [adapter, liquidity, address]);
 
   useEffect(() => {
     load();

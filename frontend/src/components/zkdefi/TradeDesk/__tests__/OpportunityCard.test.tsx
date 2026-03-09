@@ -218,8 +218,8 @@ describe("OpportunityCard Logic", () => {
     it("all privacy modes have descriptive titles", () => {
       const titles: Record<string, string> = {
         public: "Public",
-        shielded: "Shielded",
-        dark_ledger: "Dark Ledger",
+        shielded: "Private",
+        dark_ledger: "Private Queue",
       };
 
       mockOpportunity.privacyModes.forEach((mode) => {

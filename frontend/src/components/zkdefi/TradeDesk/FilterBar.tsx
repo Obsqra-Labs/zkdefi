@@ -37,8 +37,8 @@ export const SECTION_TABS: {
   { key: "staking", label: "Stake", icon: Layers, color: "bg-purple-600" },
   { key: "limit", label: "Limit", icon: Target, color: "bg-blue-600" },
   { key: "dca", label: "DCA", icon: RefreshCw, color: "bg-orange-600" },
-  { key: "privacy", label: "Privacy", icon: EyeOff, color: "bg-violet-600" },
-  { key: "dark_ledger", label: "Dark", icon: BookLock, color: "bg-slate-600" },
+  { key: "privacy", label: "Private", icon: EyeOff, color: "bg-violet-600" },
+  { key: "dark_ledger", label: "Queue", icon: BookLock, color: "bg-slate-600" },
 ];
 
 export interface SectionTabBarProps {
@@ -89,4 +89,3 @@ export function SectionTabBar({
     </div>
   );
 }
-

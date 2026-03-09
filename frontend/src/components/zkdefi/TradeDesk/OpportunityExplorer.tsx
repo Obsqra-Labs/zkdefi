@@ -23,8 +23,8 @@ const SECTION_LABELS: Record<string, string> = {
   staking: "staking",
   limit: "limit order",
   dca: "DCA",
-  privacy: "privacy pool",
-  dark_ledger: "dark ledger",
+  privacy: "private rail",
+  dark_ledger: "private queue",
 };
 
 export function OpportunityExplorer({

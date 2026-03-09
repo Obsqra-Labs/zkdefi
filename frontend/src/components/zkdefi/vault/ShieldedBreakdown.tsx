@@ -16,10 +16,10 @@ import { useMemo } from "react";
 // ---------------------------------------------------------------------------
 
 export const METHOD_LABELS: Record<string, string> = {
-  commitment_shield: "Shield",
-  nullifier_set: "Full Privacy",
-  hashed_proof: "Selective Proof",
-  dark_ledger: "Private Pool",
+  commitment_shield: "Public",
+  nullifier_set: "Private",
+  hashed_proof: "Private",
+  dark_ledger: "Private Settlement",
 };
 
 export function formatWei(weiStr: string, asset: string): string {
@@ -94,7 +94,7 @@ export function ShieldedBreakdown({ commitments, methods, className }: ShieldedB
   return (
     <div className={className}>
       <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
-        Shielded by method
+        Settlement by mode
       </p>
       <div className="space-y-1">
         {rows.map((s) => (

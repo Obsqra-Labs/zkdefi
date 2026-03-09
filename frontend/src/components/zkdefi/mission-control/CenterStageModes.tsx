@@ -5,26 +5,57 @@ import { Loader2, Search, X } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { UnifiedStream } from "./UnifiedStream";
 import { GovernanceOverlay } from "./GovernanceOverlay";
+import { TradeDesk } from "@/components/zkdefi/TradeDesk";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { PoolIntelligencePanel } from "./PoolIntelligencePanel";
+import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
+import type { UseVaultV2Return } from "@/hooks/useVaultV2";
 
-type CenterMode = "intelligence" | "execution_flow" | "memory_lane" | "governance";
+export type CenterMode = "intelligence" | "opportunities" | "pools" | "capital" | "execution_flow" | "memory_lane" | "governance";
 
-interface CenterStageModesProps {
+export interface CenterStageModesProps {
   address: string | undefined;
+  initialMode?: CenterMode;
   onDeploy?: (opportunityId: string) => void;
   onOpenGovernance?: () => void;
   onOpenCircuitBoard?: () => void;
   onOpenZkRag?: () => void;
+  /** Vault props for the Capital tab */
+  vaultProps?: {
+    method: PrivacyMethod;
+    setMethod: (m: PrivacyMethod) => void;
+    commitments: VaultCommitment[];
+    addCommitment: (c: VaultCommitment) => void;
+    removeCommitment: (id: string) => void;
+    depositSteps: ProofStep[];
+    withdrawSteps: ProofStep[];
+    setDepositSteps: React.Dispatch<React.SetStateAction<ProofStep[]>>;
+    setWithdrawSteps: React.Dispatch<React.SetStateAction<ProofStep[]>>;
+  };
+  v2?: UseVaultV2Return;
+  onDeposit?: () => void;
+  onWithdraw?: () => void;
 }
 
 const MODES: Array<{ id: CenterMode; label: string }> = [
   { id: "intelligence", label: "Intelligence" },
-  { id: "execution_flow", label: "Execution Flow" },
-  { id: "memory_lane", label: "Memory Lane" },
+  { id: "pools", label: "Pools" },
+  { id: "opportunities", label: "Opportunities" },
+  { id: "capital", label: "Capital" },
+  { id: "execution_flow", label: "Execution" },
+  { id: "memory_lane", label: "History" },
   { id: "governance", label: "Governance" },
 ];
 
 export function CenterStageModes(props: CenterStageModesProps) {
-  const [mode, setMode] = useState<CenterMode>("intelligence");
+  const [mode, setMode] = useState<CenterMode>(props.initialMode ?? "intelligence");
+
+  // Sync external mode changes (from ?v= params)
+  useEffect(() => {
+    if (props.initialMode && props.initialMode !== mode) {
+      setMode(props.initialMode);
+    }
+  }, [props.initialMode]);
 
   return (
     <div className="h-full flex flex-col">
@@ -44,6 +75,34 @@ export function CenterStageModes(props: CenterStageModesProps) {
 
       <div className="flex-1 min-h-0">
         {mode === "intelligence" && <UnifiedStream {...props} />}
+        {mode === "pools" && (
+          <ErrorBoundary>
+            <PoolIntelligencePanel
+              address={props.address}
+              onDeposit={(pool) => props.onDeposit?.()}
+            />
+          </ErrorBoundary>
+        )}
+        {mode === "opportunities" && (
+          <ErrorBoundary>
+            <div className="h-full overflow-y-auto">
+              <TradeDesk
+                userAddress={props.address}
+                autoRefresh
+                showMemoryLane={false}
+              />
+            </div>
+          </ErrorBoundary>
+        )}
+        {mode === "capital" && (
+          <CapitalPanel
+            address={props.address}
+            vaultProps={props.vaultProps}
+            v2={props.v2}
+            onDeposit={props.onDeposit}
+            onWithdraw={props.onWithdraw}
+          />
+        )}
         {mode === "execution_flow" && <ExecutionFlowPanel address={props.address} />}
         {mode === "memory_lane" && <MemoryLaneForensicPanel address={props.address} />}
         {mode === "governance" && (
@@ -273,6 +332,102 @@ function MemoryLaneForensicPanel({ address }: { address: string | undefined }) {
           </pre>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Capital Panel — positions, deposit/withdraw CTAs, yield, positions overview
+// ---------------------------------------------------------------------------
+
+import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
+import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
+import PositionsOverview from "@/components/zkdefi/vault/PositionsOverview";
+import { Lock, Plus, ArrowDownToLine } from "lucide-react";
+
+interface CapitalPanelProps {
+  address: string | undefined;
+  vaultProps?: CenterStageModesProps["vaultProps"];
+  v2?: UseVaultV2Return;
+  onDeposit?: () => void;
+  onWithdraw?: () => void;
+}
+
+function CapitalPanel({ address, vaultProps, v2, onDeposit, onWithdraw }: CapitalPanelProps) {
+  if (!address) {
+    return <div className="p-4 text-zinc-500 text-sm">Connect wallet to manage capital.</div>;
+  }
+
+  const commitments = vaultProps?.commitments ?? [];
+
+  // Calculate totals from commitments
+  const totalPosition = commitments.reduce((sum, c) => {
+    try { return sum + Number(BigInt(c.amount_wei || "0")) / 1e18; }
+    catch { return sum; }
+  }, 0);
+
+  const totalEarned = (() => {
+    const vals = commitments
+      .filter((c) => c.yield_accrued)
+      .map((c) => { try { return Number(BigInt(c.yield_accrued || "0")) / 1e18; } catch { return 0; } });
+    if (vals.length === 0) return null;
+    return vals.reduce((a, b) => a + b, 0);
+  })();
+
+  const privacyCoverage = (() => {
+    if (commitments.length === 0) return 0;
+    const shielded = commitments.filter((c) => c.method !== "commitment_shield");
+    return Math.round((shielded.length / commitments.length) * 100);
+  })();
+
+  return (
+    <div className="h-full overflow-y-auto p-4 space-y-5">
+      {/* Privacy banner */}
+      <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2 text-xs text-emerald-400/80 flex items-center gap-2">
+        <Lock className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+        <span className="font-medium text-emerald-300">Max Privacy</span>
+        <span className="text-emerald-400/60">— Hash-committed ZK proofs on every deposit. Nullifier-set withdrawals.</span>
+      </div>
+
+      {/* Summary stats strip */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="border border-white/10 rounded-lg bg-white/[0.02] p-3">
+          <p className="text-[11px] text-white/40">Total Position</p>
+          <p className="text-sm font-semibold text-white">{totalPosition.toFixed(2)} STRK</p>
+        </div>
+        <div className="border border-white/10 rounded-lg bg-white/[0.02] p-3">
+          <p className="text-[11px] text-white/40">Privacy Coverage</p>
+          <p className="text-sm font-semibold text-white">{commitments.length > 0 ? `${privacyCoverage}%` : "--"}</p>
+        </div>
+        <div className="border border-white/10 rounded-lg bg-white/[0.02] p-3">
+          <p className="text-[11px] text-white/40">Total Earned</p>
+          <p className="text-sm font-semibold text-white">{totalEarned != null ? `${totalEarned.toFixed(2)} STRK` : "--"}</p>
+        </div>
+      </div>
+
+      {/* Action CTAs */}
+      <div className="flex gap-2">
+        <button
+          onClick={onDeposit}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Deposit
+        </button>
+        <button
+          onClick={onWithdraw}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-zinc-700 hover:bg-zinc-800 text-white text-sm font-medium transition-colors"
+        >
+          <ArrowDownToLine className="w-4 h-4" /> Withdraw
+        </button>
+      </div>
+
+      {/* Positions */}
+      <ErrorBoundary>
+        <PositionsOverview
+          commitments={commitments}
+          address={address}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

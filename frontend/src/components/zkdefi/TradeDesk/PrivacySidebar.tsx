@@ -10,7 +10,7 @@ interface PrivacySidebarProps {
   userAddress: string | null;
 }
 
-interface ShieldedPool {
+interface PrivatePool {
   token: string;
   amount: number;
   commitment_count: number;
@@ -18,8 +18,8 @@ interface ShieldedPool {
 
 export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
   const [collapsed, setCollapsed] = useState(true);
-  const [totalShielded, setTotalShielded] = useState(0);
-  const [pools, setPools] = useState<ShieldedPool[]>([]);
+  const [totalPrivate, setTotalPrivate] = useState(0);
+  const [pools, setPools] = useState<PrivatePool[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
 
@@ -31,12 +31,12 @@ export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
       .getShieldedBalance(userAddress)
       .then((data) => {
         if (cancelled) return;
-        setTotalShielded(data.total_shielded_usd);
+        setTotalPrivate(data.total_shielded_usd);
         setPools(data.pools);
       })
       .catch(() => {
         if (!cancelled) {
-          setTotalShielded(0);
+          setTotalPrivate(0);
           setPools([]);
         }
       })
@@ -92,7 +92,7 @@ export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
             >
               <h4 className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-violet-400" />
-                Shielded Balance
+                Private Balance
               </h4>
 
               {loading ? (
@@ -100,7 +100,7 @@ export function PrivacySidebar({ userAddress }: PrivacySidebarProps) {
               ) : (
                 <>
                   <div className="text-lg font-bold text-violet-300">
-                    ${Number(totalShielded).toFixed(2)}
+                    ${Number(totalPrivate).toFixed(2)}
                   </div>
                   <div className="space-y-1">
                     {pools.map((p) => (

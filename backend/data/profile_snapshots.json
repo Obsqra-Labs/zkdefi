@@ -1039,5 +1039,396 @@
       }
     ],
     "latest": "0x66890bab24277ef06d491aff3c91f833cab1bb278d1e03767218e98c27849f7e"
+  },
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "history": [
+      {
+        "snapshot_id": "0x81bcd3d5a9f41a197accf72ef146989625b69d548b324beb5d441d9d77efec12",
+        "taken_at": "2026-03-09T20:19:47.061306+00:00",
+        "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+            "linked_addresses": [
+              {
+                "chain": "ethereum",
+                "address": "0x8f2c8b79b24122e189966d8a041af49a9f9ec7d9",
+                "verified": true,
+                "verified_at": "2026-03-03T21:48:55.270893+00:00"
+              }
+            ],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "expired",
+              "chain": "ethereum",
+              "evm_address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+              "expires_at": 1772660935,
+              "verified_at": "2026-03-03T21:48:55.270893+00:00",
+              "identity_binding": {
+                "linked_chain_key": "eth",
+                "linked_address": "0x8f2c8b79b24122e189966d8a041af49a9f9ec7d9",
+                "bound": true,
+                "linked_updated_at": "2026-03-09T20:19:46.976767+00:00"
+              },
+              "auth_provider": "injected",
+              "credential_summary": null,
+              "history_count": 2
+            }
+          },
+          "attribution_summary": {
+            "event_count": 2,
+            "chains": [
+              "ethereum",
+              "starknet"
+            ]
+          },
+          "credential_summary": {
+            "issued_count": 3,
+            "active_count": 3,
+            "revoked_count": 0,
+            "latest_issued_at": "2026-03-09T20:19:39+00:00"
+          },
+          "reputation": {
+            "tier": 2,
+            "tier_name": "Express",
+            "tenure_days": 37920,
+            "transaction_count": 38005,
+            "successful_txns": 38005,
+            "collateral_eth": 1.2,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 92,
+            "letter_rating": "A",
+            "tier": 2,
+            "tier_name": "Express",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 20,
+              "by_type": {
+                "risk_score": 14,
+                "credential_issued": 3,
+                "claims_derived": 3
+              }
+            }
+          },
+          "governance": {
+            "voting_power": 707.759846,
+            "lp_usd": 125231.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 2.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": "sqrt(lp_usd + lending_usd + staking_usd) * tier_multiplier"
+          },
+          "predictive_credit": null,
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 2,
+                "tier_name": "Express"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 92,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "total_line_wei": "960000000000000000",
+                "total_line_eth": 0.96,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.96,
+                "rate_bps": 450,
+                "letter": "A",
+                "tier": 2,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-09T20:19:47.061206+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 2,
+              "tier_name": "Express",
+              "letter_rating": "A",
+              "passport_score": 92
+            },
+            "credit": {
+              "grade": null,
+              "credit_line_eth": null,
+              "rate_bps": null
+            },
+            "governance": {
+              "voting_power": 707.759846,
+              "tier_multiplier": 2.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 1,
+              "dual_wallet_active": false,
+              "subject_id": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+              "attribution_event_count": 2,
+              "credential_active_count": 3
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0xbf2641b24072a3d59dcf39baec0dd4e2557d5eb5c0a02f44241f639d8867e6b3",
+        "taken_at": "2026-03-09T20:19:48.473073+00:00",
+        "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+            "linked_addresses": [
+              {
+                "chain": "ethereum",
+                "address": "0x8f2c8b79b24122e189966d8a041af49a9f9ec7d9",
+                "verified": true,
+                "verified_at": "2026-03-03T21:48:55.270893+00:00"
+              }
+            ],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "expired",
+              "chain": "ethereum",
+              "evm_address": "0x8f2c8B79b24122E189966d8a041aF49A9f9EC7D9",
+              "expires_at": 1772660935,
+              "verified_at": "2026-03-03T21:48:55.270893+00:00",
+              "identity_binding": {
+                "linked_chain_key": "eth",
+                "linked_address": "0x8f2c8b79b24122e189966d8a041af49a9f9ec7d9",
+                "bound": true,
+                "linked_updated_at": "2026-03-09T20:19:48.445038+00:00"
+              },
+              "auth_provider": "injected",
+              "credential_summary": null,
+              "history_count": 2
+            }
+          },
+          "attribution_summary": {
+            "event_count": 2,
+            "chains": [
+              "ethereum",
+              "starknet"
+            ]
+          },
+          "credential_summary": {
+            "issued_count": 3,
+            "active_count": 3,
+            "revoked_count": 0,
+            "latest_issued_at": "2026-03-09T20:19:39+00:00"
+          },
+          "reputation": {
+            "tier": 2,
+            "tier_name": "Express",
+            "tenure_days": 37920,
+            "transaction_count": 38005,
+            "successful_txns": 38005,
+            "collateral_eth": 1.2,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 92,
+            "letter_rating": "A",
+            "tier": 2,
+            "tier_name": "Express",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 20,
+              "by_type": {
+                "risk_score": 14,
+                "credential_issued": 3,
+                "claims_derived": 3
+              }
+            }
+          },
+          "governance": {
+            "voting_power": 707.759846,
+            "lp_usd": 125231.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 2.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": "sqrt(lp_usd + lending_usd + staking_usd) * tier_multiplier"
+          },
+          "predictive_credit": null,
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 2,
+                "tier_name": "Express"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 92,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "total_line_wei": "960000000000000000",
+                "total_line_eth": 0.96,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.96,
+                "rate_bps": 450,
+                "letter": "A",
+                "tier": 2,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-09T20:19:48.473007+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 2,
+              "tier_name": "Express",
+              "letter_rating": "A",
+              "passport_score": 92
+            },
+            "credit": {
+              "grade": null,
+              "credit_line_eth": null,
+              "rate_bps": null
+            },
+            "governance": {
+              "voting_power": 707.759846,
+              "tier_multiplier": 2.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 1,
+              "dual_wallet_active": false,
+              "subject_id": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+              "attribution_event_count": 2,
+              "credential_active_count": 3
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xbf2641b24072a3d59dcf39baec0dd4e2557d5eb5c0a02f44241f639d8867e6b3"
   }
 }

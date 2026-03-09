@@ -11,13 +11,13 @@ vi.mock("../PrivacyPoolsPanel", () => ({
 }));
 
 describe("DeployOverlay", () => {
-  it("defaults to Trade Desk and can switch to Privacy Pools", () => {
+  it("defaults to Trade Desk and can switch to advanced Vault Rails", () => {
     render(<DeployOverlay address="0xabc" onClose={() => {}} />);
 
     expect(screen.getByTestId("trade-desk")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Privacy Pools/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Vault Rails \(Advanced\)/i })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /Privacy Pools/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Vault Rails \(Advanced\)/i }));
     expect(screen.getByTestId("privacy-pools")).toBeTruthy();
   });
 });

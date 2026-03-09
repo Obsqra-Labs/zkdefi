@@ -31,21 +31,21 @@ const FULL_PRIVACY_POOL_ADDRESS =
   "";
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Shield",
-  nullifier_set: "Full Privacy",
-  hashed_proof: "Max Privacy",
-  dark_ledger: "Operator Vault",
+  commitment_shield: "Public",
+  nullifier_set: "Private",
+  hashed_proof: "Private",
+  dark_ledger: "Private (Legacy)",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
   commitment_shield:
-    "Pedersen commitment hides your withdrawal amount. Your wallet signs the tx directly.",
+    "Standard on-chain withdrawal path with normal signer visibility.",
   nullifier_set:
-    "Groth16 proof + nullifier ensures unlinkability. Toggle relayer below so a separate wallet submits the tx — your address never appears.",
+    "Private withdrawal with Groth16 proof + nullifier unlinkability.",
   hashed_proof:
-    "Hash-committed withdrawal with Groth16 proof. Relayer-compatible for full address separation. Your identity stays private.",
+    "Private withdrawal with hash commitment + Groth16 proof. Recommended default.",
   dark_ledger:
-    "Legacy operator vault path.",
+    "Legacy private settlement rail.",
 };
 
 const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
@@ -263,7 +263,7 @@ export function WithdrawPanel({
     });
     const data = await res.json();
     if (!res.ok)
-      throw new Error(data.detail || "Shielded withdraw proof failed");
+      throw new Error(data.detail || "Public withdraw proof failed");
 
     const proofCalldata: string[] = data.proof_calldata ?? [];
     const proofFelts = proofCalldata.map((p: string) => BigInt(p).toString());
@@ -314,7 +314,7 @@ export function WithdrawPanel({
   ) {
     const poolAddr = FULL_PRIVACY_POOL_ADDRESS;
     if (!poolAddr)
-      throw new Error("Full Privacy Pool address not configured");
+      throw new Error("Private pool address not configured");
 
     setWithdrawSteps((prev) =>
       updateStep(prev, 0, "active", "Verifying commitment..."),
@@ -679,7 +679,7 @@ export function WithdrawPanel({
       <div className="flex items-start gap-2 rounded-lg border border-rose-500/10 bg-rose-500/[0.03] px-3 py-2">
         <Info className="w-3.5 h-3.5 text-rose-400/50 mt-0.5 flex-shrink-0" />
         <p className="text-[11px] text-rose-400/60 leading-relaxed">
-          Hash-committed withdrawal with Groth16 proof. Enable the relayer below for full address separation.
+          {METHOD_TIPS[method]}
         </p>
       </div>
 
@@ -907,7 +907,7 @@ export function WithdrawPanel({
             Processing...
           </>
         ) : (
-          "Withdraw Privately"
+          "Withdraw"
         )}
       </button>
     </motion.div>

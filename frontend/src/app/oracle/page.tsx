@@ -347,8 +347,8 @@ export default function OraclePage() {
                       >
                         <option value="none">No preference</option>
                         <option value="public">Public</option>
-                        <option value="shielded">Shielded</option>
-                        <option value="hashed_proof">Max Privacy</option>
+                        <option value="shielded">Private</option>
+                        <option value="hashed_proof">Private+</option>
                       </select>
                     </label>
                   </div>

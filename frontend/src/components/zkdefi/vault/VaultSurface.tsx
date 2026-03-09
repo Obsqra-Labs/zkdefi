@@ -264,7 +264,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-400" />
-          <h2 className="text-lg font-semibold text-white">Privacy Pools</h2>
+          <h2 className="text-lg font-semibold text-white">Vault</h2>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
           <span className="text-white/40">STRK/ETH</span>

@@ -581,8 +581,8 @@ function OpportunityDetail({
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm focus:border-cyan-500 focus:outline-none"
                   >
                     <option value="public">Public</option>
-                    <option value="shielded">Shielded</option>
-                    <option value="fully_private">Fully Private</option>
+                    <option value="shielded">Private</option>
+                    <option value="fully_private">Private+</option>
                   </select>
                 </div>
               </div>

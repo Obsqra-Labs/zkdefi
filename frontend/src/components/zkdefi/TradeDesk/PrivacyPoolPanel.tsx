@@ -1,5 +1,5 @@
 /**
- * Privacy Pool Panel - Shielded deposit/withdraw integration
+ * Privacy Pool Panel - Advanced private deposit/withdraw integration
  */
 
 "use client";
@@ -25,7 +25,7 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
   const [token, setToken] = useState<string>("ETH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shieldedBalance, setShieldedBalance] = useState<number>(0);
+  const [privateBalance] = useState<number>(0);
 
   const tokens = useMemo(() => ["ETH", "USDC", "DAI", "STRK"], []);
 
@@ -108,13 +108,13 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
             <Unlock className="w-5 h-5 text-green-400" />
           )}
           <h3 className="text-lg font-bold text-slate-100">
-            {mode === "deposit" ? "Shield Assets" : "Unshield Assets"}
+            {mode === "deposit" ? "Private Deposit" : "Private Withdraw"}
           </h3>
         </div>
         <p className="text-sm text-slate-400">
           {mode === "deposit"
-            ? "Deposit into shielded pool for privacy"
-            : "Withdraw from shielded pool"}
+            ? "Deposit into the private rail"
+            : "Withdraw from the private rail"}
         </p>
       </div>
 
@@ -129,7 +129,7 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
           } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           disabled={loading}
         >
-          Shield (Deposit)
+          Private Deposit
         </button>
         <button
           onClick={() => setMode("withdraw")}
@@ -140,7 +140,7 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
           } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           disabled={loading}
         >
-          Unshield (Withdraw)
+          Private Withdraw
         </button>
       </div>
 
@@ -188,7 +188,7 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
         />
         <div className="mt-2 text-xs text-slate-400">
-          Shielded Balance: {shieldedBalance.toFixed(4)} {token}
+          Private Balance: {privateBalance.toFixed(4)} {token}
         </div>
       </div>
 
@@ -199,8 +199,8 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
           <div>
             <p className="font-medium mb-1">Privacy Benefits</p>
             <ul className="text-xs space-y-1 text-blue-300">
-              <li>• Shield your holdings and transactions</li>
-              <li>• Prevent public monitoring of balances</li>
+              <li>• Keep deposits and withdrawals unlinkable</li>
+              <li>• Reduce public balance traceability</li>
               <li>• Maintain privacy across trading activity</li>
             </ul>
           </div>
@@ -222,11 +222,11 @@ export const PrivacyPoolPanel: React.FC<PrivacyPoolPanelProps> = ({
         )}
         {loading
           ? mode === "deposit"
-            ? "Shielding..."
-            : "Unshielding..."
+            ? "Depositing privately..."
+            : "Withdrawing privately..."
           : mode === "deposit"
-            ? `Shield ${amount} ${token}`
-            : `Unshield ${amount} ${token}`}
+            ? `Deposit ${amount} ${token}`
+            : `Withdraw ${amount} ${token}`}
       </button>
     </motion.div>
   );

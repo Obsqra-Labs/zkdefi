@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useAccount } from "@starknet-react/core";
+import { useSearchParams } from "next/navigation";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { Shield, X } from "lucide-react";
@@ -12,6 +13,7 @@ import {
   ControlPlane,
   CircuitBoard,
 } from "@/components/zkdefi/mission-control";
+import { CenterStageModes, type CenterMode } from "@/components/zkdefi/mission-control/CenterStageModes";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
 import {
@@ -30,7 +32,6 @@ import { ZkRagAgentConsole } from "@/components/zkdefi/ZkRagAgentConsole";
 import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
 import { DeployOverlay } from "@/components/zkdefi/mission-control/DeployOverlay";
 import { GovernanceOverlay } from "@/components/zkdefi/mission-control/GovernanceOverlay";
-import { CenterStageModes } from "@/components/zkdefi/mission-control/CenterStageModes";
 import {
   AgentBuilderDrawer,
   type AgentBuilderDraft,
@@ -38,19 +39,50 @@ import {
 
 type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag" | "agent-builder";
 
+/** Map ?v= URL param to CenterMode */
+function resolveViewParam(v: string | null): CenterMode | undefined {
+  if (!v) return undefined;
+  const lower = v.toLowerCase();
+  if (lower === "intelligence" || lower === "signals") return "intelligence";
+  if (lower === "opportunities" || lower === "trade") return "opportunities";
+  if (lower === "capital" || lower === "vault" || lower === "portfolio") return "capital";
+  if (lower === "execution" || lower === "execution_flow") return "execution_flow";
+  if (lower === "history" || lower === "memory_lane" || lower === "receipts") return "memory_lane";
+  if (lower === "pools" || lower === "pool" || lower === "pool_intelligence") return "pools";
+  if (lower === "governance" || lower === "policy") return "governance";
+  return undefined;
+}
+
 export default function AgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AgentPageInner />
+    </Suspense>
+  );
+}
+
+function AgentPageInner() {
   const { address, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
   const { profile: profileV2 } = useRiskProfileV2(address);
   const trustFlow = useTrustFlowState(profileV2, address);
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayMode>(null);
   const [slideout, setSlideout] = useState<SlideoutMode>(null);
   const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
+  const showAdvancedPrivacyRails = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_PRIVACY_RAILS === "1";
 
   const vault = usePrivacyVault(address);
   const v2 = useVaultV2(address);
+
+  // Resolve initial center-stage mode from ?v= param
+  const initialCenterMode = resolveViewParam(searchParams.get("v"));
 
   useEffect(() => setMounted(true), []);
 
@@ -162,18 +194,33 @@ export default function AgentPage() {
             privacyCommitments={vault.commitments}
             onDeposit={() => setSlideout("deposit")}
             onWithdraw={() => setSlideout("withdraw")}
-            onImportDarkLedger={() => setSlideout("privacy")}
-            onOpenShielded={() => setSlideout("shielded")}
+            onImportDarkLedger={showAdvancedPrivacyRails ? () => setSlideout("privacy") : undefined}
+            onOpenShielded={showAdvancedPrivacyRails ? () => setSlideout("shielded") : undefined}
             v2={v2}
           />
         }
         centerStage={
           <CenterStageModes
             address={address}
+            initialMode={initialCenterMode}
             onDeploy={() => setActiveOverlay("deploy")}
             onOpenGovernance={() => setActiveOverlay("governance")}
             onOpenCircuitBoard={() => setActiveOverlay("circuit-board")}
             onOpenZkRag={() => setSlideout("zkrag")}
+            vaultProps={{
+              method: vault.method,
+              setMethod: vault.setMethod,
+              commitments: vault.commitments,
+              addCommitment: vault.addCommitment,
+              removeCommitment: vault.removeCommitment,
+              depositSteps: vault.depositSteps,
+              withdrawSteps: vault.withdrawSteps,
+              setDepositSteps: vault.setDepositSteps,
+              setWithdrawSteps: vault.setWithdrawSteps,
+            }}
+            v2={v2}
+            onDeposit={() => setSlideout("deposit")}
+            onWithdraw={() => setSlideout("withdraw")}
           />
         }
         rightRail={
@@ -198,8 +245,8 @@ export default function AgentPage() {
               <h2 className="text-xl font-bold text-white">
                 {slideout === "deposit" && "Deposit"}
                 {slideout === "withdraw" && "Withdraw"}
-                {slideout === "privacy" && "Full Privacy Pool"}
-                {slideout === "shielded" && "Shielded Pool"}
+                {slideout === "privacy" && "Advanced Privacy Pool"}
+                {slideout === "shielded" && "Advanced Shield Rail"}
                 {slideout === "zkrag" && "zkRAG Intelligence"}
                 {slideout === "agent-builder" && "Agent Builder"}
               </h2>
@@ -232,8 +279,8 @@ export default function AgentPage() {
                 onRecordWithdrawal={v2.recordWithdrawal}
               />
             )}
-            {slideout === "privacy" && <FullPrivacyPoolPanel />}
-            {slideout === "shielded" && <ShieldedPoolPanel />}
+            {showAdvancedPrivacyRails && slideout === "privacy" && <FullPrivacyPoolPanel />}
+            {showAdvancedPrivacyRails && slideout === "shielded" && <ShieldedPoolPanel />}
             {slideout === "zkrag" && address && <ZkRagAgentConsole userAddress={address} />}
             {slideout === "agent-builder" && address && (
               <AgentBuilderDrawer userAddress={address} draft={agentBuilderDraft} />

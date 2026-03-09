@@ -43,21 +43,21 @@ const FULL_PRIVACY_TOKEN =
   process.env.NEXT_PUBLIC_FULL_PRIVACY_TOKEN_ADDRESS || STRK_TOKEN;
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Shield",
-  nullifier_set: "Full Privacy",
-  hashed_proof: "Max Privacy",
-  dark_ledger: "Operator Vault",
+  commitment_shield: "Public",
+  nullifier_set: "Private",
+  hashed_proof: "Private",
+  dark_ledger: "Private (Legacy)",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
   commitment_shield:
-    "Pedersen commitment hides your deposit amount. Your wallet address is visible on the tx. Fast, low gas.",
+    "Standard on-chain deposit path. Fast and low-gas, with normal signer visibility.",
   nullifier_set:
-    "Poseidon + Groth16 in a shared anonymity set. Enable relayer on withdrawal for fully unlinkable transactions.",
+    "Private deposit with commitment + proof in a shared anonymity set.",
   hashed_proof:
-    "Hash-committed deposit with Groth16 proof. Your identity is never linked on-chain. Withdrawals use nullifier sets for full unlinkability.",
+    "Private deposit with hash commitment + Groth16 proof. Recommended default.",
   dark_ledger:
-    "Legacy operator vault path. Use Max Privacy instead.",
+    "Legacy private settlement rail. Kept for migration compatibility.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -314,7 +314,7 @@ export function DepositPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
     const tokenAddr = resolveTokenAddress(selectedAsset);
     const poolAddr = FULL_PRIVACY_POOL_ADDRESS;
-    if (!poolAddr) throw new Error("Full Privacy Pool address not configured");
+    if (!poolAddr) throw new Error("Private pool address not configured");
 
     // Step 1 – generate commitment
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
@@ -584,6 +584,10 @@ export function DepositPanel({
   // -----------------------------------------------------------------------
 
   const canSubmit = !busy && !!amount && parseFloat(amount) > 0;
+  const privacyLine =
+    method === "commitment_shield"
+      ? "Public path: standard signer visibility on-chain."
+      : "Private path: commitment-based settlement with proof-backed privacy.";
 
   return (
     <motion.div
@@ -607,7 +611,7 @@ export function DepositPanel({
       <div className="flex items-start gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] px-3 py-2">
         <Info className="w-3.5 h-3.5 text-emerald-400/50 mt-0.5 flex-shrink-0" />
         <p className="text-[11px] text-emerald-400/60 leading-relaxed">
-          Hash-committed deposit with Groth16 proof. Your identity is never linked on-chain.
+          {METHOD_TIPS[method]}
         </p>
       </div>
 
@@ -680,7 +684,7 @@ export function DepositPanel({
         </div>
         <div className="flex items-center justify-between">
           <span>Privacy</span>
-          <span className="text-emerald-400">Amount and wallet concealed on-chain</span>
+          <span className="text-emerald-400">{privacyLine}</span>
         </div>
       </div>
 
@@ -700,7 +704,7 @@ export function DepositPanel({
             Processing...
           </>
         ) : (
-          "Deposit with Privacy"
+          "Deposit"
         )}
       </button>
     </motion.div>

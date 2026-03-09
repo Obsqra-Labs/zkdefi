@@ -150,7 +150,7 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
     [vaultId, refresh],
   );
 
-  /** Record a withdrawal in the Privacy Pool */
+  /** Record a withdrawal in the private vault rail */
   const recordWithdrawal = useCallback(
     async (amountWei: string, token: string, destination: string, route: string) => {
       if (!vaultId) return;
@@ -158,13 +158,13 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
         await requestWithdrawal(vaultId, amountWei, token, destination, route);
         await refresh();
       } catch {
-        console.warn("[PrivacyPool] Failed to record withdrawal in V2 ledger");
+        console.warn("[VaultV2] Failed to record withdrawal in V2 ledger");
       }
     },
     [vaultId, refresh],
   );
 
-  /** Sweep a privacy note back to ledger balance */
+  /** Sweep a private note back to ledger balance */
   const doSweepToLedger = useCallback(
     async (noteId: string, amountWei: string, token: string) => {
       if (!vaultId) throw new Error("No vault");
@@ -174,7 +174,7 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
     [vaultId, refresh],
   );
 
-  /** Sweep ledger balance out to a privacy pool */
+  /** Sweep ledger balance out to a private settlement rail */
   const doSweepToVault = useCallback(
     async (amountWei: string, token: string, targetRail: string) => {
       if (!vaultId) throw new Error("No vault");

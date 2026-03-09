@@ -64,29 +64,29 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
   switch (method) {
     case "commitment_shield":
       return [
-        { label: "Generate Pedersen commitment", status: "pending" },
+        { label: "Generate commitment", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
         { label: "Confirm", status: "pending" },
       ];
     case "nullifier_set":
       return [
-        { label: "Generate secret & commitment", status: "pending" },
-        { label: "Register in Merkle tree", status: "pending" },
+        { label: "Generate private commitment", status: "pending" },
+        { label: "Register in privacy set", status: "pending" },
         { label: "Build Groth16 proof", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
       ];
     case "hashed_proof":
       return [
-        { label: "Generate hash inputs", status: "pending" },
-        { label: "Build hash proof", status: "pending" },
-        { label: "Register claim", status: "pending" },
+        { label: "Generate private commitment", status: "pending" },
+        { label: "Build Groth16 proof", status: "pending" },
+        { label: "Register commitment", status: "pending" },
         { label: "Approve & sign", status: "pending" },
       ];
     case "dark_ledger":
       return [
-        { label: "Transfer to Operator Vault", status: "pending" },
+        { label: "Transfer to private settlement queue", status: "pending" },
         { label: "Verify on-chain", status: "pending" },
-        { label: "Credit Dark Ledger", status: "pending" },
+        { label: "Credit settlement queue", status: "pending" },
       ];
   }
 }
@@ -96,7 +96,7 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
     case "commitment_shield":
       return [
         { label: "Verify commitment", status: "pending" },
-        { label: "Generate withdraw proof", status: "pending" },
+        { label: "Generate withdrawal proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
       ];
     case "nullifier_set":
@@ -114,7 +114,7 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
       ];
     case "dark_ledger":
       return [
-        { label: "Queue Dark Ledger transfer out", status: "pending" },
+        { label: "Queue private settlement transfer out", status: "pending" },
         { label: "Confirm", status: "pending" },
       ];
   }
