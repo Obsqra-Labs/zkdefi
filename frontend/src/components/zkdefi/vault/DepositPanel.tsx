@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, Clock, Coins, Loader2 } from "lucide-react";
+import { ArrowDownToLine, Clock, Coins, Loader2, Info } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
@@ -42,10 +42,21 @@ const FULL_PRIVACY_TOKEN =
   process.env.NEXT_PUBLIC_FULL_PRIVACY_TOKEN_ADDRESS || STRK_TOKEN;
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Commitment Shield",
-  nullifier_set: "Nullifier Set",
-  hashed_proof: "Hashed Proof",
-  dark_ledger: "Dark Ledger",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Selective Proof",
+  dark_ledger: "Operator Vault",
+};
+
+const METHOD_TIPS: Record<PrivacyMethod, string> = {
+  commitment_shield:
+    "Pedersen commitment hides your deposit amount. Your wallet address is visible on the tx. Fast, low gas.",
+  nullifier_set:
+    "Poseidon + Groth16 in a shared anonymity set. Enable relayer on withdrawal for fully unlinkable transactions.",
+  hashed_proof:
+    "Same ZK engine as Full Privacy (aggressive pool). Prove claims about your position without revealing values.",
+  dark_ledger:
+    "Fastest deposit via Operator Vault. Funds tracked in the Dark Ledger. Trust-based, lowest latency.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -154,8 +165,8 @@ export function DepositPanel({
   useEffect(() => {
     let dead = false;
     Promise.allSettled([
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
     ]).then(async ([statsRes, blendedRes]) => {
       if (dead) return;
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
@@ -238,7 +249,7 @@ export function DepositPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_deposit`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_deposit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -303,7 +314,7 @@ export function DepositPanel({
     // Step 1 – generate commitment
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
     const res = await fetch(
-      `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/generate_commitment`,
+      `${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -378,7 +389,7 @@ export function DepositPanel({
           await new Promise((r) => setTimeout(r, 3000 * attempt));
         }
         const regRes = await fetch(
-          `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`,
+          `${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -452,7 +463,7 @@ export function DepositPanel({
 
     // Step 2 — backend verifies the on-chain transfer
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Verifying on-chain..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_in/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_in/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -577,6 +588,12 @@ export function DepositPanel({
         </span>
       </div>
 
+      {/* Privacy tier explainer */}
+      <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+        <Info className="w-3.5 h-3.5 text-white/30 mt-0.5 flex-shrink-0" />
+        <p className="text-[11px] text-white/40 leading-relaxed">{METHOD_TIPS[method]}</p>
+      </div>
+
       {/* Asset selector */}
       <div className="flex items-center gap-2">
         <Coins className="w-4 h-4 text-white/40" />
@@ -622,11 +639,11 @@ export function DepositPanel({
         </p>
       </div>
 
-      {/* Dark ledger info callout */}
+      {/* Operator Vault info callout */}
       {method === "dark_ledger" && (
         <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs text-violet-300/80">
-          Tokens transfer directly to the operator vault. The system verifies the
-          on-chain receipt and credits your off-chain Dark Ledger balance automatically.
+          Tokens transfer directly to the Operator Vault. The system verifies the
+          on-chain receipt and credits your Dark Ledger balance automatically.
         </div>
       )}
 

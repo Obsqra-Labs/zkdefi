@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
-import { ArrowUpFromLine, Clock, Loader2, AlertTriangle, Trash2 } from "lucide-react";
+import { ArrowUpFromLine, Clock, Loader2, AlertTriangle, Trash2, Info } from "lucide-react";
 import type {
   PrivacyMethod,
   VaultCommitment,
@@ -31,17 +31,28 @@ const FULL_PRIVACY_POOL_ADDRESS =
   "";
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Commitment Shield",
-  nullifier_set: "Nullifier Set",
-  hashed_proof: "Hashed Proof",
-  dark_ledger: "Dark Ledger",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Selective Proof",
+  dark_ledger: "Operator Vault",
+};
+
+const METHOD_TIPS: Record<PrivacyMethod, string> = {
+  commitment_shield:
+    "Pedersen commitment hides your withdrawal amount. Your wallet signs the tx directly.",
+  nullifier_set:
+    "Groth16 proof + nullifier ensures unlinkability. Toggle relayer below so a separate wallet submits the tx — your address never appears.",
+  hashed_proof:
+    "Same ZK engine as Full Privacy (aggressive pool). Relayer-compatible for full unlinkability.",
+  dark_ledger:
+    "Operator Vault processes your withdrawal from the Dark Ledger. No on-chain proof needed.",
 };
 
 const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
   commitment_shield:
     "bg-violet-500/15 text-violet-300 border-violet-500/25",
   nullifier_set:
-    "bg-orange-500/15 text-orange-300 border-orange-500/25",
+    "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
   hashed_proof:
     "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25",
   dark_ledger:
@@ -183,7 +194,7 @@ export function WithdrawPanel({
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/reputation/user/${address}`,
+          `${API_BASE}/v1/zkdefi/reputation/user/${address}`,
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -236,7 +247,7 @@ export function WithdrawPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setWithdrawSteps((prev) => updateStep(prev, 0, "active", "Verifying..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_withdraw`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_withdraw`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -307,8 +318,8 @@ export function WithdrawPanel({
     );
 
     const endpoint = isPartial
-      ? `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
-      : `${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`;
+      ? `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change`
+      : `${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof`;
 
     setWithdrawSteps((prev) =>
       updateStep(prev, 1, "active", "Generating nullifier..."),
@@ -468,7 +479,7 @@ export function WithdrawPanel({
     poolType: number,
     proofFelts: string[],
   ) {
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/relayer/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/relayer/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -495,7 +506,7 @@ export function WithdrawPanel({
       updateStep(prev, 0, "active", "Queuing withdrawal..."),
     );
 
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_out/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -583,7 +594,7 @@ export function WithdrawPanel({
               label: "Check status",
               onClick: () =>
                 window.open(
-                  `${API_BASE}/api/v1/zkdefi/relayer/request/${txHash}`,
+                  `${API_BASE}/v1/zkdefi/relayer/request/${txHash}`,
                   "_blank",
                 ),
             },
@@ -652,6 +663,12 @@ export function WithdrawPanel({
         <span className="text-[11px] px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300">
           {METHOD_LABELS[method]}
         </span>
+      </div>
+
+      {/* Privacy tier explainer */}
+      <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+        <Info className="w-3.5 h-3.5 text-white/30 mt-0.5 flex-shrink-0" />
+        <p className="text-[11px] text-white/40 leading-relaxed">{METHOD_TIPS[method]}</p>
       </div>
 
       {/* Commitment picker */}

@@ -22,38 +22,38 @@ interface TierConfig {
 const TIERS: TierConfig[] = [
   {
     method: "commitment_shield",
-    label: "Commitment Shield",
+    label: "Shield",
     icon: Shield,
     description: "Amount hidden via Pedersen commitment",
     tooltip:
-      "Your deposit amount is hidden behind a cryptographic commitment. The deposit event is visible on-chain but the value is not. Fastest, lowest gas.",
+      "Pedersen commitment hides your deposit amount on-chain. Your wallet address is visible on the deposit tx but the value is obscured. Fastest option with lowest gas cost.",
     strength: 1,
   },
   {
     method: "nullifier_set",
-    label: "Nullifier Set",
+    label: "Full Privacy",
     icon: TreePine,
-    description: "Anonymity set with unlinkable withdrawals",
+    description: "Shared anonymity set — unlinkable withdrawals",
     tooltip:
-      "Your deposit joins an anonymity set. Withdrawals use a nullifier so no one can link your withdraw to your deposit. Supports selective disclosure.",
-    strength: 2,
-  },
-  {
-    method: "hashed_proof",
-    label: "Hashed Proof",
-    icon: Hash,
-    description: "Prove claims without revealing values",
-    tooltip:
-      "Prove things about your position (balance above threshold, pool membership, tenure) without revealing the values themselves. Claims are verified against hashed inputs.",
+      "Poseidon hash + Groth16 proof in a shared anonymity set. Enable the relayer toggle on withdrawal for fully unlinkable transactions — your depositing address won't appear on the withdraw tx. Strongest privacy tier.",
     strength: 3,
   },
   {
-    method: "dark_ledger",
-    label: "Dark Ledger",
-    icon: BookLock,
-    description: "No on-chain footprint, operator pattern",
+    method: "hashed_proof",
+    label: "Selective Proof",
+    icon: Hash,
+    description: "Prove claims without revealing values",
     tooltip:
-      "Maximum privacy. Your position is tracked in an encrypted off-chain ledger. No individual deposit/withdraw events on-chain. The protocol operates on your behalf.",
+      "Same ZK engine as Full Privacy but in the aggressive pool. Prove claims about your position — balance thresholds, pool membership, tenure — without revealing underlying values. Useful for reputation-gated access.",
+    strength: 2,
+  },
+  {
+    method: "dark_ledger",
+    label: "Operator Vault",
+    icon: BookLock,
+    description: "Fastest — funds managed in the Dark Ledger",
+    tooltip:
+      "Funds transfer to an operator wallet and are tracked in the Dark Ledger — a private off-chain double-entry ledger. No individual on-chain events. The protocol executes strategies on your behalf. Trust-based, lowest latency.",
     strength: 4,
   },
 ];

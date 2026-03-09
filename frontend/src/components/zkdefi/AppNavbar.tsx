@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/lending", label: "Lending", icon: Wallet },
   { href: "/oracle", label: "Oracle", icon: Eye },
-  { href: "/vault", label: "Vault", icon: Lock },
+  { href: "/vault", label: "Dark Ledger", icon: Lock },
   { href: "/zkdefi/forecaster", label: "Forecaster", icon: TrendingUp },
   { href: "/profile", label: "Profile", icon: User },
 ] as const;

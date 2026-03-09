@@ -84,9 +84,9 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
       ];
     case "dark_ledger":
       return [
-        { label: "Transfer to operator vault", status: "pending" },
+        { label: "Transfer to Operator Vault", status: "pending" },
         { label: "Verify on-chain", status: "pending" },
-        { label: "Credit ledger", status: "pending" },
+        { label: "Credit Dark Ledger", status: "pending" },
       ];
   }
 }
@@ -114,7 +114,7 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
       ];
     case "dark_ledger":
       return [
-        { label: "Queue transfer out", status: "pending" },
+        { label: "Queue Dark Ledger transfer out", status: "pending" },
         { label: "Confirm", status: "pending" },
       ];
   }

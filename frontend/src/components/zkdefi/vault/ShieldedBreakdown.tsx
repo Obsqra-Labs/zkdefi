@@ -16,10 +16,10 @@ import { useMemo } from "react";
 // ---------------------------------------------------------------------------
 
 export const METHOD_LABELS: Record<string, string> = {
-  commitment_shield: "Shielded",
-  nullifier_set: "Nullifier-Set",
-  hashed_proof: "Hash-Proof",
-  dark_ledger: "Dark Ledger",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Selective Proof",
+  dark_ledger: "Operator Vault",
 };
 
 export function formatWei(weiStr: string, asset: string): string {
