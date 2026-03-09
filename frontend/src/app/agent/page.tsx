@@ -21,6 +21,7 @@ import {
 } from "@/lib/trust/onboardingState";
 import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
+import { useVaultV2 } from "@/hooks/useVaultV2";
 import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
 import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
 import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
@@ -49,6 +50,7 @@ export default function AgentPage() {
   const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
 
   const vault = usePrivacyVault(address);
+  const v2 = useVaultV2(address);
 
   useEffect(() => setMounted(true), []);
 
@@ -162,6 +164,7 @@ export default function AgentPage() {
             onWithdraw={() => setSlideout("withdraw")}
             onImportDarkLedger={() => setSlideout("privacy")}
             onOpenShielded={() => setSlideout("shielded")}
+            v2={v2}
           />
         }
         centerStage={
@@ -214,6 +217,7 @@ export default function AgentPage() {
                 setDepositSteps={vault.setDepositSteps}
                 addCommitment={vault.addCommitment}
                 address={address}
+                onRecordDeposit={v2.recordDeposit}
               />
             )}
             {slideout === "withdraw" && (
@@ -225,6 +229,7 @@ export default function AgentPage() {
                 withdrawSteps={vault.withdrawSteps}
                 setWithdrawSteps={vault.setWithdrawSteps}
                 address={address}
+                onRecordWithdrawal={v2.recordWithdrawal}
               />
             )}
             {slideout === "privacy" && <FullPrivacyPoolPanel />}

@@ -1,4 +1,4 @@
-import { apiUrl } from "./client";
+import { apiFetch as clientApiFetch } from "./client";
 
 export interface VaultAccount {
   vault_id: string;
@@ -68,30 +68,24 @@ export interface LedgerEntry {
   created_at: number;
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(apiUrl(`/api/v1/zkdefi${path}`), {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || res.statusText);
-  }
-  return res.json();
-}
+// ---------------------------------------------------------------------------
+// V2 API — all routes prefixed /api/v2/vault/v2
+// ---------------------------------------------------------------------------
+
+const V2 = "/api/v2/vault/v2";
 
 export async function getOrCreateVault(
   ownerAddress: string,
   mode = "OPERATOR_MANAGED",
 ): Promise<VaultAccount> {
-  return apiFetch("/vault/v2/account", {
+  return clientApiFetch(`${V2}/account`, {
     method: "POST",
     body: JSON.stringify({ owner_address: ownerAddress, mode }),
   });
 }
 
 export async function getVaultBalance(vaultId: string): Promise<VaultBalance> {
-  return apiFetch(`/vault/v2/${vaultId}/balance`);
+  return clientApiFetch(`${V2}/${vaultId}/balance`);
 }
 
 export async function createDepositIntent(
@@ -100,14 +94,9 @@ export async function createDepositIntent(
   token: string,
   rail: string,
 ): Promise<DepositIntent> {
-  return apiFetch("/vault/v2/deposit/intent", {
+  return clientApiFetch(`${V2}/deposit/intent`, {
     method: "POST",
-    body: JSON.stringify({
-      vault_id: vaultId,
-      amount_wei: amountWei,
-      token,
-      rail,
-    }),
+    body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, rail }),
   });
 }
 
@@ -116,13 +105,9 @@ export async function confirmDeposit(
   txHash: string,
   commitmentHash: string,
 ): Promise<DepositIntent> {
-  return apiFetch("/vault/v2/deposit/confirm", {
+  return clientApiFetch(`${V2}/deposit/confirm`, {
     method: "POST",
-    body: JSON.stringify({
-      intent_id: intentId,
-      tx_hash: txHash,
-      commitment_hash: commitmentHash,
-    }),
+    body: JSON.stringify({ intent_id: intentId, tx_hash: txHash, commitment_hash: commitmentHash }),
   });
 }
 
@@ -131,7 +116,7 @@ export async function getVaultNotes(
   status?: string,
 ): Promise<Note[]> {
   const qs = status ? `?status=${status}` : "";
-  return apiFetch(`/vault/v2/${vaultId}/notes${qs}`);
+  return clientApiFetch(`${V2}/${vaultId}/notes${qs}`);
 }
 
 export async function createDeployIntent(
@@ -140,14 +125,9 @@ export async function createDeployIntent(
   amounts: string[],
   token: string,
 ): Promise<DeployProposal> {
-  return apiFetch("/vault/v2/deploy/intent", {
+  return clientApiFetch(`${V2}/deploy/intent`, {
     method: "POST",
-    body: JSON.stringify({
-      vault_id: vaultId,
-      adapters,
-      amounts,
-      token,
-    }),
+    body: JSON.stringify({ vault_id: vaultId, adapters, amounts, token }),
   });
 }
 
@@ -155,12 +135,9 @@ export async function commitDeploy(
   proposalHash: string,
   txHash: string,
 ): Promise<{ status: string; proposal_hash: string }> {
-  return apiFetch("/vault/v2/deploy/commit", {
+  return clientApiFetch(`${V2}/deploy/commit`, {
     method: "POST",
-    body: JSON.stringify({
-      proposal_hash: proposalHash,
-      tx_hash: txHash,
-    }),
+    body: JSON.stringify({ proposal_hash: proposalHash, tx_hash: txHash }),
   });
 }
 
@@ -168,12 +145,9 @@ export async function settleDeploy(
   proposalHash: string,
   txHash: string,
 ): Promise<{ status: string; proposal_hash: string }> {
-  return apiFetch("/vault/v2/deploy/settle", {
+  return clientApiFetch(`${V2}/deploy/settle`, {
     method: "POST",
-    body: JSON.stringify({
-      proposal_hash: proposalHash,
-      tx_hash: txHash,
-    }),
+    body: JSON.stringify({ proposal_hash: proposalHash, tx_hash: txHash }),
   });
 }
 
@@ -184,15 +158,9 @@ export async function requestWithdrawal(
   destination: string,
   route: string,
 ): Promise<Withdrawal> {
-  return apiFetch("/vault/v2/withdraw/request", {
+  return clientApiFetch(`${V2}/withdraw/request`, {
     method: "POST",
-    body: JSON.stringify({
-      vault_id: vaultId,
-      amount_wei: amountWei,
-      token,
-      destination,
-      route,
-    }),
+    body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, destination, route }),
   });
 }
 
@@ -202,14 +170,9 @@ export async function sweepToLedger(
   amountWei: string,
   token: string,
 ): Promise<{ status: string; note_id: string }> {
-  return apiFetch("/vault/v2/sweep/to-ledger", {
+  return clientApiFetch(`${V2}/sweep/to-ledger`, {
     method: "POST",
-    body: JSON.stringify({
-      vault_id: vaultId,
-      note_id: noteId,
-      amount_wei: amountWei,
-      token,
-    }),
+    body: JSON.stringify({ vault_id: vaultId, note_id: noteId, amount_wei: amountWei, token }),
   });
 }
 
@@ -219,19 +182,14 @@ export async function sweepToVault(
   token: string,
   targetRail: string,
 ): Promise<{ status: string; note_id: string }> {
-  return apiFetch("/vault/v2/sweep/to-vault", {
+  return clientApiFetch(`${V2}/sweep/to-vault`, {
     method: "POST",
-    body: JSON.stringify({
-      vault_id: vaultId,
-      amount_wei: amountWei,
-      token,
-      target_rail: targetRail,
-    }),
+    body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, target_rail: targetRail }),
   });
 }
 
 export async function getVaultReceipts(
   vaultId: string,
 ): Promise<LedgerEntry[]> {
-  return apiFetch(`/vault/v2/${vaultId}/receipts`);
+  return clientApiFetch(`${V2}/${vaultId}/receipts`);
 }

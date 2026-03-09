@@ -137,6 +137,8 @@ interface DepositPanelProps {
   addCommitment: (c: VaultCommitment) => void;
   address?: string;
   isDemo?: boolean;
+  /** Record deposit in V2 Dark Ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
+  onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +152,7 @@ export function DepositPanel({
   addCommitment,
   address,
   isDemo,
+  onRecordDeposit,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
@@ -530,6 +533,15 @@ export function DepositPanel({
         path_indices: result.pathIndices,
         deposited_at: new Date().toISOString(),
       });
+
+      // Record in V2 Dark Ledger (best-effort — on-chain deposit is source of truth)
+      const railMap: Record<PrivacyMethod, string> = {
+        commitment_shield: "COMMITMENT_SHIELD",
+        nullifier_set: "NULLIFIER_SET",
+        hashed_proof: "HASHED_PROOF",
+        dark_ledger: "DARK_LEDGER",
+      };
+      onRecordDeposit?.(amountWei, selectedAsset, railMap[method], result.txHash, result.commitmentHash).catch(() => {});
 
       addActivityEvent(setActivityFeed, {
         type: "deposit",

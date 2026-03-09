@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { useVaultController } from "@/hooks/useVaultController";
 import { useAdapterRegistry } from "@/hooks/useAdapterRegistry";
+import { useVaultV2 } from "@/hooks/useVaultV2";
 import { API_BASE } from "@/lib/api/client";
 import { VaultTab } from "./VaultTab";
 import { YieldTab } from "./YieldTab";
@@ -60,6 +61,9 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
   } = useVaultController(address);
 
   const { adapters } = useAdapterRegistry();
+
+  // V2 vault (Dark Ledger double-entry accounting)
+  const v2 = useVaultV2(address);
 
   const resolveTab = (subTab?: string): Tab => {
     const value = String(subTab || "").trim().toLowerCase();
@@ -158,9 +162,15 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       } catch { /* best effort */ }
 
       try {
-        // Try V2 vault stats first (double-entry ledger)
+        // Use V2 vault hook data for TVL if available
         let resolved = false;
-        if (address) {
+        if (v2.balances.length > 0) {
+          const totalWei = v2.balances.reduce((s, b) => s + b.total, 0);
+          if (totalWei > 0) {
+            setVaultTvl(`${totalWei.toFixed(2)} (V2 Ledger)`);
+            resolved = true;
+          }
+        } else if (address) {
           const v2Acc = await fetch(`${API_BASE}/v2/vault/v2/account`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -346,6 +356,8 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           setWithdrawSteps={setWithdrawSteps}
           address={address}
           isDemo={isDemo}
+          onRecordDeposit={v2.recordDeposit}
+          onRecordWithdrawal={v2.recordWithdrawal}
         />
       )}
 

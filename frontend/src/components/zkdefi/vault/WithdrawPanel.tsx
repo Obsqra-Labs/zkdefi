@@ -147,6 +147,8 @@ interface WithdrawPanelProps {
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   selectedCommitmentId?: string | null;
+  /** Record withdrawal in V2 Dark Ledger. Best-effort. */
+  onRecordWithdrawal?: (amountWei: string, token: string, destination: string, route: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +164,7 @@ export function WithdrawPanel({
   setWithdrawSteps,
   address,
   selectedCommitmentId,
+  onRecordWithdrawal,
 }: WithdrawPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
@@ -575,6 +578,14 @@ export function WithdrawPanel({
       removeCommitment(selectedCommitment.id);
 
       const isRelayed = useRelayer && (method === "nullifier_set" || method === "hashed_proof");
+
+      // Best-effort: record withdrawal in V2 Dark Ledger
+      onRecordWithdrawal?.(
+        amountWei,
+        selectedCommitment.asset,
+        recipientAddress || address || "",
+        isRelayed ? "RELAYER" : "DIRECT_TRANSFER",
+      ).catch(() => {});
 
       addActivityEvent(setActivityFeed, {
         type: "withdraw",

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Landmark, Eye, TrendingUp, Heart, Lock, Layers, Cpu, ShieldCheck, CreditCard, ArrowUpDown } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { ShieldedBreakdown, formatWei, METHOD_LABELS } from "@/components/zkdefi/vault/ShieldedBreakdown";
 import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
+import type { UseVaultV2Return, TokenBalance } from "@/hooks/useVaultV2";
 
 interface CapitalLedgerProps {
   address: string | undefined;
@@ -16,6 +17,8 @@ interface CapitalLedgerProps {
   onWithdraw?: () => void;
   onImportDarkLedger?: () => void;
   onOpenShielded?: () => void;
+  /** V2 vault hook return — when provided, we use V2 data */
+  v2?: UseVaultV2Return;
 }
 
 interface VaultStats {
@@ -76,7 +79,7 @@ function YieldSparkline({ points }: { points: YieldPoint[] }) {
   );
 }
 
-export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onWithdraw, onImportDarkLedger, onOpenShielded }: CapitalLedgerProps) {
+export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onWithdraw, onImportDarkLedger, onOpenShielded, v2 }: CapitalLedgerProps) {
   const [vault, setVault] = useState<VaultStats>({ total_usd: 0, strk_balance: 0, eth_balance: 0, strk_usd: 0, eth_usd: 0 });
   const [darkLedger, setDarkLedger] = useState({ note_count: 0, sweep_available_usd: 0, l3_block: 0 });
   interface BackendNote { note_hash: string; amount_wei: string; token: string; rail_type: string; }
@@ -88,6 +91,41 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
   const [yieldPoints, setYieldPoints] = useState<YieldPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const { prices } = useTokenPrices();
+
+  // V2 sweep state
+  const [sweepBusy, setSweepBusy] = useState(false);
+
+  const handleSweepToVault = useCallback(async () => {
+    if (!v2?.doSweepToVault) return;
+    setSweepBusy(true);
+    try {
+      // Sweep all available STRK to vault via Dark Ledger rail
+      const strkBal = v2.balances.find((b) => b.token === "STRK");
+      if (strkBal && strkBal.available > 0) {
+        const weiStr = BigInt(Math.floor(strkBal.available * 1e18)).toString();
+        await v2.doSweepToVault(weiStr, "STRK", "DARK_LEDGER");
+      }
+      const ethBal = v2.balances.find((b) => b.token === "ETH");
+      if (ethBal && ethBal.available > 0) {
+        const weiStr = BigInt(Math.floor(ethBal.available * 1e18)).toString();
+        await v2.doSweepToVault(weiStr, "ETH", "DARK_LEDGER");
+      }
+    } catch { /* best effort */ } finally {
+      setSweepBusy(false);
+    }
+  }, [v2]);
+
+  const handleSweepToLedger = useCallback(async () => {
+    if (!v2?.doSweepToLedger || !v2.notes.length) return;
+    setSweepBusy(true);
+    try {
+      for (const note of v2.notes) {
+        await v2.doSweepToLedger(note.note_id, note.amount_wei ?? "0", note.token ?? "STRK");
+      }
+    } catch { /* best effort */ } finally {
+      setSweepBusy(false);
+    }
+  }, [v2]);
 
   useEffect(() => {
     if (!address) { setLoading(false); return; }
@@ -109,9 +147,24 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           setYieldPoints(yieldChart.points);
         }
 
-        // Vault stats — try V2 double-entry ledger first, fallback to V1 private-yield
+        // Vault stats — prefer V2 hook data, fallback to inline fetch
         let vaultResolved = false;
-        if (address) {
+        if (v2 && v2.balances.length > 0) {
+          const strkBal = v2.balances.find((b) => b.token === "STRK");
+          const ethBal = v2.balances.find((b) => b.token === "ETH");
+          setVault({
+            total_usd: 0,
+            strk_balance: strkBal?.total ?? 0,
+            eth_balance: ethBal?.total ?? 0,
+            strk_usd: 0,
+            eth_usd: 0,
+          });
+          vaultResolved = true;
+        } else if (v2 && !v2.loading) {
+          // V2 hook loaded but no balances — skip inline fetch too
+          vaultResolved = true;
+        }
+        if (!vaultResolved && address) {
           const v2Account = await apiFetch<any>("/api/v2/vault/v2/account", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -148,20 +201,34 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           }
         }
 
-        // Dark Ledger notes from backend (if endpoint is available)
-        const darkNotes = await apiFetch<any>(`/api/v1/zkdefi/ledger/notes/${address}`).catch(() => null);
-        setDarkLedger({
-          note_count: darkNotes?.note_count ?? 0,
-          sweep_available_usd: darkNotes?.sweep_available_usd ?? 0,
-          l3_block: darkNotes?.l3_block ?? 0,
-        });
-        if (darkNotes?.notes && Array.isArray(darkNotes.notes)) {
-          setBackendDarkNotes(darkNotes.notes.map((n: any) => ({
-            note_hash: n.note_hash || "",
+        // Dark Ledger notes — prefer V2 hook, fallback to legacy endpoint
+        if (v2 && v2.notes.length > 0) {
+          setDarkLedger({
+            note_count: v2.notes.length,
+            sweep_available_usd: 0,
+            l3_block: 0,
+          });
+          setBackendDarkNotes(v2.notes.map((n: any) => ({
+            note_hash: n.note_id || n.note_hash || "",
             amount_wei: n.amount_wei || "0",
             token: n.token || "STRK",
             rail_type: n.rail_type || "unknown",
           })));
+        } else {
+          const darkNotes = await apiFetch<any>(`/api/v1/zkdefi/ledger/notes/${address}`).catch(() => null);
+          setDarkLedger({
+            note_count: darkNotes?.note_count ?? 0,
+            sweep_available_usd: darkNotes?.sweep_available_usd ?? 0,
+            l3_block: darkNotes?.l3_block ?? 0,
+          });
+          if (darkNotes?.notes && Array.isArray(darkNotes.notes)) {
+            setBackendDarkNotes(darkNotes.notes.map((n: any) => ({
+              note_hash: n.note_hash || "",
+              amount_wei: n.amount_wei || "0",
+              token: n.token || "STRK",
+              rail_type: n.rail_type || "unknown",
+            })));
+          }
         }
 
         // Positions
@@ -349,8 +416,20 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
                     <span className="text-zinc-500 font-mono ml-1.5 text-[10px]">${a.totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
-                {/* Breakdown when there's more than one source */}
-                {(a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0)) ? (
+                {/* V2 balance breakdown when available */}
+                {v2 && (() => {
+                  const v2Bal = v2.balances.find((b) => b.token === a.asset);
+                  if (!v2Bal) return null;
+                  return (
+                    <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
+                      {v2Bal.available > 0 && <div className="flex justify-between"><span className="text-blue-400/70">Available</span><span>{v2Bal.available.toFixed(4)}</span></div>}
+                      {v2Bal.pending > 0 && <div className="flex justify-between"><span className="text-yellow-400/70">Pending</span><span>{v2Bal.pending.toFixed(4)}</span></div>}
+                      {v2Bal.deployed > 0 && <div className="flex justify-between"><span className="text-cyan-400/70">Deployed</span><span>{v2Bal.deployed.toFixed(4)}</span></div>}
+                    </div>
+                  );
+                })()}
+                {/* Fallback breakdown when there's more than one source */}
+                {!v2 && ((a.api_balance > 0 && (a.shielded_wei > BigInt(0) || a.dark_wei > BigInt(0))) || (a.shielded_wei > BigInt(0) && a.dark_wei > BigInt(0))) ? (
                   <div className="ml-3 mt-0.5 space-y-0.5 text-[10px] text-zinc-500">
                     {a.api_balance > 0 && <div className="flex justify-between"><span>Public</span><span>{a.api_balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></div>}
                     {a.shielded_wei > BigInt(0) && <div className="flex justify-between"><span className="text-emerald-400/70">Shielded</span><span>{formatWei(a.shielded_wei.toString(), a.asset)}</span></div>}
@@ -487,11 +566,85 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           >
             Shielded Pool
           </button>
-          <button className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors">
-            Sweep to Vault
+          <button
+            onClick={handleSweepToVault}
+            disabled={sweepBusy || !v2?.vaultId}
+            className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {sweepBusy ? "Sweeping…" : "Sweep to Vault"}
           </button>
         </div>
       </section>
+
+      {/* ── Credit Line ── */}
+      {v2 && (v2.creditLines.length > 0 || v2.creditAvailableUsd > 0) && (
+        <section className="rounded-lg border border-amber-800/40 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Credit Line</h3>
+          </div>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex justify-between text-zinc-300">
+              <span>Available</span>
+              <span className="text-emerald-400 font-mono">${v2.creditAvailableUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-zinc-300">
+              <span>Used</span>
+              <span className="text-rose-400 font-mono">${v2.creditUsedUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            {v2.creditLines.map((cl, i) => (
+              <div key={i} className="pl-2 border-l border-amber-800/30 text-[11px] space-y-0.5">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Limit</span>
+                  <span className="text-zinc-300 font-mono">${(cl.credit_limit_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">LTV</span>
+                  <span className="text-zinc-300">{((cl.ltv_ratio ?? 0) * 100).toFixed(0)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Interest</span>
+                  <span className="text-zinc-300">{((cl.interest_rate ?? 0) * 100).toFixed(1)}%</span>
+                </div>
+                {/* Utilization bar */}
+                <div className="mt-1">
+                  <div className="h-1 rounded-full bg-zinc-800 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        (cl.credit_used_usd ?? 0) / Math.max(1, cl.credit_limit_usd ?? 1) > 0.75
+                          ? "bg-rose-500"
+                          : "bg-amber-500"
+                      }`}
+                      style={{ width: `${Math.min(100, ((cl.credit_used_usd ?? 0) / Math.max(1, cl.credit_limit_usd ?? 1)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── V2 Receipts (recent ledger entries) ── */}
+      {v2 && v2.receipts.length > 0 && (
+        <section className="rounded-lg border border-zinc-800 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowUpDown className="w-4 h-4 text-blue-400" />
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Recent Ledger</h3>
+            <span className="ml-auto text-[10px] text-zinc-500">{v2.receipts.length} entries</span>
+          </div>
+          <div className="space-y-1 max-h-36 overflow-y-auto">
+            {v2.receipts.slice(0, 10).map((r: any, i: number) => (
+              <div key={i} className="flex justify-between text-[11px] py-0.5 px-1 rounded hover:bg-zinc-800/40">
+                <span className={r.direction === "CREDIT" ? "text-emerald-400" : "text-rose-400"}>
+                  {r.direction === "CREDIT" ? "+" : "−"} {(Number(r.amount_wei ?? 0) / 1e18).toFixed(4)} {r.token ?? "STRK"}
+                </span>
+                <span className="text-zinc-600">{r.entry_type ?? ""}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Deployed Capital */}
       <section className="rounded-lg border border-zinc-800 p-3">

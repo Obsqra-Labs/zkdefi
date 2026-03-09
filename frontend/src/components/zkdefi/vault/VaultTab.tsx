@@ -9,6 +9,7 @@ import PositionsOverview from "./PositionsOverview";
 import { TrendingBar } from "./TrendingBar";
 import { AIInsight } from "./AIInsight";
 import { DEMO_AI_INSIGHT } from "@/lib/demoCapitalOS";
+import { TierSelector } from "./TierSelector";
 
 interface VaultTabProps {
   method: PrivacyMethod;
@@ -22,12 +23,16 @@ interface VaultTabProps {
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   isDemo?: boolean;
+  /** V2 Dark Ledger recording callbacks */
+  onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
+  onRecordWithdrawal?: (amountWei: string, token: string, destination: string, route: string) => Promise<void>;
 }
 
 export function VaultTab(props: VaultTabProps) {
   const {
     method, setMethod, commitments, addCommitment, removeCommitment,
     depositSteps, withdrawSteps, setDepositSteps, setWithdrawSteps, address, isDemo,
+    onRecordDeposit, onRecordWithdrawal,
   } = props;
 
   const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null);
@@ -60,15 +65,19 @@ export function VaultTab(props: VaultTabProps) {
           reasoning={DEMO_AI_INSIGHT.reasoning}
         />
       )}
+
+      {/* ── Privacy Tier selector — choose before depositing ── */}
+      <TierSelector selected={method} onSelect={setMethod} commitments={commitments} />
+
       <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2 text-xs text-emerald-400/80 flex items-center gap-2">
         <Shield className="w-3.5 h-3.5 flex-shrink-0" />
         <span>
-          Deposits record a Pedersen commitment on-chain — your wallet address, amount, and strategy are never exposed. Withdrawals reveal a nullifier without linking to the original deposit.
+          Select a privacy tier above, then deposit below. On-chain funds go directly to the privacy pool — the Dark Ledger records the fact for proof settlement without taking custody.
         </span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
-        <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} />
+        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} onRecordDeposit={onRecordDeposit} />
+        <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} onRecordWithdrawal={onRecordWithdrawal} />
       </div>
       <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />
     </div>
