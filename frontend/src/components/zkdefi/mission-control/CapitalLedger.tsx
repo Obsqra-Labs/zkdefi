@@ -15,6 +15,7 @@ interface CapitalLedgerProps {
   onDeposit?: () => void;
   onWithdraw?: () => void;
   onImportDarkLedger?: () => void;
+  onOpenShielded?: () => void;
 }
 
 interface VaultStats {
@@ -75,7 +76,7 @@ function YieldSparkline({ points }: { points: YieldPoint[] }) {
   );
 }
 
-export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onWithdraw, onImportDarkLedger }: CapitalLedgerProps) {
+export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onWithdraw, onImportDarkLedger, onOpenShielded }: CapitalLedgerProps) {
   const [vault, setVault] = useState<VaultStats>({ total_usd: 0, strk_balance: 0, eth_balance: 0, strk_usd: 0, eth_usd: 0 });
   const [darkLedger, setDarkLedger] = useState({ note_count: 0, sweep_available_usd: 0, l3_block: 0 });
   interface BackendNote { note_hash: string; amount_wei: string; token: string; rail_type: string; }
@@ -391,7 +392,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
                   <span className="text-zinc-300">{p.pair}</span>
                   <div className="text-right">
                     <span className="text-zinc-500">{p.position_count} pos</span>
-                    <span className="text-emerald-400 ml-2">{p.apy_estimate.toFixed(1)}%</span>
+                    <span className="text-emerald-400 ml-2">{Number(p.apy_estimate).toFixed(1)}%</span>
                   </div>
                 </div>
               ))}
@@ -454,7 +455,13 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
             onClick={onImportDarkLedger}
             className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors"
           >
-            Import
+            Privacy Pool
+          </button>
+          <button
+            onClick={onOpenShielded}
+            className="flex-1 py-1 text-[10px] font-medium rounded border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/30 transition-colors"
+          >
+            Shielded Pool
           </button>
           <button className="flex-1 py-1 text-[10px] font-medium rounded border border-violet-700/50 text-violet-300 hover:bg-violet-900/30 transition-colors">
             Sweep to Vault
@@ -468,7 +475,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
           <Layers className="w-4 h-4 text-cyan-400" />
           <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Deployed</h3>
           {blendedApy > 0 && (
-            <span className="ml-auto text-[10px] text-emerald-400">{blendedApy.toFixed(1)}% blended</span>
+            <span className="ml-auto text-[10px] text-emerald-400">{Number(blendedApy).toFixed(1)}% blended</span>
           )}
         </div>
         {positions.length > 0 ? (
@@ -481,7 +488,7 @@ export function CapitalLedger({ address, privacyCommitments = [], onDeposit, onW
                 </div>
                 <div className="text-right">
                   <span className="text-zinc-200">${p.value_usd.toLocaleString()}</span>
-                  <span className="text-emerald-400 ml-2">{p.apy_pct.toFixed(1)}%</span>
+                  <span className="text-emerald-400 ml-2">{Number(p.apy_pct).toFixed(1)}%</span>
                 </div>
               </div>
             ))}

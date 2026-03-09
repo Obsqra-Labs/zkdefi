@@ -154,6 +154,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
   const [emergencyLoading, setEmergencyLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [agentLoading, setAgentLoading] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
   const [constraints, setConstraints] = useState<Constraints | null>(null);
   const [constraintsLoading, setConstraintsLoading] = useState(false);
   const [constraintsDirty, setConstraintsDirty] = useState(false);
@@ -260,7 +261,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       });
       setEmergencyPaused(true);
     } catch {
-      // ignore
+      setAgentError("Emergency pause failed");
     } finally {
       setEmergencyLoading(false);
     }
@@ -274,7 +275,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       });
       setEmergencyPaused(false);
     } catch {
-      // ignore
+      setAgentError("Resume system failed");
     } finally {
       setEmergencyLoading(false);
     }
@@ -290,7 +291,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       });
       await fetchAgent();
     } catch {
-      // ignore
+      setAgentError("Failed to pause agent");
     } finally {
       setAgentLoading(false);
     }
@@ -305,7 +306,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       });
       await fetchAgent();
     } catch {
-      // ignore
+      setAgentError("Failed to resume agent");
     } finally {
       setAgentLoading(false);
     }
@@ -322,7 +323,31 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       });
       await fetchAgent();
     } catch {
-      // ignore
+      setAgentError("Failed to stop agent");
+    } finally {
+      setAgentLoading(false);
+    }
+  };
+
+  const handleStartAgent = async () => {
+    if (!address) return;
+    setAgentLoading(true);
+    setAgentError(null);
+    try {
+      const sessionId = activeSession?.session_id ?? "default";
+      await apiFetch("/api/v1/zkdefi/rebalancer/autonomous/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_address: address,
+          session_id: sessionId,
+          interval_minutes: 15,
+          risk_threshold: riskTolerance,
+        }),
+      });
+      await fetchAgent();
+    } catch {
+      setAgentError("Failed to start agent");
     } finally {
       setAgentLoading(false);
     }
@@ -351,7 +376,7 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
       setConstraintsDirty(false);
       await fetchConstraints();
     } catch {
-      // ignore
+      setAgentError("Failed to save constraints");
     } finally {
       setConstraintsLoading(false);
     }
@@ -526,17 +551,17 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
                 <Play className="w-3.5 h-3.5" />
               </button>
             )}
-            {agentRunning && (
+            {!agentRunning && !agentPaused && (
               <button
-                onClick={handleStopAgent}
+                onClick={handleStartAgent}
                 disabled={agentLoading}
-                className="p-1.5 rounded border border-zinc-700 hover:bg-zinc-800 text-zinc-300 disabled:opacity-50"
-                title="Stop"
+                className="p-1.5 rounded border border-emerald-700 hover:bg-emerald-900/40 text-emerald-400 disabled:opacity-50"
+                title="Start Agent"
               >
-                <Square className="w-3.5 h-3.5" />
+                <Play className="w-3.5 h-3.5" />
               </button>
             )}
-            {agentPaused && (
+            {(agentRunning || agentPaused) && (
               <button
                 onClick={handleStopAgent}
                 disabled={agentLoading}
@@ -547,6 +572,14 @@ export function ControlPlane({ address, onOpenCircuitBoard, onOpenBrain, onDeplo
               </button>
             )}
           </div>
+          {agentError && (
+            <button
+              onClick={() => setAgentError(null)}
+              className="mt-1 w-full text-left text-[10px] text-red-400 bg-red-950/40 border border-red-800/40 rounded px-2 py-1 hover:bg-red-950/60 transition-colors"
+            >
+              {agentError} — tap to dismiss
+            </button>
+          )}
         </div>
       </Section>
 

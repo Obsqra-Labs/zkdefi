@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { HeaderStrip } from "./HeaderStrip";
+import { ProofChainStrip } from "./ProofChainStrip";
 
 export type OverlayMode = "deploy" | "circuit-board" | "governance" | "brain" | null;
 
@@ -31,6 +32,8 @@ export function MissionControlLayout({
         activeOverlay={activeOverlay}
         onOverlayChange={onOverlayChange}
       />
+
+      <ProofChainStrip />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Rail - Capital Ledger */}

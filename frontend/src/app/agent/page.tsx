@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAccount } from "@starknet-react/core";
 import { useWalletSettled } from "@/lib/useWalletSettled";
+import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { Shield, X } from "lucide-react";
 import {
   MissionControlLayout,
@@ -13,6 +14,12 @@ import {
 } from "@/components/zkdefi/mission-control";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
+import {
+  isOnboardingComplete,
+  markOnboardingComplete,
+  migrateLegacyOnboardingState,
+} from "@/lib/trust/onboardingState";
+import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
 import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
@@ -33,6 +40,8 @@ type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zk
 export default function AgentPage() {
   const { address, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
+  const { profile: profileV2 } = useRiskProfileV2(address);
+  const trustFlow = useTrustFlowState(profileV2, address);
   const [mounted, setMounted] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayMode>(null);
@@ -44,14 +53,24 @@ export default function AgentPage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (mounted && isConnected && address) {
-      const onboarded = localStorage.getItem(`zkdefi_onboarded_${address}`);
-      if (!onboarded) setShowOnboarding(true);
+    if (!mounted || !isConnected || !address) {
+      setShowOnboarding(false);
+      return;
     }
-  }, [mounted, isConnected, address]);
+
+    migrateLegacyOnboardingState(address);
+    const completed = isOnboardingComplete(address);
+    if (trustFlow.readyForAgent && !completed) {
+      markOnboardingComplete(address, "trust_flow_ready");
+      setShowOnboarding(false);
+      return;
+    }
+
+    setShowOnboarding(!completed);
+  }, [mounted, isConnected, address, trustFlow.readyForAgent]);
 
   const handleOnboardingComplete = useCallback(() => {
-    if (address) localStorage.setItem(`zkdefi_onboarded_${address}`, "true");
+    if (address) markOnboardingComplete(address, "onboarding_wizard");
     setShowOnboarding(false);
   }, [address]);
 
@@ -142,6 +161,7 @@ export default function AgentPage() {
             onDeposit={() => setSlideout("deposit")}
             onWithdraw={() => setSlideout("withdraw")}
             onImportDarkLedger={() => setSlideout("privacy")}
+            onOpenShielded={() => setSlideout("shielded")}
           />
         }
         centerStage={
