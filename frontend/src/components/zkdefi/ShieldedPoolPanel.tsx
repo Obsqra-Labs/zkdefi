@@ -10,8 +10,7 @@ import {
   ArrowDownToLine, ArrowUpFromLine, Send, Info, AlertTriangle 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 const SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_SHIELDED_POOL_ADDRESS || 
                               process.env.NEXT_PUBLIC_CONFIDENTIAL_TRANSFER_ADDRESS || "";
 
@@ -86,7 +85,7 @@ export function ShieldedPoolPanel() {
   const fetchUserTier = async () => {
     if (!address) return;
     try {
-      const res = await fetch(`${API_BASE}/v1/reputation/${address}`);
+      const res = await fetch(`${API_BASE}/v1/zkdefi/reputation/user/${address}`);
       const data = await res.json();
       setUserTier({
         tier: data.tier || 0,

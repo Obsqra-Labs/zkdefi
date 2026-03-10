@@ -1,21 +1,25 @@
 """Credit Lines & FICO Scoring API routes."""
 
+import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query
+
+import httpx
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 
 from app.middleware.auth import WalletOwner
 
 try:
-    from app.services.credit_line_service import get_credit_line_service
+    from app.services.credit_line_service import get_credit_line_service, compute_credit_line
     from app.services.credit_eligibility_proof_service import get_credit_eligibility_service
     from app.api.validators import (
         validate_starknet_address, validate_token_symbol,
         validate_wei_amount, validate_usd_amount,
     )
 except ImportError:
-    from backend.app.services.credit_line_service import get_credit_line_service
+    from backend.app.services.credit_line_service import get_credit_line_service, compute_credit_line
     from backend.app.services.credit_eligibility_proof_service import get_credit_eligibility_service
     from backend.app.api.validators import (
         validate_starknet_address, validate_token_symbol,
@@ -23,6 +27,8 @@ except ImportError:
     )
 
 logger = logging.getLogger(__name__)
+
+WEI_PER_ETH = 10**18
 router = APIRouter(tags=["credit-lines"])
 
 
@@ -117,19 +123,59 @@ class CreditTransactionResponse(BaseModel):
     new_balance: int
 
 
+async def _fetch_credit_context(base_url: str, address: str) -> tuple[dict, dict, dict]:
+    """Fetch reputation, risk_passport, linked_addresses for credit line computation."""
+    async with httpx.AsyncClient(timeout=12.0) as client:
+        paths = [
+            f"/api/v1/zkdefi/reputation/user/{address}",
+            f"/api/v1/zkdefi/risk_passport/user/{address}",
+            f"/api/v1/zkdefi/linked_addresses/{address}",
+        ]
+        results = await asyncio.gather(
+            *[client.get(f"{base_url.rstrip('/')}{p}") for p in paths],
+            return_exceptions=True,
+        )
+    rep = results[0].json() if not isinstance(results[0], Exception) and results[0].status_code == 200 else {}
+    passport = results[1].json() if not isinstance(results[1], Exception) and results[1].status_code == 200 else {}
+    linked = results[2].json() if not isinstance(results[2], Exception) and results[2].status_code == 200 else {}
+    return rep, passport, linked
+
+
+async def _collateral_eth_from_request(
+    collateral_token: str,
+    collateral_amount: int,
+) -> float:
+    """Convert collateral amount (wei) to ETH-equivalent for credit line computation."""
+    amount_token = collateral_amount / WEI_PER_ETH
+    if collateral_token.upper() == "ETH":
+        return amount_token
+    try:
+        from app.services.ekubo.oracle_adapter import get_live_prices
+        prices = await get_live_prices()
+        eth_usd = float(prices.get("eth_usd") or 1800)
+        token_usd = float(prices.get("strk_usd") or 0.45) if collateral_token.upper() == "STRK" else eth_usd
+        return amount_token * token_usd / eth_usd if eth_usd > 0 else amount_token
+    except Exception:
+        return amount_token  # fallback: treat as ETH-equivalent
+
+
 @router.post(
     "/credit/lines/open",
     response_model=CreditLineResponse,
     summary="Open credit line",
     description="Open a new credit line against collateral",
 )
-async def open_credit_line(request: CreditLineRequest, _caller: str = WalletOwner) -> CreditLineResponse:
+async def open_credit_line(
+    request: CreditLineRequest,
+    http_request: Request,
+    _caller: str = WalletOwner,
+) -> CreditLineResponse:
     """
     Open a credit line with collateral.
     
     Process:
     1. Verify collateral quality
-    2. Calculate LTV ratio
+    2. Compute LTV and rate from credit_line_service (reputation + collateral)
     3. Determine credit limit based on FICO + collateral
     4. Create credit account
     5. Return credit line details
@@ -137,7 +183,40 @@ async def open_credit_line(request: CreditLineRequest, _caller: str = WalletOwne
     service = get_credit_line_service()
     
     try:
-        # Open credit line
+        base = str(http_request.base_url).rstrip("/")
+        rep, passport, linked = await _fetch_credit_context(base, request.user_address)
+        
+        collateral_eth = await _collateral_eth_from_request(
+            request.collateral_token,
+            request.collateral_amount,
+        )
+        tier = int(rep.get("tier", 0) or 0)
+        letter_rating = str(passport.get("letter_rating", "D") or "D")
+        credit_tier = passport.get("credit_tier")
+        verification = linked.get("verification") or {}
+        linked_count = (
+            sum(1 for v in verification.values() if isinstance(v, dict) and v.get("verified"))
+            if isinstance(verification, dict)
+            else 0
+        )
+        cross_chain_verified = linked_count > 0
+        
+        terms = compute_credit_line(
+            collateral_eth=collateral_eth,
+            tier=tier,
+            letter_rating=letter_rating,
+            credit_tier=credit_tier,
+            linked_address_count=linked_count,
+            cross_chain_verified=cross_chain_verified,
+        )
+        
+        ltv_ratio = (
+            terms.collateral_line_eth / collateral_eth
+            if collateral_eth > 0
+            else 0.80
+        )
+        interest_rate = terms.rate_bps / 10_000
+        
         credit_line = await service.open_credit_line(
             user_address=request.user_address,
             collateral_token=request.collateral_token,
@@ -150,7 +229,7 @@ async def open_credit_line(request: CreditLineRequest, _caller: str = WalletOwne
         
         logger.info(
             f"Credit line opened: user={request.user_address}, "
-            f"limit=${request.desired_credit_usd}"
+            f"limit=${request.desired_credit_usd}, ltv={ltv_ratio:.2f}, rate={interest_rate:.2%}"
         )
         
         return CreditLineResponse(
@@ -161,11 +240,13 @@ async def open_credit_line(request: CreditLineRequest, _caller: str = WalletOwne
             credit_used_usd=0,
             collateral_token=request.collateral_token,
             collateral_amount=request.collateral_amount,
-            ltv_ratio=0.5,  # Placeholder
-            interest_rate=0.08,  # Placeholder
-            created_at="",
+            ltv_ratio=round(ltv_ratio, 4),
+            interest_rate=round(interest_rate, 4),
+            created_at=datetime.now(timezone.utc).isoformat(),
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Credit line opening failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))

@@ -158,7 +158,7 @@ def _estimate_mid_tick(best_pool: dict[str, Any]) -> int:
     ratio = tvl1 / tvl0
     if ratio <= 0:
         return 0
-    tick = int(math.log(ratio) / math.log(1.0001))
+    tick = int(math.log(ratio) / math.log(1.000001))
     return max(-887272, min(887272, tick))
 
 

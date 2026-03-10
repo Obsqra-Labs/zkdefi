@@ -121,6 +121,56 @@ class DecisionStore:
             return len([r for r in rows if r.get("user_address") == addr])
         return len(rows)
 
+    async def get_training_dataset(self, min_events: int = 10) -> list[dict[str, Any]]:
+        """Aggregate per-user behavioural stats for creditworthiness training.
+
+        Returns a list of user stat dicts for users with >= *min_events* events.
+        """
+        from collections import defaultdict
+
+        rows = await self._read_all()
+        user_events: dict[str, list[dict]] = defaultdict(list)
+        for r in rows:
+            addr = r.get("user_address", "")
+            if addr:
+                user_events[addr].append(r)
+
+        dataset: list[dict[str, Any]] = []
+        for addr, events in user_events.items():
+            if len(events) < min_events:
+                continue
+
+            total_volume = sum(float(e.get("value_eth", 0) or 0) for e in events)
+            early_exits = sum(1 for e in events if e.get("event_type") == "early_exit")
+            proof_ok = sum(1 for e in events if e.get("outcome") in ("pass", "success", "confirmed"))
+            timestamps = sorted(e.get("created_at", "") for e in events if e.get("created_at"))
+            if len(timestamps) >= 2:
+                from datetime import datetime as _dt
+
+                try:
+                    t0 = _dt.fromisoformat(timestamps[0])
+                    t1 = _dt.fromisoformat(timestamps[-1])
+                    span_hours = max((t1 - t0).total_seconds() / 3600, 0)
+                except Exception:
+                    span_hours = 0.0
+            else:
+                span_hours = 0.0
+
+            n = len(events)
+            dataset.append(
+                {
+                    "user_address": addr,
+                    "total_actions": n,
+                    "early_exit_rate": early_exits / n if n else 0,
+                    "proof_success_rate": proof_ok / n if n else 1.0,
+                    "avg_action_size_eth": total_volume / n if n else 0,
+                    "total_volume_eth": total_volume,
+                    "activity_span_hours": span_hours,
+                }
+            )
+
+        return dataset
+
 
 _store: DecisionStore | None = None
 

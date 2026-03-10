@@ -20,5 +20,133 @@
       "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
       "ts": 1773087572
     }
+  ],
+  "0x1f3ebe63b29d4bb5abb7b00e4bd7be2964fea30113b341588c516440": [
+    {
+      "id": "attr_2c364bda5682",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T16:07:54.021979+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 120
+      },
+      "subject": "0x1f3ebe63b29d4bb5abb7b00e4bd7be2964fea30113b341588c516440",
+      "ts": 1773158874
+    }
+  ],
+  "0x3defe5f7ef9447b3a75bb2f5c32437b3e04557eff0534a86931b07ee": [
+    {
+      "id": "attr_0d24f62ca920",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T16:09:14.633027+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 74
+      },
+      "subject": "0x3defe5f7ef9447b3a75bb2f5c32437b3e04557eff0534a86931b07ee",
+      "ts": 1773158954
+    }
+  ],
+  "0xf2b871616ead48e0ac962a52d760e1c0267774aa444740039e841802": [
+    {
+      "id": "attr_289239ed5885",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T16:16:22.290409+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 172
+      },
+      "subject": "0xf2b871616ead48e0ac962a52d760e1c0267774aa444740039e841802",
+      "ts": 1773159382
+    }
+  ],
+  "0xc38a7c2a333b477fb36f3ced976ffc6fc09977f4efbb48ceaec7c4be": [
+    {
+      "id": "attr_515f4f71cc61",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T16:17:37.751180+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 185
+      },
+      "subject": "0xc38a7c2a333b477fb36f3ced976ffc6fc09977f4efbb48ceaec7c4be",
+      "ts": 1773159457
+    }
+  ],
+  "0x92911e40f02f4e93a96c84900bd55ac9f2fc6c628e014da3a142d3c8": [
+    {
+      "id": "attr_966cd358feea",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T16:20:48.644775+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 168
+      },
+      "subject": "0x92911e40f02f4e93a96c84900bd55ac9f2fc6c628e014da3a142d3c8",
+      "ts": 1773159648
+    }
+  ],
+  "0xc0842e2c66b24894bb4a880cafbd5bc0d2962855793f4456a94cb4fd": [
+    {
+      "id": "attr_8824193255c4",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T17:24:46.993815+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 134
+      },
+      "subject": "0xc0842e2c66b24894bb4a880cafbd5bc0d2962855793f4456a94cb4fd",
+      "ts": 1773163486
+    }
+  ],
+  "0xa9964b47081c42e4bbe2a77750461bf5c15f11f9e0c44a5bbc6597b4": [
+    {
+      "id": "attr_1110529968a8",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T17:27:58.556886+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 41
+      },
+      "subject": "0xa9964b47081c42e4bbe2a77750461bf5c15f11f9e0c44a5bbc6597b4",
+      "ts": 1773163678
+    }
+  ],
+  "0x193708d80a9c4ec5ae4da1e5630ec8b4f2bceb5386ba40d38ce64399": [
+    {
+      "id": "attr_947a261c209a",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T17:29:21.130782+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 186
+      },
+      "subject": "0x193708d80a9c4ec5ae4da1e5630ec8b4f2bceb5386ba40d38ce64399",
+      "ts": 1773163761
+    }
   ]
 }

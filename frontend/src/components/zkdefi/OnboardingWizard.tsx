@@ -5,7 +5,7 @@ import { useAccount, useConnect, useSignTypedData } from "@starknet-react/core";
 import { constants } from "starknet";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, API_BASE } from "@/lib/api/client";
 import {
   confirmSessionGrant,
   formatTimeRemaining,
@@ -40,8 +40,6 @@ import {
   type OnboardingConstraintConfig,
   type OnboardingPortableLifecycleStatus,
 } from "@/components/zkdefi/trust-flow/OnboardingSteps";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface OnboardingWizardProps {
   onComplete: () => void;

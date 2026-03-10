@@ -71,7 +71,6 @@ async def _run_action(action_type: Literal["deposit", "withdraw"], data: Privacy
         result="pass" if can_execute else "blocked",
         snapshot_hash=compiled.get("effective_policy_hash"),
         pool_id=data.shared_pool_id,
-        withdraw_source=data.withdraw_source,
     )
 
     if data.execution_mode == "wallet":

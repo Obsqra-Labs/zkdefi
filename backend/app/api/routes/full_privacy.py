@@ -242,6 +242,23 @@ async def generate_deposit_commitment(request: DepositCommitmentRequest, _caller
             amount=amount,
             pool_type=request.pool_type,
         )
+
+        # Credit pool idle account so the bucket tracks this deposit
+        try:
+            from app.services.pool_composition_service import credit_pool_idle
+            _POOL_TYPE_MAP = {0: "conservative", 1: "moderate", 2: "aggressive"}
+            pool_id = _POOL_TYPE_MAP.get(request.pool_type, "conservative")
+            credit_pool_idle(
+                pool_id=pool_id,
+                token="ETH",
+                amount_wei=amount,
+                source_account="USER_DEPOSIT",
+                refs={"user": request.user_address, "commitment": result.get("commitment", "")[:20]},
+            )
+        except Exception as pool_err:
+            import logging
+            logging.getLogger(__name__).warning("Pool idle credit (non-fatal): %s", pool_err)
+
         return DepositCommitmentResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

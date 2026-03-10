@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Zap, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/api\/v[0-9]+\/?$/, "");
+import { API_BASE } from "@/lib/api/client";
 
 type RiskProfile = "conservative" | "balanced" | "aggressive";
 

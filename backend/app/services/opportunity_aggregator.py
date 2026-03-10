@@ -224,7 +224,9 @@ class OpportunityAggregator:
             for pool in pools:
                 if not isinstance(pool, dict):
                     continue
-                token = pool.get("token", pool.get("asset", "UNKNOWN"))
+                raw_token = pool.get("token", pool.get("asset", "UNKNOWN"))
+                from app.services.real_pool_aggregator import _addr_to_symbol
+                token = _addr_to_symbol(raw_token) if str(raw_token).startswith("0x") else raw_token
                 supply_apy = float(pool.get("supply_apy", pool.get("supplyApy", 0)))
                 total_supplied = float(
                     pool.get("total_supplied", pool.get("totalSupplied", 0))
@@ -280,7 +282,9 @@ class OpportunityAggregator:
             for pool in pools:
                 if not isinstance(pool, dict):
                     continue
-                token = pool.get("token", pool.get("asset", "STRK"))
+                raw_token = pool.get("token", pool.get("asset", "STRK"))
+                from app.services.real_pool_aggregator import _addr_to_symbol
+                token = _addr_to_symbol(raw_token) if str(raw_token).startswith("0x") else raw_token
                 apr = float(
                     pool.get("apr", pool.get("APR", pool.get("apy", 0)))
                 )
@@ -394,7 +398,10 @@ class OpportunityAggregator:
 
             results: list[UnifiedOpportunity] = []
             for strat in active:
-                pair = f"{strat['token_in'][:10]}/{strat['token_out'][:10]}"
+                from app.services.real_pool_aggregator import _addr_to_symbol
+                tin = _addr_to_symbol(strat['token_in']) if str(strat['token_in']).startswith("0x") else strat['token_in']
+                tout = _addr_to_symbol(strat['token_out']) if str(strat['token_out']).startswith("0x") else strat['token_out']
+                pair = f"{tin}/{tout}"
                 results.append(
                     UnifiedOpportunity(
                         id=_stable_id("dca", strat["id"]),

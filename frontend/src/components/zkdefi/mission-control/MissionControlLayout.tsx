@@ -3,8 +3,9 @@
 import type { ReactNode } from "react";
 import { HeaderStrip } from "./HeaderStrip";
 import { ProofChainStrip } from "./ProofChainStrip";
+import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
-export type OverlayMode = "deploy" | "circuit-board" | "governance" | "brain" | null;
+export type OverlayMode = OverlayModeV2;
 
 interface MissionControlLayoutProps {
   address: string | undefined;
@@ -14,6 +15,8 @@ interface MissionControlLayoutProps {
   overlay?: ReactNode;
   activeOverlay: OverlayMode;
   onOverlayChange: (mode: OverlayMode) => void;
+  activeMode?: VaultTab;
+  onModeChange?: (mode: VaultTab) => void;
 }
 
 export function MissionControlLayout({
@@ -24,6 +27,8 @@ export function MissionControlLayout({
   overlay,
   activeOverlay,
   onOverlayChange,
+  activeMode,
+  onModeChange,
 }: MissionControlLayoutProps) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">

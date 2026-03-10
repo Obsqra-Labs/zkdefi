@@ -11,8 +11,9 @@ class TestLLMEngineFallback:
     """Test deterministic fallback allocation logic"""
 
     @pytest.fixture
-    def engine(self):
+    def engine(self, monkeypatch):
         """Create LLM engine with fallback (no API key)"""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         return LLMEngine()
 
     @pytest.fixture

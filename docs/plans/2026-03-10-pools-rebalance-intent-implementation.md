@@ -1,176 +1,229 @@
-# Pools Rebalance Intent — Implementation Plan
+# Pools Rebalance Intent — Implementation Plan (Repo-Accurate V2)
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
-
-**Goal:** Wire deposit into pool buckets, add account-level rebalance mode (user vs oracle), make deposit/withdraw intent-aware (from pool vs vault), cache composition for fast load, and gate oracle rebalance with zkML only.
+**Date:** 2026-03-10  
+**Goal:** Keep pool buckets truthful, add account-level rebalance mode (`user` vs `oracle`), make drawer intent-aware (pool vs vault), add composition caching, and gate oracle rebalance with zkML.
 
 **Design doc:** `docs/plans/2026-03-10-pools-rebalance-intent-design.md`
 
-**Architecture:** Single ledger for pool buckets; credit_pool_idle called from generate_commitment; drawer receives intent + optional poolId; backend caches get_composition and prices; rebalance_mode stored per user.
+---
 
-**Tech Stack:** FastAPI, Next.js 14, double_entry_ledger, TTLCache, existing full_privacy and pool_composition APIs.
+## Current-repo reality (must account for this first)
+
+1. `backend/app/api/routes/pool_composition.py` exists but is empty.
+2. `backend/app/services/pool_composition_service.py` does not exist, yet is imported by:
+   - `backend/app/api/routes/full_privacy.py` (`credit_pool_idle`)
+   - `backend/app/services/autonomous_agent.py` (`get_composition`, `deploy_to_adapter`)
+3. Frontend already passes pool context for drawer open/withdraw filtering:
+   - `CapitalTab` -> `onSlideout("deposit"|"withdraw", poolId)`
+   - `WithdrawPanel` already has `filterPool`
+4. `ttl_cache.py` exists and is async-ready, but has no `composition_cache`.
+5. Existing policy storage (`vault_policy_service`) is already the right place to store per-user execution preferences; do not introduce a second ad-hoc store for rebalance mode.
 
 ---
 
-## Phase 1: Backend — Deposit → bucket
+## Phase 0 — Restore missing pool composition backend surface
 
-### Task 1: Call credit_pool_idle from generate_commitment
+### Task 0.1: Create `pool_composition_service`
 
 **Files:**
-- Modify: `backend/app/api/routes/full_privacy.py` (generate_deposit_commitment handler)
-- Modify: `backend/app/services/full_privacy_proof_service.py` (if commitment generation lives there; else only routes)
-- Test: `backend/tests/` (add or extend test for full_privacy deposit flow)
+- Create: `backend/app/services/pool_composition_service.py`
+- Modify: `backend/app/services/ttl_cache.py`
 
-**Step 1:** In `full_privacy.py`, in the `generate_deposit_commitment` endpoint after calling the service to get the commitment result, map `request.pool_type` (0/1/2) to pool_id (`conservative`/`moderate`/`aggressive`). Map token: use STRK for MVP (or add `token` to `DepositCommitmentRequest` if frontend sends it). Call `credit_pool_idle(pool_id, token, amount_wei, source_account="USER_DEPOSIT", refs={"user_address": request.user_address})`. Import from `app.services.pool_composition_service`. Use same `amount` as used for commitment (already in wei or convert).
+**Steps:**
+1. Implement canonical helpers:
+   - `credit_pool_idle(pool_id, token, amount_wei, source_account="USER_DEPOSIT", refs=None)`
+   - `deploy_to_adapter(pool_id, adapter, token, amount_wei, refs=None)`
+   - `close_position(pool_id, adapter, token, amount_wei, refs=None)`
+   - `async get_composition(pool_id)`
+2. Back composition on `DoubleEntryLedger` (`POOL:{pool_id}:idle:{token}` + deployed adapter sub-accounts).
+3. Add `composition_cache = TTLCache(default_ttl=20, max_entries=100)` in `ttl_cache.py`.
+4. Invalidate `composition_cache` on every write path (`credit`, `deploy`, `close`).
+5. Use `market_cache` (or local cached helper) for token USD pricing inside composition.
 
-**Step 2:** Ensure `DoubleEntryLedger` can debit `USER_DEPOSIT` (or a system account). If the ledger requires both dr_account and cr_account to exist, ensure there is a system account like `USER_DEPOSIT` that we debit from (or add a note in ledger that we allow one-sided credit for pool_deposit tx_type). Check `double_entry_ledger.py` for how `post_entry` handles dr_account.
-
-**Step 3:** Add a minimal test: e.g. call generate_commitment with pool_type=1, then assert pool composition for moderate has increased idle (or call pool_balances and assert POOL:moderate:idle:STRK increased). Or test credit_pool_idle in isolation with a test ledger.
-
-**Step 4:** Run tests. Commit: `fix: credit pool idle from generate_commitment so deposit fills bucket`
+**Commit:** `feat: add pool composition service with ledger-backed bucket accounting`
 
 ---
 
-### Task 2: Add rebalance_mode to user state
+### Task 0.2: Implement pool composition routes
 
 **Files:**
-- Create or modify: backend store for user preferences (e.g. `backend/app/data/rebalance_mode.json` or a table in vault_v2.db, or reuse existing user/settings API)
-- Modify: `backend/app/api/routes/` — add GET/PUT for rebalance_mode (e.g. under existing user or agent router)
-- Test: `backend/tests/` — test get/set rebalance_mode
+- Modify: `backend/app/api/routes/pool_composition.py` (currently empty)
+- Test: `backend/tests/`
 
-**Step 1:** Define storage for `rebalance_mode` per address. Option A: JSON file keyed by address. Option B: SQLite table in vault_v2.db with columns (address, rebalance_mode). Option C: Add to existing user/session API if one exists. Choose simplest (e.g. JSON file `rebalance_mode.json` with `{"0xabc...": "user"}`).
+**Steps:**
+1. Add `GET /pools/{pool_id}/composition` -> returns `get_composition(pool_id)`.
+2. Add `POST /pools/{pool_id}/deploy` -> calls `deploy_to_adapter(...)`.
+3. Add `POST /pools/{pool_id}/close` -> calls `close_position(...)`.
+4. Validate pool ids (`conservative|moderate|aggressive`) and positive amounts.
+5. Add minimal route tests (composition response shape + deploy/close updates).
 
-**Step 2:** Add endpoint `GET /api/v1/zkdefi/rebalance-mode` (or under agent: `GET /api/v1/zkdefi/agent/rebalance-mode`) requiring wallet auth, returning `{"rebalance_mode": "user"|"oracle"}`. Default "user" if not set. Add `PUT /api/v1/zkdefi/rebalance-mode` body `{"rebalance_mode": "user"|"oracle"}`.
-
-**Step 3:** Write test: set mode to oracle, get, assert oracle; set to user, get, assert user.
-
-**Step 4:** Run tests. Commit: `feat: add rebalance_mode (user|oracle) per user`
+**Commit:** `feat: add pool composition api routes (composition/deploy/close)`
 
 ---
 
-## Phase 2: Backend — Caching
+## Phase 1 — Deposit to bucket correctness
 
-### Task 3: Cache pool composition
+### Task 1.1: Make `generate_commitment` bucket credit deterministic
 
 **Files:**
-- Modify: `backend/app/services/pool_composition_service.py` — wrap get_composition with cache
-- Modify: `backend/app/services/ttl_cache.py` — add composition_cache if not present
+- Modify: `backend/app/api/routes/full_privacy.py`
+- Modify: `frontend/src/components/zkdefi/vault/DepositPanel.tsx`
+- Test: `backend/tests/`
 
-**Step 1:** In `ttl_cache.py` add `composition_cache = TTLCache(default_ttl=20, max_entries=100)`.
+**Steps:**
+1. In `DepositCommitmentRequest`, add optional token field (default `STRK`) for backend attribution.
+2. In frontend generate-commitment call, include token symbol from selected asset.
+3. Keep pool mapping `0/1/2 -> conservative/moderate/aggressive`.
+4. Replace current hardcoded `"ETH"` credit token with resolved request token.
+5. Remove silent import-failure path: if bucket credit cannot run, return a clear 5xx (avoid hidden divergence between deposits and pool state).
 
-**Step 2:** In `pool_composition_service.py`, in `get_composition`, at the start check `composition_cache.get(f"composition:{pool_id}")`; if hit return it. At the end (before return), `composition_cache.set(f"composition:{pool_id}", result, ttl=20)`. Use async if TTLCache is async (it is). So: async get_composition first tries cache; on miss compute result, then cache.set, then return.
-
-**Step 3:** Invalidate cache when deploy/close/credit happens: in `deploy_to_adapter`, `close_position`, and `credit_pool_idle` call `composition_cache.delete(f"composition:{pool_id}")` (or clear by prefix if API supports). Commit: `perf: cache pool composition 20s and invalidate on write`
+**Commit:** `fix: align full privacy generate_commitment with pool bucket token accounting`
 
 ---
 
-### Task 4: Use cached prices in composition
+### Task 1.2: Add focused backend tests
 
 **Files:**
-- Modify: `backend/app/services/pool_composition_service.py` — _get_token_price_usd_sync to use market_cache or a shared price cache
+- Create/modify: `backend/tests/test_pool_bucket_credit_from_commitment.py` (or nearest existing full privacy test file)
 
-**Step 1:** Ensure mainnet_oracle or price fetch is behind a cache (e.g. key `price:{token}`, TTL 30). If not, add a small in-memory cache in pool_composition_service for token prices with 30s TTL so repeated get_composition don’t hammer oracle.
+**Steps:**
+1. `generate_commitment(pool_type=1, token=STRK)` should increase `POOL:moderate:idle:STRK`.
+2. Verify composition endpoint reflects increased idle value.
+3. Assert idempotency behavior for ledger helper (same idempotency key does not double-credit).
 
-**Step 2:** Run composition twice in a row; second should be fast. Commit: `perf: cache token prices in pool composition`
+**Commit:** `test: generate_commitment credits pool idle bucket`
 
 ---
 
-## Phase 3: Frontend — Intent-aware drawer
+## Phase 2 — Rebalance mode as policy field (no parallel store)
 
-### Task 5: Drawer receives intent and poolId
+### Task 2.1: Add `rebalance_mode` to policy model and API
 
 **Files:**
-- Modify: `frontend/src/app/agent/page.tsx` — slideout state holds intent and poolId (e.g. slideoutIntent: "deposit"|"withdraw", slideoutPoolId: string | null)
-- Modify: `frontend/src/components/zkdefi/tabs/CapitalTab.tsx` — pass (intent, poolId) when opening from pool card
-- Modify: `frontend/src/components/zkdefi/mission-control/VaultCenterStage.tsx` — pass (intent, poolId) through
-- Modify: `frontend/src/components/zkdefi/mission-control/IdentityBadge.tsx` — when Fund/Withdraw clicked, pass intent and poolId=null
+- Modify: `backend/app/services/vault_policy_service.py`
+- Modify: `backend/app/api/routes/mission_control.py` (or add small dedicated route file)
+- Test: `backend/tests/`
 
-**Step 1:** In agent page, add state: `slideoutIntent: "deposit" | "withdraw" | null` and `slideoutPoolId: string | null`. When opening slideout from pool card set both (e.g. slideoutIntent="deposit", slideoutPoolId="conservative"). When opening from vault Fund/Withdraw set slideoutIntent and slideoutPoolId=null.
+**Steps:**
+1. Add default `execution_policy.rebalance_mode = "user"` to policy defaults/backfill.
+2. Add focused endpoints:
+   - `GET /api/v1/zkdefi/rebalance-mode/{address}`
+   - `PUT /api/v1/zkdefi/rebalance-mode/{address}` with `{"rebalance_mode":"user"|"oracle"}`
+3. `PUT` requires wallet-owner auth for same address.
+4. Add tests: default is `user`, set to `oracle`, set back to `user`.
 
-**Step 2:** Update openSlideout signature to accept optional intent and poolId (or derive from existing poolId for deposit/withdraw). IdentityBadge: on Fund call openSlideout("deposit", null); on Withdraw call openSlideout("withdraw", null). CapitalTab pool card: on Deposit call openSlideout("deposit", pool.id); on Withdraw openSlideout("withdraw", pool.id).
-
-**Step 3:** Pass slideoutIntent and slideoutPoolId into DepositPanel and WithdrawPanel as props. Commit: `feat: drawer intent and poolId from pool vs vault`
+**Commit:** `feat: store rebalance_mode in vault policy and expose focused api`
 
 ---
 
-### Task 6: DepositPanel intent-aware UI
+## Phase 3 — Frontend intent-aware drawer polish
+
+### Task 3.1: Finish intent semantics (partially already wired)
 
 **Files:**
-- Modify: `frontend/src/components/zkdefi/vault/DepositPanel.tsx` — accept initialPool and fixedPool (boolean). When fixedPool true, hide pool selector and use initialPool only. Title from parent or prop: “Deposit to [Pool]” vs “Fund vault”.
+- Modify: `frontend/src/app/agent/page.tsx`
+- Modify: `frontend/src/components/zkdefi/vault/DepositPanel.tsx`
+- Modify: `frontend/src/components/zkdefi/vault/WithdrawPanel.tsx`
 
-**Step 1:** Add props: `intentSource: "pool" | "vault"`, `fixedPoolId: string | null`. When intentSource=== "pool" and fixedPoolId set, do not show PoolSelector; use fixedPoolId as selected pool and set initialPool to it. When intentSource=== "vault", show PoolSelector and default initialPool to moderate or last selected.
+**Steps:**
+1. Keep existing `slideoutPool` plumbing; add title semantics:
+   - Deposit + pool -> `Deposit to <Pool>`
+   - Deposit + no pool -> `Fund vault`
+   - Withdraw + pool -> `Withdraw from <Pool>`
+   - Withdraw + no pool -> `Withdraw`
+2. `DepositPanel`:
+   - Add `fixedPoolId?: PoolBucket`
+   - If fixed, hide `PoolSelector` and lock selected pool.
+3. `WithdrawPanel`:
+   - Keep `filterPool`, but filter strictly by pool when present.
+   - Preserve empty copy: `No positions in the <pool> pool.`
 
-**Step 2:** Slideout title: when fixed pool, show “Deposit to Conservative” (etc.). When vault, show “Fund vault”. Commit: `feat: DepositPanel fixed pool when intent from pool card`
+**Commit:** `feat: finalize intent-aware drawer behavior for pool vs vault entries`
 
 ---
 
-### Task 7: WithdrawPanel intent-aware UI
+### Task 3.2: Rebalance mode control in UI
 
 **Files:**
-- Modify: `frontend/src/components/zkdefi/vault/WithdrawPanel.tsx` — already has filterPool. When opened from pool card, pass filterPool so only that pool’s commitments shown. When from vault, pass filterPool=undefined so all shown. Title: “Withdraw from [Pool]” vs “Withdraw”.
+- Modify: `frontend/src/components/zkdefi/mission-control/AgentControls.tsx` (preferred)
+- Optional: add small hook in `frontend/src/hooks/`
 
-**Step 1:** Ensure WithdrawPanel receives filterPool from slideout state (slideoutPoolId). When slideoutPoolId is set, filter commitments by pool_variant === slideoutPoolId. When null, show all. Set label/title from parent: “Withdraw from Conservative” vs “Withdraw”.
+**Steps:**
+1. Add segmented control: `My agent` | `Oracle`.
+2. On load: GET current mode.
+3. On toggle: PUT mode using wallet-authenticated client (`apiFetchAuth`).
+4. Show error toast/revert on failed update.
 
-**Step 2:** Verify empty state copy when filterPool set: “No positions in the [pool] pool.” Commit: `feat: WithdrawPanel filter by pool when intent from pool card`
+**Commit:** `feat: add rebalance mode toggle in mission control`
 
 ---
 
-### Task 8: Rebalance mode UI (account-level)
+## Phase 4 — Enforce mode on deploy/close and gate oracle path with zkML
+
+### Task 4.1: Backend authorization + gating
 
 **Files:**
-- Modify: `frontend/src/components/zkdefi/mission-control/` or settings — add toggle or dropdown “My agent” vs “Oracle rebalances”. Call GET/PUT rebalance-mode API.
-- Optional: Show current mode near Agent controls or Identity badge.
+- Modify: `backend/app/api/routes/pool_composition.py`
+- Modify (if needed): `backend/app/services/agent_rebalancer.py` / existing zkML gate helper
+- Test: `backend/tests/`
 
-**Step 1:** Add a small control (e.g. in AgentControls or a settings strip): “Rebalance: My agent | Oracle”. On change call PUT rebalance-mode. On load call GET rebalance-mode and set local state.
+**Steps:**
+1. For deploy/close routes, resolve target user address from request.
+2. Lookup `execution_policy.rebalance_mode`.
+3. Enforce:
+   - `user` mode: caller must be wallet owner of target address.
+   - `oracle` mode: caller must be operator/admin; run zkML gate before execute.
+4. Return `403` on auth/mode mismatch; no partial ledger writes on gate failure.
 
-**Step 2:** Commit: `feat: rebalance mode toggle (user vs oracle) in UI`
+**Commit:** `feat: enforce rebalance_mode and zkml gate for pool deploy/close`
 
 ---
 
-## Phase 4: Gate oracle deploy/close by mode and zkML
+## Phase 5 — Validation and docs
 
-### Task 9: Backend enforce rebalance_mode on deploy/close
+### Task 5.1: Integration checks
 
 **Files:**
-- Modify: `backend/app/api/routes/pool_composition.py` — deploy and close endpoints require either user auth (and rebalance_mode=user) or operator auth (and rebalance_mode=oracle for that user). For oracle path, require zkML check before executing.
+- Create/modify backend tests under `backend/tests/`
+- Optional frontend test under `frontend/src/__tests__/`
 
-**Step 1:** In deploy_capital and close_pool_position, resolve user_address (from session or body). Look up rebalance_mode for that user. If "user", require request to be from that user (wallet auth). If "oracle", require operator/oracle auth and run existing zkML gate before calling deploy_to_adapter/close_position. If mode is user and caller is not the user, return 403. If mode is oracle and caller is not operator, return 403.
+**Checks:**
+1. Deposit flow credits correct pool/token idle bucket.
+2. Drawer open from pool card locks/focuses pool context.
+3. Rebalance mode matrix:
+   - mode=`user`, user deploy allowed, operator denied
+   - mode=`oracle`, operator deploy with zkML pass allowed, user denied
 
-**Step 2:** Add integration test or manual test: set user to oracle, call deploy as operator with zkML pass → 200; call deploy as user → 403. Commit: `feat: enforce rebalance_mode and zkML for oracle deploy/close`
+**Commit:** `test: cover pool bucket credit, intent drawer, and rebalance mode gating`
 
 ---
 
-## Phase 5: Tests and docs
-
-### Task 10: Integration test and doc update
+### Task 5.2: Docs update
 
 **Files:**
-- Create or extend: `frontend/src/__tests__/` or `backend/tests/` — one integration test: deposit flow credits pool; drawer intent pool vs vault.
-- Modify: `docs/DEMO_SCRIPT_3MIN.md` or README — mention “Deposit/Withdraw from pool or from vault” and “Rebalance: My agent vs Oracle”.
+- Modify: `README.md` (use this; `docs/DEMO_SCRIPT_3MIN.md` is currently absent)
 
-**Step 1:** Add test: generate_commitment with pool_type=1 → then GET composition for moderate → assert idle increased (or ledger pool_balances). Optional: frontend test that opening drawer from pool card passes poolId and shows fixed pool title.
+**Update copy:**
+1. “Deposit/Withdraw can be launched from pool cards (fixed pool intent) or vault actions (global intent).”
+2. “Rebalance mode is account-level: My agent (`user`) vs Oracle (`oracle`).”
 
-**Step 2:** Update demo script or docs with one line on intent (from pool vs vault) and rebalance mode. Commit: `test: deposit credits pool; docs: intent and rebalance mode`
+**Commit:** `docs: add intent-aware drawer and rebalance mode notes`
 
 ---
 
 ## Execution order
 
-- Task 1 → Task 2 → Task 3 → Task 4 (backend)
-- Task 5 → Task 6 → Task 7 → Task 8 (frontend)
-- Task 9 (gate) → Task 10 (tests/docs)
-
-Tasks 3–4 can run after 1–2. Tasks 6–7 depend on 5.
+1. Task 0.1 -> Task 0.2 (unblock missing backend surface first)
+2. Task 1.1 -> Task 1.2 (deposit correctness + tests)
+3. Task 2.1 (mode storage/api)
+4. Task 3.1 -> Task 3.2 (frontend polish + mode toggle)
+5. Task 4.1 (enforcement + zkML gate)
+6. Task 5.1 -> Task 5.2 (verification + docs)
 
 ---
 
-## Handoff
+## Notes
 
-Plan saved to `docs/plans/2026-03-10-pools-rebalance-intent-implementation.md`.
-
-**Two execution options:**
-
-1. **Subagent-driven (this session)** — Dispatch a fresh subagent per task, review between tasks, fast iteration.
-2. **Parallel session (separate)** — Open a new session with executing-plans, batch execution with checkpoints.
-
-Which approach?
+1. This v2 intentionally reuses existing policy infrastructure rather than introducing `rebalance_mode.json`.
+2. Frontend intent wiring is not greenfield; it is a completion/polish pass.
+3. Do not proceed with caching-only work until `pool_composition_service` + routes exist and are tested.

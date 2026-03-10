@@ -17,8 +17,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -77,6 +78,10 @@ SEL_POOL_MEMBER_INFO = sn_keccak("pool_member_info")
 # STRK ERC-20 selectors
 SEL_APPROVE = sn_keccak("approve")
 SEL_BALANCE_OF = sn_keccak("balance_of")
+
+# Staking event name hashes (first key in emitted events)
+EVENT_NEW_DELEGATION_POOL = sn_keccak("NewDelegationPool")
+EVENT_STAKE_BALANCE_CHANGED = sn_keccak("StakeBalanceChanged")
 
 
 # ── Data Classes ──────────────────────────────────────────────────────────
@@ -162,6 +167,119 @@ def _address_to_felt(addr: str) -> str:
     return addr
 
 
+def _normalize_address(val: str | int) -> str:
+    """Normalize felt/address to 0x-prefixed hex string."""
+    if isinstance(val, int):
+        return hex(val)
+    s = str(val).strip().lower()
+    if s.startswith("0x"):
+        return s
+    return "0x" + s
+
+
+def _is_valid_pool_address(addr: str) -> bool:
+    """Check if address looks like a valid Starknet contract (non-zero, reasonable length)."""
+    if not addr or addr in ("0x0", "0x"):
+        return False
+    try:
+        n = int(addr, 16)
+        return 0 < n < (1 << 251)
+    except (ValueError, TypeError):
+        return False
+
+
+async def _get_staking_events() -> List[dict]:
+    """Fetch StakeBalanceChanged and NewDelegationPool events from the staking contract."""
+    all_events: List[dict] = []
+    continuation_token: Optional[str] = None
+    staking_event_keys = {
+        _normalize_address(EVENT_NEW_DELEGATION_POOL),
+        _normalize_address(EVENT_STAKE_BALANCE_CHANGED),
+    }
+
+    while True:
+        filter_obj: Dict[str, Any] = {
+            "from_block": {"block_number": 0},
+            "to_block": "latest",
+            "address": STAKING_CONTRACT,
+            "chunk_size": 256,
+        }
+        if continuation_token:
+            filter_obj["continuation_token"] = continuation_token
+
+        try:
+            # Match ekubo_lp_service format for Cartridge RPC
+            data = await _rpc_call("starknet_getEvents", {"filter": filter_obj})
+        except Exception as e:
+            logger.warning(f"starknet_getEvents failed: {e}")
+            return []
+
+        if "error" in data:
+            logger.warning(f"starknet_getEvents RPC error: {data['error']}")
+            return []
+
+        result = data.get("result", data)
+        if isinstance(result, dict):
+            events = result.get("events", [])
+            continuation_token = result.get("continuation_token")
+        else:
+            events = []
+            continuation_token = None
+
+        # Filter to staking events only (keys[0] is event name hash)
+        for ev in events:
+            keys = ev.get("keys", [])
+            if keys and _normalize_address(keys[0]) in staking_event_keys:
+                all_events.append(ev)
+
+        if not continuation_token:
+            break
+
+    return all_events
+
+
+def _extract_pool_addresses_from_events(events: List[dict]) -> List[str]:
+    """Extract unique pool addresses from staking events. Pool address is typically in keys or data."""
+    seen: set[str] = set()
+    result: List[str] = []
+    staking_int = int(STAKING_CONTRACT, 16)
+    strk_int = int(STRK_TOKEN, 16)
+
+    for ev in events:
+        for src in (ev.get("keys", []), ev.get("data", [])):
+            for item in src:
+                addr = _normalize_address(item)
+                if not _is_valid_pool_address(addr):
+                    continue
+                n = int(addr, 16)
+                if n == staking_int or n == strk_int:
+                    continue
+                if addr not in seen:
+                    seen.add(addr)
+                    result.append(addr)
+    return result
+
+
+def _pools_from_env() -> List[DelegationPool]:
+    """Parse STAKING_POOL_ADDRESSES env var (comma-separated) into DelegationPool list."""
+    raw = os.getenv("STAKING_POOL_ADDRESSES", "").strip()
+    if not raw:
+        return []
+    pools: List[DelegationPool] = []
+    for addr in (a.strip() for a in raw.split(",") if a.strip()):
+        addr = _normalize_address(addr)
+        if _is_valid_pool_address(addr):
+            pools.append(DelegationPool(
+                pool_address=addr,
+                staker_address="0x0",
+                name=f"Pool {addr[:10]}...",
+                commission_pct=0.0,
+                estimated_apr_pct=4.5,
+                active=True,
+            ))
+    return pools
+
+
 # ── Core Queries ──────────────────────────────────────────────────────────
 async def get_staking_overview() -> StakingOverview:
     """Get global staking statistics from the on-chain contract."""
@@ -220,10 +338,12 @@ async def get_strk_balance(user_address: str) -> int:
 
 
 async def get_delegation_pools() -> List[DelegationPool]:
-    """Get list of known delegation pools on Sepolia.
-    
-    Since event scanning is expensive, we maintain a curated list that can
-    be extended via admin endpoints or event indexing.
+    """Get list of delegation pools on Sepolia.
+
+    Discovery order:
+    1. RPC event scan (StakeBalanceChanged, NewDelegationPool on staking contract)
+    2. STAKING_POOL_ADDRESSES env var (comma-separated)
+    3. Single inactive pool (active=False, pool_address=0x0) so UI shows staking unavailable
     """
     global _known_pools, _pools_cache_ts
 
@@ -231,30 +351,49 @@ async def get_delegation_pools() -> List[DelegationPool]:
     if _known_pools and (now - _pools_cache_ts) < POOLS_CACHE_TTL:
         return _known_pools
 
-    # Start with a default set of known Sepolia validator pools
-    # These are well-known testnet validators that accept delegation
-    default_pools = [
-        DelegationPool(
-            pool_address="0x0",  # Placeholder — will be replaced with real pool addresses
-            staker_address="0x0",
-            name="Sepolia Testnet Pool",
-            commission_pct=10.0,
-            estimated_apr_pct=4.5,
-            active=True,
-        ),
-    ]
+    pools: List[DelegationPool] = []
 
-    # Try to discover pools from the staking contract
+    # 1. Try RPC event discovery
     try:
-        overview = await get_staking_overview()
-        if overview.total_stake_wei > 0 and not overview.is_paused:
-            # Update estimated APR based on epoch info
-            for pool in default_pools:
-                pool.estimated_apr_pct = 4.5  # Sepolia testnet base rate
+        events = await _get_staking_events()
+        addrs = _extract_pool_addresses_from_events(events)
+        if addrs:
+            overview = await get_staking_overview()
+            base_apr = 4.5 if (overview.total_stake_wei > 0 and not overview.is_paused) else 0.0
+            for addr in addrs:
+                pools.append(DelegationPool(
+                    pool_address=addr,
+                    staker_address="0x0",
+                    name=f"Pool {addr[:10]}...",
+                    commission_pct=0.0,
+                    estimated_apr_pct=base_apr,
+                    active=True,
+                ))
+            logger.info("Staking: discovered %d pools via RPC events", len(pools))
     except Exception as e:
-        logger.warning(f"Pool discovery failed: {e}")
+        logger.warning(f"RPC event pool discovery failed: {e}")
 
-    _known_pools = default_pools
+    # 2. Fall back to env var if event discovery returned nothing
+    if not pools:
+        pools = _pools_from_env()
+        if pools:
+            logger.info("Staking: using %d pools from STAKING_POOL_ADDRESSES", len(pools))
+
+    # 3. If neither has results, return single inactive pool so UI knows staking is unavailable
+    if not pools:
+        pools = [
+            DelegationPool(
+                pool_address="0x0",
+                staker_address="0x0",
+                name="Staking unavailable",
+                commission_pct=0.0,
+                estimated_apr_pct=0.0,
+                active=False,
+            ),
+        ]
+        logger.debug("Staking: no pools found, returning inactive placeholder")
+
+    _known_pools = pools
     _pools_cache_ts = now
     return _known_pools
 

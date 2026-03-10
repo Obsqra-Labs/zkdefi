@@ -24,5 +24,381 @@
       "portable_v3": "3.0",
       "zkfico_pack_v1": "1.0"
     }
+  },
+  "0x1f3ebe63b29d4bb5abb7b00e4bd7be2964fea30113b341588c516440": {
+    "subject": "0x1f3ebe63b29d4bb5abb7b00e4bd7be2964fea30113b341588c516440",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0x3defe5f7ef9447b3a75bb2f5c32437b3e04557eff0534a86931b07ee": {
+    "subject": "0x3defe5f7ef9447b3a75bb2f5c32437b3e04557eff0534a86931b07ee",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0xf2b871616ead48e0ac962a52d760e1c0267774aa444740039e841802": {
+    "subject": "0xf2b871616ead48e0ac962a52d760e1c0267774aa444740039e841802",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0xc38a7c2a333b477fb36f3ced976ffc6fc09977f4efbb48ceaec7c4be": {
+    "subject": "0xc38a7c2a333b477fb36f3ced976ffc6fc09977f4efbb48ceaec7c4be",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0x92911e40f02f4e93a96c84900bd55ac9f2fc6c628e014da3a142d3c8": {
+    "subject": "0x92911e40f02f4e93a96c84900bd55ac9f2fc6c628e014da3a142d3c8",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0xc0842e2c66b24894bb4a880cafbd5bc0d2962855793f4456a94cb4fd": {
+    "subject": "0xc0842e2c66b24894bb4a880cafbd5bc0d2962855793f4456a94cb4fd",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0xa9964b47081c42e4bbe2a77750461bf5c15f11f9e0c44a5bbc6597b4": {
+    "subject": "0xa9964b47081c42e4bbe2a77750461bf5c15f11f9e0c44a5bbc6597b4",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  },
+  "0x193708d80a9c4ec5ae4da1e5630ec8b4f2bceb5386ba40d38ce64399": {
+    "subject": "0x193708d80a9c4ec5ae4da1e5630ec8b4f2bceb5386ba40d38ce64399",
+    "window_days": 30,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
   }
 }

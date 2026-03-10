@@ -9,6 +9,7 @@ User votes privately (hidden vote direction) while proving voting power.
 import asyncio
 import json
 import math
+import os
 import secrets
 import subprocess
 import tempfile
@@ -59,10 +60,17 @@ class DAOVotingService:
             and self.proving_key.exists()
         )
         if not self._groth16_available:
-            logger.warning(
-                "DAO voting Groth16 artifacts missing — falling back to mock proofs. "
-                "Need: %s and %s", self.circuit_wasm, self.proving_key,
-            )
+            if os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"):
+                logger.warning(
+                    "DAO voting Groth16 artifacts missing — falling back to mock proofs. "
+                    "Need: %s and %s", self.circuit_wasm, self.proving_key,
+                )
+            else:
+                raise RuntimeError(
+                    f"DAO voting Groth16 artifacts missing and ALLOW_SIMULATED_PROOFS is not set. "
+                    f"Need: {self.circuit_wasm} and {self.proving_key}. "
+                    f"Set ALLOW_SIMULATED_PROOFS=true for development."
+                )
         
         self.user_secrets: Dict[str, str] = {}
     
@@ -139,9 +147,14 @@ class DAOVotingService:
                     public_inputs=public_inputs,
                 )
             except Exception as exc:
-                logger.error("Groth16 proof failed, falling back to mock: %s", exc)
+                if os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"):
+                    logger.warning("Groth16 proof failed, falling back to mock: %s", exc)
+                else:
+                    raise RuntimeError(
+                        f"Groth16 proof generation failed and ALLOW_SIMULATED_PROOFS is not set: {exc}"
+                    ) from exc
 
-        # ── Mock fallback ──
+        # ── Mock fallback (only reachable when ALLOW_SIMULATED_PROOFS is set) ──
         proof_calldata = [
             hex(commitment),           # Public output 1: commitment
             hex(vote_value),           # Public output 2: vote_value

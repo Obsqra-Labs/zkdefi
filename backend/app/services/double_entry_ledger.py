@@ -158,3 +158,47 @@ class DoubleEntryLedger:
             "pending": pending,
             "deployed": deployed,
         }
+
+    # ── Pool-scoped helpers ──────────────────────────────────────────────
+
+    def pool_balances(self, pool_id: str) -> Dict[str, int]:
+        """Return {sub_account: balance_wei} for all accounts under POOL:{pool_id}:*."""
+        prefix = f"POOL:{pool_id}:"
+        with self._lock:
+            cr_rows = self._conn.execute(
+                "SELECT cr_account, amount_wei FROM ledger_entries WHERE cr_account LIKE ?",
+                (prefix + "%",),
+            ).fetchall()
+            dr_rows = self._conn.execute(
+                "SELECT dr_account, amount_wei FROM ledger_entries WHERE dr_account LIKE ?",
+                (prefix + "%",),
+            ).fetchall()
+
+        totals: Dict[str, int] = {}
+        for r in cr_rows:
+            acct = r["cr_account"][len(prefix):]
+            totals[acct] = totals.get(acct, 0) + int(r["amount_wei"])
+        for r in dr_rows:
+            acct = r["dr_account"][len(prefix):]
+            totals[acct] = totals.get(acct, 0) - int(r["amount_wei"])
+
+        return {k: v for k, v in totals.items() if v != 0}
+
+    def pool_entries(
+        self, pool_id: str, limit: int = 50, offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Audit trail for a specific pool."""
+        prefix = f"POOL:{pool_id}:%"
+        with self._lock:
+            rows = self._conn.execute(
+                """SELECT * FROM ledger_entries
+                   WHERE dr_account LIKE ? OR cr_account LIKE ?
+                   ORDER BY created_at DESC
+                   LIMIT ? OFFSET ?""",
+                (prefix, prefix, limit, offset),
+            ).fetchall()
+            return [self._row_to_dict(r) for r in rows]
+
+    def pool_total(self, pool_id: str) -> int:
+        """Sum of all balances across all sub-accounts for a pool."""
+        return sum(self.pool_balances(pool_id).values())

@@ -6,8 +6,7 @@ import { ArrowDownUp, RefreshCw, ExternalLink, Search, X } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { ConnectButton } from "./ConnectButton";
 import { sepoliaStarkscanTxUrl } from "@/lib/explorer";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 
 // Format large wei-style numbers for display (assume 18 decimals for display scaling)
 function formatCompact(weiStr: string | number, decimals = 2): string {

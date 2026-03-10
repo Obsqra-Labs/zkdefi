@@ -12,7 +12,7 @@ Trigger mechanisms:
 import asyncio
 import logging
 from typing import Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from app.services.agent_rebalancer import get_rebalancer, RebalanceStatus
@@ -242,6 +242,77 @@ class AutonomousAgent:
                     self._agents[user_address]["errors"] = self._agents[user_address]["errors"][-10:]
                 await asyncio.sleep(config.interval_seconds)
     
+    async def _evaluate_pool_deployments(self, user_address: str):
+        """
+        Check each pool bucket for idle capital that could be deployed.
+        Respects tier constraints: Conservative=staking only,
+        Moderate=staking+lending, Aggressive=all adapters.
+        """
+        try:
+            from app.services.pool_composition_service import get_composition, deploy_to_adapter
+
+            TIER_ADAPTERS = {
+                "conservative": ["staking"],
+                "moderate": ["staking", "lending"],
+                "aggressive": ["staking", "lending", "ekubo"],
+            }
+            MIN_IDLE_WEI = 10 ** 17  # 0.1 token minimum before deploying
+
+            for pool_id in ("conservative", "moderate", "aggressive"):
+                try:
+                    comp = await get_composition(pool_id)
+                except Exception:
+                    continue
+
+                idle = comp.get("idle_breakdown", {})
+                allowed_adapters = TIER_ADAPTERS[pool_id]
+
+                for token, idle_wei in idle.items():
+                    if idle_wei < MIN_IDLE_WEI:
+                        continue
+
+                    # Pick adapter based on token and tier
+                    adapter = None
+                    if token == "STRK" and "staking" in allowed_adapters:
+                        adapter = "staking"
+                    elif "lending" in allowed_adapters:
+                        adapter = "lending"
+                    elif "ekubo" in allowed_adapters:
+                        adapter = "ekubo"
+
+                    if not adapter:
+                        continue
+
+                    deploy_amount = int(idle_wei * 0.8)  # keep 20% idle as reserve
+                    if deploy_amount < MIN_IDLE_WEI:
+                        continue
+
+                    logger.info(
+                        f"Pool {pool_id}: deploying {deploy_amount} wei {token} to {adapter}"
+                    )
+                    deploy_to_adapter(
+                        pool_id=pool_id,
+                        adapter=adapter,
+                        token=token,
+                        amount_wei=deploy_amount,
+                        refs={"triggered_by": "autonomous_agent", "user": user_address},
+                    )
+                    if user_address in self._agents:
+                        self._agents[user_address]["actions_taken"] += 1
+                        self._agents[user_address]["last_action"] = {
+                            "type": "pool_deploy",
+                            "pool_id": pool_id,
+                            "adapter": adapter,
+                            "token": token,
+                            "amount_wei": deploy_amount,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+
+        except ImportError:
+            logger.debug("pool_composition_service not available")
+        except Exception as e:
+            logger.warning(f"Pool deployment evaluation failed: {e}")
+
     async def _perform_check(
         self,
         user_address: str,
@@ -251,13 +322,17 @@ class AutonomousAgent:
         """
         Perform a single monitoring check.
         
-        1. Analyze portfolio
-        2. If thresholds breached, propose rebalance
-        3. Run zkML gates
-        4. If passed, execute
+        1. Evaluate pool buckets for idle capital deployment
+        2. Analyze portfolio
+        3. If thresholds breached, propose rebalance
+        4. Run zkML gates
+        5. If passed, execute
         """
         logger.debug(f"Performing check for {user_address[:10]}...")
-        
+
+        # Evaluate pool bucket deployments first
+        await self._evaluate_pool_deployments(user_address)
+
         try:
             # 1. Analyze portfolio
             analysis = await self._rebalancer.analyze_portfolio(

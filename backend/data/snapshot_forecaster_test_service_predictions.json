@@ -1,9 +1,9 @@
 {
-  "0xe86384a81c0b97d0990b7b8518dd9810718e557390edb7211bb5691aa2834777": {
-    "forecast_id": "0xe86384a81c0b97d0990b7b8518dd9810718e557390edb7211bb5691aa2834777",
+  "0x4d6a059eb376217aa391c09a014538ae5e9779885fe98c5f2a747e62995d2bb1": {
+    "forecast_id": "0x4d6a059eb376217aa391c09a014538ae5e9779885fe98c5f2a747e62995d2bb1",
     "window_id": "0x4e6f36ea15a932b137983d31209cbb723c3c57220cbaee95122596e347e2dca7",
     "subject_id": "0xanalytics",
-    "guess_ts": 1772862326,
+    "guess_ts": 1773163789,
     "horizons_min": [
       5,
       30,
@@ -24,7 +24,7 @@
       "prob_max": 10000
     },
     "metadata": {},
-    "revealed_at_ts": 1772862326,
+    "revealed_at_ts": 1773163789,
     "outputs_scaled": {
       "p240": 7200,
       "p30": 6700,
@@ -42,9 +42,9 @@
       "verification_mode": null
     },
     "trust_mode": "offchain_ezkl_verified",
-    "score_receipt_id": "0x789a0dc4556333c221c65c42f24d510281f4569626171a856af5e54f75b66342",
-    "created_at_ts": 1772862326,
-    "reveal_salt_hash": "0x6d4f303931ec32feb215e942c1b60c4a5ada6559cd5480c9ad98a469b242f22e",
-    "scored_at_ts": 1772862326
+    "score_receipt_id": "0x144589024730cdbb3c20610494ba55a7bcc45a968e4bd0e29d651caf57d0b5ac",
+    "created_at_ts": 1773163789,
+    "reveal_salt_hash": "0xbcc2daac736e4a5c83bd1038e17fd09767f4d9391c5479b287bfc30654940e4c",
+    "scored_at_ts": 1773163789
   }
 }

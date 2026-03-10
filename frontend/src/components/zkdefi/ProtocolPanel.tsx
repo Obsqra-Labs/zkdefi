@@ -7,8 +7,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { Shield, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ConnectButton } from "./ConnectButton";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 const AGENT_ADDRESS = process.env.NEXT_PUBLIC_PROOF_GATED_AGENT_ADDRESS || "";
 
 // DEBUG: Log the address being used

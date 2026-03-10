@@ -68,6 +68,11 @@ _TOKEN_SYMBOLS: dict[str, str] = {
     "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": "USDe",
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": "USDC",
     "0x1791f726b4103694969820be083196cc7c045ff": "ZKT",
+    "0xd9fcd98c322942075a5c3860693e9f4f03aae07b": "EURe",
+    "0xaf88d065e77c8cc2239327c5edb3a432268e5831": "USDC.e",
+    "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "cbBTC",
+    "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0": "wstETH",
+    "0xc93b16cb1d8691e629514fc98f02cbad340da3c": "xSTRK",
     # Sepolia / testnet
     "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080": "USDC",
     "0x07ab0b8855a61f480b4423c46c32fa7c553f0aac3531bbddaa282d86244f7a23": "fUSDC",
@@ -80,15 +85,23 @@ _TOKEN_SYMBOLS: dict[str, str] = {
 }
 
 
+def _normalize_hex(h: str) -> str:
+    """Strip leading zeros after 0x so 0x049d... and 0x49d... compare equal."""
+    if h.startswith("0x"):
+        return "0x" + (h[2:].lstrip("0") or "0")
+    return h
+
+
+_NORMALIZED_SYMBOLS: dict[str, str] = {_normalize_hex(k).lower(): v for k, v in _TOKEN_SYMBOLS.items()}
+
+
 def _addr_to_symbol(addr: Any) -> str:
     if isinstance(addr, dict):
         return addr.get("symbol") or addr.get("name") or _addr_to_symbol(addr.get("address", ""))
     s = str(addr).strip().lower()
-    # Try full match
-    for k, v in _TOKEN_SYMBOLS.items():
-        if k.lower() == s:
-            return v
-    # Short suffix match
+    hit = _NORMALIZED_SYMBOLS.get(_normalize_hex(s).lower())
+    if hit:
+        return hit
     if len(s) > 8:
         return s[-6:].upper()
     return s or "TOKEN"

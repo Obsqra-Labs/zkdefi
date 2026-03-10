@@ -8,8 +8,7 @@ import { Eye, Shield, CheckCircle2, ArrowRight, Copy, HelpCircle, TrendingUp, Al
 import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 const DISCLOSURE_ADDRESS = process.env.NEXT_PUBLIC_SELECTIVE_DISCLOSURE_ADDRESS || "";
 
 type Step = 1 | 2 | 3;

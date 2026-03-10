@@ -1430,5 +1430,2775 @@
       }
     ],
     "latest": "0xbf2641b24072a3d59dcf39baec0dd4e2557d5eb5c0a02f44241f639d8867e6b3"
+  },
+  "0xcc974673003948268c7e71cf815426a9eef9b0fdf8a64abda7335592": {
+    "history": [
+      {
+        "snapshot_id": "0xbd3f6212174416c6267d41fbc80c197b61fada5bc997c708e760304e942a8763",
+        "taken_at": "2026-03-10T16:08:10.856628+00:00",
+        "address": "0xcc974673003948268c7e71cf815426a9eef9b0fdf8a64abda7335592",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xcc974673003948268c7e71cf815426a9eef9b0fdf8a64abda7335592",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xcc974673003948268c7e71cf815426a9eef9b0fdf8a64abda7335592",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x19b15144229e6cc897228b14de23f940e67f8b5992a77787c98d4019f64d269e",
+            "proof_hex": "0x301f15076bc0d0a694521e6e71193f7fedb38de64fe1a69aaf1ddc4e403345102b06f8f89f7225e9beffe1c0883bf372a196d5bdd4cf43789279c0b21a7758f620ac960bf6a0292eeb5ebcf65e9e65468c8b9fd22d9d03a74fe14dfa94814be21fa63d82c444b9106b673a42ad89af94eca81664e3193d54db30a038e10beaf91cb4c659ed83970bf7666c554c13e308f4bca8b91da6dce7c4e37fc4c555d85a0e6d835610d2cfe272c02ac287ed48dd002c2ac67494834cf47f48d07d46117604f08e5bc6d9ff502fde5ae7c7ace5cc713b4a2d9c215665891907c13f40b75912b12f99b67ae6c6b38053d68b9aa9bd1fa02e681820de6cb2740259a028d41819663e5d6097392cb6989803324fd1486345f269d3eba9fa365cb3eafe84d45b2e9529b55e86737488592367a71c5b7e84b29c67845e71f84e74ccabccc1d6f5148f3f957d4e274a7cc03fb019a7596d4b21852a46c81ea88d33d188b93491220fa13d2fa57ac701ad8ac62d1a180a1191d64255e6938af89b4890c269b1084010f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187176f879033054e9386088ff74baf39fc5772e4656f4a1a479e91ea628d2627e31eca8e926f059813c4633530e93492d576b3a484271830c443e5072b85829bf104e6cfb1f32f813ca6fda0c30c69bc50d5f5a6809ff4874cca8c21ac429dee6a04bd8927db89b668da4681d24d67e7f97eeae4dfca12bf52bb8f3beff3d17f360bef4cfe43d3ec258de2788c4abdd49a31946097a479d0e947e7bb67c775ff4f069a4115f9211672f4c7bc5f7c54a55a8fe09c83c072bf44351703618ade97e9145145362eb1b1a7b1512e4dbb0a883bd71709c4213fe86e09d49e8242ac88ac24b4d2e28ca6b9b0a95c115802038fabb9c101eca38ee6625be7749db60aa4b620d4594f2584dcab8c9f8b4445c696edf12bea987f09c1627cf639fd3c240801196881d259da5bfb40eda8587cd74758807a0ef1d075be292c22f8a0daba84942e31e95ad8d52d8042051b61cf65a20dce4d0a6f74f7d2410ec645a6490ce16824fee3ca98c097fa278140a115e7cea3da03ccf7c529029c1225338114ad368b12a0a376fddf8b5570d661e050dd9a4ce9ac6fabfcfa9440ba57c1f9b0c0d2ca066aefdadf62e2ef95e4db1abc7fede148cfece0f840c2c42dbf0de6a934cabb2e819f5f629ac14872a76f79da764b02ef485d403c44a6057e6092e9198ad3160e78758fc2f1e05ac7f294f770d369c0aa5c27902fe540e1184828ae4954e98611a45a1fcf93ce342df853e5a809c65ea5ec4d805e482cc80560b271028f57d819af79549d2d12f1b8c8deb5cc2254e4055f802207d8fd8023d403d81b31a4182176f93f145b7241c0f4b1d1dc679b656d8132e63bc814b16679707c99e04200262de18a7060313504d78bc118e47dffe5551ec909a85881d2e3154ddd72969d1646d5ad2ca47d5f820a6fea7fc5839a3cbe8beeb88cf5076c08a6a0168e36910b2adc05ca2f5eabb85fda05982fcf333c2fa738235e74dbb2cbe02d16291ed81fb453fb930a75d83bbd11d64f19e52c30fc3eeb0d21af0ccef9870781de34cc26ebcccece09817fe05e8c5c65350a4390dcbdd82e178c71eb30743e9c539d2202e55cbb172e8960b8c640616216eb119a61bda081b8b4d638697154421a229b01ab2d2731dd92111d602feb84086e54ade2ffbb4bccfcb477f6bd4396a067f42b7ba3ba2c016b37fa4aa36520b5c81af456163c95de8dabe5706e2fceae2f0016ef39ba1ea1ba25fa25ce2065668ce639d67e3b2cb776a0f49ce12bc6a1d2d8074dfee2332e1ae02df56294ac053d8dcec048d4137d16804eb7e48ed337ae322a8a8ba917686040f474921d38ab223431567e668e5a445d67422d77721cdffe2fc5c2c82e77544e72ac50fe506b3bb3013c2df17a19384fc3a6608ff139174c04f019b5a9d07701339bc0fd06a9889cdae0ae18f81848e5daa503ae260645a930453af7ff8840fbaf796ed08c3ea50ee99558aef3489cfa405d97bfcd35314925a488a76a4189802530327a8d65230a2f261f02b9230f9f9f6b76caa6751552256b94571fec187568f2377065380edd37449061e8eb5830ccbd17f67526c3762ccf3759088f95ca8abfbd1ecd4580150b1982aa4b6b04b0ecdc89cbc12e85a3055e3e1a715237c45fedd3497069db3fc2d3c7ee0d894613f93ae9ffc03f6d9b0f71962e4ac11db850133a7c590f01636878ebec515f3dbaf69ac21a68f76a1f10ba59f121107015ce56a37465563d6c94f89131f63b2e76d278b221ab502e6826977be4405fdf1600cd2d6f7d27cc6bf9a53cc508ce8f951a24caf14a4cd2092ac747cc2cb69db10846fc852d970bfdccd8554933f24ec18619c561232fef95000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ebf71fa975b95fea4d113298769589bfd734bffccabe2baac89757a75d3e90422a9dad3c86123e1a8008cc272f4b0d3ab91cfd24be03187592c240429ba57d2006a28d4fef41fd3c1a31f044bca9fd699b5e6de7dec206f0bd7778d287f95140abba7151bb111a15de3b7c91665196e8389a0c835293d5ce7f13795e1c51b5503b04af43f4e66fd247dc32ec9d64c83a887267b16a767ab4a76a3962302ede22c042e25e723982a5881cb0eee0c947a4447f9b63dd318acf3907e5a0405b9c72653715135dbf262f538c2caba3945fa3491557fd37bae12d628d99ca46258440888e96f53316f5fbb6fc18dd0aaca4c32289635fc64f6e497f748368bde76ec1c946f2f0e151404d7ab9a321173269ebb135abb28097c962e07d856bf99228b2b2c4dd701eec94cd65cee021e333db97ec0124bb5d49439f6da865d0c45c9b31f46e0ef1ad32530e6021d92f7690a97d1d52aded20e131aaae8d4f4e6695d041e941a0bf93e7e7999dec93f0cc6c32c3bc2031bf46f9571cb700a40ef3e2538170f9d3c906913fa94aae7a6a34a3aad57840687c7cb2628b21cbc6518640a8f22da44711ce4985f59ba9c1919b2f9884b578b1be0aa9d509d87f9670ea908390339708296a43c7caae6b4c2c012804e0777a8378e20628eee6f28d32b5feb892c9ff3342d6957121f74f8514c2c5e32b3e84722dcb4db9898fa0865e37f19a31e49f422e42ec40116b2ac0ff620393c4ba8d8e9d2f5829f76d527b1e45b8e10230ad264ebb8b22c0bdccd8f0f96efe4d7aaa8424493d46e953dd7b55e44b0912598ef71d825e2ea52d734bd69779f90277572f9abd3e5bba264fa2daaec39c11d1482e31332a4b66c3dcc3ea33568fc323089840c288a87ac27610480cc9ed81169e15d080eb73848ba64c3c8035c0dc7f0062a05c5e46970d47ccbd68f52ea16618135b0152630a5a522193e852588dacc4be89f83d6095814306a237df4ce01d3a9c73033bbff1c447cebf77a9e68382c8e979286083f7ae88e38258bc6150e68fcd85222402bfb841dff5c5ae85327a5e20b124eb72f4650f04f4955aa9b1695a3f3916276f5ef1556cf1a93759b75969960a206db4c3ab99b1d867e16002239bf1acf67de2f49a4a11a1d2079ea0f03873fa60773f801d6eea621ddfd03215a13698594fc77dbc5b5d38e164b7dc2774eed28fd0755593c4c05c61f5b421f400a0036c93f00f5b1e9dde2a776f8d0a4f329712b85740f571e07492e567224c1ac8510907c984c3be206703bd160382c66c1d8421807927ba55acb433af9089fedd603471b242d6b175389b54801f9333af5601c382c592e42a23dd6c0dc158741baa745d103dbde50030e38596da1ac0468c538967d866fe5141f12e6e4055ee6c80f876112871c235275f105322d451bed649f3a92ab4cbb689576d78e244c5b394ae1168ede5329e63e1765acffc07095c99a6c813dc98696cde1462b"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:08:09.426073+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xcc974673003948268c7e71cf815426a9eef9b0fdf8a64abda7335592",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xbd3f6212174416c6267d41fbc80c197b61fada5bc997c708e760304e942a8763"
+  },
+  "0xbda3bfcd3c08450289cf16f38f58c17127fa1674f02644308fb7fb19": {
+    "history": [
+      {
+        "snapshot_id": "0xbaaba67b757621acddc877907f9876fae60517f8587a530a5f0d06cde1b0bd2c",
+        "taken_at": "2026-03-10T16:09:34.732649+00:00",
+        "address": "0xbda3bfcd3c08450289cf16f38f58c17127fa1674f02644308fb7fb19",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xbda3bfcd3c08450289cf16f38f58c17127fa1674f02644308fb7fb19",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xbda3bfcd3c08450289cf16f38f58c17127fa1674f02644308fb7fb19",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0xd50c1a6fb45df021d8f9e7864a0439ed7c7c40752de9b0038fc14722a7f019e2",
+            "proof_hex": "0x21cb577e3740522f8a2694f5c395b2e8da1898a75e80aa81cfe306bb0d2bb08a1053555d398a94656fbdd3d00a99ba6cae5d59240e7d44d8920da68191a6db3f202a9822141d65a95784f2d33a9ed13bc140eaba6945bf83b4245672eca4bd63036a99c2f88e3db908fb016e18a68563ca302774d58b0f3c2a8cc398c0e672060f32e164ebca94bd60cb00dd45d84b28e15751d14447f65139d21239fe8612ff10b44106e54dfc3434d51715dc4bb9923c9dc44fac8038b37f9de361a321bae60e0093e0f1e27b8f87a1b0f96ef820d1d2bc0154a0cfe4283648c6b6426e2f202ab75cf381c6d913cde240e639382aef391dd67586f4eb0cfe080808eadfda8d1ff1b4979af4e7bf8cf973ce72337b376c1e7588378697854e99d6532d065ddd2bb2d2c63d11259e4ae58e9e230b011c9594a2ba2cb21bed5051b3c2521981ff1fb71ea7663808d2970aa29ba9078c046888d45ebddd9d099fdbac3e51f187ef0b50b34cb30b492164a7eefa16ea8494af7a5e5067190cd7e155d5f846ec813010f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187234c702dd6238bff066b282af0f78b97389201de1c5e7a3788d67a3d1dba385f1bc6e064acf50ebc8feb1a292b0f73a4a4e5306211b7916848e890268a6506e50a83de292fa12ff85c5867b43a8313ce2a6bd23f5935b338d3ebedcd4fb71f091bab9a6c90b68371ab35ad3d6d406539505abe0cb1140e0a3911860b89a7b2ff0eaa9879c0e165566ffa545edbb3fc585d407acdb0166cc6f6fd96b67f40a193002f201b8c7ad1b91f1c8d7e8d73af76973edb6fd97a210f30256c9c04b31bd10a3e48cc59199c76032d40ae552a8ae3336c47b3c1d579af5358161a83aaacfe20fa153f58af56f4532f7cf11cdbe5af4109b16554a562128191ba2e6de53fb606ec0edfe1a0060d6d2d612edcbad8ab75bb73855b4cb87e20cb2b657d5d3020037fe06e704b56d7786587b960a6d844ca13d426c38d40a7361d665ea4a7f5fb01f2a067e089d96df8e7bd9ea223660307313211e2cee3c9a52eb976b9ed2f810db9570bc636e81c4f6c63ae1f2271b4ff55bb32d3d9047c48b2204d92214558156c322f79dc4fba2919e8d0ecc37b67f34580493b67af312bb8e3b424a7aaa80d19e4febb46472c77eec84ba606d3b5d1c3182de3ed27f9a81f57ec257a62df09b8ca9de008c53c5a1b0078888e175073b8846f192b8d5b9208aac046bd39760f2ad61bd4c64eb7617257fdc7a8232b93d9e8709ee1d0d2e101e662883c79ea24d7e515d3c29064ae0df9ca6d83c669829bc586ceb73a0f7d43a26acea0e3cd1858f16bb421039e8de1f8ef70db55d35ec26d1bbf0ed7437beac5c86a4127a717dec6f1c8058627fb760df22021a89e32f125dc49ee96117d1badde4d29750c21bfbc2d6e0c02c3fa81c48ce07d6a1396fd4f968a7ca99acdb0a771225c415b2ecea5b3a4f9b4dd3b89788e1a210a307a35101ce6a9d37e9e578ba7972bb6a9099d7e67056d034dfc005c8b2d523407936bf693039d6622f9cb2adb9878b9ae2ae26bcca5d7a7f3c816e48b43b6d92f3931137560021c21668643d10523b1952c56b6f66c789180db9331aeca102938e667ad2fa2b3395a46aa255359f589e2109db636af21c7c88e820a17e5e438a4d77c90d03972c49861e4c26c6fd50ec50f7411132287eeea2d67317d32131fbd5e81c926bb59561b9bee3049d7772a5d16334728a56bddffdac317e86c7c3b992d0d8b7b28e30fddbbe55d4b207f648e25dcc5bf6a19c011dfb416852c22943a61e440ff151f701509a88beb0d897dd32dd9d3b2e466ca6ebc24d6eafac3fc15932d3ed01e5e1614cc48f43018f0cd0119be74e009672d6580c781d0f9f32f1ee8eca0df39609609550cdfa238274e9e19676e0f99316f25ba91c26b800b5b3bc1315e001ab2fdd8c118974df316c39c0cc89c15922a2428ebdf8593c1756a46e7d80c4ea3421e2d4389fec03380226b176e6daf7177344bad66f42920878358c8b237f6430eb931733722534638002e2c9a5199cfeb29de063c87da660f479e8f2637e14fbf584a61890cf66d8ce805200b85a7ac2152e5c4503cbe7bf21cdfc518a648ad9913d450113aa7e89991f309c8c4e838cfb5d95a30784d48f361609f258415d92c5443ca39daf99f41bf161b5c1067be30059ba8259e85eab2655184caf9c2b377be3ba15d07e0b9679ff9139808fe4f5cdae7b94f5ef22f008a7f837a0c09dc537c07d04af8774f113d930147866c03d575490375e718ce12b0b94bd1aa9c6f7314f9f170f584d2a81c85053366f11eb7ee6feb204b5c49e28bad77e60be191a9a9ed219bfc8b1d1d5ad21f720a60fcb7be33a78ab55e263ae03951837f401f18f2662fe1ad9e3017f58f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001b715db988431b3a5251e1db4bf245ed92725f1da2915033e3aeaa8ccafa73070eb4d1aed9c5cb3e14e619d619a645195ec476b78afccf8edf4cbdc73c46ca0802d6ac48863677c16fe9658f657aa9e0d7143268a8c62b98cff2ae5fac1b006a290cc922dd0db75a8fdee3edad3fd9b6dfe7bbe2ef4a2f6e916b4939e3ce25231193cb3f52f42fda8841df09ff2a8a5eda66dc01717e0d9eab302d153232372610a9e7f22c52967465a77a444c53df7c97d40a35566cefd29a4068632d5302952a116655a594e0ec92f012d7a48ac45b1e33fdd6466e2d3e60072d9ad8cf56061b26b03177a4b86835a65b7d72b953c1446fb6a49ca8e2ca9cbfdcda4974afc6150a936763bf3a6197f1eb2aaead60250ebd8fa2acc3f51b22e7c8d7a4fa889a11f809033bebbbd54ea7cee663f6824f4cd12d6cd9119d8cb5f563e85d5e9e081343293d2e49277692ffc55ba6246bf161e49219324a242c5a2a08f22388c5e2105b1aa8c7ad7b0d11426d860fc2b3d37f17789b6006df4cfb2a41e07dd9ac710e53596dc9a062955b2351c60e8d62a5b028d9b6c5989ef0287594cdef15bff12dc8357fdaac3c29706e76e68e14249067e239ee71452da0559369a852f012940f26093584b1f43b4d6373cc6b80c962dc0b38b12daa68e5b91bf344485ffb721a078364dc3f4f69b231f17f77e471713bd049f40daa6e159fe865be5bd5e4d226308f9a97fa21040181d3b09f96727fb8173d0429bab564e9193a8ac50a87c3014123390570eb0d7b194d8bc7dd90330f6da465789bc87ac60401894bdb7cff1fd9818474507c7771a146ce32069e8c443c9311858ab30e300dcbe646ad5b0d2f80ee990a6038ccb21873bfa5860ac2d70ea1481c87556fa125b34c6d8026bc2a0db4ec5a8e0f430e17548f5e4ce85340631993caa918e0c5a3883d0f5bc9e0193b1ca95657d214732fcda278d4f02ae7776636b083b6ff5b072764548d974f1d42ae5e8a128792208b48dde94373992e0a194890f78d309c1770422f5fc067219d7e228780df1290bd6ffec5ef700be9da9261e96ae9f38701348012ba115314bbb0b857d9b13b00db62487f4cbc2189fe10495006b2162ef98222c8009339153c3306461520a29058cce3e360d45f7d5a2fb59c68c2901fe029153202bb4d2abcd34a27374e91a9658ad2f9ecd38ab68e9b351a376583d29994d70a256c40143cab04ba4c709674028cfabf12b36c6b16e70e89effa80002b0b4e7445f132245d45812eb903cf3b7a7aad983a8e7c470a6c58e3611ebbd2e3955d4593f4a80f53711a313464d0a320ab159c41a054dafeed4ee8dc3baac6eb24af42163faf1716af22d17b038a4a14a07583879377d5ec52293cd8fc59422756f88ad189b302bc9ba2d0bc01fba701468f80e30416700d28f9d953b5869f2a2c97856becfe0e48b98acdab4ae96c04f3abc63e6ae9012eb1de3bfff6afc149b79e5d63cca8"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:09:33.237192+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xbda3bfcd3c08450289cf16f38f58c17127fa1674f02644308fb7fb19",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xbaaba67b757621acddc877907f9876fae60517f8587a530a5f0d06cde1b0bd2c"
+  },
+  "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730": {
+    "history": [
+      {
+        "snapshot_id": "0xd9a908eff834d5c0ae4f0c8e4247c357c095135cdfccf1d1c1169db838057962",
+        "taken_at": "2026-03-10T16:16:39.513207+00:00",
+        "address": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0xa9214c9c53e93488e75af8195459f876925b8e528e73db52f377d3f7fad20fb8",
+            "proof_hex": "0x0306a17f5cc3b2b12a2988aa35c2c2f837955e6df72f6d8d7ab612b135d2dcc606ee638e3a79ddc20a79b1be359bb8b898573ad019c90c92e11ceb31ed419f990930732284397848e4cf4612916689378beb4a939981121492fc35c8e563a4580b7e98b6dde132541a5097bb9274fd289bfd0e1d2186f18d171679d96f5793eb19e32a5e850c067b2d4c334aa15fb626c0c117f819f319a475d83386b1e80ba32f63f3acc430c2a9d0c2be23cfea41fe96af56dd0f779a2035bb685c38f8170a29a917138d34276fb16aabc61c2a4edb86cd63dd4a86260d2547148f527f2c3a140be890a7306e0e628c03cefcda8f47898f09d129c0256d355a7c1ee5f26185042d94ee5a1bff31b81971085868ab039a08277119da927960ccd7d7db27e05b043531de1ae71ec2d6fcabff64a87622ae08d24b49ee7a2b607a9309d00a987918d6378c45f8b89dce79d551c8717984c254df42db8279c2ad7f0fb0d432992509bda26aef2dc9ca12cb4b7169281f9158c04f44962a5afc8c2e7a78cf0053ce10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae1871191ad00e10800d652ead42b30927bbb9c6aad3852f0fcce14e1ee3abea22275260b9702c643236db145326db7c2417d83ed1ac03fb701df09c684f1979b6ca916e7ed8f645f1500e001a686eb071c63e71f61deabdcca350c41ec0e5c1fa46104ea9cec1873f2bc03541ef5ac18f29dbc28c6ebc755b1b9e441a557c1f089ec23d03d7fdadbd34f967e9a2d6500252b8822ee4db058a7944c677ea6a30508360437819e6d7ca86107baaa63601aa416c1d9caefe973b8441856cc913904c20d150a40632c781f243994ebe6b44c85f395e0757993382bd4fce3c70ebabcce1c0805175a8d4b9a94dc030ced05d872e56f7b97f7b6019ce4a1decc7d3edcd38e1d5abb25abb9c5fc00c3f37bc1aa5b5f4dca62a163d2dac244285a41a92db4ce2f08626dd8e27f31b5ed5e7d551c1b9e6d8ef67e51744971253496c9b8c13a1527fc2109ff330749f57520cafbbf125379dff32fd8917f7bfb9b08a0b99387ac159a70947e04b2f5ad96a40e6730a478ab6988d6fafa7b5b5b4343d13b8a40d42413deffbcc09a6133e82928e3a9e932928a1574da853e180797e6fa498143b104daa8df7dd0f254c147db89eb968527e8e2a66ba9f50770090ae3131e4a24fe251ed004d7aab3ef84cff404a111874a79c0477896d573abfc88b140f3ae61471dfea6cbb0469686ad72002c40fd258f464855a6f92f10bf4a5d6811316bde131a4f3e78075d8df3c1bcb1e43331a481eb7cc82f659f02622517af2c361da0f70ec27ba6db4dee0f396f651186d4db7fc5ea24f90f0937f2ae406231be0a91a91d4702b0fc0768ba4641caf9862eef8159d94e84dc225dd32e2edb789a643b1c18e742bd1d9b16ea48360bf38affade374de1ba268f03c21188db148db7eaf22106d76b34e80aa1c75923c2c27ef5ae8a59d0295ed9ce79d42f0a30be78ed4fd2b6c06a3a8bcf6bb15a18409d4486f76ed13fe8a625f6d835b534eeea7611dda04b710301fcbd3fdd1b4912e09b000f1b9a1c40af42873ba1ecaf2c759a3f1170dee68958c5db8cc3a8532625e55cbaaa101de5143fc871929e46fb6103f5982109984e90a93b93d77d7042d633f28868e864d2c0b31ad3ae90907415058a8dd2d48377036e93e5efd056b1a2b2ad03ff8891a12ff951d14bab11d584d41d671111bdccdc226b1f0503c85a7d51062701ab01b3e06e638d293bc4c40eca233d528258baccf3624670db30ef4f710f8e92dced45421e0479fedc2ab8d03b692842143a3c3d6ecc2d258e6460120215040248228af27ee7b9c7287f4e7998000a5045d62ed842555f52c0b6b57348b02c8ec203d236c7dc9a697f88e56ebfbf7be012051ad7f40ef34570b6e08f2f62644ec686ae66305e01b86221e6aa7d6ad1325f8168763d28fe2ce129d920c89a61f87c9f5ffdb03213152f78c7d9fa4585317eb98c2c8779dec5c858f20a5198180aa656ba634da1c6c89a89fddaa1ec52e0061ff44d86aa86aed96ad1335c5ff78f21b8d6fa53696f3f6bb750d259c51e90705b543cac5c72c3c02ab28e7d8063a51570678cc60f8e79ff6a0361eb44fcd1cd74c0dd4028268a56b5d51581307457f3b1c1f266bc83be39794dc2c2d5f080c1bed00cf784a776cbc79e472f3591d2386c1d03b87106b89a93ea9868cf1160dd3265d15536ce8521ab0b4d9e707b54f3a1f9dd178f97e77f65046d556c8561603ed254789f883e9fd7086b558db4df88d15a51cb0442b32707ea4d23f9ea7187bbaf77e44601a2ea867b13573ff27a22b203d3235b0f11d7134228758dae72fa06950c2e60ba87a54f842695bc891c2a6e66a7209d2a854ebbfa4e20ce8540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000029f6a443ab0b5c49c4055f38fac1fd302234b86e9ac980132ca8f517a50b8b880334c5a5dab435b7ca134ffbe8eedaef5b4f84ed91da2225b56b78977b02ed3f1e571e7dd0e2b2f0890c57822b3c269f8d45eb88b116de90fd711212a2db6a132bdf62b479c17bf98a9d7fc17691f5387baaa834b42f99b2402de6a3f15cbad529d656689685a2fdfb727f912cb896a3fb5f975bb686dab5f1f8acadad2f9b9212b53b69219dac8755378bd2689ab6c441695a192fcc19f9209ef1a6974401c721a7447b84ef5d1a9285886ec4c222865c49a98af04fe625668c78d3741531d6083cc126d2b81942c8f7fd9f817713b28fd0b75abfeeac6c72bc7f6a6789143119d85d6d0140976d912de28a90ab25d47d97e4676c73cbaa87f2d12d2ad12fd30ed91f5ea7fee88fd17fcd8024a5b0a11eb4d1ab62596017bc00559601d5ea022a0e448d747495fdc766a4cd5f962664ce1cf020914c8b734de191965df77aea1ecd96ae0b87f43157591591b381b152a0727dfe04d62de0fbf539fc80f261ae0b30c262666eda28ca90b9395b5acd66de9d2b0ec74d61e3e5e52018b65e1ba924672975533234fe9b422662ae688c96f10a1cd11c168a52adf655960dabe8da085eb2add432b76fb9a29a7e8a53fef2c6347956326c6df01bbf0382f7e1236e1b5a62e3064720b99995c6879bca188a606cffac96f665f522db0261f941ca770ed88b6816ce50076d8c8f82452660848255b8fe4c1268bc31dc081d904ce0450be9faaafb1ff4127f30785fb635a4a59de64d67b3288461d7cd7aa964aa73372c03781f27c42aae51b39c6d3d3e77ce7f0e6706721aeef9e4e26242a6e64c630517ac9457b4009bd3a667f6dd0419371897fab1c34d3326b8f92e746df16eca2881fc82ba5fffa240aed52ced0e39b83a518baa7b172269a98e45c9732a980f18d3f2ceea7a1c29d4882e48de3bddec6a262b187fc1505ed201f019c71fc0301b9bce2786906d85dc99ed9e4e48d22ed9044d1b694357c12cdbb2f1d0ccd6f40050ff5506bf4cb451ee47b31f21219ecdd4b8eec2a7fdc9c485c8271d64d7f41537b6d2299413dedc6937574724820dc8361e33b95e7a5275ca759c2642226809e89aac847b562aeabfd2733e3a470e403fa2c69d22680eae43fb9644a9ce5022a723d421f029209013799472ab9213d3d5ffe4619ba21e9ea5368aa1d18c800f136c9c0fc587279f3bf169d9dbf13f8e5b40975297efb319b991dd5f192bd22dc9da9ac45d55e0a7437c3bd809681e575ae794bd5446f26461bcd48e5bee122cc6106f84338caf714567e368c150127dd88508eca11818df6b66f1c368e8f60394a2e84fed591879cc66d593cdbe65e509b0f19711c841277ebaefdc491250240bc8f9732c1fa183dae6909eab41d6624582a2596fa42c1bcfaced611c20280a03c40055cb566d54007fffde08f0757603288da49ae4c78f2b7424158955df"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:16:37.967553+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0xf007090e24d1e49006c0e7a1338991e16fbf53564dedbf5332dc95ed9715ac73",
+        "taken_at": "2026-03-10T16:16:42.833364+00:00",
+        "address": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x4307d1e5adc89e14fa93ff43d85c8afdbf72d457c0eb511eea3761a98cd54f25",
+            "proof_hex": "0x0b9f9f1e6d6c0f08d5e2e55e57e076f768bcdc0da54afccaba0f13ccadd49a7713148a75e7f465fb579153506e548d8ae6c79f8890af08bf56a08fe6cacb42982608de5f77d6c0e96a72726eb5eeafb0f8fa67ad217b5953053dc6ed9143104402d40beb0a7657fa79cb8bddaca57986345506151bff6e994fea7a351fb054df2ec55e35bd5dae9e7f17ce16b5c1502a7e2adcb9b08483d12ccb99ba80bc013020bae5c7737c2592aba68c3982b5c07ebecdba3c53434b4e691e5ed171e1cdf31a0df8ddcf9a24d0738085e7c570ffee50345663d8a8373efea463cb9885c5c4067b27a5207eb44852e08c85755588f6d768f3092491f7e07fe4a66de91f03c224ae763cbfc5e46fb566e59171d6d148141d89784b7a2ff30603269261c29b84186e80a52a4d73c74ad84dff5c75c01f1cb15713d5bd9ba56a72ce0e56023fd40e1a1c0cce76a48e57123760c6bccf6f4471263164442e2f3d0da0d86d10cf7b0ceceb4721ec3f5061234d671ae83fbf3770ff3c1b8d7b813ecaec3b5def632f10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187301aef14d8d71a861a4dd069aec01a22e32278f821d36c09dfee60559b089afb083196607dfc3fde595c16de1bf9ab0b662204f7d1287ab4b8f874b041b2a19e17d9ac8caae007d5b29d90b29bed49ab62b166b01036ed4f6abf5e176f3519f30afe55c507f922799719a6a412dc8a7204c90a3829e37074cf3a5b91fa91aeda18013484ca487030dd58ac7c1c4bca69fa2fe501847fa47850e91b985d9ed2370fc7e000743f109fbd2eea389186216784c599a4ffecded0ca0211b75ba335421be0de570b1f2973266e1aa8791c0c838c5b39a5eeaf7eb42cddca1d21a3fe7a0d77a123daf60bf1dcf92b433cb80253b4102d194b5cfeba9a88e31b55ec28d01aa938af2aa238aabd64c3bc079e48f1163d1f5153dd42fb137a1138839a4bc41bb5e1014bd0e129f876046469ad72b65d8228abb6f7d18cc5bb6bca5f6aced3177f8b03fe25cc6f5eb21474227b31a4a7e39782f79e882d2058723e919722df251c6c184ae0a0ac8c89ea8f947ee4127a904a526a1a56ddbb8b7cc7bddb1b462f196bbd50ef4d583bb92712e3cafa009c7ac36c2e26a3e1653a8a385f50b0900a6ad83ad1d87c820fdcb8fdd41b97a2b7628f192de79901724853e1c846ad830e92628d1e27b8b7d27736e958ca537f2db6ba385a425e345b696893183051c81577a5ce5922a2d87a664ab739d7d86ad30d24653baa82792cd946885d9521fa249824f3b52ae21db32e8e047e3831ee5904c40c2ff4e5831ee6de1aee56948809419a9617de275a666844a1ff999b3627f0cd75077a501ddc2d1a3a76ffa5ed0c717dc2a45e924a60b688eab7932700a84d20e45876801a915295974fe9801b03903633e3eae63bda2015cf1d0d43be8f608d42b12cc1677e279c66e89c66c914acc2cbbae9d5ad47cd70af88cbee887550a559e649e12b1806290b488af8c804c5714bb6504a472d7ac88e9a3bca230cc3de2b0aac1e23d5396336ff9a24dc132614f072c64b39993702b944f059c3fbdca99b916fd87e4f2a213dcdfbdae712c50494395ac6791e94b630c8db06b5cb6d2f1f7ce1681582df50d786bd9a0b2e80adeaccf90dade79f78e4e4c8e5566ac6b1b154d6df0db24cd703cf713af2019670ba8e936bc523a2d25318df19900c3aeb21f93e488f7898008d906833570b0ce4f645da5258c3f6db75305e801ceed0db2281c4a24dc06cd2aad9dccf252fbee038beb1d08916cbbd42381e1bc13aedfc130c21ee33b9985099a77016cc19c83c213342d8b2f137aed6930807b094dfda9c48445123c22dfaf432574a4a06f3a6c138c2e7bba899b7e4e3028e1ed03d16766c8a7f4b4a859c22dfbd25c60592dca056f2cd5598b7170f2505cb266f85ed2ebb1c7f1b7de213c6a44096d01280daefe9a624b146873c91c2dbc242cb9c3060587fca103a82f6382ab2aaff0404a761044c1ef1cb539d0c1c3ee79516628eae7bbe89961e881ba0296f140901dc73999ae1fa673ae4effd0666d8e5f1c11b7e59db49b9ca84dad4faa8698b039c8f022a6776fc5a898dcbebe4ee9d810db33974a1656ed27bea9e546ccbbb1433837c65ba9b5b07f8a8e5cc12a1ed32fc16a9aa10061f4dc4cfdae64c51e010e9e4748865d56cc5492e18982d11f29394c25b3ff18bc78f604986f7ae91f324b318259e57eff892a1dd470aa5a4bcc66e37e22f829aac8aa4b2b3cbb6c5e0067fdc2090ece1ab412868926002fcab57ffa11a4228a48471e270f3f90e9ec403531df1676bde19dcc992054475b2e44ab6619ebe5fb78ef5032d9844bff0032fb2a3c5170d65dc028fcbc9b098ba54bee047e341e4ebf64047422f6e20ff33000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f3e6e6b1e6d13802b717f8d27ff1fd3ecf5ae12f6c6be47cdcbf5a43cc6e3af26a5f434f49a1b6dd915259210c34ede4c3db8029bf1bbdca079ebec1c3f931b0c2dfa5d57644a0f214a4d7def7e8ff5cd2b34925ae367f8683416315478cbc812f8334db7924cf047d641b81afc667b2a81749ad31ed16815367d20cb9823e40c591aab35fe123c3ce754f02e8abfefd45eb81dd1e5cab6e9d7a4c156e762bc1c9850b84ee595330953d75e532adf959b7f6874ede418024203aa0b664528ac2be59a14f13c28b23824e827c93107aeca957c34d9852d1c4b07812fecef3f8d224c974b7a1d891dc2db6d22af42f9f3c7d22e17c29c52faa9339edcf73678a622c8462b5b2ce7c5c61f8602f5a5a719cab61ed395270b0c36f8aaeef3ca8721229ef07eda4be512c789075af69a8c32bdbbeb64693e3fdbcf0e649f8f4a389c20fdd7da87c238c3511fee75708b4dfd02d1b7859f0d24dcf0deb07eb4245d9e06102d1b37bccd49275f462078a6a36011396950fad72ae336be5a15d1d0eb3114519e2e07da943c7e49365a88481c422967d3c75a81f930aa74202cde10b4ec1b240888b6fe60c93e0454a6761a86083af544a84ce1e179cc7f0db9af31dfe9129c5b578c9723f4719e9f5ff4a344fa8bf1fcbdbec0131bdd17c60aa6b060b5022b4688f5167dc138d447b027f02d5bb4cccfcab4c50e1f216c0ae5df14208713ae88665b5c50ba959de31e5934b2f72a7be6752d075e494aac578a08a25d2403258479e99b7a5a12443129478240f411d4f1be16698256891879f88de32e6715cb214ccf84476d1b3b3be8d3294d682c8f056e79196aba99d8d4a1d2ca28dd28b85a842c1518f2edaf2d21d3385904e34bd06fff6d72d850095af811b8cc5f0662679178a57120f1671df3518beb88d3b36de2a9f8d402e1ad7014ca2647e31a530a0fe129c2e7837c740c036c8e3921a74ffdd130c39c0d3f86c57705ce14285fc7b2c98c7827d1bb724b4635f32f723b990b65b3609dd5a466effc08e22f0d39c80427d952399339183a06bbbd1be00d415e38684b6ba659a47c55714a9e0c1e4bb64262febfa7870d43d23b4a55e3256e683d7ded472bdbe6ffa6b463c41248baa0cb044120fe039c891a670fea3fda948cee3fb1e837b8580e613f4dbd0bba38f58f6c59beb06e30fa3155d1bc4261b788d431ac3245f27520dae785ee059fbc4d36d28e25113d3d44245ed1cccc2658f3d6b2200dc57bbee9c159d19724ab2ba0a7f8639699a952ddd60c599f71b0060b5cfdcb0bcc472675fc38401102eb1389f0c4c83f3552c0b2afc8346c6c11f9380c9e43c1be4c468b8532b12e2e2ce1b8403f696d15ee48dd3df410d9e542a528b3a5c5ce805aedb5d16017c1184bf1f3b43edb7f31375d0582fb8eaa9b7fa7b603aff483254b8eb5233bed2a28fed0e616b2241afd3934f0a27c4495aa446ae873394168ef0ca7856333905e"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:16:42.833279+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xb647c8b10a324ac5afa94eee01006a2595996f91404a441e88e9d730",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xf007090e24d1e49006c0e7a1338991e16fbf53564dedbf5332dc95ed9715ac73"
+  },
+  "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7": {
+    "history": [
+      {
+        "snapshot_id": "0x250ec463494646da97f812642f9aa02df7057f64ddcf9b908f9363b37de8cef8",
+        "taken_at": "2026-03-10T16:17:54.610727+00:00",
+        "address": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0xcf55ea99a69763f893ce9894cfd9e36f2df8b70c49bce31d40b7a26772cd0509",
+            "proof_hex": "0x210e9b28bb59b83bb51d61ae49976bf83e1fda8ea282844cfb4bb00538b52759119a86c78eabdc4298f68c3ec83dde496be0d45aa5ba7e3eb137b107238ac75508f027c4bac8c05be4ef9e8332d66ce1af75c42745d49fa707fe71e7fe8908972dd848c56ac9b4432732a859e3509f789e0e698d81ae4ad397d13253af57c796171dc5f3f6e2705ab097f13a35c1829bb2fada288c744943e6f9d71110644a1d00411c29a22afb988045ad92a21974555ea1d97e58ff7abec87dc426d1031c7f0f81245009b116dd0d376c720ff10961900d5cbd2fbac29a9d60d1421925f7d50c95b2e341c57236d8046ead0f8444c8d5636a3d35e72a7e4771206051d3bd6a09d486565d2c7d07718e1286641f80c31568400f5e1bd181c8d915d871072a520434b8b88d74bca0b8fb8222a52da4743cfd676bdabd7a3c887e6511b3be8a99272a32e9f72c13fe0cdfbc17d39127960e7f71879a1ce906d13f8f867da67b8f0037f9ddcadbca00d61a2fd1f7f5b3046627e4f8a27fada3bba4b69b824ddbf610f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae18708166bb6931e3f71cc6af6f3b66f6ea0e21b54493e9bcc0391b113d12941d3790d213af41cfbc41de15543732f42e23b3c4e6e8318cdc9f8dca2b4cd5ccef5d70a56f46358c913a0c98e3734d199943081b110361d71dada3bc38f0af82a2cf41de32e7ebaa1fc9b404328bfd3226621455e8ac7cebb48f3ee89fe0f4ee26c8e07b95d45b58c4cb76606e15bb0b0ceedc5508ece0016bf84260faaef2ecd39f30ee4d3c455ce70e1004201fe4704d4e38909dc6aa70c825143d3f93205d24c9013bf4182656153c6235c7a1033ce9bf546566b2097b3eb0611f4604c1d8ad25c03abe25b90691410e9b5c82e88634efce2c444d583ecccb4553794fb554072b61ba6caad6d21516e3f279f899a2fea3322cc71c5ac0dcf24081b6efdcf9cfc9f2cd0c073c8f2684eabd25917675d367bc366648cebd666ec2bc8b2e99eea8c942bd8d0557e28c3f1332f30d77f98d55c9eed50d163309467dd911d21d6b4a75e2feb96cfd70bfdb87e9726cb0eac4dea1b7664ec5994866b6dbbae1cdc86d09d23933551f779285bdcb92ba734b1ad9ddfe02f338069a9e586018b8a1080dca608572f6313834e41704facbc967c85aa021222e0713105193c51223e17c45a45221d8b25c4378f172946b73922de5941fcd008e8099369cd97c88bf8bd7a10fa2e5ea9d53b49bb7e0648fe16c2e3b2f5637ee8f78fcf03f2f34b4faf151a2eab206062856305c4c14f041acba9084202525a323e48ab9e1a1c562432067378c52dd8c757effe800a4b66cfb71fdfa49614131513c38a410c33913147eb352e6b09a0c07d38993f84bfa7bded4648759027479fa93630bb555e8dfb3ffabd88d827c748888e230b3a21d6b02b7f2d30b4e568bbbc308e0e0fb6b6983c27fe038e2f7028f6128036b5e1340d7f481d3410badc5cccb8c3c7ebd28893bae6b5a42c1ecaac6760c4f6c3f6fcc9c296eff531752a7e0d14d78f9645d683dadb309aa92eb17709f04f8080f0d7674bee0a0b39cf070c11c95a8aef12ac5dce36b09ec80c0f87c1129523947b15dbd9b00279de9a322e7eadae5de0f25b4ffd5fff0fff1a44a1ae963baba866652d306cadc572722d20af3938613d32005ef7d30496b107ed6fbf3e306d52decada5bafdd19fc9e6e2383308917ec763d8adc63c6ead51d3e6256c82f93918f28c9320f2a96e7024ab193bd52a57236db0dd6d2e7110c0ea6fb74a5346578f331574b8d4b748105a70b8a0749f2eab1eede02e7f774ed15d6dabf5e3274385e9df257f4de4da5830f83f66e6d0cc95fd8d7f79220c88c020a3c7828126dbc80680506bc4b90daa5acc58a17a4d940685d89f13f8733e91bb6730ef44041e5dccd04af3aa6d85f26946053e4a2a41bdd321a9c4c1756a32ac00bcef8bb2df92cff2e3ac326d9e62e23a2358a90918dd48972fef119c2f404a3ba105ba92e133359b74af14cd925d4bd8553e8634bab6a7206669478588f011ce78fc980e0124eade86173b7f732a9bff61dc55709cc3082f0ef7c5e98a5016d2de7ee4de539ff86084ec93c43a16a64aa2953bd2aad25def1fe32cc7b4817b38761c6e0e3868752c32cc2d7a22d380afa786878c809fa4d6686775de7280dc1d3c0c6cac0b43d8272c608ca725553103f264c37b405adacfbe78b80ae282feb84a7a0e0cf5092f8d29da9c476a46bf8710acac3d48a2ecf0b93d79bc2b710a875b7ca3a9d6f630443f4b87dde5d2e08f5e4bf12a9aa1c2d86eebe622cee29f7b0160529a100cdd55936d3398c59d2c1121bec408df8a3f8cbd757c5ab03063f05fdd81d67a150cbd6a961be30a425ffe1e239ad33eb319690600bbec7fe000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b712e51c2dc1aee7df26e2896487c0abd1ed5e35abf5d91333872e5366fffdc1af07f74eba3672264e8b7052c15112efaaa1170d29e6198a5d8e86179a8deb7198baab439a6e5bb52e4cbe27ead435c83b5c037c9113d67e821d16d38f7ac6319b7ad57faea22cebb7dd2e080ddbe763a92b842ff652a11d7674507c0173e861f1c1f18fb27d0c1e7b8ffd1568c7df9b35dc1f57ddf16256ce0fd1fcffd960f105f2d2d00fe7ebc302d97cb185f129aea14c4107e4419ea2fc3622b90de572c18e6111a8de411e7fe0ff2733efc2d40cd776c1872223dc52a04454cd197cf652b3a6c99ec9d534fffcabd5cf2b431ee0a4cbedf85fbe57a06c834e774f284a60c0878dcb1b2942556d48c4ae07cc6cd8cd7a75096856cfbf418237a0019d6672eca5580da1d7f97bfd26400ac324d7078503777c79d6e72ba0a511d8dd5330e23511cda2366080d50410db97bc945315418000d0ae151ecd29abcf5697b977017892bcfafd48837e3407a67b8a3af250f399390aa10db78c6a52853e5295b1d178fb86e9d8e5fb169df0afa90fad43e94059effaa5f894b24e63e3f25c6126d00e521e16e2ee009c0d0b71b582dcfc80e21e6bf04048ae366b7b6e3c1fa1b6603073c4bbb406854b3e8af03ab7ed12458f3a2409178ca81ae915561172df2240b340db9056bd41f5a4175aa81a7c3ef321deabe55421389a71e504c7e2882082c0059e459a88e87d24259f93af1a06570fec142e5128b979e9b29373aa0180a0f3fd2501569fbc74f009ef1fbe2096a64f0e6de936bfa5c58e11c469f46c6f4132db5623d1ebfae4471c3087c47e7f5c88326b3c69314cb2c2971ced203844c04dd3ffb2dee8a498b359d5ae6d33435cf370313b767c734a30ef7647f0f3b5510de41d4209bc580b93313d58ad9c318fb697b909c3db9bc9124315b1cafa3862b7e50d4a1355c55c0b362d3fa18f01979842c73b902463b087737e2d20df1da07a38eb3d713bd30cff55887117cc57cf8ac2f6a349437e3b666aab07ff786f20ba7b78b67a567fba6fc7aca4acaab50e7b21a6f85ed29076973e514e937d6430da2f0c6fe0fb9ee53f4bcaf8bcbe415de3470b20891e13f831e35a3639ecfc907cb15b2286d86dce30c737c44daa62f9fcf049a28e50d999a18dbd8dfce66f71034aecf2901290eeac88df9deef5121cd11107d57965e9b1e6c9e3c979f1a6b12f2f760b2bf83fcc0774e4b7ac71ea75d1f64cdc6bad098102db88825a711272370673efcfecc763a32dc4e4b801172b7f26adbb8300c5725adac828aeac0c92ad0c1452592dd1e56bca3649067b359960c309067f1b5c1d9e81f3d5755a46a1a830e534b45aeae57fbb99dffdcbb08f6a67111df48bd2f30619ca11ca22e0d0f6289a075e096a73ab285e16abc87efa1d205bd74fb900e18fe855bd3b3ee620ee2de7993c361a6bd1b710b827cd8a020f8d5495794226c057846740bc5d195"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:17:53.161027+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0xafac61b5a59c2bc99738b195b249e226c4cb7528f5238eb6d65b3966b24c3429",
+        "taken_at": "2026-03-10T16:17:57.561408+00:00",
+        "address": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x0cd60a60f6fecada3514718ca1d164e12c05e936b6c6a183e408ab6b75fb5e9c",
+            "proof_hex": "0x00cfde7584c5a1a2aa51528997bf6678940b01d3092803ab9619af902085980a2bd98dad18a17c115dc725b1150fb437de919f4fff1b2c3ff8302ffb27c12e0c236a9683a17ccd7f286d92985f6fcf93eb93861b0ef8ce62998bd03e8cef889206266302e80773fa2d38b8d4d8c26a7f50a4b336d8ca7f672f2210f4f2b2e71306a335beabe19b1864615ade18a3679446fa294159cef25e00ab5bdd3fae5ff22a7496a581ef5ce7767886c82f2edb1266b2dc438a22210d6940e3239d26af6026c9f6a89a237bad373a87163ca92c4a2b37ece81416fadc1b04ea55e12af2d51b7a5a6485d9c6c942954c3bab9df4439819273f773975a9252f722e84d4b99925d75a16e46242cac57a0c5ea03df7fa509fdb61f72975ff26bc93327342bb0704c67e930f194958c68b79975672f94aa1601460187b82452e93beff08c1f8c2191db43edf5d827f82c2686b9b11762636a0487673f0473d42286722f155624e04598f291a6ff7a4c69882599d5850a3e0c1b0fff2664958f69b0cfd1db804cc10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae18711c347ac36b9dc3e4035418564d6c58978f5fefc915daddfbeb84a048861e2c2088f221bb631e00d506005f9285033d6fe466db6b935dadc69fab61cdb2c09a109555b9a80afceca1b3c2f5ff1e29e448ebc301d570fd0add46859d7285cd4d2235458b58d8efdaf114bd44dca6b286856006220baa96622c6905a5681ba3b88093da702e0a4a88284385a93157e8020e1492b2c09443851b46be1136701155813a384b3ec6ddd4db6b66473eac6779e1d9b2ae3428edcc4013c3b202f8fc86808d6c3323692c254d815bdf54bcbc17d3d111ac6071d1989a652172579f3be402eeecc82a3b25be2943977055d0c7d4c8ff6c91dd4d885baa4e41c72fa6450f310bc0f5a6a1beb8f9becde909fefc38cd486f41b41c33614750a5cfe592f59771e93f68afbf4fc62ec61ed22ddf367324cf685db81f97fd6d933f88be08e614b14ff4a2d0bf2abd25417d59c9891972788aca3c416863b1b29ad5f1411cea7fe29ced78f92b34f6440789ede4922c254c8719fd2e470f8611af4e16745e62879071fa1e8d3b7bbbe6da36a08bd7153e638e078aca7987077754d19b00cfc255f00d4ce87720e0cbb83220c20a25e810d909ff2f61d33b8cda53f1cdaf11cbf7407691a389baeaa67496c9b66b96d41097dab8559e3996f922362710e54ce1f611ace2ceb164a732416209d1ce2d081353c32d6024588078af85d7e8fe7cc378528343a3f05ca90b1be7ebcfb650203883c2b2fb47f06bc47fb9cbd75aa93202404b79edba54e77d76006d9fbc6e02496ab70fe559912e698d8b49235bc07f57218531d96868cf0de470f3702befdc14edca122eacd62eb2ac7dd2a6d513d138d2f2835ac1e0f7aaeec2c88ff0b3b02207f64e051398549e122990eaf36f3bf801dfea739588a9331b47f3fc9d2aba83bacaf49f9c585c0079c9d0f3d600011101b7db6d416adb75ba8b6f344b0d6cf8d3910b25044ffdf563356fd2a801f72211f3872b6e2d442f3ada4f7a1882f1d3f908e97f0ac669fe3caf553d765a79b882e5075971d5b9bbfaca125aa3d653b33e5eaeb44ba8c5663f91dd10db0757c1907e6423390b55766780e675bd3587818d209fa6b1638cea3e05b6457a4b6ef8f13029457b5f8512e7d13b38fd95701044404183f93177bef0e021a8aece7c242168a1e7cefe3f26bca8fdb870b757b04a9d9e22556e8316b55762539d2f2b9161da5ee30e87688e17369bbc849700e7c0c8d5dc1bf9f13e879e77655ce0d435f032d4f4eb9abdf5e75db1f5d9bdda4a74b14af6e7bda07a580f6b77bb7f3a18e0870bd157aa286406dbedcf855bb1b897af01cc2fb80882c85c356d1969e178607a9cddc1364368658a9f928f0f17ba293e60ca405621696ea8ead4f6c22b90701869146548ea3dea15ae8f76fa73f5a41800ca8e4b4cc976510200bab34b1d009be1bf1d5fad6db61b96b318e24faba78bed373b5026b049cc6a95e63f136660ef969a1ac4ad935e75e02f669930e9d6a96e04c0c9b7bc4d79bbfdd30b4835027bbab5310387b7243ddd538ea8ba2862c0e7bc8f6c18b4fbeba5698c0fbaccc089fabf1f31eef546e1ca71255dfa7f580403ec73e6b59f58b1d6dc72e90d0860e370cf5af0ae3d355e4406bdf4cdbcff13fff4c4c0cfbceeb649cba0e94d69f0ad5b0fce7167b15bfb255922e8e4b33ebdd9cbb02b411805b8eea4a4cbe2506100f9019ab71ddd3963c6b3a7ba86eb1e6e63ccdc6988f664655042fc09069b226e7705d8a6ff2f051c6e9278dccd31c34a1c4e68d023cce21a2bb5d4073edbf004bd9bb0a2ef5a3e4fda77adc73cc8823d30b7dea5f5ba3376055effabdbfa600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000016197b62669e4ae790a80ae4c53f7bf8fd90928f3e0c48d1581129404edf1d517e3fbd8cf011c87616bb4cb4c619fb502f14c52d00552feea7086d5932be76e1f277dd82d83ea113c0ebd7f893d0f9abcdb12579ed080f4a530779aa85035cd15da27a60a2c9323899c980fe7e932a9b0514d1d43bc682911368b8592249eec03561700b240dd5e25b82b6141e989ca9769a72fd8f26cc52e5bcd76a989900d06ef6d86a4aa028b293ac5dc30331890e19ea098a02f300581862914c2d7bc542f0350075afce4fcb33bc6d270b36908accc453355c7a50844c1b7a13597044c1f4dfb14db1380244019b215412df342f91f9b2d482c2e1caad0bc6bbbbd524d1fdc5095ccc0f3936abaf0037f4375e2997155ec89b9d86dc068b1cb97820e7b122610cfc0f1ba73b8162bf8918f5249e85c1a7a555e5cd500f2c83abdb7425e09b1dc4e0a116929d3b6cfc011045fb73b70c2b1c5be46ab6844d8efcfc4990b221c23d70fcb1882e138bd3d15d72b2434f965e83a77e2e1fa4ebb40ea8c723c1537c5536946df9c04efc38d29d4726dab59d3fb4c25dfdeac9e1a5c015b9ac504d82cf54cb7b5d4f62d11f198d0d4bfcae67933b8c0e99a54f62625537ae7d6049d3a90632252fcd1830beecec6d6e3188db1fecdd7d96dca8b4b319e69366d169688cb7f47c6b21e2ebbedadba526b890a7a7dc91ab72f785a70be243a25912221e131dcfbe0109793861c3de6fa7856bea931f34da7abcffee8e641eeef8917fedeb7dd5793753313f7940d49e792e817bc58fe2a7d32397d62eb3f6ff76a19ada8f4f90edd436dbc8cfd022d72faa5e29c15c895d8e91898ded644e6b8c00ffc0de29c723bdc14fff6de6f491f995982977c2d7d239a8c1c9d66394449ca0ba26ea46ddad604763223470718b4ba91082461fe7b9d165c97548ca1452b2b0b2a95f596bbaf94c28865bc91768145c34347aa26d93164d1d542c062525b6929960be7fbccbf0d9c4a2dd2d02e993369e2ddc7036662771024684999351c292d9a298aea0cf78fde855c2eace14f0023ecfdf6553a32d833a749da5743a7402c8cb8721e76338006d067891ff55b464a68a816913347b383206214c87262b22cdc2f30ba90fe128475513368b9ff7b4b4fae1e309b41129812c6fcd8c8c28e14b37dd1c14f6ded45dba53ef5f025ac2f1b612dccea32455ad0be3ccf58139f278bdb84db0f9b62eb1c8922d5028627b6ecf1bc023d648e8f931c715f9aa86f0eb6dd5364d3b5da991fc2253710ba40c9a9a1ff03dc0e571daef2dfd6d3d33f27b8103f39a24a66b1c815cefac1c7f4b5cc08e082957e2f3fdc7cacb2f88ccb009781bd96a98c365f57738365d70239a7a7185d7f8b9389f259cf6f4c1becbe06c051ce25aa533e5063c0a9e6d22ffb5af0b5dd408c17c5430d6baeb49a488323e99c5d0b32ccbd179efaee46fe528173766e7fc706a8bc71a1d8365d1bbbf4"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:17:57.561319+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x03178d8f5cde412ea82ea61b21279d507caa120e6995435bac8253e7",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xafac61b5a59c2bc99738b195b249e226c4cb7528f5238eb6d65b3966b24c3429"
+  },
+  "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68": {
+    "history": [
+      {
+        "snapshot_id": "0xa8ca61749a7aa1277186583a1afb1e9ab0bae1a83c270d2bc0ea3b06a7975317",
+        "taken_at": "2026-03-10T16:21:06.153877+00:00",
+        "address": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0xcf923c20ace6c2c02d5fa92f828e261fb7a5fffb6b34e6f8093b30345795ba37",
+            "proof_hex": "0x1f8479027c64a91634d76b254c519985da2c58e33201f12fade3d1f596aaa52810b793b81d66c63d82a3522c465f4298f1dd7d831884e0615dedd34dcb78a25d0e0389fa2121820857146956df2f2c0daaeaf4042080dfd63c9221efc0ead01b205b62818ff8e969c9e3a3d11d3172881c98ba40ce4e4cd7ca68f9f83f2e3fc5085ad38302ad839af8efd26696c83505aeb84d34a3f18784396acb1e08ef959d23b078a28885b6ce052d9b21974aa42ca0b29849ad636d0c552016df978d437020daf42102b04d04da2f3a0e83ead1504ee0bc236d37f46713e8dab611fa17d029060034857918f249e592f8a2613840051daec0b595801b78474ceeeac56ccf165f34764dde20712fe34ae334d88250ac4d9a4396d4218a66ac0a4cd7042db116995eaf2089b650e12db8e8ac51c9f221e6c52774b796e2a0a0f5d34c9c6e1e00cb89619600c8178843363af8d705d757a5832374ce66287e2a36e084b23f26029cbf0ddaf65a2546747b241ca3b3965ed83a6509e25d5611d0fb0e3fa8ef5510f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187011cab904fd69580494bb009e63147c6e6a57fb6796a0fe630ccb7bf6d7aedc5129c827c8d9ce33c4c82044127d77c4f7ce0dabb9a75094792e754c6227a14fe185cc298eefda7b32fe9d142589e648cb868df9bdc5273db663639f94e103fbf18d16dc377e7ca6a90146f3cde88e3dc1f1599e7d01675d2798e13995fb7e25603b75be2631543b31b9aa7247b66828965960858705a25899ccec06a33b5b3631af1a69f2e55a07092ee41e2cca9e433eaf64bd03ce8d2d80a4c299e348e22c71c36f65deb6bc76d14354fb274cfc205bf35654bfcfc5a4f896e7ce84397f6860c656ecd256e37e1d3cf958cbece30c68533546afe14ca4380492fd473baf2700df573cb211da4f0917b5fb96c954428482d4278c38b2e7c156f677cb841f94413034dd67f0ec5300c88d8df8066fb032923a1565984f4435bcf34ef876d1a0d2b0b09383d8bdf1a1e806ca9de1035f36f60d7f358ea93e6dac704c8d64941810a085b381e923f6b2edbb20c3f97c827ea66f6a033dde99e413034260e4e803413d3b77a05b4046c328ec7d39ba683c11cdaffb82d7a24997b3c077fd39b65f511a9cafb59db11422fc0f65128323d2f71ddcffdcea9440d57b3b306eb0da6321983f1cabe214c363997f19e1b8ba8fdef260cbb29c10762a9d5da2e517a609904bff137416ab6c275c7c12dad4081820705b1025a016c685d565f99fd3507ed13a390f4d291d00e499ddaec0a699dde30e244ac3ad1e8d23767fecdccfdb806114a2bf1bbd6c015a67c81ce36b2a8ed35422651ef71a02fe24acdb5ba92a5412390cc4514c44979cd147265a25f428b053b89e1316f00989461f1c41dfafb942d831e40b6a2a4aaa26398ebd23cf220e596f3e1ea9fbdb54627eabc384ac3783043ba06f26b049ef8eb4cae6ba2ed3bf20004d31c6a2a5ed988c98a760a0ca0116c3fc3967e0c05f4403be8f822963d57b3945ba1cbf48899ce1a58521b3c50009e830e1cda4d371c74a8396730af61ae27c89ce55b05b5def720cf2a7d4095000cc9d0df320fb1280d36c62808d8270546f6d3d9e2bfe7ab097e40d3b67d4329b08e1ec7e857341df6f8092bc8a34127aebe23d135126c127e4d7fb027700217383d6021ec6f0ac0b4b672d28d3f6b2ee3611916d9233c4f0bd8e79e021e3f149298ab762d94f45962083f3a5d777aa4638745e1604555b1ac4a328f48eb83065ce8ba4409b777cebd3b5a78ff720c06c044d73184ff74c0d052a42a6754672904ca8b7bdc6b10825ac959d85d91fce1e9eae87c233efa8dfa8c2e5e1180f811ba47820cc61b367c929ef80625aa233209a9c6027a5726d671388d6f83e1b808fd9c0d4732069616ac1c129917ec70f0a81f4fa78d4c84732d3fc3ca911d4d0d5b4a82bb5c55a967b7f557aa52359d3f3b92d44985eb95976662df9a3ea6280ce0a2c3803bdc9e9a11e9e3537205c3fa0919cfb3a233da2a61532283d694d91304628acc9450efefbadc7aeb5d6c02d18f170eac4ec12b2e529dbf6ce0f736202a8d27c27bb6c55a7ef5bd8368ad976cdf38f75027d8c55a4949375798ef2e272d33d56d2edbdda787735a413261f003b3c9406ab2c883c727775123a7e03113a25d01ec77225c6902a1d08f4706dd796cee949b6ba8fbddcef4a6c351c91c16e081c832ec611e23a99a9bff2f24ee1d201ddea99a75bb6ae571df92ddcdcd1cada0bbeab2b3392f88324336dd616a77d8ce80c997b56bbe9273bb5a3fcb0c0ecf2dda64ea44df190c7f0cb855add848296c03941e81fc2c5c4fc5af30f01309b834be2327f51e15569bdecfab84aac2a4b243c970a77fa34008f463384ef70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011a4b06006565e384565ccc562a17dd08332205cb8b49b4c75195bb965475f880352fcf812805727f34e47b2a51d3bdc0aa6594347783340c727f3ab8f763904192020869a2b6cd3a776888f4dd7df9a5f2abb757938e86324763d1db7dce7fa20af313a4f60b93c588487bcba912acec0936cfd8b2637ca1244ed4dacec4f52101bacb885c5c61f2460da97a86fc9513ca8a2d55967798d5335d1b9679a3afc2dc6cd8373d8d85ac96d35f8fa10032c29aeb458156a48bf3b828a8de07bed6f175e71dee498afafe915616d7b128a0353d097b2969abfb230c48096783a31a30d8e0094f0a11428e327dd648cd6c78feb9e6863c1f8904f65edb2334471a9fe0a79cda1f5d08735cccf930af6e357e76adc259b597e28a3b115a6b5ad649c652df3b4b61317d2d7f2b9272a1543532010a76b956b74619a6f3add9aeb33be510e5bf7b91ca766f223084ed07847f8382d9a3a41c92dd8c1039743c652327a7330351c97156a1f582ad0344dc22ce420c785b2fa9c85e800e0021c9cae516366176bd36ec6fddd1ad060c03fc9e6e800485c5d1f7722ad1e5879764fab55379b0e7f1deb3e3668a3ef25be36f591e61ddb10e34edbf971a5af9e48bea05b50302129e5f306818bc613955692badecefad100437715c4265a3de0b25198121f8f20075d7549611af8c3d57105bc5eb8b32e547cc6a36d15874e8070f0780bab7d1a872d4a980dea0a5bdb30fd73b27ba675a9496749862a7416c8696559734c8106b8eb336ab509de77c37637b0b802f9ff5382e75f75d89186d9ed44d552dd472e30025a61004aa70b9dddc0f39c77c209d7ebdc6d0a903d453970523b4fe12522e37c30eac925c47cae95c50935dee3727238576fc41988187e592e9bf63fa3023c97e0a37c95c4526f8c7fef7d9a9f59924dc7f304194dc6d68a3ca5f1393e0f26caf1c247bcd22b8fa36ed50b7ae1a0b59b738cdb1517d5a9db697cc295861be4417200d0adb636717b144c98a0072777f873a2c66a69c02ad95e1b148ac9173d092af97bd83c6486c23ad91f7f54d6378ef8ecc2425d25a98aa6622b4fc00f4b16296ddbf5f8dd00c43762668775425b12ffd1a9538131cfa85a3b3f32c5145f0bc33787e3a14651864d869306d3617a1a35e4a84f4ab84460e44fa739d0284bd2880a248c0cd55385526510ae96a4c6ab050d19d209d6401a7b0dd70ecd146c5dc1d49fd7df69fa844a85e9e62909b99892ba44c0310f56f373c1d657e111f997e6ca311ed97e5b8d35e74a498c32892fbbeb78699377669f20ec0272991a21b30f304b9eab4843467a5bf4fbec96eec48e71871ae1f854c212ba462626204624dfdc96cb2a48ac8ad985b007e7304ccce6bddb37675a69097e20fd64ae20fd59b8b9dfd4fde9112d2dcc795460b53b32e1e7cc333725d5d485f2b8934113d3d66bdefd81ab498d38893f424d1e1e5238c7aafad3635c6cf60a873164f3"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:21:04.603660+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0xa9418029a21d7acde6b4a325ebf8079ea4e69258d1a6849929642f6616f2a1a9",
+        "taken_at": "2026-03-10T16:21:09.263205+00:00",
+        "address": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x8070f9cf2e30c042204d179f1c8c3dd1d3a36c1a5284a4897e305fa0c1d829ac",
+            "proof_hex": "0x287c7d4d2dab5f7f289ba8bc3f5f7419e1970ae7d2ef56b51a3b9ca96de8681f0ea69be0feb774ee079e710ddd28a316b0733d9d4fa6fca29305e14fa62ba63e2ade79f60238580b275a923e74016496eed9bdc31cf7f597e74b2bb94bdcb0a3199433617eb4cab3c01d3385d1268202c37f7b6acac5aa89e5ced667ebda9de705b58126602ee2b9bfcd01d5535cc74a27f78ce67b2589ba690ef8f8f0cd800e0b55122ad31a4842da357e67f75ded29eb89d584decbc49845cf0738c9652a1302994ef59a702bd56bc00c88370371cccf418feac006382090632cf9c031ebfe04f02dfe763ad3365c7e42daead9c4377bbdd3cf89097822a7f1f9e31b6228a104fbdd1dd493112db07a57ff7c7f90a04f7811aa82a4da517128e421e2d9e1a3193f28a23a673fa19398c2c1225bc212de9a4e6d8726b82fee10c1f04f310e7e2b70ffd82d5505eec808e956d33f83698f80037ae5c8ad50d34dd70f46a0882702b4b66665418d2d5abe559d912276e57e7f8359d5e6571b64bbc98e8322fd1f10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187231bb3989d540e75618537218229256de788b774770cb02c5b2b3543206fb7872ac0ff2cb074c99bf653bd00e31776b74b9d5120920ff771d1e229b7a6aa23a11a2bce0c784d734f78c8c56ebc35b8a4ae1ef047becd47618cc7a3b48c530b16166fe3c7bdea023c11bbfc80017f77544366af4ad18ebc82bb5f90d1ae3245e02b14173eaa1ce7de32e565663bce78a0c084e0b27674d0970191978321b7a1262a081d238e9b9e32ab17a830b3639c89c48e127cf0e8570c774317d450da5d361fee7ee3b0091b2c734df7421e94bda09c85750d8c218abeb4eb90f94f76c78806e014eb88fbbd1a05eda3db505024abbacc71c3e1e4e1bf565761cc434cf16e0f811efd0c958595d0f87903c4a4b82ae5e06b78fd5de04cc5442ace34e5a2c5157c344eac88daa1064a4c2587af14f69bb85d2994ea1f65687065bdb49e0c7d2d7cdec25eea0a9de9ed636565d99f4e9a362883cbbf6bb20b9b747372b15c4a0eb91610283565404ca8ed8b688ea80181fbab7cdf31b3c5c571f0550e0765640d728f4142ba1964eaaa6e4b205d961099b1333d3da37fa63fac5c77d7327d740aa65c7e69f5537c7707fd6ddcc00739a3f841ea9d5672bb65afef836c04781d16cfe611b47de1bb48e9f091746ab7cfdb0b80269d8a40bd335e64f3d4281d4f14c066a0d9f87de1109ff4dea424ebeed838e77690a6344a10a21be47fbab5631fc0adb555a7b2b02e0783fca8b03c1c561c6af9e73b1cbfe1107711ba99bdab20cfcc0b2909fb2ed641025304e262292d70800683367ba71ef5c3e5b443b178183de6f6d125861e9243f5c86c0a4301807ccc6559dbdcb39ff5e50d37ca9f0f03c0f4fa7dd32d007d09308009118dfb6179c5a4d349a84c6fc27014a9d7743c23eee32ce3c9b0922746def2c944e197a5f93b3be1401a58d84dce73e4575a703041b5945bc94b8722e98f74d48ba0a8bd1b72a250cc0f4e484e2cfab8012be6239ffa5b22c8baee8178e4594b214e292c57daad8d1845a94080210337b48c9f24f853c24491cc76701b48b1c0e972381493e1557b10a86428ddd596e7b43d9126ff41e99ac69b55c76fd7eb4cee08978c919a65e6219478996323c02db261b51f7a6f1af3761ed3dceb263a4f0bd66ebc080e72cc1114b846845649ef4c80d129b3a73ddb18b003a97d74bcc36a4322d5be0496f411eb5ad5bdd6d78e3db1100be278b71cfeec23265a280bc9947db76898922a8ec319b48f987b8ef1573a251bd43d5107d1ec425421b3560d4cb648bf188ee0b3b4df4c6559b69b44ca212a16ac1ed90c1ea97850068b66624dbf5a49f552b41b759a0cb77d5fd79321673222e6ba7f3335af02423996d986de6d02392fdd00851476e5d782e591336542f41d1bae0794bb556660458b28b9bd66af9b5c94e893d3ab44edfe72957dde65bc046b98e5f06d870f8d9b498a1338e7bf63c6483ff402dcaf5389496480eb20871eb7851e8734d1447df54de3b8d0b0ecd4654ab08fb7ddd09529227f256f4be302b79071ce3f44d7d9356bcf7f969d0a89a8b5dcc318d155714d4df2e5d57987195c6b355716d09fb5b0b2febbe5dd983d46ce8268c007d25ce74947c4f4157c2aca5f2ea89c81885edd89198703b6734da7e843cec44372509add3678cd436718bbbd5ede42880a26e0667b86ddd9ebffd0612c893aee2b004d96b9406ad6152462fb9cbe4b9006b1436f1a438eb3c08e4e5a944de55359e516773daff73f0d28b9ac37a40cf21dca78ce39c6b851abe0495bb206af47de7b82efd0be26ddfb088a9196686e73e1b215aad02bb509cb5a3339daeb7da17609bc35106f911b690000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000017552a2ba94c382d15230a963f45b3685f8f23af9a9b2514176ec4aa8c8cf3e802256aab0c292ed7adbe3738550df515a86b52aa62b0baf84b0387f7bd65dfea0563f6ba793f25b099f2cd9940a8b11a08d0e7951542b9f1fc9b1a7ae412ffe8130dcd9353b1aad57fa0e708b65fed93635b263d931a821cdbef42f0e3090c702aabfca1a3842e85f5b7c18c62756e2bc28ab91ef191a5471cf1550f82b7fea6001f363a81b4b1c59436c306b94034091d9cf0a2064f021dcc46069ec154b03f2e8828224498f9a020c1e82be3c05ac68dc2342190b038b57c0ce44e6f21a47e0f702c3ca0dea2f772e5ae1e4e5dbc23223b5a3dfd31d2291b4c2a07089b546909c647ea70ef88608ed5f56a79a0d6d393c07c554dae87d488c040821985f3fd17662ac6c18dedb2469ba7c0cee5b8b856a848907c6f94510e395ab313a67d5510d58618a488ef35c257d7eb23c6a72cec5eaff92a958989b60d3f889300c1612e20178af6bba09d8ed74b73f523fe3386aba7016a10d90ab76709a7eb8ec3cf23bd12c99bbcfaa7a00e486a318668ced33efdc014183f86472b2ed03d258a392a46d1786e15686673a02b4f4069386f179530a869f772c38c80e048cb30a5e319d5474047456ac41ab4d9c63a560cc2b1d369e543f2ee2ff64e978f8c80689b1bdcb2f32c76bc43e6ebcda23fc326953a29c43751435b510cce0953a5d3d4c01720dab06bc2e2c3bed54b3a774faccab23a3f71905e785555930edad4ca776b2957593f5753f0eebd41f82fa317223191fa9cc3629c30031dd10d05375640841cb593e64a05f39bfad6819d227865d9189a2c86996d535ce3b4c36e62d44b082f0d6a806a6fb4c37f380168b751127cebf769b7936e309559047c36c2ed4cc3014f3e6159e9d3f2be7ead790c7ae7b0a6c1edc4d592170b71856afc9a9aed8a1dcd2be125f60cb09ad6c92a58e39e732dc236edfd45883dc089036b09f370f90cd72f0d9f98b81c5986e957382ec799c4cdd0fa7c83eca0e5e199b6490841a91f72858a77a0808171986b23483a49bee8752193d35248c6dd020f9650b402d622db3756c563948426a1498e0dca3104f4bf0c24189fd0439e1cef796ee5757d09a6575a097ebf8d288dc420699eb11a8c6380a2f4fb2896f909bf8a4a4340772dd11830c161f9883ff9fd3afc81c2c19abe430dd7a0a6e84748f92dcb93d08c241218842115ae0c16afb8a3bab8ae07b1a71b6c8f288b124697e07647665e85254c07d6f238b547865282b8bff2b3a17a4056fcf3eb64fb8aa368b8d92deeeb11f00f5593521d53207873de73db6bb3b5757e18f28714f494662003da623fbb1cd9371269a685df660483dcaf0176eacb9f37c747ea5035871b7c7d7c5f96d11d612a24f36d37fe6399d238c509c2dfac9f5a48a8595fdc59344c957fde08df283554e36f7d58b07004aa6baec554d3f7b336344b66b6b7c0001bb755b3150c"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T16:21:09.263101+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x582ea7c181e04d69bc6a1df2d0ee0c58be954ca1303d4bf7b7364a68",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xa9418029a21d7acde6b4a325ebf8079ea4e69258d1a6849929642f6616f2a1a9"
+  },
+  "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7": {
+    "history": [
+      {
+        "snapshot_id": "0x154bde2e8e1719840f813106b684f6a424f9d9ef231604ce6071711de86bbfc7",
+        "taken_at": "2026-03-10T17:25:04.773645+00:00",
+        "address": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x831a900919efbbb32a08f7e8f8c3992f4eeb856b9f175411a48f64e69dbb44fe",
+            "proof_hex": "0x1630cb83da00396e218def2728cbbe03b0df444ac5167cd26d8bb421c39375e0286b70b5dc4edeb21ad0b6b353005d6d26b1a7f9ab0db5b8b09c636ba548b2521702b3c637232d0433df48384b107a1fd53f6492a6c942e653a8bf8f511aea542ad7fa0c6a8d27970ee795fdec7a5333b63a55b39df8a9e94a3012e638ae5ed0185b158ba13e674a3f85e70014ea096714d911fd2d1bd3853dfc5cac4e4defba054e54e9527b4731e3174012a7c73ae997a42c0041e01c5c3a917931cbc1358829c284f7703d0a8d652b89044bf94ecb3595221869d232a13015387a815b4a832bf2fa54ff01c1fdbc832303e2b57d365fc400793bf8e223e1e23fc7430feaf40e679257c2353c1ab6f4642642d56bf1cad1d491ea3e4925f7c0d6059d8fc8851c60f0f4164f203f05593b5775b047649a92e5b4bf5adcc660c7492364be5ace2e5a96ea17524062b8e056048c144f5bd5f87817ada15872021541b8ebe7fe5d042749c76f7a3f4141155b7dfa51bcbed5844a8391e4df2ac90c74830208b18d10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae1870ba43cb2387db5fd829d04ddbac5bc82866099509a4e5adc988da509a93703e12781fb0427645eb8cc710ae7f3f45e4781ff55ef83eb5a94353e98a8521b52ae285d18cc3e164c67dcf02dbf31ac027b2ae6ea7b20aa2889eaa62ee50f340afc00b7d42bf1ee4929bcac123cb7880c25e549d95a4282af35f3d4ba91f4890e291bbef293764299d63072c61fd19e4cff57f898d6b45c229ec01ca90882bc739e2dfc28491bc838ee6339187315218d18acc44bd12f8617cdf3bd25720ce3acf31700fa533002765ae5c290d72ead3df14dc92d0f21d13d7d0d29095debae2a18193b966db41a6961b384e52b1aba788579c18bfa72e2a727725117dc4807df6b0120f0860bff54bd655bbc7fa56a4e0c39d7c36b6f78826fdf1778b74b8da7112c99252b656f4b0736f4a1beab6008229de86708a4e17a26a0ea1ba80e22dfbe1ac34cfb034bc5234900e0d84042dc082b5bd54661728f2d723cabf7bc36116102398c193de460de3f5940fb5b0142dcd66d7442c66d2e78e2624350de378bc50c57f5740fe369b3bad9945b21c4e1c12a30caff06d2fa76967ae5af1dace4380c8f6c694fd8988f15929481ff66b8b00bfcce325eb900200ad891b7e68c460a1ea63c4b3a7eb1e16ef5a71e09df6c583372b86c7a65883f1bcadb410ed7816e1b9a910ed8f62163cfdc422da699da121f00f032a1cccf066348ea0c4b6a08fd0f2130419b69410c0c36e605e2ad6ecc53fe39fa33ae730f29ab1c68378d84e62a3fc3c6df349bec4a07c88b3772fc7a67024023a2bd8c919a87d4084b2e756a202061c08b85ef4c31b039e462a57fd5fc86ac298b07ab490040b22774131f3e1c4b651136bef95b0daaf5bd32f6752681d1cb15f5c62a200a5d38ba82bc4c2205b371d5f702cf07c528933bf9f7bbc5f384af061ab9df767f80a2d1d57ed5452452e9d5af639cc7186af098acdabbb12768cccc57816e85e8d761b8e28cb5e4008f0cf1e07c67a66bc50e907089245b1123545ccb537ba7d8b76f4f501e0046203939573cf9ffd7e9ec496a98cf5eb04d3a2bb10f7ff67e447f0f5fcae371f11f50ab91185ad15bc6bf83731e2b346b4305a7c3fb83433a1350dfadca6e9a99034cdbe6e2d3f3eb3bd658fde81f787356ae52dd49ff1e4a72d750cc0586903d18e62f5c2a3fc4e4bc98b974551a4ae114ed26b033d003dedee2edba1d5d97a928bbd07103715cd2399a3b08ad6645ccbd287219da04a06b3975084ef5ab6dd52f00da62a5c3a5e1b9c14e10d0a07050037c9581c270a25465883c57586418b12f359b8f5d543a404657dfe1d080ade36fb356ae0f697b9b71871ffc187af3ec303f7a6ee48621f45a35ae44098a111f118eaf1492c50d71455be6ea6a700405210a9ad23ab006b2483818a626c792facf099b8a0229d85eec1c4b9368f6b367168cb89e83067e10c815ac8623998ec43beb6681b24afc670935651f0e958efc09eed958a568400d1f176eec62bc0b9dc49e65fe1361b9d3c10b04ee250aaf05085bb3404d6271b43e151d0fe0a8da3f4f3bf8372beb0464222e4bf29731c88307abc767280d7eb080b090f3cc16946ed382516dba17c29d4829e2c35ceb637c155749341b57d7003eb84b33745c27286fbd8d2e11b18bffec1ea64c781aec5b1139f5d6b2e55efda7089b455f8f16d811a9315d1792ce7640dfa34b3bb3053402eec33f5629d027b181a44b867a5fdb3bfca418a22361948a0f40c311d26d4310cbb78e110354e0e8f274bb75b307cc9d1bb36c0b0e2bfe49b2b8e1ef40fcd31ff7a7d6a60df6f27759f6b24d01683b705a3970a74b954dfbbee933cae80bb100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077953cfed29226effb3fef01ce2c21f1490dd5ec1f833ff49f6dd0cd9beb4be2216e5a359f51af95165b8558f6e06b7a333c4e3b82008831a8d4eb7a234e45608da8f7222f0fbcc098b9e458a42e2f062340d8387f0f0af7df7b94c5bf5032b01b95499430d7147c87a61d1ee1749cc359a2c7517e35659bb1a5a1525d7e2182c8d931c8809e069f891cfb948437bf7fcd1f3b5c4106280d776da2b2b7d46bc198a4f5c9471563f7b9209f147af43cb3293abb8c970fab5dfa4954a65ac1a4123ed9a4f7d58f74329b93308dc588a0a1c32995d8b51c740da1e27ea0664b50b1fccfcc239835a54914185bf601998b200e9a1745ee5a2dd6d41fcc0d727456e087160185c62e6ec9b841dbd32af5e34f24bedf59d00b99ae45428dd846f43ee2d6fa7f301b13a601526a58a7e4184760128ff304cae1e6c5b3f1c4a4a8805f31e27e1bf0f6f25d48047e8296466d47c67f60c06281cde0cb3f51d4ad1d43f6e291c6cc4678e545b2df902d83980a42d2d14cdada0c886b6953d97bd90d07d122a97027e3ddde8f23bcc029293a321102d1ef71bb1803edda95710197480d6cc093f68b1a6fdb50b9b48a717b9e3b655d5a296a07479db4bdcee1743f38d21d9132abdad02e0a56d5fc95f62dc02560c13d33d9c300188c9bb8548efffd11a8726c9e0d53599771f8199e3eb1b2bb53c2615e876c2fd4e02045e2618e2fd44d22ec1a6896b68f52dce7fcdfeaeb414a46c70d2e9ee5b860421098fedc97c6441223b2b119d3626fed2263ba1f7d6a291cc751e997471a15a97f4bfef6a32053f2bad59a79ce49b152e5dc3baaeb5dffe58e4b4d45c7d6c4feb44f767c0a2db381ba35a4faa0ae941a80fb1276c47876237b5f5178f7e1e8a927f795fa0d255570b6e5d8f9cd432113d42dd49b6339fb3580f16a3b54f09fadd7682f1967d8a90296aeb182d1df25b551fc2d8227d03e8bf53a6fea61c6bc50f0c3e942e13ec0928aa3f084031082a140b82269d5fa342f9789d7a94a6ec317c14419081c61a452819517a5d5e40539ec68e097eda210fac331ea30a96bf430c315f97fd58a14c087b990eecf8f67ef060e5d3f8aa225abeee284183a89a2aa574d78883a84e9715132cfcdbd58c20101b5cb7fcf2a939d410513cdfdabc9cd154b57a77bb11dd1e43a5f25c3fc3e7f1e8c4089eaa2748375a76b3b47da486179444e31150ad231a8a369b53bd4669cd8fad5833bc4e91820f8322415d366c6692a18aacf9b7ae00c74abbc51defbc8b57ecbe2b701f076f7cd587bb857a47cb710f28a3b5b19904fd9bbcfe4a6a87961afad32f9a2c6058937ee8b8ad0d577486c03b2c59ad8818c56fc52e3f15b68d444125d75164c3b28a897b20e36b3130bb40318d2a17b01f46b0cd193456fde84d503bcc71a9642d47599c5e163f6728508318a1774e951288a9e2cf8c039889fb0a6303c0f09b7029562804ff648f20346c366c3967d5"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:25:03.158918+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0x5ed3f97113661b0b3e0ee389a2f798ffc6c15873c2d23800ee44c3ec711c595f",
+        "taken_at": "2026-03-10T17:25:07.959187+00:00",
+        "address": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x17ff6ce6ff72de737d82643792be7a3045b3c31c819f4df9bbe33eb105a4b07a",
+            "proof_hex": "0x0b68f5e6cb841f2cbc55ce8858412527886606f5a661dc34a0574b88083e0299303fc0426e233555c4599e3689c6b874a3e9038d0d792e500931a67cf28f59cc25d69606da778e9e28537bb98b8b52530c8ff2159a774061779c1a1af2b310862c46b7d04870fb1b1735d0b33924b905fa584e9edf929cf16ccf32e795cf754600c74edaff9e249cdf4b4d5c0b453a0d87b6f7e0012459c3c6450e58615349e1242b1c64c89362e6057661d785357d713d8096ec1a83e28940d4fa69fce33c6700f2096da934c6e3bcb066aba992d67575ca4e1e8483e25a0a0abfa483877806264a508551a0227fb04887297657fd2e8d774e716f9a5fbf63b110cda79d81e52dd87f52a3844e17b42373fbf563bb104b11e64e6d6013ab65a6935a179fe4b204eba588c5ae9cab8af7c37da6399490732461e649376ef86fdce852f4416f2908fe1ca9381d36c4ddb47e0de3587328947416c7eddce91fda9b5dae8f8646241ae51b097cff6d6ea7fd69640d472cfac36761ffb0afcf2f6dae0f6f6093b8ec10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae18707f38e6a73e074bd9a061d45189029a15a5fcbce2beef8ea3c9d23247529dd861a764420bbb4a793894f95360ca3a0b11d9b903b9fed1e20f467afeb7c91e3e70f3df4fec8c44cae52be3d0b364b7086db8404758408cb13af7d93408eab17301d473096d41eb1af2e651e376c2af7263c61a93febe03f95574367216f46f86d29a426e200eb144bb8592b146527d381ebc483fa68a4fa5d5411ebf0aae747600a1f4a8c5c37910af0af95100da110bf0f8ee1c833d08f58b2a2682869611aa0241d04eb1c3a2387ad025185a6b58d8dedb001a7410f68ab1ac8295066ec76d029858246496c9dbcdea9a141a0ada7c2e9a27f8ebf1c6bf73689a62923fba9b90500a4fd5766bee00b6b50aa0bbd2780a8512761a4ec91190447456b1750b06c13221fedb8426f588464b4f5099e136e617c65de9c3b4a24c3429aa8bc2f5b6f1040cfcebeebddaf720d2547b9e089dca040e840640115187b2861bfc5a97905184318af4d982b583c94d654be23c1549231121b615a28dbd50c4b4cba3bef7e194a406d2d07c632f8d20e3ae6403badf6f99c70987b56f6dd8420cdce1ecf820f12d0bee96d6152832974feb6f1b9a1814a9a48b49839579f9703f9968c9a6129b8c14ee89fcf510f60aa3cda83eaed3775d6bffe29eb97148dda80443837232ba8ef338ee18b7c2ea54285fcd06c3ad7ebce2f6756b543361c27d0b41a8ce51c99eabc66299a80f424757087daf0147144baa2d51ea0154affdbe0e9cfa4230983715ac038e074a1c31516bfba67ba715a473e052221c63bb915cf968a9c14090f6050c090f9defa45c8585fced9e017573911a86c806275dc4451b3fb3b450632261e8b5d46e95b01a0e82618638953050f16a5843d6dc389c1f7b2c2de251645d3a2f78c4a4bdd14cc4c38187959a1b4a95ad00070f803f11f285155be7010a2829a40ab06594b7a6aa6d8160be49f48fb582fee8c7a872d52c18482070730056b96e2284b5d72e6deab84c62579be82121f93ed700219daab90ffaafe05144e74960cb4a709d5e14c72e0bcd85134ef6eacdb7c64edda0480ddcde323d22931a1b8ecab5c3115b2c4d758cea442d193274ad42f1f62440aa2cac99f62ac0963a523b1226e7a23fa6cb159d5ae3ee0c5c00b2000aaedd31101e4b7c17167268562d89d1c28e75ca46603db2c4e66d9c64cb2a687939a84d92d84e5ce4c5527f45d9cbf4f689654cd5d6f8d9017513d0c3b230b5e7e940f16543df881a78b22c1abe061f13ad7a7e8bf72b071aaf3e792545119d79509e100237dc75d44462cc0e4b311118e6a9cb789f77d895d8250ec6302516e1a11fa92d66361527c63275580b7dbe928ff8e0ca0b51db51162c627a95f064a61352861fc6e06c52ccd1bb28520adaf0b775a006721c29b8c3c71925f072b3200fd4aa4d60ad29b6a0b2e48f4161c60b007922238e46c34674a32a38bd90cb21abf202081631f81ff6d23acd598416118fd002c1230c85b4603f991c80b5306066b716709579ba418561315392c02923bf591f459cf3019c9ba49a37bee4672f1cc691d0fd8ccecb33e01b8f131dd82f98c6a1d365106e75beea375cabb993df888ab48fd777de4afaf1e66572a65bdc88e7c8ad45ccacb59fc21ca64450f405b6373a0eb37600239431973906a306ac96c2ac926c8d5a523e305b1e4cd3832a6518f7ae4f5e19e7ed30525086143788dd42a6782678fec3c7975e085425dce475b32ea5a6f1ce492232ccf23beb5d246a6d1c0adae2d739a8658f8aea1b1199fad78155a17c7b94fc326e6efe48a193c163d9362151865d7214b137744703109c597dd1b998c1801e5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001fc1b10a27cd426db06cc4ccad3523a54eefc4792e15d8d9ec1b0ccc7026ba882807b51ebff7433424754fbc614ad2cd342114f86d980c0a8a149d7979e76a1b12f69ccdf8d346cf310d88e664a7484b45c23962e7a31bdbfec693dae7a55145069fab8967db2106bc24824011600910c5ac28fe84cecd07614da7f52b0638fb2ff9bada5bd64b168eb9e38bd38196db18220c1f06a4a35871a66a6c4cf5d87618ca620a5f4d300b0d37ee9ae74bf97c5aa4831fad452b2314bedc3c42c9c0421cafe2f1faea1ffb0007af669d1431b5e48582de9113958da76c26cdc4146c970301dbf88c17cdc3b9a1c80950327b96b1b37c9ee51c3f4e92a99ce520923cb00b42a81404162e13f417878127ca32cb098b2611f26dd93b651225d46108be5b2d329bfceadc064f76d12138b1d01786c7098bd6f559d471551e3daf9580f3b12e8b3152c78f11a95b728dc53fac87b12ffdb0f63f0a8c0594f43498fe687b902b40bf5932ffaa2513421dd5f13c88af4a3b551c8a33fdf392b7bbaab9e6170d2fbac3553ef06036db1cd38e68c7d4c0411cf136190b0748c82700f09c9c988a1309af60acae19cce198088eb2f6f1aaf1033df330bfe2a1e6228152e8a38b7915445b7e664d4a37bc533c4797f78044fb9035eb1207796cfeae20c4bc8e36c10acdb0f6a0c3a357983cc96fd26cc72caff7efb27c4ca02b13a06304b19240781fe6cc8f6f270368db9899874c61315a6cbf5efc4e20aa50c0cc52b50e1c23a71c7a2409b95dfb715b2efd3fb52c03e08f93ddf8afe488f7649a6973692a6b9c12056907b40f937dd883080a80de38915797ca7804bc5bb99800a86100d002260a1a3b6356ff81c399d04826c10e018acf8bc97066d363a0806c3052907a7f622ba3fab0d5ed54b8abd091f2965fd82ff8bd02e2e405a00b853b7a2d8deaa42611deb150af52b93e2850989e2aecebae2f028a636b92813756d42355f41a911f2681994b7cac2f784af64db976c80deae54a21a8466474af2fa2559807db3e092c8e0bb11e5f23b2f1b8e26b4e999565c33e3f527ecc91b0b1b657970c19226d299849afff9d7f38ae0fa704d0efb648d15c24ba07bcd7db618b60304449b7170d5b0d8e82a3eba13907fc738bd8f5b5ce5aab1741712b573b9a67290f48d2562a6b0af6425067df95f8955e74734a7d360992911c497e9ede7d0a1c35d83d492262fc3efb8b09dfa56cebbf185859aa6bacd05a822100bce51d1fe50cb879ea2066cb139277094b718c28f6098d4392359782f020eda4935a1a0542eea258791363242a116177e4256dd985c70c549aca96375c8ccf819ed1b7265e962fe5122e7c665598191cfb86cade06997b091672a9858c7171063b1606be4fedcadeb4137ebcac26e9fb24890cb3aae200a669b01075ad22c47da8268bdc4f75d0adc202b5be0d4af519b7d5b7bd925549f6adf8c613ac382f64c6bb94c598b53bb644"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:25:07.959108+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xf7a306d39a7f496fbf20d932c83cb3d5bb672fc5ea524fef9d4625d7",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0x5ed3f97113661b0b3e0ee389a2f798ffc6c15873c2d23800ee44c3ec711c595f"
+  },
+  "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f": {
+    "history": [
+      {
+        "snapshot_id": "0xf4adcbaadba0ed146ca5b253ea1a840debed73eb42517bcce7f09ae72683cf2f",
+        "taken_at": "2026-03-10T17:28:12.445389+00:00",
+        "address": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0xdcd8e964926a7bdce9653388b81cc324711668a17b8db66d76e1b9631a3c2fa5",
+            "proof_hex": "0x19bc429974b71d8590613a7dcbc6b7ae67d3c67c199cf5f65736a920e532449e2c396bc87e6d5c7372325a5d6c846acb8eaf0d0b0b77d857a8f2a195c4fdcf110d57b01e2c9f07fd48c7ab84f8a79e394ec44ffb3dc28ec9d610477c2437666402fe7c81654636188ad442c7da66219c751126d911fd5461aa1b5dd2f69587f102275ce2ad22f0b004ad090a7ca681b7a3546c4ef9fa6951440a5802ba7e22f31c337e5feb8b4c997ce42ac58e24685f8963f1cd9ed992b31964a1bb16702732169b1f38cb4e40924a539a668c5df3bf4df970a8b41c72e0f29ed3ffb516575b0deed3299ca76cef01d1bdbd0b6e53fbbe7651962b60e69fe6e2539b8adfd82809becd1fc712e767db4ea1b014121789daa3ab09538b3470452ff6f6695462c6162038f95825de29f47764603908f1198097ae0ea6d7bed70a5f1e579361e3290e5caa24ead8968d8eea05e073d486e4ceb7f56642bea87e8723f379ab68389c240b9cd80dccc7c9b01151bf7a4801182b51fb6026cfe4baa7c0f43e9b9a995010f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae1870c4f8a505d8e0f650201e516932fd511d11b89b03eb04c105fd45655654ed0c62db6496aea14063e6c7d6cfe64784412d786e5fa13d786b0d46dd8dc584c41e90de5d89f2e21373133262ef7f659a5d3265c87f93033f8e297495d2bc6189fc008557feb64e41043ed4807b4cc4ebf16e0a874c62bdf92365685ebaf31fc791c0d168114f99b730f7ccf2b79c3adecb6a49ca957fb227320753dd9082047402513082657edbe389d49dd9b9729001b03b8660bdcaef23dbfc11a8f032a66e21821805c95079a6492d08d2496dc4770047364015e77b81d0096015cb522ef3ddd2bc12d65715c1028db013e07b40a55274c8c5fac4c7186751db51b7de4d6525b26456b33fb75ca17d5427e9e790fe9e206ca48fd14bd814954b66cc24e5dce0d30028b2ef0db37143efc720e436798373f415ba83f236c4da43ad325e42554662c885a2935baff15bcab654ad4178a60125f9e0754ad7852fa2df6b708d54a0f211070965c2dd4984e1b7a52db68c9228f60e7180ee3f249ef605eeb6a83cb1316a04ea0b8bd7afb08ed4b3fca45a7648a93fbab88b48c4cbf3d58c0f2b19f321499c6061a546d72b91c2daf2407b4d4105184a358f32fac57266a7f4478b5ae2b751ee36c8f6ac794d4790417521be5349c7427068a6ea00d14a4fb1afe4a9404c80ab89cbe1d9b7f23928644b41c0bc3ffa7addd2163f132099117f1f847ec104af064287bbaeedaee2a04e13e40bc686db0c444173e3091be2a7714d9cfc307bf76b4108c7f1a33bbea339fc0d35b2dea25d47b9639d9c903594f3c3d699b1a331c2e7f9f9752cf50a1746cbf2a059ac696eba3ed07299079711e351902dd2d4a535c12f3bc2838a4bc611b4505da1a9f629b041d86ba7c263c10b475a37402f112da4a457a91eb9b7b1558fd96a9a64987daeda11482797a2cb7fb5ec69f1dd9b58894847e2ef596bc98bbe9a73d64a48e29f2ef09ca9a234081be2c5da11e3dd088fb3124f48b84e2504bc48abe929717e340de3c80df291ec51c472f81061724956230f1738fc04786053c929df9272b6b19885a1c2a89287d85e66b22221e330f337f4b480ba6ad348e06f091a5fbb1a212cd2e06e39d173f5fa614cf26a67e32b93a0f1d4bb1216bf65675e2b2011611b48583bf288b85909002c7dc16a03dd5fdaed854050767fb36b536ab6d96fabdab1ab3dc28ad66bcf446659b15c04f1cad59f05bd2197d60571c9e31a39765b1f12750eaf386e2a0cb7bc5bd1d5a639ac31ae26b290f957fe51326f94f43af5e5f7b26164bb4244b34f19b3608e757243fe5b1e65f78cad0a9c1036a875b98e7433c0f4886d237f4e5781d2515540e2e59ce22d5059fcd423ee8a20c6f85dc6e188665bf64bcb5d211bc226b14a5a43c2ffad2b7efb2cf9095abcd82e29ed4b45e4423bf09aab99b959888441c3627411d23f4eaa69a27c377ade588acad4c5189250702c769e15b303460681f3157d20712cb772fdf1dcb7215fb20f060c7bfac4d3de7921ac49038f5c8a309cabaa09027065facbc7ef831b9666d83b37e298438c4c90630b73f6c7d741315828425e9fde412ce0da210077af7043ae2843c1d05739fa4727c8ba0fcd2a21872c1599114183d4c9104e1109d8110d90ce76a3492e92475e094bdbaf3aeb10ce4648537ec472e362095b9ef81494dd7d1fc199ef84a2df6ee0db51e0fdd032318d51d5a8b40afad0a107d4b0460a0b6b505c282da09bf67ef73ab02e548ba1f0b9b56d2f6ccfbe03c7cb861ced36827442849ab820f11a974d9475baefa7c0c32aca6f3b3ccbf079e6b88058c4896e33a1c62ad9f85d9f476355359ba787200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000188940e52906d383955f4b5a51413a9cb6b9ca9937b3e913ae8169291be5a9652a3748407f00e9a02c5a01ac8497fbc3db8daa056155f66b197f3ab311d986e5283b0438e1200c5c388c421fcdbeb1c012a2072a664cf69f65fb6017cdb88bd51984ae23081080da85633f1b3c20e1e9ebfee12515e5d314788631860f3dee3e2bcf1d2171047fa5e501e3913d7715e6bc9748d779460523f61f1d56dfbfa4f71dcfdcda37d4e2c89519e922fb76a9d2b560a2d25506b3370c89f0401a8b922727e2ef1d03175c76f4b022a1b0ac37db430daee852809f1e2ddd3f319729c4d725fa79cb6bfa11c5aad15c9e75566d95aeaef9ccd10b5fb13092ebc2e11419420893ec3a4859f71caa36d09e0d1e544adbf62a0847932f570da9bc592e61eae5079599afb3e24bddb1d519ed11253cc775c5b1ee6a375a40de096a8e480a41220d3839d444546c9332910aefaea24d893163488e4fc2da44a9442c79dd065ad4002e2aa0d187c538b3051048b80d23b19232821a3239eb9ade0a59bf8405af3a15e8b23f95f659bfccfd7ed9440406a8b869aa8745c797202466d6b3759342f9201e2316b1c7415279bcc1b0c06f888b9bd77b670afe07e65a6367a7b0b4ece31d5f717899f90918b2c0fe54d5ef5c0e5fa9c72bd7f5f4ab22343e6548e27db004cbde4c58fa771d7a49a07a088fc13f1f61f5cb4fe95b54ba3d0ead4cb1b0d72875d3fab92507e0b5679a8e68fea81a1b854ac8f3adf84b8207f5e67abaecae082b5f172355182a625dc262c0f212ed290926b2751f29c36b6360fa180d58871a23101ae2533cd7c5e89a86e4c41d18a170236e8ecd0a1b187fb00e0e55860614009054071d3b86b6a2f01cea564737e5e7ca792e9a738987d09783468ff6fc21f737bc715099e0f22d760f4dbd91ceda3b00b52997c9d601645bbe580a84080b89d294224849a3f394b6b61d097c45931341b39e296dd9ce8949651db10ee623b92cb578f3526fc4f68ecfaed5327a5c5989afeabe6a0a34e385d57db052c2267ee629e9cc59837b097b5118b218bd33d61b1efcf9a7cdd96c9e7eb7d84c141991fd372b9b2a5f4ed9edbe23f4d789df7271aa54ce81fc5b7af69289b5226f0f9a16e419d0988f051f0964bdcd58f0f0360c2966c07a8d999c5ecd6fcc33802828ff672cc5f4fb5a7d0654f856c7cc94b7a876bd46bf35d09eb033c640fba5216798d5157f7dcf97eea4039ac35984775f6f8ea9629c21908ab5a4821030640a373fde6f3fa137c18d82755461fe2e7f048b0faa58a6ceb2bfbc63eedb308029eb6179341212f677b9af330538a0c44e15fb8e2d05859e82f1ccd4285de1351d8fb3ac5443ce2030e0bedd79718f23e8b34c3682be4dd664d5abda6e9a8feb10a57194ab9e97415e19371c22a42b2dcc6ac60527c664b734a2e917fa5a03fb1bc5442814819ac007c57fcdbc68eb74a2b0f84ced99e4dc85d3d38d7a42a2d9"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:28:10.906411+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0xb696cc8b6ff84fae9688cb33b5de5c783b2f7f9f3d93222ccb1f836c63e50d86",
+        "taken_at": "2026-03-10T17:28:15.575511+00:00",
+        "address": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x79ccf435d074272d33c7a873984cdb3e205b2e9d01efec31ec2f25fe83b24aa1",
+            "proof_hex": "0x0a9b29b677257af7b197914b8efd63466f1e38dea464e5719b4dca6032130b210d5d892730ef420fef901f01c99f9387908d037b4f4f86a5e46e7105fda0f9aa279b0b8275a4d44be3465eadd1c153dd056391676553e39ee9c8d17adef0b3822401e5acd57e6287c130add05f4a78835398aa989fe829420c2205791a7df1882b692b6e76ba782b2835b1a62c4644dade4312af1d81f47d9c8550ffd2a6b02f008472a1fba7be15544ccc13ad3be5254080a1b0d97243d26fab99f25266a4eb04e543e79dfb141b5f7333666ceb63eb0a711d143691cc509c54ca2bbb00f40c2371aa0b01b53ffdc5b0232b30c895998be75ed78b03194e9b22fb9eecac579206444784758d10b0d2077d0e6c28ea8d9def68a5b9e6ec26f207787cbd45aa2b11c558fd624c8d4b368384c2f440831f23bf8f50d295d34528abd6293c34b9c522efb8d6bec9960d6dee1010afa2b49a7a1bfb4d578bbb6a6d11c51cbae734960a5578be5e7e7d01432d5c33e8229361d8eb006d0b7d239f42534b533c63f01f10f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae1870429cc0ec2dc728c1f510d665a75b8a93c5f05f640893404a7a811e520d41b2212062c5181aecd8adab1cc3c9e9397065122eaa2262538aeebd7c6887a1d01cd302f57b3f6d9312cd885a7ffac311c776201d6695622cc8b3e8fb039554cfb061fccf1eb988a39543b77ebc6ecc21f486d4c7c57866213c9480917e65c4ad2282233942764fd960c5e0be4a4f9d29b3788ddf0c0c2a5ae5b2247674dbb218e100d62fcffbf16318f40f3cb7ffc6dd9dbd812079a1e23ab905a354a82c7bac2c71bfd25b8325fc96177c839f2481b0296b0a70a8ccb9f35a37dadef378f963945123a5b3c0578600625ed169d59cb27fcc8e201872433328cedee24d5f76ffa631efee2b34b668b474cbed4a440c9e48639fce9beda91f3d60f25230416e8714c1875316cdb5301779e0b795b2cb27e2e60e5df00a7546641828c700da765852d0770544a3543077199e3d5971ae38d20ea8c2c65fa1e1d5229dd316fb8aadee01beb27fdf2c25a081fb6943a29bca0c43be5ac5fe88bb724dfcc893c0bbee3c601e1b37e250658f00ced7dd8793306acd0a7ae3c73610e2bfd0dbc3f7b5734662d2f76335e2380ecf127d501d157f46e3a21fb0594b53912465910fc9f18eaed22a41423fb848aa56ed3877d60b7629fd072e4035027d0cc07d19e66088c61f216d403f81683200afc1f6d746054cf46be0c84383feffe3a7bea686a74a2b8071a7fb0fc26cc9c718ec3f4b1c3a11ccb78f4a33befb3cbf9c53834d5fa708fc212934750f2d96eaeac1b0a9d2e77038c5ae06214f4479eb384c98a093521be1210043d7c74237cb775d7a62ac5e0ad4fc6d67059d3236f5551585a273068d4d61956d3b48bb7a9a3b731075f9960a4998b298c4e15c6a32326e17f0328d27e9515dfb982eadcd2977668a45f7bca04865ac6506bee8a740b25efad78ff119ff21c23cf2d46741230502d6b6c4a5d7b66c9766495b6d37ed07cb969bc218f304e08c6c061309dd8b206ae98234e5f47d7d16d7af1f6323c43aa890e970e85f3091511da5528032ba82274639ba199aff0956a15fb789dcce3e249464f912f100c299fee641d3b362cbb3986b3cb3d369069c75367c5edc767c30f7ad2231c24162c6acedb37d402a7bfa54fb8593ce6d9b36f3052f0ac31b2a6af1c5d336971d918fce8ddb418f72b3a0f69682facd691ac9a5652b214e50e53e52e214e3555141225824086440b0317c724d6e187bdf02c67f9dd372c77250f2d94b84afd97912f939da7dcc597ff54989496f8a56805c135927e1215372e509d528067c7a5692221ce59e4ff8ecd1750427f188d5ec5c1a59ac017fb7a3f8fd1de5c80816e5a305c0574b06dbe9be26af7e220598f93d29ded6f52df0e7afa7e7a0f13e3bf0f17f458849ced62e793411b43ba8c58c6b63c3c8e3205ed419f38d1580fa0ec80095322fab10f8f281bfeee35975969354f529fb637bd2d5cbd803516b766e6100c7a3cfbfff3fa29685f804c2d14939170a60221c09d2d0c3e54266d306ce7c92521b9d6ee4c5f46469e64219437afbf8cdfe8fe25cf5fb49cf4e4dfe127f8df27806568d6902ded9b79315ae9434108ad808ae97765300706eaf43df1b0b07c0012fb7d05275726ba3428ff194e5289108b2d7268452aa03ae3e9c095a60a2206918475c6f595975de186dc163abfe356fcdc2a9d2d4da09c54e81bb283209f23fae8084c9076f7ab00a63f19f5d78ccd759f7f9ca8c529f331da66dd5298b714a420369915749a07459464537b15a96811fb725cedebf937f772b6fee6be3503b184baf4c19a39d3b0c798ee4df305ccd4f0e67c0d747b087abb4470c4bbde0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026feaeed186816d93e8445f3e8f6769893e2d8ed71bc07ff8a06a1923d5c37ab139d7b45d0f01973112709fdf871ec572598f5ad56fc1ba3ae7cf4158d3b986f2f370fe63c4d23c6b923210d8d95dbe7f9c37651343b4ce8d058edbbd75e4c060d2a5a0e9c4f1eb9141144d962ce83da3cd39e157283b7a873fe9d58ff5a5c130079219ba531d8bf62581269ce9ac22c73f4f30ad5fb4590255abe07d6b1863e20daf0f0c29537a8bdd89d510bd1ff3d4cf7a4c13aa86efc50f879b0e676e37404ab798a02ed82582faf7aaeac565dd501e8ba314c601ee5efa81e7f1f3c16d3119616f4bf56c67f61d7379c6643167cd7864faff393b971b9e9b5d062bab87b01fec33cd55565efc551eae9c272c63c9c2d1a2fcc71d5c9d9dfa178eb51aa1a0b6707e9ab5ba7d4f69db67d630a9785141b7016b602a8f73f4a555161b1ca2f1a30ce7146ca168740c6f6cd410696b48ef2b88994f797413f87bd6df828d761214d6a52aaf4b22d5dfc1c86d3fb4e1b6050d6988bcaec9ee016563ed5d61b802dfcf027c5c90fee7f57c81198662c4dc981b220672debfd4181fc8516f55e982ce4ad55ef1d26150d1c4e3779dae1ea4228b8fe6ae1709eacd03d1b1a959a2218d452505d4c86a1bbbf67563b348ad9bf08e08e6a14b5cb1bce386a3d92be140aa835431ca1d1f6352b366abb85d73dc309c78971ddfc12ae903486f4aa0feb06235aa63223ee45d5d31dfd34a4faa8fdc8e8c873865e4d21427fd29f69ee5123f89553dfa65412dc6a3f943d1285a11767c8b09eba771b32b06efb55a393661e5ab1041de6536e8fa9b08129ecd52e07b94549d6198ed5d0313f27197c86d518f4aea7d1487e178e62445183aae77b1a883ad5289b174734a55c96bdebc1be14e4000ce66699b88fa5babe47ce215bf91c73c46fd039deec2f2ac804da2daa10a863c61c0b45ad800bf292317de885a009c7525ad358b19b831b6df9a227c10c5206ca6cb86879168a2b0ada95f379bd2d778e8e43e059f14057625d857d9929d7bc71fe3e1a34bcebcdad5886e80cac29f71746e462d24f9326204f6632642bbb5f0020a570116f660f9b63edca8d4a884478be452388188445805adb9b940e2bef434e3d819d4174b64171bb84d6e0ec61e081ed7518255f0f5c2edad7d80a1cd99d149164e06e39f4c57b276b27b1f6727eaeb7699f8650947abde2ca1e2ff5550211b90ade76785766ad1da6271152914922e3a6d64ae9e2db86f8a008095be93b14295f72221c1b10cfda5d04e7a923ba045b218485d1eb04207f7d561d346a309d10efeb3f49d69f2a8100a2cea6d9214ce8945dcf266b86e735a2ea153dce7c1aed5e1a6288e67853684a4c28df3d9015d03281e6f67547954a10781b78f0649b5a502ee93cc5f0b20af60f892d8168e0d84aaa35a961f39035ecb8296f533ee185e63fa60ef281c3238e69b8b6426c3aefe2e856f808c7ef797e4f"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:28:15.575423+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x7daace53192248418d3cfecf2f6ca5cff03d2685941846059f97845f",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0xb696cc8b6ff84fae9688cb33b5de5c783b2f7f9f3d93222ccb1f836c63e50d86"
+  },
+  "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd": {
+    "history": [
+      {
+        "snapshot_id": "0xf916e5b8af398546cbdc29221344b82132db1b25e27bb8b649d6e8f1228709f6",
+        "taken_at": "2026-03-10T17:29:38.869024+00:00",
+        "address": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x5a53862e6013c5b4a4738317d51378c4f681a607bbd459153da3f0d95bb96681",
+            "proof_hex": "0x1c3331254838b33ea156becdf60c8c384612a2205a4ddc9243a0e158a3b87d4d24cee706066cc33ce81571b4324673d4b0d2c1c76b7e9821e69c258a8acb834024f8d48d0a6e7cdca41b621c712de3abe4325ecb8128f120695d17e455b970bd0fbbb5afde2e747c6a08de54166d948620790f2e08b82a1744370f5c8b919c3e280b2dbea8fb9365ff4df821863f62407a4d361f43472cc46d62c35658c31c2204f86e7aca9cdde770e89005fe79bf572ce56e473920945511002ad71f5bf7a621d927cbda2c929288715cedc4f0fb5921ec8fc6480b6c5d287ddcb177aac0e626859f616abd6d332ad5c4f95944be16f8fc155b2c77d925d5fc730c71e603df2cf1888771ba4b129bf07d7f558bbea4ef77254df896832343f327bb1282a67017f06f14292b5d4a7228fa2489ceb63d738172032e2f5bd35f71b36443ba1d4c2e4f3fc08bc873284985af3078baaccf7d3323106f78a71b67fec96dcb56e70814fba6045f1cf9beedd1db0a4be6ef7e10e442ca2bb6aa23aab08b6b78aa81c610f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae18701269bea8371f811358ee64d2ee2d3db88b704c2af0225141ff4b084630b76c0098b00cbf02c5733f8cc6fb305bec6ce4aced7eee79174f532d0a050b326a0400b1f20979118dc6e4bd5bc728fd9e870305571c029bb2ae7ee742e7725d0fc99147907ab1fba666d47f77e467289f522dfb5fcb84ec812cab2908850379e00f1075f934f25a8321d020d4c3414820e094cbe2d5e8f60141855e24de03d11dbd92c72d143f9e3dd786fc79dd24ea8acc005f27135be11d87bd9d427bcdaf122bc02568d7a5c19cd79c7f192c6110bcba1c2594367aaff23b595f686ab03fe1f6d1162012fc967a9fc02d1d15e9a5060ff579db723f13373e70adbce29419b63c90d106b9cef8ea18f1c75aca6eb3ad03192a561782eb2a284e854ed3de9c696f7024c7ec456dc7461eca3fad6afdeb70832615ed961c57c758d339130f246ca7f11ee1b10a94a8a74738f6dbf7f65d6c6550c39bd8cc7ba5221fba03ebb959c372157e836fb74c6752597ed0a3d97d269acd0a2e8470eb9043d63631600b41d2d1a7c39767213d07593ba778a3fe0a2cb85df31fce92edfe806602b246a28a6d7183085542dc4cd069894b95695ddb790786a21e8206e4fb0aeec641eaeb1100a046869b87bf589059db9020356e96c3b630d07a958588c58c182b8f1e4b76cdd187bb1be93a2f6a2cc1584209d0c895833c5b9a5ff4d311e3137f1a3fca8736f27ac46a0345b8b9e603b0d1b798810c10bfe16f75cf41c49bcea348f954625ff20ccf4f5e16b8517ae9ed72ac2bf3107b486f3a7ebab83033bf2c58e3739d2f9086176a54addd671c64817e76d118e01e8e2806477d5fd0da882ab8b7e3ffc3116d8e2dedd0b67407e6d44f68fc22eb41c878c20a2ac584e3e49bd93409a0b691a0e550de8f1a92f450c5703ef639e70ecdfe6a5c7ceeca754414b4e32e40a280abf7acaf1423ee1c222494c2137fe4f4503701d1593c9ff6c76e5bcd5a2c630251c4ef4e0e3e7828781e29da644e91d53fa962cebf5e507a593e4e13c49f5ed2d0f6ef28817ebc8291faed222aa3a73ebff607b2f3d5bce620a48021d44a4c90fd9acbcd55941c80ebc632feca604cdbfd1dd7aec508a2ad0036ffbc0734e992c6196eb91baa14de9d80ff87c299a8ea12a41aafa53fdb567af2a694e6747a41f9616957d6b499f4a5bca48da0ebeebb413410db2e083dfa6d09811b507158a143467d6ed7c44dbaccbba4b56b8184258552d4725923dc5f4e9dd5c3ecb69fc033b21b1532fb0ad6194b93da502f9da5e92bd3b84757f5aef545d10f7f18fe012962517ee305be981cb2354ac5cc135a6fc43922a9f8b28fae1079c23ed010528a2d58080446df25a36309564344bee77e1b4e6a2716612852cc3f07004afc401c1559361ad128a54d3ebdecc92d0c929bed0a2e82e4eb88412bedee4ad6f6210a61bb03267b0400259e18f9edc7a1221646fdf5764ed7c1646ee556e491b2c15b34fd2b1dffbe10967383754d6b62548b6a89296962b46f6dde698e35b8ad10e47962dd9edeec9d921287e49001fc86fcf8dbd3ed6435426918c9021e18c361709e3a4992f21b603e657a6127d9101d4b3a0c28a2234ae7273d3799cf69d542af979a9533e76fe246965bfa3b56693973eb037ec5ddd5d4e8b27f01379e5902fbc79bb83eb1d71ea718962fae20abcbe372cc13a1915725f9f49ab6e0f79b908c5fd04571274fe5b97472381d2e10bde709de4a7b366a51931f9cdbbea713616f3c6d0d4a0ce1e5688ee27412c210b07f69ae17b8be29ba5891f736c21fead2a5544f8e082c9fa4cc6487f32b9cc6bba5312eba5fd268d2c6874b025443dff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000134cb9877cb30ea76fbb242030a6dffba2db25f9ef5a8f97085ea9c7c957ec092e7f013ff71999962790d8fa32b0c925669b306dd7f63b6c0c388fc66802aabb00a7ce0e029efaf7c4d2e63d3c21fb0ce32d508904d3c33ece672e786f4412e20a790694eaacd60d471b7e6c414b300a7f0d7d44ccee09883b44310bf4a5ca400cd18806f835ae63398b1325a8a6cb305b3bdd3f20dd30489432669b29f43e592fade4a97b6f8d5e0413f6a47a5efbaf13c5be005ab000a7a501b3c243b5108f1fee55d37b4de1aba7d7f174122f2c9c8a639b1cb6ac55ac524f15bd421c1e49227c208688b3b5603f771c8ed20661e68f9bb39842fb128f3766be43465045531e6730a7829b99720883c61519ac305dc5620947f3e463ec7d575df9e3c35e102df642d7a5d51a5191777cfdd364f8ede3f46c02f0b9c7a559d3482c028fee5d17a89cc6ae0bd60f4519f4a751e3c2f4ae4dd7cf850983e6952b7f566efdeb2f104c187faf94acbc86975d1a7c4799d41d7025411d86880f344fe92e73e2fcc7034e96ce9dd55cff53645194a9ae68a6a5342f2ff4af7b3731090edbfb8953b622031d4f86b3d5db340f1f2a7b0ee68cb30df2ace3bb7e21fc033df7c6a0597829c75d6d21663f8651d1c72e9c4504da070e8d581496a1031878129fe6b2fe3b2daa2aecce53ba2d504a76d2940a6e74ad82cd573f9f48e9351457fdcf754806070ea661f43173e98d34ff487b6a3f8df478d2afc0291d5e10193c4c74c534401b8b18931879f8f5fba87b87945d2f5a89465fe49d2683244661fb006a63f35c1a2134fdbf6bb9bf6110a33e5afd40d97f6cd03952d4211028d6fc553e034aa508451f3ee8df1fa4f829a37244c9521c6521bef0a25adc81ec1784c7d6c745301399cab721a02e7653762b14ac2deb7f1b047d35927faafe8c3ef93b497bb9bb0f3ecdbfd45f5aa44a433ba8448750a9db1317bbda5252e9d5b4cab2020b31b629fa0bebc01c82436145d1105ec288e74b656975c870133c4d116765b7e30e480aa33430982724c51f64518646804273eac47985f260564b88a1f4a0eadf36cd09ce9b3300b6a9819af503628850f06e079212aa1eecd17b7e8397b4c71b217e02856190207f02b42dc2f6bfae79f39926f9801260e2e9a8a343a72e9d369c6a1cbecb623d5931b9ad6818e7b5424d6cbee5a42a3e28e474abb263b160c1c0a60c21a683b9081e0ade321ef87bb3d1ff2e28a99f4e48d79cc75f476812bdca6a09502fd26d49641d5f8940beed92291f88193e575e90c2c7a44baa36744e9112017fb7c8f4ce3a9b47d7b1c6fe203f07ec48d6dff0b15ee64f2c485ac4e7d3811357bd77408cec68563b3fa21635525a13da0789e2bb1ed7b96cee4f3b5283d92c835ff22d13f88b432402875b8528989aa62e243c09fe495076f597176ee391258d1ee7fdb168805ee6ace4e9a6b93bba02870f895746431b920debf7161287"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:29:37.163126+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0x9e5b00b568bafc502f5af510f3605920799e78e1ec9fd3df77f41621c790fc08",
+        "taken_at": "2026-03-10T17:29:42.578916+00:00",
+        "address": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+          "identity": {
+            "has_agent": false,
+            "identity_commitment": null,
+            "subject_id": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 0,
+            "chains": []
+          },
+          "credential_summary": {
+            "issued_count": 0,
+            "active_count": 0,
+            "revoked_count": 0,
+            "latest_issued_at": null
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 0,
+            "transaction_count": 0,
+            "successful_txns": 0,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 0,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 0,
+              "by_type": {}
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": {
+            "grade": "AAA",
+            "grade_confidence": 0.9869,
+            "max_ltv": 0.9,
+            "rate_bps": 300,
+            "credit_line_eth": 0.0,
+            "collaborative_multiplier": 1.0,
+            "model_name": "creditworthiness_mlp",
+            "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+            "proof_hash": "0x1dcf9c2801a95249c0d12f136fb5d3b9f7ac7cec791dfcfe25970808533433f7",
+            "proof_hex": "0x1e6a05d89f7981578eb6fcf53dd5b8cb155dc8bcddf95ca11ec9674bacd35d510cf563f4ed06b4c333818638239e81b1011780f957cb66c2680d7e70b449ff062ca71a2486961b008474996c2470c3102281004702501a7b8627534b727faad20891f7401a9594cc24afd735c1394444754884c59e04c0871184802a9c6438912c26b4b568a23d145926467c9b89ac7389b9ea19fbd6d9c048661258fa20a2511abd3410bead7314c35c6772b9e75e427f5f74ddde17171b892047b914767b0c20a08178d3f72d4f6e4e13ba617220486bfed216689e8a8f3865751dd026d01a225f7dc5ae559689aebd33329fb761053f1eaf9b16274e4a0720a87d9c93bd5b080513da65f6e87bd273c99541da0b19e05cf8398ee048575874dcdb2bf378842daabe0bfff95b05776051c709a3c60e37b386ac98373e0253865ebddf56477c1bc40250e6d37fbcd973474ae5be07b246c9cbf8ef22028be2057f3972524d460ee7505005f7162ec606a75faad51182b531e9d17445b68b66c3b7a62850592710f16ca2e43130cc075809d237e966a98b92595f5cf8a088e3e8c465b3e75cd90cbcb709550f127cfe6b91c6e3d5ca776995d3e733836855674853b8f2ad42291be01673f4c32776bd5f66dc592ec0faa4334628fbd9b25e86b39548bf9ec73a2fdb7da0d167cfa4420e5264c9c61054081fd480c0726064cbd31c6ef0f9be32116a7219fa2d52bf2b953c4c475ade4f14b94935caf39efb9aa925a4119d1d2c1a0291c61955829214420a95f7289e83f6b9f2423cc27b3d221c2d5be525d5be1f39823fefe9dfa11c1ca81b724cd18669116bc38fa954e9e354a46b044c3374293ad6f9a128f5f0fb4bd9001d8614542410488c6b4c1894166122352f6ae187153a2f6634d07fc19ebd59add770bb00bab0502f54d7e4aa7ea8e9364441cf3507cd340101623c3ad19ad38ee7d58b17f40aa2b2f3f4da53fd3652d2a901c33e0b9c81c53338aefde2482fdadb6aedec270a95ae10baf84739802f6d199680931c43079f746af5b801f7ccca07b4f0574df2d60ab03ed0483e3cf27634e6f970011e95662bd676c648986536d97a617cae1202f803923add167c3944c22ab0810f75de39499f2b536ca9dae688461f9ba2209205032bcfcbcaa05ea660ae5bc509cff11970ea8ba36abe3df593f20f8802d7af5a7c60aecb66b8ebe2dac5cd9f14cc24e5de4848dc5c999f753b87f54ef08f0c034a7ec63eab9d33751a27a0bd0ddd81a93605bcc20d482f060a1e138429bb6b3e67fafd68ead42e9392c0af5e0ccab2b11ac5d94536b7f99429ec407269f2d2244d3fb25e28183b5a2fa2ccec123f16785cfdc1a82828fcafee038b354f612f2a10cf59d75dd9d8713038b58f0436b501704d77006ff624e6fd20c21ea1985b5b141df4b67e10e254be03eb212da9f7b4c48bdbed134c9048dcf68607097ac3a5059accddb3205b70a97cd6e42eedb9e1574a2b3239d19bdfbc1f257d04efcd4be0e98c3612ee0eb695abd1ee25c58bb0b55a7200105a083feb95d9875aa35111b499311641f970837735754b2f9b7c396d410072f916a12946b0f846caed240bb551c7896615cde0ee2fd07d26266980fac9417d19131f6f248c2e9494b918451674add11997d7329b9ae09025c8a2df4f411d729183053e8c595e0989bd0f55dc1ba300258e3d645b76b3631c2c159c2248c579aa277ee1710be085883c5a815bb11bb4a167eca60cd741041bc2c74790b14ee53c670d70019e78250eac7685a858c9594e74137b40c67b6d249e2a97ca900d1aa57c8b0a5b4fb4a1b2e59ff98ceaaef6ddf380dd556330de040bb05e0169dcabcd72020c5990f9a7bc67ddee77a785bcd454b2c64f6e037c15e33612c2864abad392c9542c8d45448e356a0672f512b4b70cb15ffa2bc4671007eceed8d90710c43f4010c9e6c662e1069c07021bfaeab8675a16ebfdfe891c11e2b1c6dc3c50b6290b5f0c04d37944d9a1cfcebe28d84465e9d7fd5974fc0399768215f4c7f89d6b7b5e39dfb1796cbd2b76aa2b5d1ca3f7160bf9d1a5280648d1c37a9431e547bca36ebd44a9fff67dbeca92f0d30d38093738ccd478a72199b698ee71ea27cfb537b517d46e93a74f3661d8d730e973062aa3ec1018c9286b0d44980def0581622fa813f339e94322d34e1d02a053f870eb4490db01532899e6c6f5caa76f0310801d3ed07008277e75fbcd353baf474796998f3c576d01cf703f4d15353f8531475ade1ed54ce9fc14c801d21d7b8e50b95ddba55c5f0bd94a7c50ec7d7b7e4a8f5910bddc97d4fe6d641ed4758732542ca14763ff532d835952ba7700eb93c63b89946ec56825beff0661d186b1d8a59af9882110761228593d53e876bfabdbcdbb78d160473e2cece052f53aad60d33d4a4521696b0dfc170bd33c8e0031942c636b7ff24f33a89e3edc2c98b6e58c5493efee01142a9a9e37e598bde4842d61a3acff8b460524480fa45243d2a88a961ca11d37a82fff1e8ff27204d2aa369775137f072994ed58820bf5336eb2daba8ef5bfdc0329797ce0805b5154251fc2b3f89c0a872010dadaca6a935d70eba1c658fe634d0eb19f0cc852b89f0928c77dc5b733bd006f14579fb3da43631c787ba0887b502f904f590806d4b8a5dbdbbb61e7cb901dbe377766434a73d353d8391040bfcf081df57eeb61e87398dfc0ad8045e2f50abfc90b25cbb1dc8c791fb277cdcfa3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a5f94651102aaadf898cd31a60139df9d12bf9145647135038b75ccac28a1a614e8eea1eb7f91d10f5e68e8c0b80921e0ead2922c83c855b84449d7386403d713af9e4a10af932e6807b831ca2d9d5a066ddc5cbb79ecdfea71d7133fb1b15c2942beb9a9e911421c7bbb52cbfa4375045ebf1033d355f324a7e22c67e1661d06ad2818b362a5cb39f83738b4aac25f17484a74780c0d73d5db50bb8e7068eb0e2f39cab0268f77280da857921ebebff4f75b8586bf4f3c9889619bea84c2ea02247ca1a372ab95884fde3faf34725cf1a7b855b655a056cc91cc516756f12627a62a7162fdbb7166de2412f957b5ba8f96942fb9e6bcd0064e439ae33fe2171baee8f3d6db913cf7c3bd5236871964fcaef93bc18726ccae4099f301de428f02b25314d805156745c719f56218940e2f6f020d4a598704b3510d70c95d5dc404ea02966e742df0c0d8a10e621747723590c74eee6517a6a43711f517880fbe222b4b8a61d191acdefbb25d1ca5d2bcf6544d87ac9240883adeacd943dbf82927bb58bd3a6bddc69313bcad74805844ad3eca30433f9e3603ff4456402a7c181993a0d1b5802bd2a2bd51ce779a80e1ce3197a306f755abaccba6ebcfc8342012d2b2fbf010a2dd74cd6660b2c408286578afd59ec42edcc7859a31e27ec6c52b0fa45911742e01a4f8f2973cd6ba7ddb9749f8412060e096fb1bdba5e4f5ed0bd5262b933e52376043f0c0b1bc6a457d83c9939a7b7e7986f574cf085f5236085397f2e6b594224da3c57ad6a9438b9686eefc898463555779be97046b031f18842983296e79720ffcfaacde6e3b009d61e9e36c45237aadc8824a8ecf8cbf19b1f4771cb32c6ae5cf1204b7e3c1d1e66b9c77e0de592c6a45389892c0d9d119bdf1fd7ae241cbc0081acb586a371532e1e3671396e8e8cc8b62e450dbc97d0544fd7b2a7ee01603f871b5378bcd45b82e7686f1a2c5c675e1d7b1937d41712be0719b247eb96cc8c905e2844fa6408fb1f80fd64bd6430fa81d69f843737f267aabecd740d7550d5b7791bec2aaa64b4c95478cad79d9109e31e0ecd6dfa21b912cf92a1241c60382ef75d9fbe34f88761525642f4e3e0d268f3a5871564b1cef267feac6693a53e23b16e3adf426674086b4ee12eeed4d24b1eb21d61246045e1fee06eaddf3be65b28980a42f101faddeb5332187d02e3af0fb92a3b3222bdca46705f47ea923aa08a534b068f65646f940b7f018728cea1535218a464413f4205f2d606b5a16bf1a10bcec671861492d809740f595421b9ff63700c595183754f8fb1286ec723ecfb1485a8d56efac34f023496e3e05ed4d9114266edd11197803591e9a6556e25280bec2b7aa77780ee3bce9b72122bb723a3f5adc0713733b5a112f42075b9e5758a54da676ca01bde30d72e8b4f02adcf5d2deae4c1b0ece37ae624445e7f1769e2e7725844e8d0dece09cab42e411dd6163d5e892"
+          },
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence",
+                "onboarding_incomplete"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence.",
+                "Complete onboarding to unlock full execution eligibility."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 0,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "onboarding_incomplete",
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Complete onboarding to unlock full execution eligibility.",
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-10T17:29:42.578795+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 0
+            },
+            "credit": {
+              "grade": "AAA",
+              "credit_line_eth": 0.0,
+              "rate_bps": 300
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd",
+              "attribution_event_count": 0,
+              "credential_active_count": 0
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0x9e5b00b568bafc502f5af510f3605920799e78e1ec9fd3df77f41621c790fc08"
   }
 }

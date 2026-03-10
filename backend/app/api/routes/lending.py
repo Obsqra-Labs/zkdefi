@@ -45,9 +45,31 @@ class BorrowCalldataRequest(BaseModel):
     attestation_hash: str
 
 
+class BorrowGatedRequest(BaseModel):
+    address: Optional[str] = None
+    amount_wei: int
+    attestation_hash: str
+
+
 class RepayCalldataRequest(BaseModel):
     loan_id: int
     amount_wei: int
+
+
+# ── Lending gate  ─────────────────────────────────────────────────────────
+
+
+async def _get_lending_gate(address: str, request: BorrowGatedRequest) -> dict[str, Any]:
+    """Default no-op gate — always allows.
+    Override via monkeypatch or dependency injection in tests.
+    """
+    return {
+        "mode": "allow",
+        "reason_codes": [],
+        "reason_hints": [],
+        "limits": {"total_line_eth": 10.0},
+        "disclaimer": "Eligibility signal only; not legal, tax, or financial advice.",
+    }
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
@@ -74,6 +96,35 @@ async def supply_calldata(req: SupplyCalldataRequest) -> dict[str, Any]:
     if req.amount_wei <= 0:
         raise HTTPException(status_code=400, detail="amount_wei must be positive")
     return build_supply_calldata(req.amount_wei)
+
+
+@router.post("/borrow")
+async def borrow_gated(req: BorrowGatedRequest) -> dict[str, Any]:
+    """Risk-gated borrow: runs lending gate then builds calldata."""
+    _check_service()
+    if not req.address:
+        raise HTTPException(status_code=400, detail="address is required for borrow")
+
+    gate_result = await _get_lending_gate(req.address, req)
+    mode = gate_result.get("mode", "block")
+
+    if mode == "block":
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "borrow_blocked_by_risk_gate",
+                "reason_codes": gate_result.get("reason_codes", []),
+                "reason_hints": gate_result.get("reason_hints", []),
+                "limits": gate_result.get("limits", {}),
+                "disclaimer": gate_result.get("disclaimer", ""),
+            },
+        )
+
+    calldata = build_borrow_calldata(req.amount_wei, req.attestation_hash)
+    return {
+        **calldata,
+        "decision_context": gate_result,
+    }
 
 
 @router.post("/borrow/calldata")

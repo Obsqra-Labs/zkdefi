@@ -31,6 +31,9 @@ def _mock_compiler(monkeypatch):
     )
 
 
+WALLET_HEADER = {"X-Wallet-Address": "0xabc"}
+
+
 def test_privacy_preview_reports_missing_proofs(monkeypatch):
     _mock_compiler(monkeypatch)
 
@@ -42,6 +45,7 @@ def test_privacy_preview_reports_missing_proofs(monkeypatch):
             "token": "ETH",
             "execute_now": False,
         },
+        headers=WALLET_HEADER,
     )
     assert response.status_code == 200
     payload = response.json()
@@ -64,6 +68,7 @@ def test_privacy_execute_now_requires_required_proofs(monkeypatch):
             "execution_mode": "wallet",
             "wallet_connected": True,
         },
+        headers=WALLET_HEADER,
     )
     assert response.status_code == 403
     detail = response.json()["detail"]
@@ -87,6 +92,7 @@ def test_privacy_execute_now_passes_with_all_proofs(monkeypatch):
                 "zkml_risk_proof": "0xproof2",
             },
         },
+        headers=WALLET_HEADER,
     )
     assert response.status_code == 200
     payload = response.json()

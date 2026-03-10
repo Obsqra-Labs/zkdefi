@@ -388,9 +388,11 @@ ledger_router = _optional_router("app.api.routes.ledger")
 private_yield_router = _optional_router("app.api.routes.private_yield")
 dao_router = _optional_router("app.api.routes.dao_governance")
 vault_proposals_router = _optional_router("app.api.routes.vault_proposals")
+vault_strategy_router = _optional_router("app.api.routes.vault_strategy")
 lending_router = _optional_router("app.api.routes.lending")
 staking_router = _optional_router("app.api.routes.staking")
 mission_control_router = _optional_router("app.api.routes.mission_control")
+pool_composition_router = _optional_router("app.api.routes.pool_composition")
 
 if vault_v2_router:
     app.include_router(vault_v2_router, prefix="/api/v2/vault", tags=["vault-v2"])
@@ -410,6 +412,12 @@ if vault_proposals_router:
         prefix="/api/v1/zkdefi/vault/proposals",
         tags=["vault-proposals"],
     )
+if vault_strategy_router:
+    app.include_router(
+        vault_strategy_router,
+        prefix="/api/v1/zkdefi",
+        tags=["vault-strategy"],
+    )
 if lending_router:
     app.include_router(
         lending_router, prefix="/api/v1/zkdefi/lending", tags=["lending"]
@@ -417,6 +425,10 @@ if lending_router:
 if staking_router:
     app.include_router(
         staking_router, prefix="/api/v1/zkdefi/staking", tags=["staking"]
+    )
+if pool_composition_router:
+    app.include_router(
+        pool_composition_router, prefix="/api/v1/zkdefi", tags=["pool-composition"]
     )
 if mission_control_router:
     app.include_router(
@@ -437,6 +449,7 @@ deployments_router = _optional_router("app.api.routes.deployments")
 vault_execute_router = _optional_router("app.api.routes.vault_execute")
 vault_execute_live_router = _optional_router("app.api.routes.vault_execute_live")
 vault_compat_router = _optional_router("app.api.routes.vault_compat")
+vault_router = _optional_router("app.api.routes.vault")
 phase4a_router = _optional_router("app.api.routes.phase4a")
 
 if identity_router:
@@ -455,6 +468,8 @@ if vault_execute_router:
     app.include_router(vault_execute_router, prefix="/api/v1/vault", tags=["vault"])
 if vault_compat_router:
     app.include_router(vault_compat_router, prefix="/api/v1/vault", tags=["vault-compat"])
+if vault_router:
+    app.include_router(vault_router, prefix="/api/v1/zkdefi/vault", tags=["vault-status"])
 if vault_execute_live_router:
     app.include_router(
         vault_execute_live_router,
@@ -483,7 +498,7 @@ if receipts_router:
 
 trade_desk_v2_router = _optional_router("app.api.routes.trade_desk_v2")
 if trade_desk_v2_router:
-    app.include_router(trade_desk_v2_router, prefix="/api/v1/zkdefi", tags=["trade-desk-v2"])
+    app.include_router(trade_desk_v2_router, prefix="/api/v1/zkdefi/trade-desk", tags=["trade-desk-v2"])
 
 dca_router = _optional_router("app.api.routes.dca")
 if dca_router:
@@ -504,6 +519,14 @@ if marketplace_router:
 madara_settlement_router = _optional_router("app.api.routes.madara_settlement")
 if madara_settlement_router:
     app.include_router(madara_settlement_router, prefix="/api/v1/zkdefi/risk_passport", tags=["madara-settlement"])
+
+market_router = _optional_router("app.api.routes.market")
+if market_router:
+    app.include_router(market_router, prefix="/api/v1/zkdefi", tags=["market"])
+
+privacy_unified_router = _optional_router("app.api.routes.privacy_unified")
+if privacy_unified_router:
+    app.include_router(privacy_unified_router, prefix="/api/v1/zkdefi", tags=["privacy-unified"])
 
 
 # -----------------------------------------------------------------------------

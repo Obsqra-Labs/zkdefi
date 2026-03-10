@@ -3,9 +3,16 @@ Tests for ComplianceService — profile registration, expiry, revocation, valida
 """
 from __future__ import annotations
 
+import os
 import pytest
 
 from app.services.compliance_service import ComplianceService
+
+
+@pytest.fixture(autouse=True)
+def _allow_simulated_proofs(monkeypatch):
+    """All compliance tests run with simulated proofs enabled."""
+    monkeypatch.setenv("ALLOW_SIMULATED_PROOFS", "true")
 
 
 @pytest.fixture

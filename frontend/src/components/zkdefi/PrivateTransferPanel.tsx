@@ -9,8 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { addActivityEvent } from "./ActivityLog";
 import { useApp } from "@/lib/AppContext";
 import { ConnectButton } from "./ConnectButton";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 const CONFIDENTIAL_TRANSFER_ADDRESS =
   process.env.NEXT_PUBLIC_CONFIDENTIAL_TRANSFER_ADDRESS || "";
 

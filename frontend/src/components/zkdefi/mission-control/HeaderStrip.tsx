@@ -7,12 +7,12 @@ import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate } from "@/lib/trust/adapters";
 import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { ConnectButton } from "../ConnectButton";
-import type { OverlayMode } from "./MissionControlLayout";
+import type { OverlayModeV2 } from "@/lib/agentState";
 
 interface HeaderStripProps {
   address: string | undefined;
-  activeOverlay: OverlayMode;
-  onOverlayChange: (mode: OverlayMode) => void;
+  activeOverlay: OverlayModeV2;
+  onOverlayChange: (mode: OverlayModeV2) => void;
 }
 
 interface AgentStatus {
@@ -116,22 +116,10 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
         )}
         <div className="w-px h-4 bg-zinc-700" />
         <button
-          onClick={() => onOverlayChange(activeOverlay === "deploy" ? null : "deploy")}
-          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "deploy" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-        >
-          Deploy
-        </button>
-        <button
           onClick={() => onOverlayChange(activeOverlay === "circuit-board" ? null : "circuit-board")}
           className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "circuit-board" ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
         >
           Design
-        </button>
-        <button
-          onClick={() => onOverlayChange(activeOverlay === "governance" ? null : "governance")}
-          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "governance" ? "bg-cyan-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-        >
-          Govern
         </button>
         <button
           onClick={() => onOverlayChange(activeOverlay === "brain" ? null : "brain")}

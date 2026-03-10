@@ -140,9 +140,23 @@ class TestAnalyticsService:
                         address TEXT NOT NULL,
                         adapter TEXT NOT NULL,
                         status TEXT,
+                        error TEXT,
                         created_at TEXT,
                         submitted_at TEXT,
                         confirmed_at TEXT
+                    )
+                """)
+
+                conn.execute("""
+                    CREATE TABLE execution_events_archive (
+                        event_id TEXT PRIMARY KEY,
+                        call_id TEXT,
+                        event_type TEXT,
+                        data TEXT,
+                        compressed_data BLOB,
+                        is_compressed INTEGER DEFAULT 0,
+                        created_at TEXT,
+                        archived_at TEXT
                     )
                 """)
                 
@@ -151,18 +165,18 @@ class TestAnalyticsService:
                 
                 # Insert test data
                 test_data = [
-                    ("call1", "addr1", "ekubo", "confirmed", day_ago, day_ago, now.isoformat()),
-                    ("call2", "addr1", "ekubo", "confirmed", day_ago, day_ago, now.isoformat()),
-                    ("call3", "addr2", "lending", "failed", day_ago, day_ago, now.isoformat()),
-                    ("call4", "addr2", "staking", "pending", day_ago, day_ago, None),
+                    ("call1", "addr1", "ekubo", "confirmed", None, day_ago, day_ago, now.isoformat()),
+                    ("call2", "addr1", "ekubo", "confirmed", None, day_ago, day_ago, now.isoformat()),
+                    ("call3", "addr2", "lending", "failed", "timeout", day_ago, day_ago, now.isoformat()),
+                    ("call4", "addr2", "staking", "pending", None, day_ago, day_ago, None),
                 ]
                 
-                for call_id, addr, adapter, status, created, submitted, confirmed in test_data:
+                for call_id, addr, adapter, status, error, created, submitted, confirmed in test_data:
                     conn.execute("""
                         INSERT INTO executions
-                        (call_id, address, adapter, status, created_at, submitted_at, confirmed_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (call_id, addr, adapter, status, created, submitted, confirmed))
+                        (call_id, address, adapter, status, error, created_at, submitted_at, confirmed_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (call_id, addr, adapter, status, error, created, submitted, confirmed))
                 
                 conn.commit()
             
@@ -251,6 +265,28 @@ class TestRedisNonceManager:
 class TestPhase4Integration:
     """Integration tests for Phase 4 components."""
     
+    @pytest.fixture
+    def temp_db(self):
+        """Create temporary database with archive table."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = str(Path(tmpdir) / "test_archive.db")
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("""
+                    CREATE TABLE execution_events_archive (
+                        event_id TEXT PRIMARY KEY,
+                        call_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        data TEXT,
+                        compressed_data BLOB,
+                        is_compressed INTEGER DEFAULT 0,
+                        created_at TEXT NOT NULL,
+                        archived_at TEXT NOT NULL,
+                        compressed_at TEXT
+                    )
+                """)
+                conn.commit()
+            yield db_path
+
     def test_archive_compression_workflow(self, temp_db):
         """Test full compression workflow."""
         service = ArchiveCompressionService(db_path=temp_db)

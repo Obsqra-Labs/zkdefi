@@ -35,6 +35,8 @@ export interface VaultCommitment {
   pool_variant?: string;
   deposited_at: string;
   yield_accrued?: string;
+  strategy_id?: string;
+  allocation_source?: string;
 }
 
 export type ProofStep = {

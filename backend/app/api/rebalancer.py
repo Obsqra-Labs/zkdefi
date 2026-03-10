@@ -13,10 +13,11 @@ Endpoints:
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Optional
 
 from app.services.agent_rebalancer import get_rebalancer
 from app.services.autonomous_agent import get_autonomous_agent, MonitoringConfig
+from app.services.policy_engine import check as policy_check  # noqa: F401
 
 router = APIRouter()
 
@@ -71,7 +72,41 @@ class AutonomousStopRequest(BaseModel):
     user_address: str
 
 
+class AdvisoryCheckRequest(BaseModel):
+    """Non-mutating policy check."""
+    user_address: str
+    action_type: str = "swap"
+    pool_id: str | None = None
+    portfolio_features: list[int] = []
+    context: dict[str, Any] = {}
+
+
 # ==================== Endpoints ====================
+
+@router.post("/advisory-check")
+async def advisory_check(data: AdvisoryCheckRequest):
+    """Run a non-mutating policy check — no proposals are created."""
+    try:
+        result = await policy_check(
+            user_address=data.user_address,
+            action_type=data.action_type,
+            payload={
+                "portfolio_features": data.portfolio_features,
+                "pool_id": data.pool_id,
+                **(data.context or {}),
+            },
+        )
+        return {
+            "advisory_only": True,
+            "can_proceed": result.get("allowed", False),
+            "risk_passed": (result.get("risk_result") or {}).get("is_compliant", True),
+            "anomaly_passed": (result.get("anomaly_result") or {}).get("is_safe", True),
+            "snapshot_hash": result.get("snapshot_hash"),
+            "commitment_hash": result.get("commitment_hash"),
+            "reason": result.get("reason"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze")
 async def analyze_portfolio(data: AnalyzeRequest):

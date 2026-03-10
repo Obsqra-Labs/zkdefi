@@ -350,9 +350,31 @@ async def get_compliance_profiles(user_address: str):
     - Performance Proof
     - Portfolio Aggregation
     """
-    # In production, this would fetch from a database
-    # For now, return an empty list (profiles are generated on-demand)
-    return []
+    from app.services.receipt_service import get_receipt_service
+
+    svc = get_receipt_service()
+    receipts = await svc.get_user_receipts(user_address)
+
+    _type_map = {
+        "disclosure_risk_compliance": "risk_compliance",
+        "risk_compliance": "risk_compliance",
+        "kyc": "kyc",
+        "performance": "performance",
+        "aggregation": "aggregation",
+    }
+
+    profiles = []
+    for r in receipts:
+        ptype = _type_map.get(r.get("proof_type", ""), r.get("proof_type", "unknown"))
+        profiles.append({
+            "profile_type": ptype,
+            "proof_type": r.get("proof_type"),
+            "result": r.get("result"),
+            "fact_hash": r.get("fact_hash"),
+            "verified": r.get("fact_hash") is not None,
+            "timestamp": r.get("timestamp"),
+        })
+    return profiles
 
 
 @router.get("/compliance/profile-types")
