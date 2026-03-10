@@ -37,6 +37,112 @@ DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "hackathon_showcase"
 ENV_FILE = PROJECT_ROOT / "backend" / ".env"
 VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 
+# Public landscape references used in the HTML report to position the bridge
+# architecture relative to known open-source stacks.
+ECOSYSTEM_LANDSCAPE: list[dict[str, str]] = [
+    {
+        "project": "EZKL",
+        "focus": "Open-source zkML proving stack (ONNX to ZK proof flow).",
+        "why_it_matters": "Shows mature zkML proving tooling; zkde.fi extends this with a circuit bridge and Starknet proving lanes.",
+        "source": "https://github.com/zkonduit/ezkl",
+    },
+    {
+        "project": "Garaga",
+        "focus": "SNARK verifier stack for Starknet (Groth16/Plonk tooling and calldata).",
+        "why_it_matters": "Confirms active Starknet SNARK verification primitives that the ModelBridge lane can target.",
+        "source": "https://github.com/keep-starknet-strange/garaga",
+    },
+    {
+        "project": "Starknet verify-proofs docs",
+        "focus": "Production guide for verifying zk proofs on Starknet.",
+        "why_it_matters": "Anchors on-chain verifier patterns and expected integration shape on Starknet.",
+        "source": "https://docs.starknet.io/build/starknet-by-example/advanced/verify-proofs",
+    },
+    {
+        "project": "SNOS / SHARP model",
+        "focus": "STARK validity proving model used by Starknet (execution trace to proof).",
+        "why_it_matters": "Frames the STARK side of dual architecture and integrity-style proof semantics.",
+        "source": "https://docs.starknet.io/learn/protocol/snos",
+    },
+    {
+        "project": "Giza on Starknet",
+        "focus": "Verifiable ML effort built on Starknet tooling.",
+        "why_it_matters": "Provides ecosystem context: zkML on Starknet exists, but bridge-to-circuit proof gating remains a distinct design choice.",
+        "source": "https://www.starknet.io/blog/onchain-ai-with-giza/",
+    },
+    {
+        "project": "SN Stack open-source launch",
+        "focus": "Open-source Starknet stack announced by StarkWare.",
+        "why_it_matters": "Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable.",
+        "source": "https://www.starknet.io/blog/introducing-sn-stack-open-source-zk-powered-scaling/",
+    },
+]
+
+BRIDGE_UNLOCKS: list[dict[str, str]] = [
+    {
+        "unlock": "Model output -> policy gate, not just model output -> score",
+        "design_signal": (
+            "ModelBridge binds model_output + proof/model hashes + bounds + timestamp into a "
+            "Groth16 public-signal commitment that policy lanes can enforce."
+        ),
+        "why_it_matters": "Lets AI recommendations become cryptographically gateable execution intents.",
+    },
+    {
+        "unlock": "Portable zkML semantics across stacks",
+        "design_signal": (
+            "Bridge lane can consume zkML-style artifacts, format calldata for Garaga, then target "
+            "Starknet verification paths."
+        ),
+        "why_it_matters": "De-risks lock-in to a single proving stack while keeping one policy interface.",
+    },
+    {
+        "unlock": "Dual STARK/SNARK trust posture",
+        "design_signal": (
+            "The same intent can flow through SNARK (Groth16/Garaga) and STARK (integrity/SNOS-style) "
+            "lanes with mirror status tracking."
+        ),
+        "why_it_matters": "Allows product-level trust modes instead of one hardcoded proof lane.",
+    },
+    {
+        "unlock": "Privacy-first execution controls",
+        "design_signal": (
+            "Bridge proofs feed strategy gating while shielded/nullifier/relayer rails preserve user "
+            "privacy and selective disclosure."
+        ),
+        "why_it_matters": "Supports private capital ops without losing verifiable safety checks.",
+    },
+]
+
+BRIDGE_COMPARISON: list[dict[str, str]] = [
+    {
+        "stack": "EZKL",
+        "signal": "Open-source zkML proving from ONNX models to proofs.",
+        "bridge_gap": "No direct Starknet privacy-policy bridge wiring documented in cited source.",
+        "source": "https://github.com/zkonduit/ezkl",
+    },
+    {
+        "stack": "Garaga",
+        "signal": "Starknet-oriented SNARK verifier/calldata tooling (Groth16/Plonk lanes).",
+        "bridge_gap": "Verifier primitives, but not end-to-end zkML recommendation gating product flow.",
+        "source": "https://github.com/keep-starknet-strange/garaga",
+    },
+    {
+        "stack": "Giza on Starknet",
+        "signal": "Verifiable ML context in Starknet ecosystem.",
+        "bridge_gap": "Public material does not describe the same privacy-tier + relayer gating composition.",
+        "source": "https://www.starknet.io/blog/onchain-ai-with-giza/",
+    },
+    {
+        "stack": "zkde.fi (this repo)",
+        "signal": (
+            "ModelBridge circuit + Groth16 prover + proof pipeline + proving-path routing + "
+            "privacy rails + strategy badges."
+        ),
+        "bridge_gap": "Bridge-to-policy-gate wiring is implemented as first-class backend flow.",
+        "source": "local_repo_evidence",
+    },
+]
+
 
 def _normalize_address(address: str) -> str:
     raw = str(address or "").strip().lower()
@@ -85,6 +191,13 @@ def _safe_int(raw: Any, default: int = 0) -> int:
         return int(raw)
     except Exception:
         return default
+
+
+def _clip_text(raw: Any, limit: int = 160) -> str:
+    value = str(raw or "")
+    if len(value) <= limit:
+        return value
+    return value[: max(0, limit - 3)] + "..."
 
 
 def _voyager_contract_url(address: str | None) -> str | None:
@@ -213,12 +326,14 @@ class ShowcaseRunner:
         timeout_seconds: float,
         skip_onchain: bool,
         artifact_dir: Path,
+        judge_mode: bool,
     ):
         self.wallet = _normalize_address(wallet)
         self.client = HttpClient(base_url=base_url, timeout_seconds=timeout_seconds)
         self.timeout_seconds = timeout_seconds
         self.skip_onchain = skip_onchain
         self.artifact_dir = artifact_dir
+        self.judge_mode = judge_mode
         self.env_from_file = _load_env_file(ENV_FILE)
 
         self.results: list[StepResult] = []
@@ -243,15 +358,71 @@ class ShowcaseRunner:
         self._strategy_snapshots: dict[str, Any] = {}
         self._llm_config_packs: list[dict[str, Any]] = []
         self._circuit_inventory: dict[str, Any] = {}
+        self._bridge_architecture: dict[str, Any] = {}
+        self._ecosystem_landscape: list[dict[str, str]] = [dict(item) for item in ECOSYSTEM_LANDSCAPE]
+        self._privacy_showcase: dict[str, Any] = {}
+        self._forecaster_showcase: dict[str, Any] = {}
+        self._ai_skill_engine: dict[str, Any] = {}
 
     def _record(self, name: str, ok: bool, **details: Any) -> StepResult:
         res = StepResult(name=name, ok=ok, details=details)
         self.results.append(res)
         mark = "PASS" if ok else "FAIL"
-        print(f"[{mark}] {name}")
-        for key, value in details.items():
-            print(f"  - {key}: {value}")
+        if self.judge_mode:
+            summary = ", ".join(f"{k}={details[k]}" for k in list(details.keys())[:4])
+            print(f"[{mark}] {name}" + (f" :: {summary}" if summary else ""))
+        else:
+            print(f"[{mark}] {name}")
+            for key, value in details.items():
+                print(f"  - {key}: {value}")
         return res
+
+    def _call_ml_bridge_with_retry(
+        self,
+        payload: dict[str, Any],
+        *,
+        max_attempts: int = 3,
+    ) -> tuple[int, Any, list[dict[str, Any]]]:
+        attempts: list[dict[str, Any]] = []
+        for idx in range(max_attempts):
+            status, body = self.client.call("POST", "/api/v1/zkdefi/proofs/ml-bridge", payload=payload)
+            run = self._bridge_run_summary(status, body)
+            failure_text = " ".join(
+                [
+                    str(run.get("failure_reason") or ""),
+                    str((run.get("l3") or {}).get("error") or ""),
+                    str((run.get("l2") or {}).get("error") or ""),
+                    str(run.get("api_error") or ""),
+                ]
+            ).strip()
+            attempts.append(
+                {
+                    "attempt": idx + 1,
+                    "status": status,
+                    "can_execute": bool(run.get("can_execute")),
+                    "mirror_status": run.get("mirror_status"),
+                    "failure_text": _clip_text(failure_text, 200),
+                }
+            )
+            if idx >= max_attempts - 1:
+                return status, body, attempts
+            text = failure_text.lower()
+            retryable = (
+                status in {0, 409, 429, 500, 502, 503, 504}
+                or "nonce" in text
+                or "temporar" in text
+                or "timeout" in text
+                or "too many requests" in text
+                or "rate limit" in text
+                or "gateway" in text
+                or "pending" in text
+                or "connection" in text
+                or "try again" in text
+            )
+            if not retryable:
+                return status, body, attempts
+            time.sleep(1.2 + (0.8 * idx))
+        return status, body, attempts
 
     def run(self) -> int:
         started_at = time.time()
@@ -266,11 +437,14 @@ class ShowcaseRunner:
         self.step_agent_create_execute()
         self.step_deployment_proof_and_calldata()
         self.step_full_privacy_commitment()
+        self.step_privacy_and_governance_showcase()
+        self.step_private_prediction_market_forecaster()
         self.step_policy_controls()
         self.step_onchain_read_via_backend()
         self.step_rpc_contract_presence()
         self.step_receipts_view()
         self.step_optional_advanced_proofs()
+        self.step_bridge_and_dual_architecture()
         self.step_circuit_inventory_deep_dive()
         self.step_ai_marketplace_and_badges()
 
@@ -509,6 +683,585 @@ class ShowcaseRunner:
             pool_type=(body or {}).get("pool_type"),
         )
 
+    def step_privacy_and_governance_showcase(self) -> None:
+        auth_headers = {"X-Wallet-Address": self.wallet}
+        tier_status, tier_body = self.client.call("GET", "/api/v1/zkdefi/reputation/tiers")
+        user_status, user_body = self.client.call("GET", f"/api/v1/zkdefi/reputation/user/{self.wallet}")
+
+        tier_rows: list[dict[str, Any]] = []
+        if isinstance(tier_body, list):
+            for row in tier_body:
+                if not isinstance(row, dict):
+                    continue
+                tier_rows.append(
+                    {
+                        "tier": row.get("tier"),
+                        "tier_name": row.get("tier_name"),
+                        "relayer_access": row.get("relayer_access"),
+                        "relayer_delay_hours": row.get("relayer_delay_hours"),
+                        "max_position_eth": row.get("max_position_eth"),
+                        "proof_requirement": row.get("proof_requirement"),
+                    }
+                )
+
+        privacy_rails: list[dict[str, Any]] = []
+        commitment_for_ledger: dict[str, Any] | None = None
+        for pool_type in [0, 1, 2]:
+            amount_wei = str(1_000_000_000_000_000 + (pool_type * 11_111))
+            gen_status, gen_body = self.client.call(
+                "POST",
+                "/api/v1/zkdefi/full_privacy/deposit/generate_commitment",
+                payload={
+                    "user_address": self.wallet,
+                    "amount": amount_wei,
+                    "pool_type": pool_type,
+                    "token": "STRK",
+                },
+                headers=auth_headers,
+            )
+            row: dict[str, Any] = {
+                "pool_type": pool_type,
+                "generate_status": gen_status,
+                "register_status": None,
+                "claim_status": None,
+                "proof_with_change_status": None,
+                "commitment": None,
+                "nullifier": None,
+                "claim_hash": None,
+                "relayer_ready": False,
+                "error": (gen_body.get("detail") if isinstance(gen_body, dict) else None),
+            }
+            if gen_status == 200 and isinstance(gen_body, dict):
+                commitment = str(gen_body.get("commitment") or "")
+                row["commitment"] = commitment
+                register_status, register_body = self.client.call(
+                    "POST",
+                    "/api/v1/zkdefi/full_privacy/deposit/register_commitment",
+                    payload={"commitment": commitment},
+                    headers=auth_headers,
+                )
+                row["register_status"] = register_status
+
+                claim_payload = {
+                    "user_secret": gen_body.get("user_secret"),
+                    "amount": gen_body.get("amount"),
+                    "pool_type": pool_type,
+                    "nonce": gen_body.get("nonce"),
+                    "blinding": gen_body.get("blinding"),
+                    "withdraw_amount": str(max(1, int(gen_body.get("amount", amount_wei)) // 2)),
+                    "recipient": self.wallet,
+                    "leaf_index": (
+                        register_body.get("leaf_index")
+                        if isinstance(register_body, dict) and register_body.get("leaf_index") is not None
+                        else -1
+                    ),
+                    "merkle_root": (register_body.get("merkle_root") if isinstance(register_body, dict) else None),
+                    "path_elements": (register_body.get("path_elements") if isinstance(register_body, dict) else None),
+                    "path_indices": (register_body.get("path_indices") if isinstance(register_body, dict) else None),
+                }
+                claim_status, claim_body = self.client.call(
+                    "POST",
+                    "/api/v1/zkdefi/full_privacy/withdraw/generate_claim_proof",
+                    payload=claim_payload,
+                    headers=auth_headers,
+                )
+                row["claim_status"] = claim_status
+                row["nullifier"] = claim_body.get("nullifier") if isinstance(claim_body, dict) else None
+                row["claim_hash"] = claim_body.get("claim_hash") if isinstance(claim_body, dict) else None
+                row["error"] = (
+                    row["error"]
+                    or (claim_body.get("detail") if isinstance(claim_body, dict) else None)
+                    or (register_body.get("detail") if isinstance(register_body, dict) else None)
+                )
+                row["relayer_ready"] = bool(row["nullifier"] and row["claim_hash"])
+
+                if pool_type == 1 and register_status == 200:
+                    change_status, _change_body = self.client.call(
+                        "POST",
+                        "/api/v1/zkdefi/full_privacy/withdraw/generate_proof_with_change",
+                        payload=claim_payload,
+                        headers=auth_headers,
+                    )
+                    row["proof_with_change_status"] = change_status
+
+                if commitment_for_ledger is None:
+                    commitment_for_ledger = {
+                        "commitment": commitment,
+                        "amount_wei": amount_wei,
+                        "pool_type": pool_type,
+                    }
+            privacy_rails.append(row)
+
+        shielded_ref = (
+            str((commitment_for_ledger or {}).get("commitment"))
+            if commitment_for_ledger and commitment_for_ledger.get("commitment")
+            else "0x1234"
+        )
+        shielded_status, shielded_body = self.client.call("GET", f"/api/v1/zkdefi/privacy/vault/status/{shielded_ref}")
+
+        transfer_in_payload = {
+            "user_address": self.wallet,
+            "amount_wei": str((commitment_for_ledger or {}).get("amount_wei") or "1000000000000000"),
+            "asset": "STRK",
+            "method": "dark_ledger",
+            "commitment_hash": (commitment_for_ledger or {}).get("commitment"),
+            "capital_source": "wallet_mode",
+        }
+        transfer_in_status, transfer_in_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/ledger/transfer_in/request",
+            payload=transfer_in_payload,
+            headers=auth_headers,
+        )
+        transfer_out_status, transfer_out_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/ledger/transfer_out/request",
+            payload={
+                "user_address": self.wallet,
+                "amount_wei": "500000000000000",
+                "asset": "STRK",
+                "capital_source": "private_capital",
+                "destination_mode": "wallet",
+                "method": "dark_ledger",
+                "commitment_hash": (
+                    transfer_in_body.get("commitment_hash")
+                    if isinstance(transfer_in_body, dict)
+                    else None
+                ),
+                "recipient": self.wallet,
+            },
+            headers=auth_headers,
+        )
+        relayer_status = None
+        status_url = transfer_out_body.get("status_url") if isinstance(transfer_out_body, dict) else None
+        if status_url:
+            relayer_status, _relayer_body = self.client.call("GET", status_url)
+
+        madara_health_status, madara_health_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/health",
+        )
+        madara_config_status, madara_config_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/config",
+        )
+        madara_stats_status, madara_stats_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/stats",
+        )
+        madara_count_status, madara_count_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/fact-count",
+        )
+        fact_hash_for_verify = (
+            transfer_in_body.get("commitment_hash")
+            if isinstance(transfer_in_body, dict)
+            else None
+        ) or ("0x" + ("12" * 32))
+        madara_verify_status, madara_verify_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/verify",
+            payload={"fact_hash": fact_hash_for_verify},
+        )
+        batch_submit_status, batch_submit_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/batch/submit",
+            payload={
+                "fact_hash": fact_hash_for_verify,
+                "proof_type": "withdraw",
+                "user_address": self.wallet,
+            },
+        )
+        batch_pending_status, batch_pending_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/batch/pending",
+        )
+
+        proposal_status, proposal_body = self.client.call(
+            "POST",
+            "/api/v1/dao/proposals",
+            payload={
+                "proposer_address": self.wallet,
+                "proposal_type": "privacy_param_update",
+                "target_address": "0x1",
+                "new_value": 42,
+                "vote_duration_seconds": 3600,
+                "description": "Private voting + dark settlement backend showcase",
+            },
+            headers=auth_headers,
+        )
+        proposal_id = proposal_body.get("proposal_id") if isinstance(proposal_body, dict) else None
+        vote_proof_status = None
+        vote_proof_body: Any = {}
+        vote_cast_status = None
+        vote_cast_body: Any = {}
+        if proposal_id is not None:
+            vote_proof_status, vote_proof_body = self.client.call(
+                "POST",
+                "/api/v1/dao/vote/generate_proof",
+                payload={
+                    "user_address": self.wallet,
+                    "proposal_id": int(proposal_id),
+                    "vote_direction": 1,
+                },
+                headers=auth_headers,
+            )
+            vote_cast_status, vote_cast_body = self.client.call(
+                "POST",
+                "/api/v1/dao/vote/cast",
+                payload={
+                    "user_address": self.wallet,
+                    "proposal_id": int(proposal_id),
+                    "vote_direction": 1,
+                },
+                headers=auth_headers,
+            )
+
+        lending_pool_status, lending_pool_body = self.client.call("GET", "/api/v1/zkdefi/lending/pool")
+        lending_hf_status, lending_hf_body = self.client.call(
+            "GET",
+            f"/api/v1/zkdefi/lending/health-factor/{self.wallet}",
+        )
+        lending_supply_status, lending_supply_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/lending/supply/calldata",
+            payload={"amount_wei": 10_000_000_000_000_000},
+        )
+        lending_borrow_status, lending_borrow_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/lending/borrow",
+            payload={
+                "address": self.wallet,
+                "amount_wei": 5_000_000_000_000_000,
+                "attestation_hash": "0x" + ("34" * 32),
+            },
+        )
+
+        privacy_mode_rows: list[dict[str, Any]] = []
+        for i, mode in enumerate(["public", "shielded", "dark_ledger"]):
+            mode_status, mode_body = self.client.call(
+                "POST",
+                "/api/v1/dao/pools/MODERATE_POOL/deposit",
+                payload={
+                    "amount": 125.0 + i,
+                    "privacyMode": mode,
+                    "userAddress": self.wallet,
+                    "source": "simulated",
+                },
+                headers=auth_headers,
+            )
+            privacy_mode_rows.append(
+                {
+                    "privacy_mode": mode,
+                    "status": mode_status,
+                    "proof_ref": (
+                        mode_body.get("proof_hash")
+                        if isinstance(mode_body, dict)
+                        else None
+                    ),
+                    "detail": (mode_body.get("detail") if isinstance(mode_body, dict) else None),
+                }
+            )
+        dao_lending_policy_status, dao_lending_policy_body = self.client.call(
+            "GET",
+            "/api/v1/dao/pools/MODERATE_POOL/lending-policy",
+        )
+        dao_active_loans_status, dao_active_loans_body = self.client.call(
+            "GET",
+            "/api/v1/dao/pools/MODERATE_POOL/loans/active",
+        )
+
+        proved_rails = sum(1 for row in privacy_rails if row.get("claim_status") == 200 and row.get("nullifier"))
+        mode_success = sum(1 for row in privacy_mode_rows if row.get("status") == 200)
+
+        privacy_ok = (
+            tier_status == 200
+            and user_status == 200
+            and proved_rails >= 2
+            and transfer_in_status == 200
+            and transfer_out_status == 200
+        )
+        settlement_ok = (
+            madara_health_status == 200
+            and madara_config_status == 200
+            and madara_verify_status == 200
+            and batch_submit_status == 200
+            and batch_pending_status == 200
+        )
+        lending_ok = (
+            lending_pool_status == 200
+            and lending_supply_status == 200
+            and lending_borrow_status == 200
+            and dao_lending_policy_status == 200
+            and dao_active_loans_status == 200
+            and mode_success >= 3
+        )
+        governance_ok = proposal_status == 200 and (vote_proof_status == 200 or vote_cast_status == 200)
+
+        self._privacy_showcase = {
+            "tiers_status": tier_status,
+            "tiers": tier_rows,
+            "user_status": user_status,
+            "user": (user_body if isinstance(user_body, dict) else {}),
+            "rails": privacy_rails,
+            "shielded_status": {
+                "status": shielded_status,
+                "state": (shielded_body.get("status") if isinstance(shielded_body, dict) else None),
+            },
+            "ledger": {
+                "transfer_in_status": transfer_in_status,
+                "transfer_in": transfer_in_body if isinstance(transfer_in_body, dict) else {},
+                "transfer_out_status": transfer_out_status,
+                "transfer_out": transfer_out_body if isinstance(transfer_out_body, dict) else {},
+                "relayer_status": relayer_status,
+            },
+            "madara": {
+                "health_status": madara_health_status,
+                "health": madara_health_body if isinstance(madara_health_body, dict) else {},
+                "config_status": madara_config_status,
+                "config": madara_config_body if isinstance(madara_config_body, dict) else {},
+                "stats_status": madara_stats_status,
+                "stats": madara_stats_body if isinstance(madara_stats_body, dict) else {},
+                "fact_count_status": madara_count_status,
+                "fact_count": madara_count_body if isinstance(madara_count_body, dict) else {},
+                "verify_status": madara_verify_status,
+                "verify": madara_verify_body if isinstance(madara_verify_body, dict) else {},
+                "batch_submit_status": batch_submit_status,
+                "batch_submit": batch_submit_body if isinstance(batch_submit_body, dict) else {},
+                "batch_pending_status": batch_pending_status,
+                "batch_pending": batch_pending_body if isinstance(batch_pending_body, dict) else {},
+            },
+            "voting": {
+                "proposal_status": proposal_status,
+                "proposal_id": proposal_id,
+                "vote_proof_status": vote_proof_status,
+                "vote_cast_status": vote_cast_status,
+                "vote_proof_error": (
+                    (vote_proof_body.get("detail") if isinstance(vote_proof_body, dict) else None)
+                    or ("HTTP_500_internal_error" if vote_proof_status and vote_proof_status >= 500 else None)
+                ),
+                "vote_cast_error": (
+                    (vote_cast_body.get("detail") if isinstance(vote_cast_body, dict) else None)
+                    or ("HTTP_500_internal_error" if vote_cast_status and vote_cast_status >= 500 else None)
+                ),
+            },
+            "lending": {
+                "pool_status": lending_pool_status,
+                "pool": lending_pool_body if isinstance(lending_pool_body, dict) else {},
+                "health_factor_status": lending_hf_status,
+                "health_factor": lending_hf_body if isinstance(lending_hf_body, dict) else {},
+                "supply_status": lending_supply_status,
+                "supply": lending_supply_body if isinstance(lending_supply_body, dict) else {},
+                "borrow_status": lending_borrow_status,
+                "borrow": lending_borrow_body if isinstance(lending_borrow_body, dict) else {},
+                "privacy_modes": privacy_mode_rows,
+                "dao_lending_policy_status": dao_lending_policy_status,
+                "dao_lending_policy": (
+                    dao_lending_policy_body if isinstance(dao_lending_policy_body, dict) else {}
+                ),
+                "dao_active_loans_status": dao_active_loans_status,
+                "dao_active_loans_count": (
+                    len(dao_active_loans_body) if isinstance(dao_active_loans_body, list) else 0
+                ),
+            },
+            "status_flags": {
+                "privacy_ok": privacy_ok,
+                "settlement_ok": settlement_ok,
+                "lending_ok": lending_ok,
+                "governance_ok": governance_ok,
+            },
+        }
+
+        overall_ok = privacy_ok and settlement_ok and lending_ok
+        self._record(
+            "Privacy tiers + shielded/nullifier/hash/relayer + private voting/lending",
+            overall_ok,
+            tiers=tier_status,
+            rails_proved=f"{proved_rails}/3",
+            relayer_withdraw_status=transfer_out_status,
+            dark_settlement_verify=madara_verify_status,
+            private_vote_proof_status=vote_proof_status,
+            private_lending_borrow_status=lending_borrow_status,
+        )
+
+    def step_private_prediction_market_forecaster(self) -> None:
+        base = "/api/v1/zkdefi/snapshot-forecaster"
+        now_ts = int(time.time())
+        window_payload = {
+            "pair_id": "ETH/USDC",
+            "network_id": "starknet_sepolia",
+            "window_open_ts": now_ts - 60,
+            "window_close_ts": now_ts + 600,
+            "cadence_id": "demo_1m",
+            "snapshot_data": {
+                "price": 3200.0,
+                "volatility": 0.22,
+                "liquidity": 1_000_000,
+            },
+            "feature_schema_id": "snapshot_forecaster.v1",
+            "feature_vector": {
+                "volatility": 0.22,
+                "spread": 0.02,
+                "momentum": 0.10,
+            },
+            "data_source_id": "hackathon_showcase",
+            "attest_snapshot": False,
+        }
+        window_status, window_body = self.client.call("POST", f"{base}/windows", payload=window_payload)
+        window_id = window_body.get("window_id") if isinstance(window_body, dict) else None
+
+        suggest_status, suggest_body = self.client.call(
+            "POST",
+            f"{base}/windows/{window_id}/suggested-outputs" if window_id else f"{base}/windows/invalid/suggested-outputs",
+            payload={
+                "horizons_min": [5, 30, 240],
+                "output_bounds": {
+                    "return_min_bps": -5000,
+                    "return_max_bps": 5000,
+                    "prob_min": 0,
+                    "prob_max": 10000,
+                },
+            },
+        )
+        outputs_scaled = (
+            suggest_body.get("outputs_scaled")
+            if isinstance(suggest_body, dict) and isinstance(suggest_body.get("outputs_scaled"), dict)
+            else {
+                "r5": 110,
+                "r30": 220,
+                "r240": 430,
+                "p5": 5600,
+                "p30": 5900,
+                "p240": 6200,
+            }
+        )
+        salt = f"demo-salt-{now_ts}"
+        model_hash = "0x" + ("55" * 32)
+
+        commit_status, commit_body = self.client.call(
+            "POST",
+            f"{base}/predictions/commit",
+            payload={
+                "window_id": window_id,
+                "model_identity": {
+                    "model_hash": model_hash,
+                    "schema_id": "snapshot_forecaster.v1",
+                    "settings_hash": "0x" + ("11" * 32),
+                    "vk_hash": "0x" + ("22" * 32),
+                },
+                "guess_ts": now_ts,
+                "horizons_min": [5, 30, 240],
+                "subject_id": self.wallet,
+                "outputs_scaled": outputs_scaled,
+                "salt": salt,
+                "metadata": {
+                    "demo": "private_prediction_market_primitive",
+                    "source": "hackathon_backend_showcase",
+                },
+            },
+        )
+        forecast_id = commit_body.get("forecast_id") if isinstance(commit_body, dict) else None
+
+        reveal_status, reveal_body = self.client.call(
+            "POST",
+            f"{base}/predictions/{forecast_id}/reveal" if forecast_id else f"{base}/predictions/invalid/reveal",
+            payload={
+                "outputs_scaled": outputs_scaled,
+                "salt": salt,
+                "ezkl_receipt": {
+                    "proof_hash": "0x" + ("33" * 32),
+                    "verify_key_hash": "0x" + ("44" * 32),
+                    "proof_system": "halo2_kzg",
+                    "verified_locally": True,
+                    "verified_on_chain": False,
+                    "verification_mode": "local_demo",
+                },
+            },
+        )
+
+        outcomes_status, outcomes_body = self.client.call(
+            "POST",
+            f"{base}/windows/{window_id}/outcomes" if window_id else f"{base}/windows/invalid/outcomes",
+            payload={
+                "outcomes": [
+                    {"horizon_min": 5, "actual_return_bps": 90, "actual_up": 1},
+                    {"horizon_min": 30, "actual_return_bps": 180, "actual_up": 1},
+                    {"horizon_min": 240, "actual_return_bps": 390, "actual_up": 1},
+                ],
+                "source_id": "hackathon_showcase",
+            },
+        )
+
+        score_status, score_body = self.client.call(
+            "POST",
+            f"{base}/predictions/{forecast_id}/score" if forecast_id else f"{base}/predictions/invalid/score",
+            payload={"ece_bins": 10},
+        )
+        score_receipt_id = score_body.get("score_receipt_id") if isinstance(score_body, dict) else None
+
+        explain_status, explain_body = self.client.call(
+            "POST",
+            f"{base}/explain",
+            payload={"forecast_id": forecast_id},
+        )
+        reputation_status, reputation_body = self.client.call(
+            "GET",
+            f"{base}/reputation/{self.wallet}",
+        )
+
+        metrics = score_body.get("metrics", {}) if isinstance(score_body, dict) and isinstance(score_body.get("metrics"), dict) else {}
+        self._forecaster_showcase = {
+            "window_status": window_status,
+            "window_id": window_id,
+            "suggest_status": suggest_status,
+            "suggested_outputs": outputs_scaled,
+            "commit_status": commit_status,
+            "forecast_id": forecast_id,
+            "reveal_status": reveal_status,
+            "trust_mode": (reveal_body.get("trust_mode") if isinstance(reveal_body, dict) else None),
+            "outcomes_status": outcomes_status,
+            "score_status": score_status,
+            "score_receipt_id": score_receipt_id,
+            "score_metrics": metrics,
+            "explain_status": explain_status,
+            "explain_narration": (
+                explain_body.get("narration")
+                if isinstance(explain_body, dict)
+                else None
+            ),
+            "reputation_status": reputation_status,
+            "reputation": (reputation_body if isinstance(reputation_body, dict) else {}),
+            "records": {
+                "window": window_body if isinstance(window_body, dict) else {},
+                "commit": commit_body if isinstance(commit_body, dict) else {},
+                "reveal": reveal_body if isinstance(reveal_body, dict) else {},
+                "outcomes": outcomes_body if isinstance(outcomes_body, dict) else {},
+                "score": score_body if isinstance(score_body, dict) else {},
+                "explain": explain_body if isinstance(explain_body, dict) else {},
+            },
+        }
+
+        ok = (
+            window_status == 200
+            and suggest_status == 200
+            and commit_status == 200
+            and reveal_status == 200
+            and outcomes_status == 200
+            and score_status == 200
+            and explain_status == 200
+            and reputation_status == 200
+        )
+        self._record(
+            "Private prediction market primitive (snapshot forecaster)",
+            ok,
+            window_status=window_status,
+            commit_status=commit_status,
+            reveal_status=reveal_status,
+            score_status=score_status,
+            trust_mode=self._forecaster_showcase.get("trust_mode"),
+            score_receipt=_short_hex(str(score_receipt_id) if score_receipt_id else None, 10),
+        )
+
     def step_policy_controls(self) -> None:
         g_status, g_body = self.client.call("GET", f"/api/v1/vault/constraints/{self.wallet}")
         p_status, p_body = self.client.call(
@@ -567,11 +1320,29 @@ class ShowcaseRunner:
             if item not in rpc_urls:
                 rpc_urls.append(item)
 
+        deployed_marker = _load_env_file(PROJECT_ROOT / ".model_bridge_verifier.deployed")
+        zkml_marker = _load_env_file(PROJECT_ROOT / ".zkml_verifier_model_bridge.deployed")
         addresses = {
             "REPUTATION_REGISTRY_ADDRESS": os.getenv("REPUTATION_REGISTRY_ADDRESS") or env.get("REPUTATION_REGISTRY_ADDRESS"),
             "FULL_PRIVACY_POOL_V2_ADDRESS": os.getenv("FULL_PRIVACY_POOL_V2_ADDRESS") or env.get("FULL_PRIVACY_POOL_V2_ADDRESS"),
             "RECEIPT_REGISTRY_ADDRESS": os.getenv("RECEIPT_REGISTRY_ADDRESS") or env.get("RECEIPT_REGISTRY_ADDRESS"),
             "VAULT_CONTROLLER_ADDRESS": os.getenv("VAULT_CONTROLLER_ADDRESS") or env.get("VAULT_CONTROLLER_ADDRESS"),
+            "GARAGA_VERIFIER_ADDRESS": (
+                os.getenv("GARAGA_VERIFIER_ADDRESS")
+                or env.get("GARAGA_VERIFIER_ADDRESS")
+                or zkml_marker.get("GARAGA_VERIFIER")
+            ),
+            "MODEL_BRIDGE_VERIFIER_ADDRESS": (
+                os.getenv("MODEL_BRIDGE_VERIFIER_ADDRESS")
+                or env.get("MODEL_BRIDGE_VERIFIER_ADDRESS")
+                or deployed_marker.get("MODEL_BRIDGE_VERIFIER_ADDRESS")
+                or zkml_marker.get("MODEL_BRIDGE_VERIFIER")
+            ),
+            "ZKML_VERIFIER_ADDRESS": (
+                os.getenv("ZKML_VERIFIER_ADDRESS")
+                or env.get("ZKML_VERIFIER_ADDRESS")
+                or zkml_marker.get("ZKML_VERIFIER_ADDRESS")
+            ),
         }
         if not rpc_urls:
             self._record("Raw RPC contract presence", False, error="Missing STARKNET_RPC_URL")
@@ -671,6 +1442,403 @@ class ShowcaseRunner:
             count=count,
             tx_hashes=len(unique_rows),
             first_tx_hash=_short_hex(unique_rows[0]["tx_hash"] if unique_rows else None),
+        )
+
+    def _extract_proving_paths(self, raw: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        snos: dict[str, Any] = {}
+        if not isinstance(raw, dict):
+            return rows, snos
+
+        direct_paths = raw.get("paths")
+        if isinstance(direct_paths, list):
+            for item in direct_paths:
+                if not isinstance(item, dict):
+                    continue
+                row = {
+                    "id": item.get("id"),
+                    "name": item.get("name"),
+                    "available": bool(item.get("available", False)),
+                    "description": item.get("description"),
+                    "trust_model": item.get("trust_model"),
+                    "contract": _normalize_address(str(item.get("contract") or "0x0")) if item.get("contract") else None,
+                    "gas_cost_l3": item.get("gas_cost_l3"),
+                    "latency_estimate_ms": item.get("latency_estimate_ms"),
+                    "applicable_to": item.get("applicable_to"),
+                }
+                if row["contract"]:
+                    row["voyager_contract"] = _voyager_contract_url(str(row["contract"]))
+                rows.append(row)
+            snos = raw.get("snos_proving") if isinstance(raw.get("snos_proving"), dict) else {}
+            return rows, snos
+
+        # Legacy shape fallback.
+        path_1 = raw.get("path_1_onchain_verification")
+        if isinstance(path_1, dict):
+            key_map = {
+                "garaga_groth16": "groth16_garaga",
+                "groth16_garaga": "groth16_garaga",
+                "integrity_stark": "stark_integrity",
+                "stark_integrity": "stark_integrity",
+                "hash_only": "hash_only",
+            }
+            for key, value in path_1.items():
+                if not isinstance(value, dict):
+                    continue
+                path_id = key_map.get(str(key).strip().lower(), str(key))
+                row = {
+                    "id": path_id,
+                    "name": value.get("name") or path_id,
+                    "available": bool(value.get("available", False)),
+                    "description": value.get("description"),
+                    "trust_model": value.get("trust_model"),
+                    "contract": _normalize_address(str(value.get("contract") or "0x0")) if value.get("contract") else None,
+                    "gas_cost_l3": value.get("gas_cost_l3"),
+                    "latency_estimate_ms": value.get("latency_estimate_ms"),
+                    "applicable_to": value.get("applicable_to"),
+                }
+                if row["contract"]:
+                    row["voyager_contract"] = _voyager_contract_url(str(row["contract"]))
+                rows.append(row)
+        snos = raw.get("path_2_snos_proving") if isinstance(raw.get("path_2_snos_proving"), dict) else {}
+        return rows, snos
+
+    @staticmethod
+    def _path_available(rows: list[dict[str, Any]], identifiers: set[str]) -> bool:
+        for row in rows:
+            pid = str(row.get("id") or "").strip().lower()
+            if pid in identifiers and bool(row.get("available")):
+                return True
+        return False
+
+    @staticmethod
+    def _bridge_run_summary(status: int, body: Any) -> dict[str, Any]:
+        payload = body if isinstance(body, dict) else {}
+        verification = payload.get("verification") if isinstance(payload.get("verification"), dict) else {}
+        l3 = verification.get("l3") if isinstance(verification.get("l3"), dict) else {}
+        l2 = verification.get("l2") if isinstance(verification.get("l2"), dict) else {}
+        bridge_proof = payload.get("bridge_proof") if isinstance(payload.get("bridge_proof"), dict) else {}
+        combined = payload.get("combined_calldata") if isinstance(payload.get("combined_calldata"), dict) else {}
+        l3_tx = l3.get("tx_hash")
+        l2_tx = l2.get("tx_hash")
+        api_error = payload.get("detail") or payload.get("error") or payload.get("raw")
+        failure_reason = verification.get("failure_reason")
+        if not failure_reason and api_error:
+            failure_reason = str(api_error)
+        return {
+            "status": status,
+            "proof_mode": payload.get("proof_mode"),
+            "proof_mode_level": payload.get("proof_mode_level"),
+            "requested_execution_chain": verification.get("requested_execution_chain"),
+            "primary_authority": verification.get("primary_authority"),
+            "can_execute": payload.get("can_execute"),
+            "bridge_proof_hash": bridge_proof.get("proof_hash"),
+            "bridge_compliant": bridge_proof.get("is_compliant"),
+            "model_bridge_calldata_words": len(combined.get("model_bridge_calldata") or []),
+            "l3": {
+                "attempted": l3.get("attempted"),
+                "success": l3.get("success"),
+                "mode": l3.get("mode"),
+                "verified_on_chain": l3.get("verified_on_chain"),
+                "tx_hash": l3_tx,
+                "tx_url": _voyager_tx_url(str(l3_tx)) if l3_tx else None,
+                "error": l3.get("error"),
+            },
+            "l2": {
+                "attempted": l2.get("attempted"),
+                "success": l2.get("success"),
+                "mode": l2.get("mode"),
+                "verified_on_chain": l2.get("verified_on_chain"),
+                "tx_hash": l2_tx,
+                "tx_url": _voyager_tx_url(str(l2_tx)) if l2_tx else None,
+                "error": l2.get("error"),
+            },
+            "mirror_status": verification.get("mirror_status"),
+            "failure_reason": failure_reason,
+            "api_error": api_error,
+            "trust_mode": payload.get("trust_mode"),
+            "trust_warning": payload.get("trust_warning"),
+            "generated_at": payload.get("generated_at"),
+            "total_duration_ms": payload.get("total_duration_ms"),
+        }
+
+    def step_bridge_and_dual_architecture(self) -> None:
+        artifacts = [
+            ("ModelBridge circuit", PROJECT_ROOT / "circuits" / "ModelBridge.circom"),
+            ("ModelBridge build zkey", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_final.zkey"),
+            ("ModelBridge build wasm", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_js" / "ModelBridge.wasm"),
+            ("ModelBridge build verification key", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_verification_key.json"),
+            ("ModelBridge root zkey", PROJECT_ROOT / "circuits" / "ModelBridge_final.zkey"),
+            ("ModelBridge root wasm", PROJECT_ROOT / "circuits" / "ModelBridge_js" / "ModelBridge.wasm"),
+            ("ModelBridge build script", PROJECT_ROOT / "circuits" / "build_model_bridge.sh"),
+            ("ModelBridge verifier generation script", PROJECT_ROOT / "circuits" / "generate_model_bridge_verifier.sh"),
+            ("ModelBridge verifier deploy script", PROJECT_ROOT / "scripts" / "deploy_model_bridge_verifier.sh"),
+            ("ModelBridge verifier deploy plan", PROJECT_ROOT / "docs" / "plans" / "MODELBRIDGE_VERIFIER_DEPLOY.md"),
+            ("ZkmlVerifier Cairo contract", PROJECT_ROOT / "contracts" / "src" / "zkml_verifier.cairo"),
+            (
+                "Generated ModelBridge verifier project",
+                PROJECT_ROOT / "circuits" / "contracts" / "src" / "garaga_verifier_model_bridge" / "Scarb.toml",
+            ),
+            ("ML bridge API route", PROJECT_ROOT / "backend" / "app" / "api" / "routes" / "proofs.py"),
+            ("Groth16 bridge prover service", PROJECT_ROOT / "backend" / "app" / "services" / "groth16_prover.py"),
+            ("Proof pipeline", PROJECT_ROOT / "backend" / "app" / "services" / "proof_pipeline.py"),
+            ("Proof mode resolver", PROJECT_ROOT / "backend" / "app" / "services" / "proof_mode.py"),
+        ]
+        artifact_rows = []
+        present = 0
+        for label, path in artifacts:
+            exists = path.exists()
+            if exists:
+                present += 1
+            artifact_rows.append(
+                {
+                    "label": label,
+                    "path": _relative_to_project(path),
+                    "exists": exists,
+                }
+            )
+
+        zkml_verifier_path = PROJECT_ROOT / "contracts" / "src" / "zkml_verifier.cairo"
+        zkml_verifier_src = (
+            zkml_verifier_path.read_text(encoding="utf-8")
+            if zkml_verifier_path.exists()
+            else ""
+        )
+        model_bridge_support = {
+            "has_storage_slot": "model_bridge_verifier: ContractAddress" in zkml_verifier_src,
+            "has_constructor_3arg": bool(
+                re.search(
+                    r"fn constructor\s*\([^)]*model_bridge_verifier\s*:\s*ContractAddress",
+                    zkml_verifier_src,
+                    re.DOTALL,
+                )
+            ),
+            "has_getter": "fn get_model_bridge_verifier" in zkml_verifier_src,
+            "has_setter": "fn set_model_bridge_verifier" in zkml_verifier_src,
+            "has_verify_entrypoint": "fn verify_model_bridge_proof" in zkml_verifier_src,
+            "uses_fallback_logic": bool(
+                re.search(
+                    r"self\.model_bridge_verifier\.read\(\)\s*!=\s*(?:0|Zero::zero\(\))",
+                    zkml_verifier_src,
+                )
+            ) and "self.garaga_verifier.read()" in zkml_verifier_src,
+        }
+
+        verifier_project_dir = PROJECT_ROOT / "circuits" / "contracts" / "src" / "garaga_verifier_model_bridge"
+        verifier_contract_classes = sorted(verifier_project_dir.glob("target/dev/*.contract_class.json"))
+        model_bridge_support["verifier_project_exists"] = verifier_project_dir.exists()
+        model_bridge_support["contract_classes_count"] = len(verifier_contract_classes)
+        model_bridge_support["contract_class_preview"] = _relative_to_project(verifier_contract_classes[0]) if verifier_contract_classes else None
+
+        deploy_marker = _load_env_file(PROJECT_ROOT / ".model_bridge_verifier.deployed")
+        deploy_address = deploy_marker.get("MODEL_BRIDGE_VERIFIER_ADDRESS")
+        model_bridge_support["deployed_marker_found"] = bool(deploy_address)
+        model_bridge_support["deployed_address"] = deploy_address
+        model_bridge_support["deployed_class_hash"] = deploy_marker.get("MODEL_BRIDGE_VERIFIER_CLASS_HASH")
+
+        zkml_deploy_marker = _load_env_file(PROJECT_ROOT / ".zkml_verifier_model_bridge.deployed")
+        zkml_verifier_address = zkml_deploy_marker.get("ZKML_VERIFIER_ADDRESS")
+        model_bridge_support["zkml_marker_found"] = bool(zkml_verifier_address)
+        model_bridge_support["zkml_verifier_address"] = zkml_verifier_address
+        model_bridge_support["zkml_verifier_class_hash"] = zkml_deploy_marker.get("ZKML_VERIFIER_CLASS_HASH")
+        model_bridge_support["zkml_verifier_garaga"] = zkml_deploy_marker.get("GARAGA_VERIFIER")
+        model_bridge_support["zkml_verifier_model_bridge"] = zkml_deploy_marker.get("MODEL_BRIDGE_VERIFIER")
+
+        support_ready = (
+            model_bridge_support.get("has_storage_slot")
+            and model_bridge_support.get("has_constructor_3arg")
+            and model_bridge_support.get("has_getter")
+            and model_bridge_support.get("has_setter")
+            and model_bridge_support.get("has_verify_entrypoint")
+            and model_bridge_support.get("uses_fallback_logic")
+            and model_bridge_support.get("verifier_project_exists")
+        )
+
+        paths_status, paths_body = self.client.call("GET", "/api/v1/zkdefi/risk_passport/l3/proving-paths")
+        proving_rows, snos_info = self._extract_proving_paths(paths_body)
+
+        snark_available = self._path_available(proving_rows, {"groth16_garaga", "garaga_groth16"})
+        stark_available = self._path_available(proving_rows, {"stark_integrity", "integrity_stark"})
+        hash_fallback_available = self._path_available(proving_rows, {"hash_only"})
+        snark_contract = next(
+            (
+                str(row.get("contract"))
+                for row in proving_rows
+                if str(row.get("id") or "").strip().lower() in {"groth16_garaga", "garaga_groth16"} and row.get("contract")
+            ),
+            None,
+        )
+        stark_contract = next(
+            (
+                str(row.get("contract"))
+                for row in proving_rows
+                if str(row.get("id") or "").strip().lower() in {"stark_integrity", "integrity_stark"} and row.get("contract")
+            ),
+            None,
+        )
+
+        models_status, models_body = self.client.call("GET", "/api/v1/zkdefi/proofs/models")
+        models = models_body.get("models", []) if isinstance(models_body, dict) else []
+        ready_models: list[str] = []
+        selected_model = "yield_predictor"
+        if isinstance(models, list):
+            for item in models:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("name") and selected_model == "yield_predictor":
+                    selected_model = str(item.get("name"))
+                if item.get("name") and bool(item.get("ready")):
+                    ready_models.append(str(item.get("name")))
+            if ready_models:
+                selected_model = ready_models[0]
+
+        ezkl_probe_payload = {
+            "tvl_usd_log": 13.4,
+            "volume_24h_log": 12.1,
+            "fee_tier_bps": 30.0,
+            "current_apr": 24.2,
+            "apr_7d_avg": 21.8,
+            "apr_30d_avg": 19.9,
+            "apr_trend_7d": 1.1,
+            "apr_volatility_7d": 3.4,
+            "utilization_ratio": 0.68,
+            "tick_concentration": 0.37,
+            "num_positions": 342.0,
+            "time_since_last_rebalance_hours": 7.0,
+            "user_address": self.wallet,
+            "generate_proof": True,
+        }
+        ezkl_probe_status, ezkl_probe_body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/proofs/yield-forecast",
+            payload=ezkl_probe_payload,
+        )
+        ezkl_probe_proof = None
+        if isinstance(ezkl_probe_body, dict):
+            ezkl_probe_proof = ezkl_probe_body.get("proof_hash")
+            if not ezkl_probe_proof and isinstance(ezkl_probe_body.get("proof"), dict):
+                ezkl_probe_proof = ezkl_probe_body["proof"].get("proof_hash")
+            if not ezkl_probe_proof and isinstance(ezkl_probe_body.get("ezkl_proof"), dict):
+                ezkl_probe_proof = ezkl_probe_body["ezkl_proof"].get("proof_hash")
+        ezkl_probe_ready = ezkl_probe_status == 200 and bool(ezkl_probe_proof)
+
+        base_payload = {
+            "user_address": self.wallet,
+            "model_name": selected_model,
+            "input_data": [[1.0, 2.0, 3.0, 4.0]],
+            "expected_model_hash": 0,
+            "output_lower_bound": 0,
+            "output_upper_bound": 10000,
+        }
+
+        l3_payload = dict(base_payload)
+        l3_payload.update(
+            {
+                "execution_chain": "l3",
+                "proof_mode": 1,
+                "tier": 1,
+                "action_type": "rebalance",
+                "value_eth": 2.0,
+            }
+        )
+        dual_payload = dict(base_payload)
+        dual_payload.update(
+            {
+                "execution_chain": "dual",
+                "proof_mode": 2,
+                "tier": 2,
+                "action_type": "autonomous_rebalance",
+                "value_eth": 6.0,
+            }
+        )
+
+        l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(l3_payload, max_attempts=3)
+        dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(dual_payload, max_attempts=4)
+
+        l3_run = self._bridge_run_summary(l3_status, l3_body)
+        dual_run = self._bridge_run_summary(dual_status, dual_body)
+        dual_attempted = bool(((dual_run.get("l3") or {}).get("attempted"))) and bool(((dual_run.get("l2") or {}).get("attempted")))
+        dual_ready = snark_available and stark_available
+        runtime_mode = "synthetic_fallback"
+        if ezkl_probe_ready:
+            runtime_mode = "real_ezkl_probe"
+        elif str(l3_run.get("trust_mode") or "").lower().strip() not in {"", "synthetic_dev_only"}:
+            runtime_mode = "bridge_runtime_non_synthetic"
+
+        self._bridge_architecture = {
+            "open_source_artifacts": artifact_rows,
+            "proving_paths_status": paths_status,
+            "proving_paths": proving_rows,
+            "snos_proving": snos_info,
+            "selected_model": selected_model,
+            "proof_models_status": models_status,
+            "proof_models_count": len(models) if isinstance(models, list) else 0,
+            "proof_models_ready_count": len(ready_models),
+            "proof_models_ready_names": ready_models,
+            "ezkl_runtime_probe": {
+                "status": ezkl_probe_status,
+                "has_real_proof": ezkl_probe_ready,
+                "proof_hash": ezkl_probe_proof,
+                "detail": (ezkl_probe_body.get("detail") if isinstance(ezkl_probe_body, dict) else None),
+            },
+            "runtime_mode": runtime_mode,
+            "ml_bridge_runs": {
+                "l3": l3_run,
+                "dual": dual_run,
+            },
+            "ml_bridge_attempts": {
+                "l3": l3_attempts,
+                "dual": dual_attempts,
+            },
+            "dual_lanes_ready": dual_ready,
+            "model_bridge_verifier_support": model_bridge_support,
+            "model_bridge_verifier_support_ready": bool(support_ready),
+            "bridge_unlocks": list(BRIDGE_UNLOCKS),
+            "bridge_comparison": list(BRIDGE_COMPARISON),
+            "landscape": list(self._ecosystem_landscape),
+        }
+
+        runtime_ok = l3_status == 200 and dual_status in {200, 429, 503}
+        ok = (
+            present >= 10
+            and paths_status == 200
+            and dual_ready
+            and runtime_ok
+            and bool(support_ready)
+        )
+        print("== ModelBridge Unlock Signals ==")
+        for row in BRIDGE_UNLOCKS[:4]:
+            print(f"{row.get('unlock')}: {row.get('why_it_matters')}")
+        self._record(
+            "Open-source ModelBridge + dual-proof architecture",
+            ok,
+            modelbridge_artifacts=f"{present}/{len(artifacts)}",
+            proving_paths_status=paths_status,
+            snark_lane_available=snark_available,
+            stark_lane_available=stark_available,
+            hash_fallback_available=hash_fallback_available,
+            dual_lanes_ready=dual_ready,
+            ml_bridge_l3_status=l3_status,
+            ml_bridge_l3_mode=((l3_run.get("l3") or {}).get("mode")),
+            ml_bridge_dual_status=dual_status,
+            dual_mirror_status=dual_run.get("mirror_status"),
+            dual_failure_reason=_clip_text(dual_run.get("failure_reason"), 120),
+            dual_attempted=dual_attempted,
+            dual_attempts=len(dual_attempts),
+            l3_attempts=len(l3_attempts),
+            runtime_probe_ok=runtime_ok,
+            runtime_mode=runtime_mode,
+            ezkl_probe_status=ezkl_probe_status,
+            ezkl_real_probe=ezkl_probe_ready,
+            model_bridge_verifier_support=support_ready,
+            model_bridge_verifier_deployed=bool(deploy_address),
+            model_bridge_verifier_address=_short_hex(deploy_address, 10),
+            zkml_verifier_marker_found=bool(zkml_verifier_address),
+            zkml_verifier_address=_short_hex(zkml_verifier_address, 10),
+            landscape_sources=len(self._ecosystem_landscape),
+            landscape_projects=",".join(str(x.get("project")) for x in self._ecosystem_landscape[:4]),
+            snark_contract=_short_hex(snark_contract),
+            stark_contract=_short_hex(stark_contract),
         )
 
     def _load_scanner_categories(self) -> dict[str, str]:
@@ -909,6 +2077,143 @@ class ShowcaseRunner:
 
         return packs
 
+    def _build_skill_params_for_opportunity(
+        self,
+        opp: dict[str, Any],
+        skill_ids: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        apy_bps = int(max(0, min(500000, round(_safe_float(opp.get("yield_pct"), 0.0) * 100))))
+        risk = int(max(5, min(95, round(_safe_float(opp.get("risk_score"), 50.0)))))
+        params: dict[str, dict[str, Any]] = {}
+        for sid in skill_ids:
+            if sid == "il_predictor":
+                params[sid] = {
+                    "position_size": 50000 + (apy_bps // 4),
+                    "entry_price": 1000,
+                    "current_price": max(200, 1000 + (apy_bps // 20) - (risk * 3)),
+                    "fee_earned_bps": max(50, min(5000, apy_bps // 8)),
+                    "max_il_tolerance_bps": 700,
+                }
+            elif sid == "yield_optimality":
+                params[sid] = {
+                    "allocations": [2500, 2500, 2500, 2500],
+                    "predicted_yields": [apy_bps, max(1, apy_bps - 120), max(1, apy_bps - 220), max(1, apy_bps - 340)],
+                    "optimality_threshold_bps": max(120, 300 - risk),
+                }
+            elif sid == "slippage_bound":
+                params[sid] = {
+                    "trade_amount": 100000,
+                    "current_liquidity": 5_000_000,
+                    "price_impact_coefficient": 15 + (risk // 3),
+                    "max_slippage_bps": max(30, 100 - (risk // 3)),
+                }
+            elif sid == "reputation_check":
+                params[sid] = {
+                    "metrics": [120, 95, 3, 88, 12, 260, 20],
+                    "min_reputation_score": 500,
+                }
+            elif sid == "arb_check":
+                params[sid] = {
+                    "source_price": 1000,
+                    "dest_price": 1015,
+                    "source_fee_bps": 30,
+                    "dest_fee_bps": 20,
+                    "gas_cost": 8,
+                    "trade_amount": 10000,
+                    "min_profit_bps": 10,
+                }
+            elif sid == "liquidation_check":
+                params[sid] = {
+                    "collateral_values": [12000, 8000, 6000],
+                    "debt_values": [5500, 3200, 2100],
+                    "liquidation_thresholds": [8000, 7800, 7600],
+                    "num_active": 3,
+                    "min_health_factor": 14000,
+                }
+            elif sid == "mev_protection":
+                params[sid] = {
+                    "submission_block": 100000,
+                    "inclusion_block": 100002,
+                    "expected_price": 1000,
+                    "actual_price": 1002,
+                    "max_delay_blocks": 5,
+                    "max_price_deviation_bps": 50,
+                }
+            elif sid == "risk_score":
+                params[sid] = {
+                    "portfolio_features": [risk, 40, 35, 20, 15, 28, 33, 25],
+                    "threshold": 65,
+                }
+            elif sid == "anomaly_detection":
+                params[sid] = {
+                    "tvl_volatility": max(5, min(90, risk)),
+                    "liquidity_concentration": max(10, min(95, risk + 8)),
+                    "price_impact_score": max(5, min(90, risk - 4)),
+                    "pool_id": int(abs(hash(str(opp.get("id")))) % 97) + 1,
+                }
+            elif sid == "solvency_proof":
+                params[sid] = {
+                    "asset_positions": [25000, 22000, 18000],
+                    "debt_positions": [9000, 6000, 3000],
+                    "min_solvency_ratio_bps": 11000,
+                }
+            elif sid == "risk_passport":
+                params[sid] = {
+                    "volatility_bps": 900 + (risk * 10),
+                    "max_drawdown_bps": 700 + (risk * 6),
+                    "concentration_bps": 3000 + (risk * 30),
+                    "effective_leverage_bps": 12000 + (risk * 35),
+                    "liquidation_events_lookback": 0,
+                    "tenure_days": 240,
+                    "required_tier": 3,
+                }
+            elif sid == "strategy_integrity":
+                params[sid] = {
+                    "position_weights_bps": [2400, 2200, 1800, 1400, 900, 600, 400, 300],
+                    "effective_leverage_bps": 12000 + (risk * 30),
+                    "observed_slippage_bps": [18, 22, 15, 14, 19, 16, 12, 11],
+                    "max_position_weight_bps": 3000,
+                    "max_leverage_bps": 30000,
+                    "max_slippage_bps": 120,
+                }
+            elif sid == "execution_integrity":
+                params[sid] = {
+                    "submission_block": 100000,
+                    "inclusion_block": 100001,
+                    "expected_price": 1000,
+                    "actual_price": 1001,
+                    "max_delay_blocks": 5,
+                    "max_price_deviation_bps": 50,
+                }
+        return params
+
+    def _summarize_skill_recommendation(
+        self,
+        opp: dict[str, Any],
+        results: list[dict[str, Any]],
+    ) -> tuple[str, float, str]:
+        total = len(results)
+        success = sum(1 for row in results if isinstance(row, dict) and row.get("success"))
+        pass_rate = (success / total) if total else 0.0
+        failed = [str(row.get("skill_id")) for row in results if isinstance(row, dict) and not row.get("success")]
+        risk = _safe_float(opp.get("risk_score"), 50.0)
+        yld = _safe_float(opp.get("yield_pct"), 0.0)
+
+        recommendation = "flag"
+        if pass_rate >= 0.75 and risk <= 60 and yld >= 12:
+            recommendation = "execute"
+        elif pass_rate >= 0.5 and risk <= 75:
+            recommendation = "watch"
+        confidence = max(0.2, min(0.95, 0.35 + (pass_rate * 0.45) + (min(yld, 250.0) / 1000.0) - (risk / 500.0)))
+
+        failed_preview = ", ".join(failed[:3]) if failed else "none"
+        rationale = (
+            f"{success}/{total} zkML skill proofs passed; "
+            f"yield={yld:.2f}% risk={risk:.1f}. "
+            f"failed_skills={failed_preview}."
+        )
+        return recommendation, round(confidence, 2), rationale
+
     def step_ai_marketplace_and_badges(self) -> None:
         provider_status, provider_body = self.client.call("GET", "/api/v1/agents/providers")
         model_status, model_body = self.client.call("GET", "/api/v1/agents/models/list")
@@ -1023,11 +2328,165 @@ class ShowcaseRunner:
             if s_status == 200 and isinstance(s_body, dict) and isinstance(s_body.get("skills"), list):
                 self._skills_catalog = list(s_body.get("skills") or [])
 
+        available_skill_ids = [
+            str(s.get("skill_id"))
+            for s in self._skills_catalog
+            if isinstance(s, dict) and s.get("skill_id")
+        ]
+        priority_ids = [
+            "il_predictor",
+            "yield_optimality",
+            "slippage_bound",
+            "reputation_check",
+            "arb_check",
+            "liquidation_check",
+            "mev_protection",
+            "risk_score",
+            "anomaly_detection",
+            "solvency_proof",
+            "risk_passport",
+            "strategy_integrity",
+            "execution_integrity",
+        ]
+        circuit_skill_ids = [sid for sid in priority_ids if sid in available_skill_ids]
+        if len(circuit_skill_ids) < 8:
+            for sid in available_skill_ids:
+                if sid not in circuit_skill_ids:
+                    circuit_skill_ids.append(sid)
+                if len(circuit_skill_ids) >= 10:
+                    break
+
+        circuit_runs: list[dict[str, Any]] = []
+        receipt_lookup_cache: dict[str, dict[str, Any]] = {}
+        skill_receipt_rows: list[dict[str, Any]] = []
+        for opp in opportunities[:3]:
+            opp_id = str(opp.get("id"))
+            params = self._build_skill_params_for_opportunity(opp, circuit_skill_ids)
+            skill_status, skill_body = self.client.call(
+                "POST",
+                "/api/v1/zkdefi/skills/batch",
+                payload={
+                    "skill_ids": circuit_skill_ids,
+                    "params": params,
+                    "user_address": self.wallet,
+                },
+            )
+            skill_results = skill_body.get("results", []) if isinstance(skill_body, dict) else []
+            recommendation, confidence, rationale = self._summarize_skill_recommendation(opp, skill_results if isinstance(skill_results, list) else [])
+            run_row = {
+                "opp_id": opp_id,
+                "status": skill_status,
+                "skills_total": len(circuit_skill_ids),
+                "skills_succeeded": (
+                    int(skill_body.get("succeeded", 0))
+                    if isinstance(skill_body, dict)
+                    else 0
+                ),
+                "recommendation": recommendation,
+                "confidence": confidence,
+                "rationale": rationale,
+                "skills": [],
+            }
+            if isinstance(skill_results, list):
+                for item in skill_results:
+                    if not isinstance(item, dict):
+                        continue
+                    proof_hash = str(item.get("proof_hash")) if item.get("proof_hash") else None
+                    receipt_path = (
+                        f"/api/v1/zkdefi/proofs/{parse.quote(proof_hash, safe='')}"
+                        if proof_hash
+                        else None
+                    )
+                    receipt_status: int | None = None
+                    receipt_signal: Any = None
+                    receipt_state = "not_applicable"
+                    if proof_hash and receipt_path:
+                        cached = receipt_lookup_cache.get(proof_hash)
+                        if cached is None:
+                            lookup_status, lookup_body = self.client.call("GET", receipt_path)
+                            lookup_signal: Any = None
+                            if isinstance(lookup_body, dict):
+                                bridge_part = lookup_body.get("bridge_proof")
+                                ezkl_part = lookup_body.get("ezkl_proof")
+                                if isinstance(bridge_part, dict) and bridge_part.get("proof_hash"):
+                                    lookup_signal = bridge_part.get("proof_hash")
+                                elif isinstance(ezkl_part, dict) and ezkl_part.get("proof_hash"):
+                                    lookup_signal = ezkl_part.get("proof_hash")
+                                else:
+                                    lookup_signal = (
+                                        lookup_body.get("commitment_hash")
+                                        or lookup_body.get("proof_hash")
+                                        or lookup_body.get("status")
+                                        or lookup_body.get("detail")
+                                    )
+                            cached = {"status": lookup_status, "signal": lookup_signal}
+                            receipt_lookup_cache[proof_hash] = cached
+                        receipt_status = _safe_int(cached.get("status"), 0)
+                        receipt_signal = cached.get("signal")
+                        if receipt_status == 200:
+                            receipt_state = "indexed"
+                        elif receipt_status == 404:
+                            receipt_state = "local_receipt_only"
+                        else:
+                            receipt_state = f"lookup_{receipt_status}"
+                    run_row["skills"].append(
+                        {
+                            "skill_id": item.get("skill_id"),
+                            "success": bool(item.get("success")),
+                            "proof_hash": proof_hash,
+                            "duration_ms": item.get("duration_ms"),
+                            "error": item.get("error"),
+                            "receipt_path": receipt_path,
+                            "receipt_status": receipt_status,
+                            "receipt_signal": receipt_signal,
+                            "receipt_state": receipt_state,
+                        }
+                    )
+                    if bool(item.get("success")) and proof_hash:
+                        skill_id = str(item.get("skill_id") or "-")
+                        receipt_statement = (
+                            f"I used skill {skill_id} for opportunity {opp_id} and generated proof {_short_hex(proof_hash, 10)}."
+                        )
+                        skill_receipt_rows.append(
+                            {
+                                "opp_id": opp_id,
+                                "skill_id": skill_id,
+                                "proof_hash": proof_hash,
+                                "receipt_path": receipt_path,
+                                "receipt_status": receipt_status,
+                                "receipt_signal": receipt_signal,
+                                "receipt_state": receipt_state,
+                                "statement": receipt_statement,
+                            }
+                        )
+            circuit_runs.append(run_row)
+
+        if skill_receipt_rows:
+            print("== Skill Receipt Trail ==")
+            for row in skill_receipt_rows[:10]:
+                receipt_path = str(row.get("receipt_path") or "-")
+                print(
+                    "I used skill "
+                    f"{row.get('skill_id')} on {row.get('opp_id')} -> proof {_short_hex(str(row.get('proof_hash')), 10)} "
+                    f"| receipt {receipt_path} | state={row.get('receipt_state')} | status={row.get('receipt_status')}"
+                )
+
+        self._ai_skill_engine = {
+            "skill_ids": circuit_skill_ids,
+            "runs": circuit_runs,
+            "receipts": skill_receipt_rows,
+            "receipt_lookup_cache_size": len(receipt_lookup_cache),
+        }
+
         self._llm_config_packs = self._build_llm_config_packs()
 
         advisory_hits = sum(1 for row in advisories if row.get("status") == 200)
         screening_calls = sum(1 for row in screenings if row.get("status") == 200)
         proved_count = sum(1 for row in screenings if bool(row.get("is_proved")))
+        skill_recommendations = sum(1 for row in circuit_runs if row.get("recommendation") == "execute")
+        skill_run_ok = sum(1 for row in circuit_runs if row.get("status") == 200)
+        receipt_200 = sum(1 for row in skill_receipt_rows if _safe_int(row.get("receipt_status"), 0) == 200)
+        receipt_local = sum(1 for row in skill_receipt_rows if str(row.get("receipt_state")) == "local_receipt_only")
 
         ok = (
             provider_status == 200
@@ -1047,6 +2506,11 @@ class ShowcaseRunner:
             advisory_calls=advisory_hits,
             screening_calls=screening_calls,
             proved_badges=proved_count,
+            zkml_skill_runs=skill_run_ok,
+            zkml_skill_exec_recs=skill_recommendations,
+            skill_receipts=len(skill_receipt_rows),
+            skill_receipt_hits_200=receipt_200,
+            skill_receipts_local_only=receipt_local,
             recommend_status=r_status,
             analyze_status=a_status,
             config_profiles=len(self._llm_config_packs),
@@ -1062,9 +2526,11 @@ class ShowcaseRunner:
         claims = [
             ("Backend service is live", passed("Backend health")),
             ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
+            ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
             ("Agent composition + execution works", passed("Agent compose + execute")),
             ("Proof-backed deployment planning works", passed("Deployment proof + on-chain calldata plan")),
             ("Privacy commitment rails work", passed("Full privacy commitment generation")),
+            ("Private prediction market primitive is live", passed("Private prediction market primitive (snapshot forecaster)")),
             ("Policy controls are API-operable", passed("Policy controls (vault constraints)")),
             ("On-chain state is queryable", passed("On-chain read via backend")),
             ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
@@ -1114,6 +2580,10 @@ class ShowcaseRunner:
             },
             "deployment": self._deployment_output,
             "circuit_inventory": self._circuit_inventory,
+            "bridge_architecture": self._bridge_architecture,
+            "ecosystem_landscape": self._ecosystem_landscape,
+            "privacy_showcase": self._privacy_showcase,
+            "forecaster_showcase": self._forecaster_showcase,
             "ai_showcase": {
                 "providers": self._provider_rows,
                 "agent_models": self._agent_models,
@@ -1121,6 +2591,7 @@ class ShowcaseRunner:
                 "opportunities": self._opportunities,
                 "advisories": self._advisories,
                 "badge_screening": self._badge_screening,
+                "skill_engine": self._ai_skill_engine,
                 "strategies": self._strategy_snapshots,
                 "skills_catalog_count": len(self._skills_catalog),
                 "llm_config_packs": self._llm_config_packs,
@@ -1140,6 +2611,7 @@ class ShowcaseRunner:
 
     def _render_html_report(self, payload: dict[str, Any]) -> str:
         claims = payload.get("core_claims", [])
+        base_url = str(payload.get("base_url") or "").rstrip("/")
         claim_rows = [
             [
                 escape(str(c.get("label"))),
@@ -1203,6 +2675,173 @@ class ShowcaseRunner:
                 ]
             )
 
+        bridge = payload.get("bridge_architecture", {}) if isinstance(payload.get("bridge_architecture"), dict) else {}
+        bridge_artifact_rows = []
+        for row in (bridge.get("open_source_artifacts") or []):
+            if not isinstance(row, dict):
+                continue
+            bridge_artifact_rows.append(
+                [
+                    escape(str(row.get("label") or "-")),
+                    f"<code>{escape(str(row.get('path') or '-'))}</code>",
+                    "<span class=\"pass\">present</span>" if row.get("exists") else "<span class=\"fail\">missing</span>",
+                ]
+            )
+
+        proving_rows = []
+        for row in (bridge.get("proving_paths") or []):
+            if not isinstance(row, dict):
+                continue
+            contract = str(row.get("contract") or "-")
+            contract_link = row.get("voyager_contract")
+            contract_html = (
+                f"<a href=\"{escape(str(contract_link))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(contract, 14))}</a>"
+                if contract_link and contract != "-"
+                else escape(_short_hex(contract, 14))
+            )
+            proving_rows.append(
+                [
+                    escape(str(row.get("id") or "-")),
+                    escape(str(row.get("name") or "-")),
+                    "<span class=\"pass\">yes</span>" if row.get("available") else "<span class=\"fail\">no</span>",
+                    contract_html,
+                    escape(str(row.get("trust_model") or "-")),
+                ]
+            )
+
+        bridge_run_rows = []
+        ml_runs = bridge.get("ml_bridge_runs", {}) if isinstance(bridge.get("ml_bridge_runs"), dict) else {}
+        for run_name in ["l3", "dual"]:
+            run = ml_runs.get(run_name) if isinstance(ml_runs.get(run_name), dict) else {}
+            l3 = run.get("l3") if isinstance(run.get("l3"), dict) else {}
+            l2 = run.get("l2") if isinstance(run.get("l2"), dict) else {}
+            bridge_run_rows.append(
+                [
+                    escape(run_name.upper()),
+                    escape(str(run.get("proof_mode") or "-")),
+                    escape(str(run.get("requested_execution_chain") or "-")),
+                    escape(str(l3.get("mode") or "-")),
+                    escape(str(l2.get("mode") or "-")),
+                    escape(str(run.get("mirror_status") or "-")),
+                    "<span class=\"pass\">true</span>" if run.get("can_execute") else "<span class=\"fail\">false</span>",
+                    escape(_clip_text(run.get("failure_reason"), 110) or "-"),
+                ]
+            )
+
+        bridge_unlock_rows = []
+        for row in (bridge.get("bridge_unlocks") or []):
+            if not isinstance(row, dict):
+                continue
+            bridge_unlock_rows.append(
+                [
+                    escape(str(row.get("unlock") or "-")),
+                    escape(str(row.get("design_signal") or "-")),
+                    escape(str(row.get("why_it_matters") or "-")),
+                ]
+            )
+
+        bridge_comparison_rows = []
+        for row in (bridge.get("bridge_comparison") or []):
+            if not isinstance(row, dict):
+                continue
+            source = str(row.get("source") or "")
+            if source.startswith("http"):
+                source_html = f"<a href=\"{escape(source)}\" target=\"_blank\" rel=\"noreferrer\">source</a>"
+            elif source == "local_repo_evidence":
+                source_html = (
+                    "<code>circuits/ModelBridge.circom</code>, "
+                    "<code>backend/app/services/groth16_prover.py</code>, "
+                    "<code>backend/app/services/proof_pipeline.py</code>"
+                )
+            else:
+                source_html = "-"
+            bridge_comparison_rows.append(
+                [
+                    escape(str(row.get("stack") or "-")),
+                    escape(str(row.get("signal") or "-")),
+                    escape(str(row.get("bridge_gap") or "-")),
+                    source_html,
+                ]
+            )
+
+        verifier_support = (
+            bridge.get("model_bridge_verifier_support", {})
+            if isinstance(bridge.get("model_bridge_verifier_support"), dict)
+            else {}
+        )
+        verifier_support_rows = [
+            [
+                "ZkmlVerifier has model_bridge_verifier storage",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("has_storage_slot") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "ZkmlVerifier constructor accepts 3 args",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("has_constructor_3arg") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "Getter/setter for model bridge verifier",
+                (
+                    "<span class=\"pass\">yes</span>"
+                    if verifier_support.get("has_getter") and verifier_support.get("has_setter")
+                    else "<span class=\"fail\">no</span>"
+                ),
+            ],
+            [
+                "verify_model_bridge_proof entrypoint",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("has_verify_entrypoint") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "Fallback logic (dedicated verifier else garaga)",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("uses_fallback_logic") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "Generated ModelBridge verifier project present",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("verifier_project_exists") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "Generated contract classes",
+                escape(str(verifier_support.get("contract_classes_count") or 0)),
+            ],
+            [
+                "Deployment marker (.model_bridge_verifier.deployed)",
+                "<span class=\"pass\">found</span>" if verifier_support.get("deployed_marker_found") else "<span class=\"fail\">missing</span>",
+            ],
+            [
+                "Deployment marker (.zkml_verifier_model_bridge.deployed)",
+                "<span class=\"pass\">found</span>" if verifier_support.get("zkml_marker_found") else "<span class=\"fail\">missing</span>",
+            ],
+            [
+                "Deployed ModelBridge verifier address",
+                escape(_short_hex(str(verifier_support.get("deployed_address") or "-"), 10)),
+            ],
+            [
+                "Deployed ModelBridge verifier class hash",
+                escape(_short_hex(str(verifier_support.get("deployed_class_hash") or "-"), 10)),
+            ],
+            [
+                "Deployed ZkmlVerifier (ModelBridge-capable)",
+                escape(_short_hex(str(verifier_support.get("zkml_verifier_address") or "-"), 10)),
+            ],
+            [
+                "Deployed ZkmlVerifier class hash",
+                escape(_short_hex(str(verifier_support.get("zkml_verifier_class_hash") or "-"), 10)),
+            ],
+            [
+                "ZkmlVerifier constructor Garaga verifier",
+                escape(_short_hex(str(verifier_support.get("zkml_verifier_garaga") or "-"), 10)),
+            ],
+            [
+                "ZkmlVerifier constructor ModelBridge verifier",
+                escape(_short_hex(str(verifier_support.get("zkml_verifier_model_bridge") or "-"), 10)),
+            ],
+        ]
+
+        snos = bridge.get("snos_proving", {}) if isinstance(bridge.get("snos_proving"), dict) else {}
+        snos_status_text = (
+            f"{'available' if snos.get('available') else 'not available'}"
+            + (f" ({snos.get('status')})" if snos.get("status") else "")
+        )
+
         inventory = payload.get("circuit_inventory", {}) if isinstance(payload.get("circuit_inventory"), dict) else {}
         category_rows = []
         for k, v in (inventory.get("categories") or {}).items():
@@ -1247,6 +2886,7 @@ class ShowcaseRunner:
                     escape(str(row.get("opp_id") or "-")),
                     escape(str(row.get("recommendation") or "-")),
                     escape(str(row.get("confidence") or "-")),
+                    escape(_clip_text(row.get("narrative"), 120) or "-"),
                     escape(str(row.get("status") or "-")),
                 ]
             )
@@ -1266,20 +2906,313 @@ class ShowcaseRunner:
                 ]
             )
 
-        packs_html = []
+        skill_engine = ai.get("skill_engine", {}) if isinstance(ai.get("skill_engine"), dict) else {}
+        skill_runs = skill_engine.get("runs", []) if isinstance(skill_engine.get("runs"), list) else []
+        skill_receipts = skill_engine.get("receipts", []) if isinstance(skill_engine.get("receipts"), list) else []
+        skill_engine_rows = []
+        skill_detail_rows = []
+        for row in skill_runs:
+            if not isinstance(row, dict):
+                continue
+            skill_engine_rows.append(
+                [
+                    escape(str(row.get("opp_id") or "-")),
+                    escape(str(row.get("recommendation") or "-")),
+                    escape(str(row.get("confidence") or "-")),
+                    escape(str(row.get("skills_succeeded") or 0)),
+                    escape(str(row.get("skills_total") or 0)),
+                    escape(_clip_text(row.get("rationale"), 140) or "-"),
+                ]
+            )
+            for skill in (row.get("skills") or [])[:10]:
+                if not isinstance(skill, dict):
+                    continue
+                skill_detail_rows.append(
+                    [
+                        escape(str(row.get("opp_id") or "-")),
+                        escape(str(skill.get("skill_id") or "-")),
+                        "<span class=\"pass\">pass</span>" if skill.get("success") else "<span class=\"fail\">fail</span>",
+                        escape(str(skill.get("duration_ms") or "-")),
+                        escape(_short_hex(str(skill.get("proof_hash") or "-"), 10)),
+                        escape(_clip_text(skill.get("error"), 90) or "-"),
+                    ]
+                )
+
+        skill_receipt_rows = []
+        for row in skill_receipts[:24]:
+            if not isinstance(row, dict):
+                continue
+            receipt_path = str(row.get("receipt_path") or "-")
+            receipt_link = (
+                f"{base_url}{receipt_path}"
+                if base_url and receipt_path.startswith("/")
+                else receipt_path
+            )
+            receipt_html = (
+                f"<a href=\"{escape(receipt_link)}\" target=\"_blank\" rel=\"noreferrer\">{escape(receipt_path)}</a>"
+                if receipt_path.startswith("/")
+                else escape(receipt_path)
+            )
+            receipt_status = _safe_int(row.get("receipt_status"), 0)
+            receipt_state = str(row.get("receipt_state") or "-")
+            if receipt_state == "indexed":
+                receipt_status_html = "<span class=\"pass\">indexed (200)</span>"
+            elif receipt_state == "local_receipt_only":
+                receipt_status_html = "<span class=\"pass\">local_receipt_only (404 index pending)</span>"
+            else:
+                receipt_status_html = escape(f"{receipt_state} ({receipt_status or '-'})")
+            skill_receipt_rows.append(
+                [
+                    escape(str(row.get("opp_id") or "-")),
+                    escape(str(row.get("skill_id") or "-")),
+                    escape(_short_hex(str(row.get("proof_hash") or "-"), 10)),
+                    receipt_html,
+                    escape(str(row.get("receipt_state") or "-")),
+                    receipt_status_html,
+                    escape(_clip_text(row.get("statement"), 130) or "-"),
+                ]
+            )
+
+        pack_rows = []
         for pack in ai.get("llm_config_packs", []):
             if not isinstance(pack, dict):
                 continue
-            packs_html.append(
-                "<details>"
-                f"<summary>{escape(str(pack.get('profile', 'profile')))} config</summary>"
-                f"<pre>{escape(json.dumps(pack, indent=2))}</pre>"
-                "</details>"
+            llm = pack.get("llm") if isinstance(pack.get("llm"), dict) else {}
+            agent = pack.get("agent") if isinstance(pack.get("agent"), dict) else {}
+            processors = agent.get("processors") if isinstance(agent.get("processors"), list) else []
+            skills = pack.get("zk_skill_set") if isinstance(pack.get("zk_skill_set"), list) else []
+            pack_rows.append(
+                [
+                    escape(str(pack.get("profile") or "-")),
+                    escape(str(llm.get("provider") or "-")),
+                    escape(str(llm.get("model") or "-")),
+                    escape(str(llm.get("temperature") or "-")),
+                    escape(str(len(processors))),
+                    escape(", ".join(str(s) for s in skills[:6]) or "-"),
+                ]
             )
-        packs_block = "\n".join(packs_html) if packs_html else "<p class=\"muted\">No config packs generated.</p>"
 
-        recommend_block = escape(json.dumps(((ai.get("strategies") or {}).get("recommend") or {}), indent=2))
-        analyze_block = escape(json.dumps(((ai.get("strategies") or {}).get("analyze") or {}), indent=2))
+        strategies = ai.get("strategies", {}) if isinstance(ai.get("strategies"), dict) else {}
+        recommend_data = strategies.get("recommend", {}) if isinstance(strategies.get("recommend"), dict) else {}
+        analyze_data = strategies.get("analyze", {}) if isinstance(strategies.get("analyze"), dict) else {}
+        recommend_pools = (
+            recommend_data.get("recommended_pools")
+            if isinstance(recommend_data.get("recommended_pools"), list)
+            else []
+        )
+        analyze_pools = (
+            analyze_data.get("recommended_pools")
+            if isinstance(analyze_data.get("recommended_pools"), list)
+            else []
+        )
+        strategy_summary_rows = [
+            [
+                "recommend",
+                escape(str(strategies.get("recommend_status") or "-")),
+                escape(str(recommend_data.get("recommendation_id") or "-")),
+                escape(f"{_safe_float(recommend_data.get('ai_confidence'), 0.0):.2f}"),
+                escape(f"{_safe_float(recommend_data.get('expected_portfolio_apy'), 0.0) * 100:.2f}%"),
+                escape(_clip_text(recommend_data.get("ai_reasoning"), 200) or "-"),
+            ],
+            [
+                "analyze",
+                escape(str(strategies.get("analyze_status") or "-")),
+                escape(str(analyze_data.get("analysis_proof_hash") or "-")),
+                escape(str(analyze_data.get("confidence_score") or "-")),
+                escape(str(analyze_data.get("summary_text") or analyze_data.get("detail") or "-")),
+                escape(str(analyze_data.get("detail") or "-")) if int(strategies.get("analyze_status") or 0) >= 400 else "-",
+            ],
+        ]
+        strategy_pool_rows = []
+        for row in recommend_pools[:6]:
+            if not isinstance(row, dict):
+                continue
+            strategy_pool_rows.append(
+                [
+                    "recommend",
+                    escape(str(row.get("pool_id") or "-")),
+                    escape(str(row.get("pair") or row.get("pool_name") or "-")),
+                    escape(str(row.get("protocol") or "-")),
+                    escape(f"{_safe_float(row.get('allocation_percent')):.1f}%"),
+                    escape(f"{_safe_float(row.get('expected_apy')) * 100:.2f}%"),
+                ]
+            )
+        for row in analyze_pools[:6]:
+            if not isinstance(row, dict):
+                continue
+            strategy_pool_rows.append(
+                [
+                    "analyze",
+                    escape(str(row.get("pool_id") or "-")),
+                    escape(str(row.get("pair") or row.get("pool_name") or "-")),
+                    escape(str(row.get("protocol") or "-")),
+                    escape(f"{_safe_float(row.get('allocation_percent')):.1f}%"),
+                    escape(f"{_safe_float(row.get('expected_apy')) * 100:.2f}%"),
+                ]
+            )
+
+        privacy = payload.get("privacy_showcase", {}) if isinstance(payload.get("privacy_showcase"), dict) else {}
+        privacy_tier_rows = []
+        for row in (privacy.get("tiers") or [])[:6]:
+            if not isinstance(row, dict):
+                continue
+            privacy_tier_rows.append(
+                [
+                    escape(str(row.get("tier") or "-")),
+                    escape(str(row.get("tier_name") or "-")),
+                    "<span class=\"pass\">yes</span>" if row.get("relayer_access") else "<span class=\"fail\">no</span>",
+                    escape(str(row.get("relayer_delay_hours") or "-")),
+                    escape(str(row.get("proof_requirement") or "-")),
+                    escape(str(row.get("max_position_eth") or "-")),
+                ]
+            )
+        privacy_rail_rows = []
+        for row in (privacy.get("rails") or []):
+            if not isinstance(row, dict):
+                continue
+            privacy_rail_rows.append(
+                [
+                    escape(str(row.get("pool_type"))),
+                    escape(str(row.get("generate_status") or "-")),
+                    escape(str(row.get("register_status") or "-")),
+                    escape(str(row.get("claim_status") or "-")),
+                    escape(_short_hex(str(row.get("nullifier") or "-"), 10)),
+                    escape(_short_hex(str(row.get("claim_hash") or "-"), 10)),
+                    "<span class=\"pass\">ready</span>" if row.get("relayer_ready") else "<span class=\"fail\">flagged</span>",
+                ]
+            )
+        ledger = privacy.get("ledger", {}) if isinstance(privacy.get("ledger"), dict) else {}
+        transfer_in = ledger.get("transfer_in", {}) if isinstance(ledger.get("transfer_in"), dict) else {}
+        transfer_out = ledger.get("transfer_out", {}) if isinstance(ledger.get("transfer_out"), dict) else {}
+        ledger_rows = [
+            [
+                "shielded transfer_in",
+                escape(str(ledger.get("transfer_in_status") or "-")),
+                escape(_short_hex(str(transfer_in.get("commitment_hash") or "-"), 10)),
+                escape(str(transfer_in.get("receipt_url") or "-")),
+                "-",
+            ],
+            [
+                "relayer withdraw transfer_out",
+                escape(str(ledger.get("transfer_out_status") or "-")),
+                escape(str(transfer_out.get("status") or "-")),
+                escape(str(transfer_out.get("status_url") or "-")),
+                escape(str(transfer_out.get("settlement_eta") or "-")),
+            ],
+        ]
+        madara = privacy.get("madara", {}) if isinstance(privacy.get("madara"), dict) else {}
+        madara_rows = [
+            ["health", escape(str(madara.get("health_status") or "-")), escape(str((madara.get("health") or {}).get("healthy") if isinstance(madara.get("health"), dict) else "-"))],
+            ["config", escape(str(madara.get("config_status") or "-")), escape(str((madara.get("config") or {}).get("primary_settlement") if isinstance(madara.get("config"), dict) else "-"))],
+            ["verify", escape(str(madara.get("verify_status") or "-")), escape(str((madara.get("verify") or {}).get("valid") if isinstance(madara.get("verify"), dict) else "-"))],
+            ["batch submit", escape(str(madara.get("batch_submit_status") or "-")), escape(str((madara.get("batch_submit") or {}).get("queue_size") if isinstance(madara.get("batch_submit"), dict) else "-"))],
+        ]
+        voting = privacy.get("voting", {}) if isinstance(privacy.get("voting"), dict) else {}
+        voting_rows = [
+            [
+                escape(str(voting.get("proposal_id") or "-")),
+                escape(str(voting.get("proposal_status") or "-")),
+                escape(str(voting.get("vote_proof_status") or "-")),
+                escape(str(voting.get("vote_cast_status") or "-")),
+                escape(str(voting.get("vote_proof_error") or voting.get("vote_cast_error") or "-")),
+            ]
+        ]
+        lending = privacy.get("lending", {}) if isinstance(privacy.get("lending"), dict) else {}
+        lending_rows = [
+            [
+                escape(str(lending.get("pool_status") or "-")),
+                escape(str(lending.get("supply_status") or "-")),
+                escape(str(lending.get("borrow_status") or "-")),
+                escape(str(lending.get("health_factor_status") or "-")),
+                escape(str(lending.get("dao_lending_policy_status") or "-")),
+                escape(str(lending.get("dao_active_loans_count") or "-")),
+            ]
+        ]
+        privacy_mode_rows = []
+        for row in (lending.get("privacy_modes") or []):
+            if not isinstance(row, dict):
+                continue
+            privacy_mode_rows.append(
+                [
+                    escape(str(row.get("privacy_mode") or "-")),
+                    escape(str(row.get("status") or "-")),
+                    escape(_short_hex(str(row.get("proof_ref") or "-"), 10)),
+                    escape(str(row.get("detail") or "-")),
+                ]
+            )
+
+        forecaster = payload.get("forecaster_showcase", {}) if isinstance(payload.get("forecaster_showcase"), dict) else {}
+        forecaster_flow_rows = [
+            ["create_window", escape(str(forecaster.get("window_status") or "-")), escape(str(forecaster.get("window_id") or "-"))],
+            ["suggest_outputs", escape(str(forecaster.get("suggest_status") or "-")), escape(str((forecaster.get("records") or {}).get("suggested_output_id") if isinstance(forecaster.get("records"), dict) else "-"))],
+            ["commit", escape(str(forecaster.get("commit_status") or "-")), escape(str(forecaster.get("forecast_id") or "-"))],
+            ["reveal", escape(str(forecaster.get("reveal_status") or "-")), escape(str(forecaster.get("trust_mode") or "-"))],
+            ["outcomes", escape(str(forecaster.get("outcomes_status") or "-")), escape(str((forecaster.get("records") or {}).get("outcome_batch_id") if isinstance(forecaster.get("records"), dict) else "-"))],
+            ["score", escape(str(forecaster.get("score_status") or "-")), escape(str(forecaster.get("score_receipt_id") or "-"))],
+            ["explain", escape(str(forecaster.get("explain_status") or "-")), escape(str(forecaster.get("reputation_status") or "-"))],
+        ]
+        forecaster_output_rows = []
+        suggested_outputs = forecaster.get("suggested_outputs") if isinstance(forecaster.get("suggested_outputs"), dict) else {}
+        for key in sorted(suggested_outputs.keys()):
+            forecaster_output_rows.append([escape(str(key)), escape(str(suggested_outputs.get(key)))])
+        forecaster_metric_rows = []
+        score_metrics = forecaster.get("score_metrics") if isinstance(forecaster.get("score_metrics"), dict) else {}
+        for key in sorted(score_metrics.keys()):
+            forecaster_metric_rows.append([escape(str(key)), escape(str(score_metrics.get(key)))])
+        forecaster_explain_text = escape(
+            _clip_text(forecaster.get("explain_narration"), 260)
+            or "No explanation text returned."
+        )
+
+        landscape_rows = []
+        for row in (payload.get("ecosystem_landscape") or []):
+            if not isinstance(row, dict):
+                continue
+            source = str(row.get("source") or "")
+            source_html = (
+                f"<a href=\"{escape(source)}\" target=\"_blank\" rel=\"noreferrer\">source</a>"
+                if source
+                else "-"
+            )
+            landscape_rows.append(
+                [
+                    escape(str(row.get("project") or "-")),
+                    escape(str(row.get("focus") or "-")),
+                    escape(str(row.get("why_it_matters") or "-")),
+                    source_html,
+                ]
+            )
+
+        step_index = {
+            str(step.get("name")): step
+            for step in payload.get("steps", [])
+            if isinstance(step, dict) and step.get("name")
+        }
+        poseidon_batch = step_index.get("Optional: batch skill proof runtime")
+        poseidon_credit = step_index.get("Optional: credit eligibility proof")
+        poseidon_ok = bool(poseidon_batch and poseidon_batch.get("ok") and poseidon_credit and poseidon_credit.get("ok"))
+        poseidon_summary = "PASS" if poseidon_ok else "FAIL"
+        poseidon_batch_details = (poseidon_batch.get("details") if isinstance((poseidon_batch or {}).get("details"), dict) else {})
+        poseidon_credit_details = (poseidon_credit.get("details") if isinstance((poseidon_credit or {}).get("details"), dict) else {})
+        poseidon_rows = [
+            [
+                "Optional: batch skill proof runtime",
+                ("<span class=\"pass\">PASS</span>" if (poseidon_batch or {}).get("ok") else "<span class=\"fail\">FAIL</span>"),
+                escape(str(poseidon_batch_details.get("batch_status") or "-")),
+                escape(str(poseidon_batch_details.get("succeeded") or "-")),
+            ],
+            [
+                "Optional: credit eligibility proof",
+                ("<span class=\"pass\">PASS</span>" if (poseidon_credit or {}).get("ok") else "<span class=\"fail\">FAIL</span>"),
+                escape(str(poseidon_credit_details.get("status") or "-")),
+                escape(_short_hex(str(poseidon_credit_details.get("proof_hash") or "-"), 10)),
+            ],
+        ]
+        poseidon_note = (
+            "Shared persistent Poseidon worker is healthy across strategy badge + credit proof paths."
+            if poseidon_ok
+            else "Poseidon runtime is not fully healthy; check optional proof step errors."
+        )
 
         html = f"""<!doctype html>
 <html lang="en">
@@ -1289,53 +3222,112 @@ class ShowcaseRunner:
   <title>zkde.fi Hackathon Backend Showcase</title>
   <style>
     :root {{
-      --bg: #0d1321;
-      --panel: #161f35;
-      --panel-alt: #11192b;
+      --bg: #090b12;
+      --panel: #0f131d;
+      --panel-alt: #121826;
+      --line: #2a3040;
       --text: #f4f7ff;
-      --muted: #9fb2d4;
-      --good: #4ade80;
-      --bad: #f97316;
-      --line: #2b3a5d;
-      --link: #60a5fa;
+      --muted: #98a2b5;
+      --good: #34d399;
+      --bad: #fb923c;
+      --link: #67e8f9;
+      --emerald: #10b981;
+      --cyan: #22d3ee;
     }}
     body {{
       margin: 0;
-      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top right, #1f355f 0%, var(--bg) 45%);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.18), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, 0.14), transparent 28%),
+        var(--bg);
       color: var(--text);
-      line-height: 1.45;
+      line-height: 1.5;
     }}
     main {{
-      max-width: 1180px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 28px 18px 48px;
+      padding: 28px 18px 56px;
     }}
-    h1, h2 {{
-      margin: 0 0 12px;
-      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-      letter-spacing: 0.3px;
+    h1, h2, h3 {{
+      margin: 0 0 10px;
+      font-family: "Sora", "Segoe UI", sans-serif;
+      letter-spacing: 0.15px;
     }}
-    h1 {{ font-size: 28px; }}
-    h2 {{ font-size: 20px; margin-top: 28px; }}
+    h1 {{
+      font-size: 34px;
+      background: linear-gradient(90deg, #ffffff 0%, #a7f3d0 48%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }}
+    h2 {{ font-size: 22px; margin-top: 2px; }}
+    h3 {{ font-size: 16px; margin-top: 14px; color: #d2d8e5; }}
     p {{ margin: 8px 0; }}
     .meta {{ color: var(--muted); font-size: 14px; }}
+    .hero {{
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #2a3142;
+      border-radius: 16px;
+      background:
+        linear-gradient(155deg, rgba(16, 185, 129, 0.16), rgba(34, 211, 238, 0.06) 38%, rgba(10, 14, 22, 0.96) 78%),
+        #0b1019;
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+    }}
+    .subline {{
+      margin-top: 8px;
+      color: #b7c2d7;
+      max-width: 930px;
+    }}
     .score {{
       display: inline-block;
       margin-top: 10px;
-      padding: 6px 10px;
-      border: 1px solid var(--line);
+      padding: 7px 12px;
+      border: 1px solid #2f3a50;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.04);
       font-weight: 700;
+    }}
+    .chips {{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }}
+    .chip {{
+      border: 1px solid #30435a;
+      color: #b8d4ef;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      background: rgba(22, 33, 49, 0.56);
+    }}
+    .chip.novel {{
+      border-color: rgba(16, 185, 129, 0.55);
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.1);
     }}
     section {{
       margin-top: 16px;
       background: linear-gradient(180deg, var(--panel), var(--panel-alt));
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 16px;
-      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
+    }}
+    .intent {{
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px dashed #3a4b64;
+      border-radius: 10px;
+      background: rgba(22, 30, 46, 0.48);
+      color: #c7d2e8;
+      font-size: 13px;
+    }}
+    .intent strong {{
+      color: #ecf3ff;
     }}
     table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
     th, td {{
@@ -1354,7 +3346,7 @@ class ShowcaseRunner:
     pre {{
       margin: 8px 0 0;
       padding: 10px;
-      background: #0a1222;
+      background: #0a0f1a;
       border: 1px solid var(--line);
       border-radius: 8px;
       overflow-x: auto;
@@ -1363,7 +3355,7 @@ class ShowcaseRunner:
     details {{ margin-top: 8px; }}
     summary {{ cursor: pointer; color: var(--link); }}
     @media (max-width: 700px) {{
-      h1 {{ font-size: 22px; }}
+      h1 {{ font-size: 26px; }}
       h2 {{ font-size: 18px; }}
       th, td {{ font-size: 12px; padding: 7px 6px; }}
     }}
@@ -1371,23 +3363,102 @@ class ShowcaseRunner:
 </head>
 <body>
   <main>
-    <h1>zkde.fi Backend Showcase Report</h1>
-    <p class="meta">Generated: {escape(str(payload.get('generated_at')))} UTC</p>
-    <p class="meta">Base URL: {escape(str(payload.get('base_url')))} | Wallet: {escape(str(payload.get('wallet')))}</p>
-    <p class="score">Core claims: {escape(str((payload.get('core_score') or {}).get('validated', 0)))} / {escape(str((payload.get('core_score') or {}).get('total', 0)))} validated</p>
+    <div class="hero">
+      <h1>zkde.fi Backend Showcase Report</h1>
+      <p class="subline">
+        Terminal-first evidence that the backend can run proof-gated strategy flows, expose on-chain trust state,
+        and power UI surfaces that are currently lagging behind the full stack.
+      </p>
+      <p class="meta">Generated: {escape(str(payload.get('generated_at')))} UTC</p>
+      <p class="meta">Base URL: {escape(str(payload.get('base_url')))} | Wallet: {escape(str(payload.get('wallet')))}</p>
+      <p class="score">Core claims: {escape(str((payload.get('core_score') or {}).get('validated', 0)))} / {escape(str((payload.get('core_score') or {}).get('total', 0)))} validated</p>
+      <div class="chips">
+        <span class="chip">Starknet backend evidence</span>
+        <span class="chip">Proof + policy + receipts</span>
+        <span class="chip">STARK + SNARK lanes</span>
+        <span class="chip novel">Novel: open-source ModelBridge (zkML to circuit proof gate)</span>
+        <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
+      </div>
+    </div>
 
     <section>
       <h2>Core Claim Matrix</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> The non-negotiable MVP claims for health, proofs, agent execution, policy controls, and on-chain visibility.<br/>
+        <strong>UI intent:</strong> Each pass maps to a UI surface that can be switched from placeholder to live data source.<br/>
+        <strong>Unlocks:</strong> A judge can trust that backend capabilities are real even if frontend polish is still catching up.
+      </div>
       {self._html_table(["Claim", "Status"], claim_rows)}
     </section>
 
     <section>
       <h2>Execution Steps</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Granular API and proving steps with concrete telemetry (IDs, proof hashes, counts, statuses).<br/>
+        <strong>UI intent:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
+        <strong>Unlocks:</strong> Reliable observability, fast triage, and cleaner frontend integration.
+      </div>
       {self._html_table(["Step", "Status", "Highlights"], step_rows)}
     </section>
 
     <section>
+      <h2>Open-source ModelBridge + Dual-Proof Architecture</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> That the zkML bridge implementation is present in repo, then exercised via runtime probes that hit both single-chain and dual-chain proof paths.<br/>
+        <strong>UI intent:</strong> Lets UI show proof-lane selection (`l3`, `l2`, `dual`), verifier mode, and trust posture before execution.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> Proof-aware AI actions where model output is bridged into circuit-calldata semantics and chained to Starknet verification lanes.
+      </div>
+      <p class="meta">
+        Selected model for runtime probe: {escape(str(bridge.get('selected_model') or '-'))} |
+        Proof-model registry status: {escape(str(bridge.get('proof_models_status') or '-'))} |
+        Registered models: {escape(str(bridge.get('proof_models_count') or 0))} |
+        Ready models: {escape(str(bridge.get('proof_models_ready_count') or 0))} |
+        Runtime mode: {escape(str(bridge.get('runtime_mode') or '-'))}
+      </p>
+      <h3>Bridge Artifacts in Repository</h3>
+      {self._html_table(["Artifact", "Path", "Status"], bridge_artifact_rows)}
+      <h3>Live Proving Lanes (STARK vs SNARK)</h3>
+      <p class="meta">
+        Proving-path endpoint status: {escape(str(bridge.get('proving_paths_status') or '-'))} |
+        Dual lanes ready: {("<span class=\"pass\">yes</span>" if bridge.get("dual_lanes_ready") else "<span class=\"fail\">no</span>")} |
+        SNOS proving: {escape(snos_status_text)}
+      </p>
+      {self._html_table(["Lane ID", "Lane Name", "Available", "Contract", "Trust Model"], proving_rows)}
+      <h3>Runtime Bridge Probes (`/api/v1/zkdefi/proofs/ml-bridge`)</h3>
+      {self._html_table(["Run", "Proof Mode", "Requested Chain", "L3 Mode", "L2 Mode", "Mirror", "Can Execute", "Failure Reason"], bridge_run_rows)}
+      <p class="meta">
+        SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
+        In `dual` mode, backend attempts both and records mirror status for policy gating.
+      </p>
+      <p class="meta">
+        EZKL runtime probe status: {escape(str(((bridge.get('ezkl_runtime_probe') or {}).get('status') if isinstance(bridge.get('ezkl_runtime_probe'), dict) else '-')))} |
+        Real proof detected: {("<span class=\"pass\">yes</span>" if ((bridge.get("ezkl_runtime_probe") or {}).get("has_real_proof")) else "<span class=\"fail\">no</span>")}
+      </p>
+      <h3>Why This Bridge Is An Unlock</h3>
+      {self._html_table(["Unlock", "Design Signal", "Why It Matters"], bridge_unlock_rows)}
+      <h3>Who Does Adjacent Pieces vs This Full Composition</h3>
+      {self._html_table(["Stack", "Published Signal", "Bridge-to-Privacy-Gate Signal", "Reference"], bridge_comparison_rows)}
+      <h3>ModelBridge Verifier On-chain Readiness (Starknet + L3)</h3>
+      {self._html_table(["Check", "Status"], verifier_support_rows)}
+    </section>
+
+    <section>
+      <h2>Ecosystem Sources (Research Appendix)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> External source sanity-check so bridge claims are benchmarked against current open-source zkML and Starknet proof infrastructure.<br/>
+        <strong>UI intent:</strong> Feeds judge-facing technical appendix links without unsupported claims.<br/>
+        <strong>Unlocks:</strong> Transparent positioning: what exists in ecosystem today, and where this bridge design goes further.
+      </div>
+      {self._html_table(["Project/Source", "Published Focus", "Positioning Signal", "Link"], landscape_rows)}
+    </section>
+
+    <section>
       <h2>On-chain Links (Voyager)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
+        <strong>UI intent:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
+        <strong>Unlocks:</strong> External verifiability for judges, users, and auditors.
+      </div>
       <p class="meta">RPC used: {escape(str((payload.get('onchain') or {}).get('rpc_url') or '-'))}</p>
       {self._html_table(["Contract", "Address", "Class Hash"], contract_rows)}
       <h3>Receipts / Tx Links</h3>
@@ -1396,6 +3467,11 @@ class ShowcaseRunner:
 
     <section>
       <h2>zkML Circuit Deep Dive</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Real inventory and readiness of first-party circuits, proving artifacts, and adjacent Cairo/ONNX footprint.<br/>
+        <strong>UI intent:</strong> Powers “capability explorer” and strategy badge transparency in the app.<br/>
+        <strong>Unlocks:</strong> Demonstrates this is a multi-circuit platform, not a single proof demo.
+      </div>
       <p class="meta">
         Circom sources: {escape(str(inventory.get('circom_sources', 0)))} |
         wasm ready: {escape(str(inventory.get('circuits_with_wasm', 0)))} |
@@ -1414,25 +3490,103 @@ class ShowcaseRunner:
 
     <section>
       <h2>Opportunity Advisory + Badge Flow</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live opportunities, LLM advisory, then ZK circuit screening before recommendation is treated as trusted.<br/>
+        <strong>UI intent:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> AI-guided suggestions with cryptographic gating, not opaque black-box outputs.
+      </div>
       {self._html_table(["Opp ID", "Title", "Pair", "Type", "Yield %", "Risk"], opportunity_rows)}
       <h3>AI Advisory Snapshot</h3>
-      {self._html_table(["Opp ID", "Recommendation", "Confidence", "Status"], advisory_rows)}
+      {self._html_table(["Opp ID", "Recommendation", "Confidence", "Narrative", "Status"], advisory_rows)}
       <h3>Badge Circuit Screening Snapshot</h3>
       {self._html_table(["Opp ID", "Proof Status", "is_proved", "Yield Proof", "Strategy Proof", "Error"], badge_rows)}
     </section>
 
     <section>
+      <h2>AI Circuit Skills Engine (LLM Tooling)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> LLM opportunity advice is validated against a broad zkML skill bundle before being upgraded to trusted execution.<br/>
+        <strong>UI intent:</strong> Frontend can render a deterministic “tool-call audit” timeline (skill pass/fail, proof hash, rationale).<br/>
+        <strong>Unlocks:</strong> AI recommendations become verifiable policy outputs, not opaque prompts.
+      </div>
+      <p class="meta">Skills in this pass: {escape(", ".join(str(x) for x in (skill_engine.get("skill_ids") or [])[:15]))}</p>
+      {self._html_table(["Opp ID", "Recommendation", "Confidence", "Skills Passed", "Skills Total", "Rationale"], skill_engine_rows)}
+      <h3>Skill Trail (sample)</h3>
+      {self._html_table(["Opp ID", "Skill", "Result", "Duration ms", "Proof", "Error"], skill_detail_rows)}
+      <h3>Skill Proof Receipts</h3>
+      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `local_receipt_only` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
+      {self._html_table(["Opp ID", "Skill Used", "Proof Hash", "Receipt Endpoint", "Receipt State", "Receipt Status", "Statement"], skill_receipt_rows)}
+    </section>
+
+    <section>
+      <h2>Privacy Rails + Voting/Lending Backend Demo</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> End-to-end privacy rails: shielded commitments, nullifier + claim hash proofs, relayer-style withdraw queueing, and L3 dark settlement endpoints.<br/>
+        <strong>UI intent:</strong> Enables a stepper UI with explicit states: shielded deposit, proofed withdraw, relayer queued, settlement verified.<br/>
+        <strong>Unlocks:</strong> Private voting and private lending backends can be surfaced even while UI is still maturing.
+      </div>
+      <h3>Reputation / Access Tiers</h3>
+      {self._html_table(["Tier", "Name", "Relayer", "Delay (h)", "Proof Requirement", "Max Position ETH"], privacy_tier_rows)}
+      <h3>Shielded -> Nullifier -> Claim Hash Rails</h3>
+      {self._html_table(["Pool Type", "Generate", "Register", "Claim", "Nullifier", "Claim Hash", "Relayer Ready"], privacy_rail_rows)}
+      <h3>Ledger + Relayer Withdraw</h3>
+      {self._html_table(["Flow", "Status", "Reference", "Status URL", "Settlement ETA"], ledger_rows)}
+      <h3>L3 Dark Settlement (Madara)</h3>
+      {self._html_table(["Endpoint", "Status", "Signal"], madara_rows)}
+      <h3>Private Voting</h3>
+      {self._html_table(["Proposal ID", "Create", "Proof", "Cast", "Error"], voting_rows)}
+      <h3>Private Lending + Pool Privacy Modes</h3>
+      {self._html_table(["Lending Pool", "Supply", "Borrow", "Health", "DAO Policy", "Active Loans"], lending_rows)}
+      {self._html_table(["Privacy Mode", "Deposit Status", "Proof Ref", "Detail"], privacy_mode_rows)}
+    </section>
+
+    <section>
+      <h2>Private Prediction Market Primitive (Forecaster)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commit/reveal forecasting with scoring and explainability so private prediction workflows can run without exposing raw strategy state.<br/>
+        <strong>UI intent:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
+        <strong>Unlocks:</strong> Proof-aware forecasting that can plug into private voting, risk tiers, and strategy gating.
+      </div>
+      {self._html_table(["Stage", "Status", "Signal"], forecaster_flow_rows)}
+      <h3>Suggested Outputs (scaled)</h3>
+      {self._html_table(["Output Key", "Value"], forecaster_output_rows)}
+      <h3>Score Metrics</h3>
+      {self._html_table(["Metric", "Value"], forecaster_metric_rows)}
+      <p class="meta">Explainability: {forecaster_explain_text}</p>
+    </section>
+
+    <section>
       <h2>LLM + Marketplace Config Packs</h2>
-      <p class="meta">Profiles generated from live providers/models/skills and marketplace model registry.</p>
-      {packs_block}
+      <div class="intent">
+        <strong>What this tests:</strong> Runtime-validated config packs built from active provider/model/skill registries.<br/>
+        <strong>UI intent:</strong> Direct seed data for agent-builder presets (conservative / balanced / aggressive).<br/>
+        <strong>Unlocks:</strong> Faster onboarding into a proof-aware agent marketplace.
+      </div>
+      {self._html_table(["Profile", "Provider", "Model", "Temp", "Processors", "Circuit Skills"], pack_rows)}
+    </section>
+
+    <section>
+      <h2>Poseidon Runtime Status</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commitment hashing reliability across badge-screen and credit-eligibility proof flows.<br/>
+        <strong>UI intent:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
+        <strong>Unlocks:</strong> Stable commitment generation across private strategy and trust workflows.
+      </div>
+      <p class="meta">Current status: {("<span class=\"pass\">PASS</span>" if poseidon_ok else "<span class=\"fail\">FAIL</span>")} ({poseidon_summary})</p>
+      <p class="meta">{escape(poseidon_note)}</p>
+      {self._html_table(["Step", "Status", "API Status", "Signal"], poseidon_rows)}
     </section>
 
     <section>
       <h2>Strategy API Evidence</h2>
-      <p class="meta">`/api/v2/strategies/recommend`</p>
-      <pre>{recommend_block}</pre>
-      <p class="meta">`/api/v2/strategies/analyze`</p>
-      <pre>{analyze_block}</pre>
+      <div class="intent">
+        <strong>What this tests:</strong> Recommendation and analysis payloads that downstream UI widgets depend on.<br/>
+        <strong>UI intent:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
+        <strong>Unlocks:</strong> Explainable strategy decisions with proof-linked context.
+      </div>
+      {self._html_table(["Endpoint", "Status", "Evidence ID", "Confidence", "Signal", "Failure"], strategy_summary_rows)}
+      <h3>Allocation Rows</h3>
+      {self._html_table(["Source", "Pool ID", "Pair", "Protocol", "Allocation", "Expected APY"], strategy_pool_rows)}
     </section>
   </main>
 </body>
@@ -1473,6 +3627,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wallet", default=os.getenv("SHOWCASE_WALLET", DEFAULT_WALLET), help="Wallet address used for WalletOwner endpoints")
     parser.add_argument("--timeout-seconds", type=float, default=DEFAULT_TIMEOUT_SECONDS, help="Per-request timeout in seconds")
     parser.add_argument("--skip-onchain", action="store_true", help="Skip on-chain reads / RPC probes")
+    parser.add_argument("--judge-mode", action="store_true", help="Condensed terminal output for live judging")
     parser.add_argument(
         "--artifact-dir",
         default=str(DEFAULT_ARTIFACT_DIR),
@@ -1489,6 +3644,7 @@ def main() -> int:
         timeout_seconds=args.timeout_seconds,
         skip_onchain=bool(args.skip_onchain),
         artifact_dir=Path(args.artifact_dir),
+        judge_mode=bool(args.judge_mode),
     )
     return runner.run()
 

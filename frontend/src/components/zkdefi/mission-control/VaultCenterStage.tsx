@@ -20,6 +20,7 @@ export interface VaultCenterStageProps {
   activeTab: VaultTab;
   onTabChange: (tab: VaultTab) => void;
   onSlideout: (mode: string, poolId?: string) => void;
+  isDemo?: boolean;
 }
 
 const TABS = [
@@ -35,6 +36,7 @@ export function VaultCenterStage({
   activeTab,
   onTabChange,
   onSlideout,
+  isDemo,
 }: VaultCenterStageProps) {
   return (
     <div className="h-full flex flex-col">
@@ -63,12 +65,12 @@ export function VaultCenterStage({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === "overview" && (
           <ErrorBoundary>
-            <OverviewTab address={address} />
+            <OverviewTab address={address} isDemo={isDemo} />
           </ErrorBoundary>
         )}
         {activeTab === "capital" && (
           <ErrorBoundary>
-            <CapitalTab address={address} onSlideout={onSlideout} />
+            <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} />
           </ErrorBoundary>
         )}
         {activeTab === "lend" && (

@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle } from "lucide-react";
 import { apiFetch, API_BASE } from "@/lib/api/client";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
 import { getEkuboPositions } from "@/lib/api/ekubo";
 import { InlineOracleCard, type OracleSignal } from "@/components/zkdefi/shared/InlineOracleCard";
+import {
+  DEMO_VAULT_SUMMARY,
+  DEMO_ACTIVITY,
+  DEMO_COMMITMENTS,
+  DEMO_ALLOCATION,
+} from "@/lib/demoCapitalOS";
 
 interface OverviewTabProps {
   address: string;
+  isDemo?: boolean;
 }
 
 function usd(v: number) {
@@ -19,8 +26,20 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-zinc-800/60 ${className}`} />;
 }
 
-export function OverviewTab({ address }: OverviewTabProps) {
-  const vault = useVaultSummary(address);
+export function OverviewTab({ address, isDemo }: OverviewTabProps) {
+  const vaultRaw = useVaultSummary(address);
+
+  // In demo mode, overlay demo data when API returns nothing
+  const vault = useMemo(() => {
+    if (!isDemo) return vaultRaw;
+    if (vaultRaw.total_usd > 0 || vaultRaw.strk_balance > 0) return vaultRaw;
+    return {
+      loading: false,
+      total_usd: DEMO_VAULT_SUMMARY.total_usd,
+      strk_balance: DEMO_VAULT_SUMMARY.strk_balance,
+      eth_balance: DEMO_VAULT_SUMMARY.eth_balance,
+    };
+  }, [isDemo, vaultRaw]);
 
   const [privacyTotal, setPrivacyTotal] = useState(0);
   const [ekuboTotal, setEkuboTotal] = useState(0);
@@ -32,6 +51,19 @@ export function OverviewTab({ address }: OverviewTabProps) {
 
   useEffect(() => {
     if (!address) return;
+
+    // In demo mode, use demo data immediately
+    if (isDemo) {
+      // Compute privacy total from demo commitments
+      const pTotal = DEMO_COMMITMENTS.reduce(
+        (sum, c) => sum + Number(c.amount_wei) / 1e18 * 0.5, 0
+      );
+      setPrivacyTotal(pTotal);
+      setEkuboTotal(164.87);
+      setDeployedLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -59,10 +91,22 @@ export function OverviewTab({ address }: OverviewTabProps) {
     })();
 
     return () => { cancelled = true; };
-  }, [address]);
+  }, [address, isDemo]);
 
   useEffect(() => {
     if (!address) return;
+
+    // In demo mode, use demo data
+    if (isDemo) {
+      setSignals([
+        { pair: "STRK/ETH", direction: "up", confidence: 0.85, recommendation: "22.0% APY" },
+        { pair: "ETH/USDC", direction: "stable", confidence: 0.90, recommendation: "18.0% APY" },
+        { pair: "STRK/USDC", direction: "stable", confidence: 0.70, recommendation: "15.0% APY" },
+      ]);
+      setActivity(DEMO_ACTIVITY);
+      return;
+    }
+
     let cancelled = false;
 
     apiFetch<any>(`/api/v1/zkdefi/trade-desk/v2/opportunities?limit=3`)
@@ -96,7 +140,7 @@ export function OverviewTab({ address }: OverviewTabProps) {
       });
 
     return () => { cancelled = true; };
-  }, [address]);
+  }, [address, isDemo]);
 
   if (!address) {
     return (

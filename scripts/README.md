@@ -30,6 +30,7 @@ Optional flags:
 - `--base-url http://127.0.0.1:8003`
 - `--wallet 0x...`
 - `--skip-onchain` (useful if RPC is flaky/offline)
+- `--judge-mode` (compact terminal output for live judging)
 - `--artifact-dir artifacts/hackathon_showcase`
 
 ### Hackathon showcase artifacts
@@ -44,7 +45,12 @@ Each run writes timestamped and latest report files:
 The HTML report includes:
 
 - Core claim matrix and step-by-step terminal evidence
+- Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
 - AI + marketplace snapshot: opportunities, advisory calls, strategy badge screening
+- AI circuit-skills evidence: per-opportunity zkML skill passes/fails, recommendation rationale, and proof receipt trail ("I used skill X" -> receipt endpoint)
+- Privacy rails demo: shielded/nullifier/hash/relayer withdraw + Madara L3 settlement probes
+- Private governance/lending backend probes (proposal/vote path + lending policy/call-data flows)
+- Private prediction market primitive (forecaster): commit/reveal, scoring receipt, explainability snapshot
 - Generated LLM + circuit-skill config packs (conservative/balanced/aggressive)

@@ -37,6 +37,10 @@ GARAGA_VERIFIER = os.getenv(
     "GARAGA_VERIFIER_ADDRESS",
     "0x0256065bfdb2a4fa37d7ffb479aec7c7633702b48b736394169ddfff8b9f517df"
 )
+ZKML_VERIFIER = os.getenv(
+    "ZKML_VERIFIER_ADDRESS",
+    "0x068abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923"
+)
 INTEGRITY_REGISTRY = os.getenv(
     "INTEGRITY_FACT_REGISTRY_ADDRESS",
     "0x059b65ad723c1f0dcb2643f34d2e03292b366c987a63b2177d4f7ea40ba664a8"
@@ -164,6 +168,11 @@ async def get_contracts():
             "garaga_verifier": {
                 "address": GARAGA_VERIFIER,
                 "starkscan": f"https://sepolia.starkscan.io/contract/{GARAGA_VERIFIER}",
+            },
+            "zkml_verifier": {
+                "address": ZKML_VERIFIER,
+                "starkscan": f"https://sepolia.starkscan.io/contract/{ZKML_VERIFIER}",
+                "purpose": "ModelBridge + risk/anomaly proof verification",
             },
             "integrity_registry": {
                 "address": INTEGRITY_REGISTRY,

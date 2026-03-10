@@ -6,10 +6,12 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { PoolBucketCard } from "@/components/zkdefi/shared/PoolBucketCard";
+import { DEMO_OPPORTUNITIES } from "@/lib/demoCapitalOS";
 
 interface CapitalTabProps {
   address: string;
   onSlideout: (mode: string, poolId?: string) => void;
+  isDemo?: boolean;
 }
 
 const POOLS = [
@@ -42,7 +44,7 @@ const FILTER_PILLS: Array<{ key: OpFilter; label: string }> = [
   { key: "private", label: "Private" },
 ];
 
-export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
+export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
   // ── Opportunities ──
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [oppsLoading, setOppsLoading] = useState(true);
@@ -50,6 +52,20 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
   const [opFilter, setOpFilter] = useState<OpFilter>("all");
 
   const loadOpps = useCallback(async () => {
+    if (isDemo) {
+      // Use demo opportunities directly
+      setOpportunities(DEMO_OPPORTUNITIES.map((o) => ({
+        pair: o.pair,
+        currentYield: o.estimated_apy_pct,
+        risk_score: o.risk_score,
+        risk: (o.risk_score ?? 50) < 30 ? "low" : (o.risk_score ?? 50) < 50 ? "medium" : "high",
+        confidence: o.confidence,
+        type: "lp",
+      })));
+      setOppsLoading(false);
+      return;
+    }
+
     setOppsError(null);
     setOppsLoading(true);
     try {
@@ -67,7 +83,7 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
     } finally {
       setOppsLoading(false);
     }
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
     loadOpps();
@@ -103,6 +119,7 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
               riskColor={pool.riskColor}
               onDeposit={(pid) => onSlideout("deposit", pid)}
               onWithdraw={(pid) => onSlideout("withdraw", pid)}
+              isDemo={isDemo}
             />
           ))}
         </div>

@@ -132,11 +132,15 @@ async def generate_vote_proof(request: VoteRequest, _caller: str = WalletOwner) 
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     return {
         "proof_calldata": proof.proof_calldata,
         "nullifier_hash": proof.nullifier_hash,
         "commitment": proof.commitment,
         "vote_value": proof.vote_value,
+        "proof_mode": getattr(proof, "proof_mode", "groth16"),
+        "fallback_reason": getattr(proof, "fallback_reason", None),
     }
 
 

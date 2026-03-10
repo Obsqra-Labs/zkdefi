@@ -4,5 +4,11 @@
 "identity_commitment": "0xbbbb",
 "timestamp": 1773173424,
 "agent_initialized": true
+},
+"0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": {
+"fact_hash": "0x7075c4688998d679cbbba99192366f94e132b1c60d7c4b6e938fa43a86da560",
+"identity_commitment": "0x7796f3ae5cff008a15d763e4f5183a28cfdf138e6f7052a8379e230020b7384b",
+"timestamp": 1773175505,
+"agent_initialized": true
 }
 }

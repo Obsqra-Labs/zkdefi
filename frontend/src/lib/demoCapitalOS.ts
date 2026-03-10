@@ -79,6 +79,74 @@ export const DEMO_DCA = {
 /** Demo address used to detect demo mode in Oracle tabs when strip uses demo. */
 export const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
+/** Demo vault summary for OverviewTab when in guest mode. */
+export const DEMO_VAULT_SUMMARY = {
+  total_usd: 1000,
+  strk_balance: 2000,
+  eth_balance: 0,
+};
+
+/** Demo activity feed for OverviewTab. */
+export const DEMO_ACTIVITY = [
+  { timestamp: new Date(Date.now() - 3600000).toISOString(), description: "Deposited 500 STRK → Conservative Pool", tx_hash: "0xdemo_tx_1abc" },
+  { timestamp: new Date(Date.now() - 86400000).toISOString(), description: "Deposited 800 STRK → Moderate Pool", tx_hash: "0xdemo_tx_2def" },
+  { timestamp: new Date(Date.now() - 172800000).toISOString(), description: "Yield harvest +8.4 STRK (Conservative)", tx_hash: "0xdemo_tx_3ghi" },
+  { timestamp: new Date(Date.now() - 432000000).toISOString(), description: "Deposited 400 STRK → Aggressive Pool", tx_hash: "0xdemo_tx_4jkl" },
+  { timestamp: new Date(Date.now() - 604800000).toISOString(), description: "Agent auto-rebalanced 200 STRK Moderate → Conservative", tx_hash: "0xdemo_tx_5mno" },
+];
+
+/** Demo pool composition for CapitalTab PoolBucketCards. */
+export const DEMO_POOL_COMPOSITIONS: Record<string, {
+  pool_id: string; total_value_usd: number; idle_value_usd: number;
+  deployed_value_usd: number; blended_apy: number;
+  positions: Array<{ id: string; adapter: string; pair?: string; value_usd: number; apy: number; status: string }>;
+  idle_breakdown: Record<string, number>; agent_status: string; next_eval_seconds: number;
+}> = {
+  conservative: {
+    pool_id: "conservative", total_value_usd: 250, idle_value_usd: 50,
+    deployed_value_usd: 200, blended_apy: 8.2,
+    positions: [
+      { id: "p1", adapter: "lending", pair: "STRK/USDC", value_usd: 120, apy: 7.5, status: "active" },
+      { id: "p2", adapter: "staking", pair: "STRK", value_usd: 80, apy: 9.1, status: "delegated" },
+    ],
+    idle_breakdown: { STRK: 100 }, agent_status: "monitoring", next_eval_seconds: 1800,
+  },
+  moderate: {
+    pool_id: "moderate", total_value_usd: 550, idle_value_usd: 100,
+    deployed_value_usd: 450, blended_apy: 15.4,
+    positions: [
+      { id: "p3", adapter: "ekubo_lp", pair: "STRK/ETH", value_usd: 280, apy: 18.3, status: "in_range" },
+      { id: "p4", adapter: "lending", pair: "ETH/USDC", value_usd: 170, apy: 11.2, status: "active" },
+    ],
+    idle_breakdown: { STRK: 200 }, agent_status: "monitoring", next_eval_seconds: 900,
+  },
+  aggressive: {
+    pool_id: "aggressive", total_value_usd: 200, idle_value_usd: 30,
+    deployed_value_usd: 170, blended_apy: 24.7,
+    positions: [
+      { id: "p5", adapter: "ekubo_lp", pair: "STRK/ETH Wide", value_usd: 170, apy: 24.7, status: "in_range" },
+    ],
+    idle_breakdown: { STRK: 60 }, agent_status: "monitoring", next_eval_seconds: 600,
+  },
+};
+
+/** Demo health passport for IdentityBadge. */
+export const DEMO_HEALTH = {
+  tier: 2,
+  tier_name: "Express",
+  trust_score: 70,
+  proof_count: 12,
+  credit_score: 720,
+};
+
+/** Demo agent status for AgentControls. */
+export const DEMO_AGENT = {
+  status: { state: "monitoring", running: true, policy_name: "balanced_yield" },
+  constraints: { risk_tolerance: 50, venue_limits: { venues: ["ekubo", "avnu"], ekubo_pct: 60, lending_pct: 25 } },
+  session: { active: true, expires_in: "5h 30m" },
+  rebalance_mode: "oracle" as const,
+};
+
 /** Realistic demo commitments across all 3 pools for showcase. */
 export const DEMO_COMMITMENTS = [
   {

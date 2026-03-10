@@ -6,6 +6,7 @@ import {
   RefreshCw, AlertTriangle, Bot,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import { DEMO_POOL_COMPOSITIONS } from "@/lib/demoCapitalOS";
 
 interface PoolPosition {
   id: string;
@@ -37,6 +38,7 @@ interface PoolBucketCardProps {
   riskColor: string;
   onDeposit: (poolId: string) => void;
   onWithdraw: (poolId: string) => void;
+  isDemo?: boolean;
 }
 
 const ADAPTER_ICON: Record<string, { icon: string; color: string }> = {
@@ -73,6 +75,7 @@ export function PoolBucketCard({
   riskColor,
   onDeposit,
   onWithdraw,
+  isDemo,
 }: PoolBucketCardProps) {
   const [composition, setComposition] = useState<PoolComposition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +83,14 @@ export function PoolBucketCard({
   const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
+    // In demo mode, use demo data directly
+    if (isDemo) {
+      const demo = DEMO_POOL_COMPOSITIONS[poolId];
+      if (demo) setComposition(demo as PoolComposition);
+      setLoading(false);
+      return;
+    }
+
     setError(null);
     try {
       const data = await apiFetch<PoolComposition>(
@@ -91,13 +102,14 @@ export function PoolBucketCard({
     } finally {
       setLoading(false);
     }
-  }, [poolId]);
+  }, [poolId, isDemo]);
 
   useEffect(() => {
     load();
+    if (isDemo) return; // No polling in demo mode
     const t = setInterval(load, 30_000);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, isDemo]);
 
   if (loading && !composition) {
     return <div className="h-32 rounded-xl bg-zinc-800/40 animate-pulse" />;

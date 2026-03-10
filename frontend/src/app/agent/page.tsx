@@ -239,6 +239,7 @@ function AgentPageInner() {
             <IdentityBadge
               address={addr}
               onSlideout={isGuest ? () => toast("info", "Connect a wallet to fund or withdraw") : (m) => setSlideout(m as SlideoutModeV2)}
+              isDemo={isGuest}
             />
           }
           centerStage={
@@ -247,10 +248,11 @@ function AgentPageInner() {
               activeTab={vaultTab}
               onTabChange={handleVaultTabChange}
               onSlideout={isGuest ? () => toast("info", "Connect a wallet to deposit or withdraw") : (m, poolId) => openSlideout(m as NonNullable<SlideoutModeV2>, poolId)}
+              isDemo={isGuest}
             />
           }
           rightRail={
-            <AgentControls address={addr} />
+            <AgentControls address={addr} isDemo={isGuest} />
           }
           overlay={overlayContent}
           activeMode={vaultTab}
@@ -376,7 +378,7 @@ function AdvancedDepositSection({
               >
                 <span className="font-medium">Shielded Pool</span>
                 <span className="block text-[11px] text-zinc-500 mt-0.5">
-                  Advanced shield rail for dark ledger operations
+                  Advanced shield rail for privacy pool operations
                 </span>
               </button>
             </>

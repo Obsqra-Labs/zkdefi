@@ -57,6 +57,9 @@ pub trait IZkmlVerifier<TContractState> {
     
     // Get Garaga verifier address
     fn get_garaga_verifier(self: @TContractState) -> ContractAddress;
+    // ModelBridge-specific verifier (if set, used for verify_model_bridge_proof)
+    fn get_model_bridge_verifier(self: @TContractState) -> ContractAddress;
+    fn set_model_bridge_verifier(ref self: TContractState, verifier: ContractAddress);
     
     // v6: Verify ModelBridge proof (EZKL → Groth16 bridge)
     fn verify_model_bridge_proof(
@@ -90,7 +93,8 @@ mod ZkmlVerifier {
         storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess,
                   StorageMapReadAccess, StorageMapWriteAccess}
     };
-    
+    use core::num::traits::Zero;
+
     use super::IGaragaVerifierDispatcher;
     use super::IGaragaVerifierDispatcherTrait;
     use super::ZkmlProofRecord;
@@ -98,6 +102,7 @@ mod ZkmlVerifier {
     #[storage]
     struct Storage {
         garaga_verifier: ContractAddress,
+        model_bridge_verifier: ContractAddress,
         proof_records: Map<felt252, ZkmlProofRecord>,
         verified_proofs: Map<felt252, bool>,
         user_proof_count: Map<ContractAddress, u64>,
@@ -181,9 +186,11 @@ mod ZkmlVerifier {
     fn constructor(
         ref self: ContractState,
         garaga_verifier: ContractAddress,
-        admin: ContractAddress
+        admin: ContractAddress,
+        model_bridge_verifier: ContractAddress
     ) {
         self.garaga_verifier.write(garaga_verifier);
+        self.model_bridge_verifier.write(model_bridge_verifier);
         self.admin.write(admin);
     }
     
@@ -337,6 +344,16 @@ mod ZkmlVerifier {
             self.garaga_verifier.read()
         }
         
+        fn get_model_bridge_verifier(self: @ContractState) -> ContractAddress {
+            self.model_bridge_verifier.read()
+        }
+        
+        fn set_model_bridge_verifier(ref self: ContractState, verifier: ContractAddress) {
+            let caller = get_caller_address();
+            assert(self.admin.read() == caller, 'ZKML: admin only');
+            self.model_bridge_verifier.write(verifier);
+        }
+        
         // ──── v6: ModelBridge Proof Verification ────────────────────────
         
         fn verify_model_bridge_proof(
@@ -349,9 +366,13 @@ mod ZkmlVerifier {
             let caller = get_caller_address();
             let timestamp = get_block_timestamp();
             
-            // Call Garaga verifier for ModelBridge Groth16 proof
+            let verifier_addr = if self.model_bridge_verifier.read() != Zero::zero() {
+                self.model_bridge_verifier.read()
+            } else {
+                self.garaga_verifier.read()
+            };
             let garaga = IGaragaVerifierDispatcher {
-                contract_address: self.garaga_verifier.read()
+                contract_address: verifier_addr
             };
             let is_valid = garaga.verify_groth16_proof_bn254(proof_calldata);
             

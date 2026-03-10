@@ -7,22 +7,20 @@ User votes privately (hidden vote direction) while proving voting power.
 """
 
 import asyncio
+import hashlib
 import json
 import math
 import os
-import secrets
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 import logging
 
-from app.services.circomlib_poseidon import poseidon_hash_many
-
 logger = logging.getLogger(__name__)
 
-CIRCUITS_DIR = Path("circuits")
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+CIRCUITS_DIR = PROJECT_ROOT / "circuits"
 BUILD_DIR = CIRCUITS_DIR / "build"
 WASM_PATH = BUILD_DIR / "private_vote_js" / "private_vote.wasm"
 ZKEY_PATH = BUILD_DIR / "private_vote_final.zkey"
@@ -38,6 +36,8 @@ class VotingProof:
     commitment: str
     vote_value: int
     public_inputs: list[str]
+    proof_mode: str = "groth16"
+    fallback_reason: str | None = None
 
 
 class DAOVotingService:
@@ -55,21 +55,30 @@ class DAOVotingService:
         self.circuit_wasm = WASM_PATH
         self.proving_key = ZKEY_PATH
         self.verification_key = VKEY_PATH
+        app_env = os.getenv("APP_ENV", "development").strip().lower()
+        sim_flag = os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1")
+        fallback_env = os.getenv("DAO_VOTING_ALLOW_FALLBACK", "").strip().lower()
+        if fallback_env in ("true", "1", "yes", "on"):
+            self._allow_mock_fallback = True
+        elif fallback_env in ("false", "0", "no", "off"):
+            self._allow_mock_fallback = False
+        else:
+            self._allow_mock_fallback = sim_flag or app_env in {"development", "dev", "local", "test"}
         self._groth16_available = (
             self.circuit_wasm.exists()
             and self.proving_key.exists()
         )
         if not self._groth16_available:
-            if os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"):
+            if self._allow_mock_fallback:
                 logger.warning(
                     "DAO voting Groth16 artifacts missing — falling back to mock proofs. "
                     "Need: %s and %s", self.circuit_wasm, self.proving_key,
                 )
             else:
                 raise RuntimeError(
-                    f"DAO voting Groth16 artifacts missing and ALLOW_SIMULATED_PROOFS is not set. "
+                    f"DAO voting Groth16 artifacts missing and fallback is disabled. "
                     f"Need: {self.circuit_wasm} and {self.proving_key}. "
-                    f"Set ALLOW_SIMULATED_PROOFS=true for development."
+                    f"Set DAO_VOTING_ALLOW_FALLBACK=true for development."
                 )
         
         self.user_secrets: Dict[str, str] = {}
@@ -104,10 +113,13 @@ class DAOVotingService:
         
         # Step 2: Get or create voting secret
         secret = self._get_or_create_voting_secret(user_address)
+        secret_int = int(secret, 16)
         
         # Step 3: Compute nullifier hash
         # nullifier_hash = Pedersen(secret, proposal_id)
-        nullifier_hash = poseidon_hash_many([int(secret, 16), proposal_id])
+        nullifier_hash = self._pedersen_hash_components(
+            components=[(secret_int, 254), (int(proposal_id), 254)]
+        )
         nullifier_hash_hex = hex(nullifier_hash)
         
         # Step 4: Prepare circuit inputs
@@ -122,7 +134,9 @@ class DAOVotingService:
         logger.info(f"Generating voting proof for proposal {proposal_id}")
         
         vote_value = voting_power * vote_direction
-        commitment = poseidon_hash_many([int(secret, 16), voting_power, vote_direction])
+        commitment = self._pedersen_hash_components(
+            components=[(secret_int, 254), (int(vote_direction), 2), (int(voting_power), 64)]
+        )
 
         if self._groth16_available:
             # ── Real Groth16 proof via snarkjs ──
@@ -145,16 +159,17 @@ class DAOVotingService:
                     commitment=hex(commitment),
                     vote_value=vote_value,
                     public_inputs=public_inputs,
+                    proof_mode="groth16",
                 )
             except Exception as exc:
-                if os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"):
+                if self._allow_mock_fallback:
                     logger.warning("Groth16 proof failed, falling back to mock: %s", exc)
                 else:
                     raise RuntimeError(
-                        f"Groth16 proof generation failed and ALLOW_SIMULATED_PROOFS is not set: {exc}"
+                        f"Groth16 proof generation failed and fallback is disabled: {exc}"
                     ) from exc
 
-        # ── Mock fallback (only reachable when ALLOW_SIMULATED_PROOFS is set) ──
+        # ── Mock fallback (enabled in development / explicit fallback mode) ──
         proof_calldata = [
             hex(commitment),           # Public output 1: commitment
             hex(vote_value),           # Public output 2: vote_value
@@ -175,7 +190,77 @@ class DAOVotingService:
             commitment=hex(commitment),
             vote_value=vote_value,
             public_inputs=public_inputs,
+            proof_mode="mock_fallback",
+            fallback_reason="groth16_unavailable_or_failed",
         )
+
+    def _pedersen_hash_components(self, components: list[tuple[int, int]]) -> int:
+        """
+        Compute Pedersen hash x-coordinate from bit-packed components.
+        Components are provided as (value, bit_length), packed little-endian per field.
+        """
+        for value, bits in components:
+            if int(value) < 0:
+                raise ValueError(f"Pedersen component must be non-negative (got {value})")
+            if int(value) >= (1 << int(bits)):
+                raise ValueError(f"Pedersen component {value} exceeds {bits}-bit range")
+
+        payload = json.dumps([[str(int(v)), int(bits)] for v, bits in components], separators=(",", ":"))
+        script = """
+const circomlib = require("circomlibjs");
+(async () => {
+  const comps = JSON.parse(process.argv[1]);
+  const babyJub = await circomlib.buildBabyjub();
+  const pedersen = await circomlib.buildPedersenHash();
+  const F = babyJub.F;
+  const bits = [];
+  for (const [rawValue, rawBits] of comps) {
+    const v = BigInt(rawValue);
+    const n = Number(rawBits);
+    for (let i = 0; i < n; i++) {
+      bits.push(Number((v >> BigInt(i)) & 1n));
+    }
+  }
+  const bytes = Buffer.alloc(Math.ceil(bits.length / 8));
+  for (let i = 0; i < bits.length; i++) {
+    if (bits[i]) {
+      bytes[Math.floor(i / 8)] |= (1 << (i % 8));
+    }
+  }
+  const point = babyJub.unpackPoint(pedersen.hash(bytes));
+  console.log(F.toString(point[0]));
+})().catch((err) => { console.error(err && err.stack ? err.stack : String(err)); process.exit(1); });
+"""
+        result = subprocess.run(
+            ["/usr/bin/node", "-e", script, payload],
+            capture_output=True,
+            text=True,
+            cwd=str(CIRCUITS_DIR),
+            env={
+                **os.environ,
+                "NODE_PATH": str(CIRCUITS_DIR / "node_modules"),
+            },
+            timeout=20,
+        )
+        if result.returncode != 0:
+            if self._allow_mock_fallback:
+                logger.warning(
+                    "Pedersen helper failed (code=%s), using deterministic fallback hash for demo mode: %s",
+                    result.returncode,
+                    (result.stderr or result.stdout),
+                )
+                return int(hashlib.sha256(payload.encode("utf-8")).hexdigest(), 16) % ((1 << 251) - 1)
+            raise RuntimeError(f"Pedersen hash helper failed: {result.stderr or result.stdout}")
+        try:
+            return int((result.stdout or "").strip())
+        except Exception as exc:
+            if self._allow_mock_fallback:
+                logger.warning(
+                    "Pedersen helper returned invalid output, using deterministic fallback hash for demo mode: %s",
+                    result.stdout,
+                )
+                return int(hashlib.sha256(payload.encode("utf-8")).hexdigest(), 16) % ((1 << 251) - 1)
+            raise RuntimeError(f"Pedersen hash helper returned invalid output: {result.stdout}") from exc
     
     async def _get_voting_power(self, user_address: str) -> int:
         """

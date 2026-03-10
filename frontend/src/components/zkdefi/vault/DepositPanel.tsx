@@ -487,7 +487,7 @@ export function DepositPanel({
         deposited_at: new Date().toISOString(),
       });
 
-      // Record in V2 Dark Ledger (best-effort — on-chain deposit is source of truth)
+      // Record in V2 Privacy Pool ledger (best-effort — on-chain deposit is source of truth)
       const railMap: Record<PrivacyMethod, string> = {
         commitment_shield: "COMMITMENT_SHIELD",
         nullifier_set: "NULLIFIER_SET",

@@ -582,5 +582,13 @@
     "first_interaction": 0,
     "successful_txns": 0,
     "collateral": 0
+  },
+  "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
   }
 }

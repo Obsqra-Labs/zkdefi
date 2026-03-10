@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
+import { DEMO_AGENT } from "@/lib/demoCapitalOS";
 
 const POLL_MS = 15_000;
 
@@ -37,6 +38,7 @@ interface SessionKey {
 
 interface AgentControlsProps {
   address: string;
+  isDemo?: boolean;
 }
 
 function timeRemaining(expiresAt: string): string {
@@ -51,21 +53,29 @@ function timeRemaining(expiresAt: string): string {
   }
 }
 
-export function AgentControls({ address }: AgentControlsProps) {
-  const [status, setStatus] = useState<AgentStatus | null>(null);
+export function AgentControls({ address, isDemo }: AgentControlsProps) {
+  const [status, setStatus] = useState<AgentStatus | null>(
+    isDemo ? DEMO_AGENT.status : null
+  );
   const [statusErr, setStatusErr] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const [emergencyLoading, setEmergencyLoading] = useState(false);
 
-  const [constraints, setConstraints] = useState<Constraints | null>(null);
+  const [constraints, setConstraints] = useState<Constraints | null>(
+    isDemo ? DEMO_AGENT.constraints : null
+  );
   const [constraintsErr, setConstraintsErr] = useState<string | null>(null);
   const [constraintsOpen, setConstraintsOpen] = useState(false);
 
-  const [sessionLine, setSessionLine] = useState<string>("—");
-  const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionLine, setSessionLine] = useState<string>(
+    isDemo ? `Active · ${DEMO_AGENT.session.expires_in} remaining` : "—"
+  );
+  const [sessionExpired, setSessionExpired] = useState(isDemo ? false : false);
 
-  const [rebalanceMode, setRebalanceMode] = useState<RebalanceMode>("user");
+  const [rebalanceMode, setRebalanceMode] = useState<RebalanceMode>(
+    isDemo ? DEMO_AGENT.rebalance_mode : "user"
+  );
   const [rebalanceModeLoading, setRebalanceModeLoading] = useState(false);
   const [rebalanceModeErr, setRebalanceModeErr] = useState<string | null>(null);
 
@@ -127,13 +137,25 @@ export function AgentControls({ address }: AgentControlsProps) {
   }, [address]);
 
   useEffect(() => {
+    if (isDemo) {
+      // Actively set demo data when demo mode activates
+      setStatus(DEMO_AGENT.status);
+      setStatusErr(null);
+      setConstraints(DEMO_AGENT.constraints);
+      setConstraintsErr(null);
+      setSessionLine(`Active · ${DEMO_AGENT.session.expires_in} remaining`);
+      setSessionExpired(false);
+      setRebalanceMode(DEMO_AGENT.rebalance_mode);
+      setRebalanceModeErr(null);
+      return;
+    }
     fetchStatus();
     fetchConstraints();
     fetchSession();
     fetchRebalanceMode();
     const t = setInterval(() => { fetchStatus(); fetchSession(); }, POLL_MS);
     return () => clearInterval(t);
-  }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode]);
+  }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode, isDemo]);
 
   // --- Agent actions ---
 

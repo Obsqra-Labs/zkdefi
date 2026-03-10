@@ -315,7 +315,10 @@ class ProofPipeline:
         avg_out = int(sum(outputs_int) / max(1, len(outputs_int)))
         is_compliant = output_lower_bound <= avg_out <= output_upper_bound
 
-        effective_model_hash = expected_model_hash or int(ezkl_proof.model_hash, 16)
+        # Circom/Bn254 inputs must fit field. Raw sha256 model hashes can exceed that.
+        field_cap = (1 << 254) - 1
+        effective_model_hash_raw = expected_model_hash or int(ezkl_proof.model_hash, 16)
+        effective_model_hash = int(effective_model_hash_raw) % field_cap
         output_commitment = "0x" + hashlib.sha256(
             ",".join(str(v) for v in outputs_int).encode()
         ).hexdigest()
@@ -332,6 +335,7 @@ class ProofPipeline:
             "proof_hash": bridge_fact_hash,
             "proof": {
                 "model_hash": hex(effective_model_hash),
+                "model_hash_raw": hex(int(effective_model_hash_raw)),
                 "output_commitment": output_commitment,
                 "timestamp": ts,
             },
@@ -341,16 +345,43 @@ class ProofPipeline:
                 str(int(bridge_fact_hash, 16)),
                 str(ts),
             ],
+            "bridge_backend": "placeholder_fallback",
         }
 
-        calldata = [
-            self._to_hex_felt("model_bridge"),
-            hex(effective_model_hash),
-            output_commitment,
-            bridge_fact_hash,
-            hex(ts),
-            hex(int(ezkl_proof.proof_hash, 16)),
-        ]
+        # Prefer real Groth16 proof from ModelBridge circuit (EZKL → Garaga bridge)
+        try:
+            from app.services.groth16_prover import Groth16Prover
+
+            proof_hash_int = int(ezkl_proof.proof_hash, 16)
+            if proof_hash_int >= (1 << 254):
+                proof_hash_int = proof_hash_int % ((1 << 254) - 1)
+
+            bridge_result = Groth16Prover.generate_model_bridge_proof(
+                model_output=outputs_int,
+                ezkl_proof_hash=proof_hash_int,
+                model_weights_hash=effective_model_hash,
+                expected_model_hash=effective_model_hash,
+                output_lower_bound=output_lower_bound,
+                output_upper_bound=output_upper_bound,
+                timestamp=ts,
+            )
+            calldata = bridge_result["proof_calldata"]
+            bridge_proof["bridge_backend"] = "groth16_modelbridge"
+            # Keep pipeline is_compliant (from bounds check above); do not overwrite with circuit is_valid
+            logger.info("ModelBridge Groth16 proof generated (calldata len=%s)", len(calldata))
+        except Exception as exc:
+            logger.warning("ModelBridge Groth16 proof unavailable, using placeholder: %s", exc)
+            bridge_proof["bridge_backend"] = "placeholder_fallback"
+            bridge_proof["fallback_error"] = str(exc)
+            calldata = [
+                self._to_hex_felt("model_bridge"),
+                hex(effective_model_hash),
+                output_commitment,
+                bridge_fact_hash,
+                hex(ts),
+                hex(int(ezkl_proof.proof_hash, 16)),
+            ]
+
         return bridge_proof, bridge_fact_hash, calldata
 
     async def generate_ml_proofs(

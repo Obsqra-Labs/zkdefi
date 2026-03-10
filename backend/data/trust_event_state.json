@@ -1594,7 +1594,6 @@
     "execution.gate_state": {
       "mode": "advisory",
       "reason_codes": [
-        "onboarding_incomplete",
         "no_active_session"
       ],
       "active_sessions": 0

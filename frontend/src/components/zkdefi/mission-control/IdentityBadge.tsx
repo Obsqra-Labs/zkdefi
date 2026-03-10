@@ -6,6 +6,7 @@ import { useHealthPassport } from "@/hooks/useHealthPassport";
 import { apiFetch } from "@/lib/api/client";
 import { CreditGauge } from "../shared/CreditGauge";
 import { useEffect } from "react";
+import { DEMO_HEALTH } from "@/lib/demoCapitalOS";
 
 const TIER_STYLE: Record<number, { label: string; cls: string }> = {
   1: { label: "T1", cls: "bg-emerald-900/50 text-emerald-400 border-emerald-700/50" },
@@ -16,15 +17,32 @@ const TIER_STYLE: Record<number, { label: string; cls: string }> = {
 interface IdentityBadgeProps {
   address: string;
   onSlideout: (mode: string) => void;
+  isDemo?: boolean;
 }
 
-export function IdentityBadge({ address, onSlideout }: IdentityBadgeProps) {
-  const health = useHealthPassport(address);
+export function IdentityBadge({ address, onSlideout, isDemo }: IdentityBadgeProps) {
+  const healthRaw = useHealthPassport(address);
   const [copied, setCopied] = useState(false);
-  const [creditScore, setCreditScore] = useState<number | null>(null);
+  const [creditScore, setCreditScore] = useState<number | null>(isDemo ? DEMO_HEALTH.credit_score : null);
+
+  // In demo mode, always use demo health data for consistency
+  const health = (() => {
+    if (!isDemo) return healthRaw;
+    return {
+      loading: false,
+      tier: DEMO_HEALTH.tier,
+      tier_name: DEMO_HEALTH.tier_name,
+      trust_score: DEMO_HEALTH.trust_score,
+      proof_count: DEMO_HEALTH.proof_count,
+    };
+  })();
 
   useEffect(() => {
     if (!address) return;
+    if (isDemo) {
+      setCreditScore(DEMO_HEALTH.credit_score);
+      return;
+    }
     let cancelled = false;
     apiFetch<{ credit_score?: number; composite_score?: number; reputation_score?: number }>(
       `/api/v1/zkdefi/reputation/user/${address}`,
@@ -36,7 +54,7 @@ export function IdentityBadge({ address, onSlideout }: IdentityBadgeProps) {
         if (!cancelled) setCreditScore(null);
       });
     return () => { cancelled = true; };
-  }, [address]);
+  }, [address, isDemo]);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(address).catch(() => {});

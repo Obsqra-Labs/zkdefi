@@ -41,7 +41,7 @@ CONTRACTS = {
     "ProofGatedYieldAgent": "0x012ebbddae869fbcaee91ecaa936649cc0c75756583ae4ef6521742f963562b3",
     "ConfidentialTransfer": "0x07fdc7c21ab074e7e1afe57edfcb818be183ab49f4bf31f9bf86dd052afefaa4",
     "GaragaVerifier": "0x04407f3ebc887bf165eb4ba3b10a8171b116555abfb33989cd025c0f33c393db",
-    "ZkmlVerifier": "0x037f17cd0e17f2b41d1b68335e0bc715a4c89d03c6118e5f4e98b5c7872c798d",
+    "ZkmlVerifier": "0x068abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923",
     "SessionKeyManager": "0x01c0edf8ff269921d3840ccb954bbe6790bb21a2c09abcfe83ea14c682931d68",
     "ConstraintReceipt": "0x04c8756f9baf927aa6a85e9b725dd854215f82c65bd70076012f02fec8497954",
     "IntentCommitment": "0x062027ceceb088ac31aa14fe7e180994a025ccb446c2ed8394001e9275321f70",
