@@ -46,7 +46,7 @@ export interface TradeReceipt {
   adapter: string; // e.g., 'lending'
   opportunityName?: string;
   amount: number;
-  privacyLevel: 'public' | 'shielded' | 'dark_ledger';
+  privacyLevel: 'public' | 'shielded' | 'fully_private';
   exposureLevel?: number; // 0-100
   yieldImpact: number; // 0 for borrowing
   trustDelta: number; // e.g., 3 for loan repayment

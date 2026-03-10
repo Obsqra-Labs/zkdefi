@@ -8,7 +8,7 @@ export interface PoolDepositReceipt {
   id: string;
   pool: string;
   amount: number;
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
   poolShare: number;
   txHash: string;
   timestamp: string; // ISO8601
@@ -64,7 +64,7 @@ export interface PoolWithdrawalReceipt {
 export interface DepositParams {
   pool: string;
   amount: number;
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
   userAddress?: string;
   source?: "live" | "simulated";
 }
@@ -142,7 +142,7 @@ export class PrivacyPoolAdapter implements ExecutionAdapter {
    * Supports three privacy modes:
    * - 'public': transparent deposit
    * - 'shielded': private deposit with commitment
-   * - 'dark_ledger': fully private with commitment
+   * - 'fully_private': fully private with commitment
    *
    * @param params - Deposit parameters
    * @returns PoolDepositReceipt with pool share and commitment

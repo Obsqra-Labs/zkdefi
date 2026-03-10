@@ -16,10 +16,9 @@ import { useMemo } from "react";
 // ---------------------------------------------------------------------------
 
 export const METHOD_LABELS: Record<string, string> = {
-  commitment_shield: "Public",
-  nullifier_set: "Private",
-  hashed_proof: "Private",
-  dark_ledger: "Private Settlement",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Hashed Proof",
 };
 
 export function formatWei(weiStr: string, asset: string): string {
@@ -65,7 +64,7 @@ export function useShieldedSummary(
   return useMemo(() => {
     const filtered = methods
       ? commitments.filter((c) => methods.includes(c.method))
-      : commitments.filter((c) => c.method !== "dark_ledger");
+      : commitments;
 
     const map = new Map<string, ShieldedSummaryRow>();
     for (const c of filtered) {

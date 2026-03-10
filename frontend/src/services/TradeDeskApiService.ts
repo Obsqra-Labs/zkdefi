@@ -28,7 +28,7 @@ export interface UnifiedOpportunity {
     | "limit"
     | "dca"
     | "privacy"
-    | "dark_ledger";
+    | "privacy";
   productSlug: string;
   title: string;
   pair: string;

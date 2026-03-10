@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>zkde.fi Hackathon Backend Showcase</title>
+  <style>
+    :root {
+      --bg: #0d1321;
+      --panel: #161f35;
+      --panel-alt: #11192b;
+      --text: #f4f7ff;
+      --muted: #9fb2d4;
+      --good: #4ade80;
+      --bad: #f97316;
+      --line: #2b3a5d;
+      --link: #60a5fa;
+    }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top right, #1f355f 0%, var(--bg) 45%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+      letter-spacing: 0.3px;
+    }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; margin-top: 28px; }
+    p { margin: 8px 0; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .score {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      font-weight: 700;
+    }
+    section {
+      margin-top: 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-alt));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td {
+      text-align: left;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 13px;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pass { color: var(--good); font-weight: 700; }
+    .fail { color: var(--bad); font-weight: 700; }
+    .muted { color: var(--muted); }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      background: #0a1222;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    details { margin-top: 8px; }
+    summary { cursor: pointer; color: var(--link); }
+    @media (max-width: 700px) {
+      h1 { font-size: 22px; }
+      h2 { font-size: 18px; }
+      th, td { font-size: 12px; padding: 7px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>zkde.fi Backend Showcase Report</h1>
+    <p class="meta">Generated: 2026-03-10T20:26:11.700362+00:00 UTC</p>
+    <p class="meta">Base URL: http://127.0.0.1:8003 | Wallet: 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</p>
+    <p class="score">Core claims: 9 / 9 validated</p>
+
+    <section>
+      <h2>Core Claim Matrix</h2>
+      <table><thead><tr><th>Claim</th><th>Status</th></tr></thead><tbody><tr><td>Backend service is live</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Proof pack is present and introspectable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Agent composition + execution works</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Proof-backed deployment planning works</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Privacy commitment rails work</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Policy controls are API-operable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>On-chain state is queryable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Contracts are verifiably deployed on RPC</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Receipt visibility pipeline is live</td><td><span class="pass">PASS</span></td></tr></tbody></table>
+    </section>
+
+    <section>
+      <h2>Execution Steps</h2>
+      <table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>status=200, service=zkdefi-backend, admin_configured=False</td></tr>
+<tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>status=200, pack_id=zkfico_pack_v1, circuits=6, circuits_with_wasm_and_zkey=6</td></tr>
+<tr><td>Agent compose + execute</td><td><span class="pass">PASS</span></td><td>create_status=200, execute_status=200, agent_id=8c8f5b6446fdbca3, processors=risk_scoring,correlation_risk,twap_position, should_execute=False, processor_results=3</td></tr>
+<tr><td>Deployment proof + on-chain calldata plan</td><td><span class="pass">PASS</span></td><td>status=200, deployment_id=fecf7cdb381f, circuit_type=allocation_valid, allocation_proof=0x3176091d49...e76daa95f93d, on_chain_calls=3</td></tr>
+<tr><td>Full privacy commitment generation</td><td><span class="pass">PASS</span></td><td>status=200, commitment=0x4c7cf8773c...36949b38ee7d, nonce=0x5d42047df4e79fe1, pool_type=1</td></tr>
+<tr><td>Policy controls (vault constraints)</td><td><span class="pass">PASS</span></td><td>get_status=200, current_risk_tolerance=50, put_status=200, updated=True</td></tr>
+<tr><td>On-chain read via backend</td><td><span class="pass">PASS</span></td><td>status=200, tier=Strict, reputation_score=0, relayer=False</td></tr>
+<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7459431, resolved_contracts=4, voyager_links=4, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, RECEIPT_REGISTRY_ADDRESS_class_hash=0x8b52ef13...5dff494959</td></tr>
+<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=0, tx_hashes=0, first_tx_hash=-</td></tr>
+<tr><td>Optional: batch skill proof runtime</td><td><span class="fail">FAIL</span></td><td>selected_skills=risk_score,anomaly_detection,yield_optimality,strategy_integrity,execution_integrity, listed_skills=15, batch_status=200, succeeded=0/5, proof_hashes=0, first_proof_hash=-</td></tr>
+<tr><td>Optional: credit eligibility proof</td><td><span class="fail">FAIL</span></td><td>status=500, verified=None, proof_hash=-, envelope_id=None, detail=Credit eligibility proof generation failed: Poseidon hash failed: </td></tr>
+<tr><td>Local zkML circuit inventory (20+ deep dive)</td><td><span class="pass">PASS</span></td><td>circom_sources=31, circuits_with_wasm=31, circuits_with_zkey=31, dual_ready=31, cairo_contracts=50, onnx_models=1814</td></tr>
+<tr><td>AI market advisory + strategy badge flow</td><td><span class="pass">PASS</span></td><td>providers=5, agent_models=24, marketplace_models=3, opportunities=6, advisory_calls=4, screening_calls=4</td></tr></tbody></table>
+    </section>
+
+    <section>
+      <h2>On-chain Links (Voyager)</h2>
+      <p class="meta">RPC used: https://starknet-sepolia-rpc.publicnode.com</p>
+      <table><thead><tr><th>Contract</th><th>Address</th><th>Class Hash</th></tr></thead><tbody><tr><td>REPUTATION_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022" target="_blank" rel="noreferrer">0x10d00b33b568...b5246312b7e022</a></td><td><a href="https://sepolia.voyager.online/class/0x74f7c06bfa0ba09af8e172467a7be78fa2077b7f4fb1fad8dbeda8eec60c95f" target="_blank" rel="noreferrer">0x74f7c06bfa0b...beda8eec60c95f</a></td></tr>
+<tr><td>FULL_PRIVACY_POOL_V2_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x3dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559" target="_blank" rel="noreferrer">0x3dde5617d362...eeb6237c811559</a></td><td><a href="https://sepolia.voyager.online/class/0xce55e551395c337e7dfc978962aff488e30cf8c1e5ffde1df34b62eb1f117" target="_blank" rel="noreferrer">0xce55e551395c...df34b62eb1f117</a></td></tr>
+<tr><td>RECEIPT_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x2900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd" target="_blank" rel="noreferrer">0x2900291a932a...71ec6daecd83cd</a></td><td><a href="https://sepolia.voyager.online/class/0x8b52ef1327886e6e1f035042fd7612bda7e54619785b384d4b0e5dff494959" target="_blank" rel="noreferrer">0x8b52ef132788...4b0e5dff494959</a></td></tr>
+<tr><td>VAULT_CONTROLLER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x34230abc6636f684ace10c0b8aec0d8a032e37dd1a5ce7da76e58d25e083e2a" target="_blank" rel="noreferrer">0x34230abc6636...6e58d25e083e2a</a></td><td><a href="https://sepolia.voyager.online/class/0x126f9b9da916376b5a769a3db477f1a4ca41777b257131d8faeae95b3848c40" target="_blank" rel="noreferrer">0x126f9b9da916...aeae95b3848c40</a></td></tr></tbody></table>
+      <h3>Receipts / Tx Links</h3>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section>
+      <h2>zkML Circuit Deep Dive</h2>
+      <p class="meta">
+        Circom sources: 31 |
+        wasm ready: 31 |
+        zkey ready: 31 |
+        dual-ready: 31
+      </p>
+      <p class="meta">
+        Cairo contract sources: 50 |
+        Groth16 final zkeys (repo-wide): 34 |
+        ONNX models: 1814
+      </p>
+      <table><thead><tr><th>Category</th><th>Count</th></tr></thead><tbody><tr><td>agent_identity</td><td>2</td></tr>
+<tr><td>agent_skill</td><td>6</td></tr>
+<tr><td>execution_quality</td><td>1</td></tr>
+<tr><td>ezkl_bridge</td><td>1</td></tr>
+<tr><td>governance</td><td>1</td></tr>
+<tr><td>merkle_privacy</td><td>3</td></tr>
+<tr><td>mev_resistance</td><td>1</td></tr>
+<tr><td>ml_scoring</td><td>5</td></tr>
+<tr><td>model_safety</td><td>1</td></tr>
+<tr><td>privacy_or_membership</td><td>5</td></tr>
+<tr><td>reputation</td><td>4</td></tr>
+<tr><td>strategy_integrity</td><td>1</td></tr></tbody></table>
+      <h3>Circuit Inventory (first 40)</h3>
+      <table><thead><tr><th>Circuit</th><th>Category</th><th>Ready</th><th>WASM</th><th>ZKEY</th></tr></thead><tbody><tr><td>AgentReputationScore</td><td>agent_identity</td><td><span class="pass">ready</span></td><td>circuits/build/AgentReputationScore_js/AgentReputationScore.wasm</td><td>circuits/build/AgentReputationScore_final.zkey</td></tr>
+<tr><td>AnomalyDetector</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/AnomalyDetector_js/AnomalyDetector.wasm</td><td>circuits/build/AnomalyDetector_final.zkey</td></tr>
+<tr><td>BalanceAboveThreshold</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/BalanceAboveThreshold_js/BalanceAboveThreshold.wasm</td><td>circuits/build/BalanceAboveThreshold_final.zkey</td></tr>
+<tr><td>CorrelationRisk</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/CorrelationRisk_js/CorrelationRisk.wasm</td><td>circuits/build/CorrelationRisk_final.zkey</td></tr>
+<tr><td>CreditEligibility</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/CreditEligibility_js/CreditEligibility.wasm</td><td>circuits/build/CreditEligibility_final.zkey</td></tr>
+<tr><td>CrossProtocolArbitrage</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/CrossProtocolArbitrage_js/CrossProtocolArbitrage.wasm</td><td>circuits/build/CrossProtocolArbitrage_final.zkey</td></tr>
+<tr><td>ExecutionIntegrity</td><td>execution_quality</td><td><span class="pass">ready</span></td><td>circuits/build/ExecutionIntegrity_js/ExecutionIntegrity.wasm</td><td>circuits/build/ExecutionIntegrity_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdraw</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdraw_js/FullPrivacyWithdraw.wasm</td><td>circuits/build/FullPrivacyWithdraw_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdrawHashed</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdrawHashed_js/FullPrivacyWithdrawHashed.wasm</td><td>circuits/build/FullPrivacyWithdrawHashed_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdrawWithChange</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdrawWithChange_js/FullPrivacyWithdrawWithChange.wasm</td><td>circuits/build/FullPrivacyWithdrawWithChange_final.zkey</td></tr>
+<tr><td>HistoricalPerformanceAttestation</td><td>agent_identity</td><td><span class="pass">ready</span></td><td>circuits/build/HistoricalPerformanceAttestation_js/HistoricalPerformanceAttestation.wasm</td><td>circuits/build/HistoricalPerformanceAttestation_final.zkey</td></tr>
+<tr><td>ImpermanentLossPredictor</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/ImpermanentLossPredictor_js/ImpermanentLossPredictor.wasm</td><td>circuits/build/ImpermanentLossPredictor_final.zkey</td></tr>
+<tr><td>LiquidationRisk</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/LiquidationRisk_js/LiquidationRisk.wasm</td><td>circuits/build/LiquidationRisk_final.zkey</td></tr>
+<tr><td>MEVResistanceProof</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/MEVResistanceProof_js/MEVResistanceProof.wasm</td><td>circuits/build/MEVResistanceProof_final.zkey</td></tr>
+<tr><td>ModelBridge</td><td>ezkl_bridge</td><td><span class="pass">ready</span></td><td>circuits/build/ModelBridge_js/ModelBridge.wasm</td><td>circuits/build/ModelBridge_final.zkey</td></tr>
+<tr><td>PoolMembership</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/PoolMembership_js/PoolMembership.wasm</td><td>circuits/build/PoolMembership_final.zkey</td></tr>
+<tr><td>PrivateDeposit</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/PrivateDeposit_js/PrivateDeposit.wasm</td><td>circuits/build/PrivateDeposit_final.zkey</td></tr>
+<tr><td>PrivateWithdraw</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/PrivateWithdraw_js/PrivateWithdraw.wasm</td><td>circuits/build/PrivateWithdraw_final.zkey</td></tr>
+<tr><td>RebalanceTimingCommitment</td><td>mev_resistance</td><td><span class="pass">ready</span></td><td>circuits/build/RebalanceTimingCommitment_js/RebalanceTimingCommitment.wasm</td><td>circuits/build/RebalanceTimingCommitment_final.zkey</td></tr>
+<tr><td>RiskPassportTier</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/RiskPassportTier_js/RiskPassportTier.wasm</td><td>circuits/build/RiskPassportTier_final.zkey</td></tr>
+<tr><td>RiskScore</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/RiskScore_js/RiskScore.wasm</td><td>circuits/build/RiskScore_final.zkey</td></tr>
+<tr><td>RobustnessCertificate</td><td>model_safety</td><td><span class="pass">ready</span></td><td>circuits/build/RobustnessCertificate_js/RobustnessCertificate.wasm</td><td>circuits/build/RobustnessCertificate_final.zkey</td></tr>
+<tr><td>SafetyDiversification</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/SafetyDiversification_js/SafetyDiversification.wasm</td><td>circuits/build/SafetyDiversification_final.zkey</td></tr>
+<tr><td>SlippageBound</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/SlippageBound_js/SlippageBound.wasm</td><td>circuits/build/SlippageBound_final.zkey</td></tr>
+<tr><td>SolvencyProof</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/SolvencyProof_js/SolvencyProof.wasm</td><td>circuits/build/SolvencyProof_final.zkey</td></tr>
+<tr><td>StrategyIntegrity</td><td>strategy_integrity</td><td><span class="pass">ready</span></td><td>circuits/build/StrategyIntegrity_js/StrategyIntegrity.wasm</td><td>circuits/build/StrategyIntegrity_final.zkey</td></tr>
+<tr><td>TWAPPosition</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/TWAPPosition_js/TWAPPosition.wasm</td><td>circuits/build/TWAPPosition_final.zkey</td></tr>
+<tr><td>TenureAboveThreshold</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/TenureAboveThreshold_js/TenureAboveThreshold.wasm</td><td>circuits/build/TenureAboveThreshold_final.zkey</td></tr>
+<tr><td>TraderPerformanceProof</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/TraderPerformanceProof_js/TraderPerformanceProof.wasm</td><td>circuits/build/TraderPerformanceProof_final.zkey</td></tr>
+<tr><td>YieldOptimality</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/YieldOptimality_js/YieldOptimality.wasm</td><td>circuits/build/YieldOptimality_final.zkey</td></tr>
+<tr><td>private_vote</td><td>governance</td><td><span class="pass">ready</span></td><td>circuits/build/private_vote_js/private_vote.wasm</td><td>circuits/build/private_vote_final.zkey</td></tr></tbody></table>
+    </section>
+
+    <section>
+      <h2>Opportunity Advisory + Badge Flow</h2>
+      <table><thead><tr><th>Opp ID</th><th>Title</th><th>Pair</th><th>Type</th><th>Yield %</th><th>Risk</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>Swap USDC/EURe</td><td>USDC/EURe</td><td>swap</td><td>226.59</td><td>45.0</td></tr>
+<tr><td>279abf8fb351462d</td><td>Swap ETH/EURe</td><td>ETH/EURe</td><td>swap</td><td>129.29</td><td>45.0</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>Swap WBTC/USDT</td><td>WBTC/USDT</td><td>swap</td><td>58.76</td><td>45.0</td></tr>
+<tr><td>5554e991885b4954</td><td>Swap ETH/USDC.e</td><td>ETH/USDC.e</td><td>swap</td><td>53.10</td><td>45.0</td></tr>
+<tr><td>f695210aab99e3ad</td><td>Swap ETH/USDC</td><td>ETH/USDC</td><td>swap</td><td>33.45</td><td>45.0</td></tr>
+<tr><td>8d2e18b1d4b6ac78</td><td>Swap ETH/WBTC</td><td>ETH/WBTC</td><td>swap</td><td>14.20</td><td>45.0</td></tr></tbody></table>
+      <h3>AI Advisory Snapshot</h3>
+      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Status</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.55</td><td>200</td></tr>
+<tr><td>279abf8fb351462d</td><td>execute</td><td>0.55</td><td>200</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.55</td><td>200</td></tr>
+<tr><td>5554e991885b4954</td><td>execute</td><td>0.55</td><td>200</td></tr></tbody></table>
+      <h3>Badge Circuit Screening Snapshot</h3>
+      <table><thead><tr><th>Opp ID</th><th>Proof Status</th><th>is_proved</th><th>Yield Proof</th><th>Strategy Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>flagged</td><td><span class="fail">false</span></td><td>-</td><td>-</td><td>Input preparation failed: Real Poseidon required but bridge failed: Poseidon bridge error: </td></tr>
+<tr><td>279abf8fb351462d</td><td>flagged</td><td><span class="fail">false</span></td><td>-</td><td>-</td><td>Input preparation failed: Real Poseidon required but bridge failed: Poseidon bridge error: </td></tr>
+<tr><td>fd6f074ba5f33703</td><td>flagged</td><td><span class="fail">false</span></td><td>-</td><td>-</td><td>Input preparation failed: Real Poseidon required but bridge failed: Poseidon bridge error: </td></tr>
+<tr><td>5554e991885b4954</td><td>flagged</td><td><span class="fail">false</span></td><td>-</td><td>-</td><td>Input preparation failed: Real Poseidon required but bridge failed: Poseidon bridge error: </td></tr></tbody></table>
+    </section>
+
+    <section>
+      <h2>LLM + Marketplace Config Packs</h2>
+      <p class="meta">Profiles generated from live providers/models/skills and marketplace model registry.</p>
+      <details><summary>conservative config</summary><pre>{
+  &quot;profile&quot;: &quot;conservative&quot;,
+  &quot;llm&quot;: {
+    &quot;provider&quot;: &quot;deterministic&quot;,
+    &quot;model&quot;: &quot;deterministic-v1&quot;,
+    &quot;temperature&quot;: 0.15,
+    &quot;max_tokens&quot;: 1200
+  },
+  &quot;agent&quot;: {
+    &quot;processors&quot;: [
+      &quot;risk_scoring&quot;,
+      &quot;anomaly_detection&quot;,
+      &quot;correlation_risk&quot;
+    ],
+    &quot;decision_logic&quot;: {
+      &quot;type&quot;: &quot;AND&quot;
+    }
+  },
+  &quot;zk_skill_set&quot;: [
+    &quot;risk_score&quot;,
+    &quot;anomaly_detection&quot;,
+    &quot;execution_integrity&quot;,
+    &quot;solvency_proof&quot;,
+    &quot;risk_passport&quot;
+  ],
+  &quot;advisory_endpoints&quot;: {
+    &quot;opportunities&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/opportunities&quot;,
+    &quot;ai_advisory&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/ai/advisory/{opp_id}&quot;,
+    &quot;badge_screen&quot;: &quot;/api/v1/zkdefi/skills/screen/opportunity&quot;,
+    &quot;recommend&quot;: &quot;/api/v2/strategies/recommend&quot;
+  },
+  &quot;marketplace_models&quot;: [
+    &quot;model_stone_prover&quot;,
+    &quot;model_groth16_verifier&quot;,
+    &quot;model_zkml_base_v0&quot;
+  ]
+}</pre></details>
+<details><summary>balanced config</summary><pre>{
+  &quot;profile&quot;: &quot;balanced&quot;,
+  &quot;llm&quot;: {
+    &quot;provider&quot;: &quot;openai&quot;,
+    &quot;model&quot;: &quot;gpt-4o-mini&quot;,
+    &quot;temperature&quot;: 0.25,
+    &quot;max_tokens&quot;: 1200
+  },
+  &quot;agent&quot;: {
+    &quot;processors&quot;: [
+      &quot;risk_scoring&quot;,
+      &quot;anomaly_detection&quot;,
+      &quot;correlation_risk&quot;
+    ],
+    &quot;decision_logic&quot;: {
+      &quot;type&quot;: &quot;AND&quot;
+    }
+  },
+  &quot;zk_skill_set&quot;: [
+    &quot;risk_score&quot;,
+    &quot;anomaly_detection&quot;,
+    &quot;yield_optimality&quot;,
+    &quot;strategy_integrity&quot;,
+    &quot;execution_integrity&quot;
+  ],
+  &quot;advisory_endpoints&quot;: {
+    &quot;opportunities&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/opportunities&quot;,
+    &quot;ai_advisory&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/ai/advisory/{opp_id}&quot;,
+    &quot;badge_screen&quot;: &quot;/api/v1/zkdefi/skills/screen/opportunity&quot;,
+    &quot;recommend&quot;: &quot;/api/v2/strategies/recommend&quot;
+  },
+  &quot;marketplace_models&quot;: [
+    &quot;model_stone_prover&quot;,
+    &quot;model_groth16_verifier&quot;,
+    &quot;model_zkml_base_v0&quot;
+  ]
+}</pre></details>
+<details><summary>aggressive config</summary><pre>{
+  &quot;profile&quot;: &quot;aggressive&quot;,
+  &quot;llm&quot;: {
+    &quot;provider&quot;: &quot;anthropic&quot;,
+    &quot;model&quot;: &quot;claude-3-7-sonnet-latest&quot;,
+    &quot;temperature&quot;: 0.35,
+    &quot;max_tokens&quot;: 1200
+  },
+  &quot;agent&quot;: {
+    &quot;processors&quot;: [
+      &quot;risk_scoring&quot;,
+      &quot;anomaly_detection&quot;,
+      &quot;correlation_risk&quot;
+    ],
+    &quot;decision_logic&quot;: {
+      &quot;type&quot;: &quot;WEIGHTED&quot;
+    }
+  },
+  &quot;zk_skill_set&quot;: [
+    &quot;yield_optimality&quot;,
+    &quot;strategy_integrity&quot;,
+    &quot;arb_check&quot;,
+    &quot;mev_protection&quot;,
+    &quot;liquidation_check&quot;
+  ],
+  &quot;advisory_endpoints&quot;: {
+    &quot;opportunities&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/opportunities&quot;,
+    &quot;ai_advisory&quot;: &quot;/api/v1/zkdefi/trade-desk/v2/ai/advisory/{opp_id}&quot;,
+    &quot;badge_screen&quot;: &quot;/api/v1/zkdefi/skills/screen/opportunity&quot;,
+    &quot;recommend&quot;: &quot;/api/v2/strategies/recommend&quot;
+  },
+  &quot;marketplace_models&quot;: [
+    &quot;model_stone_prover&quot;,
+    &quot;model_groth16_verifier&quot;,
+    &quot;model_zkml_base_v0&quot;
+  ]
+}</pre></details>
+    </section>
+
+    <section>
+      <h2>Strategy API Evidence</h2>
+      <p class="meta">`/api/v2/strategies/recommend`</p>
+      <pre>{
+  &quot;user_address&quot;: &quot;0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7&quot;,
+  &quot;risk_profile&quot;: &quot;balanced&quot;,
+  &quot;total_amount&quot;: 5000.0,
+  &quot;recommended_pools&quot;: [
+    {
+      &quot;pool_id&quot;: &quot;ekubo_eth_usdc&quot;,
+      &quot;protocol&quot;: &quot;Ekubo&quot;,
+      &quot;pair&quot;: &quot;ETH/USDC&quot;,
+      &quot;allocation_percent&quot;: 60.0,
+      &quot;allocation_amount&quot;: 3000.0,
+      &quot;expected_apy&quot;: 0.275,
+      &quot;risk_score&quot;: 30.0,
+      &quot;risk_flags&quot;: []
+    },
+    {
+      &quot;pool_id&quot;: &quot;ekubo_strk_usdc&quot;,
+      &quot;protocol&quot;: &quot;Ekubo&quot;,
+      &quot;pair&quot;: &quot;STRK/USDC&quot;,
+      &quot;allocation_percent&quot;: 40.0,
+      &quot;allocation_amount&quot;: 2000.0,
+      &quot;expected_apy&quot;: 0.265,
+      &quot;risk_score&quot;: 40.0,
+      &quot;risk_flags&quot;: []
+    }
+  ],
+  &quot;ai_reasoning&quot;: &quot;For a balanced risk appetite I&#x27;m splitting capital 60/40 between ETH/USDC (27.5% APY) and STRK/USDC (26.5% APY) on Ekubo. This gives you exposure to the two deepest Starknet pairs while keeping portfolio-level impermanent-loss risk manageable. The split was verified by the YieldOptimality circuit \u2014 the blended yield of 27.1% is within 200 bps of the single-best-pool yield, so you gain diversification without a meaningful yield drag. StrategyIntegrity confirms no single position exceeds the maximum weight threshold, and effective leverage stays at 1x.&quot;,
+  &quot;ai_confidence&quot;: 0.85,
+  &quot;expected_portfolio_apy&quot;: 0.271,
+  &quot;portfolio_risk_assessment&quot;: &quot;This balanced allocation balances your risk tolerance with yield optimization.&quot;,
+  &quot;recommendation_id&quot;: &quot;257988e30dea&quot;,
+  &quot;timestamp&quot;: &quot;2026-03-10T20:26:11.688996+00:00&quot;
+}</pre>
+      <p class="meta">`/api/v2/strategies/analyze`</p>
+      <pre>{
+  &quot;detail&quot;: &quot;cannot unpack non-iterable coroutine object&quot;
+}</pre>
+    </section>
+  </main>
+</body>
+</html>

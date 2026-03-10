@@ -51,8 +51,6 @@ function getTypeIcon(type: string) {
       return <Target className="w-4 h-4" />;
     case "privacy":
       return <ShieldCheck className="w-4 h-4" />;
-    case "dark_ledger":
-      return <Lock className="w-4 h-4" />;
     default:
       return <Zap className="w-4 h-4" />;
   }
@@ -74,8 +72,6 @@ function getTypeBadgeColor(type: string): string {
       return "bg-pink-100 text-pink-700 border-pink-200";
     case "privacy":
       return "bg-violet-100 text-violet-700 border-violet-200";
-    case "dark_ledger":
-      return "bg-slate-200 text-slate-700 border-slate-300";
     default:
       return "bg-gray-100 text-gray-700 border-gray-200";
   }
@@ -148,9 +144,7 @@ export const OpportunityCard = React.memo(
               {getTypeIcon(opportunity.type)}
               {opportunity.type === "privacy"
                 ? "PRIVATE"
-                : opportunity.type === "dark_ledger"
-                  ? "QUEUE"
-                  : opportunity.type.toUpperCase()}
+                : opportunity.type.toUpperCase()}
             </div>
           </div>
 

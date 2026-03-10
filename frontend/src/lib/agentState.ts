@@ -166,8 +166,8 @@ export function buildAgentUrl(mode: CenterModeV2, vaultTab?: VaultTab): string {
 
 /**
  * Check that the selected privacy method matches the commitment being acted on.
- * Prevents mismatched withdraw paths (e.g. trying to withdraw a dark_ledger
- * commitment via the hashed_proof handler).
+ * Prevents mismatched withdraw paths (e.g. trying to withdraw a nullifier_set
+ * commitment via the commitment_shield handler).
  */
 export function assertMethodMatchesCommitment(
   method: PrivacyMethod,
@@ -178,7 +178,6 @@ export function assertMethodMatchesCommitment(
     commitment_shield: ["commitment_shield"],
     nullifier_set: ["nullifier_set", "hashed_proof"],
     hashed_proof: ["hashed_proof", "nullifier_set"],
-    dark_ledger: ["dark_ledger"],
   };
 
   const allowed = compatible[method] ?? [method];

@@ -153,7 +153,7 @@ describe("agentState — assertMethodMatchesCommitment", () => {
 
   it("returns ok:false for mismatched method", () => {
     const result = assertMethodMatchesCommitment("hashed_proof" as any, {
-      method: "dark_ledger",
+      method: "fully_private",
     } as any);
     expect(result.ok).toBe(false);
     expect(result.error).toBeDefined();
@@ -161,8 +161,8 @@ describe("agentState — assertMethodMatchesCommitment", () => {
   });
 
   it("returns ok:true if commitment method matches exactly", () => {
-    const result = assertMethodMatchesCommitment("dark_ledger" as any, {
-      method: "dark_ledger",
+    const result = assertMethodMatchesCommitment("fully_private" as any, {
+      method: "fully_private",
     } as any);
     expect(result.ok).toBe(true);
   });

@@ -15,7 +15,7 @@ export class MarketDataService {
     type?: 'swap' | 'lp' | 'lending' | 'staking' | 'dca' | 'limit_orders';
     minYield?: number;
     maxRisk?: number;
-    privacyMode?: 'public' | 'shielded' | 'dark_ledger';
+    privacyMode?: 'public' | 'shielded' | 'fully_private';
   }): Promise<Opportunity[]> {
     // Check cache only if no filters are applied
     if (

@@ -11,7 +11,7 @@ export interface TradeReceipt {
   adapter: string;
   opportunityName?: string;
   amount: number;
-  privacyLevel: 'public' | 'shielded' | 'dark_ledger';
+  privacyLevel: 'public' | 'shielded' | 'fully_private';
   exposureLevel?: number;
   yieldImpact: number;
   trustDelta: number;

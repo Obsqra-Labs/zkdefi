@@ -276,5 +276,17 @@
       "subject": "0x4fffad12f489499e8e3382a82dae6536c2b4f8dda7594ee98c6e8b79",
       "ts": 1773173425
     }
+  ],
+  "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": [
+    {
+      "id": "attr_6571bf200d6a",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T20:16:24.696327+00:00",
+      "confidence": 0.9,
+      "subject": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+      "ts": 1773173784
+    }
   ]
 }

@@ -9,7 +9,6 @@ import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
 import { PoolSelector, poolBucketToType, type PoolBucket } from "@/components/zkdefi/vault/PoolSelector";
 import { API_BASE } from "@/lib/api/client";
-import { getOperatorAddress } from "@/lib/api/vault";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
@@ -43,21 +42,18 @@ const FULL_PRIVACY_TOKEN =
   process.env.NEXT_PUBLIC_FULL_PRIVACY_TOKEN_ADDRESS || STRK_TOKEN;
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Public",
-  nullifier_set: "Private",
-  hashed_proof: "Private",
-  dark_ledger: "Private (Legacy)",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Hashed Proof",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
   commitment_shield:
-    "Standard on-chain deposit path. Fast and low-gas, with normal signer visibility.",
+    "Pedersen commitment — amount hidden, address visible on tx.",
   nullifier_set:
-    "Private deposit with commitment + proof in a shared anonymity set.",
+    "Full anonymity set via Merkle tree. Private deposit with Groth16 proof.",
   hashed_proof:
-    "Private deposit with hash commitment + Groth16 proof. Recommended default.",
-  dark_ledger:
-    "Legacy private settlement rail. Kept for migration compatibility.",
+    "Hash-only withdraw path — maximum unlinkability. Recommended default.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -265,7 +261,7 @@ export function DepositPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_address: address,
-        pool_type: "neutral",
+        pool_type: ["conservative", "neutral", "aggressive"][poolBucketToType(selectedPool)] ?? "neutral",
         amount: amountWei,
       }),
     });
@@ -445,56 +441,6 @@ export function DepositPanel({
     };
   }
 
-  async function depositDarkLedger(amountWei: string): Promise<DepositResult> {
-    if (!account) throw new Error("Wallet not connected");
-
-    const { low: amountLow, high: amountHigh } = splitU256(amountWei);
-
-    // Step 1 — transfer tokens to operator vault wallet
-    setDepositSteps((prev) => updateStep(prev, 0, "active", "Fetching vault address..."));
-    const { operator_address } = await getOperatorAddress();
-    if (!operator_address) throw new Error("Operator vault address not configured");
-
-    setDepositSteps((prev) => updateStep(prev, 0, "active", "Sign transfer in wallet..."));
-    const result = await account.execute([
-      {
-        contractAddress: resolveTokenAddress(selectedAsset) as `0x${string}`,
-        entrypoint: "transfer",
-        calldata: [operator_address, amountLow, amountHigh],
-      },
-    ]);
-    const txHash = result.transaction_hash;
-    setDepositSteps((prev) => updateStep(prev, 0, "done", txHash.slice(0, 12) + "..."));
-
-    toastSuccess("Transfer sent to vault", {
-      action: {
-        label: "View tx",
-        onClick: () => window.open(sepoliaVoyagerTxUrl(txHash), "_blank"),
-      },
-    });
-
-    // Step 2 — backend verifies the on-chain transfer
-    setDepositSteps((prev) => updateStep(prev, 1, "active", "Verifying on-chain..."));
-    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_in/request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_address: address,
-        tx_hash: txHash,
-        asset: selectedAsset,
-        capital_source: "wallet_mode",
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Ledger verification failed");
-    setDepositSteps((prev) => updateStep(prev, 1, "done", "Verified"));
-
-    // Step 3 — ledger credited
-    setDepositSteps((prev) => updateStep(prev, 2, "done", `Credited ${data.amount_wei ? (Number(data.amount_wei) / 1e18).toFixed(4) : ""} ${selectedAsset}`));
-
-    return { commitmentHash: data.receipt_id || txHash, txHash };
-  }
-
   // -----------------------------------------------------------------------
   // Main handler
   // -----------------------------------------------------------------------
@@ -512,13 +458,10 @@ export function DepositPanel({
           result = await depositCommitmentShield(amountWei);
           break;
         case "nullifier_set":
-          result = await depositNullifierSet(amountWei, 0);
+          result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
           break;
         case "hashed_proof":
           result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
-          break;
-        case "dark_ledger":
-          result = await depositDarkLedger(amountWei);
           break;
       }
 
@@ -549,7 +492,6 @@ export function DepositPanel({
         commitment_shield: "COMMITMENT_SHIELD",
         nullifier_set: "NULLIFIER_SET",
         hashed_proof: "HASHED_PROOF",
-        dark_ledger: "DARK_LEDGER",
       };
       onRecordDeposit?.(amountWei, selectedAsset, railMap[method], result.txHash, result.commitmentHash).catch(() => {});
 

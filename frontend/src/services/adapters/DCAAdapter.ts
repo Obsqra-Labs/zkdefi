@@ -13,7 +13,7 @@ export interface DCAPosition {
   totalDuration: number;
   status: 'active' | 'paused' | 'completed' | 'cancelled';
   nextExecutionTime: string; // ISO8601
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
   createdAt: string; // ISO8601
   commitment?: string;
 }
@@ -47,7 +47,7 @@ export interface CreatePositionParams {
   intervalSeconds: number;
   amountPerInterval: number;
   totalDuration: number;
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
 }
 
 /**
@@ -87,7 +87,7 @@ export interface PauseResumeResponse {
  * 2. Cancel or modify positions (pause/resume)
  * 3. Track execution history across intervals
  * 4. Estimate average cost with volatility mitigation analysis
- * 5. Support privacy modes (public, shielded, dark_ledger)
+ * 5. Support privacy modes (public, shielded, fully_private)
  * 6. Track positions for audit trail (Memory Lane)
  */
 export class DCAAdapter implements ExecutionAdapter {
@@ -102,7 +102,7 @@ export class DCAAdapter implements ExecutionAdapter {
    * Supports privacy modes:
    * - public: Schedule visible on-chain
    * - shielded: Schedule hidden via commitment
-   * - dark_ledger: Fully private execution with encryption
+   * - fully_private: Fully private execution with encryption
    *
    * @param params - Position creation parameters
    * @returns DCAPosition with positionId, status, and next execution time

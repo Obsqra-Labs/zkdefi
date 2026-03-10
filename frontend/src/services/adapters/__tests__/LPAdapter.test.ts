@@ -141,7 +141,7 @@ describe('LPAdapter', () => {
           liquidity: 10000,
           status: 'active',
           riskProfile: 'aggressive',
-          privacyMode: 'dark_ledger',
+          privacyMode: 'fully_private',
           commitment: 'commitment-456',
           createdAt: '2026-03-07T00:00:00Z',
         }),
@@ -153,11 +153,11 @@ describe('LPAdapter', () => {
         amountA: 200,
         amountB: 1,
         riskProfile: 'aggressive',
-        privacyMode: 'dark_ledger',
+        privacyMode: 'fully_private',
       });
 
       expect(result.riskProfile).toBe('aggressive');
-      expect(result.privacyMode).toBe('dark_ledger');
+      expect(result.privacyMode).toBe('fully_private');
       expect(result.commitment).toBeDefined();
     });
   });
@@ -467,7 +467,7 @@ describe('LPAdapter', () => {
   });
 
   describe('Private position workflow', () => {
-    it('should maintain commitment for dark_ledger positions', async () => {
+    it('should maintain commitment for fully_private positions', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -479,7 +479,7 @@ describe('LPAdapter', () => {
           liquidity: 10000,
           status: 'active',
           riskProfile: 'aggressive',
-          privacyMode: 'dark_ledger',
+          privacyMode: 'fully_private',
           commitment: 'commitment-dark-001',
           createdAt: '2026-03-07T00:00:00Z',
         }),
@@ -491,11 +491,11 @@ describe('LPAdapter', () => {
         amountA: 200,
         amountB: 1,
         riskProfile: 'aggressive',
-        privacyMode: 'dark_ledger',
+        privacyMode: 'fully_private',
       });
 
       expect(result.commitment).toBe('commitment-dark-001');
-      expect(result.privacyMode).toBe('dark_ledger');
+      expect(result.privacyMode).toBe('fully_private');
     });
   });
 });

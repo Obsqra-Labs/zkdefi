@@ -27,7 +27,7 @@ const mockOpportunities: Opportunity[] = [
     currentYield: 6.0,
     riskScore: 20,
     tvl: 3000000,
-    privacyModes: ["public", "dark_ledger"],
+    privacyModes: ["public", "fully_private"],
     source: "Strategy",
     updatedAt: "2026-03-07T10:00:00Z",
   },
@@ -168,12 +168,12 @@ describe("OpportunityList - Service Integration", () => {
       expect(filtered[0].name).toBe("ETH/USDC LP");
     });
 
-    it("filters opportunities for dark_ledger privacy mode", () => {
-      const privacyMode = "dark_ledger";
+    it("filters opportunities for fully_private privacy mode", () => {
+      const privacyMode = "fully_private";
       const filtered = mockOpportunities.filter((opp) =>
         opp.privacyModes.includes(privacyMode as any)
       );
-      // Only opp-2 (STRK Lending) has dark_ledger support in mockOpportunities
+      // Only opp-2 (STRK Lending) has fully_private support in mockOpportunities
       expect(filtered.length).toBeGreaterThanOrEqual(1);
       expect(filtered.some((o) => o.id === "opp-2")).toBe(true);
     });
@@ -319,7 +319,7 @@ describe("OpportunityList - Service Integration", () => {
     });
 
     it("privacy modes are valid", () => {
-      const validModes = ["public", "shielded", "dark_ledger"];
+      const validModes = ["public", "shielded", "fully_private"];
       mockOpportunities.forEach((opp) => {
         opp.privacyModes.forEach((mode) => {
           expect(validModes).toContain(mode);

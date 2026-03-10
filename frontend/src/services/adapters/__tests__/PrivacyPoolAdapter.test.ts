@@ -109,7 +109,7 @@ describe('PrivacyPoolAdapter', () => {
       const params = {
         pool: 'AGGRESSIVE_POOL',
         amount: 20000,
-        privacyMode: 'dark_ledger' as const,
+        privacyMode: 'fully_private' as const,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -118,7 +118,7 @@ describe('PrivacyPoolAdapter', () => {
           id: 'deposit-003',
           pool: 'AGGRESSIVE_POOL',
           amount: 20000,
-          privacyMode: 'dark_ledger',
+          privacyMode: 'fully_private',
           poolShare: 0.08,
           txHash: '0xghi789',
           timestamp: '2026-03-07T10:02:00Z',
@@ -128,7 +128,7 @@ describe('PrivacyPoolAdapter', () => {
 
       const receipt = await adapter.depositToPool(params);
 
-      expect(receipt.privacyMode).toBe('dark_ledger');
+      expect(receipt.privacyMode).toBe('fully_private');
       expect(receipt.commitment).toBeDefined();
     });
 
@@ -412,7 +412,7 @@ describe('PrivacyPoolAdapter', () => {
       };
       const options = {
         amount: 5000,
-        privacyMode: 'dark_ledger' as const,
+        privacyMode: 'fully_private' as const,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -421,7 +421,7 @@ describe('PrivacyPoolAdapter', () => {
           id: 'deposit-exec-003',
           pool: 'CONSERVATIVE_POOL',
           amount: 5000,
-          privacyMode: 'dark_ledger',
+          privacyMode: 'fully_private',
           poolShare: 0.02,
           txHash: '0xexec003',
           timestamp: '2026-03-07T11:02:00Z',
@@ -430,7 +430,7 @@ describe('PrivacyPoolAdapter', () => {
 
       const receipt = await adapter.execute(opportunity, options);
 
-      expect(receipt.privacyLevel).toBe('dark_ledger');
+      expect(receipt.privacyLevel).toBe('fully_private');
     });
 
     it('should set status to confirmed on successful deposit', async () => {

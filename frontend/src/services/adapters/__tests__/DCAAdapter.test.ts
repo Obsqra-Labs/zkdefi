@@ -172,14 +172,14 @@ describe('DCAAdapter', () => {
       expect(result.commitment).toBeDefined();
     });
 
-    it('should support dark_ledger privacy mode', async () => {
+    it('should support fully_private privacy mode', async () => {
       const params = {
         sellToken: 'USDC',
         buyToken: 'STRK',
         intervalSeconds: 604800,
         amountPerInterval: 500,
         totalDuration: 2592000,
-        privacyMode: 'dark_ledger' as const,
+        privacyMode: 'fully_private' as const,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -193,7 +193,7 @@ describe('DCAAdapter', () => {
           totalDuration: 2592000,
           status: 'active',
           nextExecutionTime: '2026-03-14T10:00:00Z',
-          privacyMode: 'dark_ledger',
+          privacyMode: 'fully_private',
           commitment: 'commitment-hash-def456',
           createdAt: '2026-03-07T10:00:00Z',
         }),
@@ -201,7 +201,7 @@ describe('DCAAdapter', () => {
 
       const result = await adapter.createPosition(params);
 
-      expect(result.privacyMode).toBe('dark_ledger');
+      expect(result.privacyMode).toBe('fully_private');
       expect(result.commitment).toBeDefined();
     });
   });

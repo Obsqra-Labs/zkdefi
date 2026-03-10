@@ -398,7 +398,7 @@ const TEMPLATES = {
   "Privacy Sovereign": {
     nodes: [
       { id: "n1", type: "entity", position: { x: 50, y: 100 }, data: { label: "Wallet", entityType: "Wallet" } },
-      { id: "n2", type: "venue", position: { x: 300, y: 100 }, data: { label: "Dark Ledger", allocation: 100 } },
+      { id: "n2", type: "venue", position: { x: 300, y: 100 }, data: { label: "Privacy Pool", allocation: 100 } },
     ] as Node[],
     edges: [{ id: "e1", source: "n1", target: "n2" }] as Edge[],
   },
@@ -775,7 +775,7 @@ export function CircuitBoard({ address, onClose, onOpenAgentBuilder }: CircuitBo
             ))}
           </CollapsibleSection>
           <CollapsibleSection title="VENUES">
-            {["Ekubo LP", "Lending", "Staking", "Dark Ledger", "Reject"].map((l) => (
+            {["Ekubo LP", "Lending", "Staking", "Privacy Pool", "Reject"].map((l) => (
               <PaletteItem key={l} label={l} type="venue" onDragStart={onNodeDragStart} />
             ))}
           </CollapsibleSection>

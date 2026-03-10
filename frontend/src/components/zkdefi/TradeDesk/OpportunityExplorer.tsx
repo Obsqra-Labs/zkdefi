@@ -24,7 +24,6 @@ const SECTION_LABELS: Record<string, string> = {
   limit: "limit order",
   dca: "DCA",
   privacy: "private rail",
-  dark_ledger: "private queue",
 };
 
 export function OpportunityExplorer({

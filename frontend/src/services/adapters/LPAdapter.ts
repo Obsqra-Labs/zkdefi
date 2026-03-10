@@ -13,7 +13,7 @@ export interface LPPosition {
   liquidity: number;
   status: 'active' | 'closed';
   riskProfile: 'conservative' | 'moderate' | 'aggressive';
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
   createdAt: string; // ISO8601
   commitment?: string; // For non-public positions
 }
@@ -48,7 +48,7 @@ export interface AddLiquidityParams {
   amountA: number;
   amountB: number;
   riskProfile: 'conservative' | 'moderate' | 'aggressive';
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
 }
 
 /**
@@ -109,7 +109,7 @@ const RISK_PROFILES = {
  * 2. Remove liquidity (partial or full)
  * 3. Collect accrued fees
  * 4. Query position details and PnL
- * 5. Support privacy modes (public, shielded, dark_ledger)
+ * 5. Support privacy modes (public, shielded, fully_private)
  * 6. Estimate yield and impermanent loss based on risk profile
  */
 export class LPAdapter implements ExecutionAdapter {

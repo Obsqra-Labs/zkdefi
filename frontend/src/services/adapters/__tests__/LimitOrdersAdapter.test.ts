@@ -114,7 +114,7 @@ describe('LimitOrdersAdapter', () => {
         buyToken: 'STRK',
         amount: 3000,
         limitTick: 45000,
-        privacyMode: 'dark_ledger' as const,
+        privacyMode: 'fully_private' as const,
       };
 
       const mockOrder = {
@@ -127,7 +127,7 @@ describe('LimitOrdersAdapter', () => {
         fillStatus: 0,
         createdAt: new Date().toISOString(),
         txHash: '0xghi789',
-        privacyLevel: 'dark_ledger',
+        privacyLevel: 'fully_private',
         commitment: '0xcommitment456',
       };
 
@@ -138,7 +138,7 @@ describe('LimitOrdersAdapter', () => {
 
       const result = await adapter.placeOrder(params);
 
-      expect(result.privacyLevel).toBe('dark_ledger');
+      expect(result.privacyLevel).toBe('fully_private');
     });
 
     it('should handle network error when placing order', async () => {

@@ -10,8 +10,7 @@ import { apiFetch } from "@/lib/api/client";
 export type PrivacyMethod =
   | "commitment_shield"
   | "nullifier_set"
-  | "hashed_proof"
-  | "dark_ledger";
+  | "hashed_proof";
 
 export interface VaultCommitment {
   id: string;
@@ -84,12 +83,6 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
         { label: "Register commitment", status: "pending" },
         { label: "Approve & sign", status: "pending" },
       ];
-    case "dark_ledger":
-      return [
-        { label: "Transfer to private settlement queue", status: "pending" },
-        { label: "Verify on-chain", status: "pending" },
-        { label: "Credit settlement queue", status: "pending" },
-      ];
   }
 }
 
@@ -113,11 +106,6 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
         { label: "Verify commitment", status: "pending" },
         { label: "Build hash proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
-      ];
-    case "dark_ledger":
-      return [
-        { label: "Queue private settlement transfer out", status: "pending" },
-        { label: "Confirm", status: "pending" },
       ];
   }
 }
@@ -286,7 +274,7 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
           const imported: VaultCommitment[] = [];
           for (const note of notes) {
             const rail = String(note?.rail_type ?? "").toLowerCase();
-            if (rail && rail !== "dark_ledger") continue;
+            if (!rail || rail === "dark_ledger") continue;
 
             const commitment = String(note?.commitment ?? "");
             if (!commitment || known.has(commitment)) continue;
@@ -296,7 +284,7 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
             const createdAt = Number(note?.created_at ?? Date.now() / 1000);
             imported.push({
               id: crypto.randomUUID(),
-              method: "dark_ledger",
+              method: "hashed_proof",
               asset: String(note?.token ?? "STRK"),
               amount_wei: amountWei,
               commitment_hash: commitment,

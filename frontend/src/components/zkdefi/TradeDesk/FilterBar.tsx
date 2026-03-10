@@ -8,7 +8,6 @@ import {
   Target,
   RefreshCw,
   EyeOff,
-  BookLock,
   LayoutGrid,
 } from "lucide-react";
 
@@ -21,8 +20,7 @@ export type OpportunitySectionTab =
   | "staking"
   | "limit"
   | "dca"
-  | "privacy"
-  | "dark_ledger";
+  | "privacy";
 
 export const SECTION_TABS: {
   key: OpportunitySectionTab;
@@ -38,7 +36,6 @@ export const SECTION_TABS: {
   { key: "limit", label: "Limit", icon: Target, color: "bg-blue-600" },
   { key: "dca", label: "DCA", icon: RefreshCw, color: "bg-orange-600" },
   { key: "privacy", label: "Private", icon: EyeOff, color: "bg-violet-600" },
-  { key: "dark_ledger", label: "Queue", icon: BookLock, color: "bg-slate-600" },
 ];
 
 export interface SectionTabBarProps {

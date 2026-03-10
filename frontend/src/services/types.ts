@@ -9,7 +9,7 @@ export interface Opportunity {
   currentYield: number; // APY percentage
   riskScore: number; // 0-100
   tvl?: number;
-  privacyModes: ('public' | 'shielded' | 'dark_ledger')[];
+  privacyModes: ('public' | 'shielded' | 'fully_private')[];
   source: 'zkGraph' | 'zkRAG' | 'Ekubo' | 'Strategy';
   updatedAt: string; // ISO8601
 }
@@ -97,7 +97,7 @@ export interface ReceiptSummary {
 export interface ExecutionParams {
   amount: number;
   slippage: number; // 0-100 basis points (e.g., 50 = 0.5%)
-  privacyLevel: "public" | "shielded" | "dark_ledger";
+  privacyLevel: "public" | "shielded" | "fully_private";
   adapterId?: string; // For adapters that support multiple instances
 }
 
@@ -118,7 +118,7 @@ export interface EstimatedImpact {
 
 // AI Recommendation for Advisory mode
 export interface AIExecutionRecommendation extends Recommendation {
-  recommendedPrivacyLevel: "public" | "shielded" | "dark_ledger";
+  recommendedPrivacyLevel: "public" | "shielded" | "fully_private";
   recommendedAmount: number;
   recommendedSlippage: number;
   explanationForAmount: string;

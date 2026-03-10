@@ -15,8 +15,8 @@ export interface LimitOrder {
   createdAt: string; // ISO8601
   filledAt?: string; // ISO8601
   txHash: string;
-  privacyLevel: 'public' | 'shielded' | 'dark_ledger';
-  commitment?: string; // For shielded/dark_ledger orders
+  privacyLevel: 'public' | 'shielded' | 'fully_private';
+  commitment?: string; // For shielded/fully_private orders
 }
 
 /**
@@ -36,7 +36,7 @@ export interface PlaceOrderParams {
   buyToken: string;
   amount: number;
   limitTick: number;
-  privacyMode: 'public' | 'shielded' | 'dark_ledger';
+  privacyMode: 'public' | 'shielded' | 'fully_private';
 }
 
 /**
@@ -68,7 +68,7 @@ export interface EstimateFillPriceParams {
  * 2. Cancel open limit orders
  * 3. Query active orders
  * 4. Estimate fill probabilities and timing
- * 5. Support privacy modes (public, shielded, dark_ledger)
+ * 5. Support privacy modes (public, shielded, fully_private)
  * 6. Track orders for audit trail (Memory Lane)
  */
 export class LimitOrdersAdapter implements ExecutionAdapter {
@@ -83,7 +83,7 @@ export class LimitOrdersAdapter implements ExecutionAdapter {
    * Supports privacy modes:
    * - public: Order visible on-chain
    * - shielded: Order hidden via commitment
-   * - dark_ledger: Fully private order with encryption
+   * - fully_private: Fully private order with encryption
    *
    * @param params - Order parameters
    * @returns LimitOrder with orderId, status, and privacy details

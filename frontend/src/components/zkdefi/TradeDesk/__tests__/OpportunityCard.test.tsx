@@ -90,12 +90,12 @@ describe("OpportunityCard Logic", () => {
       const privacyModeIcons: Record<string, string> = {
         public: "Eye",
         shielded: "Lock",
-        dark_ledger: "Zap",
+        fully_private: "Zap",
       };
 
       expect(privacyModeIcons["public"]).toBe("Eye");
       expect(privacyModeIcons["shielded"]).toBe("Lock");
-      expect(privacyModeIcons["dark_ledger"]).toBe("Zap");
+      expect(privacyModeIcons["fully_private"]).toBe("Zap");
     });
 
     it("correctly handles multiple privacy modes", () => {
@@ -108,7 +108,7 @@ describe("OpportunityCard Logic", () => {
     it("supports all three privacy modes", () => {
       const allModes: Opportunity = {
         ...mockOpportunity,
-        privacyModes: ["public", "shielded", "dark_ledger"],
+        privacyModes: ["public", "shielded", "fully_private"],
       };
       expect(allModes.privacyModes.length).toBe(3);
     });
@@ -219,7 +219,7 @@ describe("OpportunityCard Logic", () => {
       const titles: Record<string, string> = {
         public: "Public",
         shielded: "Private",
-        dark_ledger: "Private Queue",
+        fully_private: "Private Queue",
       };
 
       mockOpportunity.privacyModes.forEach((mode) => {

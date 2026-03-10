@@ -31,21 +31,18 @@ const FULL_PRIVACY_POOL_ADDRESS =
   "";
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Public",
-  nullifier_set: "Private",
-  hashed_proof: "Private",
-  dark_ledger: "Private (Legacy)",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
+  hashed_proof: "Hashed Proof",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
   commitment_shield:
-    "Standard on-chain withdrawal path with normal signer visibility.",
+    "Pedersen commitment — amount hidden. Standard on-chain withdrawal.",
   nullifier_set:
-    "Private withdrawal with Groth16 proof + nullifier unlinkability.",
+    "Full anonymity set. Groth16 proof + nullifier unlinkability.",
   hashed_proof:
-    "Private withdrawal with hash commitment + Groth16 proof. Recommended default.",
-  dark_ledger:
-    "Legacy private settlement rail.",
+    "Hash-only withdraw — maximum unlinkability. Recommended default.",
 };
 
 const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
@@ -55,8 +52,6 @@ const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
     "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
   hashed_proof:
     "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25",
-  dark_ledger:
-    "bg-cyan-500/15 text-cyan-300 border-cyan-500/25",
 };
 
 // ---------------------------------------------------------------------------
@@ -217,7 +212,7 @@ export function WithdrawPanel({
   const selectedCommitment = commitments.find((c) => c.id === selectedId);
 
   function needsProofMetadata(c: VaultCommitment): boolean {
-    if (c.method === "commitment_shield" || c.method === "dark_ledger") return false;
+    if (c.method === "commitment_shield") return false;
     const s = c.user_secret ?? c.secret;
     const n = c.nonce ?? c.nullifier;
     return !s || !n || !c.blinding;
@@ -505,32 +500,6 @@ export function WithdrawPanel({
     return data;
   }
 
-  async function withdrawDarkLedger(amountWei: string, asset: string) {
-    if (!address) throw new Error("Wallet not connected");
-
-    setWithdrawSteps((prev) =>
-      updateStep(prev, 0, "active", "Queuing withdrawal..."),
-    );
-
-    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_out/request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_address: address,
-        amount_wei: amountWei,
-        asset,
-        capital_source: "private_capital",
-        destination_mode: "wallet",
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok)
-      throw new Error(data.detail || "Ledger transfer-out failed");
-
-    setWithdrawSteps((prev) => updateStep(prev, 1, "done", `Queued (request #${data.request_id ?? ""})`));
-    return data.receipt_id || "";
-  }
-
   // -----------------------------------------------------------------------
   // Main handler
   // -----------------------------------------------------------------------
@@ -568,12 +537,6 @@ export function WithdrawPanel({
             selectedCommitment,
             amountWei,
             !isFullAmount,
-          );
-          break;
-        case "dark_ledger":
-          txHash = await withdrawDarkLedger(
-            amountWei,
-            selectedCommitment.asset,
           );
           break;
       }

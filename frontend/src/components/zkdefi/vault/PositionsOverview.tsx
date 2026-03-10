@@ -25,17 +25,15 @@ const METHOD_COLORS: Record<PrivacyMethod, { bg: string; text: string; bar: stri
   commitment_shield: { bg: "bg-blue-400/10", text: "text-blue-400", bar: "bg-blue-400" },
   nullifier_set: { bg: "bg-emerald-400/10", text: "text-emerald-400", bar: "bg-emerald-400" },
   hashed_proof: { bg: "bg-amber-400/10", text: "text-amber-400", bar: "bg-amber-400" },
-  dark_ledger: { bg: "bg-purple-400/10", text: "text-purple-400", bar: "bg-purple-400" },
 };
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Commitment Shield",
-  nullifier_set: "Nullifier Set",
+  commitment_shield: "Shield",
+  nullifier_set: "Full Privacy",
   hashed_proof: "Hashed Proof",
-  dark_ledger: "Private Pool",
 };
 
-const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof", "dark_ledger"];
+const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof"];
 
 const POOL_VARIANT_COLORS: Record<string, { bg: string; text: string }> = {
   conservative: { bg: "bg-blue-500/15", text: "text-blue-400" },

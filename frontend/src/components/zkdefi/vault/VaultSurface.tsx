@@ -169,7 +169,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
         if (v2.balances.length > 0) {
           const totalWei = v2.balances.reduce((s, b) => s + b.total, 0);
           if (totalWei > 0) {
-            setVaultTvl(`${totalWei.toFixed(2)} (V2 Ledger)`);
+            setVaultTvl(`${totalWei.toFixed(2)} STRK`);
             resolved = true;
           }
         } else if (address) {
@@ -187,7 +187,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
               const totalWei = Object.values(v2Bal.by_token as Record<string, any>)
                 .reduce((s: number, t: any) => s + Number(t.available ?? 0), 0);
               if (totalWei > 0) {
-                setVaultTvl(`${(totalWei / 1e18).toFixed(2)} (V2 Ledger)`);
+                setVaultTvl(`${(totalWei / 1e18).toFixed(2)} STRK`);
                 resolved = true;
               }
             }
@@ -264,7 +264,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-400" />
-          <h2 className="text-lg font-semibold text-white">Vault</h2>
+          <h2 className="text-lg font-semibold text-white">Privacy Pools</h2>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
           <span className="text-white/40">STRK/ETH</span>
