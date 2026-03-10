@@ -15,16 +15,13 @@ import type { PrivacyMethod, VaultCommitment } from "@/hooks/usePrivacyVault";
 /** V2 2-pill center stage modes */
 export type CenterModeV2 = "intelligence" | "vault";
 
-/** Inner tabs of the Vault center stage */
-export type VaultTab = "overview" | "pools" | "ekubo" | "lending" | "activity" | "trade" | "oracle" | "marketplace";
+/** Inner tabs of the Vault center stage — five-lane layout */
+export type VaultTab = "overview" | "capital" | "lend" | "govern" | "activity";
 
 /** Overlay modes — full-screen panels that replace center stage */
 export type OverlayModeV2 =
-  | "deploy"
   | "circuit-board"
-  | "governance"
   | "brain"
-  | "execution-pipeline"
   | null;
 
 /** Slideout drawers — right-side panels */
@@ -35,10 +32,7 @@ export type SlideoutModeV2 =
   | "privacy"
   | "shielded"
   | "zkrag"
-  | "agent-builder"
-  | "lending"
-  | "marketplace"
-  | "oracle";
+  | "agent-builder";
 
 /** Deposit flow sub-mode */
 export type DepositMode = "fund-vault" | "direct-to-pool";
@@ -73,15 +67,9 @@ export function resolveViewParamV2(
   if (
     lower === "intelligence" ||
     lower === "signals" ||
-    lower === "capital" ||
     lower === "oracle_command"
   ) {
     return { mode: "intelligence" };
-  }
-
-  // Oracle routes to vault with oracle tab
-  if (lower === "oracle") {
-    return { mode: "vault", vaultTab: "oracle" };
   }
 
   // Vault mode mappings
@@ -94,35 +82,39 @@ export function resolveViewParamV2(
     lower === "execution" ||
     lower === "execution_flow" ||
     lower === "opportunities" ||
-    lower === "trade"
+    lower === "trade" ||
+    lower === "ekubo" ||
+    lower === "capital"
   ) {
     return { mode: "vault", vaultTab: resolveVaultTab(lower, tLower) };
   }
 
-  // Route-specific overrides that map to vault with a specific inner tab
+  // Lending / borrow → lend tab
   if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow") {
-    return { mode: "vault", vaultTab: "lending" };
+    return { mode: "vault", vaultTab: "lend" };
   }
+
+  // Activity / history
   if (lower === "history" || lower === "memory_lane" || lower === "receipts" || lower === "activity") {
     return { mode: "vault", vaultTab: "activity" };
   }
 
-  // Marketplace routes to vault with marketplace tab
-  if (lower === "marketplace") {
-    return { mode: "vault", vaultTab: "marketplace" };
+  // Oracle / marketplace → overview (no longer standalone tabs)
+  if (lower === "oracle" || lower === "marketplace") {
+    return { mode: "vault", vaultTab: "overview" };
   }
 
-  // Governance/models open intelligence (overlay handled separately)
+  // Governance / policy → govern tab
   if (
     lower === "models" ||
     lower === "zkml" ||
     lower === "governance" ||
     lower === "policy"
   ) {
-    return { mode: "intelligence" };
+    return { mode: "vault", vaultTab: "govern" };
   }
 
-  // Default: vault (the primary view per mockups)
+  // Default: vault overview
   if (!lower) {
     return { mode: "vault", vaultTab: resolveVaultTab("", tLower) };
   }
@@ -131,21 +123,18 @@ export function resolveViewParamV2(
 }
 
 function resolveVaultTab(vLower: string, tLower: string): VaultTab {
-  // Explicit ?t= param takes priority
-  if (tLower === "pools" || tLower === "pool") return "pools";
-  if (tLower === "ekubo" || tLower === "lp") return "ekubo";
-  if (tLower === "lending" || tLower === "lend") return "lending";
+  // Explicit ?t= param takes priority — map old names to new five-lane tabs
+  if (tLower === "pools" || tLower === "pool" || tLower === "ekubo" || tLower === "lp" || tLower === "trade" || tLower === "execution" || tLower === "capital") return "capital";
+  if (tLower === "lending" || tLower === "lend") return "lend";
+  if (tLower === "governance" || tLower === "govern") return "govern";
   if (tLower === "activity" || tLower === "history") return "activity";
-  if (tLower === "trade" || tLower === "execution") return "trade";
-  if (tLower === "oracle") return "oracle";
-  if (tLower === "marketplace") return "marketplace";
+  if (tLower === "oracle" || tLower === "marketplace") return "overview";
   if (tLower === "overview") return "overview";
 
   // Infer from ?v= when ?t= is absent
-  if (vLower === "pools" || vLower === "pool" || vLower === "pool_intelligence") return "pools";
-  if (vLower === "execution" || vLower === "execution_flow" || vLower === "trade") return "trade";
-  if (vLower === "oracle") return "oracle";
-  if (vLower === "marketplace") return "marketplace";
+  if (vLower === "pools" || vLower === "pool" || vLower === "pool_intelligence" || vLower === "ekubo" || vLower === "capital") return "capital";
+  if (vLower === "execution" || vLower === "execution_flow" || vLower === "trade") return "capital";
+  if (vLower === "oracle" || vLower === "marketplace") return "overview";
 
   return "overview";
 }
@@ -156,11 +145,7 @@ export function resolveViewOverlayV2(
 ): { overlay?: OverlayModeV2; slideout?: SlideoutModeV2 } {
   if (!v) return {};
   const lower = String(v).toLowerCase();
-  if (lower === "oracle_command" || lower === "oracle") return { slideout: "oracle" };
-  if (lower === "governance" || lower === "policy") return { overlay: "governance" };
-  if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow")
-    return { slideout: "lending" };
-  if (lower === "models" || lower === "zkml" || lower === "marketplace")
+  if (lower === "models" || lower === "zkml")
     return { overlay: "brain" };
   return {};
 }
