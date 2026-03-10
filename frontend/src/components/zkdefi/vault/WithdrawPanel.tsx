@@ -147,6 +147,8 @@ interface WithdrawPanelProps {
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   selectedCommitmentId?: string | null;
+  /** Filter commitments by pool when opened from a specific pool bucket card */
+  filterPool?: string;
   /** Record withdrawal in V2 ledger. Best-effort. */
   onRecordWithdrawal?: (amountWei: string, token: string, destination: string, route: string) => Promise<void>;
 }
@@ -164,6 +166,7 @@ export function WithdrawPanel({
   setWithdrawSteps,
   address,
   selectedCommitmentId,
+  filterPool,
   onRecordWithdrawal,
 }: WithdrawPanelProps) {
   const { account } = useAccount();
@@ -686,18 +689,22 @@ export function WithdrawPanel({
       {/* Commitment picker */}
       <div className="space-y-1.5">
         <label className="text-xs text-white/50 font-medium">
-          Select Position
+          {filterPool ? `${filterPool.charAt(0).toUpperCase() + filterPool.slice(1)} Pool Positions` : "Select Position"}
         </label>
 
-        {commitments.length === 0 ? (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 text-center">
-            <p className="text-sm text-white/30">
-              No positions yet. Deposit to get started.
-            </p>
-          </div>
-        ) : (
+        {(() => {
+          const filtered = filterPool
+            ? commitments.filter((c) => c.pool_variant === filterPool || !c.pool_variant)
+            : commitments;
+          return filtered.length === 0 ? (
+            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 text-center">
+              <p className="text-sm text-white/30">
+                {filterPool ? `No positions in the ${filterPool} pool.` : "No positions yet. Deposit to get started."}
+              </p>
+            </div>
+          ) : (
           <div className="max-h-[200px] overflow-y-auto space-y-1.5 rounded-lg border border-white/10 bg-white/[0.02] p-2">
-            {commitments.map((c) => {
+            {filtered.map((c) => {
               const isSelected = selectedId === c.id;
               const stale = needsProofMetadata(c);
               return (
@@ -742,6 +749,11 @@ export function WithdrawPanel({
                       >
                         {METHOD_LABELS[c.method]}
                       </span>
+                      {c.pool_variant && !filterPool && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-600/40 bg-zinc-700/20 text-zinc-400 capitalize">
+                          {c.pool_variant}
+                        </span>
+                      )}
                       {stale && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300">
                           No proof data
@@ -764,7 +776,8 @@ export function WithdrawPanel({
               );
             })}
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Stale commitment warning */}

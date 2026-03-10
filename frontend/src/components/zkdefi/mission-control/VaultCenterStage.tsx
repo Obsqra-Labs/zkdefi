@@ -19,7 +19,7 @@ export interface VaultCenterStageProps {
   address: string;
   activeTab: VaultTab;
   onTabChange: (tab: VaultTab) => void;
-  onSlideout: (mode: string) => void;
+  onSlideout: (mode: string, poolId?: string) => void;
 }
 
 const TABS = [

@@ -5,6 +5,7 @@ import { useAccount } from "@starknet-react/core";
 import { useSearchParams } from "next/navigation";
 import { useWalletSettled } from "@/lib/useWalletSettled";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
+import { toast } from "@/lib/toast";
 import { Shield, X, ChevronDown, ChevronRight } from "lucide-react";
 import { trackEvent } from "@/lib/telemetry";
 import {
@@ -26,7 +27,7 @@ import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { useVaultV2 } from "@/hooks/useVaultV2";
 import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
-import { VaultStrategyDeposit } from "@/components/zkdefi/vault/VaultStrategyDeposit";
+
 import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
 import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
 import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
@@ -68,8 +69,8 @@ function AgentPageInner() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayModeV2>(null);
   const [slideout, setSlideout] = useState<SlideoutModeV2>(null);
+  const [slideoutPool, setSlideoutPool] = useState<string | undefined>(undefined);
   const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
-  const [depositMode, setDepositMode] = useState<"privacy" | "strategy">("privacy");
   const showAdvancedPrivacyRails = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_PRIVACY_RAILS === "1";
 
   const isGuest = guestMode && !isConnected;
@@ -146,8 +147,9 @@ function AgentPageInner() {
     setSlideout("agent-builder");
   }, []);
 
-  const openSlideout = useCallback((mode: NonNullable<SlideoutModeV2>) => {
-    trackEvent("slideout_open", { slideout: mode });
+  const openSlideout = useCallback((mode: NonNullable<SlideoutModeV2>, poolId?: string) => {
+    trackEvent("slideout_open", { slideout: mode, pool: poolId });
+    setSlideoutPool(poolId);
     setSlideout(mode);
   }, []);
 
@@ -236,7 +238,7 @@ function AgentPageInner() {
           leftRail={
             <IdentityBadge
               address={addr}
-              onSlideout={isGuest ? () => {} : (m) => setSlideout(m as SlideoutModeV2)}
+              onSlideout={isGuest ? () => toast("info", "Connect a wallet to fund or withdraw") : (m) => setSlideout(m as SlideoutModeV2)}
             />
           }
           centerStage={
@@ -244,7 +246,7 @@ function AgentPageInner() {
               address={addr}
               activeTab={vaultTab}
               onTabChange={handleVaultTabChange}
-              onSlideout={isGuest ? () => {} : (m) => openSlideout(m as NonNullable<SlideoutModeV2>)}
+              onSlideout={isGuest ? () => toast("info", "Connect a wallet to deposit or withdraw") : (m, poolId) => openSlideout(m as NonNullable<SlideoutModeV2>, poolId)}
             />
           }
           rightRail={
@@ -260,20 +262,25 @@ function AgentPageInner() {
         <div className="fixed inset-0 z-[60] flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSlideout(null)}
+            onClick={() => { setSlideout(null); setSlideoutPool(undefined); }}
           />
           <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
-                {slideout === "deposit" && (depositMode === "strategy" ? "Direct to Pool" : "Fund Vault")}
+                {slideout === "deposit" && "Deposit"}
                 {slideout === "withdraw" && "Withdraw"}
                 {slideout === "privacy" && "Advanced Privacy Pool"}
                 {slideout === "shielded" && "Advanced Shield Rail"}
                 {slideout === "zkrag" && "zkRAG Intelligence"}
                 {slideout === "agent-builder" && "Agent Builder"}
               </h2>
+              {slideoutPool && (slideout === "deposit" || slideout === "withdraw") && (
+                <span className="text-xs px-2 py-0.5 rounded-full border border-zinc-700 bg-zinc-800/50 text-zinc-300 capitalize">
+                  {slideoutPool} pool
+                </span>
+              )}
               <button
-                onClick={() => setSlideout(null)}
+                onClick={() => { setSlideout(null); setSlideoutPool(undefined); }}
                 className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800"
               >
                 <X className="w-5 h-5" />
@@ -281,47 +288,15 @@ function AgentPageInner() {
             </div>
             {slideout === "deposit" && (
               <div>
-                <div className="flex items-center gap-1.5 mb-5 p-1 rounded-full bg-zinc-800/60 border border-zinc-700/50">
-                  <button
-                    onClick={() => setDepositMode("privacy")}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                      depositMode === "privacy"
-                        ? "bg-emerald-600 text-white"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    Fund Vault
-                  </button>
-                  <button
-                    onClick={() => setDepositMode("strategy")}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                      depositMode === "strategy"
-                        ? "bg-violet-600 text-white"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    Direct to Pool
-                  </button>
-                </div>
-                {depositMode === "privacy" ? (
-                  <DepositPanel
-                    method={vault.method}
-                    depositSteps={vault.depositSteps}
-                    setDepositSteps={vault.setDepositSteps}
-                    addCommitment={vault.addCommitment}
-                    address={address}
-                    onRecordDeposit={v2.recordDeposit}
-                  />
-                ) : (
-                  <VaultStrategyDeposit
-                    method={vault.method}
-                    depositSteps={vault.depositSteps}
-                    setDepositSteps={vault.setDepositSteps}
-                    addCommitment={vault.addCommitment}
-                    address={address}
-                    onRecordDeposit={v2.recordDeposit}
-                  />
-                )}
+                <DepositPanel
+                  method={vault.method}
+                  depositSteps={vault.depositSteps}
+                  setDepositSteps={vault.setDepositSteps}
+                  addCommitment={vault.addCommitment}
+                  address={address}
+                  initialPool={slideoutPool as "conservative" | "moderate" | "aggressive" | undefined}
+                  onRecordDeposit={v2.recordDeposit}
+                />
                 {(showAdvancedPrivacyRails) && (
                   <AdvancedDepositSection
                     onOpenPrivacy={() => setSlideout("privacy")}
@@ -340,6 +315,7 @@ function AgentPageInner() {
                 withdrawSteps={vault.withdrawSteps}
                 setWithdrawSteps={vault.setWithdrawSteps}
                 address={address}
+                filterPool={slideoutPool}
                 onRecordWithdrawal={v2.recordWithdrawal}
               />
             )}

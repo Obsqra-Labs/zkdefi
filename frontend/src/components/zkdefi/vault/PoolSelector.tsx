@@ -8,7 +8,7 @@ import { API_BASE } from "@/lib/api/client";
 // Pool definitions — map to Ekubo tick widths on the backend
 // ---------------------------------------------------------------------------
 
-export type PoolBucket = "conservative" | "balanced" | "aggressive";
+export type PoolBucket = "conservative" | "moderate" | "aggressive";
 
 export interface PoolOption {
   id: PoolBucket;
@@ -37,8 +37,8 @@ export const POOL_OPTIONS: PoolOption[] = [
     bgColor: "bg-blue-500/10",
   },
   {
-    id: "balanced",
-    label: "Balanced",
+    id: "moderate",
+    label: "Moderate",
     description: "Medium range, balanced yield vs. risk.",
     poolType: 1,
     tickWidth: 3000,
@@ -77,14 +77,14 @@ export function PoolSelector({ selected, onSelect }: PoolSelectorProps) {
     let dead = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/v1/oracle/pool-apys`, {
+        const res = await fetch(`${API_BASE}/v1/zkdefi/oracle/pool-apys`, {
           signal: AbortSignal.timeout(6000),
         });
         if (res.ok && !dead) {
           const data = await res.json();
           setApys({
             conservative: (data.conservative ?? 0) / 100,
-            balanced: (data.neutral ?? 0) / 100,
+            moderate: (data.neutral ?? data.moderate ?? 0) / 100,
             aggressive: (data.aggressive ?? 0) / 100,
           });
         }

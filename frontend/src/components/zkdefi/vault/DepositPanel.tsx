@@ -138,6 +138,8 @@ interface DepositPanelProps {
   addCommitment: (c: VaultCommitment) => void;
   address?: string;
   isDemo?: boolean;
+  /** Pre-select a specific pool when opened from a pool bucket card */
+  initialPool?: PoolBucket;
   /** Record deposit in V2 ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
   onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
 }
@@ -153,13 +155,14 @@ export function DepositPanel({
   addCommitment,
   address,
   isDemo,
+  initialPool,
   onRecordDeposit,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
 
   const [selectedAsset, setSelectedAsset] = useState<Asset>("STRK");
-  const [selectedPool, setSelectedPool] = useState<PoolBucket>("balanced");
+  const [selectedPool, setSelectedPool] = useState<PoolBucket>(initialPool ?? "moderate");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);

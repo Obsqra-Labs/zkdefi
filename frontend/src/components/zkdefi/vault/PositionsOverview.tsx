@@ -39,13 +39,15 @@ const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof", "dar
 
 const POOL_VARIANT_COLORS: Record<string, { bg: string; text: string }> = {
   conservative: { bg: "bg-blue-500/15", text: "text-blue-400" },
+  moderate: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
   balanced: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
   aggressive: { bg: "bg-orange-500/15", text: "text-orange-400" },
 };
 
 const POOL_VARIANT_LABELS: Record<string, string> = {
   conservative: "Conservative",
-  balanced: "Balanced",
+  moderate: "Moderate",
+  balanced: "Moderate",
   aggressive: "Aggressive",
 };
 
