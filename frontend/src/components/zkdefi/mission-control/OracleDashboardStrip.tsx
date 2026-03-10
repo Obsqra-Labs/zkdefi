@@ -147,7 +147,7 @@ function RadarTooltip({ active, payload }: any) {
   return (
     <div className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[11px] shadow-lg">
       <p className="text-zinc-200 font-medium">{d.name}</p>
-      <p className="text-cyan-400">{d.y.toFixed(1)}% APY</p>
+      <p className="text-cyan-400">{(d.y ?? 0).toFixed(1)}% APY</p>
       <p className="text-zinc-400">Risk {d.x}</p>
     </div>
   );

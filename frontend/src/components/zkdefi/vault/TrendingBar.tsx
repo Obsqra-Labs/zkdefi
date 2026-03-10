@@ -117,8 +117,12 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
 
   if (!data) return null;
 
-  const changeColor = data.strkEth24h >= 0 ? "text-emerald-400" : "text-red-400";
-  const ChangeIcon = data.strkEth24h >= 0 ? TrendingUp : TrendingDown;
+  const strkEth24h = data.strkEth24h ?? 0;
+  const topPool = data.topPool ?? { name: "--", apy: 0 };
+  const avgApy = data.avgApy ?? 0;
+
+  const changeColor = strkEth24h >= 0 ? "text-emerald-400" : "text-red-400";
+  const ChangeIcon = strkEth24h >= 0 ? TrendingUp : TrendingDown;
 
   const minutesSinceUpdate = Math.floor((Date.now() - lastUpdate) / 60000);
   const isStale = error && data && minutesSinceUpdate > 2;
@@ -131,7 +135,7 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
           <div className="text-xs text-zinc-500">STRK/ETH 24h</div>
           <div className={`flex items-center gap-1 text-sm font-medium ${changeColor}`}>
             <ChangeIcon className="w-3 h-3" />
-            <span>{data.strkEth24h > 0 ? "+" : ""}{data.strkEth24h.toFixed(1)}%</span>
+            <span>{strkEth24h > 0 ? "+" : ""}{strkEth24h.toFixed(1)}%</span>
           </div>
         </div>
 
@@ -141,7 +145,7 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
         <div className="flex flex-col gap-0.5 shrink-0">
           <div className="text-xs text-zinc-500">Top Pool</div>
           <div className="text-sm font-medium text-zinc-200">
-            {data.topPool.name} · {data.topPool.apy.toFixed(1)}%
+            {topPool.name} · {topPool.apy.toFixed(1)}%
           </div>
         </div>
 
@@ -166,7 +170,7 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
         {/* Avg APY */}
         <div className="flex flex-col gap-0.5 shrink-0">
           <div className="text-xs text-zinc-500">Avg APY</div>
-          <div className="text-sm font-medium text-emerald-400">{data.avgApy.toFixed(1)}%</div>
+          <div className="text-sm font-medium text-emerald-400">{avgApy.toFixed(1)}%</div>
         </div>
       </div>
       {isStale && (

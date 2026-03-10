@@ -588,7 +588,7 @@ function Step4({
                 <span className="text-sm text-gray-600">Tier 2 APR Change</span>
                 <div className="text-right">
                   <div className="text-xs text-gray-500">
-                    {currentPolicy.tier2.apr.toFixed(2)}% → {formData.newAprTier2.toFixed(2)}%
+                    {(currentPolicy.tier2?.apr ?? 0).toFixed(2)}% → {formData.newAprTier2.toFixed(2)}%
                   </div>
                   <div className="font-semibold text-blue-600">
                     {(formData.newAprTier2 - currentPolicy.tier2.apr > 0 ? "+" : "")}
@@ -602,7 +602,7 @@ function Step4({
                 <span className="text-sm text-gray-600">Tier 3 APR Change</span>
                 <div className="text-right">
                   <div className="text-xs text-gray-500">
-                    {currentPolicy.tier3.apr.toFixed(2)}% → {formData.newAprTier3.toFixed(2)}%
+                    {(currentPolicy.tier3?.apr ?? 0).toFixed(2)}% → {formData.newAprTier3.toFixed(2)}%
                   </div>
                   <div className="font-semibold text-blue-600">
                     {(formData.newAprTier3 - currentPolicy.tier3.apr > 0 ? "+" : "")}

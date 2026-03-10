@@ -122,14 +122,14 @@ export function CurrentPolicies({
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="text-sm font-medium text-gray-700">Tier 2</div>
               <div className="text-2xl font-bold text-blue-600 mt-1">
-                {(policy.tier2.ltv * 100).toFixed(0)}%
+                {((policy.tier2?.ltv ?? 0) * 100).toFixed(0)}%
               </div>
               <p className="text-xs text-blue-600 mt-1">Moderate leverage</p>
             </div>
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="text-sm font-medium text-gray-700">Tier 3</div>
               <div className="text-2xl font-bold text-green-600 mt-1">
-                {(policy.tier3.ltv * 100).toFixed(0)}%
+                {((policy.tier3?.ltv ?? 0) * 100).toFixed(0)}%
               </div>
               <p className="text-xs text-green-600 mt-1">Maximum leverage</p>
             </div>

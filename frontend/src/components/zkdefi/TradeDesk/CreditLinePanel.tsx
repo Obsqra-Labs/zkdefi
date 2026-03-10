@@ -163,11 +163,11 @@ export function CreditLinePanel({ userAddress }: CreditLinePanelProps) {
                 >
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-400">Limit</span>
-                    <span className="font-medium text-slate-200">${line.credit_limit_usd.toFixed(0)}</span>
+                    <span className="font-medium text-slate-200">${(line.credit_limit_usd ?? 0).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-xs mt-1">
                     <span className="text-slate-400">Available</span>
-                    <span className="text-emerald-300">${line.credit_available_usd.toFixed(0)}</span>
+                    <span className="text-emerald-300">${(line.credit_available_usd ?? 0).toFixed(0)}</span>
                   </div>
                 </button>
               ))}
@@ -186,7 +186,7 @@ export function CreditLinePanel({ userAddress }: CreditLinePanelProps) {
                 >
                   {creditLines.map((line) => (
                     <option key={line.user_address} value={line.user_address}>
-                      ${line.credit_limit_usd.toFixed(0)} ({line.status})
+                      ${(line.credit_limit_usd ?? 0).toFixed(0)} ({line.status})
                     </option>
                   ))}
                 </select>
@@ -206,8 +206,8 @@ export function CreditLinePanel({ userAddress }: CreditLinePanelProps) {
                 {selectedLine && (
                   <p className="mt-1 text-[11px] text-slate-500">
                     {mode === "borrow"
-                      ? `Available: $${selectedLine.credit_available_usd.toFixed(0)}`
-                      : `Used: $${selectedLine.credit_used_usd.toFixed(0)}`}
+                      ? `Available: $${(selectedLine.credit_available_usd ?? 0).toFixed(0)}`
+                      : `Used: $${(selectedLine.credit_used_usd ?? 0).toFixed(0)}`}
                   </p>
                 )}
               </div>

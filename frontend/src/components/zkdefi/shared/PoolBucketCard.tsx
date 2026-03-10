@@ -147,7 +147,7 @@ export function PoolBucketCard({
                 Total <span className="text-zinc-200 font-medium">{usd(c.total_value_usd)}</span>
               </span>
               <span className="text-zinc-400">
-                APY <span className="text-emerald-400 font-medium">{c.blended_apy.toFixed(1)}%</span>
+                APY <span className="text-emerald-400 font-medium">{(c.blended_apy ?? 0).toFixed(1)}%</span>
               </span>
             </div>
           </div>
@@ -218,7 +218,7 @@ export function PoolBucketCard({
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-zinc-300">{usd(pos.value_usd)}</span>
-                      <span className="text-emerald-400">{pos.apy.toFixed(1)}%</span>
+                      <span className="text-emerald-400">{(pos.apy ?? 0).toFixed(1)}%</span>
                       {statusBadge(pos.status)}
                     </div>
                   </div>

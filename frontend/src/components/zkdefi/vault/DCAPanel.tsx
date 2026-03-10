@@ -371,7 +371,7 @@ export function DCAPanel({ address, isDemo }: DCAPanelProps) {
                     <span>•</span>
                     <span>Next: {formatNextExecution(schedule.nextExecution)}</span>
                     <span>•</span>
-                    <span>{schedule.totalExecuted} executions · {schedule.totalAmount.toFixed(2)} total</span>
+                    <span>{schedule.totalExecuted} executions · {(schedule.totalAmount ?? 0).toFixed(2)} total</span>
                   </div>
                 </div>
                 <button
