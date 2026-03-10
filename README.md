@@ -163,6 +163,29 @@ Open [http://localhost:3001](http://localhost:3001). **/products** — full prod
 
 ---
 
+## Pool intent & rebalance mode
+
+**Intent-aware drawers:** Deposit and Withdraw can be launched from pool bucket cards (fixed pool intent — pool selector hidden, title reads "Deposit to Moderate") or from vault-level actions (global intent — pool selector shown, title reads "Fund Vault"). The pool context flows through `openSlideout("deposit", poolId)` and is respected by both `DepositPanel` and `WithdrawPanel`.
+
+**Rebalance mode** is an account-level setting stored in the execution policy:
+- **My Agent** (`user`) — only the wallet owner can deploy or close pool capital.
+- **Oracle** (`oracle`) — an operator/admin can trigger rebalances, gated by zkML verification via the policy engine.
+
+Toggle the mode in the Agent Controls panel (right rail) or via the API:
+```
+GET  /api/v1/zkdefi/mc/rebalance-mode/{address}
+PUT  /api/v1/zkdefi/mc/rebalance-mode/{address}  {"rebalance_mode": "user"|"oracle"}
+```
+
+Pool composition is tracked by the double-entry ledger under `POOL:{pool_id}:idle:{token}` and `POOL:{pool_id}:deployed:{adapter}:{token}` accounts. Query it via:
+```
+GET  /api/v1/zkdefi/pools/{pool_id}/composition
+POST /api/v1/zkdefi/pools/{pool_id}/deploy
+POST /api/v1/zkdefi/pools/{pool_id}/close
+```
+
+---
+
 ## License
 
 Apache-2.0

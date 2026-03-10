@@ -81,6 +81,7 @@ fico_cache = TTLCache(default_ttl=86400, max_entries=5000)      # 24h for credit
 market_cache = TTLCache(default_ttl=30, max_entries=200)        # 30s for market data
 collateral_cache = TTLCache(default_ttl=300, max_entries=2000)  # 5min for collateral
 opportunity_cache = TTLCache(default_ttl=30, max_entries=500)   # 30s for opportunities
+composition_cache = TTLCache(default_ttl=20, max_entries=100)   # 20s for pool composition
 
 
 def cached(cache: TTLCache, key_func: Callable[..., str], ttl: int | None = None):

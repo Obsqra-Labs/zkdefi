@@ -694,7 +694,7 @@ export function WithdrawPanel({
 
         {(() => {
           const filtered = filterPool
-            ? commitments.filter((c) => c.pool_variant === filterPool || !c.pool_variant)
+            ? commitments.filter((c) => c.pool_variant === filterPool)
             : commitments;
           return filtered.length === 0 ? (
             <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 text-center">

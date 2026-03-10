@@ -89,6 +89,7 @@ def _default_execution_policy() -> dict[str, Any]:
         "max_oracle_age_sec": 120,  # default 2 min oracle staleness
         "max_daily_notional_wei": 0,  # 0 = unlimited
         "max_trade_notional_wei": 0,  # 0 = unlimited
+        "rebalance_mode": "user",  # "user" = wallet owner only, "oracle" = operator + zkML gate
     }
 
 

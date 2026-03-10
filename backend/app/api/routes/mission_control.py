@@ -927,6 +927,44 @@ async def put_policy(address: str, body: PolicyPutRequest, _caller: str = Wallet
 # 9–10. Emergency pause / unpause
 # ============================================================================
 
+
+# ============================================================================
+# 8b. Rebalance mode (focused per-user read/write)
+# ============================================================================
+
+_VALID_REBALANCE_MODES = {"user", "oracle"}
+
+
+class RebalanceModePutRequest(BaseModel):
+    rebalance_mode: str = Field(..., description="'user' or 'oracle'")
+
+
+@router.get("/rebalance-mode/{address}")
+async def get_rebalance_mode(address: str) -> dict[str, Any]:
+    """Read the rebalance mode for an address."""
+    policy = _vault_policy_svc().get_policy(address, create_if_missing=True)
+    mode = (policy or {}).get("execution_policy", {}).get("rebalance_mode", "user")
+    return {"address": address, "rebalance_mode": mode}
+
+
+@router.put("/rebalance-mode/{address}")
+async def put_rebalance_mode(
+    address: str,
+    body: RebalanceModePutRequest,
+    _caller: str = WalletOwner,
+) -> dict[str, Any]:
+    """Set rebalance mode (user or oracle) for an address."""
+    if body.rebalance_mode not in _VALID_REBALANCE_MODES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid rebalance_mode '{body.rebalance_mode}'. Must be one of: {', '.join(sorted(_VALID_REBALANCE_MODES))}",
+        )
+    _vault_policy_svc().put_policy(
+        address, {"execution_policy": {"rebalance_mode": body.rebalance_mode}}
+    )
+    return {"address": address, "rebalance_mode": body.rebalance_mode, "updated": True}
+
+
 @router.post("/emergency/pause")
 async def emergency_pause(_admin: str = AdminOnly) -> dict[str, Any]:
     """Set emergency_pause=true across ALL user policies (system-wide)."""

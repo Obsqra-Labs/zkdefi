@@ -267,8 +267,8 @@ function AgentPageInner() {
           <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
-                {slideout === "deposit" && "Deposit"}
-                {slideout === "withdraw" && "Withdraw"}
+                {slideout === "deposit" && (slideoutPool ? `Deposit to ${slideoutPool.charAt(0).toUpperCase() + slideoutPool.slice(1)}` : "Fund Vault")}
+                {slideout === "withdraw" && (slideoutPool ? `Withdraw from ${slideoutPool.charAt(0).toUpperCase() + slideoutPool.slice(1)}` : "Withdraw")}
                 {slideout === "privacy" && "Advanced Privacy Pool"}
                 {slideout === "shielded" && "Advanced Shield Rail"}
                 {slideout === "zkrag" && "zkRAG Intelligence"}
@@ -295,6 +295,7 @@ function AgentPageInner() {
                   addCommitment={vault.addCommitment}
                   address={address}
                   initialPool={slideoutPool as "conservative" | "moderate" | "aggressive" | undefined}
+                  fixedPoolId={slideoutPool as "conservative" | "moderate" | "aggressive" | undefined}
                   onRecordDeposit={v2.recordDeposit}
                 />
                 {(showAdvancedPrivacyRails) && (

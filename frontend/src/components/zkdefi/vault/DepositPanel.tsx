@@ -140,6 +140,8 @@ interface DepositPanelProps {
   isDemo?: boolean;
   /** Pre-select a specific pool when opened from a pool bucket card */
   initialPool?: PoolBucket;
+  /** Lock pool selection to this pool (hides PoolSelector) — used when opened from a pool card */
+  fixedPoolId?: PoolBucket;
   /** Record deposit in V2 ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
   onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
 }
@@ -156,13 +158,14 @@ export function DepositPanel({
   address,
   isDemo,
   initialPool,
+  fixedPoolId,
   onRecordDeposit,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
 
   const [selectedAsset, setSelectedAsset] = useState<Asset>("STRK");
-  const [selectedPool, setSelectedPool] = useState<PoolBucket>(initialPool ?? "moderate");
+  const [selectedPool, setSelectedPool] = useState<PoolBucket>(fixedPoolId ?? initialPool ?? "moderate");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
@@ -330,6 +333,7 @@ export function DepositPanel({
           user_address: address,
           amount: amountWei,
           pool_type: poolType,
+          token: selectedAsset,
         }),
       },
     );
@@ -619,7 +623,7 @@ export function DepositPanel({
       </div>
 
       {/* Pool allocation bucket */}
-      <PoolSelector selected={selectedPool} onSelect={setSelectedPool} />
+      {!fixedPoolId && <PoolSelector selected={selectedPool} onSelect={setSelectedPool} />}
 
       {/* Asset selector */}
       <div className="flex items-center gap-2">

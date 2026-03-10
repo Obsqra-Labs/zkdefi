@@ -10,9 +10,11 @@ import {
   Key,
   Loader2,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 
 const POLL_MS = 15_000;
+
+type RebalanceMode = "user" | "oracle";
 
 interface AgentStatus {
   state: string;
@@ -63,6 +65,10 @@ export function AgentControls({ address }: AgentControlsProps) {
   const [sessionLine, setSessionLine] = useState<string>("—");
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  const [rebalanceMode, setRebalanceMode] = useState<RebalanceMode>("user");
+  const [rebalanceModeLoading, setRebalanceModeLoading] = useState(false);
+  const [rebalanceModeErr, setRebalanceModeErr] = useState<string | null>(null);
+
   // --- Fetchers ---
 
   const fetchStatus = useCallback(async () => {
@@ -108,13 +114,26 @@ export function AgentControls({ address }: AgentControlsProps) {
     }
   }, [address]);
 
+  const fetchRebalanceMode = useCallback(async () => {
+    try {
+      const d = await apiFetch<{ rebalance_mode: RebalanceMode }>(
+        `/api/v1/zkdefi/mc/rebalance-mode/${address}`,
+      );
+      setRebalanceMode(d.rebalance_mode);
+      setRebalanceModeErr(null);
+    } catch {
+      setRebalanceModeErr("Mode unavailable");
+    }
+  }, [address]);
+
   useEffect(() => {
     fetchStatus();
     fetchConstraints();
     fetchSession();
+    fetchRebalanceMode();
     const t = setInterval(() => { fetchStatus(); fetchSession(); }, POLL_MS);
     return () => clearInterval(t);
-  }, [fetchStatus, fetchConstraints, fetchSession]);
+  }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode]);
 
   // --- Agent actions ---
 
@@ -147,6 +166,28 @@ export function AgentControls({ address }: AgentControlsProps) {
       setStatusErr("Emergency stop failed");
     } finally {
       setEmergencyLoading(false);
+    }
+  };
+
+  const handleRebalanceModeToggle = async (mode: RebalanceMode) => {
+    const prev = rebalanceMode;
+    setRebalanceMode(mode); // optimistic
+    setRebalanceModeLoading(true);
+    setRebalanceModeErr(null);
+    try {
+      await apiFetchAuth(
+        `/api/v1/zkdefi/mc/rebalance-mode/${address}`,
+        address,
+        {
+          method: "PUT",
+          body: JSON.stringify({ rebalance_mode: mode }),
+        },
+      );
+    } catch {
+      setRebalanceMode(prev); // revert
+      setRebalanceModeErr("Failed to update mode");
+    } finally {
+      setRebalanceModeLoading(false);
     }
   };
 
@@ -288,6 +329,33 @@ export function AgentControls({ address }: AgentControlsProps) {
             {sessionLine}
           </span>
         </div>
+      </section>
+
+      {/* 5 — Rebalance Mode Toggle */}
+      <section className="rounded-lg border border-zinc-800 p-3">
+        <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rebalance Mode</h3>
+        {rebalanceModeErr ? (
+          <p className="text-[10px] text-red-400">{rebalanceModeErr}</p>
+        ) : null}
+        <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-xs">
+          {(["user", "oracle"] as RebalanceMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => handleRebalanceModeToggle(m)}
+              disabled={rebalanceModeLoading}
+              className={`flex-1 px-3 py-1.5 text-center transition-colors ${
+                rebalanceMode === m
+                  ? "bg-emerald-600/30 text-emerald-300 font-semibold"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+              } disabled:opacity-50`}
+            >
+              {m === "user" ? "My Agent" : "Oracle"}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-zinc-600 mt-1.5">
+          {rebalanceMode === "user" ? "Only you can deploy/close pool capital." : "Oracle can rebalance with zkML verification."}
+        </p>
       </section>
     </div>
   );
