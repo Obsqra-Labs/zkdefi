@@ -553,7 +553,7 @@ export function DepositPanel({
         txHash: result.txHash,
       });
 
-      toastSuccess(`Deposit of ${amount} ${selectedAsset} submitted`, {
+      toastSuccess(`Deposit committed: ${result.commitmentHash.slice(0, 16)}… | tx: ${result.txHash.slice(0, 12)}…`, {
         action: {
           label: "View tx",
           onClick: () =>

@@ -436,7 +436,7 @@ function ProposalCard({
     if (!address || voteDir === null || casting) return;
     setCasting(true);
     try {
-      await apiFetch("/api/v1/dao/vote/cast", {
+      const res = await apiFetch<{ proof_hash?: string; vote_id?: number }>("/api/v1/dao/vote/cast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -445,7 +445,8 @@ function ProposalCard({
           vote_direction: voteDir === "for" ? 1 : 0,
         }),
       });
-      toastSuccess("Vote cast successfully");
+      const proofTag = res?.proof_hash ? ` | proof: ${res.proof_hash.slice(0, 16)}…` : "";
+      toastSuccess(`Vote cast successfully${proofTag}`);
       setVoteDir(null);
       onVoted();
     } catch (e) {

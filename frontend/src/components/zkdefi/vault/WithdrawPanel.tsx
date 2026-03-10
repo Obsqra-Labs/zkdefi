@@ -612,7 +612,7 @@ export function WithdrawPanel({
         );
       } else if (txHash) {
         toastSuccess(
-          `Withdrawal of ${amount} ${selectedCommitment!.asset} submitted`,
+          `Withdrawn ${amount} ${selectedCommitment!.asset} | tx: ${txHash.slice(0, 12)}…`,
           {
             action: {
               label: "View tx",
