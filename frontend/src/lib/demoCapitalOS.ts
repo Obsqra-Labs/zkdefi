@@ -78,3 +78,51 @@ export const DEMO_DCA = {
 
 /** Demo address used to detect demo mode in Oracle tabs when strip uses demo. */
 export const DEMO_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+/** Realistic demo commitments across all 3 pools for showcase. */
+export const DEMO_COMMITMENTS = [
+  {
+    id: "demo-cons-1",
+    method: "commitment_shield" as const,
+    asset: "STRK" as const,
+    amount_wei: "500000000000000000000",
+    commitment_hash: "0xdemo_cons1",
+    pool_type: 0,
+    pool_variant: "conservative",
+    deposited_at: new Date(Date.now() - 14 * 86400000).toISOString(),
+    yield_accrued: "8400000000000000000",
+  },
+  {
+    id: "demo-mod-1",
+    method: "nullifier_set" as const,
+    asset: "STRK" as const,
+    amount_wei: "800000000000000000000",
+    commitment_hash: "0xdemo_mod1",
+    pool_type: 1,
+    pool_variant: "moderate",
+    deposited_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+    yield_accrued: "19200000000000000000",
+  },
+  {
+    id: "demo-mod-2",
+    method: "hashed_proof" as const,
+    asset: "STRK" as const,
+    amount_wei: "300000000000000000000",
+    commitment_hash: "0xdemo_mod2",
+    pool_type: 1,
+    pool_variant: "moderate",
+    deposited_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+    yield_accrued: "4500000000000000000",
+  },
+  {
+    id: "demo-aggr-1",
+    method: "nullifier_set" as const,
+    asset: "STRK" as const,
+    amount_wei: "400000000000000000000",
+    commitment_hash: "0xdemo_aggr1",
+    pool_type: 2,
+    pool_variant: "aggressive",
+    deposited_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    yield_accrued: "11700000000000000000",
+  },
+];

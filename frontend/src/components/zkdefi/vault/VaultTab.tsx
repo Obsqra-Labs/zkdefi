@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
-import { Shield, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { PoolSelector, type PoolBucket } from "./PoolSelector";
 import { DepositPanel } from "./DepositPanel";
 import { WithdrawPanel } from "./WithdrawPanel";
@@ -10,7 +10,7 @@ import PositionsOverview from "./PositionsOverview";
 import { AgentAllocationStrip } from "./AgentAllocationStrip";
 import { TrendingBar } from "./TrendingBar";
 import { AIInsight } from "./AIInsight";
-import { DEMO_AI_INSIGHT } from "@/lib/demoCapitalOS";
+import { DEMO_AI_INSIGHT, DEMO_COMMITMENTS } from "@/lib/demoCapitalOS";
 
 interface VaultTabProps {
   method: PrivacyMethod;
@@ -38,6 +38,12 @@ export function VaultTab(props: VaultTabProps) {
 
   const [selectedPool, setSelectedPool] = useState<PoolBucket>("moderate");
   const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null);
+
+  // In demo mode, merge real commitments with demo data so the portfolio view is populated
+  const displayCommitments = useMemo<VaultCommitment[]>(() => {
+    if (isDemo && commitments.length === 0) return DEMO_COMMITMENTS as VaultCommitment[];
+    return commitments;
+  }, [isDemo, commitments]);
 
   const handleSelectCommitment = useCallback(
     (id: string) => {
@@ -86,8 +92,8 @@ export function VaultTab(props: VaultTabProps) {
         <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} fixedPoolId={selectedPool} onRecordDeposit={onRecordDeposit} />
         <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} onRecordWithdrawal={onRecordWithdrawal} />
       </div>
-      <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />
-      <AgentAllocationStrip address={address} commitments={commitments} />
+      <PositionsOverview commitments={displayCommitments} onSelectCommitment={handleSelectCommitment} address={address} />
+      <AgentAllocationStrip address={address} commitments={displayCommitments} />
     </div>
   );
 }
