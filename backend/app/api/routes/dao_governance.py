@@ -251,21 +251,36 @@ def _tier_info_for_user(address: str) -> tuple[int, str, float]:
 async def _compute_capital_breakdown(address: str) -> tuple[float, float, float]:
     eth_price = 3200.0
     strk_price = 0.65
+    usdc_price = 1.0
 
     lp_usd = 0.0
     lending_usd = 0.0
     staking_usd = 0.0
 
+    _token_price = {"ETH": eth_price, "STRK": strk_price, "USDC": usdc_price}
+
+    # ── 1. Ekubo LP positions (real position store) ───────────────────
+    try:
+        from app.services.ekubo_lp_service import list_positions as ekubo_list_positions
+
+        for pos in ekubo_list_positions(address):
+            amt0 = float(pos.get("amount0", 0))
+            amt1 = float(pos.get("amount1", 0))
+            lp_usd += (amt0 / 1e18) * eth_price + (amt1 / 1e18) * eth_price
+    except Exception:
+        pass
+
+    # ── 2. Private yield vault positions ──────────────────────────────
     try:
         from app.services.private_yield_service import get_user_positions as get_private_yield_positions
 
-        py_positions = get_private_yield_positions(address)
-        for pos in py_positions:
+        for pos in get_private_yield_positions(address):
             amt_wei = float(pos.get("amount_wei", 0))
             lp_usd += (amt_wei / 1e18) * eth_price
     except Exception:
         pass
 
+    # ── 3. Privacy pool positions ─────────────────────────────────────
     try:
         psvc = get_privacy_pool_service()
         user_pool_positions = psvc.get_user_positions(address)
@@ -276,6 +291,7 @@ async def _compute_capital_breakdown(address: str) -> tuple[float, float, float]
     except Exception:
         pass
 
+    # ── 4. Lending service positions ──────────────────────────────────
     try:
         from app.services.lending_service import get_user_positions as get_lending_positions
 
@@ -285,6 +301,33 @@ async def _compute_capital_breakdown(address: str) -> tuple[float, float, float]
     except Exception:
         pass
 
+    # ── 5. Double-entry ledger vault balances (real capital on deposit) ─
+    try:
+        import os
+        from app.services.double_entry_ledger import DoubleEntryLedger
+        from app.services.vault_account_service import VaultAccountService
+
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+        db_path = os.path.join(data_dir, "vault_v2.db")
+        if os.path.exists(db_path):
+            ledger = DoubleEntryLedger(db_path)
+            vaults = VaultAccountService(db_path)
+            # Use get_vault_by_address but only read — it auto-creates if
+            # missing, which is harmless (empty vault → $0 balance).
+            vault = vaults.get_vault_by_address(address) if address else None
+            vault_id = vault.get("vault_id", "") if vault else ""
+            if vault_id:
+                for token in ("ETH", "STRK", "USDC"):
+                    summary = ledger.vault_summary(vault_id, token)
+                    total_wei = summary["available"] + summary["pending"] + summary["deployed"]
+                    if total_wei > 0:
+                        price = _token_price.get(token, 0.0)
+                        decimals = 6 if token == "USDC" else 18
+                        lending_usd += (total_wei / 10**decimals) * price
+    except Exception:
+        pass
+
+    # ── 6. Staking positions (on-chain delegation) ────────────────────
     try:
         from app.services.staking.native_staking import get_user_delegation_positions
 
