@@ -5,10 +5,15 @@ Generates and manages compliance proofs (productized selective disclosure).
 Users can register compliance proofs and share with auditors/protocols.
 """
 import hashlib
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.services.zkdefi_agent_service import ZkdefiAgentService
+
+
+def _allow_simulated() -> bool:
+    return os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1")
 
 
 class ComplianceService:
@@ -189,6 +194,12 @@ class ComplianceService:
         Generate KYC eligibility proof.
         Returns simulated proof data (actual implementation would use zkML).
         """
+        if not _allow_simulated():
+            raise RuntimeError(
+                "KYC proof generation requires ALLOW_SIMULATED_PROOFS=true. "
+                "Production requires a real zkML KYC circuit."
+            )
+
         statement_hash = "0x" + hashlib.sha256(
             f"kyc_eligibility_{user_address}".encode()
         ).hexdigest()[:64]
@@ -216,11 +227,12 @@ class ComplianceService:
         Generate risk compliance proof.
         Proves risk_score <= threshold without revealing actual score.
         """
-        raise RuntimeError(
-            "Risk compliance proof not yet implemented. "
-            "Requires zkML risk service integration."
-        )
-        
+        if not _allow_simulated():
+            raise RuntimeError(
+                "Risk compliance proof requires ALLOW_SIMULATED_PROOFS=true. "
+                "Production requires zkML risk service integration."
+            )
+
         statement_hash = "0x" + hashlib.sha256(
             f"risk_compliance_{user_address}_{threshold}".encode()
         ).hexdigest()[:64]
@@ -248,11 +260,12 @@ class ComplianceService:
         Generate performance proof.
         Proves yield >= threshold without revealing actual yield.
         """
-        raise RuntimeError(
-            "Performance proof not yet implemented. "
-            "Requires zkML performance tracking integration."
-        )
-        
+        if not _allow_simulated():
+            raise RuntimeError(
+                "Performance proof requires ALLOW_SIMULATED_PROOFS=true. "
+                "Production requires zkML performance tracking integration."
+            )
+
         statement_hash = "0x" + hashlib.sha256(
             f"performance_{user_address}_{threshold}".encode()
         ).hexdigest()[:64]
@@ -280,11 +293,12 @@ class ComplianceService:
         Generate portfolio aggregation proof.
         Proves total_value >= threshold without revealing breakdown.
         """
-        raise RuntimeError(
-            "Aggregation proof not yet implemented. "
-            "Requires zkML aggregation circuit integration."
-        )
-        
+        if not _allow_simulated():
+            raise RuntimeError(
+                "Aggregation proof requires ALLOW_SIMULATED_PROOFS=true. "
+                "Production requires zkML aggregation circuit integration."
+            )
+
         statement_hash = "0x" + hashlib.sha256(
             f"aggregation_{user_address}_{threshold}".encode()
         ).hexdigest()[:64]
