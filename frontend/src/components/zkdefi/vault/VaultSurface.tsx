@@ -6,7 +6,7 @@ import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { useVaultController } from "@/hooks/useVaultController";
 import { useAdapterRegistry } from "@/hooks/useAdapterRegistry";
 import { useVaultV2 } from "@/hooks/useVaultV2";
-import { API_BASE } from "@/lib/api/client";
+import { API_BASE, apiUrl } from "@/lib/api/client";
 import { VaultTab } from "./VaultTab";
 import { YieldTab } from "./YieldTab";
 import { ActivityTab } from "./ActivityTab";
@@ -173,14 +173,14 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
             resolved = true;
           }
         } else if (address) {
-          const v2Acc = await fetch(`${API_BASE}/v2/vault/v2/account`, {
+          const v2Acc = await fetch(apiUrl("/api/v2/vault/account"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ owner_address: address }),
             signal: AbortSignal.timeout(6000),
           }).then(r => r.ok ? r.json() : null).catch(() => null);
           if (v2Acc?.vault_id) {
-            const v2Bal = await fetch(`${API_BASE}/v2/vault/v2/${v2Acc.vault_id}/balance`, {
+            const v2Bal = await fetch(apiUrl(`/api/v2/vault/${v2Acc.vault_id}/balance`), {
               signal: AbortSignal.timeout(6000),
             }).then(r => r.ok ? r.json() : null).catch(() => null);
             if (v2Bal?.by_token) {

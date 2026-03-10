@@ -78,6 +78,22 @@ class AggregationRequest(BaseModel):
     protocol_ids: list[int] | None = None
 
 
+class TelemetryEvent(BaseModel):
+    event: str
+    properties: dict | None = None
+    ts: int
+
+
+class MetricsEventRequest(BaseModel):
+    events: list[TelemetryEvent]
+
+
+@router.post("/metrics/event", status_code=204)
+async def metrics_event(_body: MetricsEventRequest):
+    """Stub for frontend telemetry; accepts batch of events, no-op."""
+    return None
+
+
 class ShieldedDepositRequest(BaseModel):
     user_address: str
     pool_type: str  # "conservative", "neutral", "aggressive"

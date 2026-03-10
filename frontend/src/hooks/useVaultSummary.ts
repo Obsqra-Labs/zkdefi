@@ -39,7 +39,7 @@ export function useVaultSummary(address: string | undefined): VaultSummary {
       try {
         // Try V2 vault summary first
         const d = await apiFetch<Record<string, unknown>>(
-          `/api/v1/zkdefi/vault/v2/summary/${address}`,
+          `/api/v2/vault/summary/${address}`,
         ).catch(() => null);
 
         if (cancelled) return;

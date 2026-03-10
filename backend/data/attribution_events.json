@@ -148,5 +148,133 @@
       "subject": "0x193708d80a9c4ec5ae4da1e5630ec8b4f2bceb5386ba40d38ce64399",
       "ts": 1773163761
     }
+  ],
+  "0x53be8985aa0044f68fd7943d220a7b1e07565716a3ac47d5b225cc46": [
+    {
+      "id": "attr_76b5dc9cff54",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:25:19.217777+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 151
+      },
+      "subject": "0x53be8985aa0044f68fd7943d220a7b1e07565716a3ac47d5b225cc46",
+      "ts": 1773170719
+    }
+  ],
+  "0xaa4e0983ac5545e68157af55a44bf75cc84f14bd53c142ed90ab411a": [
+    {
+      "id": "attr_24e992e95f0b",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:28:46.766907+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 11
+      },
+      "subject": "0xaa4e0983ac5545e68157af55a44bf75cc84f14bd53c142ed90ab411a",
+      "ts": 1773170926
+    }
+  ],
+  "0x24b2abe7f9a74aac98eca3dba416e83aea5412f562954739b3ff02c5": [
+    {
+      "id": "attr_87cbd4935cfc",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:29:27.652199+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 97
+      },
+      "subject": "0x24b2abe7f9a74aac98eca3dba416e83aea5412f562954739b3ff02c5",
+      "ts": 1773170967
+    }
+  ],
+  "0x98ce2110ed57458cafa6141618d843af6aaa60e68d9845618f1a4e90": [
+    {
+      "id": "attr_14a7c0b2c6ab",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:30:09.654634+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 178
+      },
+      "subject": "0x98ce2110ed57458cafa6141618d843af6aaa60e68d9845618f1a4e90",
+      "ts": 1773171009
+    }
+  ],
+  "0x643e0558b8a24bb5abb0292e45cb6d89980a800ffd2c4ae1800dbbf7": [
+    {
+      "id": "attr_73b289c5f62e",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:30:55.221716+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 45
+      },
+      "subject": "0x643e0558b8a24bb5abb0292e45cb6d89980a800ffd2c4ae1800dbbf7",
+      "ts": 1773171055
+    }
+  ],
+  "0x15e97a9ded194192b04a7f7cf2ae5913e1450094b53440e3ab4b4295": [
+    {
+      "id": "attr_c60e9ae09e96",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:33:14.512612+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 21
+      },
+      "subject": "0x15e97a9ded194192b04a7f7cf2ae5913e1450094b53440e3ab4b4295",
+      "ts": 1773171194
+    }
+  ],
+  "0x09cb30e1f8ce461fb3ad78669ff3f5a6504fcbe802274edda72f51ca": [
+    {
+      "id": "attr_dc595dd4302b",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T19:58:11.609525+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 159
+      },
+      "subject": "0x09cb30e1f8ce461fb3ad78669ff3f5a6504fcbe802274edda72f51ca",
+      "ts": 1773172691
+    }
+  ],
+  "0x4fffad12f489499e8e3382a82dae6536c2b4f8dda7594ee98c6e8b79": [
+    {
+      "id": "attr_df888ea10977",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-10T20:10:25.125936+00:00",
+      "confidence": 0.9,
+      "evidence": {
+        "source": "cross_chain_summary",
+        "tx_count": 43
+      },
+      "subject": "0x4fffad12f489499e8e3382a82dae6536c2b4f8dda7594ee98c6e8b79",
+      "ts": 1773173425
+    }
   ]
 }

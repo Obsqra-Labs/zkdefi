@@ -43,6 +43,14 @@ flowchart LR
 
 ---
 
+## Hackathon narrative
+
+| Doc | Description |
+|-----|-------------|
+| [HACKATHON_BUILD_NARRATIVE.md](HACKATHON_BUILD_NARRATIVE.md) | Judge-facing build story: MVP capabilities now, proving stack/circuit inventory, Agent Builder schema standard, privacy-track positioning, demo flow, and Capital OS roadmap. |
+
+---
+
 ## Plans
 
 | Doc | Description |

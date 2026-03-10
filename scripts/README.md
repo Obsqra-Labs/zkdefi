@@ -8,6 +8,7 @@ Operational and deployment scripts for zkde.fi.
 
 | Script | Purpose |
 |--------|---------|
+| **hackathon_backend_showcase.py** | Terminal-first demo runner for hackathon judging: validates proofs, agent execution, privacy commitment flow, policy controls, receipts, and optional Starknet RPC/on-chain checks in one command. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -17,3 +18,15 @@ Operational and deployment scripts for zkde.fi.
 | **rewrite_history_single_commit.sh** | (Maintainer) Rewrite repo to a single commit; used for history squash. |
 
 Run from repo root. Ensure backend is up for smoke tests; for deploy/register scripts, Starknet RPC and keystore must be configured.
+
+### Hackathon showcase quick start
+
+```bash
+python3 scripts/hackathon_backend_showcase.py
+```
+
+Optional flags:
+
+- `--base-url http://127.0.0.1:8003`
+- `--wallet 0x...`
+- `--skip-onchain` (useful if RPC is flaky/offline)

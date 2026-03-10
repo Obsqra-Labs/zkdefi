@@ -160,7 +160,7 @@
     }
   },
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
-    "governance.voting_power": 1615.935623,
+    "governance.voting_power": 0.0,
     "credit.model_state": {
       "grade": "AAA",
       "rate_bps": 300,
@@ -178,8 +178,7 @@
       "mode": "advisory",
       "reason_codes": [
         "onboarding_incomplete",
-        "no_active_session",
-        "passport_low_confidence"
+        "no_active_session"
       ],
       "active_sessions": 0
     }
@@ -1035,6 +1034,623 @@
     }
   },
   "0xf9d2b81ae8f245e3b8ea7b22210acbfaa4a3566a155c4f439285cafd": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x145aa59728fc4044a6d895c2210d5be5e30f2905e341446096f9e5bf": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x687aa73632b84ce49309b587020cb5c46eb2e583fcd845079e79e502": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xbe686370fcf84ffda29c9ef608079c44891d1b49dcc545dab8290221": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x69e63c2510bd4226844ebdd3c9df1653517345b40bbe4eb88fb2e3c9": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xe07af1b13f08457789a1e800fb4b5ebefb08a551bbaa4fa691c7b1bb": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x37a44c109dcf4ee88f41047432da51dabc1aa50628ba42c98985216c": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xafc29475b8f942119dc93411c3a64b3de44081e476af4b9eaea44b73": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x7b98f65a2f5f440fa617a3ad46d6ce3c449f51d104f54a2690d77e4d": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xb0960a31d0b642e58d5465e11b2801a07b49973fd62445bcad3a18dc": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x425a9233e3e0440dbbf4d399941bd4da6fd3aa436eb541c3bedc8a3c": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x31cbdf2cfda24fb9aa58fb26f6774274855065586495464b8b786e8d": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x547efda2a4b6465281f31d3eb2b9ad9cd8cd3dc4100342c5a238e7c5": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xf4ddf96414be42abbf6ece59f911521758fdea950da24e3496dd050e": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x5d7074b344424200a8dd00d2b283a612d4faab447d7040c1a916c75e": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x0a4cde272d2844239bf3606255d2e2714b5a135a221b456697c211e9": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x585b3cc3b8134a348664d10f433a49e84e3ba0ebe71843d9afc486b4": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x71dd5dd2d90b4ac88e14b15cae2165e55fba868b028b48e79f033083": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x1cbb6cb55b214c7699963cf306c3ad177233a496a8274de094ce30e2": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x4426e27500a84b4abd6d85db6c8ac4affc1457623a0842e884df28c1": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x043943573627460692a98135a34df763473e3a311e5f43a0bf8d2124": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x25dec9f8eba54125b9b2e64d28b9bfd35af00abf2e6d472288766556": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": {
+    "governance.voting_power": 0.0,
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x48aa4191716a4fb58b7a247c9a33be7b16863147c87c44ada34dab88": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x73307c6bfe584e499dea3809c089c168458229c8e0584695a5cb2c8c": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xc854c3ee00364b76b7bdddbb36a63a532e162bcb1d2c419c8c65d37c": {
     "governance.voting_power": 0.0,
     "credit.model_state": {
       "grade": "AAA",

@@ -1,4 +1,4 @@
-import { apiFetch as clientApiFetch } from "./client";
+import { apiFetch as clientApiFetch, apiFetchAuth as clientApiFetchAuth } from "./client";
 
 export interface VaultAccount {
   vault_id: string;
@@ -69,16 +69,16 @@ export interface LedgerEntry {
 }
 
 // ---------------------------------------------------------------------------
-// V2 API — all routes prefixed /api/v2/vault/v2
+// V2 API — all routes under /api/v2/vault (account, balance, deposit, etc.)
 // ---------------------------------------------------------------------------
 
-const V2 = "/api/v2/vault/v2";
+const V2 = "/api/v2/vault";
 
 export async function getOrCreateVault(
   ownerAddress: string,
   mode = "OPERATOR_MANAGED",
 ): Promise<VaultAccount> {
-  return clientApiFetch(`${V2}/account`, {
+  return clientApiFetchAuth(`${V2}/account`, ownerAddress, {
     method: "POST",
     body: JSON.stringify({ owner_address: ownerAddress, mode }),
   });

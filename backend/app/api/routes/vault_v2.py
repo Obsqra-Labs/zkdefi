@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from app.middleware.auth import WalletOwner
 
-router = APIRouter(prefix="/v2", tags=["vault-v2"])
+router = APIRouter(tags=["vault-v2"])
 
 from app.services.double_entry_ledger import DoubleEntryLedger
 from app.services.vault_account_service import VaultAccountService
@@ -131,6 +131,47 @@ def create_or_get_account(req: CreateAccountRequest, _caller: str = WalletOwner)
         return vaults.get_vault_by_address(req.owner_address)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/summary/{owner_address}")
+def get_summary_by_address(owner_address: str):
+    """Public read-only summary by owner wallet address."""
+    ledger, vaults, notes_svc, *_ = _get_services()
+    try:
+        vault = vaults.get_vault_by_address(owner_address)
+    except Exception:
+        return {
+            "vault_id": None,
+            "total_usd": 0,
+            "total_value_usd": 0,
+            "strk_balance": 0,
+            "eth_balance": 0,
+            "by_token": {},
+        }
+    vault_id = vault["vault_id"] if isinstance(vault, dict) else vault.vault_id
+
+    tokens = ["STRK", "ETH", "USDC"]
+    by_token: dict = {}
+    total_strk = 0
+    total_eth = 0
+    for token in tokens:
+        summary = ledger.vault_summary(vault_id, token)
+        has_data = summary["available"] or summary["pending"] or summary["deployed"]
+        if has_data:
+            by_token[token] = summary
+        if token == "STRK":
+            total_strk = summary["available"] + summary["pending"] + summary["deployed"]
+        elif token == "ETH":
+            total_eth = summary["available"] + summary["pending"] + summary["deployed"]
+
+    return {
+        "vault_id": vault_id,
+        "total_usd": 0,
+        "total_value_usd": 0,
+        "strk_balance": total_strk,
+        "eth_balance": total_eth,
+        "by_token": by_token,
+    }
 
 
 @router.get("/{vault_id}/balance")

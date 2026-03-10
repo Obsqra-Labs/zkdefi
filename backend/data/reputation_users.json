@@ -318,5 +318,269 @@
     "first_interaction": 0,
     "successful_txns": 0,
     "collateral": 0
+  },
+  "0x53be8985aa0044f68fd7943d220a7b1e07565716a3ac47d5b225cc46": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x2d909e5e213d48c99f4fc1c7c29cfb3659a235ba352645cf9e2d4009": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0xbe686370fcf84ffda29c9ef608079c44891d1b49dcc545dab8290221": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0xf1b08534bf8e44d98429c6841e96476ba88fe8daf38a457190d24997": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0xaa4e0983ac5545e68157af55a44bf75cc84f14bd53c142ed90ab411a": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x54dbfd640e0b4f4cb7314cff702ee715c74e255b8b8b428093dc6a05": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x37a44c109dcf4ee88f41047432da51dabc1aa50628ba42c98985216c": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0x7f058ea2f6084fb4853c26279987661724593593583742a684bbe0cf": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x24b2abe7f9a74aac98eca3dba416e83aea5412f562954739b3ff02c5": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x0284013b04ac41a5bc7704e7fbc004d12fc831e24f1c412b95d0e934": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0xb0960a31d0b642e58d5465e11b2801a07b49973fd62445bcad3a18dc": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0x8a83e9ae9dc24766a146740e852d65a73d80fe17fa8448f28750ccf1": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x98ce2110ed57458cafa6141618d843af6aaa60e68d9845618f1a4e90": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0xd580cb54f37541fb8c87491936339f37436198b9d50b4d2c8757380f": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x547efda2a4b6465281f31d3eb2b9ad9cd8cd3dc4100342c5a238e7c5": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0xc314604398cd47d38a13e07d4c66d3ee83f257942e954b3090c6ab35": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x643e0558b8a24bb5abb0292e45cb6d89980a800ffd2c4ae1800dbbf7": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x5bf75afa149645278a956139e901c21802c6f9696c314abea5f28a86": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x0a4cde272d2844239bf3606255d2e2714b5a135a221b456697c211e9": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0x958d5ba549624d00b8912224e3bcd0e916e5a456501d4904a8b55ff6": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x15e97a9ded194192b04a7f7cf2ae5913e1450094b53440e3ab4b4295": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x8a4d9593d7ff409a901c2dc16a94c7efd20470f2a4cc43e28b721184": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x1cbb6cb55b214c7699963cf306c3ad177233a496a8274de094ce30e2": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0xa17c660ad5d849099b4dee0ba241c7822e3a150a30974464acf74971": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x09cb30e1f8ce461fb3ad78669ff3f5a6504fcbe802274edda72f51ca": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x388c32fcf0984a7786475ebad9540613e6650d98744243f0b1f58e23": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x25dec9f8eba54125b9b2e64d28b9bfd35af00abf2e6d472288766556": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0x21ef9d704b9c420f89ce64580a1c506158e3c5b51e7845fb830e42a5": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x4fffad12f489499e8e3382a82dae6536c2b4f8dda7594ee98c6e8b79": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x9d4572e169e14e12955323a93aeaa4e4217b55ab96ec4677bb785a1d": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0xc854c3ee00364b76b7bdddbb36a63a532e162bcb1d2c419c8c65d37c": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 100000000000000000
+  },
+  "0xdbed1984885c4d1db833dd651146bbfa8e20466b4a78439c9b6a4a17": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
   }
 }
