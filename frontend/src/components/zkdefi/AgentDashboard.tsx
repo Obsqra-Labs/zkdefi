@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { SessionKeyManager } from "./SessionKeyManager";
 import { AgentRebalancer } from "./AgentRebalancer";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 
 interface AgentDashboardProps {
   userAddress: string;

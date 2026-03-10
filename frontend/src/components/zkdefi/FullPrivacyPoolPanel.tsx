@@ -10,8 +10,7 @@ import {
   FileCheck, AlertTriangle, Fingerprint, CheckCircle2, Send,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { API_BASE } from "@/lib/api/client";
 const FULLY_SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS || "";
 const ETH_TOKEN_ADDRESS = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
