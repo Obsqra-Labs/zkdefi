@@ -156,11 +156,11 @@ export function resolveViewOverlayV2(
 ): { overlay?: OverlayModeV2; slideout?: SlideoutModeV2 } {
   if (!v) return {};
   const lower = String(v).toLowerCase();
-  if (lower === "oracle_command") return { slideout: "oracle" };
+  if (lower === "oracle_command" || lower === "oracle") return { slideout: "oracle" };
   if (lower === "governance" || lower === "policy") return { overlay: "governance" };
   if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow")
     return { slideout: "lending" };
-  if (lower === "models" || lower === "zkml")
+  if (lower === "models" || lower === "zkml" || lower === "marketplace")
     return { overlay: "brain" };
   return {};
 }
