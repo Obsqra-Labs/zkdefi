@@ -18,6 +18,7 @@ from typing import Any, Optional
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 
 # Load backend-local .env first.
 env_path = Path(__file__).parent.parent / ".env"
@@ -28,6 +29,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 backend_root = Path(__file__).resolve().parents[1]
 if str(backend_root) not in sys.path:
     sys.path.insert(0, str(backend_root))
+repo_root = backend_root.parent
 
 logger = logging.getLogger(__name__)
 
@@ -620,6 +622,23 @@ async def health_detailed():
 @app.get("/")
 def root() -> dict[str, str]:
     return {"service": "zkde.fi api", "health": "/health", "docs": "/docs"}
+
+
+@app.get("/test", response_model=None)
+def hackathon_test_report():
+    """Serve the latest hackathon backend showcase report as an HTML page."""
+    report_path = repo_root / "artifacts" / "hackathon_showcase" / "latest.html"
+    if report_path.exists():
+        return FileResponse(str(report_path), media_type="text/html")
+    return HTMLResponse(
+        content=(
+            "<html><body style='font-family: sans-serif'>"
+            "<h1>Hackathon Report Not Found</h1>"
+            "<p>Generate it with: <code>python3 scripts/hackathon_backend_showcase.py</code></p>"
+            "</body></html>"
+        ),
+        status_code=404,
+    )
 
 
 # DEPRECATED: trade_desk_live routes superseded by trade_desk_v2

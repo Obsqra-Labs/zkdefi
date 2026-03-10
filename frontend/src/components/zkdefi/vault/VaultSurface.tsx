@@ -175,7 +175,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
         } else if (address) {
           const v2Acc = await fetch(apiUrl("/api/v2/vault/account"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-Wallet-Address": address },
             body: JSON.stringify({ owner_address: address }),
             signal: AbortSignal.timeout(6000),
           }).then(r => r.ok ? r.json() : null).catch(() => null);

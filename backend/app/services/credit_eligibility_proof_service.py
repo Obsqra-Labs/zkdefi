@@ -19,6 +19,8 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
+from app.services.circomlib_poseidon import poseidon_hash_many
+
 CIRCUITS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "circuits"
 BUILD_DIR = CIRCUITS_DIR / "build"
 WASM_PATH = BUILD_DIR / "CreditEligibility_js" / "CreditEligibility.wasm"
@@ -31,27 +33,10 @@ GARAGA_CALLDATA = CIRCUITS_DIR / "garaga_calldata.mjs"
 
 def _poseidon_hash_inputs(credit_score: int, collateral_wei: int, blinding: int) -> str:
     """
-    Compute Poseidon(credit_score, collateral_wei, blinding) using circomlibjs.
+    Compute Poseidon(credit_score, collateral_wei, blinding) using shared worker.
     Returns the hash as a decimal string.
     """
-    script = f"""
-    const circomlibjs = require('circomlibjs');
-    (async () => {{
-        const poseidon = await circomlibjs.buildPoseidon();
-        const h = poseidon([{credit_score}, {collateral_wei}, {blinding}]);
-        console.log(poseidon.F.toString(h));
-    }})();
-    """
-    result = subprocess.run(
-        ["node", "-e", script],
-        capture_output=True,
-        text=True,
-        cwd=str(CIRCUITS_DIR),
-        timeout=30,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"Poseidon hash failed: {result.stderr}")
-    return result.stdout.strip()
+    return str(poseidon_hash_many([int(credit_score), int(collateral_wei), int(blinding)]))
 
 
 def generate_credit_eligibility_proof(

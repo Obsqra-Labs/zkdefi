@@ -458,7 +458,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     try {
       const response = await fetch(`${API_BASE}/v1/zkdefi/onboarding/submit_agent`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Wallet-Address": address },
         body: JSON.stringify({
           user_address: address,
           fact_hash: factHash,

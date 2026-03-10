@@ -31,6 +31,8 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
+from app.services.circomlib_poseidon import poseidon_hash_many
+
 try:
     from app.monitoring.metrics import (
         proof_generation_total,
@@ -524,19 +526,16 @@ def _generate_proof_sync(
 
 # ── Default input builders for each circuit ─────────────────────────────────
 
-# Path to the Poseidon Node bridge
-_POSEIDON_BRIDGE = Path(__file__).resolve().parents[4] / "circuits" / "poseidon_bridge.js"
-
 # Cache for Poseidon results to avoid repeated subprocess calls
 _poseidon_cache: dict[tuple[int, ...], str] = {}
 
 
 def _poseidon_commitment(*values: int) -> str:
-    """Compute a real BN254 Poseidon hash via the circomlibjs Node bridge.
+    """Compute a real BN254 Poseidon hash via shared circomlib worker.
 
     This produces the same hash as Circom's ``Poseidon(N)`` template,
     so commitments generated here will match on-chain verification.
-    Falls back to SHA-256 only when the bridge is unavailable AND
+    Falls back to SHA-256 only when Poseidon runtime is unavailable AND
     REQUIRE_REAL_PROOFS is not set.
     """
     cache_key = tuple(values)
@@ -544,29 +543,15 @@ def _poseidon_commitment(*values: int) -> str:
         return _poseidon_cache[cache_key]
 
     try:
-        payload = json.dumps({"values": [v for v in values]})
-        bridge_dir = _POSEIDON_BRIDGE.parent  # /opt/obsqra.starknet/zkdefi/circuits/
-        result = subprocess.run(
-            ["node", _POSEIDON_BRIDGE.name],  # Use relative name, not full path
-            input=payload,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            cwd=str(bridge_dir),  # Run in circuits/ dir to find node_modules
-        )
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            h = data["hash"]
-            _poseidon_cache[cache_key] = h
-            return h
-        else:
-            raise RuntimeError(f"Poseidon bridge error: {result.stderr.strip()}")
+        h = str(poseidon_hash_many([int(v) for v in values]))
+        _poseidon_cache[cache_key] = h
+        return h
     except Exception as exc:
         if REQUIRE_REAL_PROOFS:
             raise RuntimeError(
-                f"Real Poseidon required but bridge failed: {exc}"
+                f"Real Poseidon required but worker failed: {exc}"
             ) from exc
-        logger.warning("Poseidon bridge unavailable, falling back to SHA-256 stub: %s", exc)
+        logger.warning("Poseidon worker unavailable, falling back to SHA-256 stub: %s", exc)
         # SHA-256 fallback (deterministic but won't match on-chain Poseidon)
         payload_str = ":".join(str(v) for v in values)
         h = str(int(hashlib.sha256(payload_str.encode()).hexdigest(), 16) % (2**253))
