@@ -117,5 +117,63 @@
     },
     "updated_at": "2026-03-06T13:50:18.123430+00:00",
     "last_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "2026-03-08": {
+    "total": 2516,
+    "by_gate": {
+      "relayer": {
+        "allow": 0,
+        "advisory": 2516,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 2516,
+        "block": 0
+      },
+      "lending": {
+        "allow": 0,
+        "advisory": 2516,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "tier_below_standard": 4,
+      "passport_low_confidence": 8,
+      "onboarding_incomplete": 7548,
+      "no_active_session": 2516,
+      "passport_letter_below_c": 4,
+      "no_credit_line": 4
+    },
+    "updated_at": "2026-03-08T21:27:28.735863+00:00",
+    "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
+  },
+  "2026-03-09": {
+    "total": 4734,
+    "by_gate": {
+      "relayer": {
+        "allow": 0,
+        "advisory": 4734,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 4734,
+        "block": 0
+      },
+      "lending": {
+        "allow": 0,
+        "advisory": 4734,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "onboarding_incomplete": 14202,
+      "no_active_session": 4734,
+      "passport_low_confidence": 2,
+      "passport_letter_below_c": 1
+    },
+    "updated_at": "2026-03-09T21:02:45.419048+00:00",
+    "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
   }
 }

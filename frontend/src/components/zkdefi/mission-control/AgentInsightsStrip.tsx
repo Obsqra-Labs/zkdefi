@@ -11,6 +11,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import type { RiskProfileV2 } from "@/hooks/useProfile";
+import { getCapitalRiskProfile } from "@/lib/trust/riskProfile";
 
 interface AgentInsightsStripProps {
   address: string | undefined;
@@ -112,6 +114,11 @@ export function AgentInsightsStrip({
     }
 
     try {
+      const profile = await apiFetch<RiskProfileV2>(`/api/v1/zkdefi/risk_profile/v2/${address}`, {
+        method: "GET",
+      }).catch(() => null);
+      const riskProfile = getCapitalRiskProfile(profile);
+
       const [risk, opps] = await Promise.all([
         apiFetch<RiskScoreResponse>("/api/v1/zkdefi/zkml/risk_score", {
           method: "POST",
@@ -126,7 +133,7 @@ export function AgentInsightsStrip({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_address: address,
-            risk_profile: "balanced",
+            risk_profile: riskProfile,
             limit: 5,
           }),
         }).catch(() => null),

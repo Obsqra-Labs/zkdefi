@@ -62,6 +62,57 @@ class NoteStore:
         ).fetchone()
         return self._row_to_dict(row) if row else None
 
+    def find_by_commitment(
+        self,
+        vault_id: str,
+        commitment_hash: str,
+        status: Optional[str] = None,
+    ) -> Optional[dict]:
+        if status:
+            row = self._conn.execute(
+                """
+                SELECT * FROM notes
+                WHERE vault_id = ? AND commitment_hash = ? AND status = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (vault_id, commitment_hash, status),
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                """
+                SELECT * FROM notes
+                WHERE vault_id = ? AND commitment_hash = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (vault_id, commitment_hash),
+            ).fetchone()
+        return self._row_to_dict(row) if row else None
+
+    def find_latest_open(self, vault_id: str, token: Optional[str] = None) -> Optional[dict]:
+        if token:
+            row = self._conn.execute(
+                """
+                SELECT * FROM notes
+                WHERE vault_id = ? AND token = ? AND status = 'OPEN'
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (vault_id, token),
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                """
+                SELECT * FROM notes
+                WHERE vault_id = ? AND status = 'OPEN'
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (vault_id,),
+            ).fetchone()
+        return self._row_to_dict(row) if row else None
+
     def list_notes(self, vault_id: str, status: Optional[str] = None) -> list[dict]:
         if status:
             rows = self._conn.execute(

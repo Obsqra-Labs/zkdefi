@@ -43,8 +43,8 @@ export function TrendingBar({ isDemo }: TrendingBarProps) {
     const fetchData = async () => {
       try {
         const [marketRes, poolRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/zkdefi/market/surface`, { signal: AbortSignal.timeout(8000) }),
-          fetch(`${API_BASE}/api/v1/zkdefi/oracle/pool-apys`, { signal: AbortSignal.timeout(8000) }),
+          fetch(`${API_BASE}/v1/zkdefi/market/surface`, { signal: AbortSignal.timeout(8000) }),
+          fetch(`${API_BASE}/v1/zkdefi/oracle/pool-apys`, { signal: AbortSignal.timeout(8000) }),
         ]);
 
         if (dead) return;

@@ -52,3 +52,7 @@ backend/app/data/ezkl_models/**/*.key
 backend/app/data/ezkl_models/**/*.zkey
 circuits/build/**/*.zkey
 circuits/build/**/*.ptau
+backend/.env
+.worktrees/
+__pycache__/
+*.pyc

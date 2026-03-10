@@ -150,9 +150,16 @@ class SwapBot:
         *,
         size_multiplier: float = 1.0,
         behavior: str = "retail",
+        allow_extreme_tick: bool = False,
+        exclude_pools: set[str] | None = None,
     ) -> SwapResult:
-        """Execute a single swap. If pair_name is None, pick a random initialized pool."""
-        pool = self._pick_pool(pair_name)
+        """Execute a single swap. If pair_name is None, pick a random initialized pool.
+
+        When ``exclude_pools`` is given, those pool names are skipped during
+        random selection — used by the fleet agent runner to avoid repeatedly
+        hitting a pool whose token balance is too low.
+        """
+        pool = self._pick_pool(pair_name, exclude_pools=exclude_pools)
         if pool is None:
             return SwapResult(success=False, error="No valid pool found")
 
@@ -164,18 +171,26 @@ class SwapBot:
             if not initialized:
                 self._pool_cooldown_until[pool.name] = time.time() + 180
                 return SwapResult(success=False, error=f"Pool {pool.name} not initialized", pair=pool.name)
-            if abs(current_tick) > MAX_TICK - 10_000:
+            at_extreme_tick = abs(current_tick) > MAX_TICK - 10_000
+            if at_extreme_tick and not allow_extreme_tick:
                 self._pool_cooldown_until[pool.name] = time.time() + 300
                 return SwapResult(success=False, error=f"Pool {pool.name} at extreme tick {current_tick}, skipping", pair=pool.name)
         except Exception as exc:
             self._pool_cooldown_until[pool.name] = time.time() + 120
             return SwapResult(success=False, error=f"Pre-check failed: {exc}", pair=pool.name)
 
-        # Randomly decide swap direction
-        if random.random() < 0.5:
-            token_in, token_out = pool.token0, pool.token1
+        # Choose swap direction.
+        # In boundary-recovery mode, push price back into a tradable range.
+        if allow_extreme_tick and abs(current_tick) > MAX_TICK - 10_000:
+            if current_tick <= (-MAX_TICK + 10_000):
+                token_in, token_out = pool.token1, pool.token0
+            else:
+                token_in, token_out = pool.token0, pool.token1
         else:
-            token_in, token_out = pool.token1, pool.token0
+            if random.random() < 0.5:
+                token_in, token_out = pool.token0, pool.token1
+            else:
+                token_in, token_out = pool.token1, pool.token0
 
         # Random amount in human units → wei
         decimals = pool.token0_decimals if token_in == pool.token0 else pool.token1_decimals
@@ -185,17 +200,24 @@ class SwapBot:
         if amount_in_wei <= 0:
             return SwapResult(success=False, error="Amount too small", pair=pool.name)
 
-        # Check balance
+        # Check balance — on low balance try reducing swap size, then skip
         balance = await self.wallet.get_balance(token_in)
         if balance < amount_in_wei:
-            return SwapResult(
-                success=False,
-                error=f"Insufficient balance: have {balance}, need {amount_in_wei}",
-                pair=pool.name,
-                token_in=token_in,
-                amount_in_wei=amount_in_wei,
-                behavior=behavior,
-            )
+            # Try to use 80% of available balance instead of the full amount
+            reduced = int(balance * 0.8)
+            if reduced > 10 ** (decimals - 4):  # minimum meaningful trade
+                logger.info("Reducing swap from %s to %s (80%% of balance) on %s",
+                            amount_in_wei, reduced, pool.name)
+                amount_in_wei = reduced
+            else:
+                return SwapResult(
+                    success=False,
+                    error=f"Insufficient balance: have {balance}, need {amount_in_wei}",
+                    pair=pool.name,
+                    token_in=token_in,
+                    amount_in_wei=amount_in_wei,
+                    behavior=behavior,
+                )
 
         # Quote swap to get expected output
         quote_out = await self._quote_swap(pool, token_in, amount_in_wei)
@@ -234,7 +256,11 @@ class SwapBot:
         self.stats.last_swap = result
         return result
 
-    def _pick_pool(self, pair_name: str | None) -> PoolKey | None:
+    def _pick_pool(
+        self,
+        pair_name: str | None,
+        exclude_pools: set[str] | None = None,
+    ) -> PoolKey | None:
         if pair_name:
             for p in self.pools:
                 if p.name.lower() == pair_name.lower():
@@ -243,8 +269,13 @@ class SwapBot:
         if not self.pools:
             return None
         now = time.time()
-        eligible = [p for p in self.pools if now >= float(self._pool_cooldown_until.get(p.name, 0.0) or 0.0)]
-        candidate_pools = eligible or self.pools
+        _exclude = {n.lower() for n in (exclude_pools or set())}
+        eligible = [
+            p for p in self.pools
+            if now >= float(self._pool_cooldown_until.get(p.name, 0.0) or 0.0)
+            and p.name.lower() not in _exclude
+        ]
+        candidate_pools = eligible or [p for p in self.pools if p.name.lower() not in _exclude] or self.pools
         # Weighted diversity: prioritize least-used pools, but keep randomness.
         scored = sorted(
             candidate_pools,

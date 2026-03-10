@@ -1,0 +1,24 @@
+{
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": [
+    {
+      "id": "attr_a125d7e6d822",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-09T20:19:12.505348+00:00",
+      "confidence": 0.9,
+      "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+      "ts": 1773087572
+    },
+    {
+      "id": "attr_8fe91a6b29aa",
+      "chain": "ethereum",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-09T20:19:12.505374+00:00",
+      "confidence": 1.0,
+      "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+      "ts": 1773087572
+    }
+  ]
+}

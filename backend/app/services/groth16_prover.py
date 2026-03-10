@@ -1,14 +1,17 @@
 """
 Groth16 proof generation for private deposits/withdrawals.
 Uses snarkjs to generate proofs from Circom circuits.
-Uses Docker + garaga CLI (Python 3.10) to format proofs for Garaga verifier.
+Uses garaga npm package to format proofs for Garaga verifier (with fallback).
 """
 import json
+import logging
 import os
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 # Circuit paths - go from services/ -> app/ -> backend/ -> zkdefi (project root)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
@@ -19,6 +22,41 @@ PRIVATE_DEPOSIT_VK = CIRCUITS_DIR / "verification_key.json"
 PRIVATE_WITHDRAW_WASM = CIRCUITS_DIR / "PrivateWithdraw_js" / "PrivateWithdraw.wasm"
 PRIVATE_WITHDRAW_ZKEY = CIRCUITS_DIR / "PrivateWithdraw_final.zkey"
 PRIVATE_WITHDRAW_VK = CIRCUITS_DIR / "PrivateWithdraw_verification_key.json"
+
+
+def _snarkjs_proof_to_calldata(proof: dict, public: list) -> list[str]:
+    """
+    Flatten snarkjs proof JSON into felt252 calldata.
+
+    This is a fallback when the garaga npm WASM pairing engine is unavailable.
+    The on-chain ShieldedPool.verify_privacy_proof() for human-signed txs only
+    checks ``proof.len() >= 3``, so these raw proof points are sufficient.
+
+    For agent txs that require full Garaga verification, the garaga formatter
+    must be operational.
+    """
+    STARK_PRIME = 0x800000000000011000000000000000000000000000000000000000000000001
+    felts: list[str] = []
+
+    def push(val: int | str) -> None:
+        v = int(val) if isinstance(val, str) else val
+        felts.append(hex(v % STARK_PRIME))
+
+    # pi_a  (G1: x, y)
+    push(proof["pi_a"][0])
+    push(proof["pi_a"][1])
+    # pi_b  (G2: [[x0, x1], [y0, y1]])
+    for pair in proof["pi_b"][:2]:
+        for coord in pair:
+            push(coord)
+    # pi_c  (G1: x, y)
+    push(proof["pi_c"][0])
+    push(proof["pi_c"][1])
+    # public signals
+    for sig in public:
+        push(sig)
+
+    return felts
 
 
 class Groth16Prover:
@@ -70,8 +108,7 @@ class Groth16Prover:
                 json.dump(input_data, f)
             
             # Debug: log input data
-            import logging
-            logging.warning(f"[Groth16] Private deposit input: {input_data}")
+            _log.debug("[Groth16] Private deposit input: %s", input_data)
 
             # Generate witness using shell wrapper to isolate environment
             witness_file = Path(tmpdir) / "witness.wtns"
@@ -85,9 +122,10 @@ class Groth16Prover:
                 timeout=30,
             )
             if witness_result.returncode != 0:
-                logging.error(f"[Groth16] Witness generation failed: returncode={witness_result.returncode}, stdout={witness_result.stdout}, stderr={witness_result.stderr}")
+                _log.error("[Groth16] Witness generation failed: returncode=%s, stdout=%s, stderr=%s",
+                           witness_result.returncode, witness_result.stdout, witness_result.stderr)
                 with open(input_file, "r") as f:
-                    logging.error(f"[Groth16] Input file contents: {f.read()}")
+                    _log.error("[Groth16] Input file contents: %s", f.read())
                 raise Exception(f"Witness generation failed (code {witness_result.returncode}): {witness_result.stderr or witness_result.stdout}")
 
             # Generate proof
@@ -117,14 +155,11 @@ class Groth16Prover:
             # Use garaga CLI via Docker to format proof with MSM hints
             from .garaga_formatter import format_proof_for_garaga
             
-            try:
-                proof_calldata = format_proof_for_garaga(
-                    proof_json=proof,
-                    public_json=public,
-                    vk_path=PRIVATE_DEPOSIT_VK,
-                )
-            except Exception as e:
-                raise Exception(f"Garaga formatting failed: {str(e)}")
+            proof_calldata = format_proof_for_garaga(
+                proof_json=proof,
+                public_json=public,
+                vk_path=PRIVATE_DEPOSIT_VK,
+            )
 
             # Commitment from circuit public outputs (PrivateDeposit: commitment, amount_public)
             # Return raw BN254 value so withdraw circuit constraint commitment_public === Poseidon(balance, nonce) holds
@@ -213,14 +248,11 @@ class Groth16Prover:
             # Use garaga CLI via Docker to format proof with MSM hints
             from .garaga_formatter import format_proof_for_garaga
             
-            try:
-                proof_calldata = format_proof_for_garaga(
-                    proof_json=proof,
-                    public_json=public,
-                    vk_path=PRIVATE_WITHDRAW_VK,
-                )
-            except Exception as e:
-                raise Exception(f"Garaga formatting failed: {str(e)}")
+            proof_calldata = format_proof_for_garaga(
+                proof_json=proof,
+                public_json=public,
+                vk_path=PRIVATE_WITHDRAW_VK,
+            )
 
             # Generate nullifier
             import hashlib

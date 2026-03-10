@@ -5,7 +5,7 @@ import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, Shield, ArrowRight } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface Position {
   protocol: string;
@@ -22,7 +22,7 @@ interface AggregatedPosition {
 const PROTOCOL_COLORS: Record<string, string> = {
   pools: "#10b981", // emerald
   ekubo: "#3b82f6", // blue
-  jediswap: "#8b5cf6", // violet
+  lending: "#8b5cf6", // violet
 };
 
 export function PositionChart() {
@@ -49,13 +49,13 @@ export function PositionChart() {
         const protocols = [
           { id: 0, name: "pools" },
           { id: 1, name: "ekubo" },
-          { id: 2, name: "jediswap" },
+          { id: 2, name: "lending" },
         ];
 
         const results = await Promise.all(
           protocols.map(async (p) => {
             try {
-              const res = await fetch(`${API_BASE}/api/v1/zkdefi/position/${address}?protocol_id=${p.id}`);
+              const res = await fetch(`${API_BASE}/v1/zkdefi/position/${address}?protocol_id=${p.id}`);
               const data = await res.json();
               const value = parseFloat(data.position || "0");
               return { protocol: p.name, value, color: PROTOCOL_COLORS[p.name] || "#6b7280" };
@@ -87,7 +87,7 @@ export function PositionChart() {
     const fetchAggregated = async () => {
       setLoadingAggregated(true);
       try {
-        const res = await fetch(`${API_BASE}/api/v1/zkdefi/position/aggregate/${address}`);
+        const res = await fetch(`${API_BASE}/v1/zkdefi/position/aggregate/${address}`);
         const data = await res.json();
         setAggregatedPosition(data);
       } catch (e) {

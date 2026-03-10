@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { useVaultController } from "@/hooks/useVaultController";
 import { useAdapterRegistry } from "@/hooks/useAdapterRegistry";
+import { useVaultV2 } from "@/hooks/useVaultV2";
 import { API_BASE } from "@/lib/api/client";
 import { VaultTab } from "./VaultTab";
 import { YieldTab } from "./YieldTab";
@@ -15,6 +16,8 @@ import { VaultTradeTab } from "./VaultTradeTab";
 import { VaultBanner } from "./VaultBanner";
 import { VaultHealthMeter } from "./VaultHealthMeter";
 import { NextRebalanceStrip } from "./NextRebalanceStrip";
+import { OracleIntelligenceStrip } from "./OracleIntelligenceStrip";
+import { ConstraintGuard } from "./ConstraintGuard";
 
 export interface VaultSurfaceProps {
   address: string | undefined;
@@ -61,6 +64,9 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
 
   const { adapters } = useAdapterRegistry();
 
+  // V2 vault (internal double-entry accounting — invisible to user)
+  const v2 = useVaultV2(address);
+
   const resolveTab = (subTab?: string): Tab => {
     const value = String(subTab || "").trim().toLowerCase();
     if (value === "portfolio" || value === "vault") return "portfolio";
@@ -87,7 +93,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
   useEffect(() => {
     if (!address) return;
     migrateOldStorage();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [address, migrateOldStorage]);
 
   useEffect(() => {
     if (!address) {
@@ -95,7 +101,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       return;
     }
     let dead = false;
-    fetch(`${API_BASE}/api/v1/zkdefi/session_keys/list/${address}`, {
+    fetch(`${API_BASE}/v1/zkdefi/session_keys/list/${address}`, {
       signal: AbortSignal.timeout(6000),
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -126,7 +132,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
 
     const fetchPrices = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/strategies/price/live`, {
+        const res = await fetch(`${API_BASE}/v1/strategies/price/live`, {
           signal: AbortSignal.timeout(8000),
         });
         if (!res.ok || cancelled) return;
@@ -141,7 +147,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       }
 
       try {
-        const surfaceRes = await fetch(`${API_BASE}/api/v1/zkdefi/market/surface`, {
+        const surfaceRes = await fetch(`${API_BASE}/v1/zkdefi/market/surface`, {
           signal: AbortSignal.timeout(6000),
         });
         if (surfaceRes.ok && !cancelled) {
@@ -158,13 +164,45 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       } catch { /* best effort */ }
 
       try {
-        const statsRes = await fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, {
-          signal: AbortSignal.timeout(6000),
-        });
-        if (statsRes.ok && !cancelled) {
-          const vd = await statsRes.json();
-          if (vd.tvl_eth != null && vd.tvl_eth > 0) {
-            setVaultTvl(`${Number(vd.tvl_eth).toFixed(2)} ETH`);
+        // Use V2 vault hook data for TVL if available
+        let resolved = false;
+        if (v2.balances.length > 0) {
+          const totalWei = v2.balances.reduce((s, b) => s + b.total, 0);
+          if (totalWei > 0) {
+            setVaultTvl(`${totalWei.toFixed(2)} (V2 Ledger)`);
+            resolved = true;
+          }
+        } else if (address) {
+          const v2Acc = await fetch(`${API_BASE}/v2/vault/v2/account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner_address: address }),
+            signal: AbortSignal.timeout(6000),
+          }).then(r => r.ok ? r.json() : null).catch(() => null);
+          if (v2Acc?.vault_id) {
+            const v2Bal = await fetch(`${API_BASE}/v2/vault/v2/${v2Acc.vault_id}/balance`, {
+              signal: AbortSignal.timeout(6000),
+            }).then(r => r.ok ? r.json() : null).catch(() => null);
+            if (v2Bal?.by_token) {
+              const totalWei = Object.values(v2Bal.by_token as Record<string, any>)
+                .reduce((s: number, t: any) => s + Number(t.available ?? 0), 0);
+              if (totalWei > 0) {
+                setVaultTvl(`${(totalWei / 1e18).toFixed(2)} (V2 Ledger)`);
+                resolved = true;
+              }
+            }
+          }
+        }
+        // Fallback to V1 private-yield stats
+        if (!resolved) {
+          const statsRes = await fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, {
+            signal: AbortSignal.timeout(6000),
+          });
+          if (statsRes.ok && !cancelled) {
+            const vd = await statsRes.json();
+            if (vd.tvl_eth != null && vd.tvl_eth > 0) {
+              setVaultTvl(`${Number(vd.tvl_eth).toFixed(2)} ETH`);
+            }
           }
         }
       } catch { /* best effort */ }
@@ -226,7 +264,7 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-400" />
-          <h2 className="text-lg font-semibold text-white">Privacy Vault</h2>
+          <h2 className="text-lg font-semibold text-white">Vault</h2>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
           <span className="text-white/40">STRK/ETH</span>
@@ -306,9 +344,18 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
         vaultState={vaultState}
       />
 
+      {/* Constraint bounds (agent guardrails) */}
+      <ConstraintGuard address={address} />
+
       {/* Tab Content */}
       {tab === "portfolio" && (
-        <VaultTab
+        <>
+          <OracleIntelligenceStrip
+            address={address}
+            riskProfile="balanced"
+            onNavigateToOracle={onNavigateToOracle}
+          />
+          <VaultTab
           method={method}
           setMethod={setMethod}
           commitments={commitments}
@@ -320,7 +367,10 @@ export function VaultSurface({ address, initialSubTab, onNavigateToOracle, isDem
           setWithdrawSteps={setWithdrawSteps}
           address={address}
           isDemo={isDemo}
+          onRecordDeposit={v2.recordDeposit}
+          onRecordWithdrawal={v2.recordWithdrawal}
         />
+        </>
       )}
 
       {tab === "yield" && (

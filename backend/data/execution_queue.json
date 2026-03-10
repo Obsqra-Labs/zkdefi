@@ -1,0 +1,56 @@
+{
+  "0x5f7a55145f1470e38b7b0104ad042fa97ab2d2f277f12e88b8c9744648427c": {
+    "id": "0x5f7a55145f1470e38b7b0104ad042fa97ab2d2f277f12e88b8c9744648427c",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "lending",
+    "method": "borrow",
+    "calldata": {
+      "to": "0xabc123",
+      "method": "borrow",
+      "amount": 1000000000000000000,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "asset": "USDC",
+      "pool_id": "3"
+    },
+    "signal_id": "test_sig_001",
+    "estimated_gas": 180000,
+    "created_at": "2026-03-08T12:37:26.266644+00:00"
+  },
+  "0x925e941b8acdcd2cc02e1c679e933cf3dc8236aadbb7c27e9c334ad238c747": {
+    "id": "0x925e941b8acdcd2cc02e1c679e933cf3dc8236aadbb7c27e9c334ad238c747",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "lending",
+    "method": "borrow",
+    "calldata": {
+      "to": "0xabc",
+      "method": "borrow",
+      "amount": 1000000000000000000,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "asset": null,
+      "pool_id": null
+    },
+    "signal_id": "test",
+    "estimated_gas": 180000,
+    "created_at": "2026-03-08T12:43:38.982453+00:00"
+  },
+  "0xe6d2edb6cd779622d6234f36f0c2f88c6c5dda92830a7828bf51cd6c0d81f4": {
+    "id": "0xe6d2edb6cd779622d6234f36f0c2f88c6c5dda92830a7828bf51cd6c0d81f4",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "lending",
+    "method": "borrow",
+    "calldata": {
+      "to": "0xabc",
+      "method": "borrow",
+      "amount": 1000000000000000000,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "asset": null,
+      "pool_id": null
+    },
+    "signal_id": "test",
+    "estimated_gas": 180000,
+    "created_at": "2026-03-08T13:13:23.322921+00:00"
+  }
+}

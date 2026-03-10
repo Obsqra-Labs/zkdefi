@@ -1,65 +1,123 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useAccount } from "@starknet-react/core";
+import { useSearchParams } from "next/navigation";
 import { useWalletSettled } from "@/lib/useWalletSettled";
+import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { Shield, X } from "lucide-react";
 import {
   MissionControlLayout,
   type OverlayMode,
   CapitalLedger,
   ControlPlane,
-  UnifiedStream,
-  DeployOverlay,
-  GovernanceOverlay,
   CircuitBoard,
 } from "@/components/zkdefi/mission-control";
+import { CenterStageModes, type CenterMode } from "@/components/zkdefi/mission-control/CenterStageModes";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { OnboardingWizard } from "@/components/zkdefi/OnboardingWizard";
+import {
+  isOnboardingComplete,
+  markOnboardingComplete,
+  migrateLegacyOnboardingState,
+} from "@/lib/trust/onboardingState";
+import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
+import { useVaultV2 } from "@/hooks/useVaultV2";
 import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
 import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
 import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
 import { ShieldedPoolPanel } from "@/components/zkdefi/ShieldedPoolPanel";
 import { ZkRagAgentConsole } from "@/components/zkdefi/ZkRagAgentConsole";
 import { BrainVisualizer } from "@/components/zkdefi/BrainVisualizer";
+import { DeployOverlay } from "@/components/zkdefi/mission-control/DeployOverlay";
+import { GovernanceOverlay } from "@/components/zkdefi/mission-control/GovernanceOverlay";
+import {
+  AgentBuilderDrawer,
+  type AgentBuilderDraft,
+} from "@/components/zkdefi/mission-control/AgentBuilderDrawer";
 
-type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag";
+type SlideoutMode = null | "deposit" | "withdraw" | "privacy" | "shielded" | "zkrag" | "agent-builder";
+
+/** Map ?v= URL param to CenterMode */
+function resolveViewParam(v: string | null): CenterMode | undefined {
+  if (!v) return undefined;
+  const lower = v.toLowerCase();
+  if (lower === "intelligence" || lower === "signals") return "intelligence";
+  if (lower === "opportunities" || lower === "trade") return "opportunities";
+  if (lower === "capital" || lower === "vault" || lower === "portfolio") return "capital";
+  if (lower === "execution" || lower === "execution_flow") return "execution_flow";
+  if (lower === "history" || lower === "memory_lane" || lower === "receipts") return "memory_lane";
+  if (lower === "pools" || lower === "pool" || lower === "pool_intelligence") return "pools";
+  if (lower === "oracle" || lower === "oracle_command") return "oracle";
+  if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow") return "lending";
+  if (lower === "marketplace" || lower === "models" || lower === "zkml") return "marketplace";
+  if (lower === "governance" || lower === "policy") return "governance";
+  return undefined;
+}
 
 export default function AgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AgentPageInner />
+    </Suspense>
+  );
+}
+
+function AgentPageInner() {
   const { address, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
+  const { profile: profileV2 } = useRiskProfileV2(address);
+  const trustFlow = useTrustFlowState(profileV2, address);
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayMode>(null);
   const [slideout, setSlideout] = useState<SlideoutMode>(null);
+  const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
+  const showAdvancedPrivacyRails = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_PRIVACY_RAILS === "1";
 
-  const vault = usePrivacyVault();
+  const vault = usePrivacyVault(address);
+  const v2 = useVaultV2(address);
+
+  // Resolve initial center-stage mode from ?v= param
+  const initialCenterMode = resolveViewParam(searchParams.get("v"));
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (mounted && isConnected && address) {
-      const onboarded = localStorage.getItem(`zkdefi_onboarded_${address}`);
-      if (!onboarded) setShowOnboarding(true);
+    if (!mounted || !isConnected || !address) {
+      setShowOnboarding(false);
+      return;
     }
-  }, [mounted, isConnected, address]);
+
+    migrateLegacyOnboardingState(address);
+    const completed = isOnboardingComplete(address);
+    if (trustFlow.readyForAgent && !completed) {
+      markOnboardingComplete(address, "trust_flow_ready");
+      setShowOnboarding(false);
+      return;
+    }
+
+    setShowOnboarding(!completed);
+  }, [mounted, isConnected, address, trustFlow.readyForAgent]);
 
   const handleOnboardingComplete = useCallback(() => {
-    if (address) localStorage.setItem(`zkdefi_onboarded_${address}`, "true");
+    if (address) markOnboardingComplete(address, "onboarding_wizard");
     setShowOnboarding(false);
   }, [address]);
 
-  const handleDeploy = useCallback((_opportunityId?: string) => {
-    setActiveOverlay("deploy");
-  }, []);
-
-  const handleOpenGovernance = useCallback(() => {
-    setActiveOverlay("governance");
-  }, []);
-
   const handleOpenCircuitBoard = useCallback(() => {
     setActiveOverlay("circuit-board");
+  }, []);
+
+  const handleOpenAgentBuilder = useCallback((draft: AgentBuilderDraft) => {
+    setAgentBuilderDraft(draft);
+    setSlideout("agent-builder");
   }, []);
 
   if (!mounted || (!isConnected && !walletSettled)) {
@@ -97,13 +155,7 @@ export default function AgentPage() {
     overlayContent = (
       <CircuitBoard
         address={address}
-        onClose={() => setActiveOverlay(null)}
-      />
-    );
-  } else if (activeOverlay === "governance") {
-    overlayContent = (
-      <GovernanceOverlay
-        address={address}
+        onOpenAgentBuilder={handleOpenAgentBuilder}
         onClose={() => setActiveOverlay(null)}
       />
     );
@@ -124,6 +176,13 @@ export default function AgentPage() {
         </div>
       </div>
     );
+  } else if (activeOverlay === "governance") {
+    overlayContent = (
+      <GovernanceOverlay
+        address={address}
+        onClose={() => setActiveOverlay(null)}
+      />
+    );
   }
 
   return (
@@ -135,18 +194,36 @@ export default function AgentPage() {
         leftRail={
           <CapitalLedger
             address={address}
+            privacyCommitments={vault.commitments}
             onDeposit={() => setSlideout("deposit")}
             onWithdraw={() => setSlideout("withdraw")}
-            onImportDarkLedger={() => setSlideout("privacy")}
+            onImportDarkLedger={showAdvancedPrivacyRails ? () => setSlideout("privacy") : undefined}
+            onOpenShielded={showAdvancedPrivacyRails ? () => setSlideout("shielded") : undefined}
+            v2={v2}
           />
         }
         centerStage={
-          <UnifiedStream
+          <CenterStageModes
             address={address}
-            onDeploy={handleDeploy}
-            onOpenGovernance={handleOpenGovernance}
-            onOpenCircuitBoard={handleOpenCircuitBoard}
+            initialMode={initialCenterMode}
+            onDeploy={() => setActiveOverlay("deploy")}
+            onOpenGovernance={() => setActiveOverlay("governance")}
+            onOpenCircuitBoard={() => setActiveOverlay("circuit-board")}
             onOpenZkRag={() => setSlideout("zkrag")}
+            vaultProps={{
+              method: vault.method,
+              setMethod: vault.setMethod,
+              commitments: vault.commitments,
+              addCommitment: vault.addCommitment,
+              removeCommitment: vault.removeCommitment,
+              depositSteps: vault.depositSteps,
+              withdrawSteps: vault.withdrawSteps,
+              setDepositSteps: vault.setDepositSteps,
+              setWithdrawSteps: vault.setWithdrawSteps,
+            }}
+            v2={v2}
+            onDeposit={() => setSlideout("deposit")}
+            onWithdraw={() => setSlideout("withdraw")}
           />
         }
         rightRail={
@@ -154,7 +231,6 @@ export default function AgentPage() {
             address={address}
             onOpenCircuitBoard={handleOpenCircuitBoard}
             onOpenBrain={() => setActiveOverlay("brain")}
-            onDeploy={() => setActiveOverlay("deploy")}
             onOpenZkRag={() => setSlideout("zkrag")}
           />
         }
@@ -167,14 +243,15 @@ export default function AgentPage() {
             className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={() => setSlideout(null)}
           />
-          <div className={`w-full ${slideout === "zkrag" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
+          <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
                 {slideout === "deposit" && "Deposit"}
                 {slideout === "withdraw" && "Withdraw"}
-                {slideout === "privacy" && "Full Privacy Pool"}
-                {slideout === "shielded" && "Shielded Pool"}
+                {slideout === "privacy" && "Advanced Privacy Pool"}
+                {slideout === "shielded" && "Advanced Shield Rail"}
                 {slideout === "zkrag" && "zkRAG Intelligence"}
+                {slideout === "agent-builder" && "Agent Builder"}
               </h2>
               <button
                 onClick={() => setSlideout(null)}
@@ -190,6 +267,7 @@ export default function AgentPage() {
                 setDepositSteps={vault.setDepositSteps}
                 addCommitment={vault.addCommitment}
                 address={address}
+                onRecordDeposit={v2.recordDeposit}
               />
             )}
             {slideout === "withdraw" && (
@@ -201,11 +279,15 @@ export default function AgentPage() {
                 withdrawSteps={vault.withdrawSteps}
                 setWithdrawSteps={vault.setWithdrawSteps}
                 address={address}
+                onRecordWithdrawal={v2.recordWithdrawal}
               />
             )}
-            {slideout === "privacy" && <FullPrivacyPoolPanel />}
-            {slideout === "shielded" && <ShieldedPoolPanel />}
+            {showAdvancedPrivacyRails && slideout === "privacy" && <FullPrivacyPoolPanel />}
+            {showAdvancedPrivacyRails && slideout === "shielded" && <ShieldedPoolPanel />}
             {slideout === "zkrag" && address && <ZkRagAgentConsole userAddress={address} />}
+            {slideout === "agent-builder" && address && (
+              <AgentBuilderDrawer userAddress={address} draft={agentBuilderDraft} />
+            )}
           </div>
         </div>
       )}

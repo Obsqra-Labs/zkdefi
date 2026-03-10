@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 const FULLY_SHIELDED_POOL_ADDRESS = process.env.NEXT_PUBLIC_FULLY_SHIELDED_POOL_ADDRESS || "";
 const ETH_TOKEN_ADDRESS = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
@@ -35,9 +35,9 @@ interface CommitmentData {
 }
 
 const POOL_INFO: Record<PoolType, { name: string; allocation: string }> = {
-  0: { name: "Conservative", allocation: "80% JediSwap / 20% Ekubo" },
-  1: { name: "Neutral", allocation: "50% JediSwap / 50% Ekubo" },
-  2: { name: "Aggressive", allocation: "20% JediSwap / 80% Ekubo" },
+  0: { name: "Conservative", allocation: "Ekubo ±6000 ticks" },
+  1: { name: "Balanced", allocation: "Ekubo ±3000 ticks" },
+  2: { name: "Aggressive", allocation: "Ekubo ±1200 ticks" },
 };
 
 export function FullPrivacyPoolPanel() {
@@ -62,22 +62,16 @@ export function FullPrivacyPoolPanel() {
 
   useEffect(() => {
     if (mounted && address) {
-      // Version check: Clear old commitments from before Feb 4, 2026 merkle tree reset
-      const MERKLE_TREE_RESET_DATE = "2026-02-04";
-      const versionKey = `zkdefi_fullprivacy_version`;
-      const currentVersion = localStorage.getItem(versionKey);
-      
-      if (currentVersion !== MERKLE_TREE_RESET_DATE) {
-        console.log("Clearing old Full Privacy Pool commitments (merkle tree was reset)");
-        localStorage.removeItem(`zkdefi_fullprivacy_${address}`);
-        localStorage.setItem(versionKey, MERKLE_TREE_RESET_DATE);
-        setSavedCommitments([]);
+      // Load saved commitments (version-based clearing removed — migration
+      // into the unified vault store handles stale data now).
+      const stored = localStorage.getItem(`zkdefi_fullprivacy_${address}`);
+      if (stored) {
+        try { setSavedCommitments(JSON.parse(stored)); } catch { setSavedCommitments([]); }
       } else {
-        const stored = localStorage.getItem(`zkdefi_fullprivacy_${address}`);
-        if (stored) setSavedCommitments(JSON.parse(stored));
+        setSavedCommitments([]);
       }
       
-      fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});
+      fetch(`${API_BASE}/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});
     }
   }, [mounted, address]);
 
@@ -95,7 +89,7 @@ export function FullPrivacyPoolPanel() {
     setStep(2);
     try {
       const amountWei = BigInt(parseFloat(amount) * 1e18).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/generate_commitment`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_address: address, amount: parseInt(amountWei), pool_type: selectedPool }),
       });
@@ -167,7 +161,7 @@ export function FullPrivacyPoolPanel() {
       });
 
       // Register commitment in off-chain merkle tree
-      const regRes = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`, {
+      const regRes = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commitment: commitmentData.commitment }),
       });
@@ -193,7 +187,7 @@ export function FullPrivacyPoolPanel() {
     const recipient = useRelayer ? relayerDestination.trim() : address;
     try {
       const withdrawAmount = BigInt(parseFloat(amount) * 1e18).toString();
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/withdraw/generate_proof`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/withdraw/generate_proof`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_secret: selectedCommitment.user_secret, amount: selectedCommitment.amount,
@@ -314,7 +308,7 @@ export function FullPrivacyPoolPanel() {
         pool_type: selectedCommitment.pool_type, nonce: selectedCommitment.nonce,
         blinding: selectedCommitment.blinding, leaf_index: selectedCommitment.leaf_index,
       };
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/full_privacy/disclosure/${endpoint}`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/disclosure/${endpoint}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const data = await res.json();

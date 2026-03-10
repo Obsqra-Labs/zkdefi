@@ -1,0 +1,38 @@
+{
+  "CONSERVATIVE_POOL": {
+    "pool": "CONSERVATIVE_POOL",
+    "totalDeposited": 1250111.0,
+    "currentYield": 10.2,
+    "borrowersActive": 11,
+    "avgBorrowingRate": 4.3,
+    "idleCapital": 562549.95,
+    "utilizationRate": 0.55,
+    "daoApr": 1.9,
+    "source": "simulated",
+    "updated_at": "2026-03-08T17:31:40Z"
+  },
+  "MODERATE_POOL": {
+    "pool": "MODERATE_POOL",
+    "totalDeposited": 1942020.0,
+    "currentYield": 12.6,
+    "borrowersActive": 26,
+    "avgBorrowingRate": 5.4,
+    "idleCapital": 679696.4,
+    "utilizationRate": 0.650005,
+    "daoApr": 2.4,
+    "source": "simulated",
+    "updated_at": "2026-03-09T04:02:53Z"
+  },
+  "AGGRESSIVE_POOL": {
+    "pool": "AGGRESSIVE_POOL",
+    "totalDeposited": 940000.0,
+    "currentYield": 17.9,
+    "borrowersActive": 19,
+    "avgBorrowingRate": 7.1,
+    "idleCapital": 235000.0,
+    "utilizationRate": 0.75,
+    "daoApr": 3.1,
+    "source": "simulated",
+    "updated_at": "2026-03-07T07:56:58Z"
+  }
+}

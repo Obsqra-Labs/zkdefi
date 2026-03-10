@@ -90,9 +90,12 @@ class StrategyRecommendationRequest(BaseModel):
     @field_validator("risk_profile")
     @classmethod
     def validate_profile(cls, v: str) -> str:
+        v = v.lower().strip()
+        if v == "moderate":
+            v = "balanced"
         if v not in ["conservative", "balanced", "aggressive"]:
-            raise ValueError("risk_profile must be one of: conservative, balanced, aggressive")
-        return v.lower()
+            raise ValueError("risk_profile must be one of: conservative, balanced, aggressive, moderate")
+        return v
 
     @field_validator("amount")
     @classmethod
@@ -404,7 +407,6 @@ async def get_opportunities(request: OpportunitiesRequest):
         if snapshot:
             snap_dict = snapshot.to_dict()
             ekubo = snap_dict.get("ekubo", {})
-            jediswap = snap_dict.get("jediswap", {})
 
             opportunities.append({
                 "id": "ekubo_eth_usdc",
@@ -417,19 +419,6 @@ async def get_opportunities(request: OpportunitiesRequest):
                 "liquidity_score": min(int(ekubo.get("tvl", 0) / 10000), 100) if ekubo.get("tvl") else 50,
                 "efficiency": _composite_score(ekubo.get("apy_bps", 0), ekubo.get("volatility_bps", 0)) * 10,
                 "composite_score": _composite_score(ekubo.get("apy_bps", 0), ekubo.get("volatility_bps", 0)),
-                "source": "oracle",
-            })
-            opportunities.append({
-                "id": "jediswap_eth_usdc",
-                "name": "JediSwap ETH/USDC",
-                "venue": "ekubo",
-                "apy_bps": jediswap.get("apy_bps", 0),
-                "tvl": jediswap.get("tvl", 0),
-                "risk_level": "low" if jediswap.get("volatility_bps", 0) <= 300 else "medium",
-                "volatility": min(int(jediswap.get("volatility_bps", 0) / 10), 100),
-                "liquidity_score": min(int(jediswap.get("tvl", 0) / 10000), 100) if jediswap.get("tvl") else 50,
-                "efficiency": _composite_score(jediswap.get("apy_bps", 0), jediswap.get("volatility_bps", 0)) * 10,
-                "composite_score": _composite_score(jediswap.get("apy_bps", 0), jediswap.get("volatility_bps", 0)),
                 "source": "oracle",
             })
     except Exception as exc:

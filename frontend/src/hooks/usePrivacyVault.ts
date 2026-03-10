@@ -1,6 +1,7 @@
 "use client";
 
 import { type SetStateAction, useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,29 +64,29 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
   switch (method) {
     case "commitment_shield":
       return [
-        { label: "Generate Pedersen commitment", status: "pending" },
+        { label: "Generate commitment", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
         { label: "Confirm", status: "pending" },
       ];
     case "nullifier_set":
       return [
-        { label: "Generate secret & commitment", status: "pending" },
-        { label: "Register in Merkle tree", status: "pending" },
+        { label: "Generate private commitment", status: "pending" },
+        { label: "Register in privacy set", status: "pending" },
         { label: "Build Groth16 proof", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
       ];
     case "hashed_proof":
       return [
-        { label: "Generate hash inputs", status: "pending" },
-        { label: "Build hash proof", status: "pending" },
-        { label: "Register claim", status: "pending" },
+        { label: "Generate private commitment", status: "pending" },
+        { label: "Build Groth16 proof", status: "pending" },
+        { label: "Register commitment", status: "pending" },
         { label: "Approve & sign", status: "pending" },
       ];
     case "dark_ledger":
       return [
-        { label: "Transfer to operator vault", status: "pending" },
+        { label: "Transfer to private settlement queue", status: "pending" },
         { label: "Verify on-chain", status: "pending" },
-        { label: "Credit ledger", status: "pending" },
+        { label: "Credit settlement queue", status: "pending" },
       ];
   }
 }
@@ -95,7 +96,7 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
     case "commitment_shield":
       return [
         { label: "Verify commitment", status: "pending" },
-        { label: "Generate withdraw proof", status: "pending" },
+        { label: "Generate withdrawal proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
       ];
     case "nullifier_set":
@@ -113,7 +114,7 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
       ];
     case "dark_ledger":
       return [
-        { label: "Queue transfer out", status: "pending" },
+        { label: "Queue private settlement transfer out", status: "pending" },
         { label: "Confirm", status: "pending" },
       ];
   }
@@ -163,49 +164,76 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
   const newEntries: VaultCommitment[] = [];
 
   for (const { prefix, method } of OLD_KEY_METHOD_MAP) {
-    const key = `${prefix}${addr}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) continue;
+    // Try both raw address and lowercased (old panels didn't normalise case)
+    const candidates = [addr, address];
+    const seen = new Set<string>();
+    for (const a of candidates) {
+      const key = `${prefix}${a}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed: unknown = JSON.parse(raw);
+        if (!Array.isArray(parsed)) continue;
 
-      for (const item of parsed) {
-        if (typeof item !== "object" || item === null) continue;
-        const rec = item as Record<string, unknown>;
-        const hash = String(rec.commitment_hash ?? rec.hash ?? "");
-        if (!hash || knownHashes.has(hash)) continue;
-        knownHashes.add(hash);
+        let migratedFromThisKey = 0;
+        for (const item of parsed) {
+          if (typeof item !== "object" || item === null) continue;
+          const rec = item as Record<string, unknown>;
+          // Old panels stored "commitment", not "commitment_hash"
+          const hash = String(rec.commitment_hash ?? rec.commitment ?? rec.hash ?? "");
+          if (!hash || knownHashes.has(hash)) continue;
+          knownHashes.add(hash);
 
-        newEntries.push({
-          id: crypto.randomUUID(),
-          method,
-          asset: (rec.asset as "STRK" | "ETH") ?? "STRK",
-          amount_wei: String(rec.amount_wei ?? rec.amount ?? "0"),
-          commitment_hash: hash,
-          nullifier: rec.nullifier != null ? String(rec.nullifier) : undefined,
-          secret: rec.secret != null ? String(rec.secret) : undefined,
-          user_secret: rec.user_secret != null ? String(rec.user_secret) : undefined,
-          nonce: rec.nonce != null ? String(rec.nonce) : undefined,
-          blinding: rec.blinding != null ? String(rec.blinding) : undefined,
-          pool_type: typeof rec.pool_type === "number" ? rec.pool_type : undefined,
-          merkle_index: typeof rec.merkle_index === "number" ? rec.merkle_index : undefined,
-          merkle_root: rec.merkle_root != null ? String(rec.merkle_root) : undefined,
-          path_elements: Array.isArray(rec.path_elements)
-            ? rec.path_elements.map((p) => String(p))
-            : undefined,
-          path_indices: Array.isArray(rec.path_indices)
-            ? rec.path_indices.map((p) => Number(p)).filter((p) => Number.isFinite(p))
-            : undefined,
-          pool_variant: rec.pool_variant != null ? String(rec.pool_variant) : undefined,
-          deposited_at: typeof rec.deposited_at === "string" ? rec.deposited_at : new Date().toISOString(),
-          yield_accrued: rec.yield_accrued != null ? String(rec.yield_accrued) : undefined,
-        });
+          // Old ShieldedPool stored "balance" (wei string), FullPrivacy stored "amount" (int)
+          const rawAmount = rec.amount_wei ?? rec.balance ?? rec.amount ?? "0";
+          const amountStr = String(rawAmount);
+
+          // Resolve deposited_at from various legacy fields
+          let depositedAt: string;
+          if (typeof rec.deposited_at === "string") {
+            depositedAt = rec.deposited_at;
+          } else if (typeof rec.timestamp === "number") {
+            depositedAt = new Date(rec.timestamp).toISOString();
+          } else {
+            depositedAt = new Date().toISOString();
+          }
+
+          newEntries.push({
+            id: crypto.randomUUID(),
+            method,
+            asset: (rec.asset as "STRK" | "ETH") ?? "STRK",
+            amount_wei: amountStr,
+            commitment_hash: hash,
+            nullifier: rec.nullifier != null ? String(rec.nullifier) : undefined,
+            secret: rec.secret != null ? String(rec.secret) : undefined,
+            user_secret: rec.user_secret != null ? String(rec.user_secret) : undefined,
+            nonce: rec.nonce != null ? String(rec.nonce) : undefined,
+            blinding: rec.blinding != null ? String(rec.blinding) : undefined,
+            pool_type: typeof rec.pool_type === "number" ? rec.pool_type : undefined,
+            merkle_index: typeof rec.merkle_index === "number" ? rec.merkle_index : undefined,
+            merkle_root: rec.merkle_root != null ? String(rec.merkle_root) : undefined,
+            path_elements: Array.isArray(rec.path_elements)
+              ? rec.path_elements.map((p) => String(p))
+              : undefined,
+            path_indices: Array.isArray(rec.path_indices)
+              ? rec.path_indices.map((p) => Number(p)).filter((p) => Number.isFinite(p))
+              : undefined,
+            pool_variant: rec.pool_variant != null ? String(rec.pool_variant) : undefined,
+            deposited_at: depositedAt,
+            yield_accrued: rec.yield_accrued != null ? String(rec.yield_accrued) : undefined,
+          });
+          migratedFromThisKey++;
+        }
+
+        // Only remove the old key if we actually migrated records from it
+        if (migratedFromThisKey > 0) {
+          window.localStorage.removeItem(key);
+        }
+      } catch {
+        // best-effort
       }
-
-      window.localStorage.removeItem(key);
-    } catch {
-      // best-effort
     }
   }
 
@@ -218,19 +246,16 @@ function migrateOldKeys(address: string, existing: VaultCommitment[]): { merged:
 // Hook
 // ---------------------------------------------------------------------------
 
-const API_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL
-    : "";
-
 export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
-  const [method, setMethodRaw] = useState<PrivacyMethod>("commitment_shield");
+  // Default to hashed_proof — maximum privacy (hash-committed deposits + withdrawals).
+  // Users never choose a privacy method; they always get the strongest one.
+  const [method, setMethodRaw] = useState<PrivacyMethod>("hashed_proof");
   const [commitments, setCommitments] = useState<VaultCommitment[]>([]);
   const [depositSteps, setDepositSteps] = useState<ProofStep[]>(() =>
-    getDepositStepsForMethod("commitment_shield"),
+    getDepositStepsForMethod("hashed_proof"),
   );
   const [withdrawSteps, setWithdrawSteps] = useState<ProofStep[]>(() =>
-    getWithdrawStepsForMethod("commitment_shield"),
+    getWithdrawStepsForMethod("hashed_proof"),
   );
 
   useEffect(() => {
@@ -242,17 +267,66 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
   }, [address]);
 
   useEffect(() => {
+    if (!address) return;
+    let dead = false;
+
+    (async () => {
+      try {
+        const data = await apiFetch<{ notes?: Record<string, unknown>[] }>(`/api/v1/zkdefi/ledger/notes/${address}`, {
+          method: "GET",
+        });
+        if (dead) return;
+        const notes: Record<string, unknown>[] = Array.isArray(data?.notes) ? data.notes : [];
+        if (notes.length === 0) return;
+
+        setCommitments((prev) => {
+          const known = new Set(prev.map((c) => c.commitment_hash));
+          const imported: VaultCommitment[] = [];
+          for (const note of notes) {
+            const rail = String(note?.rail_type ?? "").toLowerCase();
+            if (rail && rail !== "dark_ledger") continue;
+
+            const commitment = String(note?.commitment ?? "");
+            if (!commitment || known.has(commitment)) continue;
+            known.add(commitment);
+
+            const amountWei = String(note?.amount_wei ?? "0");
+            const createdAt = Number(note?.created_at ?? Date.now() / 1000);
+            imported.push({
+              id: crypto.randomUUID(),
+              method: "dark_ledger",
+              asset: String(note?.token ?? "STRK"),
+              amount_wei: amountWei,
+              commitment_hash: commitment,
+              deposited_at: new Date(createdAt * 1000).toISOString(),
+            });
+          }
+          if (imported.length === 0) return prev;
+          const next = [...prev, ...imported];
+          saveCommitments(address, next);
+          return next;
+        });
+      } catch {
+        // best-effort reconciliation
+      }
+    })();
+
+    return () => {
+      dead = true;
+    };
+  }, [address]);
+
+  useEffect(() => {
     if (!address || commitments.length === 0) return;
     let dead = false;
 
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/private-yield/positions/${address}`,
-          { signal: AbortSignal.timeout(8000) },
+        const data = await apiFetch<{ positions?: Record<string, unknown>[] }>(
+          `/api/v1/zkdefi/private-yield/positions/${address}`,
+          { method: "GET" },
         );
-        if (!res.ok || dead) return;
-        const data = await res.json();
+        if (dead) return;
         const positions: Record<string, unknown>[] = Array.isArray(data.positions) ? data.positions : [];
         if (positions.length === 0) return;
 

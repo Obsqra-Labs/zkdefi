@@ -1,0 +1,29 @@
+{
+  "0xabc": {
+    "address": "0xabc",
+    "pools": {
+      "CONSERVATIVE_POOL": {
+        "deposited_amount": 100.0,
+        "updated_at": "2026-03-07T07:56:58Z",
+        "source": "simulated"
+      }
+    },
+    "updated_at": "2026-03-07T07:56:58Z"
+  },
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "pools": {
+      "CONSERVATIVE_POOL": {
+        "deposited_amount": 11.0,
+        "updated_at": "2026-03-08T17:31:40Z",
+        "source": "simulated"
+      },
+      "MODERATE_POOL": {
+        "deposited_amount": 122020.0,
+        "updated_at": "2026-03-09T04:02:53Z",
+        "source": "simulated"
+      }
+    },
+    "updated_at": "2026-03-09T04:02:53Z"
+  }
+}

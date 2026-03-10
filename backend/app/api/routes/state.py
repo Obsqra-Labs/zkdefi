@@ -12,6 +12,8 @@ from typing import Any, Literal
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from app.middleware.auth import WalletOwner
 from starknet_py.hash.selector import get_selector_from_name
 
 from app.services.ekubo_config import (
@@ -1004,7 +1006,7 @@ async def wallet_state(
 
 
 @router.post("/execution/preflight", response_model=ExecutionPreflightResponse)
-async def execution_preflight(data: ExecutionPreflightRequest):
+async def execution_preflight(data: ExecutionPreflightRequest, _caller: str = WalletOwner):
     chain_id = get_ekubo_chain_id()
     if not chain_id:
         raise HTTPException(status_code=503, detail="EKUBO_CHAIN_ID not configured")
@@ -1178,7 +1180,7 @@ async def execution_preflight(data: ExecutionPreflightRequest):
 
 
 @router.post("/state/migrate/local-commitments")
-async def migrate_local_commitments(data: LocalCommitmentsMigrationRequest):
+async def migrate_local_commitments(data: LocalCommitmentsMigrationRequest, _caller: str = WalletOwner):
     address = _normalize_address(data.user_address)
     if not address:
         raise HTTPException(status_code=400, detail="user_address is required")
@@ -1262,7 +1264,7 @@ async def migrate_local_commitments(data: LocalCommitmentsMigrationRequest):
 
 
 @router.post("/state/manual-wallet-event", response_model=ManualWalletEventResponse)
-async def state_manual_wallet_event(data: ManualWalletEventRequest):
+async def state_manual_wallet_event(data: ManualWalletEventRequest, _caller: str = WalletOwner):
     address = _normalize_address(data.user_address)
     if not address or address == "0x0":
         raise HTTPException(status_code=400, detail="user_address is required")

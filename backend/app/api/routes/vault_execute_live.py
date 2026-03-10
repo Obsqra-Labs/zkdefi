@@ -12,6 +12,8 @@ Uses REAL liquidity data from Sepolia (not mocked)
 from fastapi import APIRouter, HTTPException
 from typing import Optional, List, Dict
 from pydantic import BaseModel
+
+from app.middleware.auth import AdminOnly
 from datetime import datetime
 import logging
 import uuid
@@ -100,7 +102,7 @@ class RebalanceRequest(BaseModel):
 # ============================================================================
 
 @router.post("/execute", response_model=ExecuteStrategyResponse)
-async def execute_strategy(request: ExecuteStrategyRequest):
+async def execute_strategy(request: ExecuteStrategyRequest, _admin: str = AdminOnly):
     """
     Execute a strategy deployment on Sepolia
     
@@ -153,7 +155,7 @@ async def get_user_positions(user_address: str):
 
 
 @router.post("/rebalance", response_model=ExecuteStrategyResponse)
-async def rebalance_positions(request: RebalanceRequest):
+async def rebalance_positions(request: RebalanceRequest, _admin: str = AdminOnly):
     """
     Manually rebalance existing positions
     

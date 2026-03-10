@@ -2,8 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
-import { Shield } from "lucide-react";
-import { TierSelector } from "./TierSelector";
+import { Shield, Lock } from "lucide-react";
 import { DepositPanel } from "./DepositPanel";
 import { WithdrawPanel } from "./WithdrawPanel";
 import PositionsOverview from "./PositionsOverview";
@@ -23,12 +22,16 @@ interface VaultTabProps {
   setWithdrawSteps: (value: React.SetStateAction<ProofStep[]>) => void;
   address?: string;
   isDemo?: boolean;
+  /** V2 ledger recording callbacks */
+  onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
+  onRecordWithdrawal?: (amountWei: string, token: string, destination: string, route: string) => Promise<void>;
 }
 
 export function VaultTab(props: VaultTabProps) {
   const {
     method, setMethod, commitments, addCommitment, removeCommitment,
     depositSteps, withdrawSteps, setDepositSteps, setWithdrawSteps, address, isDemo,
+    onRecordDeposit, onRecordWithdrawal,
   } = props;
 
   const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null);
@@ -40,7 +43,6 @@ export function VaultTab(props: VaultTabProps) {
       if (commitment) {
         setMethod(commitment.method);
       }
-      // Scroll to withdraw panel
       setTimeout(() => {
         const withdrawPanel = document.getElementById("withdraw-panel");
         if (withdrawPanel) {
@@ -61,16 +63,22 @@ export function VaultTab(props: VaultTabProps) {
           reasoning={DEMO_AI_INSIGHT.reasoning}
         />
       )}
-      <TierSelector selected={method} onSelect={setMethod} commitments={commitments} />
-      <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2 text-xs text-emerald-400/80 flex items-center gap-2">
-        <Shield className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>
-          Deposits record a Pedersen commitment on-chain — your wallet address, amount, and strategy are never exposed. Withdrawals reveal a nullifier without linking to the original deposit.
-        </span>
+
+      {/* ── Max privacy enabled by default — no tier selection needed ── */}
+      <div className="rounded-lg border border-emerald-700/20 bg-emerald-950/10 px-3 py-2.5 text-xs text-emerald-400/80 flex items-start gap-2">
+        <Lock className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" />
+        <div className="space-y-1">
+          <span className="font-semibold text-emerald-300 text-sm">Maximum Privacy Enabled</span>
+          <p>
+            Every deposit uses hash-committed proofs (Groth16 + Poseidon). Your identity is never
+            linked on-chain. Withdrawals are unlinkable via nullifier sets — enable the relayer for
+            full address separation.
+          </p>
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} />
-        <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} />
+        <DepositPanel method={method} depositSteps={depositSteps} setDepositSteps={setDepositSteps} addCommitment={addCommitment} address={address} onRecordDeposit={onRecordDeposit} />
+        <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} onRecordWithdrawal={onRecordWithdrawal} />
       </div>
       <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />
     </div>

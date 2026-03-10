@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 import sys
 import time
@@ -33,7 +34,6 @@ from app.services.ekubo.limit_orders_adapter import (
     mark_order_filled,
 )
 from app.services.ekubo_config import SEPOLIA_ETH, SEPOLIA_STRK
-from app.services.ekubo_executor import price_to_tick, align_tick
 from app.services.vault_policy_service import get_vault_policy_service
 
 logging.basicConfig(
@@ -56,11 +56,25 @@ VAULT_ADDRESS = os.getenv(
 )
 
 
+def _price_to_tick(price: float) -> int:
+    if price <= 0:
+        return 0
+    return round(math.log(price) / math.log(1.0001))
+
+
+def _align_tick(tick: int, spacing: int, *, floor: bool = True) -> int:
+    s = max(1, int(spacing))
+    t = int(tick)
+    if floor:
+        return (t // s) * s
+    return ((t + s - 1) // s) * s
+
+
 async def _get_current_tick() -> Optional[int]:
     price = await get_spot_price()
     if price is None:
         return None
-    return price_to_tick(price)
+    return _price_to_tick(price)
 
 
 def _desired_grid(current_tick: int) -> List[dict]:
@@ -68,7 +82,7 @@ def _desired_grid(current_tick: int) -> List[dict]:
     orders = []
     for i in range(1, GRID_LEVELS + 1):
         # Buy orders (below current tick): we sell STRK to buy ETH at a discount
-        buy_tick = align_tick(current_tick - i * GRID_STEP, TICK_SPACING, floor=True)
+        buy_tick = _align_tick(current_tick - i * GRID_STEP, TICK_SPACING, floor=True)
         orders.append({
             "side": "buy",
             "tick": buy_tick,
@@ -77,7 +91,7 @@ def _desired_grid(current_tick: int) -> List[dict]:
             "amount_wei": ORDER_SIZE_WEI,
         })
         # Sell orders (above current tick): we sell ETH to buy STRK at a premium
-        sell_tick = align_tick(current_tick + i * GRID_STEP, TICK_SPACING, floor=True)
+        sell_tick = _align_tick(current_tick + i * GRID_STEP, TICK_SPACING, floor=True)
         orders.append({
             "side": "sell",
             "tick": sell_tick,
@@ -180,11 +194,20 @@ async def main() -> None:
         "Limit Grid Worker starting (%s mode, interval=%ds, levels=%d, step=%d, size=%d wei)",
         mode_label, INTERVAL_SEC, GRID_LEVELS, GRID_STEP, ORDER_SIZE_WEI,
     )
+    consecutive_failures = 0
     while True:
         try:
             await _run_cycle()
+            consecutive_failures = 0
         except Exception as exc:
-            logger.exception("Cycle error: %s", exc)
+            consecutive_failures += 1
+            backoff = min(INTERVAL_SEC * (2 ** consecutive_failures), 600)
+            logger.exception(
+                "Cycle error (failure #%d, backoff %ds): %s",
+                consecutive_failures, backoff, exc,
+            )
+            await asyncio.sleep(backoff)
+            continue
         await asyncio.sleep(INTERVAL_SEC)
 
 

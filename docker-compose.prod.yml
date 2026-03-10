@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Production Redis for multi-instance nonce coordination
+  redis:
+    image: redis:7-alpine
+    container_name: zkdefi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zkdefi-network
+
+  # Starknet Relayer Service (using localhost:8004 for now)
+  # In production, this would be external service
+  # For dev/test: use http://host.docker.internal:8004 or external relayer
+
+  # Backend API Service (Phase 2-4)
+  # Assuming backend is running via pm2, not containerized yet
+  # This is placeholder for when backend is containerized
+
+  # Frontend Service (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: zkdefi-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8003
+      - BACKEND_API_URL=http://localhost:8003
+    restart: unless-stopped
+    networks:
+      - zkdefi-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: zkdefi-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    networks:
+      - zkdefi-network
+    depends_on:
+      - frontend
+
+volumes:
+  redis_data:
+
+networks:
+  zkdefi-network:
+    driver: bridge

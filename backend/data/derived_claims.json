@@ -1,0 +1,28 @@
+{
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "window_days": 90,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 2,
+      "coverage_score": 0.85,
+      "verified_chain_count": 1
+    },
+    "claims": {
+      "activity_score_0_100": 26.25,
+      "reputation_score_0_100": 29.44,
+      "action_type_counts": {
+        "swap": 2
+      },
+      "protocol_counts": {
+        "aggregated": 2
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
+  }
+}

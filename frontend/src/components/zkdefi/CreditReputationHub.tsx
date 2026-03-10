@@ -5,7 +5,7 @@ import { ExplainabilityPanel } from "./credit/ExplainabilityPanel";
 import { SystemPerksPanel } from "./credit/SystemPerksPanel";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+import { apiUrl } from "@/lib/api/client";
 
 interface CreditReputationHubProps {
   address: string;
@@ -28,22 +28,27 @@ export function CreditReputationHub({ address }: CreditReputationHubProps) {
     async function fetchData() {
       try {
         setLoading(true);
-        
-        // Fetch credit decision
-        const creditRes = await fetch(`${API_BASE}/api/v1/zkdefi/profile/decision?address=${address}`);
+
+        // Canonical source for profile + decisions.
+        const creditRes = await fetch(apiUrl(`/api/v1/zkdefi/risk_profile/v2/${address}`));
         if (creditRes.ok) {
           const data = await creditRes.json();
-          setCreditData(data);
-        }
+          const lendingLimits = data?.decisions?.lending?.limits ?? data?.predictive_credit ?? null;
+          const tier = Number(data?.reputation?.tier ?? 0);
+          setCreditData({
+            credit_line: lendingLimits,
+            reputation: { tier: Number.isFinite(tier) ? tier : 0 },
+          });
 
-        // Fetch proof statuses
-        const proofsRes = await fetch(`${API_BASE}/api/v1/zkdefi/reputation/proofs/${address}`);
-        if (proofsRes.ok) {
-          const proofsData = await proofsRes.json();
-          const completed = proofsData.proofs
-            .filter((p: any) => p.status === "complete")
-            .map((p: any) => p.proof_type);
-          setCompletedProofs(completed);
+          const byType = data?.passport?.receipt_summary?.by_type;
+          if (byType && typeof byType === "object") {
+            const completed = Object.entries(byType)
+              .filter(([, count]) => Number(count) > 0)
+              .map(([proofType]) => proofType);
+            setCompletedProofs(completed);
+          } else {
+            setCompletedProofs([]);
+          }
         }
       } catch {
         // ignore

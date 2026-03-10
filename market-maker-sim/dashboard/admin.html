@@ -6,259 +6,105 @@
   <title>zkDeFi Admin Dashboard</title>
   <style>
     :root {
-      --bg: #070d18;
-      --bg-elev: #0c162a;
-      --card: #101f36;
-      --card-2: #0f1930;
-      --line: #203657;
-      --text: #e6f1ff;
-      --muted: #91a8cf;
-      --green: #22c55e;
-      --amber: #f59e0b;
-      --red: #ef4444;
-      --blue: #60a5fa;
-      --cyan: #22d3ee;
-      --violet: #818cf8;
+      --bg: #070d18; --bg-elev: #0c162a; --card: #101f36; --card-2: #0f1930;
+      --line: #203657; --text: #e6f1ff; --muted: #91a8cf;
+      --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+      --blue: #60a5fa; --cyan: #22d3ee; --violet: #818cf8; --orange: #f97316;
     }
-
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      color: var(--text);
-      background:
-        radial-gradient(1200px 480px at 90% -8%, rgba(34, 211, 238, 0.09), transparent),
-        radial-gradient(1000px 500px at -10% -10%, rgba(129, 140, 248, 0.14), transparent),
+      margin: 0; color: var(--text);
+      background: radial-gradient(1200px 480px at 90% -8%, rgba(34,211,238,.09), transparent),
+        radial-gradient(1000px 500px at -10% -10%, rgba(129,140,248,.14), transparent),
         linear-gradient(180deg, #050a13 0%, #070f1d 100%);
-      font-family: "Space Grotesk", "Segoe UI", sans-serif;
-      min-height: 100vh;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif; min-height: 100vh;
     }
+    .wrap { max-width: 1420px; margin: 0 auto; padding: 20px; }
 
-    .wrap { max-width: 1380px; margin: 0 auto; padding: 20px; }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .title h1 { margin: 0; font-size: 25px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+    .title h1 { margin: 0; font-size: 24px; }
     .subtitle { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; color: var(--muted); }
+    .pill { border: 1px solid #4b2f2f; background: #2a1414; color: #ffb4a7; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+    .nav { display: flex; gap: 8px; }
+    .nav a { color: #d5e6ff; text-decoration: none; border: 1px solid #2c4771; background: #0f1d37; border-radius: 10px; padding: 6px 12px; font-size: 12px; transition: border-color .15s; }
+    .nav a:hover { border-color: var(--cyan); }
+    .nav a.active { border-color: var(--cyan); color: var(--cyan); }
 
-    .top-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .pill {
-      border: 1px solid #4b2f2f;
-      background: #2a1414;
-      color: #ffb4a7;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-    }
-
-    .nav {
-      display: flex;
-      gap: 8px;
-    }
-
-    .nav a {
-      color: #d5e6ff;
-      text-decoration: none;
-      border: 1px solid #2c4771;
-      background: #0f1d37;
-      border-radius: 10px;
-      padding: 6px 11px;
-      font-size: 12px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .stat {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-    }
-
-    .stat .k { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.45px; }
-    .stat .v { margin-top: 4px; font-size: 20px; font-weight: 700; }
+    .stats { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 9px; margin-bottom: 12px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+    .stat .k { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .45px; }
+    .stat .v { margin-top: 4px; font-size: 18px; font-weight: 700; }
     .stat .s { margin-top: 3px; font-size: 11px; color: var(--muted); }
+    .stat.accent { border-color: rgba(34,211,238,.3); background: linear-gradient(135deg, #0e2235, #0f1930); }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1.25fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .card {
-      background: var(--card-2);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-    }
-
+    .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .card { background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
     .card h2 { margin: 0; font-size: 15px; }
     .hint { margin-top: 6px; color: var(--muted); font-size: 12px; }
 
-    .btn-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    button {
-      border: 1px solid #2f4c78;
-      background: #14305a;
-      color: #dceafe;
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
+    .btn-row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 10px; }
+    button { border: 1px solid #2f4c78; background: #14305a; color: #dceafe; border-radius: 10px; padding: 8px 10px; font-size: 12px; cursor: pointer; font-weight: 600; transition: border-color .15s; }
+    button:hover { border-color: var(--cyan); }
     button.secondary { background: #1f2a40; border-color: #324560; }
     button.success { background: #123522; border-color: #1f5936; color: #8ef0b1; }
     button.warn { background: #3d2a10; border-color: #6f4d21; color: #ffd69a; }
     button.danger { background: #3f1717; border-color: #703030; color: #ffb2b2; }
 
-    label {
-      display: block;
-      margin-top: 9px;
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.35px;
-    }
+    label { display: block; margin-top: 9px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .35px; }
+    input, textarea, select { width: 100%; margin-top: 4px; border: 1px solid #2a4366; background: #0c1730; color: #e7f0ff; border-radius: 9px; padding: 8px 10px; font-size: 12px; font-family: "IBM Plex Mono", "SFMono-Regular", monospace; }
+    textarea { min-height: 80px; resize: vertical; }
 
-    input, textarea, select {
-      width: 100%;
-      margin-top: 4px;
-      border: 1px solid #2a4366;
-      background: #0c1730;
-      color: #e7f0ff;
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-    }
-
-    textarea { min-height: 88px; resize: vertical; }
-
-    .kv {
-      margin-top: 10px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .kv .item {
-      background: #0d1a33;
-      border: 1px solid #1f3556;
-      border-radius: 9px;
-      padding: 8px;
-      min-height: 54px;
-    }
-
+    .kv { margin-top: 10px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+    .kv .item { background: #0d1a33; border: 1px solid #1f3556; border-radius: 9px; padding: 8px; min-height: 54px; }
     .kv .item .k { color: var(--muted); font-size: 10px; text-transform: uppercase; }
     .kv .item .v { margin-top: 4px; font-size: 14px; font-weight: 700; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 12px;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 8px 6px;
-      border-bottom: 1px solid #1b2f4d;
-      vertical-align: top;
-    }
-
-    th {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #1b2f4d; vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
     .mono { font-family: "IBM Plex Mono", "SFMono-Regular", monospace; }
     .ok { color: var(--green); }
     .warn-t { color: var(--amber); }
     .bad { color: var(--red); }
+    .accent-text { color: var(--cyan); }
 
-    .feed {
-      max-height: 280px;
-      overflow: auto;
-      border: 1px solid #1d3253;
-      border-radius: 10px;
-      background: #091326;
-      margin-top: 10px;
-      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-      font-size: 11px;
-    }
-
-    .event {
-      padding: 8px 10px;
-      border-bottom: 1px solid #142746;
-    }
-
+    .feed { max-height: 270px; overflow: auto; border: 1px solid #1d3253; border-radius: 10px; background: #091326; margin-top: 10px; font-family: "IBM Plex Mono", "SFMono-Regular", monospace; font-size: 11px; }
+    .event { padding: 8px 10px; border-bottom: 1px solid #142746; }
     .event:last-child { border-bottom: 0; }
-
-    .check {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 9px;
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: none;
-      letter-spacing: 0;
-    }
-
+    .check { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 12px; text-transform: none; letter-spacing: 0; }
     .check input { width: auto; margin: 0; }
 
-    .footer {
-      margin-top: 16px;
-      text-align: center;
-      font-size: 11px;
-      color: #7f97bd;
-    }
+    /* Fleet section */
+    .fleet-agent-row { display: grid; grid-template-columns: 40px 1fr 80px 80px 80px 80px 80px; gap: 8px; padding: 7px 0; border-bottom: 1px solid #1b2f4d; align-items: center; font-size: 12px; }
+    .fleet-agent-row.header-row { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 400; }
+    .agent-id-badge { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+    .agent-id-badge.ok { background: rgba(34,197,94,.15); color: var(--green); }
+    .agent-id-badge.warn { background: rgba(245,158,11,.12); color: var(--amber); }
+    .agent-id-badge.bad { background: rgba(239,68,68,.12); color: var(--red); }
+    .agent-id-badge.off { background: #0b1525; color: var(--muted); }
+    .agent-toggle { padding: 3px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; font-weight: 700; border: 1px solid; }
+    .agent-toggle.running { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.3); color: var(--green); }
+    .agent-toggle.stopped { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.25); color: var(--red); }
 
-    @media (max-width: 1200px) {
-      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .grid { grid-template-columns: 1fr; }
-    }
+    .wallet-balances { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 10px; }
+    .wb-item { background: #0d1a33; border: 1px solid #1f3556; border-radius: 9px; padding: 8px; text-align: center; }
+    .wb-item .k { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .wb-item .v { margin-top: 4px; font-size: 15px; font-weight: 700; }
 
-    @media (max-width: 760px) {
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .btn-row { grid-template-columns: 1fr; }
-      .kv { grid-template-columns: 1fr; }
-      .header { flex-direction: column; }
-      .top-right { align-items: flex-start; }
-    }
+    .toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 6px; }
+    .toast { background: #1a2d4e; border: 1px solid #2d4878; color: #d6e6ff; padding: 10px 16px; border-radius: 10px; font-size: 13px; animation: fadeIn .2s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #7f97bd; }
+
+    @media (max-width: 1200px) { .stats { grid-template-columns: repeat(4,minmax(0,1fr)); } .grid { grid-template-columns: 1fr; } .grid3 { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .stats { grid-template-columns: repeat(2,minmax(0,1fr)); } .btn-row { grid-template-columns: 1fr; } .kv { grid-template-columns: 1fr; } .wallet-balances { grid-template-columns: repeat(2,1fr); } .header { flex-direction: column; } .top-right { align-items: flex-start; } }
   </style>
 </head>
 <body>
+  <div class="toast-container" id="toastContainer"></div>
   <div class="wrap">
     <div class="header">
       <div class="title">
@@ -270,17 +116,37 @@
         <div id="blockLabel">Block: --</div>
         <div class="nav">
           <a href="/dashboard">Public</a>
-          <a href="/dashboard/admin">Admin</a>
+          <a href="/dashboard/admin" class="active">Admin</a>
+          <a href="/dashboard/fleet">Fleet</a>
         </div>
       </div>
     </div>
 
     <div class="stats" id="stats"></div>
 
+    <!-- Fleet Controls -->
+    <div class="card" id="fleetSection" style="margin-bottom:12px">
+      <h2>Fleet Controls</h2>
+      <div class="hint">Manage the 10-agent fleet. Start/stop all or individual agents.</div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="success" onclick="fleetAction('/admin/fleet/start')">Start Fleet</button>
+        <button class="danger" onclick="fleetAction('/admin/fleet/stop')">Stop Fleet</button>
+        <button class="secondary" onclick="loadAll()">Refresh</button>
+      </div>
+      <div id="fleetAgentList"></div>
+    </div>
+
+    <!-- Wallet Balances -->
+    <div class="card" style="margin-bottom:12px">
+      <h2>Wallet Balances</h2>
+      <div class="hint" id="walletAddr">Loading wallet...</div>
+      <div class="wallet-balances" id="walletBalances"></div>
+    </div>
+
     <div class="grid">
       <div class="card">
         <h2>Bot Controls</h2>
-        <div class="hint">Start/stop bots and fire individual actions to debug flow.</div>
+        <div class="hint">Start/stop engine bots. (Engine bots auto-disabled when fleet is active.)</div>
         <div class="btn-row">
           <button onclick="toggleBot('swap', true)">Start Swap</button>
           <button class="secondary" onclick="toggleBot('swap', false)">Stop Swap</button>
@@ -301,29 +167,24 @@
           <button class="secondary" onclick="runCoordination()">Run Coordination</button>
           <button class="secondary" onclick="loadAll()">Refresh Now</button>
         </div>
-
         <div class="kv" id="botSummary"></div>
       </div>
 
       <div class="card">
         <h2>Coordination Policy</h2>
-        <div class="hint">Coverage and volume ramp controls. Use lowercase pair keys for consistency.</div>
-
+        <div class="hint">Coverage and volume ramp controls.</div>
         <label class="check"><input type="checkbox" id="coordEnabled" /> enabled</label>
         <label>cycle_sec<input id="cycleSec" type="number" min="20" step="5" /></label>
         <label>max_actions_per_cycle<input id="maxActions" type="number" min="1" /></label>
         <label>target_pairs (comma)<input id="targetPairs" /></label>
-
         <label class="check"><input type="checkbox" id="coverageBoostEnabled" /> coverage_boost_enabled</label>
         <label>min_pool_coverage_ratio (0-1)<input id="minCoverageRatio" type="number" min="0" max="1" step="0.01" /></label>
         <label>max_coverage_swap_actions_per_cycle<input id="maxCoverageSwaps" type="number" min="0" step="1" /></label>
-
         <label class="check"><input type="checkbox" id="volumeRampEnabled" /> volume_ramp_enabled</label>
         <label>max_swap_actions_per_cycle<input id="maxSwapActions" type="number" min="0" step="1" /></label>
         <label>swap_size_multiplier range<input id="swapMultRange" placeholder="min,max" /></label>
         <label>primary_volume_pairs (comma)<input id="primaryPairs" /></label>
         <label>volume_targets_usd (one per line: pair:target)<textarea id="volumeTargets"></textarea></label>
-
         <div class="btn-row">
           <button class="success" onclick="savePolicy()">Save Policy</button>
           <button class="secondary" onclick="reloadPolicy()">Reload Policy</button>
@@ -335,30 +196,19 @@
     <div class="grid">
       <div class="card">
         <h2>Pool Coverage Matrix</h2>
-        <div class="hint">Shows which pools have swap hits and whether each is currently targeted.</div>
+        <div class="hint">Shows which pools have hits from fleet + engine and volume progress.</div>
         <table>
-          <thead>
-            <tr>
-              <th>Pair</th>
-              <th>Targeted</th>
-              <th>Covered</th>
-              <th>Swap Hits</th>
-              <th>24h Vol</th>
-              <th>Target</th>
-              <th>Deficit</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Pair</th><th>Targeted</th><th>Covered</th><th>Fleet Swaps</th><th>Engine Swaps</th><th>24h Vol</th><th>Target</th><th>Deficit</th></tr></thead>
           <tbody id="poolRows"></tbody>
         </table>
       </div>
-
       <div class="card">
         <h2>Event Feed</h2>
         <div class="feed" id="eventFeed"></div>
       </div>
     </div>
 
-    <div class="footer">Admin endpoints: /admin/state, /admin/coordination/policy, /admin/coordination/run</div>
+    <div class="footer">Admin endpoints: /admin/state, /admin/fleet, /admin/coordination/policy</div>
   </div>
 
   <script>
@@ -366,68 +216,60 @@
     localStorage.setItem("MM_SIM_ADMIN_KEY", adminKey);
 
     const $ = (id) => document.getElementById(id);
-    const fmtUsd = (v) => "$" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    const fmtInt = (v) => Number(v || 0).toLocaleString();
-    const API_BASE = (window.location.port === "8099" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-      ? ""
-      : "/sim";
-    const headers = () => ({ "content-type": "application/json", "x-admin-key": adminKey });
+    const fmtUsd = (v) => "$" + Number(v||0).toLocaleString(undefined, {maximumFractionDigits:0});
+    const fmtUsd2 = (v) => "$" + Number(v||0).toLocaleString(undefined, {maximumFractionDigits:2});
+    const fmtInt = (v) => Number(v||0).toLocaleString();
+    const fmtPct = (v) => Number(v||0).toFixed(1) + "%";
+    const fmtDur = (sec) => { sec = Math.round(sec||0); if (sec < 60) return sec+"s"; if (sec < 3600) return Math.floor(sec/60)+"m"; return Math.floor(sec/3600)+"h "+Math.floor((sec%3600)/60)+"m"; };
+    const API_BASE = (window.location.port==="8099"||window.location.hostname==="localhost"||window.location.hostname==="127.0.0.1") ? "" : "/sim";
+    const headers = () => ({"content-type":"application/json","x-admin-key":adminKey});
 
-    let latestState = null;
-    let latestPolicy = null;
+    let latestState = null, latestPolicy = null, latestFleet = null;
 
-    async function apiGet(path, admin = false) {
-      const res = await fetch(`${API_BASE}${path}`, { headers: admin ? headers() : undefined });
-      return res.json();
+    function toast(msg, duration) {
+      duration = duration || 3000;
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = msg;
+      $("toastContainer").appendChild(el);
+      setTimeout(() => el.remove(), duration);
     }
 
-    async function apiPost(path, payload = {}) {
-      const res = await fetch(`${API_BASE}${path}`, { method: "POST", headers: headers(), body: JSON.stringify(payload) });
+    async function apiGet(path, admin) {
+      const res = await fetch(API_BASE+path, {headers: admin ? headers() : undefined});
+      return res.json();
+    }
+    async function apiPost(path, payload) {
+      const res = await fetch(API_BASE+path, {method:"POST", headers:headers(), body:JSON.stringify(payload||{})});
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "request failed");
       return data;
     }
 
-    function toast(msg) {
-      console.log(msg);
-    }
-
     async function toggleBot(name, enabled) {
-      try {
-        await apiPost(`/admin/bots/${name}`, { enabled });
-        toast(`bot ${name} ${enabled ? "started" : "stopped"}`);
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
+      try { await apiPost("/admin/bots/"+name, {enabled}); toast("Bot "+name+(enabled?" started":" stopped")); await loadAll(); } catch(e) { toast("Error: "+e.message); }
     }
-
     async function trigger(path) {
-      try {
-        await apiPost(path, {});
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
+      try { await apiPost(path, {}); toast("Triggered "+path.split("/").pop()); await loadAll(); } catch(e) { toast("Error: "+e.message); }
     }
-
     async function runCoordination() {
-      try {
-        await apiPost("/admin/coordination/run", {});
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
+      try { await apiPost("/admin/coordination/run", {}); toast("Coordination cycle fired"); await loadAll(); } catch(e) { toast("Error: "+e.message); }
+    }
+    async function fleetAction(path) {
+      try { await apiPost(path, {}); toast("Fleet action: "+path.split("/").pop()); await loadAll(); } catch(e) { toast("Error: "+e.message); }
+    }
+    async function toggleAgent(id, running) {
+      const path = running ? "/admin/fleet/agent/"+id+"/stop" : "/admin/fleet/agent/"+id+"/start";
+      try { await apiPost(path, {}); toast("Agent "+id+(running?" stopped":" started")); await loadAll(); } catch(e) { toast("Error: "+e.message); }
     }
 
     function parseVolumeTargets(text) {
       const out = {};
-      for (const line of String(text || "").split("\n")) {
+      for (const line of String(text||"").split("\n")) {
         const chunk = line.trim();
         if (!chunk || !chunk.includes(":")) continue;
         const [pair, value] = chunk.split(":", 2);
-        const key = pair.trim();
-        const num = Number(value.trim());
+        const key = pair.trim(), num = Number(value.trim());
         if (key && Number.isFinite(num) && num > 0) out[key] = num;
       }
       return out;
@@ -435,182 +277,176 @@
 
     async function savePolicy() {
       try {
-        const [minMultRaw, maxMultRaw] = String($("swapMultRange").value || "").split(",").map((v) => Number(v.trim()));
-
+        const [minM, maxM] = String($("swapMultRange").value||"").split(",").map(v => Number(v.trim()));
         const payload = {
           enabled: $("coordEnabled").checked,
           cycle_sec: Number($("cycleSec").value || 180),
           max_actions_per_cycle: Number($("maxActions").value || 4),
-          target_pairs: String($("targetPairs").value || "").split(",").map((s) => s.trim()).filter(Boolean),
-
+          target_pairs: String($("targetPairs").value||"").split(",").map(s=>s.trim()).filter(Boolean),
           coverage_boost_enabled: $("coverageBoostEnabled").checked,
           min_pool_coverage_ratio: Number($("minCoverageRatio").value || 0.8),
           max_coverage_swap_actions_per_cycle: Number($("maxCoverageSwaps").value || 2),
-
           volume_ramp_enabled: $("volumeRampEnabled").checked,
           max_swap_actions_per_cycle: Number($("maxSwapActions").value || 3),
-          min_swap_size_multiplier: Number.isFinite(minMultRaw) && minMultRaw > 0 ? minMultRaw : 1,
-          max_swap_size_multiplier: Number.isFinite(maxMultRaw) && maxMultRaw > 0 ? maxMultRaw : 6,
-          primary_volume_pairs: String($("primaryPairs").value || "").split(",").map((s) => s.trim()).filter(Boolean),
+          min_swap_size_multiplier: Number.isFinite(minM) && minM > 0 ? minM : 1,
+          max_swap_size_multiplier: Number.isFinite(maxM) && maxM > 0 ? maxM : 6,
+          primary_volume_pairs: String($("primaryPairs").value||"").split(",").map(s=>s.trim()).filter(Boolean),
           volume_targets_usd: parseVolumeTargets($("volumeTargets").value),
         };
-
         await apiPost("/admin/coordination/policy", payload);
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
+        toast("Policy saved"); await loadAll();
+      } catch(e) { toast("Error: "+e.message); }
     }
 
     async function reloadPolicy() {
-      try {
-        const data = await apiGet("/admin/coordination/policy", true);
-        latestPolicy = data.policy || {};
-        bindPolicyForm(latestPolicy);
-      } catch (err) {
-        alert(err.message);
-      }
+      try { const d = await apiGet("/admin/coordination/policy",true); latestPolicy = d.policy||{}; bindPolicyForm(latestPolicy); toast("Policy reloaded"); } catch(e) { toast("Error: "+e.message); }
     }
 
-    function bindPolicyForm(policy) {
-      $("coordEnabled").checked = !!policy.enabled;
-      $("cycleSec").value = Number(policy.cycle_sec || 180);
-      $("maxActions").value = Number(policy.max_actions_per_cycle || 4);
-      $("targetPairs").value = Array.isArray(policy.target_pairs) ? policy.target_pairs.join(",") : "";
-
-      $("coverageBoostEnabled").checked = !!policy.coverage_boost_enabled;
-      $("minCoverageRatio").value = Number(policy.min_pool_coverage_ratio || 0.8);
-      $("maxCoverageSwaps").value = Number(policy.max_coverage_swap_actions_per_cycle || 2);
-
-      $("volumeRampEnabled").checked = !!policy.volume_ramp_enabled;
-      $("maxSwapActions").value = Number(policy.max_swap_actions_per_cycle || 3);
-      $("swapMultRange").value = `${Number(policy.min_swap_size_multiplier || 1)},${Number(policy.max_swap_size_multiplier || 6)}`;
-      $("primaryPairs").value = Array.isArray(policy.primary_volume_pairs) ? policy.primary_volume_pairs.join(",") : "";
-
-      const targets = policy.volume_targets_usd || {};
-      $("volumeTargets").value = Object.entries(targets).map(([k, v]) => `${k}:${v}`).join("\n");
+    function bindPolicyForm(p) {
+      $("coordEnabled").checked = !!p.enabled;
+      $("cycleSec").value = Number(p.cycle_sec||180);
+      $("maxActions").value = Number(p.max_actions_per_cycle||4);
+      $("targetPairs").value = Array.isArray(p.target_pairs)?p.target_pairs.join(","):"";
+      $("coverageBoostEnabled").checked = !!p.coverage_boost_enabled;
+      $("minCoverageRatio").value = Number(p.min_pool_coverage_ratio||0.8);
+      $("maxCoverageSwaps").value = Number(p.max_coverage_swap_actions_per_cycle||2);
+      $("volumeRampEnabled").checked = !!p.volume_ramp_enabled;
+      $("maxSwapActions").value = Number(p.max_swap_actions_per_cycle||3);
+      $("swapMultRange").value = Number(p.min_swap_size_multiplier||1)+","+Number(p.max_swap_size_multiplier||6);
+      $("primaryPairs").value = Array.isArray(p.primary_volume_pairs)?p.primary_volume_pairs.join(","):"";
+      $("volumeTargets").value = Object.entries(p.volume_targets_usd||{}).map(([k,v]) => k+":"+v).join("\n");
     }
 
-    function coverageFromState(state) {
-      const pools = state?.state?.pools || [];
-      const usage = state?.state?.bots?.swap?.pool_usage || {};
-      const policy = state?.controls?.coordination_policy || {};
-
-      const targetPairs = Array.isArray(policy.target_pairs) && policy.target_pairs.length
-        ? policy.target_pairs.map((p) => String(p || "").toLowerCase())
-        : pools.map((p) => String(p.name || "").toLowerCase());
-
-      const uniqueTargetPairs = Array.from(new Set(targetPairs.filter(Boolean)));
-      const covered = uniqueTargetPairs.filter((pair) => Number(usage[pair] || 0) > 0);
-
-      return {
-        targetPairs: uniqueTargetPairs,
-        coveredSet: new Set(covered),
-        covered: covered.length,
-        targeted: uniqueTargetPairs.length,
-        ratio: covered.length / Math.max(1, uniqueTargetPairs.length),
-      };
+    function coverageFromState(adminState) {
+      const state = adminState?.state||{}, pools = state.pools||[], usage = state?.bots?.swap?.pool_usage||{};
+      const policy = adminState?.controls?.coordination_policy||{};
+      const fleetUsage = latestFleet?.aggregate_pool_usage||{};
+      const targetPairs = Array.isArray(policy.target_pairs) && policy.target_pairs.length ? policy.target_pairs.map(p=>String(p||"").toLowerCase()) : pools.map(p=>String(p.name||"").toLowerCase());
+      const unique = Array.from(new Set(targetPairs.filter(Boolean)));
+      const covered = unique.filter(p => Number(usage[p]||0)>0 || Number(fleetUsage[p]||0)>0);
+      return {targetPairs:unique, coveredSet:new Set(covered), covered:covered.length, targeted:unique.length, ratio:covered.length/Math.max(1,unique.length)};
     }
 
     function renderSummary(adminState) {
-      const state = adminState.state || {};
-      const controls = adminState.controls || {};
+      const state = adminState.state||{}, controls = adminState.controls||{};
       const coverage = coverageFromState(adminState);
-      const pools = state.pools || [];
-      const botTx = Object.values(state.bots || {}).reduce((sum, b) => sum + Number(b?.total || 0), 0);
-      const botVol = pools.reduce((sum, p) => sum + Number(p.bot_generated_volume_usd || 0), 0);
+      const pools = state.pools||[];
+      const botTx = Object.values(state.bots||{}).reduce((s,b)=>s+Number(b?.total||0),0);
+      const botVol = pools.reduce((s,p)=>s+Number(p.bot_generated_volume_usd||0),0);
+      const fleetVol = latestFleet ? Object.values(latestFleet.pair_volume_usd||{}).reduce((s,v)=>s+v,0) : 0;
+      const fleetSwaps = latestFleet?.total_swaps||0;
+      const fleetRate = latestFleet?.overall_success_rate||0;
 
-      $("blockLabel").textContent = `Block: ${fmtInt(state.block_number || 0)}`;
-      $("modeLabel").textContent = `mode=${state.mode || "unknown"} | wallet=${controls.wallet_configured ? "configured" : "missing"}`;
+      $("blockLabel").textContent = "Block: "+fmtInt(state.block_number||0);
+      const fleetStatus = latestFleet?.fleet_running ? "fleet=running" : "fleet=stopped";
+      $("modeLabel").textContent = "mode="+(state.mode||"?")+" | wallet="+(controls.wallet_configured?"configured":"missing")+" | "+fleetStatus;
 
       const stats = [
-        { k: "TVL", v: fmtUsd(state.total_tvl_usd || 0), s: "aggregate" },
-        { k: "Pools", v: `${state.initialized_pools || 0}/${state.total_pools || 0}`, s: "initialized" },
-        { k: "Coverage", v: `${coverage.covered}/${coverage.targeted}`, s: `${(coverage.ratio * 100).toFixed(1)}%` },
-        { k: "Bot TX", v: fmtInt(botTx), s: "swap + lp + limit" },
-        { k: "Bot Vol", v: fmtUsd(botVol), s: "overlay" },
-        { k: "Coord", v: fmtInt(state?.coordination?.cycles || 0), s: state?.coordination?.last_result || "idle" },
+        {k:"TVL", v:fmtUsd2(state.total_tvl_usd||0), s:"aggregate"},
+        {k:"Pools", v:(state.initialized_pools||0)+"/"+(state.total_pools||0), s:"initialized"},
+        {k:"Coverage", v:coverage.covered+"/"+coverage.targeted, s:fmtPct(coverage.ratio*100)},
+        {k:"Bot TX", v:fmtInt(botTx), s:"swap+lp+limit"},
+        {k:"Bot Vol", v:fmtUsd(botVol), s:"overlay"},
+        {k:"Fleet Vol", v:fmtUsd(fleetVol), s:fmtInt(fleetSwaps)+" swaps", accent:true},
+        {k:"Fleet Rate", v:fmtPct(fleetRate), s:(latestFleet?.active_agents||0)+"/"+( latestFleet?.total_agents||0)+" agents", accent:true},
+        {k:"Coord", v:fmtInt(state?.coordination?.cycles||0), s:state?.coordination?.last_result||"idle"},
       ];
+      $("stats").innerHTML = stats.map(m => '<div class="stat'+(m.accent?' accent':'')+'"><div class="k">'+m.k+'</div><div class="v">'+m.v+'</div><div class="s">'+m.s+'</div></div>').join("");
 
-      $("stats").innerHTML = stats.map((m) => `
-        <div class="stat">
-          <div class="k">${m.k}</div>
-          <div class="v">${m.v}</div>
-          <div class="s">${m.s}</div>
-        </div>
-      `).join("");
-
-      const bots = state.bots || {};
-      $("botSummary").innerHTML = ["swap", "lp", "limit"].map((name) => {
-        const b = bots[name] || {};
-        const rate = Number(b.total || 0) > 0 ? (Number(b.successful || 0) / Number(b.total || 0)) * 100 : 0;
-        return `<div class="item"><div class="k">${name}</div><div class="v">${Number(b.total || 0)} tx (${rate.toFixed(1)}%)</div></div>`;
+      const bots = state.bots||{};
+      $("botSummary").innerHTML = ["swap","lp","limit"].map(name => {
+        const b = bots[name]||{};
+        const rate = Number(b.total||0) > 0 ? (Number(b.successful||0)/Number(b.total||0))*100 : 0;
+        return '<div class="item"><div class="k">'+name+'</div><div class="v">'+Number(b.total||0)+' tx ('+rate.toFixed(1)+'%)</div></div>';
       }).join("");
     }
 
-    function renderPools(adminState) {
-      const state = adminState.state || {};
-      const controls = adminState.controls || {};
-      const pools = (state.pools || []).slice().sort((a, b) => Number(b.tvl_usd || 0) - Number(a.tvl_usd || 0));
-      const usage = state?.bots?.swap?.pool_usage || {};
-      const policy = controls.coordination_policy || {};
-      const targets = policy.volume_targets_usd || {};
+    function renderFleetAgents(fleet) {
+      if (!fleet || !(fleet.agents||[]).length) {
+        $("fleetAgentList").innerHTML = '<div class="hint">No fleet data available.</div>';
+        return;
+      }
+      let html = '<div class="fleet-agent-row header-row"><div>#</div><div>Name</div><div>Status</div><div>Swaps</div><div>Success</div><div>Last</div><div>Action</div></div>';
+      html += (fleet.agents||[]).map(a => {
+        const cls = !a.enabled ? "off" : a.success_rate >= 80 ? "ok" : a.success_rate >= 50 ? "warn" : "bad";
+        const ago = a.last_swap_ts ? Math.round(Date.now()/1000 - a.last_swap_ts) : 0;
+        const lastStr = a.last_swap_ts ? (ago < 60 ? ago+"s" : ago < 3600 ? Math.floor(ago/60)+"m" : Math.floor(ago/3600)+"h") : "--";
+        const toggleCls = a.enabled ? "running" : "stopped";
+        return '<div class="fleet-agent-row"><div class="agent-id-badge '+cls+'">'+a.agent_id+'</div><div><b>'+a.name+'</b><br><span style="font-size:10px;color:var(--muted)">'+(a.assigned_pairs||[]).slice(0,3).join(", ")+'</span></div><div class="'+cls+'">'+(a.enabled?"Running":"Stopped")+'</div><div class="mono">'+fmtInt(a.total_swaps)+'</div><div class="mono '+cls+'">'+fmtPct(a.success_rate)+'</div><div class="mono">'+lastStr+'</div><div><button class="agent-toggle '+toggleCls+'" onclick="toggleAgent('+a.agent_id+','+a.enabled+')">'+(a.enabled?"Stop":"Start")+'</button></div></div>';
+      }).join("");
+      $("fleetAgentList").innerHTML = html;
+    }
 
+    function renderWalletBalances(fleet) {
+      if (!fleet) { $("walletBalances").innerHTML = ""; return; }
+      const addr = fleet.agents?.[0]?.wallet || "?";
+      $("walletAddr").textContent = "Wallet: " + addr;
+
+      // We show basic info from fleet data
+      const agents = fleet.agents || [];
+      const totalSwaps = fleet.total_swaps || 0;
+      const activeCount = fleet.active_agents || 0;
+      const vol = Object.values(fleet.pair_volume_usd||{}).reduce((s,v)=>s+v,0);
+      $("walletBalances").innerHTML = [
+        {k:"Active Agents", v:activeCount+"/"+fleet.total_agents},
+        {k:"Total Swaps", v:fmtInt(totalSwaps)},
+        {k:"Fleet Volume", v:fmtUsd(vol)},
+        {k:"Uptime", v:fmtDur(fleet.uptime_sec)},
+      ].map(b => '<div class="wb-item"><div class="k">'+b.k+'</div><div class="v">'+b.v+'</div></div>').join("");
+    }
+
+    function renderPools(adminState) {
+      const state = adminState.state||{}, controls = adminState.controls||{};
+      const pools = (state.pools||[]).slice().sort((a,b) => Number(b.tvl_usd||0)-Number(a.tvl_usd||0));
+      const engineUsage = state?.bots?.swap?.pool_usage||{};
+      const fleetUsage = latestFleet?.aggregate_pool_usage||{};
+      const policy = controls.coordination_policy||{};
+      const targets = policy.volume_targets_usd||{};
       const coverage = coverageFromState(adminState);
       const targetedSet = new Set(coverage.targetPairs);
 
-      $("poolRows").innerHTML = pools.map((p) => {
-        const key = String(p.name || "").toLowerCase();
+      $("poolRows").innerHTML = pools.map(p => {
+        const key = String(p.name||"").toLowerCase();
         const targeted = targetedSet.has(key);
-        const hits = Number(usage[key] || 0);
-        const covered = hits > 0;
-        const targetVol = Number(targets[key] || 0);
-        const currentVol = Number(p.volume_24h_usd || 0);
+        const fHits = Number(fleetUsage[key]||0);
+        const eHits = Number(engineUsage[key]||0);
+        const covered = fHits > 0 || eHits > 0;
+        const targetVol = Number(targets[key]||0);
+        const currentVol = Number(p.volume_24h_usd||0);
         const deficit = Math.max(0, targetVol - currentVol);
-
-        return `
-          <tr>
-            <td>${p.name || "--"}</td>
-            <td class="${targeted ? "ok" : "warn-t"}">${targeted ? "yes" : "no"}</td>
-            <td class="${covered ? "ok" : "warn-t"}">${covered ? "yes" : "no"}</td>
-            <td class="mono">${fmtInt(hits)}</td>
-            <td class="mono">${fmtUsd(currentVol)}</td>
-            <td class="mono">${targetVol > 0 ? fmtUsd(targetVol) : "--"}</td>
-            <td class="mono ${deficit > 0 ? "warn-t" : "ok"}">${targetVol > 0 ? fmtUsd(deficit) : "--"}</td>
-          </tr>
-        `;
+        return '<tr><td>'+p.name+'</td><td class="'+(targeted?"ok":"warn-t")+'">'+(targeted?"yes":"no")+'</td><td class="'+(covered?"ok":"warn-t")+'">'+(covered?"yes":"no")+'</td><td class="mono accent-text">'+fmtInt(fHits)+'</td><td class="mono">'+fmtInt(eHits)+'</td><td class="mono">'+fmtUsd(currentVol)+'</td><td class="mono">'+(targetVol>0?fmtUsd(targetVol):"--")+'</td><td class="mono '+(deficit>0?"warn-t":"ok")+'">'+(targetVol>0?fmtUsd(deficit):"--")+'</td></tr>';
       }).join("");
     }
 
     function renderEvents(items) {
-      const list = (items || []).slice(-120).reverse();
-      if (!list.length) {
-        $("eventFeed").innerHTML = `<div class="event">No events yet.</div>`;
-        return;
-      }
-      $("eventFeed").innerHTML = list.map((ev) => {
-        const ts = new Date(Number(ev.ts || 0) * 1000).toISOString().slice(11, 19);
-        return `<div class="event">[${ts}] <b>${ev.category || "event"}</b> ${ev.message || ""}</div>`;
+      const list = (items||[]).slice(-120).reverse();
+      if (!list.length) { $("eventFeed").innerHTML = '<div class="event">No events yet.</div>'; return; }
+      $("eventFeed").innerHTML = list.map(ev => {
+        const ts = new Date(Number(ev.ts||0)*1000).toISOString().slice(11,19);
+        return '<div class="event">['+ts+'] <b>'+(ev.category||"event")+'</b> '+(ev.message||"")+'</div>';
       }).join("");
     }
 
     async function loadAll() {
       try {
-        const [adminState, events, policyData] = await Promise.all([
+        const [adminState, events, policyData, fleet] = await Promise.all([
           apiGet("/admin/state", true),
           apiGet("/public/events?limit=300"),
           apiGet("/admin/coordination/policy", true),
+          apiGet("/public/fleet"),
         ]);
-
         latestState = adminState;
-        latestPolicy = policyData.policy || {};
+        latestPolicy = policyData.policy||{};
+        latestFleet = fleet;
 
         renderSummary(adminState);
+        renderFleetAgents(fleet);
+        renderWalletBalances(fleet);
         renderPools(adminState);
-        renderEvents(events.items || []);
+        renderEvents(events.items||[]);
         bindPolicyForm(latestPolicy);
-      } catch (err) {
-        alert(`load failed: ${err.message}`);
+      } catch(e) {
+        toast("Load failed: "+e.message);
       }
     }
 

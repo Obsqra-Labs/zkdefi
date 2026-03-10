@@ -7,10 +7,11 @@ Session key = limited delegation + proof requirement.
 import os
 import hashlib
 from typing import Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.contract import Contract
+from app.services.json_store import JsonStore
 
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.public.blastapi.io")
 SESSION_KEY_MANAGER_ADDRESS = os.getenv("SESSION_KEY_MANAGER_ADDRESS", "")
@@ -28,9 +29,32 @@ class SessionKeyService:
     ):
         self.rpc_url = rpc_url or STARKNET_RPC_URL
         self.manager_address = manager_address or SESSION_KEY_MANAGER_ADDRESS
-        
-        # In-memory session tracking (for development)
+
+        # File-backed session tracking (survives process restarts).
+        self._store = JsonStore("session_keys")
         self._sessions: dict[str, dict] = {}
+        for session_id, payload in self._store.all().items():
+            if isinstance(session_id, str) and isinstance(payload, dict):
+                self._sessions[session_id] = payload
+
+    def _persist_session(self, session_id: str) -> None:
+        payload = self._sessions.get(session_id)
+        if payload is not None:
+            self._store.set(session_id, payload)
+
+    @staticmethod
+    def _norm_addr(value: str | None) -> str:
+        return str(value or "").strip().lower()
+
+    def get_session_owner(self, session_id: str) -> str | None:
+        """Return session owner address for a session id."""
+        session = self._sessions.get(session_id)
+        if not isinstance(session, dict):
+            return None
+        owner = session.get("owner")
+        if not isinstance(owner, str) or not owner.strip():
+            return None
+        return owner
     
     async def generate_session_request(
         self,
@@ -83,6 +107,7 @@ class SessionKeyService:
             "is_active": True,
             "pending_grant": True  # Not yet on-chain
         }
+        self._persist_session(session_id)
         
         return {
             "session_id": session_id,
@@ -109,6 +134,7 @@ class SessionKeyService:
         if session_id in self._sessions:
             self._sessions[session_id]["pending_grant"] = False
             self._sessions[session_id]["tx_hash"] = tx_hash
+            self._persist_session(session_id)
         
         return {
             "session_id": session_id,
@@ -131,6 +157,7 @@ class SessionKeyService:
             
             # Mark as pending revocation
             self._sessions[session_id]["pending_revoke"] = True
+            self._persist_session(session_id)
         
         return {
             "session_id": session_id,
@@ -153,6 +180,7 @@ class SessionKeyService:
             self._sessions[session_id]["is_active"] = False
             self._sessions[session_id]["pending_revoke"] = False
             self._sessions[session_id]["revoke_tx_hash"] = tx_hash
+            self._persist_session(session_id)
         
         return {
             "session_id": session_id,
@@ -168,8 +196,9 @@ class SessionKeyService:
         List all sessions for a user.
         """
         sessions = []
+        owner_norm = self._norm_addr(owner_address)
         for session_id, session in self._sessions.items():
-            if session["owner"] == owner_address:
+            if self._norm_addr(session.get("owner")) == owner_norm:
                 # Check if expired
                 expires_at = datetime.fromisoformat(session["expires_at"])
                 is_expired = datetime.now(timezone.utc) > expires_at

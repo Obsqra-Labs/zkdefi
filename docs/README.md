@@ -38,6 +38,7 @@ flowchart LR
 | Doc | Description |
 |-----|-------------|
 | [REPUTATION_PROOF_API.md](REPUTATION_PROOF_API.md) | Reputation proof API: GET proof status, POST generate (all 5 types), verifier addresses. |
+| [TRUST_ONBOARDING_SYSTEM_EXTERNAL.md](TRUST_ONBOARDING_SYSTEM_EXTERNAL.md) | External-facing trust and onboarding architecture: trust domains, onboarding flow, selective disclosure, integration contracts. |
 | [UI_AUDIT_REPUTATION.md](UI_AUDIT_REPUTATION.md) | Reputation UI audit: components to keep/replace, Credit Hub integration. |
 
 ---

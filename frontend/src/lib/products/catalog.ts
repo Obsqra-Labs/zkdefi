@@ -9,7 +9,7 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   {
     id: "private-ledger-vault",
     title: "Private Ledger & Vault",
-    description: "Shielded capital rails, internal settlement, and privacy-first vault controls.",
+    description: "Private capital rails, internal settlement, and policy-first vault controls.",
   },
   {
     id: "private-defi",
@@ -34,14 +34,14 @@ export const PRODUCTS: ProductDefinition[] = [
     title: "Private Vault",
     status: "BUILT",
     categoryId: "private-ledger-vault",
-    summary: "The operating vault for shielded capital, policy-gated execution, and auditable outcomes.",
+    summary: "The operating vault for private capital, policy-gated execution, and auditable outcomes.",
     description:
       "Private Vault is the primary capital operating surface for deposits, withdrawals, and position management with privacy policies enforced by proof-aware gates.",
     capabilities: [
       "Vault status + deposit history APIs for auditable state inspection.",
       "Policy-gated execution path connected to live strategy deployment endpoints.",
       "Position reporting through canonical vault execution routes.",
-      "Supports shadow operations via privacy pool and dark ledger rails.",
+      "Supports advanced private settlement rails.",
     ],
     docsHref: "/docs/agent-dashboard",
     advancedLink: { href: "/agent?v=vault", label: "Open advanced vault workspace" },
@@ -73,26 +73,26 @@ export const PRODUCTS: ProductDefinition[] = [
   },
   {
     slug: "privacy-pools",
-    title: "Privacy Pools",
+    title: "Vault Rails (Advanced)",
     status: "BUILT",
     categoryId: "private-ledger-vault",
-    summary: "Tiered commitment/nullifier privacy pools for controlled private capital flows.",
+    summary: "Commitment and nullifier rails for advanced private capital flows.",
     description:
-      "Privacy Pools package commitment, Merkle root, and nullifier mechanics into a productized private pool surface with selective disclosure support.",
+      "Vault Rails package commitment, Merkle root, and nullifier mechanics into one advanced private execution surface with selective disclosure support.",
     capabilities: [
       "Commitment registration and Merkle root reconciliation endpoints.",
       "Disclosure routes for proving pool membership without full position reveal.",
-      "Built for private deposits/withdrawals in proof-gated workflows.",
-      "Supports multi-path privacy methods under one pool primitive.",
+      "Built for private deposits and withdrawals in proof-gated workflows.",
+      "Supports multiple private routing methods under one rail primitive.",
     ],
     docsHref: "/docs/privacy-features",
-    advancedLink: { href: "/agent?v=vault&sub=portfolio", label: "Open advanced privacy pool workspace" },
+    advancedLink: { href: "/agent?v=vault&sub=portfolio", label: "Open advanced vault rails workspace" },
     featured: true,
     standaloneActions: [
       {
         id: "pool-root",
         title: "Read active Merkle root",
-        description: "Fetch the latest known privacy pool Merkle root.",
+        description: "Fetch the latest known private rail Merkle root.",
         method: "GET",
         endpointCandidates: ["/api/v1/zkdefi/full_privacy/merkle/root"],
       },
@@ -119,21 +119,21 @@ export const PRODUCTS: ProductDefinition[] = [
     ],
   },
   {
-    slug: "dark-ledger",
-    title: "Dark Ledger",
+    slug: "privacy-pools",
+    title: "Private Settlement Queue",
     status: "BUILT",
     categoryId: "private-ledger-vault",
     summary: "Internal private settlement rail for low-footprint capital movement.",
     description:
-      "Dark Ledger exposes internal transfer history and relayer-linked settlement activity without forcing full on-chain movement disclosure for every operation.",
+      "Private Settlement Queue exposes internal transfer history and relayer-linked settlement activity without forcing full on-chain movement disclosure for every operation.",
     capabilities: [
       "Ledger transfer feed API for private settlement visibility.",
       "Relayer ledger event stream for payout and claim monitoring.",
       "Mission-control timeline integration for receipt-grade history.",
-      "Designed for private capital routing inside vault strategy flows.",
+      "Designed for private capital routing inside vault strategy workflows.",
     ],
     docsHref: "/docs/privacy-features",
-    advancedLink: { href: "/agent?v=vault&sub=ledger", label: "Open advanced dark ledger workspace" },
+    advancedLink: { href: "/agent?v=vault&sub=ledger", label: "Open advanced settlement queue workspace" },
     featured: true,
     standaloneActions: [
       {
@@ -761,7 +761,7 @@ export const PRODUCTS: ProductDefinition[] = [
       {
         id: "market-snapshot",
         title: "Fetch market snapshot",
-        description: "Read latest oracle snapshot for Ekubo/JediSwap context.",
+        description: "Read latest oracle snapshot for Ekubo context.",
         method: "GET",
         endpointCandidates: ["/api/v1/zkdefi/oracle/market-data"],
       },

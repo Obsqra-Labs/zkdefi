@@ -1,0 +1,27 @@
+{
+  "tier1": {
+    "canBorrow": false,
+    "ltv": 0,
+    "apr": 0,
+    "minCollateral": 10000,
+    "maxBorrowAmount": 0
+  },
+  "tier2": {
+    "canBorrow": true,
+    "ltv": 0.5,
+    "apr": 6.0,
+    "minCollateral": 5000,
+    "maxBorrowAmount": 50000
+  },
+  "tier3": {
+    "canBorrow": true,
+    "ltv": 1.5,
+    "apr": 4.0,
+    "minCollateral": 1000,
+    "maxBorrowAmount": 500000
+  },
+  "votedBy": ["0x1234567890abcdef", "0xfedcba0987654321"],
+  "votedAt": "2026-03-01T00:00:00Z",
+  "nextVoteWindow": "2026-03-08T00:00:00Z",
+  "poolId": "pool-1"
+}

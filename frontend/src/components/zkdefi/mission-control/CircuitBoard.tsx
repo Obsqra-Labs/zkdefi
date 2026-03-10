@@ -5,6 +5,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import {
   ReactFlow,
@@ -44,6 +45,13 @@ import { toastSuccess, toastError, toastInfo, toastWarning } from "@/lib/toast";
 interface CircuitBoardProps {
   address: string | undefined;
   onClose: () => void;
+  onOpenAgentBuilder?: (draft: CircuitAgentDraft) => void;
+}
+
+export interface CircuitAgentDraft {
+  name: string;
+  processors: string[];
+  decisionLogic: "AND" | "OR";
 }
 
 interface PolicyResponse {
@@ -52,6 +60,28 @@ interface PolicyResponse {
     circuit_board?: { nodes: Node[]; edges: Edge[]; policy_name?: string };
   };
   policy_hash?: string;
+}
+
+const MODEL_NODE_ALIASES: Record<string, string> = {
+  risk: "risk_scoring",
+  riskscore: "risk_scoring",
+  riskscoring: "risk_scoring",
+  correlation: "correlation_risk",
+  correlationrisk: "correlation_risk",
+  twap: "twap_position",
+  twapposition: "twap_position",
+  safety: "safety_diversification",
+  diversification: "safety_diversification",
+  safetydiversification: "safety_diversification",
+  credit: "credit_scoring",
+  creditscore: "credit_scoring",
+  creditscoring: "credit_scoring",
+  anomaly: "anomaly_detection",
+  anomalydetection: "anomaly_detection",
+};
+
+function normalizeModelKey(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -161,23 +191,25 @@ function PaletteItem({
   label,
   type,
   onDragStart,
+  dataOverrides,
 }: {
   label: string;
   type: string;
   onDragStart: (e: React.DragEvent, nodeType: string, nodeData: Record<string, unknown>) => void;
+  dataOverrides?: Record<string, unknown>;
 }) {
-  const data: Record<string, unknown> = { label };
+  const data: Record<string, unknown> = { label, ...(dataOverrides || {}) };
   if (type === "entity") data.entityType = label;
-  if (type === "circuit") data.outputType = "float";
+  if (type === "circuit" && data.outputType === undefined) data.outputType = "float";
   if (type === "logic") {
     data.logicType = label;
     if (label === "SPLIT") data.percentages = [50, 50];
     if (label === "IF/ELSE") data.threshold = 0.5;
   }
-  if (type === "venue") data.allocation = 100;
+  if (type === "venue" && data.allocation === undefined) data.allocation = 100;
   if (type === "model") {
-    data.threshold = 30;
-    data.confidence = 0.8;
+    if (data.threshold === undefined) data.threshold = 30;
+    if (data.confidence === undefined) data.confidence = 0.8;
   }
   return (
     <div
@@ -376,13 +408,18 @@ const TEMPLATES = {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
+export function CircuitBoard({ address, onClose, onOpenAgentBuilder }: CircuitBoardProps) {
   const [policyName, setPolicyName] = useState<string>("Untitled Policy");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [lastSavedHash, setLastSavedHash] = useState<string>("");
+  const [isDirty, setIsDirty] = useState(false);
+  const hydratedRef = useRef(false);
+  const baselineSignatureRef = useRef<string>("");
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -395,6 +432,39 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
     e.dataTransfer.effectAllowed = "move";
   }, []);
 
+  const availableModelIds = useMemo(() => new Set(models.map((model) => model.id)), [models]);
+  const modelLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const model of models) {
+      const keys = [model.id, model.name];
+      for (const key of keys) {
+        const normalized = normalizeModelKey(key);
+        if (normalized && !map.has(normalized)) {
+          map.set(normalized, model.id);
+        }
+      }
+    }
+    for (const [alias, modelId] of Object.entries(MODEL_NODE_ALIASES)) {
+      if (availableModelIds.has(modelId)) {
+        map.set(alias, modelId);
+      }
+    }
+    return map;
+  }, [availableModelIds, models]);
+
+  const resolveModelIdFromNode = useCallback((node: Node): string | undefined => {
+    const data = node.data as Record<string, unknown>;
+    const explicitModelId = typeof data?.modelId === "string" ? data.modelId : "";
+    if (explicitModelId && availableModelIds.has(explicitModelId)) {
+      return explicitModelId;
+    }
+    const label = typeof data?.label === "string" ? data.label : "";
+    const normalizedLabel = normalizeModelKey(label);
+    if (!normalizedLabel) return undefined;
+    const mapped = modelLookup.get(normalizedLabel);
+    return mapped && availableModelIds.has(mapped) ? mapped : undefined;
+  }, [availableModelIds, modelLookup]);
+
   // Load policy on mount
   useEffect(() => {
     if (!address) {
@@ -406,12 +476,23 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       .then((res) => {
         if (cancelled) return;
         const cb = res?.policy?.circuit_board;
+        const loadedNodes = cb?.nodes || [];
+        const loadedEdges = cb?.edges || [];
+        const loadedName = cb?.policy_name || "Untitled Policy";
         if (cb?.nodes?.length) {
           nodeId = Math.max(0, ...cb.nodes.map((n) => parseInt(n.id.replace(/\D/g, ""), 10) || 0));
-          setNodes(cb.nodes);
-          setEdges(cb.edges || []);
         }
-        if (cb?.policy_name) setPolicyName(cb.policy_name);
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+        if (loadedName) setPolicyName(loadedName);
+        if (res?.policy_hash) setLastSavedHash(res.policy_hash);
+        baselineSignatureRef.current = JSON.stringify({
+          policyName: loadedName,
+          nodes: loadedNodes,
+          edges: loadedEdges,
+        });
+        setIsDirty(false);
+        hydratedRef.current = true;
       })
       .catch(() => {})
       .finally(() => {
@@ -419,6 +500,30 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       });
     return () => { cancelled = true; };
   }, [address, setNodes, setEdges]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const current = JSON.stringify({ policyName, nodes, edges });
+    setIsDirty(current !== baselineSignatureRef.current);
+  }, [nodes, edges, policyName]);
+
+  // Load available models
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ models: Array<{ id: string; name: string }> }>("/api/v1/agents/models/list")
+      .then((res) => {
+        if (!cancelled && res?.models) {
+          setModels(res.models);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          toastWarning(`Failed to load models: ${e instanceof Error ? e.message : "Unknown error"}`);
+          setModels([]);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleTestRun = useCallback(() => {
     const sourceNodes = new Set(edges.map((e) => e.source));
@@ -445,7 +550,7 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
     }
     setSaving(true);
     try {
-      await apiFetch(`/api/v1/zkdefi/mc/policy/${address}`, {
+      const res = await apiFetch<{ policy_hash?: string }>(`/api/v1/zkdefi/mc/policy/${address}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -458,6 +563,9 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
           },
         }),
       });
+      if (res?.policy_hash) setLastSavedHash(res.policy_hash);
+      baselineSignatureRef.current = JSON.stringify({ policyName, nodes, edges });
+      setIsDirty(false);
       toastSuccess("Policy saved");
     } catch (e) {
       toastError(e instanceof Error ? e.message : "Save failed");
@@ -476,25 +584,53 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
       return;
     }
     try {
-      const modelNodes = nodes.filter((n) => n.type === "model");
-      const processorIds = modelNodes.map(
-        (n) => ((n.data as Record<string, unknown>)?.label as string)?.toLowerCase().replace(/\s+/g, "_") || "risk_scoring"
+      const modelNodes = nodes.filter((node) => node.type === "model" || node.type === "circuit");
+      const processorIds = Array.from(
+        new Set(
+          modelNodes
+            .map((node) => resolveModelIdFromNode(node))
+            .filter((value): value is string => Boolean(value))
+        )
       );
+      const logicTypes = nodes
+        .filter((node) => node.type === "logic")
+        .map((node) => {
+          const data = node.data as Record<string, unknown>;
+          return String(data?.logicType || data?.label || "").trim().toUpperCase();
+        });
+      const hasAnd = logicTypes.includes("AND");
+      const hasOr = logicTypes.includes("OR");
+      const decisionLogic: CircuitAgentDraft["decisionLogic"] = hasOr && !hasAnd ? "OR" : "AND";
+
+      if (!processorIds.length) {
+        toastWarning("Add at least one supported MODEL or CIRCUIT node before saving as an agent");
+        return;
+      }
+
+      if (onOpenAgentBuilder) {
+        onOpenAgentBuilder({
+          name: policyName,
+          processors: processorIds,
+          decisionLogic,
+        });
+        toastInfo(`Draft sent to Agent Builder (${processorIds.length} model${processorIds.length === 1 ? "" : "s"}, ${decisionLogic})`);
+        return;
+      }
+
       await apiFetch("/api/v1/agents/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_address: address,
           name: policyName,
-          processors: processorIds.length ? processorIds : ["risk_score"],
-          decision_logic: { type: "AND" },
+          processors: processorIds,
+          decision_logic: { type: decisionLogic },
         }),
       });
       toastSuccess(`Agent "${policyName}" created`);
     } catch (e) {
       toastError(e instanceof Error ? e.message : "Failed to create agent");
     }
-  }, [address, nodes, edges, policyName]);
+  }, [address, nodes, onOpenAgentBuilder, policyName, resolveModelIdFromNode]);
 
   const handleTemplateSelect = useCallback((key: string) => {
     const t = TEMPLATES[key as keyof typeof TEMPLATES];
@@ -519,6 +655,37 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
     );
   }, [selectedNode, setNodes]);
 
+  const handleModelSelection = useCallback((modelId: string) => {
+    if (!selectedNode) return;
+    const selectedModel = models.find((model) => model.id === modelId);
+    setNodes((currentNodes) =>
+      currentNodes.map((node) =>
+        node.id === selectedNode.id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                modelId,
+                label: selectedModel?.name || modelId,
+              },
+            }
+          : node
+      )
+    );
+    setSelectedNode((current) =>
+      current
+        ? {
+            ...current,
+            data: {
+              ...current.data,
+              modelId,
+              label: selectedModel?.name || modelId,
+            },
+          }
+        : null
+    );
+  }, [models, selectedNode, setNodes]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center bg-zinc-950">
@@ -541,6 +708,14 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
             className="w-48 rounded border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-xs text-zinc-200 placeholder-zinc-500"
             placeholder="Policy name"
           />
+          {lastSavedHash && (
+            <span className="text-[10px] text-zinc-500">
+              hash: {lastSavedHash.slice(0, 12)}...
+            </span>
+          )}
+          <span className={`text-[10px] ${isDirty ? "text-amber-400" : "text-emerald-400"}`}>
+            {isDirty ? "dirty" : "saved"}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -606,9 +781,19 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
           </CollapsibleSection>
 
           <CollapsibleSection title="MODELS" defaultOpen={false}>
-            {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((l) => (
-              <PaletteItem key={l} label={l} type="model" onDragStart={onNodeDragStart} />
-            ))}
+            {models.length > 0 ? (
+              models.map((m) => (
+                <PaletteItem
+                  key={m.id}
+                  label={m.name}
+                  type="model"
+                  onDragStart={onNodeDragStart}
+                  dataOverrides={{ modelId: m.id }}
+                />
+              ))
+            ) : (
+              <div className="text-[10px] text-zinc-500 px-1 py-1">Loading models…</div>
+            )}
           </CollapsibleSection>
         </aside>
 
@@ -713,12 +898,13 @@ export function CircuitBoard({ address, onClose }: CircuitBoardProps) {
                   <div>
                     <label className="block text-zinc-500 mb-0.5">Model</label>
                     <select
-                      value={(selectedNode.data?.label as string) || "RiskScore ML"}
-                      onChange={(e) => updateSelectedNodeData("label", e.target.value)}
-                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200"
+                      value={(selectedNode.data?.modelId as string) || ""}
+                      onChange={(e) => handleModelSelection(e.target.value)}
+                      className="w-full rounded border border-zinc-600 bg-zinc-800 px-2 py-1 text-zinc-200 text-xs"
                     >
-                      {["Risk Score", "Correlation Risk", "TWAP Position", "Safety Diversification", "Credit Scoring"].map((m) => (
-                        <option key={m} value={m}>{m}</option>
+                      <option value="">Select model…</option>
+                      {models.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
                       ))}
                     </select>
                   </div>

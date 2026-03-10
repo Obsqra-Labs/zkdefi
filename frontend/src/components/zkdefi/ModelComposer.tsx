@@ -1,23 +1,60 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Brain, Plus, Trash2, Check, AlertCircle, Zap, Shield, TrendingUp } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8003";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
+import {
+  Brain,
+  Plus,
+  Check,
+  AlertCircle,
+  Zap,
+  Shield,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 
 interface Model {
   id: string;
   name: string;
-  type: "groth16" | "risc_zero";
+  type: string;
   timeout: number;
   description?: string;
 }
 
-interface ComposedAgent {
+export type AgentDecisionLogic = "AND" | "OR";
+
+export interface ComposerDraft {
+  name?: string;
+  processors?: string[];
+  decisionLogic?: AgentDecisionLogic;
+}
+
+interface LlmProviderRecord {
+  provider_id: string;
+  name: string;
+  description?: string;
+  default_model: string;
+  models: string[];
+  requires_api_key_env: boolean;
+  requires_base_url: boolean;
+  api_key_env?: string;
+  base_url?: string;
+  defaults?: {
+    temperature?: number;
+    max_tokens?: number;
+    top_p?: number;
+  };
+}
+
+export interface ComposedAgent {
   id: string;
   name: string;
   processors: string[];
-  decision_logic: { type: "AND" | "OR" };
+  decision_logic: { type: AgentDecisionLogic };
+  llm?: {
+    provider?: string;
+    model?: string;
+  };
   active: boolean;
   created_at: number;
 }
@@ -31,7 +68,7 @@ const MODEL_DESCRIPTIONS: Record<string, string> = {
   anomaly_detection: "Detects suspicious activity patterns",
 };
 
-const MODEL_ICONS: Record<string, React.ReactNode> = {
+const MODEL_ICONS: Record<string, ReactNode> = {
   risk_scoring: <TrendingUp className="w-4 h-4" />,
   correlation_risk: <Zap className="w-4 h-4" />,
   twap_position: <TrendingUp className="w-4 h-4" />,
@@ -40,55 +77,163 @@ const MODEL_ICONS: Record<string, React.ReactNode> = {
   anomaly_detection: <AlertCircle className="w-4 h-4" />,
 };
 
-export function ModelComposer({
-  userAddress,
-  onAgentCreated,
-}: {
+const FALLBACK_MODELS: Model[] = [
+  { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10 },
+  { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10 },
+  { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10 },
+  { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10 },
+  { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120 },
+];
+
+const FALLBACK_PROVIDERS: LlmProviderRecord[] = [
+  {
+    provider_id: "openai",
+    name: "OpenAI",
+    default_model: "gpt-4o-mini",
+    models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o3-mini"],
+    requires_api_key_env: true,
+    requires_base_url: false,
+    api_key_env: "OPENAI_API_KEY",
+    defaults: { temperature: 0.2, max_tokens: 1024, top_p: 1 },
+  },
+  {
+    provider_id: "anthropic",
+    name: "Anthropic",
+    default_model: "claude-3-7-sonnet-latest",
+    models: ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+    requires_api_key_env: true,
+    requires_base_url: false,
+    api_key_env: "ANTHROPIC_API_KEY",
+    defaults: { temperature: 0.2, max_tokens: 1024, top_p: 1 },
+  },
+  {
+    provider_id: "claude",
+    name: "Claude",
+    default_model: "claude-3-7-sonnet-latest",
+    models: ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+    requires_api_key_env: true,
+    requires_base_url: false,
+    api_key_env: "ANTHROPIC_API_KEY",
+    defaults: { temperature: 0.2, max_tokens: 1024, top_p: 1 },
+  },
+  {
+    provider_id: "local",
+    name: "Local / OpenAI-Compatible",
+    default_model: "llama3.1:8b",
+    models: ["llama3.1:8b", "mistral:7b", "qwen2.5:7b"],
+    requires_api_key_env: false,
+    requires_base_url: true,
+    base_url: "http://localhost:11434/v1",
+    defaults: { temperature: 0.2, max_tokens: 1024, top_p: 1 },
+  },
+  {
+    provider_id: "deterministic",
+    name: "Deterministic",
+    default_model: "deterministic-v1",
+    models: ["deterministic-v1"],
+    requires_api_key_env: false,
+    requires_base_url: false,
+    defaults: { temperature: 0, max_tokens: 512, top_p: 1 },
+  },
+];
+
+function clampFloat(value: number, min: number, max: number, fallback: number): number {
+  if (Number.isNaN(value)) return fallback;
+  return Math.max(min, Math.min(max, value));
+}
+
+function clampInt(value: number, min: number, max: number, fallback: number): number {
+  if (Number.isNaN(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+interface ModelComposerProps {
   userAddress: string;
   onAgentCreated?: (agent: ComposedAgent) => void;
-}) {
+  draft?: ComposerDraft | null;
+  onLog?: (level: "info" | "success" | "error", message: string) => void;
+}
+
+export function ModelComposer({ userAddress, onAgentCreated, draft, onLog }: ModelComposerProps) {
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const [decisionLogic, setDecisionLogic] = useState<"AND" | "OR">("AND");
+  const [decisionLogic, setDecisionLogic] = useState<AgentDecisionLogic>("AND");
   const [agentName, setAgentName] = useState("");
+  const [providers, setProviders] = useState<LlmProviderRecord[]>(FALLBACK_PROVIDERS);
+  const [providerId, setProviderId] = useState<string>("deterministic");
+  const [llmModel, setLlmModel] = useState<string>("deterministic-v1");
+  const [temperature, setTemperature] = useState<number>(0);
+  const [maxTokens, setMaxTokens] = useState<number>(512);
+  const [topP, setTopP] = useState<number>(1);
+  const [apiKeyEnv, setApiKeyEnv] = useState<string>("");
+  const [baseUrl, setBaseUrl] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchModels();
+  const provider = useMemo(() => {
+    return providers.find((item) => item.provider_id === providerId) || FALLBACK_PROVIDERS[FALLBACK_PROVIDERS.length - 1];
+  }, [providers, providerId]);
+
+  const applyProviderDefaults = useCallback((next: LlmProviderRecord) => {
+    setProviderId(next.provider_id);
+    setLlmModel(next.default_model);
+    setTemperature(next.defaults?.temperature ?? 0.2);
+    setMaxTokens(next.defaults?.max_tokens ?? 1024);
+    setTopP(next.defaults?.top_p ?? 1);
+    setApiKeyEnv(next.api_key_env ?? "");
+    setBaseUrl(next.base_url ?? "");
   }, []);
 
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/models/list`);
-      if (res.ok) {
-        const data = await res.json();
-        setModels(data.models || []);
+      const data = await apiFetch<{ models?: Model[] }>("/api/v1/agents/models/list");
+      if (data.models?.length) {
+        setModels(data.models);
       } else {
-        // Fallback to hardcoded models if API unavailable
-        setModels([
-          { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10 },
-          { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10 },
-          { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10 },
-          { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10 },
-          { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120 },
-        ]);
+        setModels(FALLBACK_MODELS);
       }
     } catch {
-      // Fallback
-      setModels([
-        { id: "risk_scoring", name: "Risk Score", type: "groth16", timeout: 10 },
-        { id: "correlation_risk", name: "Correlation Risk", type: "groth16", timeout: 10 },
-        { id: "twap_position", name: "TWAP Position", type: "groth16", timeout: 10 },
-        { id: "safety_diversification", name: "Safety Diversification", type: "groth16", timeout: 10 },
-        { id: "credit_scoring", name: "Credit Scoring", type: "risc_zero", timeout: 120 },
-      ]);
+      setModels(FALLBACK_MODELS);
+      onLog?.("error", "Falling back to local model list");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [onLog]);
+
+  const fetchProviders = useCallback(async () => {
+    try {
+      const data = await apiFetch<{ providers?: LlmProviderRecord[] }>("/api/v1/agents/providers");
+      if (data.providers?.length) {
+        setProviders(data.providers);
+      }
+    } catch {
+      setProviders(FALLBACK_PROVIDERS);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchModels();
+    fetchProviders();
+  }, [fetchModels, fetchProviders]);
+
+  useEffect(() => {
+    if (!providers.some((item) => item.provider_id === providerId)) {
+      applyProviderDefaults(providers[0] || FALLBACK_PROVIDERS[FALLBACK_PROVIDERS.length - 1]);
+    }
+  }, [applyProviderDefaults, providerId, providers]);
+
+  useEffect(() => {
+    if (!draft) return;
+    setAgentName(draft.name ?? "");
+    setSelectedModels(Array.from(new Set(draft.processors ?? [])));
+    setDecisionLogic(draft.decisionLogic ?? "AND");
+    setSuccess(null);
+    setError(null);
+    onLog?.("info", "Loaded draft from Circuit Board");
+  }, [draft, onLog]);
 
   const toggleModel = (modelId: string) => {
     setSelectedModels((prev) =>
@@ -101,41 +246,60 @@ export function ModelComposer({
   const createAgent = async () => {
     if (!agentName.trim()) {
       setError("Please enter an agent name");
+      onLog?.("error", "Agent name missing");
       return;
     }
     if (selectedModels.length === 0) {
       setError("Please select at least one model");
+      onLog?.("error", "No models selected");
+      return;
+    }
+    if (provider.requires_api_key_env && !apiKeyEnv.trim()) {
+      setError(`${provider.name} requires API key env var`);
+      return;
+    }
+    if (provider.requires_base_url && !baseUrl.trim()) {
+      setError(`${provider.name} requires base URL`);
       return;
     }
 
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/agents/create`, {
+      const payload: Record<string, unknown> = {
+        user_address: userAddress,
+        name: agentName.trim(),
+        processors: selectedModels,
+        decision_logic: { type: decisionLogic },
+        llm: {
+          provider: provider.provider_id,
+          model: llmModel.trim() || provider.default_model,
+          temperature: clampFloat(temperature, 0, 2, provider.defaults?.temperature ?? 0.2),
+          max_tokens: clampInt(maxTokens, 64, 8192, provider.defaults?.max_tokens ?? 1024),
+          top_p: clampFloat(topP, 0, 1, provider.defaults?.top_p ?? 1),
+          api_key_env: apiKeyEnv.trim() || undefined,
+          base_url: baseUrl.trim() || undefined,
+        },
+      };
+
+      const agent = await apiFetch<ComposedAgent>("/api/v1/agents/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_address: userAddress,
-          name: agentName.trim(),
-          processors: selectedModels,
-          decision_logic: { type: decisionLogic },
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        const agent = await res.json();
-        setSuccess(`Agent "${agent.name}" created successfully!`);
-        setAgentName("");
-        setSelectedModels([]);
-        onAgentCreated?.(agent);
-      } else {
-        const data = await res.json();
-        setError(data.detail || "Failed to create agent");
-      }
+      setSuccess(`Agent "${agent.name}" created successfully!`);
+      onLog?.("success", `Created agent ${agent.name}`);
+      setAgentName("");
+      setSelectedModels([]);
+      setDecisionLogic("AND");
+      onAgentCreated?.(agent);
     } catch (e) {
-      setError("Network error - backend may be offline");
+      const message = e instanceof Error ? e.message : "Network error - backend may be offline";
+      setError(message);
+      onLog?.("error", message);
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   return (
@@ -191,13 +355,11 @@ export function ModelComposer({
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-medium">{model.name}</div>
-                    <div className="text-xs text-zinc-500">
-                      {model.type === "risc_zero" ? "RISC Zero" : "Groth16"}
-                    </div>
+                    <div className="text-xs text-zinc-500">{model.type}</div>
                   </div>
                 </div>
                 <p className="text-xs text-zinc-500 mt-1 ml-8">
-                  {MODEL_DESCRIPTIONS[model.id] || "zkML proof model"}
+                  {MODEL_DESCRIPTIONS[model.id] || model.description || "zkML proof model"}
                 </p>
               </button>
             ))}
@@ -234,6 +396,110 @@ export function ModelComposer({
         </div>
       </div>
 
+      {/* LLM Configuration */}
+      <div className="mb-4 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
+        <div className="mb-2 flex items-center gap-2 text-sm text-zinc-300">
+          <Sparkles className="w-4 h-4 text-violet-400" />
+          LLM Provider Configuration
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="sm:col-span-2">
+            <label className="text-xs text-zinc-400 mb-1 block">Provider</label>
+            <select
+              value={providerId}
+              onChange={(event) => {
+                const selected = providers.find((item) => item.provider_id === event.target.value);
+                if (selected) applyProviderDefaults(selected);
+              }}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+            >
+              {providers.map((item) => (
+                <option key={item.provider_id} value={item.provider_id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="text-xs text-zinc-400 mb-1 block">Model</label>
+            <select
+              value={llmModel}
+              onChange={(event) => setLlmModel(event.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+            >
+              {(provider.models?.length ? provider.models : [provider.default_model]).map((modelName) => (
+                <option key={modelName} value={modelName}>
+                  {modelName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Temperature</label>
+            <input
+              type="number"
+              min={0}
+              max={2}
+              step={0.1}
+              value={temperature}
+              onChange={(event) => setTemperature(Number(event.target.value))}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Top P</label>
+            <input
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={topP}
+              onChange={(event) => setTopP(Number(event.target.value))}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-zinc-400 mb-1 block">Max Tokens</label>
+            <input
+              type="number"
+              min={64}
+              max={8192}
+              step={64}
+              value={maxTokens}
+              onChange={(event) => setMaxTokens(Number(event.target.value))}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+            />
+          </div>
+
+          {provider.requires_api_key_env && (
+            <div className="sm:col-span-2">
+              <label className="text-xs text-zinc-400 mb-1 block">API Key Env Var</label>
+              <input
+                value={apiKeyEnv}
+                onChange={(event) => setApiKeyEnv(event.target.value.toUpperCase())}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+                placeholder={provider.api_key_env || "OPENAI_API_KEY"}
+              />
+            </div>
+          )}
+
+          {provider.requires_base_url && (
+            <div className="sm:col-span-2">
+              <label className="text-xs text-zinc-400 mb-1 block">Base URL</label>
+              <input
+                value={baseUrl}
+                onChange={(event) => setBaseUrl(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white"
+                placeholder={provider.base_url || "http://localhost:11434/v1"}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Selected Summary */}
       {selectedModels.length > 0 && (
         <div className="mb-4 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
@@ -256,6 +522,9 @@ export function ModelComposer({
             {decisionLogic === "AND"
               ? " - Agent executes only if ALL models pass"
               : " - Agent executes if ANY model passes"}
+          </p>
+          <p className="text-xs text-zinc-500 mt-1">
+            LLM: <span className="text-violet-300">{provider.name}</span> · {llmModel || provider.default_model}
           </p>
         </div>
       )}

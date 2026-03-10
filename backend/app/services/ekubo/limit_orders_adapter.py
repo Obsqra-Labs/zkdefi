@@ -28,9 +28,26 @@ from app.services.ekubo_config import (
     SEPOLIA_ETH,
     SEPOLIA_STRK,
 )
-from app.services.ekubo_executor import _i129, FEE_30PCT, align_tick
 
 logger = logging.getLogger(__name__)
+
+# 0.30% fee in 0.128 fixed-point representation.
+FEE_30PCT = 1020847100762815411640772995208708096
+
+
+def _i129(value: int) -> dict[str, int]:
+    """Encode signed tick into Ekubo i129 calldata shape."""
+    v = int(value)
+    return {"mag": abs(v), "sign": 1 if v < 0 else 0}
+
+
+def align_tick(tick: int, spacing: int, floor: bool = True) -> int:
+    """Align a tick to spacing grid (default: floor alignment)."""
+    s = max(1, int(spacing))
+    t = int(tick)
+    if floor:
+        return (t // s) * s
+    return ((t + s - 1) // s) * s
 
 # ── Persistent order store ────────────────────────────────────────────────────
 _ORDERS_FILE = Path(__file__).resolve().parents[3] / "data" / "limit_orders.json"

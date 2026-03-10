@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, Clock, Coins, Loader2 } from "lucide-react";
+import { ArrowDownToLine, Clock, Coins, Loader2, Info } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
+import { PoolSelector, poolBucketToType, type PoolBucket } from "@/components/zkdefi/vault/PoolSelector";
 import { API_BASE } from "@/lib/api/client";
 import { getOperatorAddress } from "@/lib/api/vault";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -42,10 +43,21 @@ const FULL_PRIVACY_TOKEN =
   process.env.NEXT_PUBLIC_FULL_PRIVACY_TOKEN_ADDRESS || STRK_TOKEN;
 
 const METHOD_LABELS: Record<PrivacyMethod, string> = {
-  commitment_shield: "Commitment Shield",
-  nullifier_set: "Nullifier Set",
-  hashed_proof: "Hashed Proof",
-  dark_ledger: "Dark Ledger",
+  commitment_shield: "Public",
+  nullifier_set: "Private",
+  hashed_proof: "Private",
+  dark_ledger: "Private (Legacy)",
+};
+
+const METHOD_TIPS: Record<PrivacyMethod, string> = {
+  commitment_shield:
+    "Standard on-chain deposit path. Fast and low-gas, with normal signer visibility.",
+  nullifier_set:
+    "Private deposit with commitment + proof in a shared anonymity set.",
+  hashed_proof:
+    "Private deposit with hash commitment + Groth16 proof. Recommended default.",
+  dark_ledger:
+    "Legacy private settlement rail. Kept for migration compatibility.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -126,6 +138,8 @@ interface DepositPanelProps {
   addCommitment: (c: VaultCommitment) => void;
   address?: string;
   isDemo?: boolean;
+  /** Record deposit in V2 ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
+  onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,11 +153,13 @@ export function DepositPanel({
   addCommitment,
   address,
   isDemo,
+  onRecordDeposit,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
 
   const [selectedAsset, setSelectedAsset] = useState<Asset>("STRK");
+  const [selectedPool, setSelectedPool] = useState<PoolBucket>("balanced");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
@@ -154,8 +170,8 @@ export function DepositPanel({
   useEffect(() => {
     let dead = false;
     Promise.allSettled([
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
-      fetch(`${API_BASE}/api/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/vault/stats`, { signal: AbortSignal.timeout(6000) }),
+      fetch(`${API_BASE}/v1/zkdefi/private-yield/yield/blended`, { signal: AbortSignal.timeout(6000) }),
     ]).then(async ([statsRes, blendedRes]) => {
       if (dead) return;
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
@@ -238,7 +254,7 @@ export function DepositPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
 
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/shielded_deposit`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_deposit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -298,12 +314,12 @@ export function DepositPanel({
     const { low: amountLow, high: amountHigh } = splitU256(amountWei);
     const tokenAddr = resolveTokenAddress(selectedAsset);
     const poolAddr = FULL_PRIVACY_POOL_ADDRESS;
-    if (!poolAddr) throw new Error("Full Privacy Pool address not configured");
+    if (!poolAddr) throw new Error("Private pool address not configured");
 
     // Step 1 – generate commitment
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
     const res = await fetch(
-      `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/generate_commitment`,
+      `${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -378,7 +394,7 @@ export function DepositPanel({
           await new Promise((r) => setTimeout(r, 3000 * attempt));
         }
         const regRes = await fetch(
-          `${API_BASE}/api/v1/zkdefi/full_privacy/deposit/register_commitment`,
+          `${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -452,7 +468,7 @@ export function DepositPanel({
 
     // Step 2 — backend verifies the on-chain transfer
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Verifying on-chain..."));
-    const res = await fetch(`${API_BASE}/api/v1/zkdefi/ledger/transfer_in/request`, {
+    const res = await fetch(`${API_BASE}/v1/zkdefi/ledger/transfer_in/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -492,7 +508,7 @@ export function DepositPanel({
           result = await depositNullifierSet(amountWei, 0);
           break;
         case "hashed_proof":
-          result = await depositNullifierSet(amountWei, 2);
+          result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
           break;
         case "dark_ledger":
           result = await depositDarkLedger(amountWei);
@@ -513,6 +529,7 @@ export function DepositPanel({
         nonce: result.nonce,
         blinding: result.blinding,
         pool_type: result.poolType,
+        pool_variant: selectedPool,
         merkle_index: result.leafIndex,
         merkle_root: result.merkleRoot,
         path_elements: result.pathElements,
@@ -520,9 +537,18 @@ export function DepositPanel({
         deposited_at: new Date().toISOString(),
       });
 
+      // Record in V2 Dark Ledger (best-effort — on-chain deposit is source of truth)
+      const railMap: Record<PrivacyMethod, string> = {
+        commitment_shield: "COMMITMENT_SHIELD",
+        nullifier_set: "NULLIFIER_SET",
+        hashed_proof: "HASHED_PROOF",
+        dark_ledger: "DARK_LEDGER",
+      };
+      onRecordDeposit?.(amountWei, selectedAsset, railMap[method], result.txHash, result.commitmentHash).catch(() => {});
+
       addActivityEvent(setActivityFeed, {
         type: "deposit",
-        pool: method === "dark_ledger" ? "dark_ledger" : method === "commitment_shield" ? "shielded" : "full_privacy",
+        pool: method === "commitment_shield" ? "shielded" : "full_privacy",
         text: `Deposited ${amount} ${selectedAsset} via ${METHOD_LABELS[method]}`,
         txHash: result.txHash,
       });
@@ -558,6 +584,10 @@ export function DepositPanel({
   // -----------------------------------------------------------------------
 
   const canSubmit = !busy && !!amount && parseFloat(amount) > 0;
+  const privacyLine =
+    method === "commitment_shield"
+      ? "Public path: standard signer visibility on-chain."
+      : "Private path: commitment-based settlement with proof-backed privacy.";
 
   return (
     <motion.div
@@ -576,6 +606,17 @@ export function DepositPanel({
           {METHOD_LABELS[method]}
         </span>
       </div>
+
+      {/* Privacy info */}
+      <div className="flex items-start gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] px-3 py-2">
+        <Info className="w-3.5 h-3.5 text-emerald-400/50 mt-0.5 flex-shrink-0" />
+        <p className="text-[11px] text-emerald-400/60 leading-relaxed">
+          {METHOD_TIPS[method]}
+        </p>
+      </div>
+
+      {/* Pool allocation bucket */}
+      <PoolSelector selected={selectedPool} onSelect={setSelectedPool} />
 
       {/* Asset selector */}
       <div className="flex items-center gap-2">
@@ -622,16 +663,8 @@ export function DepositPanel({
         </p>
       </div>
 
-      {/* Dark ledger info callout */}
-      {method === "dark_ledger" && (
-        <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs text-violet-300/80">
-          Tokens transfer directly to the operator vault. The system verifies the
-          on-chain receipt and credits your off-chain Dark Ledger balance automatically.
-        </div>
-      )}
-
       {/* Allocation preview */}
-      <AllocationPreview amount={amount} asset={selectedAsset} isDemo={isDemo} />
+      <AllocationPreview amount={amount} asset={selectedAsset} riskProfile={selectedPool} isDemo={isDemo} />
 
       {/* Proof stepper */}
       <ProofStepper steps={depositSteps} />
@@ -651,7 +684,7 @@ export function DepositPanel({
         </div>
         <div className="flex items-center justify-between">
           <span>Privacy</span>
-          <span className="text-emerald-400">Amount and wallet concealed on-chain</span>
+          <span className="text-emerald-400">{privacyLine}</span>
         </div>
       </div>
 
@@ -671,7 +704,7 @@ export function DepositPanel({
             Processing...
           </>
         ) : (
-          "Deposit with Privacy"
+          "Deposit"
         )}
       </button>
     </motion.div>

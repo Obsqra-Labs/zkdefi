@@ -5,6 +5,7 @@ POST /api/v1/deployments/execute - Deploy capital to recommended pools
 
 from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException
+from app.middleware.auth import AdminOnly
 from pydantic import BaseModel, validator
 import logging
 import hashlib
@@ -72,6 +73,7 @@ class DeploymentExecutionResponse(BaseModel):
 @router.post("/execute", response_model=DeploymentExecutionResponse)
 async def execute_deployment(
     request: DeploymentExecutionRequest,
+    _admin: str = AdminOnly,
 ) -> DeploymentExecutionResponse:
     """
     Execute a strategy deployment

@@ -41,8 +41,553 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-06T13:44:30.822793+00:00",
+    "updated_at": "2026-03-06T22:45:43.937589+00:00",
     "user_address": "0x0",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+    "circuit_board": {
+      "edges": [
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_2-node_1",
+          "source": "node_2",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_1",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_3-node_2",
+          "source": "node_3",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_2",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_4-node_3",
+          "source": "node_4",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_3",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_4-node_5",
+          "source": "node_4",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_5",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_2-node_7",
+          "source": "node_2",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_7",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_3-node_8",
+          "source": "node_3",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_8",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_8-node_7",
+          "source": "node_8",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_7",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_7-node_6",
+          "source": "node_7",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_6",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_6-node_5",
+          "source": "node_6",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_5",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_5-node_9",
+          "source": "node_5",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_9",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_4-node_10",
+          "source": "node_4",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_10",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_10-node_3",
+          "source": "node_10",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_3",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_10-node_11",
+          "source": "node_10",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_11",
+          "targetHandle": null,
+          "type": "smoothstep"
+        },
+        {
+          "animated": true,
+          "id": "reactflow__edge-node_11-node_12",
+          "source": "node_11",
+          "sourceHandle": null,
+          "style": {
+            "stroke": "rgb(113 113 122)"
+          },
+          "target": "node_12",
+          "targetHandle": null,
+          "type": "smoothstep"
+        }
+      ],
+      "nodes": [
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Yield Optimality",
+            "threshold": 30
+          },
+          "dragging": false,
+          "height": 64,
+          "id": "node_1",
+          "position": {
+            "x": 390,
+            "y": 315.5
+          },
+          "positionAbsolute": {
+            "x": 390,
+            "y": 315.5
+          },
+          "selected": false,
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Anomaly Detector",
+            "threshold": 30
+          },
+          "dragging": false,
+          "height": 64,
+          "id": "node_2",
+          "position": {
+            "x": 415.7726401804754,
+            "y": 156.61247446421368
+          },
+          "positionAbsolute": {
+            "x": 415.7726401804754,
+            "y": 156.61247446421368
+          },
+          "selected": false,
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "label": "Performance",
+            "outputType": "float"
+          },
+          "dragging": false,
+          "height": 66,
+          "id": "node_3",
+          "position": {
+            "x": 261.16161354505823,
+            "y": 225.07023904371232
+          },
+          "positionAbsolute": {
+            "x": 261.16161354505823,
+            "y": 225.07023904371232
+          },
+          "selected": false,
+          "type": "circuit",
+          "width": 140
+        },
+        {
+          "data": {
+            "label": "IF/ELSE",
+            "logicType": "IF/ELSE",
+            "threshold": 0.5
+          },
+          "dragging": false,
+          "height": 51,
+          "id": "node_4",
+          "position": {
+            "x": 82.39999999999998,
+            "y": 342.25
+          },
+          "positionAbsolute": {
+            "x": 82.39999999999998,
+            "y": 342.25
+          },
+          "selected": false,
+          "type": "logic",
+          "width": 140
+        },
+        {
+          "data": {
+            "allocation": 100,
+            "label": "Reject"
+          },
+          "dragging": false,
+          "height": 51,
+          "id": "node_5",
+          "position": {
+            "x": 577.8513507331812,
+            "y": 532.6873802481537
+          },
+          "positionAbsolute": {
+            "x": 577.8513507331812,
+            "y": 532.6873802481537
+          },
+          "selected": false,
+          "type": "venue",
+          "width": 140
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Strategy Integrity",
+            "modelId": "strategy_integrity",
+            "threshold": 30
+          },
+          "height": 64,
+          "id": "node_6",
+          "position": {
+            "x": 800.1480051852274,
+            "y": 325.3424132250013
+          },
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "MEV Resistance",
+            "modelId": "mev_resistance",
+            "threshold": 30
+          },
+          "height": 64,
+          "id": "node_7",
+          "position": {
+            "x": 684.480854226452,
+            "y": 169.53195693347433
+          },
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Impermanent Loss Predictor",
+            "modelId": "impermanent_loss",
+            "threshold": 30
+          },
+          "dragging": false,
+          "height": 64,
+          "id": "node_8",
+          "position": {
+            "x": 453.8269473145409,
+            "y": 79.71981618901336
+          },
+          "positionAbsolute": {
+            "x": 453.8269473145409,
+            "y": 79.71981618901336
+          },
+          "selected": false,
+          "type": "model",
+          "width": 179
+        },
+        {
+          "data": {
+            "confidence": 0.8,
+            "label": "Liquidation Risk",
+            "modelId": "liquidation_risk",
+            "threshold": 30
+          },
+          "height": 64,
+          "id": "node_9",
+          "position": {
+            "x": 945.6444651457822,
+            "y": 549.1951430245397
+          },
+          "type": "model",
+          "width": 140
+        },
+        {
+          "data": {
+            "entityType": "Pool",
+            "label": "Pool"
+          },
+          "dragging": false,
+          "height": 34,
+          "id": "node_10",
+          "position": {
+            "x": 84.83683568610157,
+            "y": 210.05637809312228
+          },
+          "selected": false,
+          "type": "entity",
+          "width": 140
+        },
+        {
+          "data": {
+            "entityType": "Asset",
+            "label": "Asset"
+          },
+          "dragging": false,
+          "height": 34,
+          "id": "node_11",
+          "position": {
+            "x": 182.0422141696289,
+            "y": 94.48998367381759
+          },
+          "positionAbsolute": {
+            "x": 182.0422141696289,
+            "y": 94.48998367381759
+          },
+          "selected": true,
+          "type": "entity",
+          "width": 140
+        },
+        {
+          "data": {
+            "allocation": 100,
+            "label": "Ekubo LP"
+          },
+          "height": 51,
+          "id": "node_12",
+          "position": {
+            "x": -37.20991729877159,
+            "y": 133.3721350672285
+          },
+          "type": "venue",
+          "width": 140
+        }
+      ],
+      "policy_name": "test"
+    },
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "hidden_flow",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_f61c7c1b5fde8163b9f11da8",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 40
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-08T08:50:55.340235+00:00",
+    "user_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0xabc": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_cef4a4acd7d21951857f92c7",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-07T07:56:58.563364+00:00",
+    "user_address": "0xabc",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0xabc123": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_477c69943dc8098cd62bd03a",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-07T07:54:43.536613+00:00",
+    "user_address": "0xabc123",
     "venue_allowlist": [
       "ekubo",
       "avnu"

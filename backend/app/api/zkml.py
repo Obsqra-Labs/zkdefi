@@ -187,18 +187,44 @@ async def generate_combined_proofs(data: CombinedZkmlRequest):
             snapshot_hash=snapshot_hash,
         )
         
-        # Combined result
-        can_proceed = risk_result["is_compliant"] and anomaly_result["is_safe"]
-        
+        # Combined result — surface top-level flags expected by consumers
+        risk_compliant = bool(risk_result.get("is_compliant", False))
+        pool_safe = bool(anomaly_result.get("is_safe", False))
+        can_proceed = risk_compliant and pool_safe
+
+        # Record receipts for both proofs
+        receipt_svc = get_receipt_service()
+        receipt_svc.append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="risk_score",
+            threshold_or_model=str(data.risk_threshold),
+            result="compliant" if risk_compliant else "non_compliant",
+            snapshot_hash=snapshot_hash,
+            model_hash="risk_v1",
+        )
+        receipt_svc.append_proof_receipt(
+            user_address=data.user_address,
+            proof_type="pool_safety",
+            threshold_or_model="anomaly",
+            result="safe" if pool_safe else "unsafe",
+            snapshot_hash=snapshot_hash,
+            model_hash="anomaly_v1",
+            pool_id=data.pool_id,
+        )
+
         return {
             "can_proceed": can_proceed,
+            "risk_compliant": risk_compliant,
+            "pool_safe": pool_safe,
+            "can_rebalance": can_proceed,
             "commitment_hash": shared_commitment,
+            "snapshot_hash": snapshot_hash,
             "risk_proof": risk_result,
             "anomaly_proof": anomaly_result,
             "combined_calldata": {
                 "risk_calldata": risk_result["proof_calldata"],
-                "anomaly_calldata": anomaly_result["proof_calldata"]
-            }
+                "anomaly_calldata": anomaly_result["proof_calldata"],
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

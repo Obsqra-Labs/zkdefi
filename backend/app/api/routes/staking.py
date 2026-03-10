@@ -25,7 +25,7 @@ try:
 except Exception:
     _SERVICE_AVAILABLE = False
 
-router = APIRouter(prefix="/staking", tags=["staking"])
+router = APIRouter(tags=["staking"])
 
 
 def _check_service() -> None:

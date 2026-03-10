@@ -144,7 +144,6 @@ export function CapitalOSStrip({
           type="button"
           onClick={handleLedger}
           className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-zinc-800/60 transition-colors min-w-0 text-left"
-          aria-label={`Ledger: Last entry ${ledger.lastEntryLabel}, ${ledger.receiptCount} receipts`}
         >
           <span className="text-xs text-zinc-400 truncate" title={ledger.lastEntryLabel}>
             {ledger.lastEntryLabel}

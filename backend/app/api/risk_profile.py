@@ -8,6 +8,7 @@ GET /risk_profile/{address} composes:
 - linked_addresses
 - compliance profiles (summary)
 - session_keys list (summary)
+- governance voting power snapshot
 
 GET /risk_profile/v2/{address} adds canonical trust decisions used by relayer,
 policy preview, lending, and UI explainability.
@@ -23,6 +24,9 @@ from fastapi import APIRouter, Request
 
 from app.services.profile_decision_service import get_profile_decision_service
 from app.services.credit_line_service import compute_predictive_credit_line
+from app.services.portable_identity_service import get_portable_identity_service
+from app.services.trust_event_service import log_trust_event_if_changed
+from app.services.trust_version_matrix import get_backend_trust_flags, get_trust_version_matrix
 
 router = APIRouter(prefix="/risk_profile", tags=["risk_profile"])
 
@@ -64,6 +68,7 @@ async def _build_bundle(address: str, request: Request) -> dict[str, Any]:
             f"/api/v1/zkdefi/compliance/profiles/{address}",
             f"/api/v1/zkdefi/session_keys/list/{address}",
             f"/api/v1/zkdefi/auth/session/{address}",
+            f"/api/v1/dao/voting_power/{address}",
         ]
         results = await asyncio.gather(*[_fetch(client, base, p) for p in paths])
 
@@ -74,6 +79,7 @@ async def _build_bundle(address: str, request: Request) -> dict[str, Any]:
         compliance, comp_ok = results[4]
         sessions_res, sess_ok = results[5]
         dual_session_res, dual_ok = results[6]
+        governance_res, gov_ok = results[7]
 
     if linked_ok and isinstance(linked, dict):
         linked_payload = {k: v for k, v in linked.items() if v is not None}
@@ -133,6 +139,7 @@ async def _build_bundle(address: str, request: Request) -> dict[str, Any]:
         "compliance_summary": compliance_summary,
         "session_summary": session_summary,
         "dual_wallet_session": dual_wallet_session,
+        "governance": governance_res if (gov_ok and isinstance(governance_res, dict)) else None,
     }
 
 
@@ -155,6 +162,8 @@ async def get_risk_profile_v2(address: str, request: Request):
     """Risk Profile v2: canonical identity + passport + decision payload."""
     bundle = await _build_bundle(address, request)
     decision_payload = get_profile_decision_service().evaluate(bundle)
+    version_matrix = get_trust_version_matrix()
+    trust_flags = get_backend_trust_flags()
 
     onboarding = bundle.get("onboarding") or {}
     rep = bundle.get("reputation") or {}
@@ -162,8 +171,11 @@ async def get_risk_profile_v2(address: str, request: Request):
     linked = bundle.get("linked_addresses") or {}
     sessions = bundle.get("session_summary") or {}
     dual_session = bundle.get("dual_wallet_session") or {}
+    governance = bundle.get("governance") or {}
     if not isinstance(dual_session, dict):
         dual_session = {}
+    if not isinstance(governance, dict):
+        governance = {}
 
     verification = linked.get("verification") if isinstance(linked, dict) else None
     if not isinstance(verification, dict):
@@ -233,12 +245,37 @@ async def get_risk_profile_v2(address: str, request: Request):
     except Exception:
         pass  # Graceful: predictive_credit stays None
 
+    portable_identity = get_portable_identity_service()
+    attribution_summary: dict[str, Any] = {
+        "event_count": 0,
+        "chains": [],
+    }
+    credential_summary: dict[str, Any] = {
+        "issued_count": 0,
+        "active_count": 0,
+        "revoked_count": 0,
+        "latest_issued_at": None,
+    }
+    if portable_identity.enabled():
+        try:
+            attribution_summary = portable_identity.get_attribution_summary(address)
+            credential_summary = portable_identity.get_credential_summary(address)
+        except Exception:
+            # Keep profile payload resilient when the additive layer is unavailable.
+            pass
+
+    verified_linked_count = len(
+        [row for row in linked_entries if isinstance(row, dict) and bool(row.get("verified", False))]
+    )
+
     out = {
         "profile_version": "2.0",
+        "version_matrix": version_matrix,
         "address": address,
         "identity": {
             "has_agent": bool(onboarding.get("has_agent", False)),
             "identity_commitment": onboarding.get("identity_commitment"),
+            "subject_id": address.lower(),
             "linked_addresses": linked_entries,
             "session_summary": {
                 "count": sessions.get("count", 0),
@@ -259,6 +296,8 @@ async def get_risk_profile_v2(address: str, request: Request):
                 else 0,
             },
         },
+        "attribution_summary": attribution_summary,
+        "credential_summary": credential_summary,
         "reputation": {
             "tier": rep.get("tier", 0),
             "tier_name": rep.get("tier_name", "Strict"),
@@ -280,13 +319,154 @@ async def get_risk_profile_v2(address: str, request: Request):
                 "by_type": by_type,
             },
         },
+        "governance": {
+            "voting_power": governance.get("voting_power", 0.0),
+            "lp_usd": governance.get("lp_usd", 0.0),
+            "lending_usd": governance.get("lending_usd", 0.0),
+            "staking_usd": governance.get("staking_usd", 0.0),
+            "tier_multiplier": governance.get("tier_multiplier", 1.0),
+            "formula_version": governance.get(
+                "formula_version",
+                "vp_v2_sqrt_capital_tier_multiplier",
+            ),
+            "basis": governance.get("basis"),
+        },
         "predictive_credit": predictive_credit,
         "decisions": decision_payload.get("decisions", {}),
         "disclosures": decision_payload.get("disclosures", {}),
-        "feature_flags": decision_payload.get("feature_flags", {}),
+        "feature_flags": {
+            **(decision_payload.get("feature_flags", {}) if isinstance(decision_payload.get("feature_flags"), dict) else {}),
+            **trust_flags,
+        },
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+    out["trust_tuple"] = {
+        "reputation": {
+            "tier": out["reputation"].get("tier", 0),
+            "tier_name": out["reputation"].get("tier_name", "Strict"),
+            "letter_rating": out["passport"].get("letter_rating", "D"),
+            "passport_score": out["passport"].get("composite_score", 0),
+        },
+        "credit": {
+            "grade": (predictive_credit or {}).get("grade") if isinstance(predictive_credit, dict) else None,
+            "credit_line_eth": (predictive_credit or {}).get("credit_line_eth")
+            if isinstance(predictive_credit, dict)
+            else None,
+            "rate_bps": (predictive_credit or {}).get("rate_bps")
+            if isinstance(predictive_credit, dict)
+            else None,
+        },
+        "governance": {
+            "voting_power": out["governance"].get("voting_power", 0.0),
+            "tier_multiplier": out["governance"].get("tier_multiplier", 1.0),
+        },
+        "execution": {
+            "mode": (out.get("decisions") or {}).get("execution", {}).get("mode", "advisory"),
+            "active_sessions": out["identity"].get("session_summary", {}).get("active_count", 0),
+        },
+        "identity": {
+            "linked_verified_count": verified_linked_count,
+            "dual_wallet_active": bool(
+                (out["identity"].get("dual_wallet_session") or {}).get("active", False)
+            ),
+            "subject_id": out["identity"].get("subject_id"),
+            "attribution_event_count": int(attribution_summary.get("event_count", 0) or 0),
+            "credential_active_count": int(credential_summary.get("active_count", 0) or 0),
+        },
+    }
+    try:
+        await _emit_trust_state_events(address, out)
+    except Exception:
+        # Non-fatal telemetry path.
+        pass
     return out
+
+
+async def _emit_trust_state_events(address: str, profile_v2: dict[str, Any]) -> None:
+    identity = profile_v2.get("identity") or {}
+    governance = profile_v2.get("governance") or {}
+    predictive_credit = profile_v2.get("predictive_credit") or {}
+    decisions = profile_v2.get("decisions") or {}
+    execution_gate = decisions.get("execution") if isinstance(decisions, dict) else {}
+
+    dual_session = identity.get("dual_wallet_session") if isinstance(identity, dict) else {}
+    if not isinstance(dual_session, dict):
+        dual_session = {}
+
+    linked = identity.get("linked_addresses") if isinstance(identity, dict) else []
+    if not isinstance(linked, list):
+        linked = []
+    linked_verified_count = len(
+        [row for row in linked if isinstance(row, dict) and bool(row.get("verified", False))]
+    )
+
+    await log_trust_event_if_changed(
+        address,
+        "governance.voting_power",
+        governance.get("voting_power", 0.0),
+        event_type="governance_power_updated",
+        gate="governance",
+        outcome="updated",
+        metadata={
+            "voting_power": governance.get("voting_power", 0.0),
+            "tier_multiplier": governance.get("tier_multiplier", 1.0),
+            "formula_version": governance.get("formula_version"),
+        },
+        receipt_proof_type="governance_power_updated",
+    )
+
+    if isinstance(predictive_credit, dict) and predictive_credit:
+        credit_state = {
+            "grade": predictive_credit.get("grade"),
+            "rate_bps": predictive_credit.get("rate_bps"),
+            "credit_line_eth": predictive_credit.get("credit_line_eth"),
+            "model_name": predictive_credit.get("model_name"),
+            "model_hash": predictive_credit.get("model_hash"),
+        }
+        await log_trust_event_if_changed(
+            address,
+            "credit.model_state",
+            credit_state,
+            event_type="credit_model_updated",
+            gate="credit",
+            outcome="updated",
+            metadata=credit_state,
+            receipt_proof_type="credit_model_updated",
+        )
+
+    identity_binding_state = {
+        "active": bool(dual_session.get("active", False)),
+        "status": dual_session.get("status", "missing"),
+        "session_id": dual_session.get("session_id"),
+        "linked_verified_count": linked_verified_count,
+    }
+    await log_trust_event_if_changed(
+        address,
+        "identity.binding_state",
+        identity_binding_state,
+        event_type="identity_binding_status_updated",
+        gate="identity",
+        outcome="updated",
+        metadata=identity_binding_state,
+        receipt_proof_type="identity_binding_status_updated",
+    )
+
+    if isinstance(execution_gate, dict):
+        execution_gate_state = {
+            "mode": execution_gate.get("mode"),
+            "reason_codes": execution_gate.get("reason_codes", []),
+            "active_sessions": (identity.get("session_summary") or {}).get("active_count", 0),
+        }
+        await log_trust_event_if_changed(
+            address,
+            "execution.gate_state",
+            execution_gate_state,
+            event_type="execution_gate_updated",
+            gate="execution",
+            outcome="updated",
+            metadata=execution_gate_state,
+            receipt_proof_type="execution_gate_updated",
+        )
 
 
 def _to_erc8004(bundle: dict[str, Any]) -> dict[str, Any]:
@@ -297,6 +477,7 @@ def _to_erc8004(bundle: dict[str, Any]) -> dict[str, Any]:
     sessions = bundle.get("session_summary") or {}
     dual_session = bundle.get("dual_wallet_session") or {}
     compliance = bundle.get("compliance_summary") or {}
+    governance = bundle.get("governance") or {}
 
     tier = rep.get("tier", 0)
     tier_name = rep.get("tier_name", "Strict")
@@ -340,6 +521,9 @@ def _to_erc8004(bundle: dict[str, Any]) -> dict[str, Any]:
 
     disclosure_summary = {
         "profile_count": compliance.get("count", 0),
+        "voting_power": governance.get("voting_power", 0.0)
+        if isinstance(governance, dict)
+        else 0.0,
     }
 
     return {

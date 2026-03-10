@@ -13,6 +13,8 @@ Flow:
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.middleware.auth import WalletOwner
 import hashlib
 import json
 from pathlib import Path
@@ -103,7 +105,7 @@ class SubmitAgentResponse(BaseModel):
 
 
 @router.post("/generate_authorization", response_model=GenerateAuthorizationResponse)
-async def generate_authorization(req: GenerateAuthorizationRequest):
+async def generate_authorization(req: GenerateAuthorizationRequest, _caller: str = WalletOwner):
     """
     Generate STARK proof for user's identity (constraints + claims).
     
@@ -229,7 +231,7 @@ async def generate_authorization(req: GenerateAuthorizationRequest):
 
 
 @router.post("/submit_agent", response_model=SubmitAgentResponse)
-async def submit_agent(req: SubmitAgentRequest):
+async def submit_agent(req: SubmitAgentRequest, _caller: str = WalletOwner):
     """
     Submit agent initialization on-chain.
     

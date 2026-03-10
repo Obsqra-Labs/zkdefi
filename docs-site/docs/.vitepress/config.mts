@@ -2,94 +2,106 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'zkde.fi',
-  description: 'AI capital allocation with verifiable risk analysis — by Obsqra Labs',
-  base: '/docs/',  
+  description: 'Privacy-first Capital OS and Trade Desk on Starknet',
+  base: '/docs/',
+  markdown: {
+    config(md) {
+      const defaultFence = md.renderer.rules.fence
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const token = tokens[idx]
+        const info = token.info.trim()
+
+        if (info === 'mermaid') {
+          const source = token.content.trim()
+          const encoded = encodeURIComponent(source)
+          const fallback = md.utils.escapeHtml(source)
+          return `<pre class="mermaid" data-mermaid-source="${encoded}">${fallback}</pre>\n`
+        }
+
+        if (defaultFence) {
+          return defaultFence(tokens, idx, options, env, self)
+        }
+        return self.renderToken(tokens, idx, options)
+      }
+    }
+  },
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }]
   ],
-  
+
   themeConfig: {
     logo: '/logo.svg',
-    
+
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Start', link: '/intro' },
-      { text: 'Operate', link: '/app-overview' },
-      { text: 'Build (GATE)', link: '/developers' },
+      { text: 'Quick Start', link: '/quick-start' },
+      { text: 'Capital OS', link: '/capital-os' },
+      { text: 'Trade Desk', link: '/trade-desk' },
+      { text: 'Systems', link: '/how-systems-work' },
       { text: 'API', link: '/api-overview' },
       { text: 'App', link: 'https://zkde.fi' }
     ],
-    
+
     sidebar: [
       {
-        text: 'Start Here',
+        text: 'Start',
         items: [
           { text: 'Introduction', link: '/intro' },
-          { text: 'Why zkde.fi?', link: '/why' },
-          { text: 'Concepts', link: '/concepts' },
-          { text: 'Quick start (live app)', link: '/quick-start' },
-          { text: 'First-time setup (live app)', link: '/guide-first-time-setup' },
-          { text: 'Real-Time Updates', link: '/real-time-updates' },
-          { text: 'Oracle Execution', link: '/oracle-execution' }
+          { text: 'Quick Start', link: '/quick-start' },
+          { text: 'App Overview', link: '/app-overview' }
         ]
       },
       {
-        text: 'Operate The App',
+        text: 'Use The Product',
         items: [
-          { text: 'App overview and routes', link: '/app-overview' },
-          { text: 'Agent workspace', link: '/agent-dashboard' },
-          { text: 'Deploy to Ekubo', link: '/guide-deploy-to-ekubo' },
-          { text: 'Profile and identity', link: '/profile-and-identity' },
-          { text: 'How execution flows', link: '/flow' }
+          { text: 'Capital OS', link: '/capital-os' },
+          { text: 'Trade Desk', link: '/trade-desk' },
+          { text: 'Profile And Identity', link: '/profile-and-identity' }
         ]
       },
       {
-        text: 'Verify And Control Risk',
+        text: 'How It Works',
         items: [
-          { text: 'Reputation system', link: '/reputation-system' },
-          { text: 'Reputation proofs (FICO pack)', link: '/reputation-proofs' },
-          { text: 'Risk Passport', link: '/risk-passport' },
-          { text: 'Compliance and disclosure', link: '/compliance-and-disclosure' },
-          { text: 'Privacy features', link: '/privacy-features' },
-          { text: 'Session keys', link: '/session-keys' },
-          { text: 'Rebalancing', link: '/rebalancing' },
-          { text: 'zkML models', link: '/zkml-models' },
-          { text: 'zkGraph Integration', link: '/zkgraph-integration' }
+          { text: 'Privacy Features', link: '/privacy-features' },
+          { text: 'How Systems Work', link: '/how-systems-work' }
         ]
       },
       {
-        text: 'Build And Integrate (GATE)',
+        text: 'Technical Foundations',
         items: [
-          { text: 'Architecture summary', link: '/architecture-summary' },
-          { text: 'API overview', link: '/api-overview' },
-          { text: 'Reputation proofs API', link: '/reputation-proofs' },
+          { text: 'Technical Foundations', link: '/technical-foundations' },
+          { text: 'Reputation System', link: '/reputation-system' },
+          { text: 'Architecture Summary', link: '/architecture-summary' }
+        ]
+      },
+      {
+        text: 'Builders',
+        items: [
+          { text: 'API Overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
           { text: 'Contracts', link: '/contracts' },
-          { text: 'Zero-Knowledge Circuits', link: '/circuits' },
-          { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' },
-          { text: 'AEGIS-1 (GATE standard)', link: '/aegis' }
+          { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' }
         ]
       },
       {
         text: 'Reference',
         items: [
-          { text: 'Innovation', link: '/innovation' },
-          { text: 'Troubleshooting', link: '/troubleshooting' },
-          { text: 'RPC Compatibility', link: '/rpc-compatibility' },
-          { text: 'FAQ', link: '/faq' }
+          { text: 'FAQ', link: '/faq' },
+          { text: 'Troubleshooting', link: '/troubleshooting' }
         ]
       }
     ],
-    
+
     socialLinks: [
       { icon: 'github', link: 'https://github.com/obsqra-labs/zkdefi' }
     ],
-    
+
     footer: {
       message: 'Built by Obsqra Labs',
       copyright: 'Copyright 2026 Obsqra Labs'
     },
-    
+
     search: {
       provider: 'local'
     }

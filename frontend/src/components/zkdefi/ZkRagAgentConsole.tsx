@@ -97,7 +97,7 @@ export function ZkRagAgentConsole({ userAddress, onReceiptCreated }: ZkRagAgentC
   const fetchCapabilities = useCallback(async () => {
     setLoadingCapabilities(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/zkgraph/agent/capabilities`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/zkgraph/agent/capabilities`, {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) throw new Error(`Capabilities request failed (${res.status})`);
@@ -128,7 +128,7 @@ export function ZkRagAgentConsole({ userAddress, onReceiptCreated }: ZkRagAgentC
     setQuerying(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/zkdefi/zkgraph/agent/query`, {
+      const res = await fetch(`${API_BASE}/v1/zkdefi/zkgraph/agent/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(45000),

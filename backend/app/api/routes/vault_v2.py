@@ -14,6 +14,8 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.middleware.auth import WalletOwner
+
 router = APIRouter(prefix="/vault/v2", tags=["vault-v2"])
 
 from app.services.double_entry_ledger import DoubleEntryLedger
@@ -123,7 +125,7 @@ class SweepToVaultRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/account")
-def create_or_get_account(req: CreateAccountRequest):
+def create_or_get_account(req: CreateAccountRequest, _caller: str = WalletOwner):
     _, vaults, *_ = _get_services()
     try:
         return vaults.get_vault_by_address(req.owner_address)
@@ -159,7 +161,7 @@ def get_balance(vault_id: str):
 
 
 @router.post("/deposit/intent")
-def create_deposit_intent(req: DepositIntentRequest):
+def create_deposit_intent(req: DepositIntentRequest, _caller: str = WalletOwner):
     _, _, _, deposit_svc, *_ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -175,14 +177,20 @@ def create_deposit_intent(req: DepositIntentRequest):
 
 
 @router.post("/deposit/confirm")
-def confirm_deposit(req: DepositConfirmRequest):
+async def confirm_deposit(req: DepositConfirmRequest, _caller: str = WalletOwner):
     _, _, _, deposit_svc, *_ = _get_services()
     try:
-        return deposit_svc.confirm_deposit(
+        result = deposit_svc.confirm_deposit(
             intent_id=req.intent_id,
             tx_hash=req.tx_hash,
             commitment_hash=req.commitment_hash,
         )
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_deposit_fact
+        l3 = await post_deposit_fact(req.commitment_hash, req.tx_hash)
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -197,7 +205,7 @@ def list_notes(vault_id: str, status: Optional[str] = None):
 
 
 @router.post("/deploy/intent")
-def create_deploy_intent(req: DeployIntentRequest):
+def create_deploy_intent(req: DeployIntentRequest, _caller: str = WalletOwner):
     _, _, _, _, deploy_svc, *_ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -224,21 +232,27 @@ def deploy_commit(req: DeployCommitRequest):
 
 
 @router.post("/deploy/settle")
-def deploy_settle(req: DeploySettleRequest):
+async def deploy_settle(req: DeploySettleRequest):
     _, _, _, _, deploy_svc, *_ = _get_services()
     try:
         deploy_svc.settle_execution(req.proposal_hash, req.tx_hash)
-        return {"status": "EXECUTED", "proposal_hash": req.proposal_hash}
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_deploy_fact
+        l3 = await post_deploy_fact(req.proposal_hash, req.tx_hash)
+        result = {"status": "EXECUTED", "proposal_hash": req.proposal_hash}
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.post("/withdraw/request")
-def request_withdrawal(req: WithdrawRequest):
+async def request_withdrawal(req: WithdrawRequest, _caller: str = WalletOwner):
     *_, withdrawal_svc, _ = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
-        return withdrawal_svc.request_withdrawal(
+        result = withdrawal_svc.request_withdrawal(
             vault_id=req.vault_id,
             amount_wei=int(req.amount_wei),
             token=req.token,
@@ -246,12 +260,19 @@ def request_withdrawal(req: WithdrawRequest):
             route=req.route,
             idempotency_key=idem,
         )
+        # Post privacy-safe fact to Madara L3
+        from app.services.vault_settlement_hook import post_withdrawal_fact
+        wd_id = result.get("withdrawal_id", idem)
+        l3 = await post_withdrawal_fact(wd_id, result.get("tx_hash", idem))
+        if l3:
+            result["l3_fact"] = l3
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/sweep/to-ledger")
-def sweep_to_ledger(req: SweepToLedgerRequest):
+def sweep_to_ledger(req: SweepToLedgerRequest, _caller: str = WalletOwner):
     *_, sweep_svc = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -267,7 +288,7 @@ def sweep_to_ledger(req: SweepToLedgerRequest):
 
 
 @router.post("/sweep/to-vault")
-def sweep_to_vault(req: SweepToVaultRequest):
+def sweep_to_vault(req: SweepToVaultRequest, _caller: str = WalletOwner):
     *_, sweep_svc = _get_services()
     idem = req.idempotency_key or uuid.uuid4().hex
     try:
@@ -280,6 +301,93 @@ def sweep_to_vault(req: SweepToVaultRequest):
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/zkd/portfolio/{address}")
+async def get_zkd_portfolio(address: str, refresh: bool = False):
+    """
+    Live zkdETH/zkdAI portfolio: on-chain balances (Starknet Sepolia node) +
+    LP position summaries from market-maker-sim data.
+    """
+    from app.services.zkd_lp_reader import get_zkd_portfolio as _read_portfolio
+    portfolio = await _read_portfolio(address, force_refresh=refresh)
+    return portfolio.to_dict()
+
+
+@router.get("/yield-chart")
+async def get_yield_chart(days: int = 30):
+    """
+    Yield performance chart — aggregated from strategy_performance.json.
+    Returns daily cumulative yield % and APY bps for the chart.
+    """
+    import json as _json
+    import math
+    from datetime import datetime, timedelta, timezone
+    from pathlib import Path as _Path
+
+    perf_file = _Path(__file__).resolve().parents[3] / "data" / "strategy_performance.json"
+    raw: list[dict] = []
+    if perf_file.exists():
+        try:
+            raw = _json.loads(perf_file.read_text())
+            if not isinstance(raw, list):
+                raw = []
+        except Exception:
+            raw = []
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    # Build daily buckets
+    daily: dict[str, list[float]] = {}
+    for snap in raw:
+        ts_str = snap.get("timestamp") or snap.get("created_at") or ""
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if ts < cutoff:
+            continue
+        day_key = ts.strftime("%Y-%m-%d")
+        apy = snap.get("apy_bps", snap.get("apy", 0))
+        if isinstance(apy, (int, float)) and not math.isnan(apy):
+            daily.setdefault(day_key, []).append(float(apy))
+
+    # If no real data, synthesise a plausible yield curve from current known APYs
+    if not daily:
+        base_apy_bps = 420  # 4.2% baseline
+        points = []
+        cumulative = 0.0
+        for i in range(days):
+            day = (cutoff + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+            ts = (cutoff + timedelta(days=i + 1)).isoformat()
+            import random
+            daily_yield = (base_apy_bps / 365) / 100
+            noise = random.gauss(0, daily_yield * 0.15)
+            daily_yield = max(0, daily_yield + noise)
+            cumulative += daily_yield * 100
+            points.append({
+                "date": day,
+                "timestamp": ts,
+                "cumulative_yield": round(cumulative, 4),
+                "apy_bps": base_apy_bps,
+            })
+        return {"points": points, "source": "synthesised", "days": days}
+
+    points = []
+    cumulative = 0.0
+    for day_key in sorted(daily.keys()):
+        avg_apy = sum(daily[day_key]) / len(daily[day_key])
+        daily_yield = (avg_apy / 365) / 100
+        cumulative += daily_yield * 100
+        points.append({
+            "date": day_key,
+            "timestamp": f"{day_key}T00:00:00+00:00",
+            "cumulative_yield": round(cumulative, 4),
+            "apy_bps": int(avg_apy),
+        })
+
+    return {"points": points, "source": "strategy_performance", "days": days}
 
 
 @router.get("/{vault_id}/receipts")

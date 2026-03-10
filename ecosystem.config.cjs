@@ -24,9 +24,8 @@ module.exports = {
     {
       name: "zkdefi-backend",
       cwd: "./backend",
-      script: "../.venv_py311/bin/python3",
-      args: "-m uvicorn app.main:app --host 0.0.0.0 --port 8003",
-      interpreter: "none",
+      script: "./start.sh",
+      interpreter: "bash",
       watch: false,
       max_restarts: 10,
       min_uptime: "2s",

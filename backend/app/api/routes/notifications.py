@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from pydantic import BaseModel
 
+from app.middleware.auth import WalletOwner
+
 router = APIRouter(tags=["notifications"])
 
 
@@ -70,7 +72,7 @@ async def get_notifications(
 
 
 @router.post("/{notification_id}/read")
-async def mark_notification_read(notification_id: str, user_address: str):
+async def mark_notification_read(notification_id: str, user_address: str, _caller: str = WalletOwner):
     """Mark a notification as read."""
     from app.services.notification_service import get_notification_service
     
@@ -85,7 +87,7 @@ async def mark_notification_read(notification_id: str, user_address: str):
 
 
 @router.post("/read-all")
-async def mark_all_read(user_address: str):
+async def mark_all_read(user_address: str, _caller: str = WalletOwner):
     """Mark all notifications as read for a user."""
     from app.services.notification_service import get_notification_service
     
@@ -97,7 +99,7 @@ async def mark_all_read(user_address: str):
 
 
 @router.delete("")
-async def clear_notifications(user_address: str):
+async def clear_notifications(user_address: str, _caller: str = WalletOwner):
     """Clear all notifications for a user."""
     from app.services.notification_service import get_notification_service
     

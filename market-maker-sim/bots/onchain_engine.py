@@ -122,6 +122,9 @@ class OnChainEngine:
             "limit": bool(limit_enabled_on_start),
         }
 
+        # Fleet runner (attached after construction by api/main.py startup)
+        self.fleet: Any = None
+
         # Real activity bots (only created if wallet is configured)
         self.swap_bot: SwapBot | None = None
         self.lp_bot: LPBot | None = None
@@ -245,6 +248,17 @@ class OnChainEngine:
             "last_actions": [],
         }
 
+    def set_startup_flags(
+        self, *, swap: bool | None = None, lp: bool | None = None, limit: bool | None = None
+    ) -> None:
+        """Override bot startup flags (call before start())."""
+        if swap is not None:
+            self._bot_startup_flags["swap"] = swap
+        if lp is not None:
+            self._bot_startup_flags["lp"] = lp
+        if limit is not None:
+            self._bot_startup_flags["limit"] = limit
+
     async def start(self) -> None:
         if self._running:
             return
@@ -328,7 +342,10 @@ class OnChainEngine:
         """Admin: trigger a single swap immediately."""
         if not self.swap_bot:
             raise ValueError("Swap bot not configured (no wallet)")
-        result = await self.swap_bot.execute_one(pair_name=pair)
+        result = await self.swap_bot.execute_one(
+            pair_name=pair,
+            allow_extreme_tick=bool(pair),
+        )
         await self._emit("trade", "Admin-triggered swap", {
             "success": result.success,
             "pair": result.pair,
@@ -617,7 +634,10 @@ class OnChainEngine:
         """Admin: trigger a real swap or apply display override."""
         if self.swap_bot:
             # Execute real swap
-            result = await self.swap_bot.execute_one(pair_name=pair)
+            result = await self.swap_bot.execute_one(
+                pair_name=pair,
+                allow_extreme_tick=bool(pair),
+            )
             await self._emit("trade", f"Manual {side} trade", {
                 "pair": pair, "side": side, "notional_usd": notional_usd,
                 "tx_hash": result.tx_hash, "success": result.success,
@@ -681,6 +701,12 @@ class OnChainEngine:
             out["fee_automation"] = dict(self._fee_automation)
             out["coordination_policy"] = dict(self._coordination_policy)
             out["coordination"] = dict(self._coordination_state)
+            # Include fleet summary if available
+            if self.fleet is not None:
+                try:
+                    out["fleet"] = self.fleet.fleet_status()
+                except Exception:
+                    out["fleet"] = None
             return out
 
     async def admin_state(self) -> dict[str, Any]:
@@ -835,15 +861,19 @@ class OnChainEngine:
                             self._bot_volume_overlay_usd[pair] = min(10_000_000.0, current + delta_usd_equiv)
 
             # Periodic boundary pool recovery probes to broaden cross-pool activity.
+            target_focus = {pair.lower() for pair in self._coordination_target_pairs(base_snapshot)}
             boundary_candidates: list[tuple[str, int, float]] = []
             for pool in (base_snapshot.get("pools") or []):
                 pair = str(pool.get("name") or "").strip()
+                if target_focus and pair.lower() not in target_focus:
+                    continue
                 tick = int(pool.get("tick") or 0)
                 if pair and abs(tick) >= MAX_TICK - 10_000:
                     boundary_candidates.append((pair, abs(tick), float(pool.get("tvl_usd") or 0.0)))
             # Recover multiple highest-priority boundary pools per poll for faster convergence.
             boundary_candidates.sort(key=lambda item: (item[1], item[2]), reverse=True)
-            for pair, _tick_abs, _tvl in boundary_candidates[:2]:
+            recovery_budget = max(2, min(4, len(target_focus) if target_focus else 2))
+            for pair, _tick_abs, _tvl in boundary_candidates[:recovery_budget]:
                 await self._attempt_boundary_recovery(pair_name=pair, reason="boundary_probe")
 
             await self._maybe_run_coordination_cycle(base_snapshot)
@@ -945,14 +975,21 @@ class OnChainEngine:
                 seen.add(lowered)
                 pairs.append(name)
 
-        allow_list = {
+        explicit_targets = {
             str(pair).strip().lower()
             for pair in (self._coordination_policy.get("target_pairs") or [])
             if str(pair).strip()
         }
+        volume_target_keys = {
+            str(pair).strip().lower()
+            for pair, target in dict(self._coordination_policy.get("volume_targets_usd", {})).items()
+            if str(pair).strip() and float(target or 0.0) > 0
+        }
+        allow_list = explicit_targets or volume_target_keys
         if not allow_list:
             return pairs
-        return [pair for pair in pairs if pair.lower() in allow_list]
+        filtered = [pair for pair in pairs if pair.lower() in allow_list]
+        return filtered or pairs
 
     async def _maybe_run_coordination_cycle(
         self,
@@ -963,6 +1000,12 @@ class OnChainEngine:
         if not self.lp_bot:
             return None
         if not bool(self._coordination_policy.get("enabled", True)):
+            return None
+
+        # When fleet is active, it handles all trading — skip coordination's
+        # direct swap/LP/limit calls to avoid nonce contention on the shared wallet.
+        fleet_active = self.fleet is not None and getattr(self.fleet, "_running", False)
+        if fleet_active:
             return None
 
         now = time.time()
@@ -1043,6 +1086,16 @@ class OnChainEngine:
                 for pair, count in pool_usage.items()
                 if int(count or 0) > 0 and str(pair).strip().lower() in target_pair_keys
             }
+        # Also count fleet agent swap coverage
+        if self.fleet is not None:
+            try:
+                fleet_usage = self.fleet.agent_pool_usage()
+                for pair, count in fleet_usage.items():
+                    if int(count or 0) > 0 and str(pair).strip().lower() in target_pair_keys:
+                        covered_pair_keys.add(str(pair).strip().lower())
+            except Exception:
+                pass
+        if target_pairs:
             pools_covered_before = len(covered_pair_keys)
             coverage_ratio_before = pools_covered_before / max(1, pools_targeted)
 
@@ -1072,10 +1125,13 @@ class OnChainEngine:
                 size_multiplier = min(max_swap_mult, max(min_swap_mult, 1.8))
                 behavior = "retail"
                 try:
+                    if abs(int(pool_by_name.get(pair.lower(), {}).get("tick") or 0)) >= MAX_TICK - 10_000:
+                        await self._attempt_boundary_recovery(pair_name=pair, reason="coverage_boost")
                     swap_result = await self.swap_bot.execute_one(
                         pair_name=pair,
                         size_multiplier=size_multiplier,
                         behavior=behavior,
+                        allow_extreme_tick=True,
                     )
                 except Exception as exc:
                     errors.append(f"coverage_boost:{pair}:{exc}")
@@ -1231,10 +1287,13 @@ class OnChainEngine:
                     behavior = "degen"
 
                 try:
+                    if abs(int(pool_by_name.get(pair.lower(), {}).get("tick") or 0)) >= MAX_TICK - 10_000:
+                        await self._attempt_boundary_recovery(pair_name=pair, reason="volume_ramp")
                     swap_result = await self.swap_bot.execute_one(
                         pair_name=pair,
                         size_multiplier=size_multiplier,
                         behavior=behavior,
+                        allow_extreme_tick=True,
                     )
                 except Exception as exc:
                     errors.append(f"volume_ramp:{pair}:{exc}")
@@ -1339,6 +1398,10 @@ class OnChainEngine:
     async def _attempt_boundary_recovery(self, pair_name: str, reason: str) -> None:
         pair = str(pair_name or "").strip()
         if not pair:
+            return
+        # Skip when fleet is active — fleet agents handle their own recovery via
+        # allow_extreme_tick=True in their swap loops.
+        if self.fleet is not None and getattr(self.fleet, "_running", False):
             return
         now = time.time()
         last_ts = float(self._boundary_recovery_last_ts.get(pair, 0.0) or 0.0)
@@ -1484,6 +1547,21 @@ class OnChainEngine:
             if bot_overlay > 0:
                 pool["volume_24h_usd"] = max(0.0, float(pool.get("volume_24h_usd", 0)) + bot_overlay)
                 pool["bot_generated_volume_usd"] = round(bot_overlay, 2)
+
+        # Overlay fleet agent volume into each pool.
+        if self.fleet is not None:
+            try:
+                fleet_overlay = self.fleet.agent_volume_overlay()
+                for pool in pools:
+                    name = str(pool.get("name", "")).strip()
+                    fleet_vol = float(fleet_overlay.get(name, 0.0) or 0.0)
+                    if fleet_vol > 0:
+                        pool["volume_24h_usd"] = max(0.0, float(pool.get("volume_24h_usd", 0)) + fleet_vol)
+                        existing_bot = float(pool.get("bot_generated_volume_usd", 0.0) or 0.0)
+                        pool["bot_generated_volume_usd"] = round(existing_bot + fleet_vol, 2)
+                        pool["fleet_volume_usd"] = round(fleet_vol, 2)
+            except Exception:
+                pass  # fleet overlay is best-effort
 
         # Scenario shock
         if self._scenario_ticks_remaining > 0 and self._scenario_kind:

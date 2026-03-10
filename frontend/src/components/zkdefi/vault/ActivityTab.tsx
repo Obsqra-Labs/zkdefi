@@ -153,7 +153,7 @@ export function ActivityTab({ address }: { address?: string }) {
     (async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/v1/zkdefi/vault/activity/${address}?limit=100`,
+          `${API_BASE}/v1/zkdefi/vault/activity/${address}?limit=100`,
         );
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));

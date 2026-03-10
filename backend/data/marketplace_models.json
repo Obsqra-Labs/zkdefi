@@ -1,0 +1,38 @@
+{
+  "model_zkml_base_v0": {
+    "id": "model_zkml_base_v0",
+    "name": "zkML Base Model v0",
+    "description": "Base model for autonomous LP rebalancing with ZK proofs",
+    "type": "proof-gated-lp-agent",
+    "creator": "obsqra-labs",
+    "fee_bps": 0,
+    "status": "active",
+    "verified": true,
+    "downloads": 0,
+    "created_at": "2025-06-01T00:00:00+00:00"
+  },
+  "model_groth16_verifier": {
+    "id": "model_groth16_verifier",
+    "name": "Groth16 Proof Verifier",
+    "description": "Circuit-verified execution gating with Groth16 proofs",
+    "type": "groth16",
+    "creator": "obsqra-labs",
+    "fee_bps": 0,
+    "status": "active",
+    "verified": true,
+    "downloads": 0,
+    "created_at": "2025-06-15T00:00:00+00:00"
+  },
+  "model_stone_prover": {
+    "id": "model_stone_prover",
+    "name": "STONE LP Prover",
+    "description": "STONE-based proof generation for privacy-preserving LP management",
+    "type": "stone",
+    "creator": "obsqra-labs",
+    "fee_bps": 50,
+    "status": "active",
+    "verified": true,
+    "downloads": 0,
+    "created_at": "2025-07-01T00:00:00+00:00"
+  }
+}

@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.session_key_service import get_session_service
+from app.services.trust_event_service import log_trust_event
 
 router = APIRouter()
 
@@ -69,6 +70,19 @@ async def grant_session(data: GrantSessionRequest):
             allowed_protocols=data.allowed_protocols,
             duration_hours=data.duration_hours
         )
+        await log_trust_event(
+            data.owner_address,
+            "session_grant_requested",
+            gate="execution",
+            outcome="pending",
+            metadata={
+                "session_id": result.get("session_id"),
+                "max_position": data.max_position,
+                "allowed_protocols": data.allowed_protocols,
+                "duration_hours": data.duration_hours,
+            },
+            receipt_proof_type="session_grant_requested",
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -85,6 +99,19 @@ async def confirm_grant(data: ConfirmGrantRequest):
             session_id=data.session_id,
             tx_hash=data.tx_hash
         )
+        owner = service.get_session_owner(data.session_id)
+        if owner:
+            await log_trust_event(
+                owner,
+                "session_grant_confirmed",
+                gate="execution",
+                outcome="active",
+                metadata={
+                    "session_id": data.session_id,
+                    "tx_hash": data.tx_hash,
+                },
+                receipt_proof_type="session_grant",
+            )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,6 +130,14 @@ async def revoke_session(data: RevokeSessionRequest):
             session_id=data.session_id,
             owner_address=data.owner_address
         )
+        await log_trust_event(
+            data.owner_address,
+            "session_revoke_requested",
+            gate="execution",
+            outcome="pending",
+            metadata={"session_id": data.session_id},
+            receipt_proof_type="session_revoke_requested",
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -119,6 +154,19 @@ async def confirm_revoke(data: ConfirmRevokeRequest):
             session_id=data.session_id,
             tx_hash=data.tx_hash
         )
+        owner = service.get_session_owner(data.session_id)
+        if owner:
+            await log_trust_event(
+                owner,
+                "session_revoked",
+                gate="execution",
+                outcome="revoked",
+                metadata={
+                    "session_id": data.session_id,
+                    "tx_hash": data.tx_hash,
+                },
+                receipt_proof_type="session_revoke",
+            )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
