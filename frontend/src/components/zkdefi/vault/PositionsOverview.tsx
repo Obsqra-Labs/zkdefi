@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, Layers, ShieldCheck, TrendingUp } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, ShieldCheck, TrendingUp } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment } from "@/hooks/usePrivacyVault";
 import { API_BASE } from "@/lib/api/client";
 import { CapitalFlowPipeline } from "./CapitalFlowPipeline";
@@ -16,6 +16,14 @@ interface PositionsOverviewProps {
   address?: string;
   walletBalance?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Pool ordering
+// ---------------------------------------------------------------------------
+
+/** Canonical pool keys in display order */
+const POOL_ORDER = ["conservative", "moderate", "aggressive"] as const;
+type PoolKey = (typeof POOL_ORDER)[number];
 
 // ---------------------------------------------------------------------------
 // Styling maps
@@ -35,18 +43,24 @@ const METHOD_LABELS: Record<PrivacyMethod, string> = {
 
 const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof"];
 
-const POOL_VARIANT_COLORS: Record<string, { bg: string; text: string }> = {
-  conservative: { bg: "bg-blue-500/15", text: "text-blue-400" },
-  moderate: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  balanced: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  aggressive: { bg: "bg-orange-500/15", text: "text-orange-400" },
+const POOL_COLORS: Record<string, { bg: string; text: string; bar: string; border: string }> = {
+  conservative: { bg: "bg-blue-500/10", text: "text-blue-400", bar: "bg-blue-400", border: "border-blue-500/20" },
+  moderate:     { bg: "bg-emerald-500/10", text: "text-emerald-400", bar: "bg-emerald-400", border: "border-emerald-500/20" },
+  balanced:     { bg: "bg-emerald-500/10", text: "text-emerald-400", bar: "bg-emerald-400", border: "border-emerald-500/20" },
+  aggressive:   { bg: "bg-orange-500/10", text: "text-orange-400", bar: "bg-orange-400", border: "border-orange-500/20" },
 };
 
-const POOL_VARIANT_LABELS: Record<string, string> = {
+const POOL_LABELS: Record<string, string> = {
   conservative: "Conservative",
   moderate: "Moderate",
   balanced: "Moderate",
   aggressive: "Aggressive",
+};
+
+const POOL_DESCRIPTIONS: Record<string, string> = {
+  conservative: "80/20 Stablecoin-weighted",
+  moderate: "50/50 Balanced allocation",
+  aggressive: "20/80 High-yield strategies",
 };
 
 const FALLBACK_DEPLOYMENT = [
@@ -65,6 +79,12 @@ function formatWei(wei: string, asset: string): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${asset}`;
 }
 
+function formatWeiShort(wei: bigint): string {
+  const value = Number(wei) / 1e18;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
@@ -79,6 +99,29 @@ function daysSince(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
+/** Normalize pool_variant / pool_type to canonical pool key */
+function resolvePoolKey(c: VaultCommitment): PoolKey {
+  const v = c.pool_variant?.toLowerCase();
+  if (v === "conservative" || v === "moderate" || v === "aggressive") return v;
+  if (v === "balanced" || v === "neutral") return "moderate";
+  // Fallback: pool_type number → key
+  if (c.pool_type === 0) return "conservative";
+  if (c.pool_type === 2) return "aggressive";
+  return "moderate"; // default
+}
+
+// ---------------------------------------------------------------------------
+// Pool group type
+// ---------------------------------------------------------------------------
+
+interface PoolGroup {
+  key: PoolKey;
+  commitments: VaultCommitment[];
+  totalWei: bigint;
+  yieldWei: bigint;
+  methodCounts: Partial<Record<PrivacyMethod, number>>;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -91,6 +134,8 @@ export default function PositionsOverview({
 }: PositionsOverviewProps) {
   const [view, setView] = useState<"privacy" | "public">("privacy");
   const [deployment, setDeployment] = useState(FALLBACK_DEPLOYMENT);
+  const [poolApys, setPoolApys] = useState<Record<string, number>>({});
+  const [expandedPools, setExpandedPools] = useState<Set<PoolKey>>(new Set(POOL_ORDER));
 
   // Fetch capital deployment stats
   useEffect(() => {
@@ -121,19 +166,49 @@ export default function PositionsOverview({
     return () => controller.abort();
   }, [address]);
 
+  // Fetch pool APYs
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE}/v1/zkdefi/oracle/pool-apys`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        const apys: Record<string, number> = {};
+        if (Array.isArray(data)) {
+          for (const d of data) {
+            const pct = d.blended_apy_pct ?? d.blended_apy ?? null;
+            const key = (d.pool_type ?? d.name ?? "").toLowerCase();
+            if (pct != null && key) apys[key] = Number(pct);
+          }
+        }
+        setPoolApys(apys);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
   // ---- Derived data ----
 
-  const totalByAsset = useMemo(() => {
-    const map: Record<string, bigint> = {};
+  /** Group commitments by pool */
+  const poolGroups = useMemo<PoolGroup[]>(() => {
+    const map: Record<PoolKey, PoolGroup> = {
+      conservative: { key: "conservative", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
+      moderate: { key: "moderate", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
+      aggressive: { key: "aggressive", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
+    };
     for (const c of commitments) {
-      map[c.asset] = (map[c.asset] ?? BigInt(0)) + BigInt(c.amount_wei || "0");
+      const pk = resolvePoolKey(c);
+      const g = map[pk];
+      g.commitments.push(c);
+      g.totalWei += BigInt(c.amount_wei || "0");
+      if (c.yield_accrued) g.yieldWei += BigInt(c.yield_accrued);
+      g.methodCounts[c.method] = (g.methodCounts[c.method] ?? 0) + 1;
     }
-    return map;
+    return POOL_ORDER.map((k) => map[k]);
   }, [commitments]);
 
   const totalValueWei = useMemo(
-    () => Object.values(totalByAsset).reduce((a, b) => a + b, BigInt(0)),
-    [totalByAsset],
+    () => poolGroups.reduce((a, g) => a + g.totalWei, BigInt(0)),
+    [poolGroups],
   );
 
   const privacyCoverage = useMemo(() => {
@@ -145,37 +220,23 @@ export default function PositionsOverview({
   }, [commitments, totalValueWei]);
 
   const yieldTotal = useMemo(() => {
-    let total = BigInt(0);
-    let hasYield = false;
-    for (const c of commitments) {
-      if (c.yield_accrued) {
-        total += BigInt(c.yield_accrued);
-        hasYield = true;
-      }
-    }
-    return hasYield ? total : null;
-  }, [commitments]);
-
-  const byMethod = useMemo(() => {
-    const map: Partial<Record<PrivacyMethod, { count: number; total: bigint }>> = {};
-    for (const c of commitments) {
-      const entry = map[c.method] ?? { count: 0, total: BigInt(0) };
-      entry.count += 1;
-      entry.total += BigInt(c.amount_wei || "0");
-      map[c.method] = entry;
-    }
-    return map;
-  }, [commitments]);
-
-  const methodKeys = (Object.keys(byMethod) as PrivacyMethod[]).filter(
-    (m) => byMethod[m]!.total > BigInt(0),
-  );
+    const total = poolGroups.reduce((a, g) => a + g.yieldWei, BigInt(0));
+    return total > BigInt(0) ? total : null;
+  }, [poolGroups]);
 
   // Pipeline balances (ETH strings)
   const totalEth = Number(totalValueWei) / 1e18;
   const idlePct = deployment.find((d) => d.source === "Idle")?.pct ?? 0;
   const deployedEth = totalEth * (1 - idlePct / 100);
   const idleEth = totalEth * (idlePct / 100);
+
+  const togglePool = (k: PoolKey) => {
+    setExpandedPools((prev) => {
+      const n = new Set(prev);
+      if (n.has(k)) n.delete(k); else n.add(k);
+      return n;
+    });
+  };
 
   // ---- Render ----
 
@@ -187,10 +248,11 @@ export default function PositionsOverview({
         deployedBalance={deployedEth.toFixed(2)}
         idleBalance={idleEth.toFixed(2)}
       />
+
       {/* Privacy / Public toggle */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white/80 tracking-wide uppercase">
-          Positions Overview
+          Your Positions
         </h3>
         <div className="flex gap-1 rounded-lg bg-white/[0.04] p-0.5">
           <button
@@ -226,13 +288,9 @@ export default function PositionsOverview({
             Total Value
           </div>
           <div className="text-white text-sm font-medium">
-            {Object.keys(totalByAsset).length === 0
+            {totalValueWei === BigInt(0)
               ? "--"
-              : Object.entries(totalByAsset).map(([asset, wei]) => (
-                  <span key={asset} className="block">
-                    {formatWei(wei.toString(), asset as "STRK" | "ETH")}
-                  </span>
-                ))}
+              : `${formatWeiShort(totalValueWei)} STRK`}
           </div>
         </div>
 
@@ -257,123 +315,156 @@ export default function PositionsOverview({
         </div>
       </div>
 
-      {/* Allocation bar */}
-      {methodKeys.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex h-2.5 rounded-full overflow-hidden bg-white/[0.04]">
-            {methodKeys.map((m) => {
-              const pct =
-                totalValueWei > BigInt(0)
-                  ? Number((byMethod[m]!.total * BigInt(10000)) / totalValueWei) / 100
-                  : 0;
-              return (
-                <div
-                  key={m}
-                  className={`${METHOD_COLORS[m].bar} first:rounded-l-full last:rounded-r-full`}
-                  style={{ width: `${pct}%` }}
-                />
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {methodKeys.map((m) => (
-              <div key={m} className="flex items-center gap-1.5 text-[11px] text-white/50">
-                <span className={`inline-block w-2 h-2 rounded-full ${METHOD_COLORS[m].bar}`} />
-                <span>{METHOD_LABELS[m]}</span>
-                <span className="text-white/30">
-                  {formatWei(byMethod[m]!.total.toString(), "STRK")}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Privacy View: aggregated only */}
-      {view === "privacy" && commitments.length > 0 && (
-        <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 space-y-2">
-          <p className="text-xs text-white/40">
-            Aggregated view — individual positions hidden
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {methodKeys.map((m) => (
-              <div key={m} className="flex items-center gap-2 text-xs">
-                <span
-                  className={`px-2 py-0.5 rounded ${METHOD_COLORS[m].bg} ${METHOD_COLORS[m].text}`}
-                >
-                  {METHOD_LABELS[m]}
-                </span>
-                <span className="text-white/50">
-                  {byMethod[m]!.count} position{byMethod[m]!.count > 1 ? "s" : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Public View: full table */}
-      {view === "public" && (
-        <>
-          {commitments.length === 0 ? (
-            <p className="text-center text-white/30 text-sm py-6">No positions yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-white/30 text-left border-b border-white/5">
-                    <th className="pb-2 font-medium">Position</th>
-                    <th className="pb-2 font-medium">Method</th>
-                    <th className="pb-2 font-medium">Pool</th>
-                    <th className="pb-2 font-medium">Deposited</th>
-                    <th className="pb-2 font-medium text-right">Yield</th>
-                    <th className="pb-2 font-medium text-right">Age</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {commitments.map((c) => (
-                    <tr
-                      key={c.id}
-                      onClick={() => onSelectCommitment?.(c.id)}
-                      className="border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.03] transition-colors"
-                    >
-                      <td className="py-2 text-white/80 font-medium">
-                        {formatWei(c.amount_wei, c.asset)}
-                      </td>
-                      <td className="py-2">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] ${METHOD_COLORS[c.method].bg} ${METHOD_COLORS[c.method].text}`}
-                        >
-                          {METHOD_LABELS[c.method]}
-                        </span>
-                      </td>
-                      <td className="py-2">
-                        {c.pool_variant ? (
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] ${(POOL_VARIANT_COLORS[c.pool_variant] ?? POOL_VARIANT_COLORS.balanced).bg} ${(POOL_VARIANT_COLORS[c.pool_variant] ?? POOL_VARIANT_COLORS.balanced).text}`}
-                          >
-                            {POOL_VARIANT_LABELS[c.pool_variant] ?? c.pool_variant}
-                          </span>
-                        ) : (
-                          <span className="text-white/20 text-[11px]">—</span>
-                        )}
-                      </td>
-                      <td className="py-2 text-white/40">{timeAgo(c.deposited_at)}</td>
-                      <td className="py-2 text-right text-white/50">
-                        {c.yield_accrued
-                          ? formatWei(c.yield_accrued, c.asset)
-                          : "--"}
-                      </td>
-                      <td className="py-2 text-right text-white/40">
-                        {daysSince(c.deposited_at)}d
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* ── Pool-centric position groups ── */}
+      {commitments.length === 0 ? (
+        <p className="text-center text-white/30 text-sm py-6">No positions yet — deposit to get started</p>
+      ) : (
+        <div className="space-y-3">
+          {/* Pool allocation bar */}
+          <div className="space-y-2">
+            <div className="flex h-2.5 rounded-full overflow-hidden bg-white/[0.04]">
+              {poolGroups.map((g) => {
+                if (g.totalWei === BigInt(0) || totalValueWei === BigInt(0)) return null;
+                const pct = Number((g.totalWei * BigInt(10000)) / totalValueWei) / 100;
+                return (
+                  <div
+                    key={g.key}
+                    className={`${POOL_COLORS[g.key].bar} first:rounded-l-full last:rounded-r-full`}
+                    style={{ width: `${pct}%` }}
+                    title={`${POOL_LABELS[g.key]}: ${pct.toFixed(1)}%`}
+                  />
+                );
+              })}
             </div>
-          )}
-        </>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {poolGroups.filter((g) => g.totalWei > BigInt(0)).map((g) => (
+                <div key={g.key} className="flex items-center gap-1.5 text-[11px] text-white/50">
+                  <span className={`inline-block w-2 h-2 rounded-full ${POOL_COLORS[g.key].bar}`} />
+                  <span>{POOL_LABELS[g.key]}</span>
+                  <span className="text-white/30">
+                    {formatWeiShort(g.totalWei)} STRK
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pool groups */}
+          {poolGroups.map((g) => {
+            const apy = poolApys[g.key] ?? poolApys[POOL_LABELS[g.key]?.toLowerCase() ?? ""] ?? null;
+            const colors = POOL_COLORS[g.key];
+            const expanded = expandedPools.has(g.key);
+            const hasPositions = g.commitments.length > 0;
+
+            return (
+              <div key={g.key} className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden`}>
+                {/* Pool header — always shown */}
+                <button
+                  onClick={() => hasPositions && togglePool(g.key)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    {hasPositions ? (
+                      expanded ? <ChevronDown size={14} className="text-white/30" /> : <ChevronRight size={14} className="text-white/30" />
+                    ) : (
+                      <div className="w-3.5" />
+                    )}
+                    <div>
+                      <span className={`text-sm font-semibold ${colors.text}`}>
+                        {POOL_LABELS[g.key]}
+                      </span>
+                      <span className="text-[11px] text-white/30 ml-2">
+                        {POOL_DESCRIPTIONS[g.key]}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    {apy != null && (
+                      <span className="text-emerald-400 font-medium">{apy.toFixed(1)}% APY</span>
+                    )}
+                    {hasPositions ? (
+                      <>
+                        <span className="text-white/60 font-medium">
+                          {formatWeiShort(g.totalWei)} STRK
+                        </span>
+                        <span className="text-white/30">
+                          {g.commitments.length} position{g.commitments.length > 1 ? "s" : ""}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-white/20">No positions</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded: show commitments */}
+                {hasPositions && expanded && (
+                  <div className="border-t border-white/[0.06] px-4 pb-3 pt-2 space-y-1.5">
+                    {/* Privacy View — aggregated only */}
+                    {view === "privacy" ? (
+                      <div className="flex flex-wrap gap-2 py-1">
+                        {(Object.entries(g.methodCounts) as [PrivacyMethod, number][]).map(([m, count]) => (
+                          <div key={m} className="flex items-center gap-1.5 text-xs">
+                            <span className={`px-2 py-0.5 rounded ${METHOD_COLORS[m].bg} ${METHOD_COLORS[m].text}`}>
+                              {METHOD_LABELS[m]}
+                            </span>
+                            <span className="text-white/40">
+                              {count} position{count > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="ml-auto text-[11px] text-white/30 self-center">
+                          aggregated — individual positions hidden
+                        </div>
+                      </div>
+                    ) : (
+                      /* Public View — per-commitment rows */
+                      <div className="space-y-1">
+                        {g.commitments.map((c) => (
+                          <div
+                            key={c.id}
+                            onClick={() => onSelectCommitment?.(c.id)}
+                            className="flex items-center justify-between rounded-md px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-white/80 text-xs font-medium min-w-[100px]">
+                                {formatWei(c.amount_wei, c.asset)}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[11px] ${METHOD_COLORS[c.method].bg} ${METHOD_COLORS[c.method].text}`}>
+                                {METHOD_LABELS[c.method]}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px]">
+                              <span className="text-white/40">
+                                {c.yield_accrued ? formatWei(c.yield_accrued, c.asset) : "—"}
+                              </span>
+                              <span className="text-white/30 min-w-[40px] text-right">
+                                {timeAgo(c.deposited_at)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Totals row */}
+          <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
+            <span className="text-white/50 font-medium uppercase tracking-wide">Total Portfolio</span>
+            <div className="flex items-center gap-4">
+              <span className="text-white font-semibold">
+                {formatWeiShort(totalValueWei)} STRK
+              </span>
+              <span className="text-white/30">
+                {commitments.length} commitment{commitments.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Capital Deployed */}
