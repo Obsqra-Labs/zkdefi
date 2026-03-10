@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAccount } from "@starknet-react/core";
 import { Key, Clock, Shield, X, Check, AlertTriangle, Loader2 } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 const SESSION_KEY_MANAGER_ADDRESS = process.env.NEXT_PUBLIC_SESSION_KEY_MANAGER_ADDRESS || "";
 
 interface Session {

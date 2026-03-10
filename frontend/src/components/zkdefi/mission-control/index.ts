@@ -1,12 +1,13 @@
 export { MissionControlLayout, type OverlayMode } from "./MissionControlLayout";
 export { HeaderStrip } from "./HeaderStrip";
+export { CapitalLedger } from "./CapitalLedger";
 export { ControlPlane } from "./ControlPlane";
 export { UnifiedStream } from "./UnifiedStream";
 export { StreamCard, type StreamItem } from "./StreamCard";
 export { CircuitBoard } from "./CircuitBoard";
+export { DeployOverlay, type DeployMode, type DeployOverlayProps } from "./DeployOverlay";
+export { GovernanceOverlay, type GovernanceOverlayProps } from "./GovernanceOverlay";
+export { CenterStageModes, type CenterMode, type CenterStageModesProps } from "./CenterStageModes";
 export { ProofChainStrip } from "./ProofChainStrip";
 export { OracleDashboardStrip } from "./OracleDashboardStrip";
 export { AgentInsightsStrip } from "./AgentInsightsStrip";
-export { VaultCenterStage, type VaultCenterStageProps } from "./VaultCenterStage";
-export { IdentityBadge } from "./IdentityBadge";
-export { AgentControls } from "./AgentControls";

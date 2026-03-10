@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Droplets, Loader2, Shield, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Droplets, Loader2, Shield, TrendingUp } from "lucide-react";
 import { apiUrl } from "@/lib/api/client";
 import { PrivacyPoolAdapter } from "@/services/adapters/PrivacyPoolAdapter";
 import { PoolLiquidityManager } from "@/services/adapters/PoolLiquidityManager";
@@ -26,19 +26,6 @@ interface PrivacyPoolsPanelProps {
   address?: string;
 }
 
-type PoolRow = {
-  stats?: any;
-  liquidity?: any;
-  userDeposited: number;
-  error?: string;
-};
-
-const EMPTY_ROWS: Record<PoolId, PoolRow> = {
-  CONSERVATIVE_POOL: { userDeposited: 0 },
-  MODERATE_POOL: { userDeposited: 0 },
-  AGGRESSIVE_POOL: { userDeposited: 0 },
-};
-
 export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
   const adapter = useMemo(() => new PrivacyPoolAdapter(), []);
   const liquidity = useMemo(() => new PoolLiquidityManager(), []);
@@ -50,17 +37,27 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
     MODERATE_POOL: "",
     AGGRESSIVE_POOL: "",
   });
-  const amountsRef = useRef(amounts);
-  amountsRef.current = amounts;
-
-  const [rows, setRows] = useState<Record<PoolId, PoolRow>>(EMPTY_ROWS);
-  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [rows, setRows] = useState<
+    Record<
+      PoolId,
+      {
+        stats?: any;
+        liquidity?: any;
+        userDeposited: number;
+      }
+    >
+  >({
+    CONSERVATIVE_POOL: { userDeposited: 0 },
+    MODERATE_POOL: { userDeposited: 0 },
+    AGGRESSIVE_POOL: { userDeposited: 0 },
+  });
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setGlobalError(null);
+    setError(null);
     setLoading(true);
     try {
-      const settled = await Promise.allSettled(
+      const entries = await Promise.all(
         POOLS.map(async (pool) => {
           const [stats, liq] = await Promise.all([
             adapter.getPoolStats(pool.id),
@@ -79,27 +76,13 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
           return [pool.id, { stats, liquidity: liq, userDeposited }] as const;
         })
       );
-
       setRows((prev) => {
         const next = { ...prev };
-        settled.forEach((result, i) => {
-          const poolId = POOLS[i].id;
-          if (result.status === "fulfilled") {
-            const [, payload] = result.value;
-            next[poolId] = { ...payload, error: undefined };
-          } else {
-            next[poolId] = {
-              ...prev[poolId],
-              error: result.reason instanceof Error
-                ? result.reason.message
-                : "Failed to load pool data",
-            };
-          }
-        });
+        for (const [poolId, payload] of entries) next[poolId] = payload;
         return next;
       });
     } catch (e) {
-      setGlobalError(e instanceof Error ? e.message : "Failed to load privacy pools");
+      setError(e instanceof Error ? e.message : "Failed to load privacy pools");
     } finally {
       setLoading(false);
     }
@@ -113,10 +96,10 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
 
   const onDeposit = useCallback(
     async (pool: PoolId) => {
-      const amount = Number(amountsRef.current[pool] || 0);
+      const amount = Number(amounts[pool] || 0);
       if (!Number.isFinite(amount) || amount <= 0) return;
       setBusyPool(pool);
-      setGlobalError(null);
+      setError(null);
       try {
         const r = await adapter.depositToPool({
           pool,
@@ -135,20 +118,20 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
         setAmounts((prev) => ({ ...prev, [pool]: "" }));
         await load();
       } catch (e) {
-        setGlobalError(e instanceof Error ? e.message : "Deposit failed");
+        setError(e instanceof Error ? e.message : "Deposit failed");
       } finally {
         setBusyPool(null);
       }
     },
-    [adapter, address, load]
+    [adapter, address, amounts, load]
   );
 
   const onWithdraw = useCallback(
     async (pool: PoolId) => {
-      const amount = Number(amountsRef.current[pool] || 0);
+      const amount = Number(amounts[pool] || 0);
       if (!Number.isFinite(amount) || amount <= 0 || !address) return;
       setBusyPool(pool);
-      setGlobalError(null);
+      setError(null);
       try {
         const r = await adapter.withdrawFromPool({
           pool,
@@ -165,12 +148,12 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
         setAmounts((prev) => ({ ...prev, [pool]: "" }));
         await load();
       } catch (e) {
-        setGlobalError(e instanceof Error ? e.message : "Withdraw failed");
+        setError(e instanceof Error ? e.message : "Withdraw failed");
       } finally {
         setBusyPool(null);
       }
     },
-    [adapter, address, load]
+    [adapter, address, amounts, load]
   );
 
   if (loading && !rows.CONSERVATIVE_POOL.stats) {
@@ -188,33 +171,14 @@ export function PrivacyPoolsPanel({ address }: PrivacyPoolsPanelProps) {
         DAO-governed privacy pools. Source is marked as simulated until live pool adapters are enabled.
       </div>
 
-      {globalError && (
+      {error && (
         <div className="rounded-lg border border-red-900/60 bg-red-950/20 p-3 text-sm text-red-300">
-          {globalError}
+          {error}
         </div>
       )}
 
       {POOLS.map((pool) => {
         const row = rows[pool.id];
-
-        if (row?.error) {
-          return (
-            <section key={pool.id} className="rounded-lg border border-red-900/40 bg-red-950/10 p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                <h3 className="text-sm font-semibold text-zinc-100">{pool.label} Pool</h3>
-              </div>
-              <p className="text-xs text-red-300">Failed to load: {row.error}</p>
-              <button
-                onClick={() => load()}
-                className="px-3 py-1.5 rounded border border-zinc-700 text-zinc-300 text-xs hover:bg-zinc-800"
-              >
-                Retry
-              </button>
-            </section>
-          );
-        }
-
         const stats = row?.stats || {};
         const util = Number(stats.utilizationRate || 0);
         const idlePct = 1 - util;

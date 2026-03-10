@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -10,10 +9,6 @@ from pydantic import BaseModel, Field
 
 from app.services.portable_identity_service import get_portable_identity_service
 from app.services.trust_event_service import log_trust_event
-from app.api.reputation import get_user_data, compute_reputation_score, compute_gates, TIER_INFO
-from app.services.credit_line_service import compute_credit_line
-from app.services.linked_addresses_store import get_linked
-from app.services.linked_address_verification_service import get_linked_address_verification_service
 
 router = APIRouter(tags=["portable-identity"])
 
@@ -158,38 +153,10 @@ async def derive_claims(req: ClaimsDeriveRequest) -> dict[str, Any]:
     coverage_score = float((attribution.get("summary") or {}).get("coverage_score", 0.0) or 0.0)
     verified_chain_count = int((attribution.get("summary") or {}).get("verified_chain_count", 0) or 0)
     activity_score = min(100.0, round(len(filtered_rows) * 2.5 + coverage_score * 25.0, 2))
-
-    subject_key = service.normalize_subject(req.subject)
-    user_data = get_user_data(subject_key)
-    tier = int(user_data.get("tier", 0))
-    tier_name = TIER_INFO.get(tier, TIER_INFO[0]).tier_name
-    tenure_days = 0
-    first_interaction = int(user_data.get("first_interaction", 0) or 0)
-    if first_interaction > 0:
-        tenure_days = int((time.time() - first_interaction) / 86400)
-    successful_txns = int(user_data.get("successful_txns", 0) or 0)
-    failed_txns = int(user_data.get("failed_txns", 0) or 0)
-    collateral_eth = float(user_data.get("collateral", 0) or 0) / 1e18
-    reputation_score = compute_reputation_score(tier, tenure_days, successful_txns, collateral_eth, failed_txns)
-    gates = compute_gates(tier)
-
-    linked = get_linked(subject_key)
-    verifier = get_linked_address_verification_service()
-    verified = verifier.filter_verified(subject_key, linked)
-    linked_count = len([v for k, v in verified.items() if k in ("eth", "arb", "base", "opt") and v])
-    cross_chain_verified = linked_count > 0
-
-    letter_rating = "A" if reputation_score >= 70 else ("B" if reputation_score >= 40 else ("C" if reputation_score >= 20 else "D"))
-    credit_line = compute_credit_line(
-        collateral_eth=collateral_eth,
-        tier=tier,
-        letter_rating=letter_rating,
-        linked_address_count=linked_count,
-        cross_chain_verified=cross_chain_verified,
-    )
+    reputation_score = min(100.0, round(activity_score * 0.55 + verified_chain_count * 15.0, 2))
 
     claims_payload = {
-        "subject": subject_key,
+        "subject": service.normalize_subject(req.subject),
         "window_days": req.window_days,
         "min_confidence": req.min_confidence,
         "summary": {
@@ -200,17 +167,6 @@ async def derive_claims(req: ClaimsDeriveRequest) -> dict[str, Any]:
         "claims": {
             "activity_score_0_100": activity_score,
             "reputation_score_0_100": reputation_score,
-            "reputation_tier": tier,
-            "reputation_tier_name": tier_name,
-            "tenure_days": tenure_days,
-            "gates": gates,
-            "letter_rating": letter_rating,
-            "credit_line_eth": credit_line.total_line_eth,
-            "collateral_line_eth": credit_line.collateral_line_eth,
-            "unsecured_cap_eth": credit_line.unsecured_cap_eth,
-            "rate_bps": credit_line.rate_bps,
-            "cross_chain_verified": cross_chain_verified,
-            "linked_chain_count": linked_count,
             "action_type_counts": action_type_counts,
             "protocol_counts": protocol_counts,
         },
@@ -229,9 +185,6 @@ async def derive_claims(req: ClaimsDeriveRequest) -> dict[str, Any]:
             "coverage_score": coverage_score,
             "verified_chain_count": verified_chain_count,
             "reputation_score_0_100": reputation_score,
-            "reputation_tier": tier,
-            "letter_rating": letter_rating,
-            "credit_line_eth": credit_line.total_line_eth,
         },
         receipt_proof_type="claims_derived",
     )

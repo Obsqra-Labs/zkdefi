@@ -14,7 +14,7 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 from app.middleware.auth import AdminOnly
-from datetime import datetime, timezone
+from datetime import datetime
 import logging
 import uuid
 import asyncio

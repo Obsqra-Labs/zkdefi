@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from app.middleware.auth import WalletOwner
 
-router = APIRouter(prefix="/v2", tags=["vault-v2"])
+router = APIRouter(prefix="/vault/v2", tags=["vault-v2"])
 
 from app.services.double_entry_ledger import DoubleEntryLedger
 from app.services.vault_account_service import VaultAccountService
@@ -135,7 +135,7 @@ def create_or_get_account(req: CreateAccountRequest, _caller: str = WalletOwner)
 
 @router.get("/{vault_id}/balance")
 def get_balance(vault_id: str):
-    ledger, vaults, notes_svc, *_ = _get_services()
+    ledger, vaults, *_ = _get_services()
     vault = vaults.get_vault(vault_id)
     if vault is None:
         raise HTTPException(status_code=404, detail=f"Vault {vault_id} not found")
@@ -145,20 +145,12 @@ def get_balance(vault_id: str):
     pending: dict = {}
     by_token: dict = {}
 
-    open_notes = notes_svc.list_notes(vault_id, status="OPEN")
-    notes_by_token: dict[str, int] = {}
-    for note in open_notes:
-        t = note.get("token", "")
-        notes_by_token[t] = notes_by_token.get(t, 0) + int(note.get("amount_wei", 0))
-
     for token in tokens:
         summary = ledger.vault_summary(vault_id, token)
-        note_total = notes_by_token.get(token, 0)
-        has_data = summary["available"] or summary["pending"] or summary["deployed"] or note_total
-        if has_data:
+        if summary["available"] or summary["pending"] or summary["deployed"]:
             available[token] = summary["available"]
             pending[token] = summary["pending"]
-            by_token[token] = {**summary, "notes": note_total}
+            by_token[token] = summary
 
     return {
         "vault_id": vault_id,

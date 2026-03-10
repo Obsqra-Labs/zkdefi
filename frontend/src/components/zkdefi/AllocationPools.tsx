@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Shield, Zap, Scale } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface PoolData {
   type: "conservative" | "neutral" | "aggressive";

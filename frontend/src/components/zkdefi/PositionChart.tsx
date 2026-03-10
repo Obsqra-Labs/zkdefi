@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, Shield, ArrowRight } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface Position {
   protocol: string;

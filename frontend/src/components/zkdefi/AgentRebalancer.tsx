@@ -13,7 +13,8 @@ import {
   Lock,
   Activity
 } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface Proposal {
   proposal_id: string;

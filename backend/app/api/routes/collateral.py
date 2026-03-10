@@ -346,8 +346,10 @@ async def get_collateral_health(address: str) -> CollateralHealthResponse:
 
         if borrowed_usd > 0:
             health_factor = total_collateral_usd / borrowed_usd
+        elif total_collateral_usd > 0:
+            health_factor = 99.0  # no debt → max healthy
         else:
-            health_factor = 99.0  # no debt → max healthy (even if no collateral)
+            health_factor = 0.0
 
         status = "healthy" if health_factor > 1.5 else ("at-risk" if health_factor >= 1.0 else "liquidation")
         liq_price = 0.0

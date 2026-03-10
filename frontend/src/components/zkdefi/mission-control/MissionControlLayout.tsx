@@ -3,9 +3,8 @@
 import type { ReactNode } from "react";
 import { HeaderStrip } from "./HeaderStrip";
 import { ProofChainStrip } from "./ProofChainStrip";
-import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
-export type OverlayMode = OverlayModeV2;
+export type OverlayMode = "deploy" | "circuit-board" | "governance" | "brain" | null;
 
 interface MissionControlLayoutProps {
   address: string | undefined;
@@ -15,8 +14,6 @@ interface MissionControlLayoutProps {
   overlay?: ReactNode;
   activeOverlay: OverlayMode;
   onOverlayChange: (mode: OverlayMode) => void;
-  activeMode?: VaultTab;
-  onModeChange?: (mode: VaultTab) => void;
 }
 
 export function MissionControlLayout({
@@ -27,8 +24,6 @@ export function MissionControlLayout({
   overlay,
   activeOverlay,
   onOverlayChange,
-  activeMode,
-  onModeChange,
 }: MissionControlLayoutProps) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
@@ -36,19 +31,17 @@ export function MissionControlLayout({
         address={address}
         activeOverlay={activeOverlay}
         onOverlayChange={onOverlayChange}
-        activeMode={activeMode}
-        onModeChange={onModeChange}
       />
 
       <ProofChainStrip />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Rail - IdentityBadge */}
+        {/* Left Rail - Capital Ledger */}
         <aside className="w-[300px] flex-shrink-0 border-r border-zinc-800 overflow-y-auto">
           {leftRail}
         </aside>
 
-        {/* Center Stage - Tabs or Overlay */}
+        {/* Center Stage - Stream or Overlay */}
         <main className="flex-1 overflow-y-auto relative">
           {activeOverlay && overlay ? (
             <div className="absolute inset-0 z-20 bg-zinc-950">
@@ -59,7 +52,7 @@ export function MissionControlLayout({
           )}
         </main>
 
-        {/* Right Rail - AgentControls */}
+        {/* Right Rail - Control Plane */}
         {activeOverlay !== "circuit-board" && activeOverlay !== "brain" && (
           <aside className="w-[280px] flex-shrink-0 border-l border-zinc-800 overflow-y-auto">
             {rightRail}

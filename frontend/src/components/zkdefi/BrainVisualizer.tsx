@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Brain, Shield, Zap, Clock, Check, X, Loader2, Play, AlertTriangle } from "lucide-react";
-import { API_BASE } from "@/lib/api/client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 const PERCEPTRON_ADDRESS = process.env.NEXT_PUBLIC_CAIRO_PERCEPTRON_ADDRESS ?? "";
 
 interface TierStatus {

@@ -7,14 +7,12 @@ import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate } from "@/lib/trust/adapters";
 import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { ConnectButton } from "../ConnectButton";
-import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
+import type { OverlayMode } from "./MissionControlLayout";
 
 interface HeaderStripProps {
   address: string | undefined;
-  activeOverlay: OverlayModeV2;
-  onOverlayChange: (mode: OverlayModeV2) => void;
-  activeMode?: VaultTab;
-  onModeChange?: (mode: VaultTab) => void;
+  activeOverlay: OverlayMode;
+  onOverlayChange: (mode: OverlayMode) => void;
 }
 
 interface AgentStatus {
@@ -23,7 +21,7 @@ interface AgentStatus {
   actions_taken?: number;
 }
 
-export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMode, onModeChange }: HeaderStripProps) {
+export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderStripProps) {
   const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [gateStatus, setGateStatus] = useState<string>("--");
@@ -79,7 +77,7 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMod
 
   return (
     <header className="h-10 flex-shrink-0 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm px-4 flex items-center justify-between text-xs">
-      {/* Left: Brand + Nav */}
+      {/* Left: Brand */}
       <div className="flex items-center gap-3">
         <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-5 h-5 rounded bg-emerald-600 flex items-center justify-center">
@@ -104,7 +102,7 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMod
         </div>
       </div>
 
-      {/* Right: Network + Tier + Design/Brain + Wallet */}
+      {/* Right: Network + Tier + Shortcuts + Wallet */}
       <div className="flex items-center gap-3">
         <span className="text-zinc-500">Sepolia</span>
         {tierData && (
@@ -118,10 +116,22 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMod
         )}
         <div className="w-px h-4 bg-zinc-700" />
         <button
+          onClick={() => onOverlayChange(activeOverlay === "deploy" ? null : "deploy")}
+          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "deploy" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+        >
+          Deploy
+        </button>
+        <button
           onClick={() => onOverlayChange(activeOverlay === "circuit-board" ? null : "circuit-board")}
           className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "circuit-board" ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
         >
           Design
+        </button>
+        <button
+          onClick={() => onOverlayChange(activeOverlay === "governance" ? null : "governance")}
+          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "governance" ? "bg-cyan-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
+        >
+          Govern
         </button>
         <button
           onClick={() => onOverlayChange(activeOverlay === "brain" ? null : "brain")}

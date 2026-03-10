@@ -118,6 +118,7 @@ async def deposit_to_shielded_pool(request: ShieldedDepositRequest, _caller: str
     service = get_privacy_vault_service()
     
     try:
+        # Perform shielded deposit
         tx_hash = await service.shielded_deposit(
             user_address=request.user_address,
             token=request.token,
@@ -147,9 +148,6 @@ async def deposit_to_shielded_pool(request: ShieldedDepositRequest, _caller: str
             token=request.token,
         )
         
-    except RuntimeError as e:
-        logger.error(f"Deposit unavailable: {e}")
-        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         logger.error(f"Deposit failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -181,6 +179,7 @@ async def withdraw_from_shielded_pool(
     recipient = request.recipient or request.user_address
     
     try:
+        # Perform shielded withdrawal
         result = await service.shielded_withdraw(
             user_address=request.user_address,
             commitment=request.commitment,
@@ -205,11 +204,6 @@ async def withdraw_from_shielded_pool(
             token=result.get("token", "unknown"),
         )
         
-    except HTTPException:
-        raise
-    except RuntimeError as e:
-        logger.error(f"Withdrawal unavailable: {e}")
-        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         logger.error(f"Withdrawal failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))

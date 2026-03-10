@@ -9,12 +9,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import logging
 import time
 from pathlib import Path
 from typing import Any, Optional
-
-logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -394,9 +391,8 @@ def _persist_proof_completion(
 def record_transaction_internal(address: str, volume_eth: float, success: bool = True) -> None:
     """Internal helper used by lending/collateral flows.
 
-    Tracks transactions and applies dynamic reputation adjustments:
-    downgrades tier when success ratio drops below 90%, upgrades when
-    the user is marked eligible and ratio is >= 95%.
+    Tracks failed transactions and triggers automatic tier downgrade when the
+    recent failure ratio exceeds the threshold (>30% failures over last 10 txns).
     """
     user = get_user_data(address)
     user["transaction_count"] = user.get("transaction_count", 0) + 1
@@ -409,24 +405,19 @@ def record_transaction_internal(address: str, volume_eth: float, success: bool =
     if user.get("first_interaction", 0) == 0:
         user["first_interaction"] = int(time.time())
 
-    ratio = user["successful_txns"] / max(user["transaction_count"], 1)
-    current_tier = user.get("tier", 1)
-
-    if ratio < 0.9 and current_tier > 0:
-        user["tier"] = current_tier - 1
-        logger.info(
-            "Tier downgrade for %s: %d -> %d (ratio=%.2f)",
-            address, current_tier, current_tier - 1, ratio,
-        )
-
-    max_tier = max(TIER_INFO.keys()) if TIER_INFO else 2
-    if user.get("upgrade_eligible") and ratio >= 0.95:
-        if current_tier < max_tier:
-            user["tier"] = current_tier + 1
-            user["upgrade_eligible"] = False
-            logger.info(
-                "Tier upgrade for %s: %d -> %d",
-                address, current_tier, current_tier + 1,
+    # --- Tier downgrade logic ---
+    # If failure ratio exceeds 30% (with at least 3 total txns), demote one tier
+    current_tier = int(user.get("tier", 0) or 0)
+    total = user.get("successful_txns", 0) + user.get("failed_txns", 0)
+    if current_tier > 0 and total >= 3:
+        failure_ratio = user.get("failed_txns", 0) / total
+        if failure_ratio > 0.3:
+            new_tier = current_tier - 1
+            user["tier"] = new_tier
+            import logging
+            logging.getLogger(__name__).warning(
+                "Reputation downgrade: %s tier %d -> %d (failure_ratio=%.2f)",
+                address, current_tier, new_tier, failure_ratio,
             )
 
     _persist_user(address, user)

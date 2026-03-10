@@ -32,13 +32,6 @@ _RATE_LIMITS: dict[str, tuple[int, int]] = {
     "/api/v1/zkdefi/dao/proposals": (10, 60),
     "/api/v1/zkdefi/lending/supply/calldata": (10, 60),
     "/api/v1/zkdefi/lending/borrow/calldata": (10, 60),
-    # Sensitive POST routes: privacy vault, voting, proof generation
-    "/api/v1/zkdefi/full_privacy/deposit": (10, 60),
-    "/api/v1/zkdefi/full_privacy/withdraw": (10, 60),
-    "/api/v1/dao/proposals": (5, 60),
-    "/api/v1/zkdefi/proofs": (5, 60),
-    "/api/v1/zkdefi/shielded_deposit": (10, 60),
-    "/api/v1/zkdefi/shielded_withdraw": (10, 60),
 }
 
 _DEFAULT_LIMIT = (60, 60)
@@ -110,7 +103,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             logger.warning("Rate limited: %s", key)
             return JSONResponse(
                 status_code=429,
-                content={"detail": "Rate limit exceeded. Try again later."},
+                content={
+                    "detail": "Too many requests. Please try again later.",
+                    "retry_after_seconds": window,
+                },
                 headers={"Retry-After": str(window)},
             )
 
