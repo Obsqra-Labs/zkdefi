@@ -27,6 +27,7 @@ import type { VaultCommitment, PrivacyMethod, ProofStep } from "@/hooks/usePriva
 import type { UseVaultV2Return } from "@/hooks/useVaultV2";
 
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { PrivacyPoolsPanel } from "./PrivacyPoolsPanel";
 import { PoolIntelligencePanel } from "./PoolIntelligencePanel";
 import { PoolIntelligence } from "./PoolIntelligence";
 import { EkuboPositionsList, computeEkuboStats, formatAmount, tokenLabel } from "@/components/zkdefi/EkuboPositionsList";
@@ -136,21 +137,22 @@ export function VaultCenterStage({
       {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {tab === "overview" && (
-          <VaultOverviewTab
-            address={address}
-            commitments={vaultProps?.commitments ?? []}
-            onDeposit={onDeposit}
-            onWithdraw={onWithdraw}
-            v2={v2}
-          />
+          <ErrorBoundary>
+            <VaultOverviewTab
+              address={address}
+              commitments={vaultProps?.commitments ?? []}
+              onDeposit={onDeposit}
+              onWithdraw={onWithdraw}
+              v2={v2}
+            />
+          </ErrorBoundary>
         )}
         {tab === "pools" && (
           <ErrorBoundary>
-            <PoolIntelligencePanel
-              address={address}
-              onDeposit={() => onDeposit?.()}
-              embedded
-            />
+            <div className="space-y-4 p-4">
+              <PrivacyPoolsPanel address={address} />
+              <PoolIntelligencePanel address={address} onDeposit={() => onDeposit?.()} embedded />
+            </div>
           </ErrorBoundary>
         )}
         {tab === "ekubo" && (
