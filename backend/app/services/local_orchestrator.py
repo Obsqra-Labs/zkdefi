@@ -11,7 +11,9 @@ Architecture:
 
 import asyncio
 import logging
+import os
 import time
+from collections import defaultdict
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
@@ -21,6 +23,7 @@ from app.services.zkml_twap_service import get_twap_service
 from app.services.zkml_diversification_service import get_diversification_service
 from app.services.obsqra_prover_client import get_obsqra_prover
 from app.services.risc_zero_credit_service import get_risc_zero_credit_service
+from app.services.double_entry_ledger import DoubleEntryLedger
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +271,58 @@ MODELS = {
         "default_threshold": 1,
     },
 }
+
+
+_LEDGER_DB = os.path.join(
+    os.path.dirname(__file__), "..", "data", "vault_v2.db"
+)
+_shared_ledger: Optional[DoubleEntryLedger] = None
+
+
+def _get_ledger() -> DoubleEntryLedger:
+    """Shared ledger instance pointing at the same DB as vault_v2."""
+    global _shared_ledger
+    if _shared_ledger is None:
+        os.makedirs(os.path.dirname(_LEDGER_DB), exist_ok=True)
+        _shared_ledger = DoubleEntryLedger(_LEDGER_DB)
+    return _shared_ledger
+
+
+def _daily_positions_from_ledger(
+    user_address: str, vault_id: Optional[str], token: str = "ETH", days: int = 7
+) -> Optional[List[int]]:
+    """Read the last *days* of ledger entries and derive per-day position values.
+
+    Returns None when the ledger has no data for this vault so callers can
+    fall back gracefully.
+    """
+    try:
+        ledger = _get_ledger()
+        vid = vault_id or user_address
+        account = f"VAULT_AVAILABLE:{vid}:{token}"
+
+        entries = ledger.entries(account, limit=200)
+        if not entries:
+            return None
+
+        now = time.time()
+        day_secs = 86_400
+        buckets: Dict[int, int] = defaultdict(int)
+        for entry in entries:
+            age_days = int((now - entry["created_at"]) / day_secs)
+            if 0 <= age_days < days:
+                buckets[age_days] += entry["amount_wei"]
+
+        if not buckets:
+            current_balance = ledger.balance(account)
+            if current_balance > 0:
+                return [current_balance] * days
+            return None
+
+        return [buckets.get(d, 0) for d in range(days)]
+    except Exception as exc:
+        logger.warning("Failed to read daily positions from ledger: %s", exc)
+        return None
 
 
 class LocalOrchestrator:
@@ -531,8 +586,17 @@ class LocalOrchestrator:
         """Run TWAP position processor."""
         threshold = constraints.get("max_twap", 100000)
         
-        # Get daily positions (mock for now)
-        daily_positions = portfolio.get("daily_positions", [10000] * 7)
+        # Read real positions from the double-entry ledger when available
+        vault_id = portfolio.get("vault_id")
+        token = portfolio.get("token", "ETH")
+        ledger_positions = _daily_positions_from_ledger(
+            user_address, vault_id, token=token
+        )
+        daily_positions = (
+            portfolio.get("daily_positions")
+            or ledger_positions
+            or [0] * 7
+        )
         
         if self.twap_service:
             from app.services.zkml_twap_service import TWAPModel
