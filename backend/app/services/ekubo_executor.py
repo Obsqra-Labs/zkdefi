@@ -103,40 +103,35 @@ class EkuboContractExecutor:
             }
         
         try:
-            # In production, this would:
-            # 1. Approve tokens via ERC20.approve()
-            # 2. Call Ekubo Positions.mint_and_deposit() with exact parameters
-            # 3. Wait for tx confirmation
-            # 4. Return tx_hash + position_id
-            
-            # For MVP, we simulate the call and return mock data
-            # TODO: Replace with actual contract calls once account setup complete
-            
-            # Build the call
-            tx_hash = f"0x{id(pair_data).__str__()[:63]}"  # Mock hash
-            position_id = int.from_bytes(
-                f"pos_{pair}_{amount0}".encode()[:8].ljust(8, b'\x00'), 'big'
+            from app.services.ekubo_lp_service import build_lp_add
+
+            result = await build_lp_add(
+                chain_id="SN_SEPOLIA",
+                owner=self.account_address or "0x0",
+                token0=pair_data["token0"],
+                token1=pair_data["token1"],
+                amount0=int(amount0 * 10**18),
+                amount1=int(amount1 * 10**18),
+                fee_tier=int(pair_data.get("fee_tier", 170141183460469235273462165868118016)),
+                lower_tick=lower_tick,
+                upper_tick=upper_tick,
             )
-            
-            logger.info(f"✅ Position created: tx_hash={tx_hash}, position_id={position_id}")
-            
+
+            logger.info(f"Position created via build_lp_add: position_id={result.get('position_id')}")
+
             return {
                 "success": True,
-                "tx_hash": tx_hash,
-                "position_id": position_id,
+                "tx_hash": result.get("tx_hash"),
+                "position_id": result.get("position_id"),
                 "pair": pair,
                 "amount0": amount0,
                 "amount1": amount1,
-                "status": "pending"  # "confirmed" after block inclusion
+                "calls": result.get("calls", []),
+                "status": "pending",
             }
-            
         except Exception as e:
-            logger.error(f"❌ Position creation failed: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "tx_hash": None
-            }
+            logger.error(f"Position creation failed: {e}")
+            return {"success": False, "error": str(e), "tx_hash": None}
     
     async def collect_fees(self, position_id: int) -> Dict:
         """
