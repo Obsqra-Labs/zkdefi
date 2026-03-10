@@ -83,7 +83,7 @@ class PoolAnalysisResponse(BaseModel):
 # Request/Response Models
 class StrategyRecommendationRequest(BaseModel):
     """User request for strategy recommendation"""
-    user_address: str  # Starknet wallet address
+    user_address: str = "anonymous"  # Starknet wallet address (optional for preview)
     risk_profile: str  # "conservative", "balanced", or "aggressive"
     amount: float = 1000.0  # USDC to deploy
 

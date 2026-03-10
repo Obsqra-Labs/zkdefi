@@ -9,13 +9,15 @@ Endpoints for:
 Uses REAL liquidity data from Sepolia (not mocked)
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from datetime import datetime
 import logging
 import uuid
 import asyncio
+
+from app.middleware.auth import AdminOnly
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["vault-execution"])

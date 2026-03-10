@@ -11,20 +11,30 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.middleware.auth import WalletOwner
 
-try:
-    from app.services.credit_line_service import get_credit_line_service, compute_credit_line
-    from app.services.credit_eligibility_proof_service import get_credit_eligibility_service
-    from app.api.validators import (
-        validate_starknet_address, validate_token_symbol,
-        validate_wei_amount, validate_usd_amount,
-    )
-except ImportError:
-    from backend.app.services.credit_line_service import get_credit_line_service, compute_credit_line
-    from backend.app.services.credit_eligibility_proof_service import get_credit_eligibility_service
-    from backend.app.api.validators import (
-        validate_starknet_address, validate_token_symbol,
-        validate_wei_amount, validate_usd_amount,
-    )
+from app.services.credit_line_service import get_credit_line_service, compute_credit_line
+from app.services.credit_eligibility_proof_service import (
+    generate_credit_eligibility_proof,
+    verify_credit_eligibility_proof,
+)
+from app.api.validators import (
+    validate_starknet_address, validate_token_symbol,
+    validate_wei_amount, validate_usd_amount,
+)
+
+
+class _CreditEligibilityServiceCompat:
+    """Thin wrapper for standalone proof functions as a service object."""
+
+    async def generate_eligibility_proof(
+        self, user_address: str, score: int
+    ) -> dict:
+        return generate_credit_eligibility_proof(
+            credit_score=score, collateral_wei=0, min_credit_score=580
+        )
+
+
+def get_credit_eligibility_service() -> _CreditEligibilityServiceCompat:
+    return _CreditEligibilityServiceCompat()
 
 logger = logging.getLogger(__name__)
 

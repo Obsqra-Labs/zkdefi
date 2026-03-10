@@ -81,13 +81,16 @@ async def get_user_passport(address: str, request: Request):
         except Exception:
             pass
 
-        receipt_svc = get_receipt_service()
-        proof_receipts = await receipt_svc.get_user_receipts((address or "").strip().lower())
-        proof_receipts = sorted(
-            proof_receipts,
-            key=lambda x: x.get("timestamp", ""),
-            reverse=True,
-        )[:20]
+        try:
+            receipt_svc = get_receipt_service()
+            proof_receipts = await receipt_svc.get_user_receipts((address or "").strip().lower())
+            proof_receipts = sorted(
+                proof_receipts,
+                key=lambda x: x.get("timestamp", ""),
+                reverse=True,
+            )[:20]
+        except Exception:
+            proof_receipts = []
 
         composite = _composite_score(tier, tenure_days, total_volume_eth, collateral_eth)
         letter = _letter_rating(composite)
