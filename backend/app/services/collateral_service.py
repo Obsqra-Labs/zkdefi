@@ -4,6 +4,12 @@ Collateral Service
 Manages collateral positions for the lending system.
 Builds calldata for CollateralVault on-chain interactions
 and maintains a cached view of positions for fast API reads.
+
+Positions are sourced from *two* canonical stores:
+  1. The local JsonStore (collateral_positions) — legacy direct deposits.
+  2. The vault-v2 double-entry ledger + note store — vault deposits.
+Both contribute to the unified position list so that collateral, vault,
+and DAO voting power all share a single source of truth.
 """
 from __future__ import annotations
 
@@ -42,20 +48,89 @@ BOOST_WEIGHT = 1.0
 
 _collateral_store = JsonStore("collateral_positions")
 
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+_V2_DB_PATH = os.path.join(_DATA_DIR, "vault_v2.db")
+
 
 def _felt_from_str(s: str) -> str:
     val = int.from_bytes(s.encode()[:31], "big")
     return hex(val % (2**251))
 
 
-def get_user_positions(address: str) -> list[dict[str, Any]]:
-    """Get all collateral positions for a user from cache."""
-    key = address.lower().strip()
-    data = _collateral_store.get(key)
-    if not data:
+def _ledger_positions(address: str) -> list[dict[str, Any]]:
+    """
+    Read positions from the vault-v2 double-entry ledger + note store.
+
+    Returns synthetic position dicts (same shape as JsonStore positions)
+    for every token that has a non-zero VAULT_AVAILABLE or OPEN-note balance.
+    """
+    if not os.path.exists(_V2_DB_PATH):
         return []
-    positions = data.get("positions", [])
-    return [p for p in positions if p.get("active", True)]
+
+    try:
+        from app.services.double_entry_ledger import DoubleEntryLedger
+        from app.services.vault_account_service import VaultAccountService
+        from app.services.note_store import NoteStore
+
+        ledger = DoubleEntryLedger(_V2_DB_PATH)
+        vaults = VaultAccountService(_V2_DB_PATH)
+        notes = NoteStore(_V2_DB_PATH)
+
+        vault = vaults.get_vault_by_address(address)
+        vault_id = vault.get("vault_id", "") if vault else ""
+        if not vault_id:
+            return []
+
+        positions: list[dict[str, Any]] = []
+        for token in ("ETH", "STRK", "USDC"):
+            summary = ledger.vault_summary(vault_id, token)
+            total_wei = summary["available"] + summary["pending"] + summary["deployed"]
+
+            open_notes = notes.list_notes(vault_id, status="OPEN")
+            for note in open_notes:
+                if note.get("token") == token:
+                    note_wei = int(note.get("amount_wei", 0))
+                    if note_wei > total_wei:
+                        total_wei = note_wei
+
+            if total_wei > 0:
+                positions.append({
+                    "position_id": f"ledger:{vault_id}:{token}",
+                    "token": token,
+                    "amount_wei": total_wei,
+                    "pool_tier": CORE_TIER,
+                    "locked_until": 0,
+                    "created_at": int(vault.get("created_at", 0)),
+                    "active": True,
+                    "tx_hash": None,
+                    "source": "vault_v2_ledger",
+                })
+        return positions
+    except Exception as exc:
+        logger.debug("Ledger position lookup failed: %s", exc)
+        return []
+
+
+def get_user_positions(address: str) -> list[dict[str, Any]]:
+    """
+    Get all collateral positions for a user.
+
+    Merges two canonical sources:
+      1. JsonStore (collateral_positions) — direct collateral deposits
+      2. Vault-v2 double-entry ledger — vault deposits
+    """
+    key = address.lower().strip()
+
+    # Source 1: legacy JsonStore positions
+    store_positions: list[dict[str, Any]] = []
+    data = _collateral_store.get(key)
+    if data:
+        store_positions = [p for p in data.get("positions", []) if p.get("active", True)]
+
+    # Source 2: vault-v2 ledger positions
+    ledger_pos = _ledger_positions(key)
+
+    return store_positions + ledger_pos
 
 
 def get_user_total_collateral(address: str) -> dict[str, Any]:
