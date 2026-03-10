@@ -207,3 +207,26 @@ async def l3_recent_blocks(limit: int = 10):
 
     client = get_l3_proving_path_client()
     return await client.recent_blocks(limit=limit)
+
+
+class StarkHeavyReputationRequest(BaseModel):
+    """4-pool metrics for StarkHeavyReputation (protocol-agnostic). Keys: pool_{0,1,2,3}_utilization, _volatility, _liquidity, _audit_score, _age_days."""
+    pool_metrics: dict[str, Any] = {}
+    submit_to_l3: bool = True
+    execution_chain: Literal["l3", "l2", "dual"] = "l3"
+
+
+@router.post("/stark-heavy-reputation")
+async def generate_stark_heavy_reputation(request: StarkHeavyReputationRequest):
+    """
+    Generate STARK proof for StarkHeavyReputation (4-pool risk) and optionally submit to L3.
+    Uses Obsqra Stone prover; L3 verification uses circuit_name=StarkHeavyReputation (same Integrity verifier).
+    """
+    from app.services.proof_pipeline import get_proof_pipeline
+
+    pipeline = get_proof_pipeline()
+    return await pipeline.generate_heavy_stark_proof(
+        pool_metrics=request.pool_metrics,
+        submit_to_l3=request.submit_to_l3,
+        execution_chain=request.execution_chain,
+    )

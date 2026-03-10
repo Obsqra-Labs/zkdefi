@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Phase 1 status:** ✅ Complete (Tasks 1.1–1.7). Run L3 deploy when Madara is up; ensure Obsqra Stone prover supports `stark_heavy_reputation` and `verification/risk_example_cairo0_heavy.cairo`.
+
 **Goal:** Ship Phase 1 (one heavier Groth16 + one heavier STARK circuit on L3), then provide clear phased tasks for Path A (Noir HONK), Path C (L1 Sepolia), and Path B (Cairo KZG).
 
 **Architecture:** Phase 1 adds two new circuits and their L3 verifiers; routing by `circuit_name` in parent backend and zkdefi pipeline. Phases 2–4 add EZKL-on-chain paths per design doc.
@@ -79,16 +81,16 @@
 ### Task 1.5: Heavier STARK circuit — define and build
 
 **Files:**
-- Locate or create: new Cairo0/Stone circuit under `integrity/` or existing Stone layout (see `archive/ideas/docs` for reputation circuits)
-- Modify: Stone config / layout to include new circuit; document circuit name and proof format
+- Create: `verification/risk_example_cairo0_heavy.cairo` — 4-pool protocol-agnostic risk (pool_0..pool_3) + aggregate; same Integrity SMALL layout. No deprecated protocol names.
+- Create: `verification/STARK_HEAVY_REPUTATION.md` — circuit name `StarkHeavyReputation` / `stark_heavy_reputation`, inputs, and verifier note.
 
-**Step 1:** Choose one heavier STARK circuit (e.g. extended reputation or constraint check with more steps). Add or extend Cairo0 source; ensure Stone can produce a proof and fact hash.
+**Step 1:** Heavier STARK circuit added: `risk_example_cairo0_heavy.cairo` (4× calculate_risk_score + sum constraint). Protocol-agnostic; use with Stone and Integrity small layout.
 
-**Step 2:** Build and run Stone for the new circuit; confirm proof and calldata format match what L3 Integrity (or the verifier) expects. Document `circuit_name` (e.g. `StarkHeavyReputation`).
+**Step 2:** Build and run Stone for this program; confirm proof and calldata match L3 Integrity. Document circuit_name in STARK_HEAVY_REPUTATION.md.
 
-**Step 3:** If a new verifier contract is required for this circuit, add deploy path in parent backend (Integrity-style) and config; otherwise document that existing Integrity verifier on L3 is used and add circuit_name to `applicable_to` for `stark_integrity` path.
+**Step 3:** No new verifier contract — existing Integrity verifier on L3 is used. Add circuit_name to `applicable_to` for `stark_integrity` in Task 1.6.
 
-**Step 4:** Commit: `feat(circuits): add heavier STARK circuit for L3`
+**Step 4:** Commit: `feat(circuits): add heavier STARK circuit StarkHeavyReputation for L3`
 
 ---
 

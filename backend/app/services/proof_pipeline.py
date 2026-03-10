@@ -937,7 +937,79 @@ class ProofPipeline:
             "warning": "Local fallback proof - not STARK-verified. Obsqra Stone prover was unavailable.",
         }
 
-    def _generate_commitment(self, user_address: str, data: Any, context: str) -> str:
+    async def generate_heavy_stark_proof(
+        self,
+        pool_metrics: dict[str, Any],
+        *,
+        submit_to_l3: bool = True,
+        execution_chain: str = "l3",
+    ) -> dict[str, Any]:
+        """
+        Generate STARK proof for StarkHeavyReputation (4-pool risk) and optionally submit to L3.
+
+        pool_metrics: dict with pool_0..pool_3 keys (utilization, volatility, liquidity, audit_score, age_days).
+        Uses Obsqra Stone prover with cairo_program="stark_heavy_reputation".
+        L3 verification uses circuit_name="StarkHeavyReputation" (same Integrity verifier).
+        """
+        from app.services.l3_proving_path_client import get_l3_proving_path_client
+
+        prover = get_obsqra_prover()
+        program_input = {}
+        for i in range(4):
+            prefix = f"pool_{i}_"
+            for key in ("utilization", "volatility", "liquidity", "audit_score", "age_days"):
+                k = prefix + key
+                program_input[k] = pool_metrics.get(k, 5000 if key in ("utilization", "volatility") else (2 if key == "liquidity" else (80 if key == "audit_score" else 365)))
+
+        result: dict[str, Any] = {
+            "circuit_name": "StarkHeavyReputation",
+            "success": False,
+            "proof_hash": None,
+            "fact_hash": None,
+            "stark_proof_data": None,
+            "l3": None,
+        }
+
+        try:
+            healthy = await prover.health_check()
+            if not healthy:
+                result["error"] = "Obsqra Stone prover unavailable"
+                return result
+
+            stone_result = await prover.generate_stone_proof(
+                cairo_program="stark_heavy_reputation",
+                program_input=program_input,
+                layout="small",
+            )
+            proof_hash = stone_result.get("proof_hash", "")
+            fact_hash = stone_result.get("fact_hash", proof_hash)
+            result["success"] = True
+            result["proof_hash"] = proof_hash
+            result["fact_hash"] = fact_hash
+            result["stark_proof_data"] = stone_result.get("proof") or stone_result.get("calldata") or {"config_hash": fact_hash, "calldata": [fact_hash]}
+
+            if submit_to_l3 and fact_hash:
+                client = get_l3_proving_path_client()
+                fact_hash_str = hex(fact_hash) if isinstance(fact_hash, int) else (str(fact_hash) if str(fact_hash).startswith("0x") else "0x" + str(fact_hash))
+                l3_res = await client.verify_proof(
+                    fact_hash=fact_hash_str,
+                    proof_type="stark",
+                    circuit_name="StarkHeavyReputation",
+                    stark_proof_data=result["stark_proof_data"],
+                    execution_chain=execution_chain,
+                )
+                result["l3"] = {
+                    "success": l3_res.success,
+                    "mode": l3_res.mode,
+                    "verified_on_chain": l3_res.verified_on_chain,
+                    "tx_hash": l3_res.tx_hash,
+                    "error": l3_res.error,
+                }
+        except Exception as exc:
+            result["error"] = str(exc)
+            logger.warning("StarkHeavyReputation proof failed: %s", exc)
+
+        return result
         return "0x" + hashlib.sha256(
             f"{user_address}{data}{context}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:32]
