@@ -7,6 +7,7 @@ import { PoolSelector, type PoolBucket } from "./PoolSelector";
 import { DepositPanel } from "./DepositPanel";
 import { WithdrawPanel } from "./WithdrawPanel";
 import PositionsOverview from "./PositionsOverview";
+import { AgentAllocationStrip } from "./AgentAllocationStrip";
 import { TrendingBar } from "./TrendingBar";
 import { AIInsight } from "./AIInsight";
 import { DEMO_AI_INSIGHT } from "@/lib/demoCapitalOS";
@@ -86,6 +87,7 @@ export function VaultTab(props: VaultTabProps) {
         <WithdrawPanel method={method} setMethod={setMethod} commitments={commitments} removeCommitment={removeCommitment} withdrawSteps={withdrawSteps} setWithdrawSteps={setWithdrawSteps} address={address} selectedCommitmentId={selectedCommitmentId} onRecordWithdrawal={onRecordWithdrawal} />
       </div>
       <PositionsOverview commitments={commitments} onSelectCommitment={handleSelectCommitment} address={address} />
+      <AgentAllocationStrip address={address} commitments={commitments} />
     </div>
   );
 }
