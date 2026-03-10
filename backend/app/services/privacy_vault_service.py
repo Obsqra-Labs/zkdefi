@@ -82,7 +82,7 @@ class PrivacyVaultService:
         admin_addr = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS")
         admin_pk = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY")
         if not admin_addr or not admin_pk:
-            logger.warning("Privacy vault admin account not configured — on-chain calls will be mocked")
+            logger.warning("Privacy vault admin account not configured — deposits/withdrawals will fail until env vars are set")
             return
         try:
             from starknet_py.net.account import Account
@@ -272,8 +272,11 @@ class PrivacyVaultService:
         Call FullyShieldedPool.deposit(commitment)
         """
         if not self.admin_account:
-            logger.warning("Shielded deposit call skipped: admin account not configured")
-            return "0xmock_deposit_tx"
+            raise RuntimeError(
+                "Privacy vault admin not configured. "
+                "Set FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS and "
+                "FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY env vars."
+            )
         
         try:
             from starknet_py.contract import Contract
@@ -306,8 +309,11 @@ class PrivacyVaultService:
         Call FullyShieldedPool.withdraw(proof, recipient, amount)
         """
         if not self.admin_account:
-            logger.warning("Shielded withdraw call skipped: admin account not configured")
-            return "0xmock_withdraw_tx"
+            raise RuntimeError(
+                "Privacy vault admin not configured. "
+                "Set FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS and "
+                "FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY env vars."
+            )
         
         try:
             from starknet_py.contract import Contract
