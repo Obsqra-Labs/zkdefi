@@ -184,12 +184,16 @@ async def list_proposals(
     status: str | None = None,
     limit: int = 20,
     offset: int = 0,
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     rows = _proposal_rows()
     if status:
         status_lower = status.lower()
         rows = [r for r in rows if str(r.get("status", "")).lower() == status_lower]
-    return rows[offset : offset + limit]
+    total = len(rows)
+    limit = min(limit, 100)
+    items = rows[offset : offset + limit]
+    next_offset = offset + len(items) if offset + len(items) < total else None
+    return {"items": items, "total": total, "next_offset": next_offset}
 
 
 @router.post("/proposals/{proposal_id}/tally")
