@@ -208,3 +208,91 @@ async def compute_predictive_credit_line(
             "fallback": prediction.get("fallback", False),
         },
     )
+
+
+# Execution labels for simulated/ledger-only responses (contracts not deployed on Sepolia)
+_EXECUTION_SIMULATED = "simulated"
+_EXECUTION_NOTE = "Credit line contracts not deployed on Sepolia — ledger-only"
+
+
+def _add_execution_labels(result: dict[str, Any]) -> None:
+    """Add execution and execution_note to a result dict."""
+    result["execution"] = _EXECUTION_SIMULATED
+    result["execution_note"] = _EXECUTION_NOTE
+
+
+class CreditLineService:
+    """
+    Credit line operations service.
+
+    Ledger-only stubs until credit line contracts are deployed on Sepolia.
+    All result dicts include execution="simulated" and execution_note for honesty.
+    """
+
+    async def open_credit_line(
+        self,
+        user_address: str,
+        collateral_token: str,
+        collateral_amount: int,
+        desired_credit_usd: int,
+    ) -> dict[str, Any]:
+        """Open a credit line (ledger-only stub)."""
+        result: dict[str, Any] = {
+            "user_address": user_address,
+            "collateral_token": collateral_token,
+            "collateral_amount": collateral_amount,
+            "credit_limit_usd": desired_credit_usd,
+            "status": "pending",
+        }
+        _add_execution_labels(result)
+        return result
+
+    async def borrow(
+        self,
+        user_address: str,
+        amount_usd: int,
+    ) -> dict[str, Any]:
+        """Borrow against credit line (ledger-only stub)."""
+        result: dict[str, Any] = {
+            "tx_hash": None,
+            "new_balance": amount_usd,
+        }
+        _add_execution_labels(result)
+        return result
+
+    async def repay(
+        self,
+        user_address: str,
+        amount_usd: int,
+    ) -> dict[str, Any]:
+        """Repay credit line (ledger-only stub)."""
+        result: dict[str, Any] = {
+            "tx_hash": None,
+            "new_balance": 0,
+        }
+        _add_execution_labels(result)
+        return result
+
+    async def get_user_credit_lines(self, address: str) -> list[dict[str, Any]]:
+        """List credit lines for user (ledger-only stub)."""
+        return []
+
+    async def calculate_credit_score(self, address: str) -> dict[str, Any]:
+        """Calculate FICO score (ledger-only stub)."""
+        result: dict[str, Any] = {
+            "fico_score": 650,
+            "tier": "fair",
+        }
+        _add_execution_labels(result)
+        return result
+
+
+_credit_line_service: CreditLineService | None = None
+
+
+def get_credit_line_service() -> CreditLineService:
+    """Return the singleton credit line service."""
+    global _credit_line_service
+    if _credit_line_service is None:
+        _credit_line_service = CreditLineService()
+    return _credit_line_service
