@@ -8,7 +8,7 @@ Endpoints for:
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
 from app.middleware.auth import WalletOwner, AdminOnly
@@ -34,9 +34,23 @@ router = APIRouter(tags=["Full Privacy"])
 # ==================== Request/Response Models ====================
 
 class DepositCommitmentRequest(BaseModel):
-    user_address: str
+    user_address: str = Field(..., min_length=3)
     amount: str | int  # in wei - accept string to preserve precision
-    pool_type: int  # 0=Conservative, 1=Neutral, 2=Aggressive
+    pool_type: int = Field(..., ge=0, le=2)  # 0=Conservative, 1=Neutral, 2=Aggressive
+
+    @field_validator("user_address")
+    @classmethod
+    def validate_address(cls, v: str) -> str:
+        if not v.startswith("0x"):
+            raise ValueError("Address must start with 0x")
+        return v
+
+    @field_validator("amount")
+    @classmethod
+    def validate_amount(cls, v: str | int) -> str | int:
+        if int(v) <= 0:
+            raise ValueError("Amount must be positive")
+        return v
 
 
 class DepositCommitmentResponse(BaseModel):
@@ -50,7 +64,7 @@ class DepositCommitmentResponse(BaseModel):
 
 
 class RegisterCommitmentRequest(BaseModel):
-    commitment: str
+    commitment: str = Field(..., min_length=1)
 
 
 class RegisterCommitmentResponse(BaseModel):
@@ -61,18 +75,32 @@ class RegisterCommitmentResponse(BaseModel):
 
 
 class WithdrawProofRequest(BaseModel):
-    user_secret: str
+    user_secret: str = Field(..., min_length=1)
     amount: str | int  # Accept string to preserve precision
-    pool_type: int
-    nonce: str
-    blinding: str
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
+    blinding: str = Field(..., min_length=1)
     withdraw_amount: str | int  # Accept string to preserve precision
-    recipient: str
+    recipient: str = Field(..., min_length=3)
     leaf_index: int = -1  # Optional - will auto-find if -1 or missing
     # Optional: stored merkle proof from registration (bypasses get_merkle_proof bug)
     merkle_root: Optional[str] = None
     path_elements: Optional[List[str]] = None
     path_indices: Optional[List[int]] = None
+
+    @field_validator("recipient")
+    @classmethod
+    def validate_recipient(cls, v: str) -> str:
+        if not v.startswith("0x"):
+            raise ValueError("Recipient must start with 0x")
+        return v
+
+    @field_validator("amount", "withdraw_amount")
+    @classmethod
+    def validate_amounts(cls, v: str | int) -> str | int:
+        if int(v) <= 0:
+            raise ValueError("Amount must be positive")
+        return v
 
 
 class WithdrawProofResponse(BaseModel):
@@ -90,18 +118,32 @@ class WithdrawProofResponse(BaseModel):
 
 
 class WithdrawClaimProofRequest(BaseModel):
-    user_secret: str
+    user_secret: str = Field(..., min_length=1)
     amount: str | int
-    pool_type: int
-    nonce: str
-    blinding: str
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
+    blinding: str = Field(..., min_length=1)
     withdraw_amount: str | int
-    recipient: str
+    recipient: str = Field(..., min_length=3)
     claim_salt: Optional[str] = None
     leaf_index: int = -1
     merkle_root: Optional[str] = None
     path_elements: Optional[List[str]] = None
     path_indices: Optional[List[int]] = None
+
+    @field_validator("recipient")
+    @classmethod
+    def validate_recipient(cls, v: str) -> str:
+        if not v.startswith("0x"):
+            raise ValueError("Recipient must start with 0x")
+        return v
+
+    @field_validator("amount", "withdraw_amount")
+    @classmethod
+    def validate_amounts(cls, v: str | int) -> str | int:
+        if int(v) <= 0:
+            raise ValueError("Amount must be positive")
+        return v
 
 
 class WithdrawClaimProofResponse(BaseModel):
@@ -150,22 +192,22 @@ class RegisterChangeCommitmentRequest(BaseModel):
 
 
 class BalanceDisclosureRequest(BaseModel):
-    user_secret: str
-    amount: int
-    pool_type: int
-    nonce: str
-    blinding: str
-    threshold: int  # Prove balance > threshold
-    leaf_index: int
+    user_secret: str = Field(..., min_length=1)
+    amount: int = Field(..., gt=0)
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
+    blinding: str = Field(..., min_length=1)
+    threshold: int = Field(..., ge=0)  # Prove balance > threshold
+    leaf_index: int = Field(..., ge=0)
 
 
 class PoolDisclosureRequest(BaseModel):
-    user_secret: str
-    amount: int
-    pool_type: int
-    nonce: str
-    blinding: str
-    leaf_index: int
+    user_secret: str = Field(..., min_length=1)
+    amount: int = Field(..., gt=0)
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
+    blinding: str = Field(..., min_length=1)
+    leaf_index: int = Field(..., ge=0)
 
 
 class DisclosureResponse(BaseModel):
@@ -270,12 +312,12 @@ async def reset_merkle_tree_endpoint(_admin: str = AdminOnly):
 
 
 class VerifyRootRequest(BaseModel):
-    merkle_root: str
+    merkle_root: str = Field(..., min_length=1)
 
 
 class EnsureRootRequest(BaseModel):
     """Root (hex) from the proof - will be registered on-chain if missing."""
-    root: str
+    root: str = Field(..., min_length=1)
 
 
 @router.post("/merkle/ensure_root")
@@ -782,20 +824,20 @@ async def get_merkle_leaves():
 
 
 class FindCommitmentRequest(BaseModel):
-    user_secret: str
-    amount: int
-    pool_type: int
-    nonce: str
+    user_secret: str = Field(..., min_length=1)
+    amount: int = Field(..., gt=0)
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
     blinding: str = "0x0"
 
 
 class VerifyCommitmentRequest(BaseModel):
     """Verify that a commitment matches its preimage."""
-    commitment: str
-    user_secret: str
-    amount: int
-    pool_type: int
-    nonce: str
+    commitment: str = Field(..., min_length=1)
+    user_secret: str = Field(..., min_length=1)
+    amount: int = Field(..., gt=0)
+    pool_type: int = Field(..., ge=0, le=2)
+    nonce: str = Field(..., min_length=1)
     blinding: str = "0x0"
 
 
