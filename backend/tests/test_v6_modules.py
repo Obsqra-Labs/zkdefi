@@ -152,6 +152,7 @@ class TestCircuitScanner:
     def test_registry_has_v6_circuits(self):
         from app.services.zkml.circuit_scanner import CIRCUIT_REGISTRY
         assert "ModelBridge" in CIRCUIT_REGISTRY
+        assert "ModelBridgeHeavy" in CIRCUIT_REGISTRY
         assert "RebalanceTimingCommitment" in CIRCUIT_REGISTRY
         assert "RobustnessCertificate" in CIRCUIT_REGISTRY
 

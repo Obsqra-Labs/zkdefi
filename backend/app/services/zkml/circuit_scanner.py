@@ -180,6 +180,13 @@ CIRCUIT_REGISTRY: dict[str, dict[str, Any]] = {
         "category": "ezkl_bridge",
         "description": "Bridges EZKL ML proofs into Groth16/Garaga pipeline — commits model identity and output on-chain",
     },
+    "ModelBridgeHeavy": {
+        "wasm": CIRCUITS_BUILD / "ModelBridgeHeavy_js" / "ModelBridgeHeavy.wasm",
+        "zkey": CIRCUITS_BUILD / "ModelBridgeHeavy_final.zkey",
+        "witness_js": CIRCUITS_BUILD / "ModelBridgeHeavy_js" / "generate_witness.js",
+        "category": "ezkl_bridge",
+        "description": "Heavier EZKL→Groth16 bridge (16 outputs) for L3 on-chain verification",
+    },
     "RebalanceTimingCommitment": {
         "wasm": CIRCUITS_BUILD / "RebalanceTimingCommitment_js" / "RebalanceTimingCommitment.wasm",
         "zkey": CIRCUITS_BUILD / "RebalanceTimingCommitment_final.zkey",
@@ -336,6 +343,7 @@ def _default_input_builders(
         "HistoricalPerformanceAttestation": lambda: build_historical_performance_inputs(user_address=user_address),
         "MEVResistanceProof": lambda: build_mev_resistance_inputs(user_address=user_address),
         "ModelBridge": lambda: build_model_bridge_inputs(),
+        "ModelBridgeHeavy": lambda: build_model_bridge_heavy_inputs(),
         "RebalanceTimingCommitment": lambda: build_rebalance_timing_inputs(user_address=user_address),
         "RobustnessCertificate": lambda: build_robustness_certificate_inputs(),
         "SolvencyProof": lambda: build_solvency_proof_inputs(user_address=user_address),
@@ -1032,6 +1040,28 @@ def build_model_bridge_inputs(
         "output_upper_bound": str(output_upper_bound),
         "timestamp": str(timestamp),
     }
+
+
+def build_model_bridge_heavy_inputs(
+    model_output: list[int] | None = None,
+    ezkl_proof_hash: int = 0,
+    model_weights_hash: int = 0,
+    expected_model_hash: int = 0,
+    output_lower_bound: int = 0,
+    output_upper_bound: int = 10000,
+    timestamp: int = 0,
+) -> dict[str, Any]:
+    """Build inputs for the ModelBridgeHeavy circuit (16 outputs)."""
+    return build_model_bridge_inputs(
+        model_output=model_output,
+        ezkl_proof_hash=ezkl_proof_hash,
+        model_weights_hash=model_weights_hash,
+        expected_model_hash=expected_model_hash,
+        output_lower_bound=output_lower_bound,
+        output_upper_bound=output_upper_bound,
+        timestamp=timestamp,
+        n_outputs=16,
+    )
 
 
 def build_rebalance_timing_inputs(

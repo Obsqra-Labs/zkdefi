@@ -309,9 +309,15 @@ class ProofPipeline:
         expected_model_hash: int,
         output_lower_bound: int,
         output_upper_bound: int,
-    ) -> tuple[dict[str, Any], str, list[str]]:
+        bridge_circuit: str = "ModelBridge",
+    ) -> tuple[dict[str, Any], str, list[str], str]:
+        """Returns (bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3)."""
         ts = int(datetime.now(timezone.utc).timestamp())
-        outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:8]]
+        use_heavy = (bridge_circuit or "ModelBridge").strip() == "ModelBridgeHeavy"
+        n_out = 16 if use_heavy else 8
+        outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:n_out]]
+        while len(outputs_int) < n_out:
+            outputs_int.append(0)
         avg_out = int(sum(outputs_int) / max(1, len(outputs_int)))
         is_compliant = output_lower_bound <= avg_out <= output_upper_bound
 
@@ -348,7 +354,7 @@ class ProofPipeline:
             "bridge_backend": "placeholder_fallback",
         }
 
-        # Prefer real Groth16 proof from ModelBridge circuit (EZKL → Garaga bridge)
+        # Prefer real Groth16 proof from ModelBridge or ModelBridgeHeavy circuit (EZKL → Garaga bridge)
         try:
             from app.services.groth16_prover import Groth16Prover
 
@@ -356,23 +362,37 @@ class ProofPipeline:
             if proof_hash_int >= (1 << 254):
                 proof_hash_int = proof_hash_int % ((1 << 254) - 1)
 
-            bridge_result = Groth16Prover.generate_model_bridge_proof(
-                model_output=outputs_int,
-                ezkl_proof_hash=proof_hash_int,
-                model_weights_hash=effective_model_hash,
-                expected_model_hash=effective_model_hash,
-                output_lower_bound=output_lower_bound,
-                output_upper_bound=output_upper_bound,
-                timestamp=ts,
-            )
+            if use_heavy:
+                bridge_result = Groth16Prover.generate_model_bridge_heavy_proof(
+                    model_output=outputs_int,
+                    ezkl_proof_hash=proof_hash_int,
+                    model_weights_hash=effective_model_hash,
+                    expected_model_hash=effective_model_hash,
+                    output_lower_bound=output_lower_bound,
+                    output_upper_bound=output_upper_bound,
+                    timestamp=ts,
+                )
+                circuit_name_for_l3 = "ModelBridgeHeavy"
+                bridge_proof["bridge_backend"] = "groth16_modelbridge_heavy"
+            else:
+                bridge_result = Groth16Prover.generate_model_bridge_proof(
+                    model_output=outputs_int,
+                    ezkl_proof_hash=proof_hash_int,
+                    model_weights_hash=effective_model_hash,
+                    expected_model_hash=effective_model_hash,
+                    output_lower_bound=output_lower_bound,
+                    output_upper_bound=output_upper_bound,
+                    timestamp=ts,
+                )
+                circuit_name_for_l3 = "ModelBridge"
+                bridge_proof["bridge_backend"] = "groth16_modelbridge"
             calldata = bridge_result["proof_calldata"]
-            bridge_proof["bridge_backend"] = "groth16_modelbridge"
-            # Keep pipeline is_compliant (from bounds check above); do not overwrite with circuit is_valid
-            logger.info("ModelBridge Groth16 proof generated (calldata len=%s)", len(calldata))
+            logger.info("%s Groth16 proof generated (calldata len=%s)", circuit_name_for_l3, len(calldata))
         except Exception as exc:
             logger.warning("ModelBridge Groth16 proof unavailable, using placeholder: %s", exc)
             bridge_proof["bridge_backend"] = "placeholder_fallback"
             bridge_proof["fallback_error"] = str(exc)
+            circuit_name_for_l3 = "ModelBridge" if not use_heavy else "ModelBridgeHeavy"
             calldata = [
                 self._to_hex_felt("model_bridge"),
                 hex(effective_model_hash),
@@ -382,7 +402,7 @@ class ProofPipeline:
                 hex(int(ezkl_proof.proof_hash, 16)),
             ]
 
-        return bridge_proof, bridge_fact_hash, calldata
+        return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
     async def generate_ml_proofs(
         self,
@@ -398,6 +418,7 @@ class ProofPipeline:
         output_lower_bound: int = 0,
         output_upper_bound: int = 10000,
         execution_chain: str = "l3",
+        bridge_circuit: str = "ModelBridge",
     ) -> dict[str, Any]:
         import time as _time
 
@@ -504,13 +525,15 @@ class ProofPipeline:
 
         bridge_fact_hash = ""
         if mode >= ProofMode.EZKL_BRIDGE and ezkl_verified:
-            bridge_proof, bridge_fact_hash, model_bridge_calldata = self._build_bridge_bundle(
+            bridge_proof, bridge_fact_hash, model_bridge_calldata, bridge_circuit_used = self._build_bridge_bundle(
                 ezkl_proof=ezkl_proof,
                 expected_model_hash=expected_model_hash,
                 output_lower_bound=output_lower_bound,
                 output_upper_bound=output_upper_bound,
+                bridge_circuit=bridge_circuit,
             )
             result["bridge_proof"] = bridge_proof
+            result["bridge_circuit_used"] = bridge_circuit_used
 
             if bridge_proof.get("success") and bridge_proof.get("is_compliant"):
                 result["combined_calldata"] = {
@@ -526,11 +549,12 @@ class ProofPipeline:
             result["verification"]["failure_reason"] = "ModelBridge proof is required for chain verification"
         elif result["can_execute"] and bridge_fact_hash:
             model_bridge_calldata = (result.get("combined_calldata") or {}).get("model_bridge_calldata")
+            circuit_name_l3 = result.get("bridge_circuit_used") or "ModelBridge"
 
             if execution_chain in {"l3", "dual"}:
                 l3_result = await self._verify_l3_bridge(
                     fact_hash=bridge_fact_hash,
-                    circuit_name="ModelBridge",
+                    circuit_name=circuit_name_l3,
                     groth16_calldata=model_bridge_calldata,
                     execution_chain=execution_chain,
                 )

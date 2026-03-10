@@ -28,6 +28,11 @@ MODEL_BRIDGE_WASM = CIRCUITS_DIR / "ModelBridge_js" / "ModelBridge.wasm"
 MODEL_BRIDGE_ZKEY = CIRCUITS_DIR / "ModelBridge_final.zkey"
 MODEL_BRIDGE_VK = CIRCUITS_DIR / "ModelBridge_verification_key.json"
 
+# ModelBridgeHeavy (heavier 16-output EZKL → Groth16 bridge)
+MODEL_BRIDGE_HEAVY_WASM = CIRCUITS_DIR / "ModelBridgeHeavy_js" / "ModelBridgeHeavy.wasm"
+MODEL_BRIDGE_HEAVY_ZKEY = CIRCUITS_DIR / "ModelBridgeHeavy_final.zkey"
+MODEL_BRIDGE_HEAVY_VK = CIRCUITS_DIR / "ModelBridgeHeavy_verification_key.json"
+
 
 def _snarkjs_proof_to_calldata(proof: dict, public: list) -> list[str]:
     """
@@ -376,6 +381,113 @@ class Groth16Prover:
             )
 
             # Public outputs: is_valid, public_commitment (order depends on circuit; typically last two)
+            public_commitment = int(public[-1]) if public else 0
+            if len(public) >= 2 and isinstance(public[-2], (str, int)):
+                is_valid = int(public[-2]) == 1
+            else:
+                is_valid = True
+
+            return {
+                "proof_calldata": proof_calldata,
+                "public_commitment": public_commitment,
+                "is_valid": is_valid,
+                "public_signals": public,
+            }
+
+    @staticmethod
+    def generate_model_bridge_heavy_proof(
+        model_output: list[int],
+        ezkl_proof_hash: int,
+        model_weights_hash: int,
+        expected_model_hash: int,
+        output_lower_bound: int = 0,
+        output_upper_bound: int = 10000,
+        timestamp: int = 0,
+    ) -> dict[str, Any]:
+        """
+        Generate Groth16 proof for ModelBridgeHeavy (16 outputs, EZKL → Garaga bridge).
+        Same interface as ModelBridge but uses the heavier circuit for L3.
+        """
+        if not MODEL_BRIDGE_HEAVY_WASM.exists() or not MODEL_BRIDGE_HEAVY_ZKEY.exists():
+            raise Exception(
+                f"ModelBridgeHeavy circuit files not found. WASM: {MODEL_BRIDGE_HEAVY_WASM.exists()}, ZKEY: {MODEL_BRIDGE_HEAVY_ZKEY.exists()}"
+            )
+        if not MODEL_BRIDGE_HEAVY_VK.exists():
+            raise Exception(f"ModelBridgeHeavy verification key not found: {MODEL_BRIDGE_HEAVY_VK}")
+
+        outputs = list(model_output)[:16]
+        while len(outputs) < 16:
+            outputs.append(0)
+
+        input_data = {
+            "model_output": [str(v) for v in outputs],
+            "ezkl_proof_hash": str(ezkl_proof_hash),
+            "model_weights_hash": str(model_weights_hash or expected_model_hash),
+            "expected_model_hash": str(expected_model_hash),
+            "output_lower_bound": str(output_lower_bound),
+            "output_upper_bound": str(output_upper_bound),
+            "timestamp": str(timestamp),
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            input_file = tmp_path / "input.json"
+            with open(input_file, "w") as f:
+                json.dump(input_data, f)
+
+            witness_file = tmp_path / "witness.wtns"
+            cmd = (
+                f'/usr/bin/node {CIRCUITS_DIR / "ModelBridgeHeavy_js" / "generate_witness.js"} '
+                f'{MODEL_BRIDGE_HEAVY_WASM} {input_file} {witness_file}'
+            )
+            witness_result = subprocess.run(
+                ["/bin/bash", "-c", cmd],
+                capture_output=True,
+                text=True,
+                cwd=str(CIRCUITS_DIR),
+                env={"PATH": "/usr/bin:/usr/local/bin:/bin", "HOME": os.environ.get("HOME", "/root")},
+                timeout=30,
+            )
+            if witness_result.returncode != 0:
+                _log.warning(
+                    "[Groth16] ModelBridgeHeavy witness failed: %s",
+                    witness_result.stderr or witness_result.stdout,
+                )
+                raise Exception(
+                    f"ModelBridgeHeavy witness failed (code {witness_result.returncode}): {witness_result.stderr or witness_result.stdout}"
+                )
+
+            proof_file = tmp_path / "proof.json"
+            public_file = tmp_path / "public.json"
+            subprocess.run(
+                [
+                    "npx",
+                    "snarkjs",
+                    "groth16",
+                    "prove",
+                    str(MODEL_BRIDGE_HEAVY_ZKEY),
+                    str(witness_file),
+                    str(proof_file),
+                    str(public_file),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=60,
+            )
+
+            with open(proof_file) as f:
+                proof = json.load(f)
+            with open(public_file) as f:
+                public = json.load(f)
+
+            from .garaga_formatter import format_proof_for_garaga
+
+            proof_calldata = format_proof_for_garaga(
+                proof_json=proof,
+                public_json=public,
+                vk_path=MODEL_BRIDGE_HEAVY_VK,
+            )
+
             public_commitment = int(public[-1]) if public else 0
             if len(public) >= 2 and isinstance(public[-2], (str, int)):
                 is_valid = int(public[-2]) == 1
