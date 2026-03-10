@@ -230,11 +230,17 @@ async def get_risk_profile_v2(address: str, request: Request):
         pred_terms = pred_result.get("terms") or {}
         pred_grade = pred_result.get("credit_class", "C")
         is_fallback = pred_result.get("fallback", False)
+        collateral_eth_val = float(rep.get("collateral_eth", 0.0) or 0.0)
+        max_ltv = (
+            pred_credit_line.collateral_line_eth / collateral_eth_val
+            if collateral_eth_val > 0
+            else (pred_terms.get("ltv") or 0.80)
+        )
         predictive_credit = {
             "grade": pred_grade,
             "grade_confidence": pred_result.get("confidence", 0.0),
-            "max_ltv": pred_terms.get("ltv", 0.5),
-            "rate_bps": pred_terms.get("rate_bps", 1000),
+            "max_ltv": max_ltv,
+            "rate_bps": pred_credit_line.rate_bps,
             "credit_line_eth": pred_credit_line.total_line_eth,
             "collaborative_multiplier": pred_credit_line.collaborative_multiplier,
             "model_name": pred_result.get("model_name", "fallback" if is_fallback else "creditworthiness_xgboost"),
