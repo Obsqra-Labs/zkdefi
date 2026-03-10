@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, LineChart, Shield } from "lucide-react";
+import { X, LineChart } from "lucide-react";
 import { TradeDesk } from "@/components/zkdefi/TradeDesk";
 import { EkuboPositionsList } from "@/components/zkdefi/EkuboPositionsList";
-import { PrivacyPoolsPanel } from "./PrivacyPoolsPanel";
 
 export type DeployMode =
   | "trade_desk"
@@ -22,13 +21,13 @@ export interface DeployOverlayProps {
   initialMode?: DeployMode;
 }
 
-type TabMode = "trade_desk" | "privacy_pools" | "legacy";
+type TabMode = "trade_desk" | "legacy";
 
 const LEGACY_REQUEST_MODES = new Set<DeployMode>(["swap", "lp", "lend", "stake", "dca", "limits"]);
 const LEGACY_FLAG_ENABLED = process.env.NEXT_PUBLIC_DEPLOY_LEGACY_TABS === "1";
 
 function normalizeInitialMode(initialMode: DeployMode | undefined): TabMode {
-  if (initialMode === "privacy_pools") return "privacy_pools";
+  if (initialMode === "privacy_pools") return "trade_desk";
   if (initialMode && LEGACY_REQUEST_MODES.has(initialMode) && LEGACY_FLAG_ENABLED) return "legacy";
   return "trade_desk";
 }
@@ -39,7 +38,6 @@ export function DeployOverlay({ address, onClose, initialMode = "trade_desk" }: 
   const tabs = useMemo(
     () => [
       { id: "trade_desk" as const, label: "Trade Desk", icon: LineChart },
-      { id: "privacy_pools" as const, label: "Vault Rails (Advanced)", icon: Shield },
       ...(LEGACY_FLAG_ENABLED ? [{ id: "legacy" as const, label: "Legacy", icon: LineChart }] : []),
     ],
     []
@@ -88,7 +86,6 @@ export function DeployOverlay({ address, onClose, initialMode = "trade_desk" }: 
             </section>
           </div>
         )}
-        {mode === "privacy_pools" && <PrivacyPoolsPanel address={address} />}
         {mode === "legacy" && (
           <div className="h-full p-6">
             <div className="max-w-xl rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
