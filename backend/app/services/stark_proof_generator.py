@@ -10,6 +10,7 @@ Creates verifiable proofs for:
 
 import asyncio
 import logging
+import os
 from typing import Dict, List
 from dataclasses import dataclass
 from datetime import datetime
@@ -29,7 +30,7 @@ class ProofConstraint:
 class STARKProofGenerator:
     """Generates cryptographic proofs for strategy decisions"""
     
-    def __init__(self, use_mock: bool = True):
+    def __init__(self, use_mock: bool = False):
         """
         Initialize proof generator
         
@@ -302,14 +303,18 @@ class STARKProofGenerator:
         4. Return cryptographic proof
         """
         
-        # Placeholder for real proof generation
-        logger.warning("⚠️ Using mock STARK proof (real implementation pending)")
-        return self._generate_mock_stark_proof(proof_input)
+        if os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"):
+            logger.warning("⚠️ Using mock STARK proof (real implementation pending)")
+            return self._generate_mock_stark_proof(proof_input)
+        raise RuntimeError(
+            "Real STARK prover not available and ALLOW_SIMULATED_PROOFS is not set. "
+            "Set ALLOW_SIMULATED_PROOFS=true for development."
+        )
 
 async def main():
     """Test proof generator"""
     
-    generator = STARKProofGenerator(use_mock=True)
+    generator = STARKProofGenerator(use_mock=os.getenv("ALLOW_SIMULATED_PROOFS", "").lower() in ("true", "1"))
     
     print("\n" + "="*80)
     print("🔐 STARK PROOF GENERATOR (zkML Decisions)")
