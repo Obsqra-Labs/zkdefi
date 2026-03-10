@@ -19,6 +19,8 @@ const FILTERS = [
   { id: "governance", label: "Votes" },
 ] as const;
 
+const OPPORTUNITY_TYPES = new Set(["opportunity", "lending", "staking"]);
+
 interface StreamResponse {
   address: string;
   items: StreamItem[];
@@ -58,10 +60,12 @@ export function ActivityTab({ address }: { address: string }) {
       const data = await apiFetch<StreamResponse>(
         `/api/v1/zkdefi/mc/stream/${address}?types=${typesParam}&limit=${lim}&offset=0`,
       );
-      return (data.items ?? []).map((i) => ({
-        ...i,
-        actions: Array.isArray(i?.actions) ? i.actions : [],
-      }));
+      return (data.items ?? [])
+        .filter((i) => !OPPORTUNITY_TYPES.has(i.type))
+        .map((i) => ({
+          ...i,
+          actions: Array.isArray(i?.actions) ? i.actions : [],
+        }));
     },
     [address, filter],
   );
@@ -183,8 +187,9 @@ export function ActivityTab({ address }: { address: string }) {
       {/* Stream content */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
         {groups.length === 0 ? (
-          <div className="py-16 text-center text-zinc-600 text-xs">
-            No activity yet
+          <div className="py-16 text-center text-zinc-600 text-xs space-y-2">
+            <p>No activity yet</p>
+            <p className="text-zinc-700">Activity events will appear here as you interact with the protocol — deposits, withdrawals, proofs, and governance votes.</p>
           </div>
         ) : (
           groups.map(([label, groupItems]) => (

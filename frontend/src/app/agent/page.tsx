@@ -45,6 +45,8 @@ import {
   type OverlayModeV2,
 } from "@/lib/agentState";
 
+const GUEST_ADDRESS = "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d";
+
 export default function AgentPage() {
   return (
     <Suspense fallback={
@@ -58,18 +60,24 @@ export default function AgentPage() {
 }
 
 function AgentPageInner() {
-  const { address, isConnected } = useAccount();
+  const { address: walletAddress, isConnected } = useAccount();
   const { settled: walletSettled } = useWalletSettled();
-  const { profile: profileV2 } = useRiskProfileV2(address);
-  const trustFlow = useTrustFlowState(profileV2, address);
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<OverlayModeV2>(null);
   const [slideout, setSlideout] = useState<SlideoutModeV2>(null);
   const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
   const [depositMode, setDepositMode] = useState<"privacy" | "strategy">("privacy");
   const showAdvancedPrivacyRails = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_PRIVACY_RAILS === "1";
+
+  const isGuest = guestMode && !isConnected;
+  const address = isGuest ? GUEST_ADDRESS : walletAddress;
+  const effectiveConnected = isConnected || isGuest;
+
+  const { profile: profileV2 } = useRiskProfileV2(address);
+  const trustFlow = useTrustFlowState(profileV2, address);
 
   const vault = usePrivacyVault(address);
   const v2 = useVaultV2(address);
@@ -78,7 +86,15 @@ function AgentPageInner() {
   const resolvedV2Overlay = resolveViewOverlayV2(searchParams.get("v"));
   const [vaultTab, setVaultTab] = useState<VaultTab>(resolvedV2.vaultTab ?? "overview");
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("guest") === "1" || params.get("preview") === "1") {
+        setGuestMode(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -103,26 +119,26 @@ function AgentPageInner() {
   }, [handleVaultTabChange]);
 
   useEffect(() => {
-    if (!mounted || !isConnected || !address) {
+    if (!mounted || !isConnected || !walletAddress || isGuest) {
       setShowOnboarding(false);
       return;
     }
 
-    migrateLegacyOnboardingState(address);
-    const completed = isOnboardingComplete(address);
+    migrateLegacyOnboardingState(walletAddress);
+    const completed = isOnboardingComplete(walletAddress);
     if (trustFlow.readyForAgent && !completed) {
-      markOnboardingComplete(address, "trust_flow_ready");
+      markOnboardingComplete(walletAddress, "trust_flow_ready");
       setShowOnboarding(false);
       return;
     }
 
     setShowOnboarding(!completed);
-  }, [mounted, isConnected, address, trustFlow.readyForAgent]);
+  }, [mounted, isConnected, walletAddress, isGuest, trustFlow.readyForAgent]);
 
   const handleOnboardingComplete = useCallback(() => {
-    if (address) markOnboardingComplete(address, "onboarding_wizard");
+    if (walletAddress) markOnboardingComplete(walletAddress, "onboarding_wizard");
     setShowOnboarding(false);
-  }, [address]);
+  }, [walletAddress]);
 
   const handleOpenAgentBuilder = useCallback((draft: AgentBuilderDraft) => {
     trackEvent("slideout_open", { slideout: "agent-builder" });
@@ -135,7 +151,7 @@ function AgentPageInner() {
     setSlideout(mode);
   }, []);
 
-  if (!mounted || (!isConnected && !walletSettled)) {
+  if (!mounted || (!effectiveConnected && !walletSettled)) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -143,17 +159,23 @@ function AgentPageInner() {
     );
   }
 
-  if (showOnboarding && isConnected) {
+  if (showOnboarding && isConnected && !isGuest) {
     return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
-  if (!isConnected) {
+  if (!effectiveConnected) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center gap-4">
         <Shield className="w-16 h-16 text-zinc-600" />
         <h2 className="text-2xl font-bold text-white">Connect Wallet</h2>
         <p className="text-zinc-400">Connect your wallet to access Capital OS</p>
         <ConnectButton />
+        <button
+          onClick={() => setGuestMode(true)}
+          className="mt-2 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 rounded-lg transition-colors"
+        >
+          Preview as Guest
+        </button>
       </div>
     );
   }
@@ -190,31 +212,49 @@ function AgentPageInner() {
 
   return (
     <>
-      <MissionControlLayout
-        address={address}
-        activeOverlay={activeOverlay}
-        onOverlayChange={setActiveOverlay}
-        leftRail={
-          <IdentityBadge
-            address={addr}
-            onSlideout={(m) => setSlideout(m as SlideoutModeV2)}
-          />
-        }
-        centerStage={
-          <VaultCenterStage
-            address={addr}
-            activeTab={vaultTab}
-            onTabChange={handleVaultTabChange}
-            onSlideout={(m) => openSlideout(m as NonNullable<SlideoutModeV2>)}
-          />
-        }
-        rightRail={
-          <AgentControls address={addr} />
-        }
-        overlay={overlayContent}
-        activeMode={vaultTab}
-        onModeChange={handleModeChange}
-      />
+      {isGuest && (
+        <div className="bg-amber-900/90 border-b border-amber-700 px-4 py-2 flex items-center justify-between text-sm">
+          <span className="text-amber-200">
+            Guest preview — read-only mode with live data
+          </span>
+          <div className="flex items-center gap-3">
+            <ConnectButton />
+            <button
+              onClick={() => setGuestMode(false)}
+              className="text-amber-400 hover:text-amber-200 text-xs underline"
+            >
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
+      <div>
+        <MissionControlLayout
+          address={address}
+          activeOverlay={activeOverlay}
+          onOverlayChange={setActiveOverlay}
+          leftRail={
+            <IdentityBadge
+              address={addr}
+              onSlideout={isGuest ? () => {} : (m) => setSlideout(m as SlideoutModeV2)}
+            />
+          }
+          centerStage={
+            <VaultCenterStage
+              address={addr}
+              activeTab={vaultTab}
+              onTabChange={handleVaultTabChange}
+              onSlideout={isGuest ? () => {} : (m) => openSlideout(m as NonNullable<SlideoutModeV2>)}
+            />
+          }
+          rightRail={
+            <AgentControls address={addr} />
+          }
+          overlay={overlayContent}
+          activeMode={vaultTab}
+          onModeChange={handleModeChange}
+        />
+      </div>
 
       {slideout && (
         <div className="fixed inset-0 z-[60] flex">

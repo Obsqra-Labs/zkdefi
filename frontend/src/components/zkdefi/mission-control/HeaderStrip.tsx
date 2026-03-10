@@ -9,14 +9,6 @@ import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { ConnectButton } from "../ConnectButton";
 import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
-const NAV_ITEMS = [
-  { id: "overview", label: "Overview" },
-  { id: "capital", label: "Capital" },
-  { id: "lend", label: "Lend" },
-  { id: "govern", label: "Govern" },
-  { id: "activity", label: "Activity" },
-] as const;
-
 interface HeaderStripProps {
   address: string | undefined;
   activeOverlay: OverlayModeV2;
@@ -97,27 +89,6 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMod
         </a>
         <span className="text-zinc-600">/</span>
         <span className="text-zinc-400">Capital OS</span>
-
-        {onModeChange && (
-          <>
-            <div className="w-px h-4 bg-zinc-700" />
-            <nav className="flex items-center gap-1">
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onModeChange(item.id as VaultTab)}
-                  className={`px-2.5 py-0.5 rounded-full transition-colors font-medium ${
-                    activeMode === item.id
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </>
-        )}
       </div>
 
       {/* Center: Agent + Gate */}

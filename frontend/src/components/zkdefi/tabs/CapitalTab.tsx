@@ -99,11 +99,15 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
           ? signalsRes.value.opportunities
           : Array.isArray(signalsRes.value) ? signalsRes.value : [];
         for (const o of opps.slice(0, 3)) {
+          const yld = Number(o.currentYield ?? o.apy ?? o.yield ?? 0);
+          const risk = Number(o.riskScore ?? o.risk_score ?? 50);
+          const conf = o.confidence > 0 ? Number(o.confidence) : (100 - risk) / 100;
+          const dir: OracleSignal["direction"] = yld > 50 ? "up" : yld > 10 ? "stable" : "down";
           signals.push({
-            pair: o.pair ?? o.pool ?? o.name ?? "Signal",
-            direction: (o.signal_direction ?? o.direction ?? "stable") as OracleSignal["direction"],
-            confidence: Number(o.confidence ?? o.score ?? 0.5),
-            recommendation: o.recommendation ?? o.action ?? `${Number(o.apy ?? o.yield ?? 0).toFixed(1)}% APY`,
+            pair: o.title ?? o.pair ?? o.pool ?? o.name ?? "Signal",
+            direction: (o.signal_direction ?? o.direction ?? dir) as OracleSignal["direction"],
+            confidence: conf,
+            recommendation: o.recommendation ?? o.action ?? `${yld.toFixed(1)}% APY`,
           });
         }
       }
@@ -157,7 +161,10 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
       apiFetch<any>(`/api/v1/zkdefi/ledger/notes/${address}`),
     ]).then(([ekuboRes, notesRes]) => {
       if (cancelled) return;
-      if (ekuboRes.status === "fulfilled") setEkuboPositions(ekuboRes.value.positions ?? []);
+      if (ekuboRes.status === "fulfilled") {
+        const all = ekuboRes.value.positions ?? [];
+        setEkuboPositions(all.filter((p: EkuboPosition) => p.token0 && p.token1));
+      }
       if (notesRes.status === "fulfilled") {
         const notes = Array.isArray(notesRes.value?.notes) ? notesRes.value.notes : [];
         setCommitments(notes);
@@ -454,7 +461,7 @@ export function CapitalTab({ address, onSlideout }: CapitalTabProps) {
                       </p>
                       <div className="flex items-center gap-2 text-xs mt-0.5">
                         <span className="text-emerald-400 font-medium">
-                          {Number(opp.apy ?? opp.yield ?? opp.apr ?? 0).toFixed(1)}% APY
+                          {Number(opp.currentYield ?? opp.apy ?? opp.yield ?? opp.apr ?? 0).toFixed(1)}% APY
                         </span>
                         <span className={riskCls}>{riskLevel}</span>
                         {opp.type && <span className="text-zinc-600">{opp.type}</span>}

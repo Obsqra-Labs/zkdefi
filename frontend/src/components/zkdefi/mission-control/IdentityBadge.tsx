@@ -26,11 +26,11 @@ export function IdentityBadge({ address, onSlideout }: IdentityBadgeProps) {
   useEffect(() => {
     if (!address) return;
     let cancelled = false;
-    apiFetch<{ credit_score?: number; composite_score?: number }>(
+    apiFetch<{ credit_score?: number; composite_score?: number; reputation_score?: number }>(
       `/api/v1/zkdefi/reputation/user/${address}`,
     )
       .then((d) => {
-        if (!cancelled) setCreditScore(d?.credit_score ?? d?.composite_score ?? null);
+        if (!cancelled) setCreditScore(d?.credit_score ?? d?.reputation_score ?? d?.composite_score ?? null);
       })
       .catch(() => {
         if (!cancelled) setCreditScore(null);

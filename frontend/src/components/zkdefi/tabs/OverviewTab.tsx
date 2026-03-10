@@ -69,12 +69,18 @@ export function OverviewTab({ address }: OverviewTabProps) {
       .then((res) => {
         if (cancelled) return;
         const opps = Array.isArray(res?.opportunities) ? res.opportunities : Array.isArray(res) ? res : [];
-        const mapped: OracleSignal[] = opps.slice(0, 3).map((o: any) => ({
-          pair: o.pair ?? o.pool ?? o.name ?? "Unknown",
-          direction: (o.signal_direction ?? o.direction ?? "stable") as OracleSignal["direction"],
-          confidence: Number(o.confidence ?? o.score ?? 0.5),
-          recommendation: o.recommendation ?? o.action ?? `${Number(o.apy ?? o.yield ?? 0).toFixed(1)}% APY`,
-        }));
+        const mapped: OracleSignal[] = opps.slice(0, 3).map((o: any) => {
+          const yld = Number(o.currentYield ?? o.apy ?? o.yield ?? 0);
+          const risk = Number(o.riskScore ?? o.risk_score ?? 50);
+          const conf = o.confidence > 0 ? Number(o.confidence) : (100 - risk) / 100;
+          const dir: OracleSignal["direction"] = yld > 50 ? "up" : yld > 10 ? "stable" : "down";
+          return {
+            pair: o.title ?? o.pair ?? o.pool ?? o.name ?? "Unknown",
+            direction: (o.signal_direction ?? o.direction ?? dir) as OracleSignal["direction"],
+            confidence: conf,
+            recommendation: o.recommendation ?? o.action ?? `${yld.toFixed(1)}% APY`,
+          };
+        });
         setSignals(mapped);
       })
       .catch(() => {});
