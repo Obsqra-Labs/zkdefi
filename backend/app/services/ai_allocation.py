@@ -14,7 +14,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, asdict, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from app.services.risk_engine import RiskAssessment

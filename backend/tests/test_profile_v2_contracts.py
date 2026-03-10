@@ -50,6 +50,7 @@ def test_profile_snapshot_and_diff_contract() -> None:
     # Create a deterministic profile change.
     stake = client.post(
         "/api/v1/zkdefi/reputation/stake-collateral",
+        headers={"X-Wallet-Address": address},
         params={"address": address, "amount_wei": 10**17},
     )
     assert stake.status_code == 200

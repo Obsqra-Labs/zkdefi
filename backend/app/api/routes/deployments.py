@@ -173,7 +173,7 @@ async def execute_deployment(
             f"{request.user_address}_{request.risk_profile}_{len(pool_deployments)}".encode()
         ).hexdigest()[:12]
 
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         return DeploymentExecutionResponse(
             deployment_id=deployment_id,
@@ -188,6 +188,8 @@ async def execute_deployment(
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Deployment execution error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -209,8 +211,8 @@ def _get_allocation_for_profile(
 ) -> Dict[str, float]:
     """Get pool allocation for this profile"""
     
-    lending_pools = [p for p in pools if "Vesu" in p.protocol.value]
-    lp_pools = [p for p in pools if "Ekubo" in p.protocol.value]
+    lending_pools = [p for p in pools if "Vesu" in p.protocol]
+    lp_pools = [p for p in pools if "Ekubo" in p.protocol]
 
     if risk_profile == "conservative":
         if lending_pools and lp_pools:

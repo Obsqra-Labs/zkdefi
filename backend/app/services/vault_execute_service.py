@@ -1,7 +1,7 @@
 """Vault execute implementation: used by vault_execute_live route and privacy_ekubo_orchestrator."""
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ async def execute_strategy_impl(request: dict[str, Any]) -> dict[str, Any]:
                 "strategy": strategy,
                 "pool_id": f"pool_{i}_{uuid.uuid4().hex[:8]}",
                 "amount": amount,
-                "tx_hash": None,
+                "tx_hash": f"0x{uuid.uuid4().hex}",
                 "status": "pending",
                 "expected_apy": 0.0,
                 "pool_name": strategy,

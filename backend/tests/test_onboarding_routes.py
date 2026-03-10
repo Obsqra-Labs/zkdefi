@@ -73,6 +73,7 @@ class TestGenerateAuthorization:
 
         resp = client.post(
             "/api/v1/zkdefi/onboarding/generate_authorization",
+            headers={"X-Wallet-Address": "0xAlice"},
             json={
                 "user_address": "0xAlice",
                 "constraints": {
@@ -107,6 +108,7 @@ class TestGenerateAuthorization:
 
         resp = client.post(
             "/api/v1/zkdefi/onboarding/generate_authorization",
+            headers={"X-Wallet-Address": "0xAlice"},
             json={
                 "user_address": "0xAlice",
                 "constraints": {"max_position": "100", "risk_tolerance": 30, "session_duration": 1},
@@ -122,6 +124,7 @@ class TestGenerateAuthorization:
     def test_validation_rejects_missing_constraints(self):
         resp = client.post(
             "/api/v1/zkdefi/onboarding/generate_authorization",
+            headers={"X-Wallet-Address": "0x1"},
             json={"user_address": "0x1", "claims": []},
         )
         assert resp.status_code == 422
@@ -139,6 +142,7 @@ class TestSubmitAgent:
         # Use valid hex values — _prepare_*_calldata does int(value, 16)
         resp = client.post(
             "/api/v1/zkdefi/onboarding/submit_agent",
+            headers={"X-Wallet-Address": "0x0123456789abcdef"},
             json={
                 "user_address": "0x0123456789abcdef",
                 "fact_hash": "0xaaaa",
@@ -155,6 +159,7 @@ class TestSubmitAgent:
     def test_bad_signature_returns_400(self):
         resp = client.post(
             "/api/v1/zkdefi/onboarding/submit_agent",
+            headers={"X-Wallet-Address": "0xAlice"},
             json={
                 "user_address": "0xAlice",
                 "fact_hash": "0xFACT",

@@ -180,18 +180,26 @@ class TestGenerateKycProof:
 # Unimplemented proof generators
 # ---------------------------------------------------------------------------
 
-class TestUnimplementedProofs:
-    @pytest.mark.asyncio
-    async def test_risk_compliance_raises(self, svc: ComplianceService):
-        with pytest.raises(RuntimeError, match="not yet implemented"):
-            await svc.generate_risk_compliance_proof("0xA", 20, 50)
+class TestSimulatedProofs:
+    """With ALLOW_SIMULATED_PROOFS=true these methods return simulated proofs."""
 
     @pytest.mark.asyncio
-    async def test_performance_proof_raises(self, svc: ComplianceService):
-        with pytest.raises(RuntimeError, match="not yet implemented"):
-            await svc.generate_performance_proof("0xA", 100, 50)
+    async def test_risk_compliance_returns_proof(self, svc: ComplianceService):
+        result = await svc.generate_risk_compliance_proof("0xA", 20, 50)
+        assert result["profile_type"] == "risk"
+        assert result["result"] == "compliant"
+        assert result["simulated"] is True
 
     @pytest.mark.asyncio
-    async def test_aggregation_proof_raises(self, svc: ComplianceService):
-        with pytest.raises(RuntimeError, match="not yet implemented"):
-            await svc.generate_aggregation_proof("0xA", 10000, 5000)
+    async def test_performance_proof_returns_proof(self, svc: ComplianceService):
+        result = await svc.generate_performance_proof("0xA", 100, 50)
+        assert result["profile_type"] == "performance"
+        assert result["result"] == "above"
+        assert result["simulated"] is True
+
+    @pytest.mark.asyncio
+    async def test_aggregation_proof_returns_proof(self, svc: ComplianceService):
+        result = await svc.generate_aggregation_proof("0xA", 10000, 5000)
+        assert result["profile_type"] == "aggregation"
+        assert result["result"] == "above"
+        assert result["simulated"] is True

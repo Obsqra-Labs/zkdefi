@@ -11,7 +11,12 @@ from app.services.receipt_service import ReceiptService
 
 @pytest.fixture
 def svc():
-    return ReceiptService()
+    svc = ReceiptService()
+    # Clear receipts table for test isolation (SQLite-backed service)
+    import sqlite3
+    with svc._db_lock, svc._db_connect() as conn:
+        conn.execute("DELETE FROM receipts")
+    return svc
 
 
 # ---------------------------------------------------------------------------
