@@ -7,29 +7,21 @@ import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate } from "@/lib/trust/adapters";
 import { isTrustSurfaceWiringEnabled } from "@/lib/trust/flags";
 import { ConnectButton } from "../ConnectButton";
-import type { OverlayMode } from "./MissionControlLayout";
-import type { VaultTab } from "@/lib/agentState";
+import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
 const NAV_ITEMS = [
-  { id: "overview", label: "Dashboard" },
-  { id: "trade", label: "Trade" },
-  { id: "pools", label: "Vault" },
-  { id: "oracle", label: "Oracle" },
-  { id: "lending", label: "Lending" },
-  { id: "marketplace", label: "Marketplace" },
+  { id: "overview", label: "Overview" },
+  { id: "capital", label: "Capital" },
+  { id: "lend", label: "Lend" },
+  { id: "govern", label: "Govern" },
+  { id: "activity", label: "Activity" },
 ] as const;
 
 interface HeaderStripProps {
   address: string | undefined;
-  activeOverlay: OverlayMode;
-  onOverlayChange: (mode: OverlayMode) => void;
-  /** V2: show Fund/Withdraw actions in header */
-  featureV2?: boolean;
-  onDeposit?: () => void;
-  onWithdraw?: () => void;
-  /** Active nav mode (maps to VaultTab) */
+  activeOverlay: OverlayModeV2;
+  onOverlayChange: (mode: OverlayModeV2) => void;
   activeMode?: VaultTab;
-  /** Called when a nav pill is clicked */
   onModeChange?: (mode: VaultTab) => void;
 }
 
@@ -39,7 +31,7 @@ interface AgentStatus {
   actions_taken?: number;
 }
 
-export function HeaderStrip({ address, activeOverlay, onOverlayChange, featureV2, onDeposit, onWithdraw, activeMode, onModeChange }: HeaderStripProps) {
+export function HeaderStrip({ address, activeOverlay, onOverlayChange, activeMode, onModeChange }: HeaderStripProps) {
   const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
   const [gateStatus, setGateStatus] = useState<string>("--");
@@ -141,7 +133,7 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, featureV2
         </div>
       </div>
 
-      {/* Right: Network + Tier + V2 Actions + Shortcuts + Wallet */}
+      {/* Right: Network + Tier + Design/Brain + Wallet */}
       <div className="flex items-center gap-3">
         <span className="text-zinc-500">Sepolia</span>
         {tierData && (
@@ -154,29 +146,6 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, featureV2
           </span>
         )}
         <div className="w-px h-4 bg-zinc-700" />
-        {featureV2 && (
-          <>
-            <button
-              onClick={onDeposit}
-              className="px-2 py-0.5 rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/30 transition-colors font-medium"
-            >
-              Fund
-            </button>
-            <button
-              onClick={onWithdraw}
-              className="px-2 py-0.5 rounded text-amber-400 hover:text-amber-300 hover:bg-amber-900/30 transition-colors font-medium"
-            >
-              Withdraw
-            </button>
-            <div className="w-px h-4 bg-zinc-700" />
-          </>
-        )}
-        <button
-          onClick={() => onOverlayChange(activeOverlay === "deploy" ? null : "deploy")}
-          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "deploy" ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-        >
-          Deploy
-        </button>
         <button
           onClick={() => onOverlayChange(activeOverlay === "circuit-board" ? null : "circuit-board")}
           className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "circuit-board" ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
@@ -184,25 +153,11 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange, featureV2
           Design
         </button>
         <button
-          onClick={() => onOverlayChange(activeOverlay === "governance" ? null : "governance")}
-          className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "governance" ? "bg-cyan-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-        >
-          Govern
-        </button>
-        <button
           onClick={() => onOverlayChange(activeOverlay === "brain" ? null : "brain")}
           className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "brain" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
         >
           Brain
         </button>
-        {featureV2 && (
-          <button
-            onClick={() => onOverlayChange(activeOverlay === "execution-pipeline" ? null : "execution-pipeline")}
-            className={`px-2 py-0.5 rounded transition-colors ${activeOverlay === "execution-pipeline" ? "bg-rose-600 text-white" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"}`}
-          >
-            Pipeline
-          </button>
-        )}
         <div className="w-px h-4 bg-zinc-700" />
         <ConnectButton />
       </div>

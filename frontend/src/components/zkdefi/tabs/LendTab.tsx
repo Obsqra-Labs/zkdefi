@@ -9,7 +9,7 @@ import {
   Loader2,
   AlertTriangle,
   Banknote,
-  HandCoins,
+  Coins,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
@@ -329,7 +329,7 @@ export function LendTab({ address }: LendTabProps) {
       {/* ━━━ 3. Open Market ━━━ */}
       <section>
         <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <HandCoins className="w-3.5 h-3.5" /> Open Market
+          <Coins className="w-3.5 h-3.5" /> Open Market
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Supply — fund open requests */}

@@ -3,9 +3,9 @@
 import type { ReactNode } from "react";
 import { HeaderStrip } from "./HeaderStrip";
 import { ProofChainStrip } from "./ProofChainStrip";
-import type { VaultTab } from "@/lib/agentState";
+import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
-export type OverlayMode = "deploy" | "circuit-board" | "governance" | "brain" | "execution-pipeline" | null;
+export type OverlayMode = OverlayModeV2;
 
 interface MissionControlLayoutProps {
   address: string | undefined;
@@ -15,13 +15,7 @@ interface MissionControlLayoutProps {
   overlay?: ReactNode;
   activeOverlay: OverlayMode;
   onOverlayChange: (mode: OverlayMode) => void;
-  /** V2: pass deposit/withdraw to HeaderStrip */
-  featureV2?: boolean;
-  onDeposit?: () => void;
-  onWithdraw?: () => void;
-  /** Active nav mode for header nav pills */
   activeMode?: VaultTab;
-  /** Called when a header nav pill is clicked */
   onModeChange?: (mode: VaultTab) => void;
 }
 
@@ -33,9 +27,6 @@ export function MissionControlLayout({
   overlay,
   activeOverlay,
   onOverlayChange,
-  featureV2,
-  onDeposit,
-  onWithdraw,
   activeMode,
   onModeChange,
 }: MissionControlLayoutProps) {
@@ -45,9 +36,6 @@ export function MissionControlLayout({
         address={address}
         activeOverlay={activeOverlay}
         onOverlayChange={onOverlayChange}
-        featureV2={featureV2}
-        onDeposit={onDeposit}
-        onWithdraw={onWithdraw}
         activeMode={activeMode}
         onModeChange={onModeChange}
       />
@@ -55,12 +43,12 @@ export function MissionControlLayout({
       <ProofChainStrip />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Rail - Capital Ledger (legacy) / IntelligenceSidebar (V2) */}
+        {/* Left Rail - IdentityBadge */}
         <aside className="w-[300px] flex-shrink-0 border-r border-zinc-800 overflow-y-auto">
           {leftRail}
         </aside>
 
-        {/* Center Stage - Stream or Overlay */}
+        {/* Center Stage - Tabs or Overlay */}
         <main className="flex-1 overflow-y-auto relative">
           {activeOverlay && overlay ? (
             <div className="absolute inset-0 z-20 bg-zinc-950">
@@ -71,8 +59,8 @@ export function MissionControlLayout({
           )}
         </main>
 
-        {/* Right Rail - Control Plane */}
-        {activeOverlay !== "circuit-board" && activeOverlay !== "brain" && activeOverlay !== "execution-pipeline" && (
+        {/* Right Rail - AgentControls */}
+        {activeOverlay !== "circuit-board" && activeOverlay !== "brain" && (
           <aside className="w-[280px] flex-shrink-0 border-l border-zinc-800 overflow-y-auto">
             {rightRail}
           </aside>
