@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Wallet, Shield, Lock, BarChart3, ChevronRight } from "lucide-react";
+import { Wallet, Shield, Lock, BarChart3, TrendingUp, PieChart } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -13,26 +12,28 @@ export interface CapitalFlowPipelineProps {
   deployedBalance: string;
   idleBalance: string;
   activeNode?: "wallet" | "shield" | "vault" | "strategies";
+  /** Live Ekubo position count */
+  ekuboPositionCount?: number;
+  /** Live Ekubo positions total USD */
+  ekuboTotalUsd?: number;
 }
-
-type NodeId = "wallet" | "shield" | "vault" | "strategies";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatBalance(value: string): string {
-  const n = parseFloat(value || "0");
-  return `${n.toFixed(2)} ETH`;
+function fmtEth(v: string): string {
+  const n = parseFloat(v || "0");
+  if (n === 0) return "0";
+  if (n < 0.0001) return "<0.0001";
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
-// Default strategies (matches PositionsOverview deployment pattern)
-const DEFAULT_STRATEGIES = [
-  { name: "Ekubo LP", yieldPct: 12.5 },
-  { name: "Lending", yieldPct: 8.2 },
-  { name: "Staking", yieldPct: 6.0 },
-  { name: "Idle", yieldPct: 0 },
-];
+function fmtUsd(v: number): string {
+  if (v === 0) return "$0.00";
+  if (v < 0.01) return "<$0.01";
+  return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -43,172 +44,112 @@ export function CapitalFlowPipeline({
   shieldedBalance,
   deployedBalance,
   idleBalance,
-  activeNode: controlledActiveNode,
+  ekuboPositionCount = 0,
+  ekuboTotalUsd = 0,
 }: CapitalFlowPipelineProps) {
-  const [openDrawer, setOpenDrawer] = useState<NodeId | null>(
-    controlledActiveNode ?? null,
-  );
+  const wallet = parseFloat(walletBalance || "0");
+  const shielded = parseFloat(shieldedBalance || "0");
+  const deployed = parseFloat(deployedBalance || "0");
+  const idle = parseFloat(idleBalance || "0");
+  const total = wallet + shielded + deployed + idle;
 
-  const activeNode = controlledActiveNode ?? openDrawer;
+  // Allocation bar segments
+  const segments = [
+    { label: "Wallet",     value: wallet,   color: "bg-zinc-500",    text: "text-zinc-400" },
+    { label: "Shielded",   value: shielded, color: "bg-amber-400",   text: "text-amber-400" },
+    { label: "Deployed",   value: deployed, color: "bg-emerald-400", text: "text-emerald-400" },
+    { label: "Idle",       value: idle,     color: "bg-zinc-700",    text: "text-zinc-500" },
+  ].filter((s) => s.value > 0);
 
-  const nodes: { id: NodeId; label: string; icon: typeof Wallet; balance: string }[] = [
-    { id: "wallet", label: "Wallet", icon: Wallet, balance: walletBalance },
-    { id: "shield", label: "Shield", icon: Shield, balance: shieldedBalance },
+  const cards: { icon: typeof Wallet; label: string; value: string; sub?: string; accent: string; bgAccent: string }[] = [
     {
-      id: "vault",
-      label: "Vault",
-      icon: Lock,
-      balance: (parseFloat(deployedBalance) + parseFloat(idleBalance)).toFixed(2),
+      icon: Wallet,
+      label: "Wallet",
+      value: `${fmtEth(walletBalance)} ETH`,
+      accent: "text-zinc-300",
+      bgAccent: "bg-zinc-800/60",
     },
     {
-      id: "strategies",
-      label: "Strategies",
+      icon: Shield,
+      label: "Shielded",
+      value: `${fmtEth(shieldedBalance)} ETH`,
+      sub: "Privacy pool",
+      accent: "text-amber-400",
+      bgAccent: "bg-amber-500/10",
+    },
+    {
       icon: BarChart3,
-      balance: deployedBalance,
+      label: "Deployed",
+      value: `${fmtEth(deployedBalance)} ETH`,
+      sub: ekuboPositionCount > 0 ? `${ekuboPositionCount} positions` : undefined,
+      accent: "text-emerald-400",
+      bgAccent: "bg-emerald-500/10",
+    },
+    {
+      icon: Lock,
+      label: "Idle",
+      value: `${fmtEth(idleBalance)} ETH`,
+      sub: "Awaiting deployment",
+      accent: "text-zinc-500",
+      bgAccent: "bg-zinc-800/40",
     },
   ];
 
-  const handleNodeClick = (id: NodeId) => {
-    setOpenDrawer((prev) => (prev === id ? null : id));
-  };
-
-  const totalDeployed = parseFloat(deployedBalance) + parseFloat(idleBalance);
-  const allocationSummary = totalDeployed > 0
-    ? [
-        { label: "Deployed", value: deployedBalance, pct: (parseFloat(deployedBalance) / totalDeployed) * 100 },
-        { label: "Idle", value: idleBalance, pct: (parseFloat(idleBalance) / totalDeployed) * 100 },
-      ]
-    : [];
-
   return (
-    <div className="border border-white/10 rounded-xl bg-zinc-900/50 p-5 space-y-4">
-      {/* Pipeline row: horizontal on desktop, vertical on mobile */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-0 md:gap-0">
-        {nodes.map((node, idx) => (
+    <div className="space-y-4">
+      {/* ── Summary Cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {cards.map((c) => (
           <div
-            key={node.id}
-            className="flex flex-col md:flex-row items-center md:flex-1"
+            key={c.label}
+            className={`rounded-xl border border-white/[0.06] ${c.bgAccent} p-3.5 flex flex-col gap-1`}
           >
-            <button
-              type="button"
-              onClick={() => handleNodeClick(node.id)}
-              className={`
-                flex flex-col items-center gap-1.5 w-full min-w-[80px] md:min-w-0 md:max-w-[120px] p-3 rounded-lg
-                border transition-colors
-                hover:bg-white/[0.04]
-                ${activeNode === node.id
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-white/10 bg-white/[0.02]"
-                }
-              `}
-            >
-              <node.icon
-                size={24}
-                className={activeNode === node.id ? "text-blue-400" : "text-white/60"}
-              />
-              <span className="text-xs font-medium text-white/80">{node.label}</span>
-              <span className="text-xs text-white/50 font-mono">
-                {formatBalance(node.balance)}
-              </span>
-            </button>
-            {idx < nodes.length - 1 && (
-              <>
-                <div className="hidden md:flex items-center px-1 flex-shrink-0">
-                  <ChevronRight size={20} className="text-white/30" />
-                </div>
-                <div className="flex md:hidden justify-center py-1">
-                  <ChevronRight size={16} className="text-white/30 rotate-90" />
-                </div>
-              </>
-            )}
+            <div className="flex items-center gap-2 mb-1">
+              <c.icon size={14} className={c.accent} />
+              <span className="text-[11px] text-zinc-500 uppercase tracking-wider font-medium">{c.label}</span>
+            </div>
+            <span className={`text-sm font-semibold ${c.accent}`}>{c.value}</span>
+            {c.sub && <span className="text-[10px] text-zinc-600">{c.sub}</span>}
           </div>
         ))}
       </div>
 
-      {/* Disclaimer */}
-      <p className="text-xs text-zinc-500 text-center">
-        Your capital is aggregated with others. Individual allocations are not traceable.
-      </p>
-
-      {/* Drawers (accordion) */}
-      <div className="space-y-0">
-        {openDrawer === "wallet" && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-            <h4 className="text-xs font-semibold text-white/80 mb-2">Wallet</h4>
-            {parseFloat(walletBalance) > 0 ? (
-              <p className="text-sm text-white/60">
-                Balance: <span className="font-mono text-white">{formatBalance(walletBalance)}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-white/40">
-                Connect your wallet to see balance
-              </p>
+      {/* ── Allocation Bar ── */}
+      {total > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+              <PieChart size={12} />
+              <span className="uppercase tracking-wider font-medium">Allocation</span>
+            </div>
+            {ekuboTotalUsd > 0 && (
+              <span className="text-[11px] text-emerald-400/80 flex items-center gap-1">
+                <TrendingUp size={10} />
+                Ekubo LP {fmtUsd(ekuboTotalUsd)}
+              </span>
             )}
           </div>
-        )}
-
-        {openDrawer === "shield" && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-            <h4 className="text-xs font-semibold text-white/80 mb-2">Shield</h4>
-            <div className="space-y-2 text-sm">
-              <p className="text-white/60">
-                Privacy tier: <span className="text-white">Nullifier Set</span>
-              </p>
-              <p className="text-white/60">
-                Deposit count: <span className="text-white font-mono">—</span>
-              </p>
-              <a
-                href="#"
-                className="inline-block text-blue-400 hover:text-blue-300 text-xs font-medium"
-              >
-                Withdraw →
-              </a>
-            </div>
+          <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-800/60">
+            {segments.map((s) => (
+              <div
+                key={s.label}
+                className={`${s.color} transition-all first:rounded-l-full last:rounded-r-full`}
+                style={{ width: `${(s.value / total) * 100}%` }}
+                title={`${s.label}: ${((s.value / total) * 100).toFixed(1)}%`}
+              />
+            ))}
           </div>
-        )}
-
-        {openDrawer === "vault" && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-            <h4 className="text-xs font-semibold text-white/80 mb-2">Vault</h4>
-            <p className="text-sm text-white/60 mb-3">
-              Capital deployed across strategies
-            </p>
-            {allocationSummary.length > 0 ? (
-              <div className="space-y-2">
-                {allocationSummary.map((a) => (
-                  <div key={a.label} className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">{a.label}</span>
-                    <span className="text-white font-mono">
-                      {formatBalance(a.value)} ({a.pct.toFixed(0)}%)
-                    </span>
-                  </div>
-                ))}
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {segments.map((s) => (
+              <div key={s.label} className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+                <span className={`inline-block w-2 h-2 rounded-full ${s.color}`} />
+                <span>{s.label}</span>
+                <span className="text-zinc-600">{((s.value / total) * 100).toFixed(0)}%</span>
               </div>
-            ) : (
-              <p className="text-xs text-white/40">No capital deployed yet</p>
-            )}
+            ))}
           </div>
-        )}
-
-        {openDrawer === "strategies" && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-            <h4 className="text-xs font-semibold text-white/80 mb-2">Strategies</h4>
-            <div className="space-y-2">
-              {DEFAULT_STRATEGIES.map((s) => (
-                <div
-                  key={s.name}
-                  className="flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0"
-                >
-                  <span className="text-white/80">{s.name}</span>
-                  <span className="text-emerald-400 font-mono text-xs">
-                    {s.yieldPct > 0 ? `${s.yieldPct}% APY` : "—"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -97,6 +97,32 @@ class LedgerService:
                     )
                     """
                 )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS vault_deposits (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_address TEXT NOT NULL,
+                        amount_wei TEXT NOT NULL,
+                        tx_hash TEXT UNIQUE,
+                        status TEXT NOT NULL DEFAULT 'confirmed',
+                        created_at INTEGER NOT NULL
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS vault_allocations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_address TEXT NOT NULL,
+                        venue TEXT NOT NULL,
+                        pair TEXT,
+                        amount_wei TEXT NOT NULL,
+                        position_id TEXT,
+                        status TEXT NOT NULL DEFAULT 'active',
+                        created_at INTEGER NOT NULL
+                    )
+                    """
+                )
                 conn.commit()
             finally:
                 conn.close()
@@ -447,6 +473,148 @@ class LedgerService:
                         }
                     )
                 return events
+            finally:
+                conn.close()
+
+    # ── Vault deposit methods ───────────────────────────────────────────
+
+    def record_vault_deposit(
+        self,
+        user_address: str,
+        amount_wei: int | str,
+        tx_hash: str,
+    ) -> dict[str, Any]:
+        """Record a verified vault deposit and credit the user's ledger balance.
+
+        Returns dict with deposit_id, balance_wei, and duplicate flag.
+        """
+        if not self.enabled:
+            return {"deposit_id": None, "balance_wei": 0, "duplicate": False}
+        amount = int(amount_wei)
+        now = int(time.time())
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                # Check for duplicate tx_hash
+                existing = conn.execute(
+                    "SELECT id FROM vault_deposits WHERE tx_hash = ?", (tx_hash,)
+                ).fetchone()
+                if existing:
+                    balance = self.get_balance(user_address)
+                    return {"deposit_id": existing[0], "balance_wei": balance, "duplicate": True}
+
+                cur = conn.execute(
+                    "INSERT INTO vault_deposits (user_address, amount_wei, tx_hash, status, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (user_address, str(amount), tx_hash, "confirmed", now),
+                )
+                deposit_id = cur.lastrowid
+                self._log_event(conn, "vault_deposit", None, {
+                    "user_address": user_address,
+                    "amount_wei": str(amount),
+                    "tx_hash": tx_hash,
+                    "deposit_id": deposit_id,
+                })
+                conn.commit()
+
+                # Credit ledger balance (outside this transaction)
+                balance = self.credit_balance(user_address, amount, reason="vault_deposit")
+                return {"deposit_id": deposit_id, "balance_wei": balance, "duplicate": False}
+            finally:
+                conn.close()
+
+    def list_vault_deposits(self, user_address: str, limit: int = 100) -> list[dict[str, Any]]:
+        """List deposit history for a user."""
+        if not self.enabled:
+            return []
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT id, amount_wei, tx_hash, status, created_at FROM vault_deposits WHERE user_address = ? ORDER BY id DESC LIMIT ?",
+                    (user_address, limit),
+                ).fetchall()
+                return [
+                    {"id": r[0], "amount_wei": r[1], "tx_hash": r[2], "status": r[3], "created_at": r[4]}
+                    for r in rows
+                ]
+            finally:
+                conn.close()
+
+    def get_total_deposited(self, user_address: str) -> int:
+        """Sum of all confirmed vault deposits for a user (wei)."""
+        if not self.enabled:
+            return 0
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT amount_wei FROM vault_deposits WHERE user_address = ? AND status = 'confirmed'",
+                    (user_address,),
+                ).fetchall()
+                return sum(int(r[0]) for r in rows if r[0])
+            finally:
+                conn.close()
+
+    def get_total_withdrawn(self, user_address: str) -> int:
+        """Sum of all debit transfers with reason 'withdrawal' for a user (wei)."""
+        if not self.enabled:
+            return 0
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT amount_wei FROM ledger_transfers WHERE address = ? AND direction = 'debit' AND reason = 'withdrawal'",
+                    (user_address,),
+                ).fetchall()
+                return sum(int(r[0]) for r in rows if r[0])
+            finally:
+                conn.close()
+
+    def get_deployed_amount(self, user_address: str) -> int:
+        """Sum of active vault allocations for a user (wei)."""
+        if not self.enabled:
+            return 0
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT amount_wei FROM vault_allocations WHERE user_address = ? AND status = 'active'",
+                    (user_address,),
+                ).fetchall()
+                return sum(int(r[0]) for r in rows if r[0])
+            finally:
+                conn.close()
+
+    def get_total_yield(self, user_address: str) -> int:
+        """Sum of all credit transfers with reason 'yield' for a user (wei)."""
+        if not self.enabled:
+            return 0
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT amount_wei FROM ledger_transfers WHERE address = ? AND direction = 'credit' AND reason = 'yield'",
+                    (user_address,),
+                ).fetchall()
+                return sum(int(r[0]) for r in rows if r[0])
+            finally:
+                conn.close()
+
+    def list_active_allocations(self, user_address: str) -> list[dict[str, Any]]:
+        """List active vault allocations (LP positions, staking, lending) for a user."""
+        if not self.enabled:
+            return []
+        with self._lock:
+            conn = self._db_connect()
+            try:
+                rows = conn.execute(
+                    "SELECT venue, pair, amount_wei, position_id, status FROM vault_allocations WHERE user_address = ? AND status = 'active'",
+                    (user_address,),
+                ).fetchall()
+                return [
+                    {"venue": r[0], "pair": r[1], "amount_wei": r[2], "position_id": r[3], "status": r[4]}
+                    for r in rows
+                ]
             finally:
                 conn.close()
 

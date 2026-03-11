@@ -5,7 +5,7 @@ import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio, ArrowDown
 import { apiFetch, API_BASE } from "@/lib/api/client";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
-import { getEkuboPositions } from "@/lib/api/ekubo";
+import { getEkuboPositions, type EkuboPosition } from "@/lib/api/ekubo";
 import { InlineOracleCard, type OracleSignal } from "@/components/zkdefi/shared/InlineOracleCard";
 import {
   DEMO_VAULT_SUMMARY,
@@ -52,6 +52,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
 
   const [privacyTotal, setPrivacyTotal] = useState(0);
   const [ekuboTotal, setEkuboTotal] = useState(0);
+  const [ekuboPositions, setEkuboPositions] = useState<EkuboPosition[]>([]);
   const [deployedLoading, setDeployedLoading] = useState(true);
 
   const [signals, setSignals] = useState<OracleSignal[]>([]);
@@ -90,12 +91,8 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
       }
       if (ekuboRes.status === "fulfilled") {
         const positions = ekuboRes.value.positions ?? [];
-        const total = positions.reduce((sum: number, p: any) => {
-          const a0 = Number(p.amount0 || 0) / 1e18;
-          const a1 = Number(p.amount1 || 0) / 1e18;
-          return sum + a0 + a1;
-        }, 0);
-        setEkuboTotal(total);
+        setEkuboPositions(positions);
+        setEkuboTotal(ekuboRes.value.total_value_usd ?? 0);
       }
       setDeployedLoading(false);
     })();
@@ -218,6 +215,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
         commitments={isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? [])}
         address={address}
         walletBalance={walletBalance}
+        ekuboPositions={ekuboPositions}
       />
 
       {/* Agent Allocation Drift (Phase D) */}

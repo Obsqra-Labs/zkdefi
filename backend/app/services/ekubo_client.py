@@ -1,8 +1,10 @@
 """
-Ekubo API client for Starknet Sepolia (read-only + quote/swap data).
+Ekubo API client — pool discovery, TVL, volume, price data.
 
-Uses prod-api.ekubo.org. chainId for Starknet Sepolia: set EKUBO_CHAIN_ID in env
-or pass chain_id to methods. API accepts integer chainId in query/path.
+Uses prod-api.ekubo.org (single API for all indexed chains).
+Ekubo does NOT index Starknet Sepolia. We use Starknet Mainnet (SN_MAIN)
+chain_id 0x534e5f4d41494e for pool/price data and execute on Sepolia on-chain.
+Set EKUBO_CHAIN_ID in env to override.
 """
 import os
 from typing import Any
@@ -10,8 +12,8 @@ from typing import Any
 import httpx
 
 EKUBO_API_BASE = os.getenv("EKUBO_API_BASE", "https://prod-api.ekubo.org")
-# Starknet Sepolia: set EKUBO_CHAIN_ID (e.g. hex 0x534e5f5345504f4c4941). Unset = pairs from all chains; quote/swap need it.
-EKUBO_CHAIN_ID_SEPOLIA = os.getenv("EKUBO_CHAIN_ID")
+# Starknet Mainnet = 0x534e5f4d41494e (SN_MAIN). Ekubo does NOT index SN_SEPOLIA.
+EKUBO_CHAIN_ID_SEPOLIA = os.getenv("EKUBO_CHAIN_ID", "0x534e5f4d41494e")
 
 
 def _chain_id_raw() -> str | None:

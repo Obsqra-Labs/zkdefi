@@ -1,6 +1,8 @@
 """
-DEX API routes — Ekubo Sepolia read-only + quote/swap-calldata.
+DEX API routes — Ekubo pool data + quote/swap-calldata.
 
+Pool/price data sourced from Starknet Mainnet via Ekubo API (Sepolia not indexed).
+On-chain swap execution targets Sepolia contracts.
 Phase 1: tokens, pairs, TVL, volume, price history (read-only).
 Phase 3: quote, swap-calldata for real swaps.
 """
@@ -27,11 +29,11 @@ router = APIRouter(prefix="/dex", tags=["dex"])
 
 
 def _require_chain_id() -> str:
-    """Return raw EKUBO_CHAIN_ID (hex or decimal string) for Ekubo API path/query."""
+    """Return EKUBO_CHAIN_ID (hex string) for Ekubo API path/query. Defaults to SN_MAIN."""
     if not EKUBO_CHAIN_ID_SEPOLIA:
         raise HTTPException(
             status_code=503,
-            detail="EKUBO_CHAIN_ID not configured. Set EKUBO_CHAIN_ID for Starknet Sepolia.",
+            detail="EKUBO_CHAIN_ID not configured. Set EKUBO_CHAIN_ID (default: 0x534e5f4d41494e for SN_MAIN).",
         )
     return str(EKUBO_CHAIN_ID_SEPOLIA).strip()
 

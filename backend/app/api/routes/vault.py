@@ -343,3 +343,105 @@ async def vault_deposits(user_address: str = Query(..., description="User's Star
 async def get_operator_address():
     """Return the operator wallet address for vault deposits (public info)."""
     return {"operator_address": _get_operator_address()}
+
+
+# ── GET /activity/{address} ─────────────────────────────────────────────
+
+@router.get("/activity/{address}")
+async def vault_activity(address: str, limit: int = Query(100, ge=1, le=500)):
+    """Return aggregated activity timeline for the vault UI.
+
+    Combines vault deposits, ledger transfers, and events into a single
+    chronologically-sorted list matching the ActivityEntry interface
+    expected by the frontend ActivityTab component.
+    """
+    from app.services.ledger_service import get_ledger_service
+
+    addr = _normalize_address(address)
+    ledger = get_ledger_service()
+
+    activity: list[dict[str, Any]] = []
+
+    # 1. Vault deposits
+    deposits = ledger.list_vault_deposits(addr, limit=limit)
+    for dep in deposits:
+        amount_strk = int(dep["amount_wei"]) / 1e18 if dep["amount_wei"] else 0
+        activity.append({
+            "type": "deposit",
+            "description": f"Vault deposit — {amount_strk:.6f} STRK confirmed on-chain",
+            "message": f"Deposit of {amount_strk:.6f} STRK verified and credited to vault",
+            "timestamp": _ts_to_iso(dep["created_at"]),
+            "hashes": {"tx": dep.get("tx_hash")},
+            "asset": "STRK",
+            "amount": dep["amount_wei"],
+        })
+
+    # 2. Ledger transfers (credits/debits beyond deposits)
+    transfers = ledger.list_transfers(address=addr, limit=limit)
+    for tx in transfers:
+        direction = tx.get("direction", "")
+        reason = tx.get("reason", "")
+        amount_strk = int(tx["amount_wei"]) / 1e18 if tx["amount_wei"] else 0
+
+        # Skip deposit credits (already covered above)
+        if direction == "credit" and reason == "vault_deposit":
+            continue
+
+        if direction == "credit" and reason == "yield":
+            activity.append({
+                "type": "yield",
+                "description": f"Yield earned — {amount_strk:.6f} STRK",
+                "message": f"Yield of {amount_strk:.6f} STRK credited to vault balance",
+                "timestamp": _ts_to_iso(tx["created_at"]),
+                "asset": "STRK",
+                "amount": tx["amount_wei"],
+            })
+        elif direction == "debit" and reason == "withdrawal":
+            activity.append({
+                "type": "withdrawal",
+                "description": f"Withdrawal — {amount_strk:.6f} STRK",
+                "message": f"Withdrew {amount_strk:.6f} STRK from vault",
+                "timestamp": _ts_to_iso(tx["created_at"]),
+                "asset": "STRK",
+                "amount": tx["amount_wei"],
+            })
+        elif direction == "debit":
+            activity.append({
+                "type": "deploy",
+                "description": f"Capital deployed — {amount_strk:.6f} STRK ({reason})",
+                "message": f"Deployed {amount_strk:.6f} STRK to {reason}",
+                "timestamp": _ts_to_iso(tx["created_at"]),
+                "asset": "STRK",
+                "amount": tx["amount_wei"],
+            })
+
+    # 3. Events for richer context (rebalances, proofs, etc.)
+    events = ledger.list_events(limit=limit)
+    for ev in events:
+        payload = ev.get("payload", {})
+        ev_addr = payload.get("address") or payload.get("user_address", "")
+        if _normalize_address(ev_addr) != addr:
+            continue
+        ev_type = ev.get("event_type", "")
+        if ev_type in ("ledger_credit", "ledger_debit", "vault_deposit"):
+            continue  # already covered
+        activity.append({
+            "type": ev_type,
+            "description": ev_type.replace("_", " ").capitalize(),
+            "detail": str(payload) if payload else None,
+            "timestamp": _ts_to_iso(ev["created_at"]),
+        })
+
+    # Sort by timestamp descending, then trim to limit
+    activity.sort(key=lambda a: a.get("timestamp", ""), reverse=True)
+    activity = activity[:limit]
+
+    return {"activity": activity}
+
+
+def _ts_to_iso(ts: Any) -> str:
+    """Convert a unix timestamp (int or str) to ISO 8601 string."""
+    try:
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(ts)))
+    except (ValueError, TypeError, OSError):
+        return str(ts) if ts else ""
