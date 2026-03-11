@@ -218,23 +218,20 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Mini Capital OS demo */}
+            {/* Right: Capital OS demo */}
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-zinc-200">Capital OS</h3>
                   <p className="mt-0.5 text-xs text-zinc-500">
-                    zkML-scored strategy analysis — live on devnet
+                    zkML-scored strategy analysis with Groth16 circuit proofs
                   </p>
                 </div>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium text-cyan-400">
-                  Devnet Preview
-                </span>
               </div>
               <TrustDemo />
               <p className="mt-3 text-center text-[10px] text-zinc-600">
                 Full Capital OS with portfolio management, auto-rebalancing &amp; LP orchestration →{" "}
-                <span className="text-zinc-500">Roadmap Phase 5</span>
+                <span className="text-zinc-500">Phase 5</span>
               </p>
             </div>
           </div>
