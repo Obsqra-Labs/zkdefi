@@ -3,7 +3,24 @@
 **Private DeFi execution, portable reputation, and proof-gated capital on Starknet.**  
 By [Obsqra Labs](https://obsqra.xyz).
 
-Live: [zkde.fi](https://zkde.fi) · Docs: [docs.zkde.fi](https://docs.zkde.fi)
+Live: [zkde.fi](https://zkde.fi) · **Docs: [docs/README.md](docs/README.md)** · External: [docs.zkde.fi](https://docs.zkde.fi)
+
+---
+
+## Live Proof Readout
+
+Use the live backend showcase page for judge-facing evidence and terminal parity:
+
+- **Live report:** [https://zkde.fi/test](https://zkde.fi/test)
+- **Latest local artifact:** `artifacts/hackathon_showcase/latest.html`
+- **Latest raw JSON:** `artifacts/hackathon_showcase/latest.json`
+
+What `/test` shows:
+
+- ModelBridge + dual-lane proving evidence (STARK + SNARK paths)
+- AI advisory flow with circuit screening receipts
+- Privacy tiers and settlement checks (shield/nullifier/hash/relayer rails)
+- On-chain links (Voyager/Starkscan) for verification artifacts
 
 ---
 
@@ -154,12 +171,9 @@ Open [http://localhost:3001](http://localhost:3001). **/products** — full prod
 
 ---
 
-## Key docs (condensed)
+## Key docs
 
-- **Reputation proofs** — [docs/REPUTATION_PROOF_API.md](docs/REPUTATION_PROOF_API.md): GET/POST proof status and generation; verifier addresses.
-- **L3 / Madara** — [docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md](docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md): Proof chain, settlement, zkde.fi integration.
-- **L3 proving paths** — [docs/L3_PROVING_PATHS_INTEGRATION.md](docs/L3_PROVING_PATHS_INTEGRATION.md): Implementation guide for frontend/backend.
-- **Full doc index** — [docs/README.md](docs/README.md).
+See **[docs/README.md](docs/README.md)** for the full doc index (Product & MVP, Architecture, Roadmap, Deployment, API, Concepts, specs, plans). Quick links: [REPUTATION_PROOF_API](docs/REPUTATION_PROOF_API.md), [MADARA L3](docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md), [L3 proving paths](docs/L3_PROVING_PATHS_INTEGRATION.md).
 
 ---
 

@@ -4,6 +4,16 @@ Operational and deployment scripts for zkde.fi.
 
 ---
 
+## Live showcase
+
+- Public readout: [https://zkde.fi/test](https://zkde.fi/test)
+- Local latest HTML: `artifacts/hackathon_showcase/latest.html`
+- Local latest JSON: `artifacts/hackathon_showcase/latest.json`
+
+The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate backend/on-chain proof claims during demos.
+
+---
+
 ## Index
 
 | Script | Purpose |

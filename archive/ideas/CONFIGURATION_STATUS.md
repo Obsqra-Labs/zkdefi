@@ -170,7 +170,7 @@ starkli declare target/dev/zkdefi_contracts_VaultController.contract_class.json 
   --rpc http://127.0.0.1:6060 \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --casm-hash <expected>  # Get from first error
 
 # 3. Deploy new instance

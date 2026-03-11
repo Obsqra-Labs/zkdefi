@@ -163,8 +163,10 @@ async def main() -> None:
     )
     pk = os.getenv(
         "BOT_PRIVATE_KEY",
-        "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc",
+        "",
     )
+    if not pk:
+        raise RuntimeError("Set BOT_PRIVATE_KEY in environment before running recovery")
 
     wallet = WalletManager(rpc_url=rpc_url, account_address=account_addr, private_key=pk)
     pools = build_default_pools()

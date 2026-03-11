@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 LIMIT_ORDERS_CONTRACT = "0x00c4c863f6de467b91ce974be48cc17ad7209d0d600926e82845a43a7848b822"
 RPC_URL = os.getenv("STARKNET_RPC_URL", "https://api.cartridge.gg/x/starknet/sepolia")
 ACCOUNT = os.getenv("BOT_ACCOUNT_ADDRESS", "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d")
-PK = os.getenv("BOT_PRIVATE_KEY", "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc")
+PK = os.getenv("BOT_PRIVATE_KEY", "")
 
 # Pool definitions — we'll init these with the limit orders extension
 POOLS = [
@@ -61,6 +61,8 @@ def _align_tick(tick: int, tick_spacing: int) -> int:
 
 
 async def main():
+    if not PK:
+        raise RuntimeError("Set BOT_PRIVATE_KEY in environment before running this script")
     logger.info("Connecting to Starknet Sepolia...")
     client = FullNodeClient(node_url=RPC_URL)
     account = Account(

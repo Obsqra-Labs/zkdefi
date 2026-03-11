@@ -99,8 +99,10 @@ async def main() -> None:
     )
     primary_key = os.getenv(
         "BOT_PRIVATE_KEY",
-        "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc",
+        "",
     )
+    if not primary_key:
+        raise RuntimeError("Set BOT_PRIVATE_KEY in environment before funding agents")
 
     source_wallet = WalletManager(
         rpc_url=rpc_url,

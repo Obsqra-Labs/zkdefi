@@ -185,7 +185,7 @@ async def main():
         
         logger.info("-" * 80)
         logger.info("\nAlso add:")
-        logger.info(f"STARKNET_PRIVATE_KEY={args.private_key}")
+        logger.info("STARKNET_PRIVATE_KEY=<set_from_secure_env_or_keystore>")
         logger.info(f"STARKNET_ACCOUNT_ADDRESS={args.deployer_address}")
         
         logger.info("\n" + "=" * 80)

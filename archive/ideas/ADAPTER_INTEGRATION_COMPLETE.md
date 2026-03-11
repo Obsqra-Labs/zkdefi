@@ -322,7 +322,7 @@ starkli call <vault_controller> get_adapter_config <adapter_address> \\
 starkli invoke <vault_controller> register_adapter <adapter> <max_bps> \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060
 ```
 
@@ -331,7 +331,7 @@ starkli invoke <vault_controller> register_adapter <adapter> <max_bps> \\
 starkli invoke <vault_controller> set_adapter_enabled <adapter> 0 \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060
 ```
 
@@ -340,7 +340,7 @@ starkli invoke <vault_controller> set_adapter_enabled <adapter> 0 \\
 starkli invoke <vault_controller> trigger_circuit_breaker <adapter> \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060
 ```
 

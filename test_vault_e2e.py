@@ -21,7 +21,7 @@ API = "http://localhost:8003/api/v1/zkdefi"
 
 # Wallet config (same as test_pool_d.py)
 USER_PK = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY",
-                     "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc")
+                     "")
 USER_ADDR = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS",
                        "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d")
 STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
@@ -50,6 +50,8 @@ async def main():
     from starknet_py.hash.selector import get_selector_from_name
 
     client = FullNodeClient(node_url=RPC)
+    if not USER_PK:
+        fail(0, "Set FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY in env before running this test")
     kp = KeyPair.from_private_key(int(USER_PK, 16))
     acct = Account(address=int(USER_ADDR, 16), client=client, key_pair=kp, chain=StarknetChainId.SEPOLIA)
     acct._cairo_version = 1

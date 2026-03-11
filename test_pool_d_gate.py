@@ -18,6 +18,7 @@ Complete flow:
 This proves the full vault intake → privacy settlement → AI gate debit pipeline.
 """
 import asyncio
+import os
 import sys
 import time
 import httpx
@@ -32,7 +33,7 @@ from starknet_py.hash.selector import get_selector_from_name
 
 # ── Config ──────────────────────────────────────────────────────────────────
 WALLET_ADDRESS  = 0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d
-PRIVATE_KEY     = 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc
+PRIVATE_KEY_HEX = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "")
 POOL_D_ADDRESS  = 0x0258703c803d133f9759e37071cf3da03670566be48e2e77b81d18439d7917fe
 STRK_ADDRESS    = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
 RPC_URL         = "https://api.cartridge.gg/x/starknet/sepolia"
@@ -67,8 +68,10 @@ def fail(step, msg):
 
 
 async def build_account():
+    if not PRIVATE_KEY_HEX:
+        raise RuntimeError("Set FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY in env before running this test")
     client = FullNodeClient(node_url=RPC_URL)
-    key_pair = KeyPair.from_private_key(PRIVATE_KEY)
+    key_pair = KeyPair.from_private_key(int(PRIVATE_KEY_HEX, 16))
     acct = Account(
         address=WALLET_ADDRESS, client=client, key_pair=key_pair,
         chain=StarknetChainId.SEPOLIA,

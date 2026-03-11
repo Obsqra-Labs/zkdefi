@@ -1,0 +1,5 @@
+# Never commit real private keys.
+# Copy this file to private_key.txt locally and set your key:
+# cp contracts/starkli_config/private_key.txt.example contracts/starkli_config/private_key.txt
+# echo "0x..." > contracts/starkli_config/private_key.txt
+0xREPLACE_WITH_PRIVATE_KEY

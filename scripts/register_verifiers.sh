@@ -1,12 +1,17 @@
 #!/bin/bash
 # Register Garaga verifiers with ObsqraFactRegistry
-set -e
+set -euo pipefail
 
 FACT_REGISTRY="0x02009ab87f581a0a92f65906ce84664a5cfcb86f7266651f48a04fac3c62faa3"
 RPC="http://127.0.0.1:6060"
 ACCOUNT="/root/.starkli/accounts/deployer_starkli.json"
 KEYSTORE="/root/.starkli/keystore.json"
-KEYSTORE_PASSWORD="L!nux123"
+KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-}"
+
+if [ -z "${KEYSTORE_PASSWORD}" ]; then
+  echo "ERROR: Set KEYSTORE_PASSWORD in the environment."
+  exit 1
+fi
 
 echo "=== Registering Reputation Verifiers with FactRegistry ==="
 echo "FactRegistry: $FACT_REGISTRY"

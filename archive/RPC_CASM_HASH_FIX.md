@@ -304,7 +304,7 @@ scarb build
 # From error: Expected: 0x3a141be3c085de2a7ce0adc512f66cf71e692e75fb650db2190e1d12ad2e02b
 
 # Step 3: Declare with CASM hash override
-export STARKNET_KEYSTORE_PASSWORD='L!nux123'
+export STARKNET_KEYSTORE_PASSWORD='<REDACTED_PASSWORD>'
 
 starkli declare \
   target/dev/garaga_verifier_withdraw_Groth16VerifierBN254.contract_class.json \

@@ -52,6 +52,9 @@ backend/app/data/ezkl_models/**/*.key
 backend/app/data/ezkl_models/**/*.zkey
 circuits/build/**/*.zkey
 circuits/build/**/*.ptau
+circuits/build/**/accounts.json
+circuits/build/**/.secrets
+contracts/starkli_config/private_key.txt
 backend/.env
 .l1-sepolia-keystore.json
 backend/.l1-sepolia-keystore.json

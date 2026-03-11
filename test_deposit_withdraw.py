@@ -4,6 +4,7 @@ Uses the backend API for commitment + proof generation and starknet-py for on-ch
 """
 import asyncio
 import json
+import os
 import sys
 import time
 import httpx
@@ -16,7 +17,7 @@ from starknet_py.net.signer.stark_curve_signer import KeyPair
 
 # ── Config ──────────────────────────────────────────────────────────────────
 WALLET_ADDRESS = 0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d
-PRIVATE_KEY    = 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc
+PRIVATE_KEY_HEX = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "")
 POOL_ADDRESS   = 0x03dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559
 STRK_ADDRESS   = 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d
 RPC_URL        = "https://api.cartridge.gg/x/starknet/sepolia"
@@ -38,8 +39,10 @@ def sep(label):
 
 
 async def build_account():
+    if not PRIVATE_KEY_HEX:
+        raise RuntimeError("Set FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY in env before running this test")
     client = FullNodeClient(node_url=RPC_URL)
-    key_pair = KeyPair.from_private_key(PRIVATE_KEY)
+    key_pair = KeyPair.from_private_key(int(PRIVATE_KEY_HEX, 16))
     return Account(
         address=WALLET_ADDRESS,
         client=client,

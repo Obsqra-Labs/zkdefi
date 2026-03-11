@@ -2,12 +2,17 @@
 # Deploy zkDeFi contracts with CASM hash workaround
 # Based on /opt/obsqra.starknet/deploy_contracts_alchemy.sh
 
-set -e
+set -euo pipefail
 
 CONTRACTS_DIR="/opt/obsqra.starknet/zkdefi/contracts"
 RPC_URL="http://127.0.0.1:6060"
 ACCOUNT_PATH="/root/.starkli/accounts/deployer_starkli.json"
-PRIVATE_KEY="0x04d95a05e6f6fd0d03f2fe7c61e86dcd4b6b0bfc3a0c8aca7e1c8a85e49e1f39"
+PRIVATE_KEY="${STARKNET_PRIVATE_KEY:-${PRIVATE_KEY:-}}"
+
+if [ -z "${PRIVATE_KEY}" ]; then
+    echo "ERROR: Set STARKNET_PRIVATE_KEY (or PRIVATE_KEY) in the environment."
+    exit 1
+fi
 
 echo "========================================="
 echo "zkDeFi Contract Deployment (CASM Workaround)"

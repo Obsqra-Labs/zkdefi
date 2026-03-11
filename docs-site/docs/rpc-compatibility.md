@@ -92,7 +92,7 @@ cd /opt/obsqra.starknet/zkdefi/contracts
 # Now this should work:
 starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
-  --private-key 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc \
+  --private-key <STARKNET_PRIVATE_KEY> \
   --rpc http://127.0.0.1:6060
 ```
 
@@ -128,7 +128,7 @@ cd /opt/obsqra.starknet/zkdefi/contracts
 # Use public RPC
 starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
-  --private-key 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc \
+  --private-key <STARKNET_PRIVATE_KEY> \
   --rpc $RPC_URL
 ```
 
@@ -186,7 +186,7 @@ scarb build
 # Deploy (should work now)
 starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
-  --private-key 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc \
+  --private-key <STARKNET_PRIVATE_KEY> \
   --rpc http://127.0.0.1:6060
 ```
 
@@ -231,7 +231,7 @@ cd /opt/obsqra.starknet/zkdefi/contracts
 # Try declaring ReceiptRegistry
 starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
-  --private-key 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc \
+  --private-key <STARKNET_PRIVATE_KEY> \
   --rpc http://127.0.0.1:6060
 
 # Should output:
@@ -244,7 +244,7 @@ starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json 
 # Deploy declared contract
 starkli deploy <class_hash> <constructor_args> \
   --account /root/.starkli/accounts/deployer_starkli.json \
-  --private-key 0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc \
+  --private-key <STARKNET_PRIVATE_KEY> \
   --rpc http://127.0.0.1:6060
 
 # Should output:

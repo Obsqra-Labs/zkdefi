@@ -37,7 +37,7 @@ RPC_URL = os.getenv("STARKNET_RPC_URL_V08", "https://api.cartridge.gg/x/starknet
 DEPLOYER_ADDR = "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
 DEPLOYER_PK = os.getenv(
     "FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY",
-    "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc",
+    "",
 )
 
 EKUBO_CORE      = "0x0444a09d96389aa7148f1aada508e30b71299ffe650d9c97fdaae38cb9a23384"
@@ -108,6 +108,8 @@ POOLS.append({
 
 
 async def get_account() -> Account:
+    if not DEPLOYER_PK:
+        raise RuntimeError("Set FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY in env before deploying pools")
     client = FullNodeClient(node_url=RPC_URL)
     pk_int = int(DEPLOYER_PK, 16) if DEPLOYER_PK.startswith("0x") else int(DEPLOYER_PK)
     addr_int = int(DEPLOYER_ADDR, 16) if DEPLOYER_ADDR.startswith("0x") else int(DEPLOYER_ADDR)

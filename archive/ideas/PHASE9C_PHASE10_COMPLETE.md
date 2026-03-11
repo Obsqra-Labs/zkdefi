@@ -296,7 +296,7 @@ From previous session (still valid):
 starkli declare CONTRACT.json \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060 \\
   2>&1 | grep "Expected:"
 
@@ -305,7 +305,7 @@ starkli declare CONTRACT.json \\
   --casm-hash 0x<expected_hash> \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060
 
 # Step 3: Deploy (wait 15-20s after declare)
@@ -313,7 +313,7 @@ sleep 20
 starkli deploy <class_hash> <constructor_args...> \\
   --account /root/.starkli/accounts/deployer_starkli.json \\
   --keystore /root/.starkli/keystore.json \\
-  --keystore-password "L!nux123" \\
+  --keystore-password "<REDACTED_PASSWORD>" \\
   --rpc http://127.0.0.1:6060
 ```
 

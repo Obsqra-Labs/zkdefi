@@ -21,7 +21,7 @@ starkli declare CONTRACT.json \
   --rpc http://127.0.0.1:6060 \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123"
+  --keystore-password "<REDACTED_PASSWORD>"
 ```
 
 This revealed the **actual CASM mismatch error** (not signature error), allowing us to extract the expected CASM hash and use the `--casm-hash` override method:

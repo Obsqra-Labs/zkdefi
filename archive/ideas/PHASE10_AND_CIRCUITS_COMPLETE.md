@@ -46,7 +46,7 @@ starkli declare CONTRACT.json \
 starkli declare CONTRACT.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123"
+  --keystore-password "<REDACTED_PASSWORD>"
 ```
 
 **Part 2: Extract and Use Expected CASM Hash**
@@ -58,7 +58,7 @@ starkli declare CONTRACT.json ... 2>&1 | grep "Expected:"
 # Step 2: Declare with expected hash
 starkli declare CONTRACT.json \
   --casm-hash 0x2e46a29a4f398fd8333e1e48df52bcc315ae8464c767f8e4f3eaa86eefb314f \
-  --account ... --keystore ... --keystore-password "L!nux123"
+  --account ... --keystore ... --keystore-password "<REDACTED_PASSWORD>"
 # ✅ SUCCESS!
 ```
 

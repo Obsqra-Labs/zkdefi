@@ -28,7 +28,7 @@ starkli declare target/dev/zkdefi_contracts_ReceiptRegistry.contract_class.json 
   --rpc http://127.0.0.1:6060 \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --casm-hash 0x2e46a29a4f398fd8333e1e48df52bcc315ae8464c767f8e4f3eaa86eefb314f
 
 starkli deploy <class_hash> 0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d ...
@@ -124,14 +124,14 @@ starkli invoke 0x6c5b17eab7f20da1ab69e98db6f3f63cbcefa28992a17787883c76dd13498d1
   0x03037345a7c6d9ce835559ed2617c19d17b433958599b23b3ec34ee54859f824 \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123"
+  --keystore-password "<REDACTED_PASSWORD>"
 
 starkli invoke 0x6c5b17eab7f20da1ab69e98db6f3f63cbcefa28992a17787883c76dd13498d1 \
   set_receipt_registry \
   0x02900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123"
+  --keystore-password "<REDACTED_PASSWORD>"
 ```
 
 ---
@@ -239,7 +239,7 @@ curl http://localhost:8003/metrics
 starkli declare CONTRACT.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --casm-hash <expected_hash>
 ```
 

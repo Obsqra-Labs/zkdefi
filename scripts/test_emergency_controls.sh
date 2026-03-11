@@ -1,13 +1,18 @@
 #!/bin/bash
 # Test DAO emergency pause/unpause (obsqra.xyz).
 # Requires: starkli, RPC, keystore, and DAO contract address.
-set -e
+set -euo pipefail
 
 DAO_CONTRACT="${DAO_CONTRACT:-0x0101bd9710017c0870077dcf03bf6fe68a955d9f9b9922ed5d673afed7497fc2}"
 RPC="${RPC:-http://127.0.0.1:6060}"
 ACCOUNT="${ACCOUNT:-/root/.starkli/accounts/deployer_starkli.json}"
 KEYSTORE="${KEYSTORE:-/root/.starkli/keystore.json}"
-KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-L!nux123}"
+KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-}"
+
+if [ -z "${KEYSTORE_PASSWORD}" ]; then
+  echo "ERROR: Set KEYSTORE_PASSWORD in the environment."
+  exit 1
+fi
 
 echo "=== Emergency controls test ==="
 echo "DAO: $DAO_CONTRACT"

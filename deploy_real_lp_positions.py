@@ -43,7 +43,7 @@ logger = logging.getLogger("deploy_lp")
 # ── Constants ────────────────────────────────────────────────────────────────
 RPC_URL = os.getenv("STARKNET_RPC_URL_V08", "https://api.cartridge.gg/x/starknet/sepolia")
 VAULT_ADDRESS = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS", "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d")
-VAULT_PK = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc")
+VAULT_PK = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "")
 
 EKUBO_CORE      = "0x0444a09d96389aa7148f1aada508e30b71299ffe650d9c97fdaae38cb9a23384"
 EKUBO_POSITIONS = "0x06a2aee84bb0ed5dded4384ddd0e40e9c1372b818668375ab8e3ec08807417e5"
@@ -182,6 +182,8 @@ def score_position(pos: dict, pool: dict) -> dict:
 
 # ── Main deployment flow ────────────────────────────────────────────────────
 async def get_account() -> Account:
+    if not VAULT_PK:
+        raise RuntimeError("Set FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY in env before deploying LP positions")
     client = FullNodeClient(node_url=RPC_URL)
     pk_int = int(VAULT_PK, 16) if VAULT_PK.startswith("0x") else int(VAULT_PK)
     addr_int = int(VAULT_ADDRESS, 16) if VAULT_ADDRESS.startswith("0x") else int(VAULT_ADDRESS)

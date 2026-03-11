@@ -1,8 +1,9 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 cd /opt/obsqra.starknet/zkdefi/contracts
 
-PK="0x7fd44d52324945e2d9f2e62bd2dadb794e2274dbd0955251aeca6cc96153afc"
+: "${STARKNET_PRIVATE_KEY:?Set STARKNET_PRIVATE_KEY to the deployer private key}"
+PK="${STARKNET_PRIVATE_KEY}"
 ACCOUNT="/root/.starkli/accounts/deployer_starkli.json"
 RPC="https://free-rpc.nethermind.io/sepolia-juno/v0_7"
 OWNER="0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"

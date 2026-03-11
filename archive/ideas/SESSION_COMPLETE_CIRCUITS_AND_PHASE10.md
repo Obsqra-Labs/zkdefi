@@ -341,7 +341,7 @@ starkli declare CONTRACT.json \
 starkli declare CONTRACT.json \
   --account deployer_starkli.json \
   --keystore keystore.json \       # ← USE KEYSTORE
-  --keystore-password "L!nux123" \ # ← WITH PASSWORD
+  --keystore-password "<REDACTED_PASSWORD>" \ # ← WITH PASSWORD
   --casm-hash <expected_hash>      # ← Extract from first error
 ```
 
@@ -354,7 +354,7 @@ starkli declare CONTRACT.json \
 starkli declare CONTRACT.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060 \
   2>&1 | tee declare_output.txt
 
@@ -370,7 +370,7 @@ starkli declare CONTRACT.json \
   --casm-hash 0x<expected_hash> \  # From Step 1 error
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060
 
 # ✅ SUCCESS: "Class hash declared: 0x..."
@@ -381,7 +381,7 @@ starkli declare CONTRACT.json \
 starkli deploy <class_hash> <constructor_args...> \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060
 
 # ✅ SUCCESS: "Contract deployed: 0x..."
@@ -1108,7 +1108,7 @@ User's instruction: "be deterministic, don't give up.. we've done this before"
 starkli declare CONTRACT.json \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060 \
   2>&1 | grep "Expected:"
 # Output: Expected: 0x<hash>
@@ -1118,7 +1118,7 @@ starkli declare CONTRACT.json \
   --casm-hash 0x<expected_hash> \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060
 
 # Step 3: Deploy (wait 15-20s after declare)
@@ -1126,7 +1126,7 @@ sleep 20
 starkli deploy <class_hash> <constructor_args...> \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060
 ```
 
@@ -1136,7 +1136,7 @@ starkli deploy <class_hash> <constructor_args...> \
 starkli invoke <contract_y> set_authorized_caller <contract_x> 1 \
   --account /root/.starkli/accounts/deployer_starkli.json \
   --keystore /root/.starkli/keystore.json \
-  --keystore-password "L!nux123" \
+  --keystore-password "<REDACTED_PASSWORD>" \
   --rpc http://127.0.0.1:6060
 
 # Verify authorization
