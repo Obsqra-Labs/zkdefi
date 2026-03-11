@@ -15,6 +15,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import {
+  AlertTriangle,
   ArrowDownToLine,
   Brain,
   Clock,
@@ -77,6 +78,7 @@ interface StrategyPool {
   expected_apy: number;
   risk_score: number;
   zkml_signal?: ZkMLSignal | null;
+  adapter_ready?: boolean;
 }
 
 interface Provenance {
@@ -325,6 +327,15 @@ export function FundVaultPanel({
   async function handleFund() {
     if (!amount || parseFloat(amount) <= 0) return;
     setBusy(true);
+
+    // Warn about unwired adapters (capital still enters vault but won't auto-deploy to those)
+    const unwired = recommendation?.recommended_pools.filter((p) => p.adapter_ready === false) ?? [];
+    if (unwired.length > 0) {
+      const names = unwired.map((p) => p.protocol).join(", ");
+      toastError(
+        `${names} adapter${unwired.length > 1 ? "s" : ""} not yet wired — capital will stay idle until deployed`,
+      );
+    }
 
     // Reset proof steps to pending before starting
     setDepositSteps(getDepositStepsForMethod("hashed_proof"));
@@ -608,6 +619,12 @@ export function FundVaultPanel({
                           <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-medium">
                             <Zap className="w-2.5 h-2.5" />
                             {pool.zkml_signal.proof_type}
+                          </span>
+                        )}
+                        {pool.adapter_ready === false && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-medium">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            Not wired
                           </span>
                         )}
                       </div>

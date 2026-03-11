@@ -6,7 +6,7 @@ POST /api/v1/strategies/analyze - Get zkML pool analysis
 
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 import logging
 import hashlib
 import json
@@ -107,6 +107,15 @@ class StrategyRecommendationRequest(BaseModel):
         return v
 
 
+class ZkMLSignal(BaseModel):
+    """zkML verification signal for a pool recommendation"""
+    circuit: str
+    verified: bool
+    proof_type: str  # "Groth16" | "STARK"
+    constraint: str
+    fact_registry: str
+
+
 class PoolRecommendation(BaseModel):
     """Single pool in recommendation"""
     pool_id: str
@@ -117,6 +126,17 @@ class PoolRecommendation(BaseModel):
     expected_apy: float  # e.g., 0.15 = 15%
     risk_score: float  # 0-100
     risk_flags: List[str]  # ["low_liquidity", "high_volatility"]
+    zkml_signal: Optional[ZkMLSignal] = None
+    adapter_ready: bool = True  # Whether the adapter is deployed and wired on-chain
+
+
+class ProvenanceInfo(BaseModel):
+    """On-chain provenance for the recommendation"""
+    fact_registry: str
+    garaga_verifier: str
+    circuits_used: List[str]
+    proof_types: List[str]
+    settlement: str
 
 
 class StrategyRecommendationResponse(BaseModel):
@@ -135,6 +155,11 @@ class StrategyRecommendationResponse(BaseModel):
     # Audit trail
     recommendation_id: str  # For tracking decisions
     timestamp: str
+
+    # Phase E: zkML provenance
+    attestation_hash: Optional[str] = None
+    provenance: Optional[ProvenanceInfo] = None
+    genome: Optional[Dict[str, float]] = None  # {yield, risk, volatility, liquidity, efficiency} 0-100
 
 
 # Compatibility request model used by `/mvp` execution flow.
@@ -288,8 +313,16 @@ async def recommend_strategy(
             request.risk_profile,
         )
         recommended_pools = [
-            PoolRecommendation(**p) for p in result["recommended_pools"]
+            PoolRecommendation(
+                **{k: v for k, v in p.items() if k != "zkml_signal"},
+                zkml_signal=ZkMLSignal(**p["zkml_signal"]) if p.get("zkml_signal") else None,
+            )
+            for p in result["recommended_pools"]
         ]
+
+        provenance_raw = result.get("provenance")
+        genome_raw = result.get("genome")
+
         return StrategyRecommendationResponse(
             user_address=result["user_address"],
             risk_profile=result["risk_profile"],
@@ -301,6 +334,9 @@ async def recommend_strategy(
             portfolio_risk_assessment=result["portfolio_risk_assessment"],
             recommendation_id=result["recommendation_id"],
             timestamp=result["timestamp"],
+            attestation_hash=result.get("attestation_hash"),
+            provenance=ProvenanceInfo(**provenance_raw) if provenance_raw else None,
+            genome=genome_raw,
         )
     except Exception as e:
         logger.error(f"Strategy recommendation error: {e}")

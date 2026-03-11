@@ -9,6 +9,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ── Deployed adapter addresses (from deploy_vault_controller_results.json) ──
+WIRED_ADAPTERS = {
+    "Ekubo": "0x74febeff7301aa58d786b01756e36f20ab7208a52ce94a82b425af8f9933a0",
+    "Lending": "0x104f06b17e476bae294253ec1bba54dd4eaedd4f9d97468251fa6de62cfb90a",
+    "Staking": "0x63b4f90d0f3373700e30624191651c2d2d301a11c544a463ffd66df320b85e3",
+    "Idle": None,  # idle reserve — no adapter needed
+}
+
 # ── On-chain provenance constants ──
 YIELD_OPTIMALITY_CIRCUIT = "YieldOptimality_v1"
 STRATEGY_INTEGRITY_CIRCUIT = "StrategyIntegrity_v1"
@@ -180,6 +188,7 @@ async def get_recommendation(
     # Each pool gets annotated with which verification circuit backs it
     for pool in recommended_pools:
         proto = pool["protocol"]
+        pool["adapter_ready"] = proto in WIRED_ADAPTERS and (WIRED_ADAPTERS[proto] is not None or proto == "Idle")
         if proto == "Ekubo":
             pool["zkml_signal"] = {
                 "circuit": YIELD_OPTIMALITY_CIRCUIT,
