@@ -13,7 +13,16 @@ import {
   BarChart3,
   X,
   ArrowRightLeft,
+  MessageSquare,
+  Info,
+  TrendingUp,
 } from "lucide-react";
+import {
+  ExplainerModal,
+  type ExplainerType,
+  type PoolExplanation,
+} from "./ExplainerModal";
+import { InlineSwap } from "./InlineSwap";
 
 /* ═══════════════════ types ═══════════════════ */
 
@@ -70,6 +79,19 @@ interface SkillScreening {
 interface PipelineStatus {
   proofs: { total_proofs: number; verified_on_chain: number };
   madara: { healthy: boolean; latest_block: number; chain_id: string } | null;
+}
+
+interface NarrationResult {
+  narration: string;
+  source: string;
+  pool_explanations: PoolExplanation[];
+}
+
+interface ExplainerState {
+  open: boolean;
+  type: ExplainerType;
+  poolId: string;
+  poolName: string;
 }
 
 /* ═══════════════════ constants ═══════════════════ */
@@ -156,6 +178,14 @@ export function TrustDemo({
     loading: boolean;
     preflight?: { can_submit: boolean; expected_out_usd: number; impact_bps: number; warnings: string[] };
   }>>({});
+  const [narration, setNarration] = useState<NarrationResult | null>(null);
+  const [narrationLoading, setNarrationLoading] = useState(false);
+  const [explainer, setExplainer] = useState<ExplainerState>({
+    open: false,
+    type: "safety",
+    poolId: "",
+    poolName: "",
+  });
   const hasAutoRun = useRef(false);
   const prevTrigger = useRef(triggerKey);
 
@@ -198,6 +228,7 @@ export function TrustDemo({
     setSkillScreening({});
     setBatchResults(null);
     setVerified({});
+    setNarration(null);
     try {
       const res = await fetch("/api/v1/strategies/analyze", {
         method: "POST",
@@ -213,30 +244,58 @@ export function TrustDemo({
       const data = await res.json();
       setResult(data);
 
-      /* run batch skill screening in parallel */
-      if (enabledSkills.length > 0 && data.recommended_pools?.[0]) {
-        setBatchLoading(true);
+      /* fetch LLM narration in parallel with batch skills */
+      const narrationPromise = (async () => {
+        setNarrationLoading(true);
         try {
-          const batchRes = await fetch("/api/v1/zkdefi/skills/batch", {
+          const narRes = await fetch("/api/v1/strategies/narrate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              pool_id: data.recommended_pools[0].pool_id,
-              position_size: 1000000,
-              entry_price: 2000,
-              current_price: 2067,
+              risk_profile: p,
+              pools: data.recommended_pools ?? [],
+              confidence_score: data.confidence_score ?? 0,
             }),
-            signal: AbortSignal.timeout(20000),
+            signal: AbortSignal.timeout(15000),
           });
-          if (batchRes.ok) {
-            setBatchResults(await batchRes.json());
+          if (narRes.ok) {
+            setNarration(await narRes.json());
           }
         } catch {
           /* non-critical */
         } finally {
-          setBatchLoading(false);
+          setNarrationLoading(false);
         }
-      }
+      })();
+
+      /* run batch skill screening in parallel */
+      const batchPromise = (async () => {
+        if (enabledSkills.length > 0 && data.recommended_pools?.[0]) {
+          setBatchLoading(true);
+          try {
+            const batchRes = await fetch("/api/v1/zkdefi/skills/batch", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pool_id: data.recommended_pools[0].pool_id,
+                position_size: 1000000,
+                entry_price: 2000,
+                current_price: 2067,
+              }),
+              signal: AbortSignal.timeout(20000),
+            });
+            if (batchRes.ok) {
+              setBatchResults(await batchRes.json());
+            }
+          } catch {
+            /* non-critical */
+          } finally {
+            setBatchLoading(false);
+          }
+        }
+      })();
+
+      await Promise.allSettled([narrationPromise, batchPromise]);
     } catch {
       setResult(null);
     } finally {
@@ -360,6 +419,23 @@ export function TrustDemo({
     enabledSkills.includes(r.skill_id),
   );
 
+  /* open explainer modal */
+  const openExplainer = useCallback((type: ExplainerType, poolId: string, poolName: string) => {
+    setExplainer({ open: true, type, poolId, poolName });
+  }, []);
+
+  const closeExplainer = useCallback(() => {
+    setExplainer((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  /* find the explanation for a specific pool */
+  const getPoolExplanation = useCallback(
+    (poolId: string): PoolExplanation | null => {
+      return narration?.pool_explanations?.find((pe) => pe.pool_id === poolId) ?? null;
+    },
+    [narration],
+  );
+
   return (
     <div className="space-y-3">
       {/* ── Pipeline status ── */}
@@ -405,6 +481,29 @@ export function TrustDemo({
       {/* ── Results ── */}
       {result && !loading && (
         <div className="space-y-3">
+          {/* ── AI Narration ── */}
+          {(narrationLoading || narration) && (
+            <div className="rounded-xl border border-violet-500/15 bg-violet-950/5 p-4">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-400">
+                <MessageSquare className="h-3 w-3" />
+                AI Oracle
+                {narration && (
+                  <span className="ml-auto rounded-full border border-zinc-800 px-1.5 py-0.5 text-[8px] font-normal text-zinc-600">
+                    {narration.source === "llm" ? "GPT-4o-mini" : "deterministic"}
+                  </span>
+                )}
+              </div>
+              {narrationLoading ? (
+                <div className="flex items-center gap-2 py-1 text-xs text-zinc-500">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Generating explanation…
+                </div>
+              ) : narration ? (
+                <p className="text-xs leading-relaxed text-zinc-300">{narration.narration}</p>
+              ) : null}
+            </div>
+          )}
+
           {/* Allocation bar + pool list */}
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
             <div className="mb-3 flex items-center justify-between text-xs">
@@ -427,6 +526,17 @@ export function TrustDemo({
               })}
             </div>
 
+            {/* Column headers */}
+            <div className="mb-1 flex items-center gap-3 px-3 text-[9px] font-semibold uppercase tracking-wider text-zinc-600">
+              <span className="w-2" />
+              <span className="flex-1">Pool</span>
+              <span className="w-12 text-right">Alloc</span>
+              <span className="w-16 text-center">Safety</span>
+              <span className="w-14 text-right">Risk</span>
+              <span className="w-14 text-right">APY</span>
+              <span className="w-3" />
+            </div>
+
             {/* Pool list */}
             <div className="space-y-1">
               {result.recommended_pools.slice(0, 6).map((pool) => {
@@ -434,6 +544,7 @@ export function TrustDemo({
                 const isExpanded = expandedPool === pool.pool_id;
                 const isPrimary = pool.pool_name === result.primary_pool;
                 const protocol = pool.pool_id.split("_")[0];
+                const hasExplanation = !!getPoolExplanation(pool.pool_id);
 
                 return (
                   <div key={pool.pool_id} className="overflow-hidden">
@@ -450,11 +561,54 @@ export function TrustDemo({
                           <span className="ml-1.5 text-[9px] font-medium text-emerald-400">PRIMARY</span>
                         )}
                       </span>
-                      <span className="text-xs tabular-nums text-zinc-400">{pool.allocation_mid}%</span>
-                      <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${safety.bg} ${safety.text} ${safety.border}`}>
+                      {/* Allocation % — clickable */}
+                      <span
+                        className={`w-12 text-right text-xs tabular-nums transition-colors ${
+                          hasExplanation ? "text-cyan-400 cursor-help hover:text-cyan-300" : "text-zinc-400"
+                        }`}
+                        onClick={(e) => {
+                          if (hasExplanation) { e.stopPropagation(); openExplainer("allocation", pool.pool_id, pool.pool_name); }
+                        }}
+                        title={hasExplanation ? "Click to see allocation formula" : undefined}
+                      >
+                        {pool.allocation_mid}%
+                      </span>
+                      {/* Safety badge — clickable */}
+                      <span
+                        className={`w-16 text-center rounded-full border px-1.5 py-0.5 text-[9px] font-medium transition-all ${safety.bg} ${safety.text} ${safety.border} ${
+                          hasExplanation ? "cursor-help hover:ring-1 hover:ring-zinc-600" : ""
+                        }`}
+                        onClick={(e) => {
+                          if (hasExplanation) { e.stopPropagation(); openExplainer("safety", pool.pool_id, pool.pool_name); }
+                        }}
+                        title={hasExplanation ? "Click to see safety formula" : undefined}
+                      >
                         {pool.safety_level}
                       </span>
-                      <span className="text-xs tabular-nums text-zinc-500">risk {pool.risk_score}</span>
+                      {/* Risk score — clickable */}
+                      <span
+                        className={`w-14 text-right text-xs tabular-nums transition-colors ${
+                          hasExplanation ? "text-amber-400 cursor-help hover:text-amber-300" : "text-zinc-500"
+                        }`}
+                        onClick={(e) => {
+                          if (hasExplanation) { e.stopPropagation(); openExplainer("risk", pool.pool_id, pool.pool_name); }
+                        }}
+                        title={hasExplanation ? "Click to see risk breakdown" : undefined}
+                      >
+                        {pool.risk_score}
+                      </span>
+                      {/* APY — clickable */}
+                      <span
+                        className={`w-14 text-right text-xs tabular-nums transition-colors ${
+                          hasExplanation ? "text-violet-400 cursor-help hover:text-violet-300" : "text-zinc-500"
+                        }`}
+                        onClick={(e) => {
+                          if (hasExplanation) { e.stopPropagation(); openExplainer("apy", pool.pool_id, pool.pool_name); }
+                        }}
+                        title={hasExplanation ? "Click to trace APY path" : undefined}
+                      >
+                        {(pool.apy * 100).toFixed(1)}%
+                      </span>
                       {isExpanded ? (
                         <ChevronDown className="h-3 w-3 text-zinc-500" />
                       ) : (
@@ -600,6 +754,50 @@ export function TrustDemo({
                           </div>
                         </div>
 
+                        {/* APY Path Trace */}
+                        {(() => {
+                          const pe = getPoolExplanation(pool.pool_id);
+                          if (!pe) return null;
+                          return (
+                            <div>
+                              <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                                <TrendingUp className="h-3 w-3" />
+                                APY Path
+                              </div>
+                              <div className="space-y-1 rounded-lg bg-zinc-800/30 p-2.5">
+                                {pe.apy_path.path.map((step, i) => (
+                                  <div key={i} className="flex items-start gap-2 text-[10px]">
+                                    <span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-violet-500/20 text-[8px] font-bold text-violet-400">
+                                      {i + 1}
+                                    </span>
+                                    <span className="font-mono text-zinc-400">{step.replace(/^\d+\.\s*/, "")}</span>
+                                  </div>
+                                ))}
+                                <div className="mt-1.5 flex items-center justify-between border-t border-zinc-800/40 pt-1.5 text-[10px]">
+                                  <span className="text-zinc-500">Risk-Adjusted APY</span>
+                                  <span className="font-mono font-semibold text-violet-400">{pe.apy_path.risk_adjusted_apy}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Explainer buttons */}
+                        {getPoolExplanation(pool.pool_id) && (
+                          <div className="flex flex-wrap gap-1.5 border-t border-zinc-800/40 pt-2.5">
+                            {(["safety", "risk", "allocation", "apy"] as ExplainerType[]).map((t) => (
+                              <button
+                                key={t}
+                                onClick={() => openExplainer(t, pool.pool_id, pool.pool_name)}
+                                className="inline-flex items-center gap-1 rounded-full border border-zinc-800 px-2 py-0.5 text-[9px] font-medium text-zinc-500 transition-all hover:border-zinc-600 hover:text-zinc-300"
+                              >
+                                <Info className="h-2.5 w-2.5" />
+                                {t === "safety" ? "Safety formula" : t === "risk" ? "Risk breakdown" : t === "allocation" ? "Allocation logic" : "APY path"}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         {/* Risk summary */}
                         <div className="flex items-center gap-4 border-t border-zinc-800/40 pt-2.5 text-[10px] text-zinc-500">
                           <span>Confidence: <strong className="text-zinc-300">{(pool.confidence * 100).toFixed(0)}%</strong></span>
@@ -662,7 +860,20 @@ export function TrustDemo({
             </div>
             <span className="ml-auto text-[9px] text-zinc-600">SHA-256 · click to verify</span>
           </div>
+
+          {/* ── Inline Swap ── */}
+          <InlineSwap venuePref={venuePref} />
         </div>
+      )}
+
+      {/* ── Explainer Modal ── */}
+      {explainer.open && (
+        <ExplainerModal
+          type={explainer.type}
+          explanation={getPoolExplanation(explainer.poolId)}
+          poolName={explainer.poolName}
+          onClose={closeExplainer}
+        />
       )}
     </div>
   );

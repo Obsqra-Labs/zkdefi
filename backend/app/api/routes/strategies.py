@@ -510,6 +510,141 @@ async def get_opportunities(request: OpportunitiesRequest):
     }
 
 
+class NarrateAnalysisRequest(BaseModel):
+    """Request for LLM narration of pool analysis results"""
+    risk_profile: str
+    pools: List[Dict[str, Any]]
+    confidence_score: float = 0.0
+
+
+@router.post("/narrate")
+async def narrate_analysis(req: NarrateAnalysisRequest):
+    """
+    Generate a human-readable, LLM-powered explanation of pool analysis results.
+    Falls back to deterministic templates if no LLM is available.
+    """
+    from app.services.llm_narration import generate_narration
+
+    # Build context for the narration
+    pool_summaries = []
+    for p in req.pools[:6]:
+        pool_summaries.append(
+            f"{p.get('pool_name', p.get('pool_id', '?'))}: "
+            f"risk {p.get('risk_score', '?')}/100, "
+            f"safety={p.get('safety_level', '?')}, "
+            f"alloc {p.get('allocation_mid', '?')}%, "
+            f"conf {(p.get('confidence', 0) * 100):.0f}%"
+        )
+
+    context_data = {
+        "risk_profile": req.risk_profile,
+        "balance": 1000,
+        "allocated": 0,
+        "best_apy": max((p.get("apy", 0) for p in req.pools), default=0) * 100,
+        "tier": 1,
+        "passport_score": int(req.confidence_score * 100),
+        "pool_summaries": "; ".join(pool_summaries),
+    }
+
+    # Use strategy_recommendation context type
+    result = await generate_narration("strategy_recommendation", context_data)
+
+    # Also generate per-pool explanations
+    pool_explanations = []
+    for p in req.pools[:6]:
+        risk = p.get("risk_score", 0)
+        safety = p.get("safety_level", "moderate")
+        alloc_min = p.get("allocation_min", 0)
+        alloc_max = p.get("allocation_max", 0)
+        conf = p.get("confidence", 0)
+        apy = p.get("apy", 0)
+
+        # Build deterministic risk breakdown
+        risk_breakdown = _explain_risk_score(risk)
+        safety_explanation = _explain_safety_level(safety, risk)
+        alloc_explanation = _explain_allocation(alloc_min, alloc_max, safety)
+        apy_path = _explain_apy_path(apy, risk, conf)
+
+        pool_explanations.append({
+            "pool_id": p.get("pool_id", ""),
+            "pool_name": p.get("pool_name", ""),
+            "risk_breakdown": risk_breakdown,
+            "safety_explanation": safety_explanation,
+            "allocation_explanation": alloc_explanation,
+            "apy_path": apy_path,
+        })
+
+    return {
+        "narration": result.get("narration", ""),
+        "source": result.get("source", "deterministic"),
+        "pool_explanations": pool_explanations,
+    }
+
+
+def _explain_risk_score(risk: int) -> dict:
+    """Break down a risk score into its component factors."""
+    # Reverse-engineer approximate components from total risk score
+    # In practice these come from the evaluator, but for the demo explanation
+    # we show the formula structure
+    return {
+        "total": risk,
+        "formula": "Liquidity(0-30) + Volatility(0-25) + Volume/Liquidity(0-20) + Slippage(0-15) + Fee(0-10)",
+        "interpretation": (
+            f"Risk score {risk}/100 — "
+            + ("Very safe. Low risk across all factors." if risk < 20
+               else "Safe. Minor risk factors present." if risk < 30
+               else "Moderate risk. Some factors elevated." if risk < 60
+               else "High risk. Multiple elevated factors.")
+        ),
+        "thresholds": {"safe": "<30", "moderate": "30-59", "risky": "≥60"},
+    }
+
+
+def _explain_safety_level(safety: str, risk: int) -> dict:
+    """Explain how safety level derives from risk score."""
+    return {
+        "level": safety,
+        "formula": "if risk < 30 → safe, if risk < 60 → moderate, else → risky",
+        "applied": f"risk_score={risk} → {'<30' if risk < 30 else '<60' if risk < 60 else '≥60'} → {safety}",
+        "meaning": {
+            "safe": "Pool has strong liquidity, low volatility, good volume, and tight slippage.",
+            "moderate": "Pool has acceptable metrics but some risk factors are elevated.",
+            "risky": "Pool has significant risk factors — low liquidity, high volatility, or wide slippage.",
+        }.get(safety, "Unknown safety level."),
+    }
+
+
+def _explain_allocation(alloc_min: float, alloc_max: float, safety: str) -> dict:
+    """Explain how allocation range is determined."""
+    mid = (alloc_min + alloc_max) / 2
+    return {
+        "range": f"{alloc_min}–{alloc_max}%",
+        "midpoint": mid,
+        "formula": "safe → 30-50%, moderate → 10-30%, risky → 0-10%. Display = midpoint.",
+        "applied": f"safety={safety} → range {alloc_min}-{alloc_max}%, midpoint={mid}%",
+        "meaning": f"The system recommends allocating {mid}% of your deposit to this pool based on its {safety} rating.",
+    }
+
+
+def _explain_apy_path(apy: float, risk: int, confidence: float) -> dict:
+    """Explain the APY calculation path."""
+    risk_penalty = (risk / 100) ** 2
+    risk_adjusted = apy * (1 - risk_penalty) * confidence
+    return {
+        "raw_apy": f"{apy * 100:.1f}%",
+        "risk_penalty": f"({risk}/100)² = {risk_penalty:.4f}",
+        "confidence": f"{confidence:.2f}",
+        "risk_adjusted_apy": f"{risk_adjusted * 100:.2f}%",
+        "formula": "risk_adjusted = raw_apy × (1 − (risk/100)²) × confidence",
+        "path": [
+            f"1. Pool base APY: {apy * 100:.1f}%",
+            f"2. Risk penalty: (risk_score/100)² = ({risk}/100)² = {risk_penalty:.4f}",
+            f"3. Confidence factor: max(0.5, 1 − risk/150) = {confidence:.2f}",
+            f"4. Risk-adjusted APY: {apy * 100:.1f}% × (1 − {risk_penalty:.4f}) × {confidence:.2f} = {risk_adjusted * 100:.2f}%",
+        ],
+    }
+
+
 @router.get("/health")
 async def health_check():
     """Health check for strategies endpoint"""

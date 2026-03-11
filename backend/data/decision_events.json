@@ -535396,5 +535396,126 @@
       ]
     },
     "created_at": "2026-03-11T19:34:19.856111+00:00"
+  },
+  {
+    "id": 21038,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "ml_inference",
+    "outcome": "success",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "groth16_garaga",
+    "verified_on_chain": true,
+    "l3_tx_hash": "0x2f4c76988445322b99352469079966c4fefeb2a45b55ab092a3bd79fd669a95",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": null,
+    "metadata": {
+      "commitment_hash": "0x6e222ffb8e72266eedbec0c401a2b8b1",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T20:48:38.578603+00:00"
+  },
+  {
+    "id": 21039,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "ml_inference",
+    "outcome": "success",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "groth16_garaga",
+    "verified_on_chain": true,
+    "l3_tx_hash": "0x7f0cf6a2ef26f7c61fd4b26b60dd7976822961db9925609a2f4bee18b03b3d",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": null,
+    "metadata": {
+      "commitment_hash": "0x020cff40c26ce2e621cf805422edcba1",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T20:49:20.324971+00:00"
+  },
+  {
+    "id": 21040,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "ml_inference",
+    "outcome": "success",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "groth16_garaga",
+    "verified_on_chain": true,
+    "l3_tx_hash": "0x3b9ffc1131867a2f518c5fb81c4cd3b78ab36bf3193ea6c745a97ef41b15b28",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": null,
+    "metadata": {
+      "commitment_hash": "0xce467ef8fdc0a76e51b891815c245152",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T20:49:27.341677+00:00"
+  },
+  {
+    "id": 21041,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.2,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "missing_calldata",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Missing Groth16 or HONK calldata for L3 verification",
+    "metadata": {
+      "commitment_hash": "0x29f9ce054295609dcc7eea660fbe3d27",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T20:49:30.574783+00:00"
+  },
+  {
+    "id": 21042,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x148b260a6f59fbaee238be779e6865a7c190cf3278c4411f95ca401ed75288ea",
+      "envelope_id": "env_1773262176_0x49d36570"
+    },
+    "created_at": "2026-03-11T20:49:36.822011+00:00"
   }
 ]

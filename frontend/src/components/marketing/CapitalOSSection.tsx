@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { CapitalBrain, DEFAULT_ENABLED, type BrainConfig } from "./CapitalBrain";
 import { TrustDemo } from "./TrustDemo";
 
