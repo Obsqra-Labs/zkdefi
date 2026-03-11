@@ -159,7 +159,8 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
     );
   }
 
-  const totalCapital = vault.total_usd || (vault.strk_balance * 0.5 + vault.eth_balance * 2400);
+  // Use real prices: STRK ~$0.04, ETH ~$2020 (2026-03-11)
+  const totalCapital = vault.total_usd || (vault.strk_balance * 0.04 + vault.eth_balance * 2020);
   const deployed = privacyTotal + ekuboTotal;
   const idle = Math.max(0, totalCapital - deployed);
 

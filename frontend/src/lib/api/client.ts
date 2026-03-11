@@ -20,9 +20,14 @@ export function apiUrl(path: string): string {
 /** Generic typed fetch wrapper for API calls */
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const url = apiUrl(path);
+  // Extract headers separately so ...rest doesn't overwrite the merged headers
+  const { headers: initHeaders, ...rest } = init ?? {};
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
+    ...rest,
+    headers: {
+      "Content-Type": "application/json",
+      ...((initHeaders as Record<string, string>) ?? {}),
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

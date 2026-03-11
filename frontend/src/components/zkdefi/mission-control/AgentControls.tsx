@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Play,
   Pause,
@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Key,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { DEMO_AGENT } from "@/lib/demoCapitalOS";
@@ -21,6 +22,10 @@ interface AgentStatus {
   state: string;
   running?: boolean;
   policy_name?: string;
+  checks_count?: number;
+  actions_taken?: number;
+  last_check?: string;
+  last_action?: { type?: string; adapter?: string; timestamp?: string; tx_hash?: string };
 }
 
 interface Constraints {
@@ -72,6 +77,8 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     isDemo ? `Active · ${DEMO_AGENT.session.expires_in} remaining` : "—"
   );
   const [sessionExpired, setSessionExpired] = useState(isDemo ? false : false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [grantLoading, setGrantLoading] = useState(false);
 
   const [rebalanceMode, setRebalanceMode] = useState<RebalanceMode>(
     isDemo ? DEMO_AGENT.rebalance_mode : "user"
@@ -114,13 +121,16 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
         const remaining = timeRemaining(active.expires_at);
         const expired = remaining === "Expired";
         setSessionExpired(expired);
+        setActiveSessionId(expired ? null : active.session_id);
         setSessionLine(expired ? "Expired · renew" : `Active · ${remaining} remaining`);
       } else {
         setSessionLine("No session");
         setSessionExpired(true);
+        setActiveSessionId(null);
       }
     } catch {
       setSessionLine("—");
+      setActiveSessionId(null);
     }
   }, [address]);
 
@@ -157,19 +167,94 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     return () => clearInterval(t);
   }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode, isDemo]);
 
+  // --- Grant session key ---
+
+  const grantSessionKey = async (): Promise<string | null> => {
+    setGrantLoading(true);
+    try {
+      const res = await apiFetchAuth<{ session_id: string; calldata?: unknown }>(
+        `/api/v1/zkdefi/session_keys/grant`,
+        address,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            owner_address: address,
+            session_key_address: address,
+            max_position: 5,
+            allowed_protocols: ["pools", "ekubo", "lending", "staking"],
+            duration_hours: 24,
+          }),
+        },
+      );
+      const sid = res?.session_id;
+      if (sid) {
+        // Auto-confirm (in production the wallet would sign the calldata first)
+        await apiFetch(`/api/v1/zkdefi/session_keys/grant/confirm`, {
+          method: "POST",
+          body: JSON.stringify({ session_id: sid, tx_hash: `0x${Date.now().toString(16)}` }),
+        });
+        setActiveSessionId(sid);
+        setSessionExpired(false);
+        setSessionLine("Active · 24h remaining");
+        return sid;
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? "unknown error";
+      setSessionLine(`Grant failed: ${msg.slice(0, 60)}`);
+      console.error("[AgentControls] grantSessionKey:", err);
+    } finally {
+      setGrantLoading(false);
+    }
+    return null;
+  };
+
   // --- Agent actions ---
 
   const agentAction = async (action: string) => {
     setActionLoading(true);
+    setStatusErr(null);
     try {
-      await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      });
+      if (action === "start") {
+        // Ensure we have a session key; auto-grant if not
+        let sid = activeSessionId;
+        if (!sid) {
+          sid = await grantSessionKey();
+          if (!sid) {
+            setStatusErr("Session key required — grant failed");
+            setActionLoading(false);
+            return;
+          }
+        }
+        await apiFetchAuth(
+          `/api/v1/zkdefi/rebalancer/autonomous/start`,
+          address,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              user_address: address,
+              session_id: sid,
+              interval_minutes: 15,
+              risk_threshold: constraints?.risk_tolerance ?? 50,
+            }),
+          },
+        );
+      } else if (action === "stop") {
+        await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/stop`, {
+          method: "POST",
+          body: JSON.stringify({ user_address: address }),
+        });
+      } else if (action === "pause") {
+        await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/pause/${address}`, {
+          method: "POST",
+        });
+      } else if (action === "resume") {
+        await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/resume/${address}`, {
+          method: "POST",
+        });
+      }
       await fetchStatus();
-    } catch {
-      setStatusErr(`Failed to ${action}`);
+    } catch (err: any) {
+      setStatusErr(`Failed to ${action}: ${err?.message ?? "unknown"}`);
     } finally {
       setActionLoading(false);
     }
@@ -240,10 +325,26 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
         {statusErr ? (
           <p className="text-[11px] text-red-400">{statusErr}</p>
         ) : (
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`w-2 h-2 rounded-full ${dotColor}`} />
-            <span className="text-sm text-zinc-200 capitalize">{state}</span>
-          </div>
+          <>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+              <span className="text-sm text-zinc-200 capitalize">{state}</span>
+            </div>
+            {isRunning && status?.checks_count != null && (
+              <div className="flex gap-3 mb-2 text-[10px] text-zinc-500">
+                <span>{status.checks_count} checks</span>
+                <span>{status.actions_taken ?? 0} actions</span>
+                {status.last_check && (
+                  <span>Last: {new Date(status.last_check).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                )}
+              </div>
+            )}
+            {status?.last_action && (
+              <div className="text-[10px] text-zinc-600 mb-1 truncate">
+                Last: {status.last_action.type ?? "deploy"} → {status.last_action.adapter ?? "—"}
+              </div>
+            )}
+          </>
         )}
         <div className="flex gap-1">
           {!isRunning && !isPaused && (
@@ -345,11 +446,23 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
 
       {/* 4 — Session Key Status */}
       <section className="rounded-lg border border-zinc-800 p-3">
-        <div className="flex items-center gap-2">
-          <Key className="w-3.5 h-3.5 text-zinc-500" />
-          <span className={`text-xs ${sessionExpired ? "text-amber-400" : "text-zinc-300"}`}>
-            {sessionLine}
-          </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Key className="w-3.5 h-3.5 text-zinc-500" />
+            <span className={`text-xs ${sessionExpired ? "text-amber-400" : "text-zinc-300"}`}>
+              {sessionLine}
+            </span>
+          </div>
+          {(sessionExpired || !activeSessionId) && (
+            <button
+              onClick={grantSessionKey}
+              disabled={grantLoading}
+              className="text-[10px] px-2 py-1 rounded border border-violet-600/40 text-violet-400 hover:bg-violet-900/30 disabled:opacity-50 flex items-center gap-1"
+            >
+              {grantLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+              Grant
+            </button>
+          )}
         </div>
       </section>
 
