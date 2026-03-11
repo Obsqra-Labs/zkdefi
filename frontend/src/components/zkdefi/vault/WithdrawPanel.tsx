@@ -37,6 +37,7 @@ const METHOD_LABELS: Record<PrivacyMethod, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
   hashed_proof: "Hashed Proof",
+  dark_ledger: "Operator Vault",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
@@ -46,6 +47,8 @@ const METHOD_TIPS: Record<PrivacyMethod, string> = {
     "Full anonymity set. Groth16 proof + nullifier unlinkability.",
   hashed_proof:
     "Hash-only withdraw — maximum unlinkability. Recommended default.",
+  dark_ledger:
+    "Fastest — operator-managed Dark Ledger withdrawal.",
 };
 
 const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
@@ -55,6 +58,8 @@ const METHOD_PILL_COLORS: Record<PrivacyMethod, string> = {
     "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
   hashed_proof:
     "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25",
+  dark_ledger:
+    "bg-amber-500/15 text-amber-300 border-amber-500/25",
 };
 
 // ---------------------------------------------------------------------------
@@ -561,6 +566,8 @@ export function WithdrawPanel({
           );
           break;
         case "hashed_proof":
+        case "dark_ledger":
+        default:
           txHash = await withdrawNullifierSet(
             selectedCommitment,
             amountWei,

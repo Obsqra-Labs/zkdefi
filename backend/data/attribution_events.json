@@ -8,7 +8,7 @@
       "timestamp": "2026-03-09T20:19:12.505348+00:00",
       "confidence": 0.9,
       "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
-      "ts": 1773087572
+      "ts": 1773213020
     },
     {
       "id": "attr_8fe91a6b29aa",
@@ -18,7 +18,7 @@
       "timestamp": "2026-03-09T20:19:12.505374+00:00",
       "confidence": 1.0,
       "subject": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
-      "ts": 1773087572
+      "ts": 1773213020
     }
   ],
   "0x1f3ebe63b29d4bb5abb7b00e4bd7be2964fea30113b341588c516440": [
@@ -286,7 +286,19 @@
       "timestamp": "2026-03-10T20:16:24.696327+00:00",
       "confidence": 0.9,
       "subject": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
-      "ts": 1773175350
+      "ts": 1773220109
+    }
+  ],
+  "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": [
+    {
+      "id": "attr_96df920ef0f1",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-11T12:41:46.259316+00:00",
+      "confidence": 0.9,
+      "subject": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+      "ts": 1773247094
     }
   ]
 }

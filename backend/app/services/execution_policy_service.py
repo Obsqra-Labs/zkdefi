@@ -174,13 +174,13 @@ class ExecutionPolicyService:
         }
     
     def _default_policy(self, address: str) -> dict[str, Any]:
-        """Return default policy (moderate risk tolerance)."""
+        """Return default policy (permissive – users opt into stricter gating)."""
         now = datetime.now(timezone.utc).isoformat()
         return {
             "address": address,
             "gateRules": {
-                "minReputationScore": 50,  # Moderate trust
-                "maxRiskScore": 50,         # Conservative risk
+                "minReputationScore": 0,   # Permissive by default
+                "maxRiskScore": 80,         # Allow moderate-high risk
                 "requireCircuitVerified": False,
                 "preferPrivacyMode": None,
             },

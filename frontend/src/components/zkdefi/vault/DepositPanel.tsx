@@ -48,6 +48,7 @@ const METHOD_LABELS: Record<PrivacyMethod, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
   hashed_proof: "Hashed Proof",
+  dark_ledger: "Operator Vault",
 };
 
 const METHOD_TIPS: Record<PrivacyMethod, string> = {
@@ -57,6 +58,8 @@ const METHOD_TIPS: Record<PrivacyMethod, string> = {
     "Full anonymity set via Merkle tree. Private deposit with Groth16 proof.",
   hashed_proof:
     "Hash-only withdraw path — maximum unlinkability. Recommended default.",
+  dark_ledger:
+    "Fastest — funds managed in the Dark Ledger with operator-level privacy.",
 };
 
 const DEFAULT_ALLOCATION_ROWS = [
@@ -493,6 +496,8 @@ export function DepositPanel({
           result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
           break;
         case "hashed_proof":
+        case "dark_ledger":
+        default:
           result = await depositNullifierSet(amountWei, poolBucketToType(selectedPool));
           break;
       }
@@ -524,6 +529,7 @@ export function DepositPanel({
         commitment_shield: "COMMITMENT_SHIELD",
         nullifier_set: "NULLIFIER_SET",
         hashed_proof: "HASHED_PROOF",
+        dark_ledger: "DARK_LEDGER",
       };
       onRecordDeposit?.(amountWei, selectedAsset, railMap[method], result.txHash, result.commitmentHash).catch(() => {});
 

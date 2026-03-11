@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>zkde.fi Hackathon Backend Showcase</title>
+  <style>
+    :root {
+      --bg: #090b12;
+      --panel: #0f131d;
+      --panel-alt: #121826;
+      --line: #2a3040;
+      --text: #f4f7ff;
+      --muted: #98a2b5;
+      --good: #34d399;
+      --bad: #fb923c;
+      --link: #67e8f9;
+      --emerald: #10b981;
+      --cyan: #22d3ee;
+    }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.18), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, 0.14), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 56px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 10px;
+      font-family: "Sora", "Segoe UI", sans-serif;
+      letter-spacing: 0.15px;
+    }
+    h1 {
+      font-size: 34px;
+      background: linear-gradient(90deg, #ffffff 0%, #a7f3d0 48%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h2 { font-size: 22px; margin-top: 2px; }
+    h3 { font-size: 16px; margin-top: 14px; color: #d2d8e5; }
+    p { margin: 8px 0; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #2a3142;
+      border-radius: 16px;
+      background:
+        linear-gradient(155deg, rgba(16, 185, 129, 0.16), rgba(34, 211, 238, 0.06) 38%, rgba(10, 14, 22, 0.96) 78%),
+        #0b1019;
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+    }
+    .subline {
+      margin-top: 8px;
+      color: #b7c2d7;
+      max-width: 930px;
+    }
+    .score {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 7px 12px;
+      border: 1px solid #2f3a50;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 700;
+    }
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .chip {
+      border: 1px solid #30435a;
+      color: #b8d4ef;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      background: rgba(22, 33, 49, 0.56);
+    }
+    .chip.novel {
+      border-color: rgba(16, 185, 129, 0.55);
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .tab-nav, .subtab-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding: 10px;
+      border: 1px solid #2a3242;
+      border-radius: 12px;
+      background: rgba(16, 22, 35, 0.72);
+    }
+    .subtab-nav {
+      margin-top: 10px;
+      background: rgba(12, 18, 29, 0.72);
+      border-color: #263045;
+    }
+    .subtab-nav[hidden] {
+      display: none;
+    }
+    .tab-btn {
+      border: 1px solid #33435c;
+      color: #c3d5ee;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(22, 33, 49, 0.68);
+      cursor: pointer;
+      transition: all .12s ease-in-out;
+    }
+    .tab-btn:hover {
+      border-color: #496183;
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      border-color: rgba(16, 185, 129, 0.75);
+      color: #d9fff0;
+      background: rgba(16, 185, 129, 0.16);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2) inset;
+    }
+    .tab-btn.sub.active {
+      border-color: rgba(34, 211, 238, 0.75);
+      background: rgba(34, 211, 238, 0.14);
+      color: #d9fbff;
+      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18) inset;
+    }
+    .report-section {
+      display: none;
+      animation: fadeIn .16s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    section {
+      margin-top: 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-alt));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
+    }
+    .intent {
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px dashed #3a4b64;
+      border-radius: 10px;
+      background: rgba(22, 30, 46, 0.48);
+      color: #c7d2e8;
+      font-size: 13px;
+    }
+    .intent strong {
+      color: #ecf3ff;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td {
+      text-align: left;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pass { color: var(--good); font-weight: 700; }
+    .fail { color: var(--bad); font-weight: 700; }
+    .muted { color: var(--muted); }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      background: #0a0f1a;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    details { margin-top: 8px; }
+    summary { cursor: pointer; color: var(--link); }
+    @media (max-width: 700px) {
+      h1 { font-size: 26px; }
+      h2 { font-size: 18px; }
+      th, td { font-size: 12px; padding: 7px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero">
+      <h1>zkde.fi Backend Showcase Report</h1>
+      <p class="subline">
+        Terminal-first evidence that the backend can run proof-gated strategy flows, expose on-chain trust state,
+        and power UI surfaces that are currently lagging behind the full stack.
+      </p>
+      <p class="meta">Generated: 2026-03-11T05:40:43.673869+00:00 UTC</p>
+      <p class="meta">Base URL: http://127.0.0.1:8003 | Wallet: 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</p>
+      <p class="score">Core claims: 11 / 12 validated</p>
+      <div class="chips">
+        <span class="chip">Starknet backend evidence</span>
+        <span class="chip">Proof + policy + receipts</span>
+        <span class="chip">STARK + SNARK lanes</span>
+        <span class="chip novel">Novel: open-source ModelBridge (zkML to circuit proof gate)</span>
+        <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
+      </div>
+    </div>
+
+    <div class="tab-nav" data-group="main">
+      <button type="button" class="tab-btn active" data-main-target="overview">Overview</button>
+      <button type="button" class="tab-btn" data-main-target="bridge">ModelBridge</button>
+      <button type="button" class="tab-btn" data-main-target="ai">AI + Badges</button>
+      <button type="button" class="tab-btn" data-main-target="privacy">Privacy + Voting</button>
+      <button type="button" class="tab-btn" data-main-target="infra">Infra + On-chain</button>
+    </div>
+
+    <div class="subtab-nav" data-main="overview">
+      <button type="button" class="tab-btn sub active" data-sub-target="claims">Claim Matrix</button>
+      <button type="button" class="tab-btn sub" data-sub-target="steps">Execution Steps</button>
+    </div>
+    <div class="subtab-nav" data-main="bridge" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="live">Live Verify Receipt</button>
+      <button type="button" class="tab-btn sub" data-sub-target="architecture">Architecture</button>
+      <button type="button" class="tab-btn sub" data-sub-target="phases">Phase 2-4 Status</button>
+      <button type="button" class="tab-btn sub" data-sub-target="ecosystem">Ecosystem Positioning</button>
+    </div>
+    <div class="subtab-nav" data-main="ai" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="advisory">Opportunity Flow</button>
+      <button type="button" class="tab-btn sub" data-sub-target="skills">Skill Receipts</button>
+      <button type="button" class="tab-btn sub" data-sub-target="config">Config Packs</button>
+      <button type="button" class="tab-btn sub" data-sub-target="strategy">Strategy Evidence</button>
+    </div>
+    <div class="subtab-nav" data-main="privacy" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="rails">Privacy Rails</button>
+      <button type="button" class="tab-btn sub" data-sub-target="forecaster">Forecaster Primitive</button>
+    </div>
+    <div class="subtab-nav" data-main="infra" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="contracts">On-chain Links</button>
+      <button type="button" class="tab-btn sub" data-sub-target="circuits">Circuit Inventory</button>
+      <button type="button" class="tab-btn sub" data-sub-target="poseidon">Poseidon Runtime</button>
+    </div>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="claims">
+      <h2>Core Claim Matrix</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> The non-negotiable MVP claims for health, proofs, agent execution, policy controls, and on-chain visibility.<br/>
+        <strong>UI intent:</strong> Each pass maps to a UI surface that can be switched from placeholder to live data source.<br/>
+        <strong>Unlocks:</strong> A judge can trust that backend capabilities are real even if frontend polish is still catching up.
+      </div>
+      <table><thead><tr><th>Claim</th><th>Status</th></tr></thead><tbody><tr><td>Backend service is live</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Proof pack is present and introspectable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Open-source ModelBridge + dual-proof lanes are demonstrable</td><td><span class="fail">FAIL</span></td></tr>
+<tr><td>ModelBridge live l3 verify emits receipt evidence</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Agent composition + execution works</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Proof-backed deployment planning works</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Privacy commitment rails work</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Private prediction market primitive is live</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Policy controls are API-operable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>On-chain state is queryable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Contracts are verifiably deployed on RPC</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Receipt visibility pipeline is live</td><td><span class="pass">PASS</span></td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="steps">
+      <h2>Execution Steps</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Granular API and proving steps with concrete telemetry (IDs, proof hashes, counts, statuses).<br/>
+        <strong>UI intent:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
+        <strong>Unlocks:</strong> Reliable observability, fast triage, and cleaner frontend integration.
+      </div>
+      <table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>status=200, service=zkdefi-backend, admin_configured=False</td></tr>
+<tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>status=200, pack_id=zkfico_pack_v1, circuits=6, circuits_with_wasm_and_zkey=6</td></tr>
+<tr><td>Agent compose + execute</td><td><span class="pass">PASS</span></td><td>create_status=200, execute_status=200, agent_id=9a3c1883dd457078, processors=risk_scoring,correlation_risk,twap_position, should_execute=False, processor_results=3</td></tr>
+<tr><td>Deployment proof + on-chain calldata plan</td><td><span class="pass">PASS</span></td><td>status=200, deployment_id=fecf7cdb381f, circuit_type=allocation_valid, allocation_proof=0x3176091d49...e76daa95f93d, on_chain_calls=3</td></tr>
+<tr><td>Full privacy commitment generation</td><td><span class="pass">PASS</span></td><td>status=200, commitment=0x2287b94427...9e6538da97fa, nonce=0xeb692df9c42a69b4, pool_type=1</td></tr>
+<tr><td>Privacy tiers + shielded/nullifier/hash/relayer + private voting/lending</td><td><span class="pass">PASS</span></td><td>tiers=200, rails_proved=3/3, relayer_withdraw_status=200, dark_settlement_verify=200, private_vote_proof_status=200, private_lending_borrow_status=200</td></tr>
+<tr><td>Private prediction market primitive (snapshot forecaster)</td><td><span class="pass">PASS</span></td><td>window_status=200, commit_status=200, reveal_status=200, score_status=200, trust_mode=offchain_ezkl_verified, score_receipt=0xcadca5d8...9b6d586972</td></tr>
+<tr><td>Policy controls (vault constraints)</td><td><span class="pass">PASS</span></td><td>get_status=200, current_risk_tolerance=50, put_status=200, updated=True</td></tr>
+<tr><td>On-chain read via backend</td><td><span class="pass">PASS</span></td><td>status=200, tier=Strict, reputation_score=0, relayer=False</td></tr>
+<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7475543, resolved_contracts=7, voyager_links=7, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061</td></tr>
+<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=142, tx_hashes=0, first_tx_hash=-</td></tr>
+<tr><td>Optional: batch skill proof runtime</td><td><span class="pass">PASS</span></td><td>selected_skills=risk_score,anomaly_detection,yield_optimality,strategy_integrity,execution_integrity, listed_skills=15, batch_status=200, succeeded=5/5, proof_hashes=5, first_proof_hash=0x75603c1076...d663862ebacb</td></tr>
+<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>status=200, verified=True, proof_hash=0x8587005655...07a40149142f, envelope_id=env_1773207317_0x49d36570, detail=None</td></tr>
+<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge, bridge_compliant=True, l3_mode=groth16_garaga, l3_tx_hash=0x23e93324fb...bd9851300924</td></tr>
+<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=placeholder_fallback, bridge_compliant=True, l3_mode=hash_only, l3_tx_hash=0x9df3ed427e...713db82c1e43</td></tr>
+<tr><td>Open-source ModelBridge + dual-proof architecture</td><td><span class="fail">FAIL</span></td><td>modelbridge_artifacts=16/23, proving_paths_status=200, snark_lane_available=True, stark_lane_available=True, hash_fallback_available=True, dual_lanes_ready=True</td></tr>
+<tr><td>Recursive EZKL paths (Phase 2/3/4) status</td><td><span class="pass">PASS</span></td><td>docs_present=5/5, path_a_status_doc=True, phase2_status_done=True, phase3_plan_expanded=True, phase4_plan_expanded=True, parent_phase3_config_keys=True</td></tr>
+<tr><td>StarkHeavyReputation STARK flow</td><td><span class="fail">FAIL</span></td><td>status=0, circuit=None, success=None, proof_hash=-, l3_mode=None, l3_tx_hash=-</td></tr>
+<tr><td>Local zkML circuit inventory (20+ deep dive)</td><td><span class="pass">PASS</span></td><td>circom_sources=31, circuits_with_wasm=31, circuits_with_zkey=31, dual_ready=31, cairo_contracts=51, onnx_models=1817</td></tr>
+<tr><td>AI market advisory + strategy badge flow</td><td><span class="pass">PASS</span></td><td>providers=5, agent_models=24, marketplace_models=3, opportunities=6, advisory_calls=4, screening_calls=4</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
+      <h2>ModelBridge Live L3 Verify Receipts</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed to L3 for both `ModelBridge` and `ModelBridgeHeavy`, each captured as concrete receipt evidence.<br/>
+        <strong>UI intent:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
+        <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
+      </div>
+      <h3>ModelBridge Receipt</h3>
+      <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0xa0a8002da191...4a164f12c5c0ff</td></tr>
+<tr><td>Bridge backend</td><td>-</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>ModelBridge calldata words</td><td>2006</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>groth16_garaga</td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x23e93324fb84c16cf817d096128b5cae4855e9e2641abf46e04bd9851300924" target="_blank" rel="noreferrer">0x23e93324fb84...04bd9851300924</a></td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Trust mode</td><td>synthetic_dev_only</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-11T05:35:18.111742+00:00</td></tr>
+<tr><td>Duration ms</td><td>5035</td></tr></tbody></table>
+      <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
+      <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x8669df388877...11e6f4a63207f4</td></tr>
+<tr><td>Bridge backend</td><td>placeholder_fallback</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>ModelBridgeHeavy calldata words</td><td>6</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>hash_only</td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
+<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x9df3ed427e186e2706f58b8c3708cd7931821dd523820acf11713db82c1e43" target="_blank" rel="noreferrer">0x9df3ed427e18...11713db82c1e43</a></td></tr>
+<tr><td>Can execute</td><td><span class="fail">false</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Trust mode</td><td>synthetic_dev_only</td></tr>
+<tr><td>Failure reason</td><td>Strict L3 verification failed</td></tr>
+<tr><td>Generated at</td><td>2026-03-11T05:38:44.010025+00:00</td></tr>
+<tr><td>Duration ms</td><td>17119</td></tr></tbody></table>
+      <h3>StarkHeavyReputation (Stone -> L3)</h3>
+      <p class="meta">
+        Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
+        `StarkHeavyReputation`) with optional L3 submission.
+      </p>
+      <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>-</td></tr>
+<tr><td>Circuit name</td><td>-</td></tr>
+<tr><td>Proof success</td><td><span class="fail">false</span></td></tr>
+<tr><td>Proof hash</td><td>-</td></tr>
+<tr><td>Fact hash</td><td>-</td></tr>
+<tr><td>L3 mode</td><td>-</td></tr>
+<tr><td>L3 success</td><td><span class="fail">false</span></td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
+<tr><td>L3 tx hash</td><td>-</td></tr>
+<tr><td>L3 error</td><td>-</td></tr>
+<tr><td>Error</td><td>timed out</td></tr></tbody></table>
+      <h3>Retry/Attempt Timeline</h3>
+      <table><thead><tr><th>Run</th><th>Attempt</th><th>HTTP</th><th>Mirror</th><th>L3 Mode</th><th>Bridge Backend</th><th>Tx</th><th>Can Execute</th><th>Failure Text</th></tr></thead><tbody><tr><td>L3</td><td>1</td><td>200</td><td>not_requested</td><td>groth16_garaga</td><td>groth16_modelbridge</td><td><a href="https://sepolia.voyager.online/tx/0x23e93324fb84c16cf817d096128b5cae4855e9e2641abf46e04bd9851300924" target="_blank" rel="noreferrer">0x23e93324fb...bd9851300924</a></td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>hash_only</td><td>placeholder_fallback</td><td><a href="https://sepolia.voyager.online/tx/0x9df3ed427e186e2706f58b8c3708cd7931821dd523820acf11713db82c1e43" target="_blank" rel="noreferrer">0x9df3ed427e...713db82c1e43</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
+<tr><td>L3_NOIR_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>noir_honk</td><td>noir_honk</td><td><a href="https://sepolia.voyager.online/tx/0x3ba1700943cbcf734feeaf586a154524696006a0c995c383bd330672a5753b" target="_blank" rel="noreferrer">0x3ba1700943...330672a5753b</a></td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>DUAL</td><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>timed out   timed out</td></tr>
+<tr><td>DUAL</td><td>2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>timed out   timed out</td></tr>
+<tr><td>DUAL</td><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>timed out   timed out</td></tr>
+<tr><td>DUAL</td><td>4</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>timed out   timed out</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
+      <h2>Open-source ModelBridge + Dual-Proof Architecture</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> That the zkML bridge implementation is present in repo, then exercised via runtime probes that hit both single-chain and dual-chain proof paths.<br/>
+        <strong>UI intent:</strong> Lets UI show proof-lane selection (`l3`, `l2`, `dual`), verifier mode, and trust posture before execution.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> Proof-aware AI actions where model output is bridged into circuit-calldata semantics and chained to Starknet verification lanes.
+      </div>
+      <p class="meta">
+        Selected model for runtime probe: yield_predictor |
+        Proof-model registry status: 200 |
+        Registered models: 0 |
+        Ready models: 0 |
+        Runtime mode: synthetic_fallback
+      </p>
+      <h3>Bridge Artifacts in Repository</h3>
+      <table><thead><tr><th>Artifact</th><th>Path</th><th>Status</th></tr></thead><tbody><tr><td>ModelBridge circuit</td><td><code>circuits/ModelBridge.circom</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build zkey</td><td><code>circuits/build/ModelBridge_final.zkey</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build wasm</td><td><code>circuits/build/ModelBridge_js/ModelBridge.wasm</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build verification key</td><td><code>circuits/build/ModelBridge_verification_key.json</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy circuit</td><td><code>circuits/ModelBridgeHeavy.circom</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridgeHeavy build zkey</td><td><code>circuits/build/ModelBridgeHeavy_final.zkey</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridgeHeavy build wasm</td><td><code>circuits/build/ModelBridgeHeavy_js/ModelBridgeHeavy.wasm</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridgeHeavy build verification key</td><td><code>circuits/build/ModelBridgeHeavy_verification_key.json</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridge root zkey</td><td><code>circuits/ModelBridge_final.zkey</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge root wasm</td><td><code>circuits/ModelBridge_js/ModelBridge.wasm</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build script</td><td><code>circuits/build_model_bridge.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy build script</td><td><code>circuits/build_model_bridge_heavy.sh</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridge verifier generation script</td><td><code>circuits/generate_model_bridge_verifier.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy verifier generation script</td><td><code>circuits/generate_model_bridge_heavy_verifier.sh</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ModelBridge verifier deploy script</td><td><code>scripts/deploy_model_bridge_verifier.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge verifier deploy plan</td><td><code>docs/plans/MODELBRIDGE_VERIFIER_DEPLOY.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ZkmlVerifier Cairo contract</td><td><code>contracts/src/zkml_verifier.cairo</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Generated ModelBridge verifier project</td><td><code>circuits/contracts/src/garaga_verifier_model_bridge/Scarb.toml</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Generated ModelBridgeHeavy verifier project</td><td><code>circuits/contracts/src/garaga_verifier_model_bridge_heavy/Scarb.toml</code></td><td><span class="fail">missing</span></td></tr>
+<tr><td>ML bridge API route</td><td><code>backend/app/api/routes/proofs.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Groth16 bridge prover service</td><td><code>backend/app/services/groth16_prover.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Proof pipeline</td><td><code>backend/app/services/proof_pipeline.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Proof mode resolver</td><td><code>backend/app/services/proof_mode.py</code></td><td><span class="pass">present</span></td></tr></tbody></table>
+      <h3>Live Proving Lanes (STARK vs SNARK)</h3>
+      <p class="meta">
+        Proving-path endpoint status: 200 |
+        Dual lanes ready: <span class="pass">yes</span> |
+        ModelBridgeHeavy lane available: <span class="fail">no</span> |
+        SNOS proving: not available (planned)
+      </p>
+      <table><thead><tr><th>Lane ID</th><th>Lane Name</th><th>Available</th><th>Contract</th><th>Trust Model</th></tr></thead><tbody><tr><td>groth16_garaga</td><td>Groth16 On-Chain Verification (Garaga)</td><td><span class="pass">yes</span></td><td><a href="https://sepolia.voyager.online/contract/0x36f5c2fd4b271b2d25ca455e927e22a4a2a9a460b68bc4ff91c17a14e78bd00" target="_blank" rel="noreferrer">0x36f5c2fd4b27...1c17a14e78bd00</a></td><td>cryptographic — L3 contract verifies the proof</td></tr>
+<tr><td>groth16_model_bridge</td><td>ModelBridge Groth16 On-Chain Verification</td><td><span class="pass">yes</span></td><td><a href="https://sepolia.voyager.online/contract/0x7593703af046e2eb1a1260c203c91ead80b033cd4552249da31697ff215f183" target="_blank" rel="noreferrer">0x7593703af046...31697ff215f183</a></td><td>cryptographic — L3 ModelBridge verifier verifies the proof</td></tr>
+<tr><td>groth16_model_bridge_heavy</td><td>ModelBridgeHeavy Groth16 On-Chain Verification</td><td><span class="fail">no</span></td><td>-</td><td>cryptographic — L3 ModelBridgeHeavy verifier verifies the proof</td></tr>
+<tr><td>noir_honk</td><td>Noir EZKL-Bridge HONK On-Chain Verification</td><td><span class="pass">yes</span></td><td><a href="https://sepolia.voyager.online/contract/0x6cc71ffce475d6dc9b31abdf3dcb209ecadbb8ea5229ea73ee948bf3bdc63f1" target="_blank" rel="noreferrer">0x6cc71ffce475...e948bf3bdc63f1</a></td><td>cryptographic — L3 Garaga HONK verifier verifies the proof</td></tr>
+<tr><td>native_kzg</td><td>Native KZG On-Chain Verification (Phase 4)</td><td><span class="fail">no</span></td><td>-</td><td>cryptographic — L3 Cairo KZG verifier verifies the proof</td></tr>
+<tr><td>stark_integrity</td><td>STARK On-Chain Verification (Integrity)</td><td><span class="pass">yes</span></td><td><a href="https://sepolia.voyager.online/contract/0x2c036366dcf933dab91ea4a059292e351a40352ce9374776114e35ae0271e69" target="_blank" rel="noreferrer">0x2c036366dcf9...14e35ae0271e69</a></td><td>cryptographic — L3 contract verifies the STARK proof</td></tr>
+<tr><td>hash_only</td><td>Hash Registration (Fallback)</td><td><span class="pass">yes</span></td><td><a href="https://sepolia.voyager.online/contract/0x5ed322b12ddc28d27b7797d79516ca285137f9bab9fde870191119b4c68d691" target="_blank" rel="noreferrer">0x5ed322b12ddc...91119b4c68d691</a></td><td>trust-the-operator — obsqra backend verified off-chain</td></tr></tbody></table>
+      <h3>Runtime Bridge Probes (`/api/v1/zkdefi/proofs/ml-bridge`)</h3>
+      <table><thead><tr><th>Run</th><th>Proof Mode</th><th>Requested Chain</th><th>L3 Mode</th><th>L2 Mode</th><th>Bridge Backend</th><th>Mirror</th><th>Can Execute</th><th>Failure Reason</th></tr></thead><tbody><tr><td>L3</td><td>EZKL_BRIDGE</td><td>l3</td><td>groth16_garaga</td><td>-</td><td>groth16_modelbridge</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>hash_only</td><td>-</td><td>placeholder_fallback</td><td>not_requested</td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
+<tr><td>L3_NOIR_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>noir_honk</td><td>-</td><td>noir_honk</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>DUAL</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>timed out</td></tr></tbody></table>
+      <p class="meta">
+        SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
+        In `dual` mode, backend attempts both and records mirror status for policy gating.
+      </p>
+      <p class="meta">
+        EZKL runtime probe status: 503 |
+        Real proof detected: <span class="fail">no</span>
+      </p>
+      <h3>Why This Bridge Is An Unlock</h3>
+      <table><thead><tr><th>Unlock</th><th>Design Signal</th><th>Why It Matters</th></tr></thead><tbody><tr><td>Model output -&gt; policy gate, not just model output -&gt; score</td><td>ModelBridge binds model_output + proof/model hashes + bounds + timestamp into a Groth16 public-signal commitment that policy lanes can enforce.</td><td>Lets AI recommendations become cryptographically gateable execution intents.</td></tr>
+<tr><td>Portable zkML semantics across stacks</td><td>Bridge lane can consume zkML-style artifacts, format calldata for Garaga, then target Starknet verification paths.</td><td>De-risks lock-in to a single proving stack while keeping one policy interface.</td></tr>
+<tr><td>Dual STARK/SNARK trust posture</td><td>The same intent can flow through SNARK (Groth16/Garaga) and STARK (integrity/SNOS-style) lanes with mirror status tracking.</td><td>Allows product-level trust modes instead of one hardcoded proof lane.</td></tr>
+<tr><td>Privacy-first execution controls</td><td>Bridge proofs feed strategy gating while shielded/nullifier/relayer rails preserve user privacy and selective disclosure.</td><td>Supports private capital ops without losing verifiable safety checks.</td></tr></tbody></table>
+      <h3>Who Does Adjacent Pieces vs This Full Composition</h3>
+      <table><thead><tr><th>Stack</th><th>Published Signal</th><th>Bridge-to-Privacy-Gate Signal</th><th>Reference</th></tr></thead><tbody><tr><td>EZKL</td><td>Open-source zkML proving from ONNX models to proofs.</td><td>No direct Starknet privacy-policy bridge wiring documented in cited source.</td><td><a href="https://github.com/zkonduit/ezkl" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Garaga</td><td>Starknet-oriented SNARK verifier/calldata tooling (Groth16/Plonk lanes).</td><td>Verifier primitives, but not end-to-end zkML recommendation gating product flow.</td><td><a href="https://github.com/keep-starknet-strange/garaga" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Giza on Starknet</td><td>Verifiable ML context in Starknet ecosystem.</td><td>Public material does not describe the same privacy-tier + relayer gating composition.</td><td><a href="https://www.starknet.io/blog/onchain-ai-with-giza/" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>zkde.fi (this repo)</td><td>ModelBridge circuit + Groth16 prover + proof pipeline + proving-path routing + privacy rails + strategy badges.</td><td>Bridge-to-policy-gate wiring is implemented as first-class backend flow.</td><td><code>circuits/ModelBridge.circom</code>, <code>backend/app/services/groth16_prover.py</code>, <code>backend/app/services/proof_pipeline.py</code></td></tr></tbody></table>
+      <h3>ModelBridge Verifier On-chain Readiness (Starknet + L3)</h3>
+      <table><thead><tr><th>Check</th><th>Status</th></tr></thead><tbody><tr><td>ZkmlVerifier has model_bridge_verifier storage</td><td><span class="pass">yes</span></td></tr>
+<tr><td>ZkmlVerifier constructor accepts 3 args</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Getter/setter for model bridge verifier</td><td><span class="pass">yes</span></td></tr>
+<tr><td>verify_model_bridge_proof entrypoint</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Fallback logic (dedicated verifier else garaga)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated ModelBridge verifier project present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated contract classes</td><td>1</td></tr>
+<tr><td>Generated ModelBridgeHeavy verifier project present</td><td><span class="fail">no</span></td></tr>
+<tr><td>Generated ModelBridgeHeavy contract classes</td><td>0</td></tr>
+<tr><td>Deployment marker (.model_bridge_verifier.deployed)</td><td><span class="pass">found</span></td></tr>
+<tr><td>Deployment marker (.model_bridge_heavy_verifier.deployed)</td><td><span class="fail">missing</span></td></tr>
+<tr><td>Deployment marker (.zkml_verifier_model_bridge.deployed)</td><td><span class="pass">found</span></td></tr>
+<tr><td>Deployed ModelBridge verifier address</td><td>0x037c42e8...786fa4626f</td></tr>
+<tr><td>Deployed ModelBridge verifier class hash</td><td>0x04745a6b...b5574257f8</td></tr>
+<tr><td>Deployed ModelBridgeHeavy verifier address</td><td>-</td></tr>
+<tr><td>Deployed ModelBridgeHeavy verifier class hash</td><td>-</td></tr>
+<tr><td>Deployed ZkmlVerifier (ModelBridge-capable)</td><td>0x068abd64...a5aad08923</td></tr>
+<tr><td>Deployed ZkmlVerifier class hash</td><td>0x00f9c1bd...b7687aa066</td></tr>
+<tr><td>ZkmlVerifier constructor Garaga verifier</td><td>0x06d0cb7a...2fe3aa6d37</td></tr>
+<tr><td>ZkmlVerifier constructor ModelBridge verifier</td><td>0x037c42e8...786fa4626f</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="phases">
+      <h2>Recursive EZKL Paths (Phase 2 / 3 / 4)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Whether Path A (Noir HONK), Path C (L1 Sepolia bridge), and Path B (native Cairo KZG) are documented and wired in code, beyond narrative claims.<br/>
+        <strong>UI intent:</strong> Frontend can render honest state badges: `implemented`, `implemented_stub`, or `partial` per path.<br/>
+        <strong>Unlocks:</strong> Clear migration story from current ModelBridge lane to full on-chain EZKL attestation options.
+      </div>
+      <h3>Documentation Presence</h3>
+      <table><thead><tr><th>Artifact</th><th>Path</th><th>Status</th></tr></thead><tbody><tr><td>Recursive EZKL roadmap</td><td><code>archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Advanced L3 + EZKL implementation plan</td><td><code>docs/plans/2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>L1 Sepolia EZKL verifier doc</td><td><code>docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>L1-&gt;L2 EZKL bridge spec</td><td><code>docs/plans/L1_EZKL_BRIDGE_SPEC.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Cairo native KZG verifier spec</td><td><code>docs/plans/CAIRO_KZG_VERIFIER_SPEC.md</code></td><td><span class="pass">present</span></td></tr></tbody></table>
+      <h3>Path Status Matrix</h3>
+      <table><thead><tr><th>Path</th><th>Status</th><th>Lane ID</th><th>Lane Listed</th><th>Lane Available</th><th>Contract</th><th>Evidence</th></tr></thead><tbody><tr><td>Path A (Noir HONK bridge)</td><td><span class="pass">implemented</span></td><td>noir_honk</td><td><span class="pass">yes</span></td><td><span class="pass">yes</span></td><td>0x6cc71ffce475...e948bf3bdc63f1</td><td>Roadmap + implementation plan mark Path A as implemented; deploy verifier when L3 is up; gas ~178M on L2.</td></tr>
+<tr><td>Path C (L1 Sepolia bridge)</td><td><span class="pass">implemented</span></td><td>l1_bridge</td><td><span class="fail">no</span></td><td><span class="fail">no</span></td><td>0x2a1b030f2835...5e96da293853ab</td><td>L1 verifier + sender + receiver are wired; parent backend can call verifyAndBridge and poll L2 receiver.</td></tr>
+<tr><td>Path B (native Cairo KZG)</td><td><span class="pass">implemented</span></td><td>native_kzg</td><td><span class="pass">yes</span></td><td><span class="fail">no</span></td><td>-</td><td>KZG spec exists; parent backend has config + proving-path routing for native_kzg / EzklNativeKzg.</td></tr></tbody></table>
+      <h3>Code Wiring Signals</h3>
+      <table><thead><tr><th>Check</th><th>Status</th></tr></thead><tbody><tr><td>Path A status in roadmap</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 2 status marked complete</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 3 tasks expanded (3.1-3.5)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 4 tasks expanded (4.1-4.5)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 3 config keys</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 3 service stub</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 4 config key</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 4 route (native_kzg)</td><td><span class="pass">yes</span></td></tr></tbody></table>
+      <h3>Environment Readiness (Parent Backend)</h3>
+      <table><thead><tr><th>Config</th><th>Status</th></tr></thead><tbody><tr><td>Parent backend .env found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_SEPOLIA_RPC set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_EZKL_VERIFIER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_EZKL_BRIDGE_SENDER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_BRIDGE_RECEIVER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1 signer configured</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L3_KZG_VERIFIER_ADDRESS set</td><td><span class="fail">no</span></td></tr></tbody></table>
+      <h3>Next Steps</h3>
+      <table><thead><tr><th>#</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status.</td></tr>
+<tr><td>2</td><td>Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.</td></tr>
+<tr><td>3</td><td>Phase 4: implement Cairo BN254/KZG module + verify_kzg contract and deploy on L3.</td></tr>
+<tr><td>4</td><td>Phase 4: add zkdefi pipeline path for EzklNativeKzg and expose it in proof mode selection.</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="ecosystem">
+      <h2>Ecosystem Sources (Research Appendix)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> External source sanity-check so bridge claims are benchmarked against current open-source zkML and Starknet proof infrastructure.<br/>
+        <strong>UI intent:</strong> Feeds judge-facing technical appendix links without unsupported claims.<br/>
+        <strong>Unlocks:</strong> Transparent positioning: what exists in ecosystem today, and where this bridge design goes further.
+      </div>
+      <table><thead><tr><th>Project/Source</th><th>Published Focus</th><th>Positioning Signal</th><th>Link</th></tr></thead><tbody><tr><td>EZKL</td><td>Open-source zkML proving stack (ONNX to ZK proof flow).</td><td>Shows mature zkML proving tooling; zkde.fi extends this with a circuit bridge and Starknet proving lanes.</td><td><a href="https://github.com/zkonduit/ezkl" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Garaga</td><td>SNARK verifier stack for Starknet (Groth16/Plonk tooling and calldata).</td><td>Confirms active Starknet SNARK verification primitives that the ModelBridge lane can target.</td><td><a href="https://github.com/keep-starknet-strange/garaga" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Starknet verify-proofs docs</td><td>Production guide for verifying zk proofs on Starknet.</td><td>Anchors on-chain verifier patterns and expected integration shape on Starknet.</td><td><a href="https://docs.starknet.io/build/starknet-by-example/advanced/verify-proofs" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>SNOS / SHARP model</td><td>STARK validity proving model used by Starknet (execution trace to proof).</td><td>Frames the STARK side of dual architecture and integrity-style proof semantics.</td><td><a href="https://docs.starknet.io/learn/protocol/snos" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Giza on Starknet</td><td>Verifiable ML effort built on Starknet tooling.</td><td>Provides ecosystem context: zkML on Starknet exists, but bridge-to-circuit proof gating remains a distinct design choice.</td><td><a href="https://www.starknet.io/blog/onchain-ai-with-giza/" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>SN Stack open-source launch</td><td>Open-source Starknet stack announced by StarkWare.</td><td>Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable.</td><td><a href="https://www.starknet.io/blog/introducing-sn-stack-open-source-zk-powered-scaling/" target="_blank" rel="noreferrer">source</a></td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="contracts">
+      <h2>On-chain Links (Voyager)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
+        <strong>UI intent:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
+        <strong>Unlocks:</strong> External verifiability for judges, users, and auditors.
+      </div>
+      <p class="meta">RPC used: https://starknet-sepolia-rpc.publicnode.com</p>
+      <table><thead><tr><th>Contract</th><th>Address</th><th>Class Hash</th></tr></thead><tbody><tr><td>REPUTATION_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022" target="_blank" rel="noreferrer">0x10d00b33b568...b5246312b7e022</a></td><td><a href="https://sepolia.voyager.online/class/0x74f7c06bfa0ba09af8e172467a7be78fa2077b7f4fb1fad8dbeda8eec60c95f" target="_blank" rel="noreferrer">0x74f7c06bfa0b...beda8eec60c95f</a></td></tr>
+<tr><td>FULL_PRIVACY_POOL_V2_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x3dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559" target="_blank" rel="noreferrer">0x3dde5617d362...eeb6237c811559</a></td><td><a href="https://sepolia.voyager.online/class/0xce55e551395c337e7dfc978962aff488e30cf8c1e5ffde1df34b62eb1f117" target="_blank" rel="noreferrer">0xce55e551395c...df34b62eb1f117</a></td></tr>
+<tr><td>RECEIPT_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x2900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd" target="_blank" rel="noreferrer">0x2900291a932a...71ec6daecd83cd</a></td><td><a href="https://sepolia.voyager.online/class/0x8b52ef1327886e6e1f035042fd7612bda7e54619785b384d4b0e5dff494959" target="_blank" rel="noreferrer">0x8b52ef132788...4b0e5dff494959</a></td></tr>
+<tr><td>VAULT_CONTROLLER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63" target="_blank" rel="noreferrer">0x2f29b985bc96...186a81d0853b63</a></td><td><a href="https://sepolia.voyager.online/class/0x64c7e534cd0143ef62c57a570283e40e4509bf0fb5c14116b0e2177af39a88a" target="_blank" rel="noreferrer">0x64c7e534cd01...0e2177af39a88a</a></td></tr>
+<tr><td>GARAGA_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x6d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37" target="_blank" rel="noreferrer">0x6d0cb7a48b48...38502fe3aa6d37</a></td><td><a href="https://sepolia.voyager.online/class/0x4e7a5bbcefcb9e1d7fb2229375df104003f270bd09ec7c44aceb1bce3b39061" target="_blank" rel="noreferrer">0x4e7a5bbcefcb...ceb1bce3b39061</a></td></tr>
+<tr><td>MODEL_BRIDGE_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x37c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f" target="_blank" rel="noreferrer">0x37c42e873427...bbb8786fa4626f</a></td><td><a href="https://sepolia.voyager.online/class/0x4745a6bcd5a3306d7ed2eac2a5f5a53f66cfd7afee4c7a7d1d18cb5574257f8" target="_blank" rel="noreferrer">0x4745a6bcd5a3...d18cb5574257f8</a></td></tr>
+<tr><td>ZKML_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x68abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923" target="_blank" rel="noreferrer">0x68abd64a4a78...b72da5aad08923</a></td><td><a href="https://sepolia.voyager.online/class/0xf9c1bd17a2c6bc58ca76a146399151fdf677514e7c6630eb8694b7687aa066" target="_blank" rel="noreferrer">0xf9c1bd17a2c6...8694b7687aa066</a></td></tr></tbody></table>
+      <h3>Receipts / Tx Links</h3>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="circuits">
+      <h2>zkML Circuit Deep Dive</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Real inventory and readiness of first-party circuits, proving artifacts, and adjacent Cairo/ONNX footprint.<br/>
+        <strong>UI intent:</strong> Powers “capability explorer” and strategy badge transparency in the app.<br/>
+        <strong>Unlocks:</strong> Demonstrates this is a multi-circuit platform, not a single proof demo.
+      </div>
+      <p class="meta">
+        Circom sources: 31 |
+        wasm ready: 31 |
+        zkey ready: 31 |
+        dual-ready: 31
+      </p>
+      <p class="meta">
+        Cairo contract sources: 51 |
+        Groth16 final zkeys (repo-wide): 34 |
+        ONNX models: 1817
+      </p>
+      <table><thead><tr><th>Category</th><th>Count</th></tr></thead><tbody><tr><td>agent_identity</td><td>2</td></tr>
+<tr><td>agent_skill</td><td>6</td></tr>
+<tr><td>execution_quality</td><td>1</td></tr>
+<tr><td>ezkl_bridge</td><td>1</td></tr>
+<tr><td>governance</td><td>1</td></tr>
+<tr><td>merkle_privacy</td><td>3</td></tr>
+<tr><td>mev_resistance</td><td>1</td></tr>
+<tr><td>ml_scoring</td><td>5</td></tr>
+<tr><td>model_safety</td><td>1</td></tr>
+<tr><td>privacy_or_membership</td><td>5</td></tr>
+<tr><td>reputation</td><td>4</td></tr>
+<tr><td>strategy_integrity</td><td>1</td></tr></tbody></table>
+      <h3>Circuit Inventory (first 40)</h3>
+      <table><thead><tr><th>Circuit</th><th>Category</th><th>Ready</th><th>WASM</th><th>ZKEY</th></tr></thead><tbody><tr><td>AgentReputationScore</td><td>agent_identity</td><td><span class="pass">ready</span></td><td>circuits/build/AgentReputationScore_js/AgentReputationScore.wasm</td><td>circuits/build/AgentReputationScore_final.zkey</td></tr>
+<tr><td>AnomalyDetector</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/AnomalyDetector_js/AnomalyDetector.wasm</td><td>circuits/build/AnomalyDetector_final.zkey</td></tr>
+<tr><td>BalanceAboveThreshold</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/BalanceAboveThreshold_js/BalanceAboveThreshold.wasm</td><td>circuits/build/BalanceAboveThreshold_final.zkey</td></tr>
+<tr><td>CorrelationRisk</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/CorrelationRisk_js/CorrelationRisk.wasm</td><td>circuits/build/CorrelationRisk_final.zkey</td></tr>
+<tr><td>CreditEligibility</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/CreditEligibility_js/CreditEligibility.wasm</td><td>circuits/build/CreditEligibility_final.zkey</td></tr>
+<tr><td>CrossProtocolArbitrage</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/CrossProtocolArbitrage_js/CrossProtocolArbitrage.wasm</td><td>circuits/build/CrossProtocolArbitrage_final.zkey</td></tr>
+<tr><td>ExecutionIntegrity</td><td>execution_quality</td><td><span class="pass">ready</span></td><td>circuits/build/ExecutionIntegrity_js/ExecutionIntegrity.wasm</td><td>circuits/build/ExecutionIntegrity_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdraw</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdraw_js/FullPrivacyWithdraw.wasm</td><td>circuits/build/FullPrivacyWithdraw_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdrawHashed</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdrawHashed_js/FullPrivacyWithdrawHashed.wasm</td><td>circuits/build/FullPrivacyWithdrawHashed_final.zkey</td></tr>
+<tr><td>FullPrivacyWithdrawWithChange</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/FullPrivacyWithdrawWithChange_js/FullPrivacyWithdrawWithChange.wasm</td><td>circuits/build/FullPrivacyWithdrawWithChange_final.zkey</td></tr>
+<tr><td>HistoricalPerformanceAttestation</td><td>agent_identity</td><td><span class="pass">ready</span></td><td>circuits/build/HistoricalPerformanceAttestation_js/HistoricalPerformanceAttestation.wasm</td><td>circuits/build/HistoricalPerformanceAttestation_final.zkey</td></tr>
+<tr><td>ImpermanentLossPredictor</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/ImpermanentLossPredictor_js/ImpermanentLossPredictor.wasm</td><td>circuits/build/ImpermanentLossPredictor_final.zkey</td></tr>
+<tr><td>LiquidationRisk</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/LiquidationRisk_js/LiquidationRisk.wasm</td><td>circuits/build/LiquidationRisk_final.zkey</td></tr>
+<tr><td>MEVResistanceProof</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/MEVResistanceProof_js/MEVResistanceProof.wasm</td><td>circuits/build/MEVResistanceProof_final.zkey</td></tr>
+<tr><td>ModelBridge</td><td>ezkl_bridge</td><td><span class="pass">ready</span></td><td>circuits/build/ModelBridge_js/ModelBridge.wasm</td><td>circuits/build/ModelBridge_final.zkey</td></tr>
+<tr><td>PoolMembership</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/PoolMembership_js/PoolMembership.wasm</td><td>circuits/build/PoolMembership_final.zkey</td></tr>
+<tr><td>PrivateDeposit</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/PrivateDeposit_js/PrivateDeposit.wasm</td><td>circuits/build/PrivateDeposit_final.zkey</td></tr>
+<tr><td>PrivateWithdraw</td><td>privacy_or_membership</td><td><span class="pass">ready</span></td><td>circuits/build/PrivateWithdraw_js/PrivateWithdraw.wasm</td><td>circuits/build/PrivateWithdraw_final.zkey</td></tr>
+<tr><td>RebalanceTimingCommitment</td><td>mev_resistance</td><td><span class="pass">ready</span></td><td>circuits/build/RebalanceTimingCommitment_js/RebalanceTimingCommitment.wasm</td><td>circuits/build/RebalanceTimingCommitment_final.zkey</td></tr>
+<tr><td>RiskPassportTier</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/RiskPassportTier_js/RiskPassportTier.wasm</td><td>circuits/build/RiskPassportTier_final.zkey</td></tr>
+<tr><td>RiskScore</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/RiskScore_js/RiskScore.wasm</td><td>circuits/build/RiskScore_final.zkey</td></tr>
+<tr><td>RobustnessCertificate</td><td>model_safety</td><td><span class="pass">ready</span></td><td>circuits/build/RobustnessCertificate_js/RobustnessCertificate.wasm</td><td>circuits/build/RobustnessCertificate_final.zkey</td></tr>
+<tr><td>SafetyDiversification</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/SafetyDiversification_js/SafetyDiversification.wasm</td><td>circuits/build/SafetyDiversification_final.zkey</td></tr>
+<tr><td>SlippageBound</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/SlippageBound_js/SlippageBound.wasm</td><td>circuits/build/SlippageBound_final.zkey</td></tr>
+<tr><td>SolvencyProof</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/SolvencyProof_js/SolvencyProof.wasm</td><td>circuits/build/SolvencyProof_final.zkey</td></tr>
+<tr><td>StrategyIntegrity</td><td>strategy_integrity</td><td><span class="pass">ready</span></td><td>circuits/build/StrategyIntegrity_js/StrategyIntegrity.wasm</td><td>circuits/build/StrategyIntegrity_final.zkey</td></tr>
+<tr><td>TWAPPosition</td><td>ml_scoring</td><td><span class="pass">ready</span></td><td>circuits/build/TWAPPosition_js/TWAPPosition.wasm</td><td>circuits/build/TWAPPosition_final.zkey</td></tr>
+<tr><td>TenureAboveThreshold</td><td>merkle_privacy</td><td><span class="pass">ready</span></td><td>circuits/build/TenureAboveThreshold_js/TenureAboveThreshold.wasm</td><td>circuits/build/TenureAboveThreshold_final.zkey</td></tr>
+<tr><td>TraderPerformanceProof</td><td>reputation</td><td><span class="pass">ready</span></td><td>circuits/build/TraderPerformanceProof_js/TraderPerformanceProof.wasm</td><td>circuits/build/TraderPerformanceProof_final.zkey</td></tr>
+<tr><td>YieldOptimality</td><td>agent_skill</td><td><span class="pass">ready</span></td><td>circuits/build/YieldOptimality_js/YieldOptimality.wasm</td><td>circuits/build/YieldOptimality_final.zkey</td></tr>
+<tr><td>private_vote</td><td>governance</td><td><span class="pass">ready</span></td><td>circuits/build/private_vote_js/private_vote.wasm</td><td>circuits/build/private_vote_final.zkey</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="advisory">
+      <h2>Opportunity Advisory + Badge Flow</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live opportunities, LLM advisory, then ZK circuit screening before recommendation is treated as trusted.<br/>
+        <strong>UI intent:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> AI-guided suggestions with cryptographic gating, not opaque black-box outputs.
+      </div>
+      <table><thead><tr><th>Opp ID</th><th>Title</th><th>Pair</th><th>Type</th><th>Yield %</th><th>Risk</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>Swap USDC/EURe</td><td>USDC/EURe</td><td>swap</td><td>253.07</td><td>45.0</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>Swap ETH/USDT</td><td>ETH/USDT</td><td>swap</td><td>113.59</td><td>45.0</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>Swap WBTC/USDT</td><td>WBTC/USDT</td><td>swap</td><td>46.22</td><td>45.0</td></tr>
+<tr><td>f695210aab99e3ad</td><td>Swap ETH/USDC</td><td>ETH/USDC</td><td>swap</td><td>31.11</td><td>45.0</td></tr>
+<tr><td>b9a951bdf6ae53e4</td><td>Swap EKUBO/USDC</td><td>EKUBO/USDC</td><td>swap</td><td>20.77</td><td>45.0</td></tr>
+<tr><td>1e01f53f0a0a6c8e</td><td>Swap zkLEND/USDT</td><td>zkLEND/USDT</td><td>swap</td><td>4.88</td><td>45.0</td></tr></tbody></table>
+      <h3>AI Advisory Snapshot</h3>
+      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Narrative</th><th>Status</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.55</td><td>Swap USDC/EURe shows strong fundamentals with 253.1% yield and manageable risk.</td><td>200</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>wait</td><td>0.5</td><td>Swap ETH/USDT has moderate opportunity — consider waiting for better entry conditions.</td><td>200</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.55</td><td>Swap WBTC/USDT shows strong fundamentals with 48.1% yield and manageable risk.</td><td>200</td></tr>
+<tr><td>f695210aab99e3ad</td><td>execute</td><td>0.55</td><td>Swap ETH/USDC shows strong fundamentals with 29.6% yield and manageable risk.</td><td>200</td></tr></tbody></table>
+      <h3>Badge Circuit Screening Snapshot</h3>
+      <table><thead><tr><th>Opp ID</th><th>Proof Status</th><th>is_proved</th><th>Yield Proof</th><th>Strategy Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>proved</td><td><span class="pass">true</span></td><td>0xb208a4aa...0f28011903</td><td>0x629e1e2d...071053790f</td><td></td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>proved</td><td><span class="pass">true</span></td><td>0xd5723258...aa2ff6fee2</td><td>0xfaeb2132...2b5e10ca6d</td><td></td></tr>
+<tr><td>fd6f074ba5f33703</td><td>proved</td><td><span class="pass">true</span></td><td>0x46c91d55...2cdab889de</td><td>0x7b50879e...de4aa60220</td><td></td></tr>
+<tr><td>f695210aab99e3ad</td><td>proved</td><td><span class="pass">true</span></td><td>0x2bf0fb9e...a04c233009</td><td>0xcbec2445...6888ab492f</td><td></td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="skills">
+      <h2>AI Circuit Skills Engine (LLM Tooling)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> LLM opportunity advice is validated against a broad zkML skill bundle before being upgraded to trusted execution.<br/>
+        <strong>UI intent:</strong> Frontend can render a deterministic “tool-call audit” timeline (skill pass/fail, proof hash, rationale).<br/>
+        <strong>Unlocks:</strong> AI recommendations become verifiable policy outputs, not opaque prompts.
+      </div>
+      <p class="meta">Skills in this pass: il_predictor, yield_optimality, slippage_bound, reputation_check, arb_check, liquidation_check, mev_protection, risk_score, anomaly_detection, solvency_proof, risk_passport, strategy_integrity, execution_integrity</p>
+      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Skills Passed</th><th>Skills Total</th><th>Rationale</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.95</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=253.07% risk=45.0. failed_skills=none.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>execute</td><td>0.82</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=113.59% risk=45.0. failed_skills=none.</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.76</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=46.22% risk=45.0. failed_skills=none.</td></tr></tbody></table>
+      <h3>Skill Trail (sample)</h3>
+      <table><thead><tr><th>Opp ID</th><th>Skill</th><th>Result</th><th>Duration ms</th><th>Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>4003</td><td>0xbd5ac681...812fafff94</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>5560</td><td>0x113e8d68...e0433736f7</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>5272</td><td>0x6e6453e9...777fe16d9e</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3822</td><td>0x9b5432fc...cdb86f650c</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>arb_check</td><td><span class="pass">pass</span></td><td>5374</td><td>0x45e52035...2520401372</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>5380</td><td>0xda411278...357b96ef1a</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>5195</td><td>0xac3f7639...9b028283e0</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_score</td><td><span class="pass">pass</span></td><td>4548</td><td>0x4303425c...fdc1f60c57</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>4154</td><td>0x94f1218d...304c4f0cf6</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3577</td><td>0xade36a8a...f13d8fba2f</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>4629</td><td>0xd07992b3...1f1928efa0</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>4676</td><td>0xd33be030...98c1190873</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>4626</td><td>0x65cca4a9...6a63732a14</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>4105</td><td>0xda16dc47...fa30a156e9</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>arb_check</td><td><span class="pass">pass</span></td><td>4404</td><td>0xecd4eac8...2c818f6da4</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>5200</td><td>0x862a39f0...5c042513b6</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>3159</td><td>0xe9ac359f...bc3afaa0cd</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>risk_score</td><td><span class="pass">pass</span></td><td>4731</td><td>0x4a643ef8...452600341c</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>4336</td><td>0x79a3ef54...a4b5f72ed4</td><td>-</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>4759</td><td>0x1a3b92dd...6b9add1c8c</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>4407</td><td>0xfad3af60...abaf7b7665</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>4426</td><td>0x795b4d7e...71f2344610</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>4069</td><td>0x1167254c...f5f17a38fd</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>4179</td><td>0xda83c1b7...7c7438f5a2</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>arb_check</td><td><span class="pass">pass</span></td><td>4320</td><td>0xf67c6d2f...f4a12ccb75</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>4464</td><td>0x8f4e318c...b0fafa9ae8</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>4241</td><td>0xe21c5a25...dccd5a79e9</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3227</td><td>0x56e54d32...f61fc3997a</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>4351</td><td>0xb368678b...8b7b3d692f</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3882</td><td>0x1a737d4e...2a151da8c5</td><td>-</td></tr></tbody></table>
+      <h3>Skill Proof Receipts</h3>
+      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `index_pending` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
+      <table><thead><tr><th>Opp ID</th><th>Skill Used</th><th>Proof Hash</th><th>Receipt Endpoint</th><th>Receipt State</th><th>Receipt Status</th><th>Statement</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td>0xbd5ac681...812fafff94</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xbd5ac68161b59cb9c93be9b9c346719de097c5dd207524d98e4a27812fafff94" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xbd5ac68161b59cb9c93be9b9c346719de097c5dd207524d98e4a27812fafff94</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill il_predictor for opportunity 2f9f604e72471d21 and generated proof 0xbd5ac681...812fafff94.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td>0x113e8d68...e0433736f7</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x113e8d686e52787034aa0f0443c55864dd770320e6c58fcbf3875ae0433736f7" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x113e8d686e52787034aa0f0443c55864dd770320e6c58fcbf3875ae0433736f7</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill yield_optimality for opportunity 2f9f604e72471d21 and generated proof 0x113e8d68...e0433736f7.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td>0x6e6453e9...777fe16d9e</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x6e6453e94c311556e52a389e4bfaf1435815ce2f3a138d7fb02c63777fe16d9e" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x6e6453e94c311556e52a389e4bfaf1435815ce2f3a138d7fb02c63777fe16d9e</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill slippage_bound for opportunity 2f9f604e72471d21 and generated proof 0x6e6453e9...777fe16d9e.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td>0x9b5432fc...cdb86f650c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x9b5432fc1cb250c701a7236de7c3a525f209587d58b12c8eb063c0cdb86f650c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x9b5432fc1cb250c701a7236de7c3a525f209587d58b12c8eb063c0cdb86f650c</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill reputation_check for opportunity 2f9f604e72471d21 and generated proof 0x9b5432fc...cdb86f650c.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>arb_check</td><td>0x45e52035...2520401372</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x45e5203570bd1a7402e23d38f3f2ff670870e79941afa68f0221472520401372" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x45e5203570bd1a7402e23d38f3f2ff670870e79941afa68f0221472520401372</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill arb_check for opportunity 2f9f604e72471d21 and generated proof 0x45e52035...2520401372.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td>0xda411278...357b96ef1a</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xda411278c9ede99cee4c52fcf9ff62a13150510ca361ad8b038c24357b96ef1a" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xda411278c9ede99cee4c52fcf9ff62a13150510ca361ad8b038c24357b96ef1a</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill liquidation_check for opportunity 2f9f604e72471d21 and generated proof 0xda411278...357b96ef1a.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td>0xac3f7639...9b028283e0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xac3f76393b4d79e5d91194afc8950a240356e8d92197b991a72f149b028283e0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xac3f76393b4d79e5d91194afc8950a240356e8d92197b991a72f149b028283e0</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill mev_protection for opportunity 2f9f604e72471d21 and generated proof 0xac3f7639...9b028283e0.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_score</td><td>0x4303425c...fdc1f60c57</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x4303425c483cc480652959bc955f0619755e6f75f219316e68ff75fdc1f60c57" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x4303425c483cc480652959bc955f0619755e6f75f219316e68ff75fdc1f60c57</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_score for opportunity 2f9f604e72471d21 and generated proof 0x4303425c...fdc1f60c57.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td>0x94f1218d...304c4f0cf6</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x94f1218d69418538507c014ed507d3a1e5153c69991fdf7c622da7304c4f0cf6" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x94f1218d69418538507c014ed507d3a1e5153c69991fdf7c622da7304c4f0cf6</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill anomaly_detection for opportunity 2f9f604e72471d21 and generated proof 0x94f1218d...304c4f0cf6.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td>0xade36a8a...f13d8fba2f</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xade36a8aa0071d87a961c45c8a0553399a49bceb8f70044ef3026ef13d8fba2f" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xade36a8aa0071d87a961c45c8a0553399a49bceb8f70044ef3026ef13d8fba2f</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill solvency_proof for opportunity 2f9f604e72471d21 and generated proof 0xade36a8a...f13d8fba2f.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_passport</td><td>0x447609f1...49d6d66128</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x447609f13c392ee6bb6004d8f01a0c18be5cc9a05998dc066d3e4249d6d66128" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x447609f13c392ee6bb6004d8f01a0c18be5cc9a05998dc066d3e4249d6d66128</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_passport for opportunity 2f9f604e72471d21 and generated proof 0x447609f1...49d6d66128.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>strategy_integrity</td><td>0x40d37157...a7c495af30</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x40d37157097461b33516cdd2d2ca5afe87f9faf31f753700e92508a7c495af30" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x40d37157097461b33516cdd2d2ca5afe87f9faf31f753700e92508a7c495af30</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill strategy_integrity for opportunity 2f9f604e72471d21 and generated proof 0x40d37157...a7c495af30.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>execution_integrity</td><td>0x682ae0d5...dd3b445110</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x682ae0d56836771e15037de8198caddf323e8ae8734b021a190b80dd3b445110" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x682ae0d56836771e15037de8198caddf323e8ae8734b021a190b80dd3b445110</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill execution_integrity for opportunity 2f9f604e72471d21 and generated proof 0x682ae0d5...dd3b445110.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>il_predictor</td><td>0xd07992b3...1f1928efa0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xd07992b33f31b163b94db5f69922306a31262e95b821395d7fff0e1f1928efa0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xd07992b33f31b163b94db5f69922306a31262e95b821395d7fff0e1f1928efa0</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill il_predictor for opportunity 2e321e0ca56f9dc1 and generated proof 0xd07992b3...1f1928efa0.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>yield_optimality</td><td>0xd33be030...98c1190873</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xd33be030f0f08a3a018630c43ad5a90d4a3bbad8d8530f4cfb55c198c1190873" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xd33be030f0f08a3a018630c43ad5a90d4a3bbad8d8530f4cfb55c198c1190873</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill yield_optimality for opportunity 2e321e0ca56f9dc1 and generated proof 0xd33be030...98c1190873.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>slippage_bound</td><td>0x65cca4a9...6a63732a14</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x65cca4a9ec83c64aefcf8ca096b89debf6653d311ccc4e62dd3b626a63732a14" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x65cca4a9ec83c64aefcf8ca096b89debf6653d311ccc4e62dd3b626a63732a14</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill slippage_bound for opportunity 2e321e0ca56f9dc1 and generated proof 0x65cca4a9...6a63732a14.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>reputation_check</td><td>0xda16dc47...fa30a156e9</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xda16dc472de058624cf6edc90c057498ca77cf018dda5ab9095c7afa30a156e9" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xda16dc472de058624cf6edc90c057498ca77cf018dda5ab9095c7afa30a156e9</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill reputation_check for opportunity 2e321e0ca56f9dc1 and generated proof 0xda16dc47...fa30a156e9.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>arb_check</td><td>0xecd4eac8...2c818f6da4</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xecd4eac84be92a04ccf3b1b93b7568a724202bd1273cb4d23aa5272c818f6da4" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xecd4eac84be92a04ccf3b1b93b7568a724202bd1273cb4d23aa5272c818f6da4</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill arb_check for opportunity 2e321e0ca56f9dc1 and generated proof 0xecd4eac8...2c818f6da4.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>liquidation_check</td><td>0x862a39f0...5c042513b6</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x862a39f094741bc91959860499a19c6853ad84ed38c752d88187335c042513b6" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x862a39f094741bc91959860499a19c6853ad84ed38c752d88187335c042513b6</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill liquidation_check for opportunity 2e321e0ca56f9dc1 and generated proof 0x862a39f0...5c042513b6.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>mev_protection</td><td>0xe9ac359f...bc3afaa0cd</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xe9ac359f4998a5f77f8b1294f51223a26fcc3b4adbbd066349b4e3bc3afaa0cd" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xe9ac359f4998a5f77f8b1294f51223a26fcc3b4adbbd066349b4e3bc3afaa0cd</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill mev_protection for opportunity 2e321e0ca56f9dc1 and generated proof 0xe9ac359f...bc3afaa0cd.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>risk_score</td><td>0x4a643ef8...452600341c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x4a643ef88e8ba6be3bd5d458a1366e91486d5725911cc84fcc2f5f452600341c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x4a643ef88e8ba6be3bd5d458a1366e91486d5725911cc84fcc2f5f452600341c</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_score for opportunity 2e321e0ca56f9dc1 and generated proof 0x4a643ef8...452600341c.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>anomaly_detection</td><td>0x79a3ef54...a4b5f72ed4</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x79a3ef548d976c4d800832efff3d854e8dbf75198b29aa8a5555e6a4b5f72ed4" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x79a3ef548d976c4d800832efff3d854e8dbf75198b29aa8a5555e6a4b5f72ed4</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill anomaly_detection for opportunity 2e321e0ca56f9dc1 and generated proof 0x79a3ef54...a4b5f72ed4.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>solvency_proof</td><td>0x1a3b92dd...6b9add1c8c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x1a3b92dd2c9c79168d473f391fb80a5516683a1eafe74383aa50ec6b9add1c8c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x1a3b92dd2c9c79168d473f391fb80a5516683a1eafe74383aa50ec6b9add1c8c</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill solvency_proof for opportunity 2e321e0ca56f9dc1 and generated proof 0x1a3b92dd...6b9add1c8c.</td></tr>
+<tr><td>2e321e0ca56f9dc1</td><td>risk_passport</td><td>0x9dea3b19...38cc17a6f5</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x9dea3b1951102d10153e13084dc5f9aa0ddddeefd7df856e9979e138cc17a6f5" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x9dea3b1951102d10153e13084dc5f9aa0ddddeefd7df856e9979e138cc17a6f5</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_passport for opportunity 2e321e0ca56f9dc1 and generated proof 0x9dea3b19...38cc17a6f5.</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="rails">
+      <h2>Privacy Rails + Voting/Lending Backend Demo</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> End-to-end privacy rails: shielded commitments, nullifier + claim hash proofs, relayer-style withdraw queueing, and L3 dark settlement endpoints.<br/>
+        <strong>UI intent:</strong> Enables a stepper UI with explicit states: shielded deposit, proofed withdraw, relayer queued, settlement verified.<br/>
+        <strong>Unlocks:</strong> Private voting and private lending backends can be surfaced even while UI is still maturing.
+      </div>
+      <h3>Reputation / Access Tiers</h3>
+      <table><thead><tr><th>Tier</th><th>Name</th><th>Relayer</th><th>Delay (h)</th><th>Proof Requirement</th><th>Max Position ETH</th></tr></thead><tbody><tr><td>-</td><td>Strict</td><td><span class="fail">no</span></td><td>-</td><td>Full ZKML proof per action (~2 min)</td><td>10.0</td></tr>
+<tr><td>1</td><td>Standard</td><td><span class="pass">yes</span></td><td>1.0</td><td>Constraint-bounded (setup proof only)</td><td>50.0</td></tr>
+<tr><td>2</td><td>Express</td><td><span class="pass">yes</span></td><td>-</td><td>Optimistic + batched proofs</td><td>-</td></tr></tbody></table>
+      <h3>Shielded -> Nullifier -> Claim Hash Rails</h3>
+      <table><thead><tr><th>Pool Type</th><th>Generate</th><th>Register</th><th>Claim</th><th>Nullifier</th><th>Claim Hash</th><th>Relayer Ready</th></tr></thead><tbody><tr><td>0</td><td>200</td><td>200</td><td>200</td><td>0x192aa193...2018f68711</td><td>0x8b7f665d...77e341dfbb</td><td><span class="pass">ready</span></td></tr>
+<tr><td>1</td><td>200</td><td>200</td><td>200</td><td>0x5ddf26e4...cd4c98ad2c</td><td>0x14bb20a2...9112a5edca</td><td><span class="pass">ready</span></td></tr>
+<tr><td>2</td><td>200</td><td>200</td><td>200</td><td>0x55910da8...9f0f621323</td><td>0x18ce1277...b3e3e3b133</td><td><span class="pass">ready</span></td></tr></tbody></table>
+      <h3>Ledger + Relayer Withdraw</h3>
+      <table><thead><tr><th>Flow</th><th>Status</th><th>Reference</th><th>Status URL</th><th>Settlement ETA</th></tr></thead><tbody><tr><td>shielded transfer_in</td><td>200</td><td>0x72cfd05c...06fe5af36b</td><td>/api/v1/zkdefi/mc/receipts/0x549c6c7bf896447804f832d59f7ebf41bb66d9a2c83a8141756c3d79c482fe3c</td><td>-</td></tr>
+<tr><td>relayer withdraw transfer_out</td><td>200</td><td>queued</td><td>/api/v1/zkdefi/relayer/pending/0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</td><td>2026-03-11T05:35:03Z</td></tr></tbody></table>
+      <h3>L3 Dark Settlement (Madara)</h3>
+      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>health</td><td>200</td><td>True</td></tr>
+<tr><td>config</td><td>200</td><td>madara_l3</td></tr>
+<tr><td>verify</td><td>200</td><td>False</td></tr>
+<tr><td>batch submit</td><td>200</td><td>1</td></tr></tbody></table>
+      <h3>Private Voting</h3>
+      <table><thead><tr><th>Proposal ID</th><th>Create</th><th>Proof</th><th>Cast</th><th>Error</th></tr></thead><tbody><tr><td>51</td><td>200</td><td>200</td><td>200</td><td>-</td></tr></tbody></table>
+      <h3>Private Lending + Pool Privacy Modes</h3>
+      <table><thead><tr><th>Lending Pool</th><th>Supply</th><th>Borrow</th><th>Health</th><th>DAO Policy</th><th>Active Loans</th></tr></thead><tbody><tr><td>200</td><td>200</td><td>200</td><td>200</td><td>200</td><td>2</td></tr></tbody></table>
+      <table><thead><tr><th>Privacy Mode</th><th>Deposit Status</th><th>Proof Ref</th><th>Detail</th></tr></thead><tbody><tr><td>public</td><td>200</td><td>-</td><td>-</td></tr>
+<tr><td>shielded</td><td>200</td><td>-</td><td>-</td></tr>
+<tr><td>dark_ledger</td><td>200</td><td>-</td><td>-</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="forecaster">
+      <h2>Private Prediction Market Primitive (Forecaster)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commit/reveal forecasting with scoring and explainability so private prediction workflows can run without exposing raw strategy state.<br/>
+        <strong>UI intent:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
+        <strong>Unlocks:</strong> Proof-aware forecasting that can plug into private voting, risk tiers, and strategy gating.
+      </div>
+      <table><thead><tr><th>Stage</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>create_window</td><td>200</td><td>0xf7fa437dc53b82a8971ad1a9afe7959ae249b7e16990eb245e60db4c8325d9ab</td></tr>
+<tr><td>suggest_outputs</td><td>200</td><td>None</td></tr>
+<tr><td>commit</td><td>200</td><td>0x3ac6f90f65f66757dc65279f608b6259034bcdd5ef020dcfeca79288f235b22d</td></tr>
+<tr><td>reveal</td><td>200</td><td>offchain_ezkl_verified</td></tr>
+<tr><td>outcomes</td><td>200</td><td>None</td></tr>
+<tr><td>score</td><td>200</td><td>0xcadca5d8a97bae104aca2deeb0050879593e60a4104eb1efd838949b6d586972</td></tr>
+<tr><td>explain</td><td>200</td><td>200</td></tr></tbody></table>
+      <h3>Suggested Outputs (scaled)</h3>
+      <table><thead><tr><th>Output Key</th><th>Value</th></tr></thead><tbody><tr><td>p240</td><td>7028</td></tr>
+<tr><td>p30</td><td>6266</td></tr>
+<tr><td>p5</td><td>5662</td></tr>
+<tr><td>r240</td><td>97</td></tr>
+<tr><td>r30</td><td>63</td></tr>
+<tr><td>r5</td><td>39</td></tr></tbody></table>
+      <h3>Score Metrics</h3>
+      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>brier_score</td><td>0.138646</td></tr>
+<tr><td>directional_accuracy</td><td>1.0</td></tr>
+<tr><td>ece</td><td>0.368133</td></tr>
+<tr><td>horizon_count</td><td>3</td></tr>
+<tr><td>mae_bps</td><td>153.666667</td></tr>
+<tr><td>rmse_bps</td><td>184.516485</td></tr></tbody></table>
+      <p class="meta">Explainability: The model predicted returns of 0.39% for 5 minutes, 0.63% for 30 minutes, and 0.97% for 4 hours, with a probability of price increases at 56.6%, 62.7%, and 70.3%, respectively. After scoring, the actual returns were significantly higher at 0.90%, 1.80%, and...</p>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="config">
+      <h2>LLM + Marketplace Config Packs</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Runtime-validated config packs built from active provider/model/skill registries.<br/>
+        <strong>UI intent:</strong> Direct seed data for agent-builder presets (conservative / balanced / aggressive).<br/>
+        <strong>Unlocks:</strong> Faster onboarding into a proof-aware agent marketplace.
+      </div>
+      <table><thead><tr><th>Profile</th><th>Provider</th><th>Model</th><th>Temp</th><th>Processors</th><th>Circuit Skills</th></tr></thead><tbody><tr><td>conservative</td><td>deterministic</td><td>deterministic-v1</td><td>0.15</td><td>3</td><td>risk_score, anomaly_detection, execution_integrity, solvency_proof, risk_passport</td></tr>
+<tr><td>balanced</td><td>openai</td><td>gpt-4o-mini</td><td>0.25</td><td>3</td><td>risk_score, anomaly_detection, yield_optimality, strategy_integrity, execution_integrity</td></tr>
+<tr><td>aggressive</td><td>anthropic</td><td>claude-3-7-sonnet-latest</td><td>0.35</td><td>3</td><td>yield_optimality, strategy_integrity, arb_check, mev_protection, liquidation_check</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="poseidon">
+      <h2>Poseidon Runtime Status</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commitment hashing reliability across badge-screen and credit-eligibility proof flows.<br/>
+        <strong>UI intent:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
+        <strong>Unlocks:</strong> Stable commitment generation across private strategy and trust workflows.
+      </div>
+      <p class="meta">Current status: <span class="pass">PASS</span> (PASS)</p>
+      <p class="meta">Shared persistent Poseidon worker is healthy across strategy badge + credit proof paths.</p>
+      <table><thead><tr><th>Step</th><th>Status</th><th>API Status</th><th>Signal</th></tr></thead><tbody><tr><td>Optional: batch skill proof runtime</td><td><span class="pass">PASS</span></td><td>200</td><td>5/5</td></tr>
+<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>200</td><td>0x85870056...a40149142f</td></tr></tbody></table>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="strategy">
+      <h2>Strategy API Evidence</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Recommendation and analysis payloads that downstream UI widgets depend on.<br/>
+        <strong>UI intent:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
+        <strong>Unlocks:</strong> Explainable strategy decisions with proof-linked context.
+      </div>
+      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Evidence ID</th><th>Confidence</th><th>Signal</th><th>Failure</th></tr></thead><tbody><tr><td>recommend</td><td>200</td><td>093f4fe0d37c</td><td>0.85</td><td>18.15%</td><td>For a balanced risk appetite I&#x27;m splitting capital across Ekubo LP (50%, 27.5% APY), lending (25%, 8.0% APY), and staking (20%, 12.0% APY). The LP allocation targets ETH/USDC and STRK/USDC — the tw...</td></tr>
+<tr><td>analyze</td><td>500</td><td>-</td><td>-</td><td>cannot unpack non-iterable coroutine object</td><td>cannot unpack non-iterable coroutine object</td></tr></tbody></table>
+      <h3>Allocation Rows</h3>
+      <table><thead><tr><th>Source</th><th>Pool ID</th><th>Pair</th><th>Protocol</th><th>Allocation</th><th>Expected APY</th></tr></thead><tbody><tr><td>recommend</td><td>ekubo_eth_usdc</td><td>ETH/USDC</td><td>Ekubo</td><td>30.0%</td><td>27.50%</td></tr>
+<tr><td>recommend</td><td>ekubo_strk_usdc</td><td>STRK/USDC</td><td>Ekubo</td><td>20.0%</td><td>26.50%</td></tr>
+<tr><td>recommend</td><td>lending_strk</td><td>STRK Lending</td><td>Lending</td><td>25.0%</td><td>8.00%</td></tr>
+<tr><td>recommend</td><td>staking_strk</td><td>STRK Staking</td><td>Staking</td><td>20.0%</td><td>12.00%</td></tr>
+<tr><td>recommend</td><td>idle_reserve</td><td>Reserve</td><td>Idle</td><td>5.0%</td><td>0.00%</td></tr></tbody></table>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const mainButtons = Array.from(document.querySelectorAll("[data-main-target]"));
+      const subNavs = Array.from(document.querySelectorAll(".subtab-nav[data-main]"));
+      const sections = Array.from(document.querySelectorAll(".report-section[data-main-tab][data-sub-tab]"));
+
+      const activateMain = (main) => {
+        mainButtons.forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.mainTarget === main);
+        });
+        subNavs.forEach((nav) => {
+          const visible = nav.dataset.main === main;
+          nav.hidden = !visible;
+          const buttons = Array.from(nav.querySelectorAll("[data-sub-target]"));
+          if (!buttons.length) {
+            return;
+          }
+          let active = buttons.find((btn) => btn.classList.contains("active"));
+          if (!active || active.disabled) {
+            active = buttons[0];
+          }
+          const targetSub = active.dataset.subTarget;
+          buttons.forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.subTarget === targetSub);
+          });
+        });
+        const activeSubNav = subNavs.find((nav) => nav.dataset.main === main);
+        const activeSubButton = activeSubNav?.querySelector("[data-sub-target].active") || activeSubNav?.querySelector("[data-sub-target]");
+        activateSub(main, activeSubButton ? activeSubButton.dataset.subTarget : null);
+      };
+
+      const activateSub = (main, sub) => {
+        subNavs.forEach((nav) => {
+          if (nav.dataset.main !== main) {
+            return;
+          }
+          Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.subTarget === sub);
+          });
+        });
+        sections.forEach((section) => {
+          const show = section.dataset.mainTab === main && section.dataset.subTab === sub;
+          section.style.display = show ? "block" : "none";
+        });
+      };
+
+      mainButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activateMain(btn.dataset.mainTarget);
+        });
+      });
+      subNavs.forEach((nav) => {
+        Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activateSub(nav.dataset.main || "overview", btn.dataset.subTarget || "claims");
+          });
+        });
+      });
+
+      activateMain("overview");
+    })();
+  </script>
+</body>
+</html>

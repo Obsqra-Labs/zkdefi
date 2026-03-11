@@ -38,11 +38,12 @@ export function useTokenPrices(intervalMs = 60_000): { prices: TokenPriceMap; lo
     const fetchPrices = async () => {
       try {
         const ids = Object.values(CG_IDS).join(",");
+        // Proxy through our backend to avoid CORS blocks from CoinGecko
         const res = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+          `/api/v1/zkdefi/prices?ids=${ids}&vs=usd`,
           { signal: AbortSignal.timeout(8000) },
         );
-        if (!res.ok) throw new Error(`CG ${res.status}`);
+        if (!res.ok) throw new Error(`Price proxy ${res.status}`);
         const data = await res.json();
 
         if (!cancelled) {

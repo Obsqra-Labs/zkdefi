@@ -177,7 +177,6 @@
     "execution.gate_state": {
       "mode": "advisory",
       "reason_codes": [
-        "onboarding_incomplete",
         "no_active_session"
       ],
       "active_sessions": 0
@@ -1668,6 +1667,115 @@
       "mode": "advisory",
       "reason_codes": [
         "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xa3d2ff0c21924916bb116058b6bfb2884ce3d1889b0d4316a4120756": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xb4e0742c871347b7a0bf4c74299c12684acc6d74f35b4fc2849ca891": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0xe553a2e9ce0f49c6bd5139897c73f6c334b43f9bad554896a853c114": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x15ae19710aa7fc9bf4f5fd39f5e83cd0094081ac71ec4be798a8062d51b28d": {
+    "governance.voting_power": 0.0,
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 1
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+    "governance.voting_power": 0.0,
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
         "no_active_session",
         "passport_low_confidence"
       ],

@@ -6,9 +6,21 @@
 "agent_initialized": true
 },
 "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": {
-"fact_hash": "0x7075c4688998d679cbbba99192366f94e132b1c60d7c4b6e938fa43a86da560",
-"identity_commitment": "0x7796f3ae5cff008a15d763e4f5183a28cfdf138e6f7052a8379e230020b7384b",
-"timestamp": 1773175505,
+"fact_hash": "0x4e58e9a4825adb6181093143e4a01e21563a2c8fae5bb6f2f8f6634191a28d3",
+"identity_commitment": "0x4066141dd89eeb558719947e3cedade76eab3984de2291358b2edebb5bd3b4ef",
+"timestamp": 1773245975,
+"agent_initialized": true
+},
+"0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
+"fact_hash": "0x4e58e9a4825adb6181093143e4a01e21563a2c8fae5bb6f2f8f6634191a28d3",
+"identity_commitment": "0xd5e711fe9c62d2e5e05f0d603e8f4d8d7aa2a42bb77a3e3bc85bbe585de29768",
+"timestamp": 1773213141,
+"agent_initialized": true
+},
+"0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+"fact_hash": "0x4e58e9a4825adb6181093143e4a01e21563a2c8fae5bb6f2f8f6634191a28d3",
+"identity_commitment": "0x28072e7db2ee0545239229c5c75a3820c96bf5541cfa8016f03efe5fddf731ce",
+"timestamp": 1773232938,
 "agent_initialized": true
 }
 }

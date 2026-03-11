@@ -2230,6 +2230,8 @@ class ShowcaseRunner:
         l1_sepolia_doc = PROJECT_ROOT / "docs" / "plans" / "L1_SEPOLIA_EZKL_VERIFIER.md"
         l1_bridge_spec_doc = PROJECT_ROOT / "docs" / "plans" / "L1_EZKL_BRIDGE_SPEC.md"
         cairo_kzg_spec_doc = PROJECT_ROOT / "docs" / "plans" / "CAIRO_KZG_VERIFIER_SPEC.md"
+        cairo_kzg_sierra = PROJECT_ROOT / "circuits" / "contracts" / "src" / "ezkl_kzg_verifier" / "target" / "dev" / "ezkl_kzg_verifier_EzklKzgVerifier.contract_class.json"
+        cairo_kzg_casm = PROJECT_ROOT / "circuits" / "contracts" / "src" / "ezkl_kzg_verifier" / "target" / "dev" / "ezkl_kzg_verifier_EzklKzgVerifier.compiled_contract_class.json"
 
         parent_config_path = PARENT_BACKEND_ROOT / "app" / "config.py"
         parent_l1_service_path = PARENT_BACKEND_ROOT / "app" / "services" / "l1_ezkl_bridge_service.py"
@@ -2302,6 +2304,15 @@ class ShowcaseRunner:
             marker in parent_l3_service_text
             for marker in ["native_kzg", "EzklNativeKzg", "kzg_verifier_available"]
         )
+        parent_phase4_strict_kzg = all(
+            marker in parent_l3_service_text
+            for marker in [
+                "verify_ezkl_kzg_v1",
+                "placeholder_kzg_payload_rejected",
+                "kzg_payload_missing_mpcheck_bundle",
+                "kzg_mpcheck_v1",
+            ]
+        )
 
         proving_rows = self._bridge_architecture.get("proving_paths") if isinstance(self._bridge_architecture, dict) else []
         proving_rows = proving_rows if isinstance(proving_rows, list) else []
@@ -2362,11 +2373,31 @@ class ShowcaseRunner:
             {
                 "path": "Path B (native Cairo KZG)",
                 "status": (
-                    "implemented_stub"
-                    if (cairo_kzg_spec_doc.exists() and parent_phase4_config_key and parent_phase4_route)
+                    "implemented"
+                    if (
+                        cairo_kzg_spec_doc.exists()
+                        and cairo_kzg_sierra.exists()
+                        and cairo_kzg_casm.exists()
+                        and parent_phase4_config_key
+                        and parent_phase4_route
+                        and bool(parent_env.get("L3_KZG_VERIFIER_ADDRESS"))
+                        and (bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False)
+                    )
+                    else "implemented_stub"
+                    if (
+                        cairo_kzg_spec_doc.exists()
+                        and cairo_kzg_sierra.exists()
+                        and cairo_kzg_casm.exists()
+                        and parent_phase4_config_key
+                        and parent_phase4_route
+                    )
                     else "partial"
                 ),
-                "doc_signal": "KZG spec exists; parent backend has config + proving-path routing for native_kzg / EzklNativeKzg.",
+                "doc_signal": (
+                    "Cairo KZG verifier package builds; parent route validates ezkl_kzg_v1 + kzg_mpcheck_v1 trailer and uses strict verify_ezkl_kzg_v1 ABI."
+                    if parent_phase4_strict_kzg
+                    else "KZG spec exists; parent backend has config + proving-path routing for native_kzg / EzklNativeKzg."
+                ),
                 "runtime_lane_id": "native_kzg",
                 "runtime_lane_listed": kzg_row is not None,
                 "runtime_lane_available": bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False,
@@ -2377,8 +2408,8 @@ class ShowcaseRunner:
         next_steps = [
             "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status.",
             "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
-            "Phase 4: implement Cairo BN254/KZG module + verify_kzg contract and deploy on L3.",
-            "Phase 4: add zkdefi pipeline path for EzklNativeKzg and expose it in proof mode selection.",
+            "Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.",
+            "Phase 4: add automatic EZKL -> (pair0,pair1,mpcheck_hint) extraction so ezkl_kzg_v1 always carries a valid kzg_mpcheck_v1 trailer.",
         ]
 
         self._recursive_ezkl_paths = {
@@ -2393,6 +2424,7 @@ class ShowcaseRunner:
                 "parent_phase3_service_stub": parent_phase3_service_stub,
                 "parent_phase4_config_key": parent_phase4_config_key,
                 "parent_phase4_route": parent_phase4_route,
+                "parent_phase4_strict_kzg": parent_phase4_strict_kzg,
             },
             "env_snapshot": {
                 "parent_env_found": PARENT_BACKEND_ENV_FILE.exists(),

@@ -8,7 +8,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -41,8 +41,58 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-06T22:45:43.937589+00:00",
+    "updated_at": "2026-03-11T16:21:41.836263+00:00",
     "user_address": "0x0",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "rebalance_mode": "user",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_d6e528853c0b5bf521127aaa",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-03-11T16:59:17.015235+00:00",
+    "user_address": "0x199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
     "venue_allowlist": [
       "ekubo",
       "avnu"
@@ -57,7 +107,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -91,7 +141,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-11T04:49:58.116112+00:00",
+    "updated_at": "2026-03-11T16:21:41.836280+00:00",
     "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "venue_allowlist": [
       "ekubo",
@@ -505,13 +555,13 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
       "min_expected_edge_bps": 0,
       "mode": "assist",
-      "rebalance_mode": "user",
+      "rebalance_mode": "oracle",
       "session_duration_hours": 24,
       "session_max_notional_usd": 500
     },
@@ -539,7 +589,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-08T08:50:55.340235+00:00",
+    "updated_at": "2026-03-11T16:40:18.796461+00:00",
     "user_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
     "venue_allowlist": [
       "ekubo",
@@ -555,7 +605,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -589,7 +639,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-10T20:05:51.049196+00:00",
+    "updated_at": "2026-03-11T16:21:41.836286+00:00",
     "user_address": "0x64833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
     "venue_allowlist": [
       "ekubo",
@@ -605,7 +655,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -638,7 +688,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-07T07:56:58.563364+00:00",
+    "updated_at": "2026-03-11T16:21:41.836289+00:00",
     "user_address": "0xabc",
     "venue_allowlist": [
       "ekubo",
@@ -654,7 +704,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -688,7 +738,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-07T07:54:43.536613+00:00",
+    "updated_at": "2026-03-11T16:21:41.836292+00:00",
     "user_address": "0xabc123",
     "venue_allowlist": [
       "ekubo",

@@ -7360,5 +7360,562 @@
       }
     ],
     "latest": "0xc3b6e1bbdaf98075e92453300daa49d1512f438c3477d2c3f19eaf37630fe569"
+  },
+  "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+    "history": [
+      {
+        "snapshot_id": "0xadaddd3a472d29c973c464e7dea53be60442f9ab208a0dff2b3c6640a7b2d43e",
+        "taken_at": "2026-03-11T16:38:46.916097+00:00",
+        "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+          "identity": {
+            "has_agent": true,
+            "identity_commitment": "0x28072e7db2ee0545239229c5c75a3820c96bf5541cfa8016f03efe5fddf731ce",
+            "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 1,
+            "chains": [
+              "starknet"
+            ]
+          },
+          "credential_summary": {
+            "issued_count": 2,
+            "active_count": 2,
+            "revoked_count": 0,
+            "latest_issued_at": "2026-03-11T16:38:17+00:00"
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 69,
+            "transaction_count": 69,
+            "successful_txns": 69,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 6,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 4,
+              "by_type": {
+                "credential_issued": 1,
+                "claims_derived": 2,
+                "execution_gate_updated": 1
+              }
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": null,
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 6,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-11T16:38:46.916009+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 6
+            },
+            "credit": {
+              "grade": null,
+              "credit_line_eth": null,
+              "rate_bps": null
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+              "attribution_event_count": 1,
+              "credential_active_count": 2
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0x3e7a507e45f071b9d1dc895f470b8ae078a96f0fc037909ddf897100e9eeec29",
+        "taken_at": "2026-03-11T16:38:57.043128+00:00",
+        "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+          "identity": {
+            "has_agent": true,
+            "identity_commitment": "0x28072e7db2ee0545239229c5c75a3820c96bf5541cfa8016f03efe5fddf731ce",
+            "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 1,
+            "chains": [
+              "starknet"
+            ]
+          },
+          "credential_summary": {
+            "issued_count": 2,
+            "active_count": 2,
+            "revoked_count": 0,
+            "latest_issued_at": "2026-03-11T16:38:17+00:00"
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 69,
+            "transaction_count": 69,
+            "successful_txns": 69,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 6,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 4,
+              "by_type": {
+                "credential_issued": 1,
+                "claims_derived": 2,
+                "execution_gate_updated": 1
+              }
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": null,
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 6,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-11T16:38:57.043045+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 6
+            },
+            "credit": {
+              "grade": null,
+              "credit_line_eth": null,
+              "rate_bps": null
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+              "attribution_event_count": 1,
+              "credential_active_count": 2
+            }
+          }
+        }
+      },
+      {
+        "snapshot_id": "0x72c34cb3920401ca4420fb1e82167dbd82f40ba7f73b49920a890e1a741e1d05",
+        "taken_at": "2026-03-11T16:38:59.946956+00:00",
+        "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+        "profile_version": "2.0",
+        "payload": {
+          "profile_version": "2.0",
+          "version_matrix": {
+            "builder_v2": "2.0",
+            "profile_v2": "2.0",
+            "portable_v3": "3.0",
+            "zkfico_pack_v1": "1.0"
+          },
+          "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+          "identity": {
+            "has_agent": true,
+            "identity_commitment": "0x28072e7db2ee0545239229c5c75a3820c96bf5541cfa8016f03efe5fddf731ce",
+            "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+            "linked_addresses": [],
+            "session_summary": {
+              "count": 0,
+              "active_count": 0
+            },
+            "dual_wallet_session": {
+              "active": false,
+              "status": "missing",
+              "chain": null,
+              "evm_address": null,
+              "expires_at": null,
+              "verified_at": null,
+              "identity_binding": null,
+              "auth_provider": null,
+              "credential_summary": null,
+              "history_count": 0
+            }
+          },
+          "attribution_summary": {
+            "event_count": 1,
+            "chains": [
+              "starknet"
+            ]
+          },
+          "credential_summary": {
+            "issued_count": 2,
+            "active_count": 2,
+            "revoked_count": 0,
+            "latest_issued_at": "2026-03-11T16:38:17+00:00"
+          },
+          "reputation": {
+            "tier": 0,
+            "tier_name": "Strict",
+            "tenure_days": 69,
+            "transaction_count": 69,
+            "successful_txns": 69,
+            "collateral_eth": 0.0,
+            "total_volume_eth": 0.0
+          },
+          "passport": {
+            "composite_score": 6,
+            "letter_rating": "D",
+            "tier": 0,
+            "tier_name": "Strict",
+            "credit_tier": null,
+            "credit_score": null,
+            "receipt_summary": {
+              "count": 4,
+              "by_type": {
+                "credential_issued": 1,
+                "claims_derived": 2,
+                "execution_gate_updated": 1
+              }
+            }
+          },
+          "governance": {
+            "voting_power": 0.0,
+            "lp_usd": 0.0,
+            "lending_usd": 0.0,
+            "staking_usd": 0.0,
+            "tier_multiplier": 1.0,
+            "formula_version": "vp_v2_sqrt_capital_tier_multiplier",
+            "basis": null
+          },
+          "predictive_credit": null,
+          "decisions": {
+            "relayer": {
+              "mode": "advisory",
+              "reason_codes": [
+                "tier_below_standard",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Upgrade to Standard tier to use relayer paths.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_tier": 1,
+                "current_tier": 0,
+                "tier_name": "Strict"
+              }
+            },
+            "execution": {
+              "mode": "advisory",
+              "reason_codes": [
+                "no_active_session",
+                "passport_low_confidence"
+              ],
+              "reason_hints": [
+                "Create or renew a session key for autonomous execution.",
+                "Build proof history to improve passport confidence."
+              ],
+              "limits": {
+                "min_passport_score": 20,
+                "passport_score": 6,
+                "active_sessions": 0
+              }
+            },
+            "lending": {
+              "mode": "advisory",
+              "reason_codes": [
+                "passport_letter_below_c",
+                "no_credit_line"
+              ],
+              "reason_hints": [
+                "Increase reputation letter to C or higher for unsecured credit.",
+                "Add collateral or improve reputation to unlock borrowing."
+              ],
+              "limits": {
+                "total_line_wei": "0",
+                "total_line_eth": 0.0,
+                "unsecured_cap_eth": 0.0,
+                "collateral_line_eth": 0.0,
+                "rate_bps": 800,
+                "letter": "D",
+                "tier": 0,
+                "credit_tier": null
+              }
+            }
+          },
+          "disclosures": {
+            "risk_notice_id": "us_risk_notice_v1",
+            "legal_mode": "strong",
+            "disclaimer": "Eligibility signal only; not legal, tax, or financial advice."
+          },
+          "feature_flags": {
+            "mode": "soft",
+            "enforce_relayer": false,
+            "enforce_borrow": false,
+            "enforce_autonomous": false,
+            "profile_v3_enabled": true,
+            "portable_identity_v3_enabled": true,
+            "zkfico_finisher_enabled": true,
+            "trust_surface_wiring_enabled": true
+          },
+          "generated_at": "2026-03-11T16:38:59.946900+00:00",
+          "trust_tuple": {
+            "reputation": {
+              "tier": 0,
+              "tier_name": "Strict",
+              "letter_rating": "D",
+              "passport_score": 6
+            },
+            "credit": {
+              "grade": null,
+              "credit_line_eth": null,
+              "rate_bps": null
+            },
+            "governance": {
+              "voting_power": 0.0,
+              "tier_multiplier": 1.0
+            },
+            "execution": {
+              "mode": "advisory",
+              "active_sessions": 0
+            },
+            "identity": {
+              "linked_verified_count": 0,
+              "dual_wallet_active": false,
+              "subject_id": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+              "attribution_event_count": 1,
+              "credential_active_count": 2
+            }
+          }
+        }
+      }
+    ],
+    "latest": "0x72c34cb3920401ca4420fb1e82167dbd82f40ba7f73b49920a890e1a741e1d05"
   }
 }

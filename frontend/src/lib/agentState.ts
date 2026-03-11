@@ -180,6 +180,7 @@ export function assertMethodMatchesCommitment(
     commitment_shield: ["commitment_shield"],
     nullifier_set: ["nullifier_set", "hashed_proof"],
     hashed_proof: ["hashed_proof", "nullifier_set"],
+    dark_ledger: ["dark_ledger", "hashed_proof", "nullifier_set"],
   };
 
   const allowed = compatible[method] ?? [method];

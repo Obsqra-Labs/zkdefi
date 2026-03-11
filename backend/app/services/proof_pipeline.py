@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import IntEnum
+from pathlib import Path
 from typing import Any
 
 from app.services.obsqra_prover_client import get_obsqra_prover
@@ -72,6 +73,9 @@ class ProofPipeline:
         self._strict_l2_verification = _env_bool("L2_STRICT_VERIFICATION", True)
         self._dual_run_enabled = _env_bool("PROOF_DUAL_RUN_ENABLED", True)
         self._l3_healthcheck_enabled = _env_bool("L3_PREREQ_HEALTHCHECK", True)
+        self._native_kzg_require_mpcheck = _env_bool("NATIVE_KZG_REQUIRE_MPCHECK", True)
+        self._native_kzg_require_real_ezkl = _env_bool("NATIVE_KZG_REQUIRE_REAL_EZKL", True)
+        self._ezkl_auto_setup_on_demand = _env_bool("EZKL_AUTO_SETUP_ON_DEMAND", True)
         self._l2_verify_chain_id = os.getenv("PROOF_L2_VERIFY_CHAIN_ID", "starknet-sepolia").strip()
         try:
             self._mirror_retry_count = max(0, int(os.getenv("PROOF_MIRROR_RETRY_COUNT", "1")))
@@ -320,10 +324,65 @@ class ProofPipeline:
             output_hash=output_hash,
         )
 
+    @staticmethod
+    def _discover_local_onnx_path(model_name: str) -> Path | None:
+        """
+        Discover a local ONNX artifact for `model_name` in backend data storage.
+        """
+        models_root = Path(__file__).resolve().parents[1] / "data" / "ezkl_models"
+        model_dir = models_root / model_name
+        candidates = [model_dir / f"{model_name}.onnx", *sorted(model_dir.glob("*.onnx"))]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
+
+    async def _try_generate_real_ezkl_proof(
+        self,
+        *,
+        model_name: str,
+        input_data: list[list[float]],
+    ) -> tuple[Any | None, bool]:
+        """
+        Try generating and verifying a real EZKL proof from local artifacts.
+
+        Returns:
+            (proof_obj_or_none, verified_bool)
+        """
+        try:
+            from app.services.ezkl_prover_service import get_ezkl_prover
+
+            ezkl = get_ezkl_prover()
+            artifacts = ezkl.get_artifacts(model_name)
+            if (not artifacts or not artifacts.is_ready()) and self._ezkl_auto_setup_on_demand:
+                onnx_path = self._discover_local_onnx_path(model_name)
+                if onnx_path is not None:
+                    try:
+                        artifacts = await ezkl.setup_model(model_name, onnx_path, force=False)
+                    except Exception as setup_exc:
+                        logger.warning(
+                            "EZKL auto-setup failed for '%s' (%s): %s",
+                            model_name,
+                            onnx_path,
+                            setup_exc,
+                        )
+            if not artifacts or not artifacts.is_ready():
+                return None, False
+
+            proof = await ezkl.prove_inference(model_name=model_name, input_data=input_data)
+            verified = await ezkl.verify_proof(proof)
+            if not verified:
+                logger.warning("Real EZKL proof generated but local verify failed for model '%s'", model_name)
+                return None, False
+            return proof, True
+        except Exception as exc:
+            logger.warning("Real EZKL path unavailable for '%s': %s", model_name, exc)
+            return None, False
+
     def _build_bridge_bundle(
         self,
         *,
-        ezkl_proof: SyntheticEzklProof,
+        ezkl_proof: Any,
         expected_model_hash: int,
         output_lower_bound: int,
         output_upper_bound: int,
@@ -396,11 +455,68 @@ class ProofPipeline:
                 calldata = []
             return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
-        # Native KZG path (Phase 4). TODO Task 4.4: build kzg_calldata from EZKL proof.
+        # Native KZG path (Phase 4): serialize EZKL artifacts into deterministic calldata.
         if use_native_kzg:
-            bridge_proof["bridge_backend"] = "native_kzg_placeholder"
+            from app.services.ezkl_kzg_serializer import (
+                build_placeholder_kzg_calldata,
+                serialize_ezkl_proof_to_kzg_calldata,
+            )
+
             circuit_name_for_l3 = "EzklNativeKzg"
-            calldata = []
+            try:
+                raw_proof_json = getattr(ezkl_proof, "raw_proof_json", {}) or {}
+                if raw_proof_json:
+                    calldata, payload_meta = serialize_ezkl_proof_to_kzg_calldata(ezkl_proof)
+                    if bool(payload_meta.get("kzg_mpcheck_bundle_present")):
+                        bridge_proof["bridge_backend"] = "native_kzg_ezkl_serialized_mpcheck"
+                    else:
+                        bridge_proof["bridge_backend"] = "native_kzg_ezkl_serialized_no_mpcheck"
+                        bridge_proof["warning"] = (
+                            "ezkl_kzg_v1 payload lacks kzg_mpcheck_v1 trailer; "
+                            "L3 cryptographic verification will reject"
+                        )
+                        if self._native_kzg_require_mpcheck:
+                            bridge_proof["success"] = False
+                            bridge_proof["is_compliant"] = False
+                            bridge_proof["error"] = (
+                                "Missing kzg_mpcheck_v1 trailer for EzklNativeKzg (strict mode)"
+                            )
+                else:
+                    calldata, payload_meta = build_placeholder_kzg_calldata(
+                        proof_hash=str(getattr(ezkl_proof, "proof_hash", "0x0")),
+                        model_hash=str(getattr(ezkl_proof, "model_hash", "0x0")),
+                        inference_output=list(getattr(ezkl_proof, "inference_output", []) or []),
+                        timestamp=ts,
+                    )
+                    bridge_proof["bridge_backend"] = "native_kzg_placeholder"
+                    if self._native_kzg_require_real_ezkl:
+                        bridge_proof["success"] = False
+                        bridge_proof["is_compliant"] = False
+                        bridge_proof["error"] = (
+                            "Real EZKL proof unavailable for EzklNativeKzg (strict mode)"
+                        )
+                bridge_proof["kzg_payload"] = payload_meta
+                # Bind fact hash to the serialized payload when available.
+                payload_fact = str(payload_meta.get("fact_hash_felt", "") or "").strip()
+                if payload_fact.startswith("0x"):
+                    bridge_fact_hash = payload_fact
+                    bridge_proof["proof_hash"] = bridge_fact_hash
+                logger.info(
+                    "EzklNativeKzg calldata prepared via %s (len=%s)",
+                    bridge_proof["bridge_backend"],
+                    len(calldata),
+                )
+            except Exception as exc:
+                logger.warning("EzklNativeKzg serialization failed, using minimal fallback: %s", exc)
+                bridge_proof["bridge_backend"] = "placeholder_fallback"
+                bridge_proof["fallback_error"] = str(exc)
+                calldata = [
+                    self._to_hex_felt("native_kzg_fallback"),
+                    hex(effective_model_hash),
+                    bridge_fact_hash,
+                    hex(ts),
+                    hex(int(ezkl_proof.proof_hash, 16)),
+                ]
             return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
         # Prefer real Groth16 proof from ModelBridge or ModelBridgeHeavy circuit (EZKL to Garaga bridge)
@@ -513,19 +629,50 @@ class ProofPipeline:
 
         t0 = _time.monotonic()
 
-        ezkl_proof = self._generate_synthetic_ezkl_proof(
-            model_name=model_name,
-            input_data=input_data,
-        )
+        use_native_kzg = (bridge_circuit or "").strip() == "EzklNativeKzg"
         ezkl_verified = True
+        trust_mode = "synthetic_dev_only"
+        trust_warning = (
+            "This ml-bridge path currently uses synthetic EZKL placeholders. "
+            "Do not treat as trustless inference verification."
+        )
+
+        real_ezkl_proof, real_ezkl_verified = (None, False)
+        if use_native_kzg:
+            real_ezkl_proof, real_ezkl_verified = await self._try_generate_real_ezkl_proof(
+                model_name=model_name,
+                input_data=input_data,
+            )
+        if real_ezkl_proof is not None and real_ezkl_verified:
+            ezkl_proof = real_ezkl_proof
+            ezkl_verified = True
+            trust_mode = "ezkl_local_verified"
+            trust_warning = (
+                "EZKL proof generated and verified locally, then serialized for native KZG path. "
+                "On-chain trust still depends on deployed Cairo KZG verifier semantics."
+            )
+        else:
+            ezkl_proof = self._generate_synthetic_ezkl_proof(
+                model_name=model_name,
+                input_data=input_data,
+            )
+            if use_native_kzg:
+                trust_mode = "synthetic_fallback_native_kzg"
+                trust_warning = (
+                    "EzklNativeKzg requested but no locally verified EZKL proof was produced. "
+                    "Strict native_kzg mode requires real EZKL artifacts."
+                )
+                logger.info(
+                    "EzklNativeKzg requested but real EZKL artifacts unavailable; using deterministic placeholder payload."
+                )
 
         try:
             from app.services.proof_sequencer_client import get_sequencer_client
 
             seq = get_sequencer_client()
             await seq.submit_proof(
-                proof_id=ezkl_proof.proof_hash,
-                fact_hash=ezkl_proof.output_hash,
+                proof_id=str(getattr(ezkl_proof, "proof_hash", "")),
+                fact_hash=str(getattr(ezkl_proof, "output_hash", getattr(ezkl_proof, "proof_hash", ""))),
                 model_name=model_name,
                 metadata={"user": user_address, "action": action_type or "ml_inference"},
             )
@@ -536,13 +683,10 @@ class ProofPipeline:
             "commitment_hash": commitment_hash,
             "proof_mode": mode.name,
             "proof_mode_level": int(mode),
-            "ezkl_proof": ezkl_proof.to_dict(),
+            "ezkl_proof": ezkl_proof.to_dict() if hasattr(ezkl_proof, "to_dict") else {},
             "ezkl_verified": ezkl_verified,
-            "trust_mode": "synthetic_dev_only",
-            "trust_warning": (
-                "This ml-bridge path currently uses synthetic EZKL placeholders. "
-                "Do not treat as trustless inference verification."
-            ),
+            "trust_mode": trust_mode,
+            "trust_warning": trust_warning,
             "bridge_proof": None,
             "execution_proof": None,
             "can_execute": ezkl_verified,
@@ -592,6 +736,36 @@ class ProofPipeline:
                 result["can_execute"] = True
             else:
                 result["can_execute"] = False
+                result["verification"]["failure_reason"] = (
+                    bridge_proof.get("error")
+                    or bridge_proof.get("warning")
+                    or "Bridge proof was not compliant"
+                )
+
+            # Forward bridge payload with proof-type-specific calldata when available.
+            if bridge_proof.get("success") and model_bridge_calldata:
+                try:
+                    from app.services.proof_sequencer_client import get_sequencer_client
+
+                    seq = get_sequencer_client()
+                    is_noir_honk = bridge_circuit_used == "NoirEzklBridge"
+                    is_native_kzg = bridge_circuit_used == "EzklNativeKzg"
+                    await seq.submit_proof(
+                        proof_id=bridge_fact_hash,
+                        fact_hash=bridge_fact_hash,
+                        model_name=model_name,
+                        metadata={
+                            "user": user_address,
+                            "action": action_type or "ml_inference",
+                            "bridge_circuit": bridge_circuit_used,
+                        },
+                        groth16_calldata=None if (is_noir_honk or is_native_kzg) else model_bridge_calldata,
+                        honk_calldata=model_bridge_calldata if is_noir_honk else None,
+                        kzg_calldata=model_bridge_calldata if is_native_kzg else None,
+                        circuit_name=bridge_circuit_used,
+                    )
+                except Exception as seq_err:
+                    logger.debug("Bridge sequencer forwarding skipped: %s", seq_err)
 
         if mode < ProofMode.EZKL_BRIDGE and execution_chain in {"l3", "l2", "dual"}:
             result["can_execute"] = False

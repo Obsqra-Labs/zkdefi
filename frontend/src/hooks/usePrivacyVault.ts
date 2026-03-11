@@ -10,7 +10,8 @@ import { apiFetch } from "@/lib/api/client";
 export type PrivacyMethod =
   | "commitment_shield"
   | "nullifier_set"
-  | "hashed_proof";
+  | "hashed_proof"
+  | "dark_ledger";
 
 export interface VaultCommitment {
   id: string;
@@ -77,6 +78,8 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
         { label: "Confirm", status: "pending" },
       ];
     case "hashed_proof":
+    case "dark_ledger":
+    default:
       return [
         { label: "Generate commitment", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
@@ -102,6 +105,8 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
         { label: "Confirm", status: "pending" },
       ];
     case "hashed_proof":
+    case "dark_ledger":
+    default:
       return [
         { label: "Verify commitment", status: "pending" },
         { label: "Generate proof", status: "pending" },

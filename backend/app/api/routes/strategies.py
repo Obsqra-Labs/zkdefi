@@ -200,7 +200,7 @@ async def analyze_strategy(request: PoolAnalysisRequest):
         logger.info(f"Analyzing pools for {request.risk_profile} profile")
         
         # Fetch pools
-        lp_pools, yield_rates = pool_collector.get_all_pools()
+        lp_pools, yield_rates = await pool_collector.get_all_pools()
         if not lp_pools:
             raise HTTPException(status_code=500, detail="No pools available")
         
@@ -219,19 +219,29 @@ async def analyze_strategy(request: PoolAnalysisRequest):
             {p.pool_id: yield_rates.get(p.pool_id, 0) for p in filtered}
         )
         
+        # Build lookups by pool_id
+        eval_by_id = {e.pool_id: e for e in filtered}
+        pool_by_id = {p.pool_id: p for p in lp_pools}
+        
         # Build recommendations
         recommendations = []
-        for eval_obj, risk_adj_apy in ranked:
+        for pool_id, apy, risk_adj_score in ranked:
+            eval_obj = eval_by_id.get(pool_id)
+            if not eval_obj:
+                continue
+            pool_metrics = pool_by_id.get(pool_id)
+            pool_name = pool_metrics.name if pool_metrics else pool_id
+            alloc_min, alloc_max = eval_obj.recommended_allocation_range
             recommendations.append(PoolAnalysisRecommendation(
                 pool_id=eval_obj.pool_id,
-                pool_name=eval_obj.pool_name,
+                pool_name=pool_name,
                 risk_score=eval_obj.risk_score,
                 safety_level=eval_obj.safety_level,
                 confidence=eval_obj.confidence,
-                apy=risk_adj_apy,
-                allocation_min=eval_obj.recommended_allocation_min,
-                allocation_max=eval_obj.recommended_allocation_max,
-                allocation_mid=(eval_obj.recommended_allocation_min + eval_obj.recommended_allocation_max) / 2,
+                apy=apy,
+                allocation_min=alloc_min,
+                allocation_max=alloc_max,
+                allocation_mid=(alloc_min + alloc_max) / 2,
                 flags=eval_obj.flags,
             ))
         

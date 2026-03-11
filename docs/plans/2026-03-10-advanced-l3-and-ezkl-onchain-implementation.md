@@ -8,6 +8,8 @@
 
 **Phase 3 status:** 🟡 In progress. Task 3.1 (L1 verifier) done; Task 3.2 (L2 receiver) done in zkdefi and deployed on Starknet Sepolia (`0x02ed07ab9be1d632259f3dd1bbeaf6354c20046b6df8659a30e3e97415b1a220`); Task 3.3 (L1 submit) done in parent backend; Task 3.4 (poll L2 + GET `/api/v1/aggregation/l1/verification-status`) done in parent backend; Task 3.5 docs updated.
 
+**Phase 4 status:** 🟡 In progress. `bridge_circuit=EzklNativeKzg` sends non-empty `kzg_calldata`; Cairo package `circuits/contracts/src/ezkl_kzg_verifier` now performs real BN254 `MPCHECK_BN254_2P_2F` verification when an `ezkl_kzg_v1` payload includes the `kzg_mpcheck_v1` trailer; parent routing validates that trailer shape before on-chain submit. Remaining work for full Path B is universal EZKL-to-MPCheck bundle extraction in pipeline defaults, L3 deployment, and live proof pass confirmation.
+
 **Goal:** Ship Phase 1 (one heavier Groth16 + one heavier STARK circuit on L3), then provide clear phased tasks for Path A (Noir HONK), Path C (L1 Sepolia), and Path B (Cairo KZG).
 
 **Architecture:** Phase 1 adds two new circuits and their L3 verifiers; routing by `circuit_name` in parent backend and zkdefi pipeline. Phases 2–4 add EZKL-on-chain paths per design doc.
@@ -347,6 +349,8 @@
 ---
 
 ### Task 4.4: zkdefi — pipeline path for native KZG
+
+**Status:** 🟡 Partially complete in zkdefi. Native KZG routing is implemented with non-empty calldata serialization (`ezkl_kzg_v1` / placeholder), but full trustless semantics still depend on deployed Cairo verifier + parent ABI alignment.
 
 **Files:**
 - Modify: `backend/app/services/proof_pipeline.py` — support ProofMode or circuit path `NATIVE_KZG` / `EzklNativeKzg`; when selected, send EZKL proof (and public inputs) to L3 KZG verifier path

@@ -100,5 +100,17 @@
     "identity_commitment": "0xabc123",
     "created_at": "2026-03-10T20:10:24.487431+00:00",
     "updated_at": "2026-03-10T20:10:24.492673+00:00"
+  },
+  "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32": {
+    "subject": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "identity_commitment": null,
+    "created_at": "2026-03-11T09:02:56.781704+00:00",
+    "updated_at": "2026-03-11T09:02:56.781718+00:00"
+  },
+  "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+    "subject": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "identity_commitment": null,
+    "created_at": "2026-03-11T16:38:04.096603+00:00",
+    "updated_at": "2026-03-11T16:38:04.096618+00:00"
   }
 }

@@ -65,6 +65,7 @@ class ProofSequencerClient:
         metadata: dict | None = None,
         groth16_calldata: list[str] | None = None,
         honk_calldata: list[str] | None = None,
+        kzg_calldata: list[str] | None = None,
         circuit_name: str = "",
     ) -> SequencerSubmission:
         """
@@ -76,6 +77,8 @@ class ProofSequencerClient:
             model_name: Which model generated this proof
             metadata: Additional context (timestamp, user, etc.)
             groth16_calldata: Optional Groth16 calldata for on-chain verification
+            honk_calldata: Optional HONK calldata for Noir path
+            kzg_calldata: Optional native KZG calldata for Path B
             circuit_name: Optional circuit name
 
         Returns:
@@ -84,7 +87,11 @@ class ProofSequencerClient:
         payload = {
             "proof_id": proof_id,
             "fact_hash": fact_hash,
-            "proof_type": "noir_honk" if honk_calldata else ("groth16" if groth16_calldata else "stark"),
+            "proof_type": (
+                "native_kzg"
+                if kzg_calldata
+                else ("noir_honk" if honk_calldata else ("groth16" if groth16_calldata else "stark"))
+            ),
             "public_inputs": [],
             "source": "zkdefi",
         }
@@ -92,6 +99,8 @@ class ProofSequencerClient:
             payload["groth16_calldata"] = groth16_calldata
         if honk_calldata:
             payload["honk_calldata"] = honk_calldata
+        if kzg_calldata:
+            payload["kzg_calldata"] = kzg_calldata
         if circuit_name:
             payload["circuit_name"] = circuit_name
         if metadata:
@@ -135,6 +144,7 @@ class ProofSequencerClient:
             "metadata": metadata,
             "groth16_calldata": groth16_calldata,
             "honk_calldata": honk_calldata,
+            "kzg_calldata": kzg_calldata,
             "circuit_name": circuit_name,
             "timestamp": time.time(),
         })
@@ -160,6 +170,7 @@ class ProofSequencerClient:
                 metadata=item.get("metadata"),
                 groth16_calldata=item.get("groth16_calldata"),
                 honk_calldata=item.get("honk_calldata"),
+                kzg_calldata=item.get("kzg_calldata"),
                 circuit_name=item.get("circuit_name", ""),
             )
             if result.accepted:

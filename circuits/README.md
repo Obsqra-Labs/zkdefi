@@ -48,3 +48,4 @@ The backend builds circuit inputs and runs proofs via `backend/app/services/zkml
 
 - Circom circuits are compiled to Groth16 verifiers; output is used to generate Cairo verifier contracts (e.g. Garaga tooling).
 - Scarb/Cairo toolchain may live under `contracts/` or a dedicated path; see repo docs or `circuits/contracts` for Scarb config.
+- Native KZG lane (Path B): build Cairo verifier package with `bash circuits/generate_ezkl_kzg_verifier.sh` (artifacts under `circuits/contracts/src/ezkl_kzg_verifier/target/dev`).

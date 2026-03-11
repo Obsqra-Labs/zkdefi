@@ -84,7 +84,7 @@ class MLBridgeProofRequest(BaseModel):
     expected_model_hash: int = Field(default=0, description="Expected model hash felt")
     output_lower_bound: int = Field(default=0, description="Model output lower bound")
     output_upper_bound: int = Field(default=10000, description="Model output upper bound")
-    bridge_circuit: Literal["ModelBridge", "ModelBridgeHeavy", "NoirEzklBridge"] = Field(
+    bridge_circuit: Literal["ModelBridge", "ModelBridgeHeavy", "NoirEzklBridge", "EzklNativeKzg"] = Field(
         default="ModelBridge",
         description="Bridge circuit lane to use for L3 verification",
     )

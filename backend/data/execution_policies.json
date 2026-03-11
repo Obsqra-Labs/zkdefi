@@ -15,5 +15,22 @@
     "isActive": true,
     "createdAt": "2026-03-08T12:37:21.505223+00:00",
     "updatedAt": "2026-03-09T20:25:15.297298+00:00"
+  },
+  "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
+    "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "gateRules": {
+      "minReputationScore": 0,
+      "maxRiskScore": 80,
+      "requireCircuitVerified": false,
+      "preferPrivacyMode": null
+    },
+    "executionRules": {
+      "maxAllocationPct": 20.0,
+      "dailyLimitUSD": 10000.0,
+      "autoExecute": false
+    },
+    "isActive": true,
+    "createdAt": "2026-03-11T17:03:40.681874+00:00",
+    "updatedAt": "2026-03-11T17:03:40.681874+00:00"
   }
 }
