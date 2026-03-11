@@ -93,9 +93,39 @@ export function PoolBucketCard({
 
     setError(null);
     try {
-      const data = await apiFetch<PoolComposition>(
+      const raw = await apiFetch<any>(
         `/api/v1/zkdefi/pools/${poolId}/composition`
       );
+      // Normalize backend shape → PoolComposition
+      const data: PoolComposition = {
+        pool_id: raw.pool_id ?? poolId,
+        total_value_usd: raw.total_value_usd ?? (raw.total_wei != null ? Number(raw.total_wei) / 1e18 : 0),
+        idle_value_usd: raw.idle_value_usd ?? 0,
+        deployed_value_usd: raw.deployed_value_usd ?? 0,
+        blended_apy: raw.blended_apy ?? 0,
+        positions: Array.isArray(raw.positions) ? raw.positions : [],
+        idle_breakdown: raw.idle_breakdown ?? {},
+        agent_status: raw.agent_status ?? "idle",
+        next_eval_seconds: raw.next_eval_seconds ?? 0,
+      };
+      // Derive idle/deployed from breakdowns if not provided
+      if (!raw.idle_value_usd && raw.idle_breakdown) {
+        data.idle_value_usd = Object.values(raw.idle_breakdown as Record<string, number>).reduce((s: number, v: number) => s + Number(v) / 1e18, 0);
+      }
+      if (!raw.deployed_value_usd && raw.deployed_breakdown) {
+        data.deployed_value_usd = Object.values(raw.deployed_breakdown as Record<string, Record<string, number>>).reduce(
+          (s: number, adapMap) => s + Object.values(adapMap).reduce((a: number, v: number) => a + Number(v) / 1e18, 0), 0
+        );
+      }
+      // Build positions from deployed_breakdown if none provided
+      if (data.positions.length === 0 && raw.deployed_breakdown) {
+        let idx = 0;
+        for (const [adapter, tokens] of Object.entries(raw.deployed_breakdown as Record<string, Record<string, number>>)) {
+          for (const [token, wei] of Object.entries(tokens)) {
+            data.positions.push({ id: `${adapter}-${token}-${idx++}`, adapter, token, value_usd: Number(wei) / 1e18, apy: 0, status: "active" });
+          }
+        }
+      }
       setComposition(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
@@ -205,7 +235,7 @@ export function PoolBucketCard({
           </div>
 
           {/* Position breakdown */}
-          {c.positions.length > 0 ? (
+          {(c.positions ?? []).length > 0 ? (
             <div className="space-y-1.5">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Positions</p>
               {c.positions.map((pos) => {

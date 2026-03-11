@@ -165,9 +165,42 @@ async def _enforce_rebalance_mode(
 
 @router.get("/pools/{pool_id}/composition")
 async def get_pool_composition(pool_id: str) -> Dict[str, Any]:
-    """Return capital composition (idle + deployed breakdown) for a pool bucket."""
+    """Return capital composition (idle + deployed breakdown) for a pool bucket.
+
+    The response is enriched with frontend-friendly fields:
+    total_value_usd, idle_value_usd, deployed_value_usd, blended_apy,
+    positions[], agent_status, next_eval_seconds.
+    """
     _validate_pool_id(pool_id)
-    return await get_composition(pool_id)
+    raw = await get_composition(pool_id)
+
+    # Derive USD approximations from wei values (1 token ≈ unit for display)
+    idle_total = sum(raw.get("idle_breakdown", {}).values())
+    deployed_total = 0
+    positions: list[Dict[str, Any]] = []
+    idx = 0
+    for adapter, token_map in raw.get("deployed_breakdown", {}).items():
+        for token, wei in token_map.items():
+            value = int(wei) / 1e18
+            deployed_total += int(wei)
+            positions.append({
+                "id": f"{adapter}-{token}-{idx}",
+                "adapter": adapter,
+                "token": token,
+                "value_usd": round(value, 4),
+                "apy": 0,
+                "status": "active",
+            })
+            idx += 1
+
+    raw["total_value_usd"] = round(raw.get("total_wei", 0) / 1e18, 4)
+    raw["idle_value_usd"] = round(idle_total / 1e18, 4)
+    raw["deployed_value_usd"] = round(deployed_total / 1e18, 4)
+    raw["blended_apy"] = 0
+    raw["positions"] = positions
+    raw["agent_status"] = "idle"
+    raw["next_eval_seconds"] = 0
+    return raw
 
 
 @router.post("/pools/{pool_id}/deploy")

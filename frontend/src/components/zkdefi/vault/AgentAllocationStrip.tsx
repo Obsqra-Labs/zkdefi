@@ -164,7 +164,7 @@ export function AgentAllocationStrip({ address, commitments }: AgentAllocationSt
     (async () => {
       try {
         const data = await apiFetch<{ keys?: SessionKey[]; sessions?: SessionKey[] }>(
-          `/api/v1/zkdefi/session-keys/list/${address}`,
+          `/api/v1/zkdefi/session_keys/list/${address}`,
         );
         if (!dead) setSessionKeys(data.keys ?? data.sessions ?? []);
       } catch {
