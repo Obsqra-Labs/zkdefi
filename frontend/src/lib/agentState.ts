@@ -27,6 +27,7 @@ export type OverlayModeV2 =
 /** Slideout drawers — right-side panels */
 export type SlideoutModeV2 =
   | null
+  | "fund"
   | "deposit"
   | "withdraw"
   | "privacy"

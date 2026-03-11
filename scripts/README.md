@@ -50,6 +50,7 @@ The HTML report includes:
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
+- Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge docs/stub wiring, Path B native KZG routing signals, plus env readiness and next actions
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
 - AI + marketplace snapshot: opportunities, advisory calls, strategy badge screening

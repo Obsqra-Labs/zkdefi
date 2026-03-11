@@ -5,6 +5,7 @@ import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import { ArrowDownToLine, Clock, Coins, Loader2, Info } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
+import { getDepositStepsForMethod } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { AllocationPreview } from "@/components/zkdefi/vault/AllocationPreview";
 import { PoolSelector, poolBucketToType, type PoolBucket } from "@/components/zkdefi/vault/PoolSelector";
@@ -82,9 +83,12 @@ type DepositResult = {
 };
 
 function toWei(amount: string): string {
-  return (
-    BigInt(Math.floor(parseFloat(amount))) * BigInt(1e18)
-  ).toString();
+  const parsed = parseFloat(amount);
+  if (isNaN(parsed) || parsed <= 0) return "0";
+  const wholePart = Math.floor(parsed);
+  const fracPart = parsed - wholePart;
+  const fracWei = BigInt(Math.round(fracPart * 1e18));
+  return (BigInt(wholePart) * BigInt(1e18) + fracWei).toString();
 }
 
 function splitU256(wei: string): { low: string; high: string } {
@@ -449,6 +453,9 @@ export function DepositPanel({
     if (!amount || parseFloat(amount) <= 0) return;
     setBusy(true);
 
+    // Reset proof steps to pending before starting
+    setDepositSteps(getDepositStepsForMethod(method));
+
     try {
       const amountWei = toWei(amount);
       let result: DepositResult;
@@ -533,28 +540,48 @@ export function DepositPanel({
   // -----------------------------------------------------------------------
 
   const canSubmit = !busy && !!amount && parseFloat(amount) > 0;
-  const privacyLine =
-    method === "commitment_shield"
-      ? "Public path: standard signer visibility on-chain."
-      : "Private path: commitment-based settlement with proof-backed privacy.";
+  const isPoolDirect = !!fixedPoolId;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="min-h-[400px] rounded-2xl border border-white/10 bg-gradient-to-b from-emerald-900/20 via-slate-900/50 to-slate-900/50 p-5 flex flex-col gap-4"
+      className={`min-h-[400px] rounded-2xl border border-white/10 p-5 flex flex-col gap-4 ${
+        isPoolDirect
+          ? "bg-gradient-to-b from-emerald-900/20 via-slate-900/50 to-slate-900/50"
+          : "bg-gradient-to-b from-emerald-900/20 via-slate-900/50 to-slate-900/50"
+      }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ArrowDownToLine className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-lg font-semibold text-white">Deposit</h3>
+          <h3 className="text-lg font-semibold text-white">
+            {isPoolDirect ? `Deposit to Pool` : "Deposit"}
+          </h3>
         </div>
         <span className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
           {METHOD_LABELS[method]}
         </span>
       </div>
+
+      {/* Pool identity when direct-depositing */}
+      {isPoolDirect && (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-3">
+          <div className={`w-3 h-3 rounded-full ${
+            fixedPoolId === "conservative" ? "bg-blue-400" : fixedPoolId === "aggressive" ? "bg-orange-400" : "bg-emerald-400"
+          }`} />
+          <div>
+            <div className="text-sm font-semibold text-white capitalize">{fixedPoolId} Pool</div>
+            <div className="text-[11px] text-white/40">
+              {fixedPoolId === "conservative" ? "Wide range, lower IL risk" :
+               fixedPoolId === "aggressive" ? "Tight range, max yield" :
+               "Medium range, balanced yield"}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Privacy info */}
       <div className="flex items-start gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] px-3 py-2">
@@ -564,7 +591,7 @@ export function DepositPanel({
         </p>
       </div>
 
-      {/* Pool allocation bucket */}
+      {/* Pool allocation bucket — only shown when no fixed pool */}
       {!fixedPoolId && <PoolSelector selected={selectedPool} onSelect={setSelectedPool} />}
 
       {/* Asset selector */}
@@ -612,8 +639,8 @@ export function DepositPanel({
         </p>
       </div>
 
-      {/* Allocation preview */}
-      <AllocationPreview amount={amount} asset={selectedAsset} riskProfile={selectedPool} isDemo={isDemo} />
+      {/* Allocation preview — only for non-pool-direct deposits */}
+      {!isPoolDirect && <AllocationPreview amount={amount} asset={selectedAsset} riskProfile={selectedPool} isDemo={isDemo} />}
 
       {/* Proof stepper */}
       <ProofStepper steps={depositSteps} />
@@ -633,7 +660,7 @@ export function DepositPanel({
         </div>
         <div className="flex items-center justify-between">
           <span>Privacy</span>
-          <span className="text-emerald-400">{privacyLine}</span>
+          <span className="text-emerald-400">Shielded deposit — hashed proof commitment</span>
         </div>
       </div>
 
@@ -650,10 +677,10 @@ export function DepositPanel({
         {busy ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Processing...
+            Depositing...
           </>
         ) : (
-          "Deposit"
+          isPoolDirect ? `Deposit to ${fixedPoolId} pool` : "Deposit"
         )}
       </button>
     </motion.div>

@@ -209,6 +209,8 @@
 
 **Reference:** `archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md` Path C; design doc §5.
 
+**While waiting for Sepolia ETH (faucet):** You can (1) obtain an Sepolia RPC URL (e.g. Alchemy/Infura) and set `L1_SEPOLIA_RPC`, (2) implement the web3/L1 submit logic in `l1_ezkl_bridge_service` (calls will fail until the verifier is deployed), (3) implement L2 polling for the receiver contract, (4) prepare the EZKL Solidity verifier build and a deploy script (Foundry/Hardhat/Remix). Faucet options and env usage are documented in `docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md` §0.
+
 ### Task 3.1: EZKL Solidity verifier on Sepolia
 
 **Files:**

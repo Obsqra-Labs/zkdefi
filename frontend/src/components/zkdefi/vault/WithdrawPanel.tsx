@@ -9,6 +9,7 @@ import type {
   VaultCommitment,
   ProofStep,
 } from "@/hooks/usePrivacyVault";
+import { getWithdrawStepsForMethod } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
 import { API_BASE } from "@/lib/api/client";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -83,6 +84,15 @@ function splitU256(wei: string): { low: string; high: string } {
     low: (big % TWO_128).toString(),
     high: (big / TWO_128).toString(),
   };
+}
+
+function toWei(amount: string): string {
+  const parsed = parseFloat(amount);
+  if (isNaN(parsed) || parsed <= 0) return "0";
+  const wholePart = Math.floor(parsed);
+  const fracPart = parsed - wholePart;
+  const fracWei = BigInt(Math.round(fracPart * 1e18));
+  return (BigInt(wholePart) * BigInt(1e18) + fracWei).toString();
 }
 
 function updateStep(
@@ -508,10 +518,11 @@ export function WithdrawPanel({
     if (!selectedCommitment || !amount || parseFloat(amount) <= 0) return;
     setBusy(true);
 
+    // Reset proof steps to pending before starting
+    setWithdrawSteps(getWithdrawStepsForMethod(method));
+
     try {
-      const amountWei = (
-        BigInt(Math.floor(parseFloat(amount))) * BigInt(1e18.toString())
-      ).toString();
+      const amountWei = toWei(amount);
 
       let txHash: string;
 

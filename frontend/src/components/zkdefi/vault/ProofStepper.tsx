@@ -12,7 +12,7 @@ export interface ProofStepperProps {
   steps: Array<{
     label: string;
     status: "pending" | "active" | "done" | "error";
-    description?: string;
+    detail?: string;
   }>;
 }
 
@@ -83,8 +83,8 @@ export function ProofStepper({ steps }: ProofStepperProps) {
                   role={step.status === "active" ? "status" : undefined}
                   aria-label={step.status === "active" ? `${step.label} in progress` : undefined}
                 >{step.label}</span>
-                {step.description && (
-                  <span className="text-xs text-zinc-600 whitespace-nowrap">{step.description}</span>
+                {step.detail && (
+                  <span className="text-xs text-zinc-600 whitespace-nowrap">{step.detail}</span>
                 )}
               </div>
               {!isLast && (

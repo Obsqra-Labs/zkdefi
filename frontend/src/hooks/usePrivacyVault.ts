@@ -71,17 +71,17 @@ export function getDepositStepsForMethod(method: PrivacyMethod): ProofStep[] {
       ];
     case "nullifier_set":
       return [
-        { label: "Generate private commitment", status: "pending" },
-        { label: "Register in privacy set", status: "pending" },
-        { label: "Build Groth16 proof", status: "pending" },
+        { label: "Generate commitment", status: "pending" },
         { label: "Approve & sign deposit", status: "pending" },
+        { label: "Register in Merkle tree", status: "pending" },
+        { label: "Confirm", status: "pending" },
       ];
     case "hashed_proof":
       return [
-        { label: "Generate private commitment", status: "pending" },
-        { label: "Build Groth16 proof", status: "pending" },
-        { label: "Register commitment", status: "pending" },
-        { label: "Approve & sign", status: "pending" },
+        { label: "Generate commitment", status: "pending" },
+        { label: "Approve & sign deposit", status: "pending" },
+        { label: "Register in Merkle tree", status: "pending" },
+        { label: "Confirm", status: "pending" },
       ];
   }
 }
@@ -90,22 +90,23 @@ export function getWithdrawStepsForMethod(method: PrivacyMethod): ProofStep[] {
   switch (method) {
     case "commitment_shield":
       return [
-        { label: "Verify commitment", status: "pending" },
         { label: "Generate withdrawal proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
+        { label: "Confirm", status: "pending" },
       ];
     case "nullifier_set":
       return [
         { label: "Verify commitment", status: "pending" },
-        { label: "Generate nullifier", status: "pending" },
-        { label: "Build withdraw proof", status: "pending" },
+        { label: "Generate proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
+        { label: "Confirm", status: "pending" },
       ];
     case "hashed_proof":
       return [
         { label: "Verify commitment", status: "pending" },
-        { label: "Build hash proof", status: "pending" },
+        { label: "Generate proof", status: "pending" },
         { label: "Sign transaction", status: "pending" },
+        { label: "Confirm", status: "pending" },
       ];
   }
 }

@@ -193,10 +193,12 @@ class ProofPipeline:
         groth16_calldata: list[str] | None,
         execution_chain: str,
         honk_calldata: list[str] | None = None,
+        kzg_calldata: list[str] | None = None,
         proof_type: str = "groth16",
     ) -> dict[str, Any]:
         use_honk = (proof_type or "").lower() == "noir_honk" and honk_calldata
-        if not use_honk and not groth16_calldata:
+        use_kzg = (proof_type or "").lower() == "native_kzg" and kzg_calldata
+        if not use_honk and not use_kzg and not groth16_calldata:
             return {
                 "attempted": True,
                 "success": False,
@@ -228,6 +230,7 @@ class ProofPipeline:
             circuit_name=circuit_name,
             groth16_calldata=groth16_calldata,
             honk_calldata=honk_calldata,
+            kzg_calldata=kzg_calldata,
             execution_chain=execution_chain,
         )
         return {
@@ -318,6 +321,7 @@ class ProofPipeline:
         """Returns (bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3)."""
         ts = int(datetime.now(timezone.utc).timestamp())
         use_noir_honk = (bridge_circuit or "").strip() == "NoirEzklBridge"
+        use_native_kzg = (bridge_circuit or "").strip() == "EzklNativeKzg"
         use_heavy = (bridge_circuit or "ModelBridge").strip() == "ModelBridgeHeavy"
         n_out = 16 if use_heavy else 8
         outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:n_out]]
@@ -381,7 +385,14 @@ class ProofPipeline:
                 calldata = []
             return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
-        # Prefer real Groth16 proof from ModelBridge or ModelBridgeHeavy circuit (EZKL → Garaga bridge)
+        # Native KZG path (Phase 4). TODO Task 4.4: build kzg_calldata from EZKL proof.
+        if use_native_kzg:
+            bridge_proof["bridge_backend"] = "native_kzg_placeholder"
+            circuit_name_for_l3 = "EzklNativeKzg"
+            calldata = []
+            return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
+
+        # Prefer real Groth16 proof from ModelBridge or ModelBridgeHeavy circuit (EZKL to Garaga bridge)
         try:
             from app.services.groth16_prover import Groth16Prover
 
@@ -580,13 +591,15 @@ class ProofPipeline:
 
             if execution_chain in {"l3", "dual"}:
                 is_noir_honk = (result.get("bridge_circuit_used") or "") == "NoirEzklBridge"
+                is_native_kzg = (result.get("bridge_circuit_used") or "") == "EzklNativeKzg"
                 l3_result = await self._verify_l3_bridge(
                     fact_hash=bridge_fact_hash,
                     circuit_name=circuit_name_l3,
-                    groth16_calldata=None if is_noir_honk else model_bridge_calldata,
+                    groth16_calldata=None if (is_noir_honk or is_native_kzg) else model_bridge_calldata,
                     execution_chain=execution_chain,
                     honk_calldata=model_bridge_calldata if is_noir_honk else None,
-                    proof_type="noir_honk" if is_noir_honk else "groth16",
+                    kzg_calldata=model_bridge_calldata if is_native_kzg else None,
+                    proof_type="noir_honk" if is_noir_honk else ("native_kzg" if is_native_kzg else "groth16"),
                 )
                 result["verification"]["l3"] = l3_result
 

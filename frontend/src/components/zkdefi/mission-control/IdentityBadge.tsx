@@ -124,8 +124,8 @@ export function IdentityBadge({ address, onSlideout, isDemo }: IdentityBadgeProp
       {/* Quick Actions */}
       <div className="flex gap-2">
         <button
-          onClick={() => onSlideout("deposit")}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20 text-xs font-medium transition-colors"
+          onClick={() => onSlideout("fund")}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-violet-700/50 text-violet-400 hover:bg-violet-900/20 text-xs font-medium transition-colors"
         >
           <ArrowDownToLine className="w-3.5 h-3.5" /> Fund
         </button>

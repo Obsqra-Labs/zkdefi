@@ -27,6 +27,7 @@ import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { usePrivacyVault } from "@/hooks/usePrivacyVault";
 import { useVaultV2 } from "@/hooks/useVaultV2";
 import { DepositPanel } from "@/components/zkdefi/vault/DepositPanel";
+import { FundVaultPanel } from "@/components/zkdefi/vault/FundVaultPanel";
 
 import { WithdrawPanel } from "@/components/zkdefi/vault/WithdrawPanel";
 import { FullPrivacyPoolPanel } from "@/components/zkdefi/FullPrivacyPoolPanel";
@@ -271,7 +272,8 @@ function AgentPageInner() {
           <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
-                {slideout === "deposit" && (slideoutPool ? `Deposit to ${slideoutPool.charAt(0).toUpperCase() + slideoutPool.slice(1)}` : "Fund Vault")}
+                {slideout === "fund" && "Fund Vault"}
+                {slideout === "deposit" && (slideoutPool ? `Deposit to ${slideoutPool.charAt(0).toUpperCase() + slideoutPool.slice(1)} Pool` : "Deposit")}
                 {slideout === "withdraw" && (slideoutPool ? `Withdraw from ${slideoutPool.charAt(0).toUpperCase() + slideoutPool.slice(1)}` : "Withdraw")}
                 {slideout === "privacy" && "Advanced Privacy Pool"}
                 {slideout === "shielded" && "Advanced Shield Rail"}
@@ -290,6 +292,16 @@ function AgentPageInner() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {slideout === "fund" && (
+              <FundVaultPanel
+                method={vault.method}
+                depositSteps={vault.depositSteps}
+                setDepositSteps={vault.setDepositSteps}
+                addCommitment={vault.addCommitment}
+                address={address}
+                onRecordDeposit={v2.recordDeposit}
+              />
+            )}
             {slideout === "deposit" && (
               <div>
                 <DepositPanel

@@ -140,6 +140,7 @@ class L3ProvingPathClient:
         circuit_name: str = "",
         groth16_calldata: list[str] | None = None,
         honk_calldata: list[str] | None = None,
+        kzg_calldata: list[str] | None = None,
         stark_proof_data: dict | None = None,
         execution_chain: str = "l3",
     ) -> L3VerificationResult:
@@ -150,7 +151,8 @@ class L3ProvingPathClient:
         1. Noir HONK (if proof_type=noir_honk and honk_calldata provided)
         2. Garaga Groth16 (if groth16_calldata provided and verifier deployed)
         3. Integrity STARK (if proof data provided and verifier deployed)
-        4. Hash-only registration (always available)
+        4. Native KZG (if proof_type=native_kzg and kzg_calldata provided; Phase 4)
+        5. Hash-only registration (always available)
         """
         payload = {
             "fact_hash": fact_hash,
@@ -162,6 +164,8 @@ class L3ProvingPathClient:
             payload["groth16_calldata"] = groth16_calldata
         if honk_calldata:
             payload["honk_calldata"] = honk_calldata
+        if kzg_calldata:
+            payload["kzg_calldata"] = kzg_calldata
         if stark_proof_data:
             payload["stark_proof_data"] = stark_proof_data
 
@@ -179,7 +183,7 @@ class L3ProvingPathClient:
     def _normalize_verify_response(data: dict, *, fallback_fact_hash: str) -> L3VerificationResult:
         """Normalize /aggregation/l3/verify payload into deterministic semantics."""
         mode = str(data.get("mode", "") or "").strip().lower()
-        allowed_modes = {"groth16_garaga", "stark_integrity", "noir_honk", "hash_only"}
+        allowed_modes = {"groth16_garaga", "stark_integrity", "noir_honk", "native_kzg", "hash_only"}
         if mode not in allowed_modes:
             mode = "unknown_mode"
 
