@@ -39,6 +39,10 @@ interface PoolBucketCardProps {
   onDeposit: (poolId: string) => void;
   onWithdraw: (poolId: string) => void;
   isDemo?: boolean;
+  /** Number of user commitment notes in this pool */
+  userDeposits?: number;
+  /** User's total deposit value (USD) in this pool */
+  userValueUsd?: number;
 }
 
 const ADAPTER_ICON: Record<string, { icon: string; color: string }> = {
@@ -76,6 +80,8 @@ export function PoolBucketCard({
   onDeposit,
   onWithdraw,
   isDemo,
+  userDeposits,
+  userValueUsd,
 }: PoolBucketCardProps) {
   const [composition, setComposition] = useState<PoolComposition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,6 +197,11 @@ export function PoolBucketCard({
               <span className="text-zinc-400">
                 APY <span className="text-emerald-400 font-medium">{(c.blended_apy ?? 0).toFixed(1)}%</span>
               </span>
+              {(userDeposits != null && userDeposits > 0) && (
+                <span className="text-violet-400 font-medium">
+                  You: {usd(userValueUsd ?? 0)} ({userDeposits} note{userDeposits !== 1 ? "s" : ""})
+                </span>
+              )}
             </div>
           </div>
         </div>

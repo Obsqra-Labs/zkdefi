@@ -87,7 +87,7 @@ export function VaultCenterStage({
             )}
             {activeTab === "capital" && (
               <ErrorBoundary>
-                <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} />
+                <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} commitments={commitments} />
               </ErrorBoundary>
             )}
             {activeTab === "lend" && (

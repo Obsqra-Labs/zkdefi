@@ -10,8 +10,12 @@ import {
   Key,
   Loader2,
   ShieldCheck,
+  TrendingUp,
+  BarChart3,
+  Gauge,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { DEMO_AGENT } from "@/lib/demoCapitalOS";
 
 const POLL_MS = 15_000;
@@ -44,6 +48,14 @@ interface SessionKey {
 interface AgentControlsProps {
   address: string;
   isDemo?: boolean;
+}
+
+interface PortfolioPerf {
+  deployed_usd: number;
+  yield_usd: number;
+  apy_estimate: number;
+  positions: number;
+  risk_pct: number;
 }
 
 function timeRemaining(expiresAt: string): string {
@@ -86,12 +98,17 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
   const [rebalanceModeLoading, setRebalanceModeLoading] = useState(false);
   const [rebalanceModeErr, setRebalanceModeErr] = useState<string | null>(null);
 
+  const [portfolio, setPortfolio] = useState<PortfolioPerf | null>(
+    isDemo ? DEMO_AGENT.portfolio : null
+  );
+
   // --- Fetchers ---
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = useCallback(async (signal?: AbortSignal) => {
     try {
       const d = await apiFetch<AgentStatus>(
         `/api/v1/zkdefi/rebalancer/autonomous/status/${address}`,
+        { signal },
       );
       setStatus(d);
       setStatusErr(null);
@@ -101,9 +118,9 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     }
   }, [address]);
 
-  const fetchConstraints = useCallback(async () => {
+  const fetchConstraints = useCallback(async (signal?: AbortSignal) => {
     try {
-      const d = await apiFetch<Constraints>(`/api/v1/zkdefi/mc/constraints/${address}`);
+      const d = await apiFetch<Constraints>(`/api/v1/zkdefi/mc/constraints/${address}`, { signal });
       setConstraints(d);
       setConstraintsErr(null);
     } catch {
@@ -111,10 +128,11 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     }
   }, [address]);
 
-  const fetchSession = useCallback(async () => {
+  const fetchSession = useCallback(async (signal?: AbortSignal) => {
     try {
       const d = await apiFetch<{ sessions?: SessionKey[] }>(
         `/api/v1/zkdefi/session_keys/list/${address}`,
+        { signal },
       );
       const active = (d?.sessions ?? []).find((s) => s.is_active && !s.is_expired);
       if (active) {
@@ -134,15 +152,40 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     }
   }, [address]);
 
-  const fetchRebalanceMode = useCallback(async () => {
+  const fetchRebalanceMode = useCallback(async (signal?: AbortSignal) => {
     try {
       const d = await apiFetch<{ rebalance_mode: RebalanceMode }>(
         `/api/v1/zkdefi/mc/rebalance-mode/${address}`,
+        { signal },
       );
       setRebalanceMode(d.rebalance_mode);
       setRebalanceModeErr(null);
     } catch {
       setRebalanceModeErr("Mode unavailable");
+    }
+  }, [address]);
+
+  const fetchPortfolio = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const d = await apiFetch<{
+        deployed_wei?: string;
+        total_yield_wei?: string;
+        apy_estimate?: number;
+        allocations?: any[];
+      }>(`/api/v1/zkdefi/vault/status?user_address=${address}`, { signal });
+      const deployed = Number(d.deployed_wei ?? "0") / 1e18;
+      const yld = Number(d.total_yield_wei ?? "0") / 1e18;
+      // Approximate USD using STRK price
+      const price = 0.04;
+      setPortfolio({
+        deployed_usd: deployed * price,
+        yield_usd: yld * price,
+        apy_estimate: d.apy_estimate ?? 0,
+        positions: d.allocations?.length ?? 0,
+        risk_pct: Math.min(100, Math.round((deployed * price) / Math.max(deployed * price + yld * price, 1) * 60)),
+      });
+    } catch {
+      // Non-critical — keep existing state
     }
   }, [address]);
 
@@ -157,15 +200,18 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
       setSessionExpired(false);
       setRebalanceMode(DEMO_AGENT.rebalance_mode);
       setRebalanceModeErr(null);
+      setPortfolio(DEMO_AGENT.portfolio);
       return;
     }
-    fetchStatus();
-    fetchConstraints();
-    fetchSession();
-    fetchRebalanceMode();
-    const t = setInterval(() => { fetchStatus(); fetchSession(); }, POLL_MS);
-    return () => clearInterval(t);
-  }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode, isDemo]);
+    const ac = new AbortController();
+    fetchStatus(ac.signal);
+    fetchConstraints(ac.signal);
+    fetchSession(ac.signal);
+    fetchRebalanceMode(ac.signal);
+    fetchPortfolio(ac.signal);
+    const t = setInterval(() => { fetchStatus(); fetchSession(); fetchPortfolio(); }, POLL_MS);
+    return () => { clearInterval(t); ac.abort(); };
+  }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode, fetchPortfolio, isDemo]);
 
   // --- Grant session key ---
 
@@ -221,6 +267,7 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
           sid = await grantSessionKey();
           if (!sid) {
             setStatusErr("Session key required — grant failed");
+            toastError("Session key grant failed");
             setActionLoading(false);
             return;
           }
@@ -238,23 +285,29 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
             }),
           },
         );
+        toastSuccess("Agent started");
       } else if (action === "stop") {
         await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/stop`, {
           method: "POST",
           body: JSON.stringify({ user_address: address }),
         });
+        toastSuccess("Agent stopped");
       } else if (action === "pause") {
         await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/pause/${address}`, {
           method: "POST",
         });
+        toastSuccess("Agent paused");
       } else if (action === "resume") {
         await apiFetch(`/api/v1/zkdefi/rebalancer/autonomous/resume/${address}`, {
           method: "POST",
         });
+        toastSuccess("Agent resumed");
       }
       await fetchStatus();
     } catch (err: any) {
-      setStatusErr(`Failed to ${action}: ${err?.message ?? "unknown"}`);
+      const msg = `Failed to ${action}: ${err?.message ?? "unknown"}`;
+      setStatusErr(msg);
+      toastError(msg);
     } finally {
       setActionLoading(false);
     }
@@ -269,8 +322,10 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
         body: JSON.stringify({ address }),
       });
       await fetchStatus();
+      toastSuccess("Emergency stop executed");
     } catch {
       setStatusErr("Emergency stop failed");
+      toastError("Emergency stop failed");
     } finally {
       setEmergencyLoading(false);
     }
@@ -390,6 +445,47 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
           {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-600 ml-1 self-center" />}
         </div>
       </section>
+
+      {/* 1b — Portfolio Performance */}
+      {portfolio && (
+        <section className="rounded-lg border border-zinc-800 p-3 space-y-2">
+          <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <BarChart3 className="w-3 h-3" /> Performance
+          </h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Deployed</span>
+              <span className="text-zinc-200 font-medium">${portfolio.deployed_usd.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Yield</span>
+              <span className="text-emerald-400 font-medium">+${portfolio.yield_usd.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Est. APY</span>
+              <span className="text-cyan-400 font-medium">{portfolio.apy_estimate.toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Positions</span>
+              <span className="text-zinc-200 font-medium">{portfolio.positions}</span>
+            </div>
+          </div>
+
+          {/* Risk Exposure mini-bar */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-zinc-500 flex items-center gap-1"><Gauge className="w-3 h-3" /> Risk Exposure</span>
+              <span className={`font-medium ${portfolio.risk_pct < 40 ? "text-emerald-400" : portfolio.risk_pct < 70 ? "text-amber-400" : "text-red-400"}`}>{portfolio.risk_pct}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${portfolio.risk_pct < 40 ? "bg-emerald-500" : portfolio.risk_pct < 70 ? "bg-amber-500" : "bg-red-500"}`}
+                style={{ width: `${portfolio.risk_pct}%` }}
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 2 — Emergency Stop */}
       <button

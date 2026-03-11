@@ -116,17 +116,18 @@ export function LendTab({ address }: LendTabProps) {
   const [collateral, setCollateral] = useState("");
 
   /* ── Credit profile fetch ── */
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (signal?: AbortSignal) => {
     setProfileError(null);
     setProfileLoading(true);
     try {
       const [rep, pass] = await Promise.all([
-        apiFetch<ReputationData>(`/api/v1/zkdefi/reputation/user/${address}`),
-        apiFetch<PassportData>(`/api/v1/zkdefi/risk_passport/user/${address}`),
+        apiFetch<ReputationData>(`/api/v1/zkdefi/reputation/user/${address}`, { signal }),
+        apiFetch<PassportData>(`/api/v1/zkdefi/risk_passport/user/${address}`, { signal }),
       ]);
       setReputation(rep);
       setPassport(pass);
     } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
       setProfileError(e instanceof Error ? e.message : "Unable to load credit profile");
     } finally {
       setProfileLoading(false);
@@ -134,22 +135,26 @@ export function LendTab({ address }: LendTabProps) {
   }, [address]);
 
   /* ── Lending data fetch ── */
-  const loadLending = useCallback(async () => {
+  const loadLending = useCallback(async (signal?: AbortSignal) => {
     setLendingLoading(true);
     try {
       const [reqRes, loanRes] = await Promise.all([
-        apiFetch<{ requests: LoanRequest[] }>("/api/v1/zkdefi/p2p-lending/requests"),
-        apiFetch<{ loans: Loan[] }>(`/api/v1/zkdefi/p2p-lending/loans?user_address=${address}`),
+        apiFetch<{ requests: LoanRequest[] }>("/api/v1/zkdefi/p2p-lending/requests", { signal }),
+        apiFetch<{ loans: Loan[] }>(`/api/v1/zkdefi/p2p-lending/loans?user_address=${address}`, { signal }),
       ]);
       setRequests(reqRes.requests ?? []);
       setLoans(loanRes.loans ?? []);
-    } catch { /* lending data non-critical */ }
+    } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
+      /* lending data non-critical */
+    }
     finally { setLendingLoading(false); }
   }, [address]);
 
   /* ── Oracle signal ── */
   useEffect(() => {
-    apiFetch<any>("/api/v1/zkdefi/trade-desk/v2/opportunities?limit=1")
+    const ac = new AbortController();
+    apiFetch<any>("/api/v1/zkdefi/trade-desk/v2/opportunities?limit=1", { signal: ac.signal })
       .then((res) => {
         const opp = (Array.isArray(res?.opportunities) ? res.opportunities : Array.isArray(res) ? res : [])[0];
         if (opp) {
@@ -162,10 +167,19 @@ export function LendTab({ address }: LendTabProps) {
         }
       })
       .catch(() => {});
+    return () => ac.abort();
   }, []);
 
-  useEffect(() => { loadProfile(); }, [loadProfile]);
-  useEffect(() => { loadLending(); }, [loadLending]);
+  useEffect(() => {
+    const ac = new AbortController();
+    loadProfile(ac.signal);
+    return () => ac.abort();
+  }, [loadProfile]);
+  useEffect(() => {
+    const ac = new AbortController();
+    loadLending(ac.signal);
+    return () => ac.abort();
+  }, [loadLending]);
 
   /* ── Actions ── */
   const fundRequest = async (requestId: string, remainingWei: number) => {
@@ -248,7 +262,7 @@ export function LendTab({ address }: LendTabProps) {
               <p className="text-sm font-medium text-zinc-200">Unable to load credit profile</p>
               <p className="text-xs text-zinc-500 mt-0.5">{profileError}</p>
             </div>
-            <button onClick={loadProfile} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1.5">
+            <button onClick={() => loadProfile()} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1.5">
               <RefreshCw className="w-3.5 h-3.5" /> Retry
             </button>
           </div>

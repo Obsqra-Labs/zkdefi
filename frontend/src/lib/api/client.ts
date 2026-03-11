@@ -17,23 +17,48 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${normalizedPath}`;
 }
 
+/** Default timeout for API calls (ms). Prevents indefinite hangs from slow/unreachable backends. */
+const DEFAULT_TIMEOUT_MS = 10_000;
+
+export interface ApiFetchOptions extends RequestInit {
+  /** Timeout in ms. Pass 0 to disable. Defaults to 10 s. */
+  timeoutMs?: number;
+}
+
 /** Generic typed fetch wrapper for API calls */
-export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T = unknown>(path: string, init?: ApiFetchOptions): Promise<T> {
   const url = apiUrl(path);
-  // Extract headers separately so ...rest doesn't overwrite the merged headers
-  const { headers: initHeaders, ...rest } = init ?? {};
-  const res = await fetch(url, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...((initHeaders as Record<string, string>) ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.detail ?? `API error ${res.status}`);
+  const { headers: initHeaders, timeoutMs, ...rest } = init ?? {};
+
+  // Wire up an AbortController with timeout so slow requests can't block the UI
+  const controller = new AbortController();
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timer = timeout > 0 ? setTimeout(() => controller.abort(), timeout) : null;
+
+  // If caller passed their own signal, chain it so both can abort
+  if (rest.signal) {
+    const outer = rest.signal;
+    if (outer.aborted) controller.abort();
+    else outer.addEventListener("abort", () => controller.abort(), { once: true });
   }
-  return res.json() as Promise<T>;
+
+  try {
+    const res = await fetch(url, {
+      ...rest,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...((initHeaders as Record<string, string>) ?? {}),
+      },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.detail ?? `API error ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 /**
@@ -43,7 +68,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
 export async function apiFetchAuth<T = unknown>(
   path: string,
   walletAddress: string,
-  init?: RequestInit,
+  init?: ApiFetchOptions,
 ): Promise<T> {
   return apiFetch<T>(path, {
     ...init,

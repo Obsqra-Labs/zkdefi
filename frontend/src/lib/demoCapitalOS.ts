@@ -141,10 +141,17 @@ export const DEMO_HEALTH = {
 
 /** Demo agent status for AgentControls. */
 export const DEMO_AGENT = {
-  status: { state: "monitoring", running: true, policy_name: "balanced_yield" },
+  status: { state: "monitoring", running: true, policy_name: "balanced_yield", checks_count: 47, actions_taken: 6, last_check: new Date(Date.now() - 120_000).toISOString() },
   constraints: { risk_tolerance: 50, venue_limits: { venues: ["ekubo", "avnu"], ekubo_pct: 60, lending_pct: 25 } },
   session: { active: true, expires_in: "5h 30m" },
   rebalance_mode: "oracle" as const,
+  portfolio: {
+    deployed_usd: 227.64,
+    yield_usd: 1.76,
+    apy_estimate: 12.4,
+    positions: 5,
+    risk_pct: 42,
+  },
 };
 
 /** Realistic demo commitments across all 3 pools for showcase. */

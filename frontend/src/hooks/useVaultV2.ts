@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getOrCreateVault,
   getVaultBalance,
@@ -92,8 +92,13 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
   // -----------------------------------------------------------------------
   // Load
   // -----------------------------------------------------------------------
+  const refreshingRef = useRef(false);
+
   const refresh = useCallback(async () => {
     if (!address) return;
+    // Prevent overlapping refreshes (e.g. interval fires while initial load is still running)
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     try {
       setError(null);
 
@@ -120,6 +125,7 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      refreshingRef.current = false;
       setLoading(false);
     }
   }, [address]);

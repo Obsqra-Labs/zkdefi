@@ -9,6 +9,7 @@ export interface HealthPassport {
   tier_name: string;
   trust_score: number;
   proof_count: number;
+  credit_score: number | null;
 }
 
 const DEFAULTS: HealthPassport = {
@@ -17,6 +18,7 @@ const DEFAULTS: HealthPassport = {
   tier_name: "Unranked",
   trust_score: 0,
   proof_count: 0,
+  credit_score: null,
 };
 
 const TIER_NAMES: Record<number, string> = {
@@ -41,16 +43,19 @@ export function useHealthPassport(address: string | undefined): HealthPassport {
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true }));
 
-    apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`)
+    const ac = new AbortController();
+    apiFetch<Record<string, unknown>>(`/api/v1/zkdefi/reputation/user/${address}`, { signal: ac.signal })
       .then((d) => {
         if (cancelled) return;
         const tier = Number(d?.tier ?? 0);
+        const cs = d?.credit_score ?? d?.reputation_score ?? d?.composite_score;
         setState({
           loading: false,
           tier,
           tier_name: (d?.tier_name as string) ?? TIER_NAMES[tier] ?? TIER_NAMES[0]!,
           trust_score: Number(d?.reputation_score ?? d?.trust_score ?? 0),
           proof_count: Number(d?.proof_count ?? d?.proofs_generated ?? 0),
+          credit_score: cs != null ? Number(cs) : null,
         });
       })
       .catch(() => {
@@ -59,6 +64,7 @@ export function useHealthPassport(address: string | undefined): HealthPassport {
 
     return () => {
       cancelled = true;
+      ac.abort();
     };
   }, [address]);
 

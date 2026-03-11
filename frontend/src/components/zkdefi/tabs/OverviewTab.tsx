@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio, ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Zap } from "lucide-react";
+import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio, ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Zap, TrendingUp } from "lucide-react";
 import { apiFetch, API_BASE } from "@/lib/api/client";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
@@ -14,6 +14,7 @@ import {
   DEMO_ALLOCATION,
 } from "@/lib/demoCapitalOS";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
+import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
 import PositionsOverview from "@/components/zkdefi/vault/PositionsOverview";
 import { AgentAllocationStrip } from "@/components/zkdefi/vault/AgentAllocationStrip";
 
@@ -37,6 +38,7 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 export function OverviewTab({ address, isDemo, commitments: commitmentsProp, walletBalance, onDeploy }: OverviewTabProps) {
   const vaultRaw = useVaultSummary(address);
+  const { prices } = useTokenPrices();
 
   // In demo mode, overlay demo data when API returns nothing
   const vault = useMemo(() => {
@@ -51,6 +53,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   }, [isDemo, vaultRaw]);
 
   const [privacyTotal, setPrivacyTotal] = useState(0);
+  const [privacyYield, setPrivacyYield] = useState(0);
   const [ekuboTotal, setEkuboTotal] = useState(0);
   const [ekuboPositions, setEkuboPositions] = useState<EkuboPosition[]>([]);
   const [deployedLoading, setDeployedLoading] = useState(true);
@@ -60,16 +63,30 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   const [activity, setActivity] = useState<any[]>([]);
   const [activityError, setActivityError] = useState(false);
 
+  // Compute privacy pool totals from actual user commitments
+  const activeCommitments = useMemo(() => isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? []), [isDemo, commitmentsProp]);
+
+  useEffect(() => {
+    // Aggregate privacy pool value from commitments
+    let poolTotal = 0;
+    let yieldTotal = 0;
+    for (const c of activeCommitments) {
+      const amt = Number(c.amount_wei) / 1e18;
+      const price = priceOf(prices, c.asset ?? "STRK");
+      poolTotal += amt * price;
+      if (c.yield_accrued) {
+        yieldTotal += Number(c.yield_accrued) / 1e18 * price;
+      }
+    }
+    setPrivacyTotal(poolTotal);
+    setPrivacyYield(yieldTotal);
+  }, [activeCommitments, prices]);
+
   useEffect(() => {
     if (!address) return;
 
     // In demo mode, use demo data immediately
     if (isDemo) {
-      // Compute privacy total from demo commitments
-      const pTotal = DEMO_COMMITMENTS.reduce(
-        (sum, c) => sum + Number(c.amount_wei) / 1e18 * 0.5, 0
-      );
-      setPrivacyTotal(pTotal);
       setEkuboTotal(164.87);
       setDeployedLoading(false);
       return;
@@ -79,21 +96,13 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
 
     (async () => {
       setDeployedLoading(true);
-      const [privRes, ekuboRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/zkdefi/private-yield/vault/stats"),
-        getEkuboPositions(address),
-      ]);
+      const ekuboRes = await getEkuboPositions(address).catch(() => ({ positions: [], total_value_usd: 0 }));
 
       if (cancelled) return;
 
-      if (privRes.status === "fulfilled") {
-        setPrivacyTotal(Number(privRes.value?.total_value_usd ?? privRes.value?.tvl ?? 0));
-      }
-      if (ekuboRes.status === "fulfilled") {
-        const positions = ekuboRes.value.positions ?? [];
-        setEkuboPositions(positions);
-        setEkuboTotal(ekuboRes.value.total_value_usd ?? 0);
-      }
+      const positions = ekuboRes.positions ?? [];
+      setEkuboPositions(positions);
+      setEkuboTotal(ekuboRes.total_value_usd ?? 0);
       setDeployedLoading(false);
     })();
 
@@ -160,56 +169,138 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   }
 
   // Use real prices: STRK ~$0.04, ETH ~$2020 (2026-03-11)
-  const totalCapital = vault.total_usd || (vault.strk_balance * 0.04 + vault.eth_balance * 2020);
+  const totalCapital = vault.total_usd || (vault.strk_balance * priceOf(prices, "STRK") + vault.eth_balance * priceOf(prices, "ETH"));
   const deployed = privacyTotal + ekuboTotal;
   const idle = Math.max(0, totalCapital - deployed);
+  const totalWithYield = totalCapital + privacyYield;
+  const allocationPct = totalCapital > 0 ? { privacy: (privacyTotal / totalCapital) * 100, ekubo: (ekuboTotal / totalCapital) * 100, idle: (idle / totalCapital) * 100 } : { privacy: 0, ekubo: 0, idle: 100 };
+
+  // Pool breakdown from commitments
+  const poolBreakdown = useMemo(() => {
+    const map: Record<string, { count: number; usd: number; yield_usd: number }> = {};
+    for (const c of activeCommitments) {
+      const variant = c.pool_variant ?? "unassigned";
+      const price = priceOf(prices, c.asset ?? "STRK");
+      const amt = Number(c.amount_wei) / 1e18 * price;
+      const yld = c.yield_accrued ? Number(c.yield_accrued) / 1e18 * price : 0;
+      if (!map[variant]) map[variant] = { count: 0, usd: 0, yield_usd: 0 };
+      map[variant].count++;
+      map[variant].usd += amt;
+      map[variant].yield_usd += yld;
+    }
+    return map;
+  }, [activeCommitments, prices]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 p-4">
       {/* Balance Hero */}
-      <section className="glass rounded-xl p-6">
+      <section className="glass rounded-xl p-5 space-y-4">
         {vault.loading ? (
           <div className="space-y-3">
             <Skeleton className="h-8 w-48" />
             <div className="flex gap-4">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-5 w-24" />
             </div>
           </div>
         ) : (
           <>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Total Capital</p>
-            <h2 className="text-3xl font-bold text-white">{usd(totalCapital)}</h2>
-            <div className="flex flex-wrap gap-4 mt-3 text-sm">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5">Total Capital</p>
+                <h2 className="text-3xl font-bold text-white tracking-tight">{usd(totalWithYield)}</h2>
+              </div>
+              {privacyYield > 0 && (
+                <div className="flex items-center gap-1 text-emerald-400 text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  <TrendingUp className="w-3 h-3" />
+                  +{usd(privacyYield)} yield
+                </div>
+              )}
+            </div>
+
+            {/* Token balances */}
+            <div className="flex flex-wrap gap-3 text-sm">
               <span className="text-zinc-400">
                 <span className="text-violet-400 font-medium">{vault.strk_balance.toFixed(2)}</span> STRK
               </span>
               <span className="text-zinc-400">
                 <span className="text-cyan-400 font-medium">{vault.eth_balance.toFixed(4)}</span> ETH
               </span>
-              {vault.total_usd > 0 && (
-                <span className="text-zinc-400">
-                  <span className="text-emerald-400 font-medium">{usd(vault.total_usd)}</span> USD
-                </span>
-              )}
+            </div>
+
+            {/* Allocation bar */}
+            <div className="space-y-2">
+              <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-800">
+                {allocationPct.privacy > 0 && (
+                  <div className="bg-violet-500 transition-all" style={{ width: `${allocationPct.privacy}%` }} title={`Privacy Pools: ${allocationPct.privacy.toFixed(1)}%`} />
+                )}
+                {allocationPct.ekubo > 0 && (
+                  <div className="bg-cyan-500 transition-all" style={{ width: `${allocationPct.ekubo}%` }} title={`Ekubo LP: ${allocationPct.ekubo.toFixed(1)}%`} />
+                )}
+                {allocationPct.idle > 0 && (
+                  <div className="bg-zinc-600 transition-all" style={{ width: `${allocationPct.idle}%` }} title={`Idle: ${allocationPct.idle.toFixed(1)}%`} />
+                )}
+              </div>
+              <div className="flex gap-4 text-[11px] text-zinc-500">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500" /> Privacy Pools {allocationPct.privacy.toFixed(0)}%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-500" /> Ekubo LP {allocationPct.ekubo.toFixed(0)}%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-zinc-600" /> Idle {allocationPct.idle.toFixed(0)}%</span>
+              </div>
             </div>
           </>
         )}
       </section>
 
-      {/* Deployed / Available Breakdown */}
+      {/* Deployed / Idle Breakdown */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {deployedLoading ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           <>
-            <BreakdownCard icon={Shield} label="Privacy Pools" value={usd(privacyTotal)} accent="text-violet-400" />
-            <BreakdownCard icon={Layers} label="Ekubo LP" value={usd(ekuboTotal)} accent="text-cyan-400" />
-            <BreakdownCard icon={Coins} label="Idle" value={usd(idle)} accent="text-zinc-400" />
+            <BreakdownCard
+              icon={Shield}
+              label="Privacy Pools"
+              value={usd(privacyTotal)}
+              sub={`${activeCommitments.length} commitment${activeCommitments.length !== 1 ? "s" : ""}`}
+              accent="text-violet-400"
+            />
+            <BreakdownCard
+              icon={Layers}
+              label="Ekubo LP"
+              value={usd(ekuboTotal)}
+              sub={`${ekuboPositions.length} position${ekuboPositions.length !== 1 ? "s" : ""}`}
+              accent="text-cyan-400"
+            />
+            <BreakdownCard
+              icon={Coins}
+              label="Idle"
+              value={usd(idle)}
+              sub={deployed > 0 ? `${((idle / totalCapital) * 100).toFixed(0)}% undeployed` : "not yet deployed"}
+              accent="text-zinc-400"
+            />
           </>
         )}
       </section>
+
+      {/* Per-pool breakdown from commitments */}
+      {Object.keys(poolBreakdown).length > 0 && (
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {Object.entries(poolBreakdown).map(([variant, info]) => {
+            const color = variant === "conservative" ? "border-emerald-700/40" : variant === "moderate" ? "border-yellow-700/40" : variant === "aggressive" ? "border-red-700/40" : "border-zinc-700/40";
+            const label = variant.charAt(0).toUpperCase() + variant.slice(1);
+            return (
+              <div key={variant} className={`rounded-xl border ${color} bg-zinc-900/40 p-3 space-y-1`}>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{label} Pool</p>
+                <p className="text-sm font-semibold text-zinc-100">{usd(info.usd)}</p>
+                <div className="flex justify-between text-[10px] text-zinc-500">
+                  <span>{info.count} note{info.count !== 1 ? "s" : ""}</span>
+                  {info.yield_usd > 0 && <span className="text-emerald-400">+{usd(info.yield_usd)} yield</span>}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {/* Pool-Grouped Positions (Phase C) */}
       <PositionsOverview
@@ -331,7 +422,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   );
 }
 
-function BreakdownCard({ icon: Icon, label, value, accent }: { icon: React.ElementType; label: string; value: string; accent: string }) {
+function BreakdownCard({ icon: Icon, label, value, sub, accent }: { icon: React.ElementType; label: string; value: string; sub?: string; accent: string }) {
   return (
     <div className="glass rounded-xl p-4 flex items-center gap-3">
       <div className={`p-2 rounded-lg bg-zinc-800/60 ${accent}`}>
@@ -340,6 +431,7 @@ function BreakdownCard({ icon: Icon, label, value, accent }: { icon: React.Eleme
       <div>
         <p className="text-xs text-zinc-500">{label}</p>
         <p className="text-sm font-semibold text-zinc-100">{value}</p>
+        {sub && <p className="text-[10px] text-zinc-600 mt-0.5">{sub}</p>}
       </div>
     </div>
   );

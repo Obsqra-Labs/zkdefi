@@ -252,6 +252,7 @@ function AgentPageInner() {
               address={addr}
               onSlideout={isGuest ? () => toast("info", "Connect a wallet to fund or withdraw") : (m) => setSlideout(m as SlideoutModeV2)}
               isDemo={isGuest}
+              profileV2={profileV2}
             />
           }
           centerStage={

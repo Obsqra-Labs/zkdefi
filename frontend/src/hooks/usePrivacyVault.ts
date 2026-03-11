@@ -260,11 +260,13 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
   useEffect(() => {
     if (!address) return;
     let dead = false;
+    const ac = new AbortController();
 
     (async () => {
       try {
         const data = await apiFetch<{ notes?: Record<string, unknown>[] }>(`/api/v1/zkdefi/ledger/notes/${address}`, {
           method: "GET",
+          signal: ac.signal,
         });
         if (dead) return;
         const notes: Record<string, unknown>[] = Array.isArray(data?.notes) ? data.notes : [];
@@ -304,18 +306,20 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
 
     return () => {
       dead = true;
+      ac.abort();
     };
   }, [address]);
 
   useEffect(() => {
     if (!address || commitments.length === 0) return;
     let dead = false;
+    const ac = new AbortController();
 
     (async () => {
       try {
         const data = await apiFetch<{ positions?: Record<string, unknown>[] }>(
           `/api/v1/zkdefi/private-yield/positions/${address}`,
-          { method: "GET" },
+          { method: "GET", signal: ac.signal },
         );
         if (dead) return;
         const positions: Record<string, unknown>[] = Array.isArray(data.positions) ? data.positions : [];
@@ -346,7 +350,7 @@ export function usePrivacyVault(address?: string): UsePrivacyVaultReturn {
       } catch { /* best-effort background sync */ }
     })();
 
-    return () => { dead = true; };
+    return () => { dead = true; ac.abort(); };
   }, [address, commitments.length]);
 
   const setMethod = useCallback((m: PrivacyMethod) => {

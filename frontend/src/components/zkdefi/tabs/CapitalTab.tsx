@@ -7,11 +7,14 @@ import {
 import { apiFetch } from "@/lib/api/client";
 import { PoolBucketCard } from "@/components/zkdefi/shared/PoolBucketCard";
 import { DEMO_OPPORTUNITIES } from "@/lib/demoCapitalOS";
+import type { VaultCommitment } from "@/hooks/usePrivacyVault";
+import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
 
 interface CapitalTabProps {
   address: string;
   onSlideout: (mode: string, poolId?: string) => void;
   isDemo?: boolean;
+  commitments?: VaultCommitment[];
 }
 
 const POOLS = [
@@ -44,14 +47,29 @@ const FILTER_PILLS: Array<{ key: OpFilter; label: string }> = [
   { key: "private", label: "Private" },
 ];
 
-export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
+export function CapitalTab({ address, onSlideout, isDemo, commitments }: CapitalTabProps) {
   // ── Opportunities ──
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [oppsLoading, setOppsLoading] = useState(true);
   const [oppsError, setOppsError] = useState<string | null>(null);
   const [opFilter, setOpFilter] = useState<OpFilter>("all");
+  const { prices } = useTokenPrices();
 
-  const loadOpps = useCallback(async () => {
+  // Per-pool user deposits from commitments
+  const poolUserData = useMemo(() => {
+    const map: Record<string, { count: number; usd: number }> = {};
+    for (const c of (commitments ?? [])) {
+      const variant = c.pool_variant ?? "unassigned";
+      const price = priceOf(prices, c.asset ?? "STRK");
+      const amt = Number(c.amount_wei) / 1e18 * price;
+      if (!map[variant]) map[variant] = { count: 0, usd: 0 };
+      map[variant].count++;
+      map[variant].usd += amt;
+    }
+    return map;
+  }, [commitments, prices]);
+
+  const loadOpps = useCallback(async (signal?: AbortSignal) => {
     if (isDemo) {
       // Use demo opportunities directly
       setOpportunities(DEMO_OPPORTUNITIES.map((o) => ({
@@ -70,7 +88,8 @@ export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
     setOppsLoading(true);
     try {
       const res = await apiFetch<any>(
-        `/api/v1/zkdefi/trade-desk/v2/opportunities?type=lp,lending,staking&limit=20`
+        `/api/v1/zkdefi/trade-desk/v2/opportunities?type=lp,lending,staking&limit=20`,
+        { signal },
       );
       const opps = Array.isArray(res?.opportunities)
         ? res.opportunities
@@ -79,6 +98,7 @@ export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
           : [];
       setOpportunities(opps);
     } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
       setOppsError(e instanceof Error ? e.message : "Failed to load opportunities");
     } finally {
       setOppsLoading(false);
@@ -86,7 +106,9 @@ export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
   }, [isDemo]);
 
   useEffect(() => {
-    loadOpps();
+    const ac = new AbortController();
+    loadOpps(ac.signal);
+    return () => ac.abort();
   }, [loadOpps]);
 
   const filteredOpps = useMemo(() => {
@@ -110,18 +132,23 @@ export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
         </div>
 
         <div className="space-y-3">
-          {POOLS.map((pool) => (
-            <PoolBucketCard
-              key={pool.id}
-              poolId={pool.id}
-              label={pool.label}
-              risk={pool.risk}
-              riskColor={pool.riskColor}
-              onDeposit={(pid) => onSlideout("deposit", pid)}
-              onWithdraw={(pid) => onSlideout("withdraw", pid)}
-              isDemo={isDemo}
-            />
-          ))}
+          {POOLS.map((pool) => {
+            const userData = poolUserData[pool.id];
+            return (
+              <PoolBucketCard
+                key={pool.id}
+                poolId={pool.id}
+                label={pool.label}
+                risk={pool.risk}
+                riskColor={pool.riskColor}
+                onDeposit={(pid) => onSlideout("deposit", pid)}
+                onWithdraw={(pid) => onSlideout("withdraw", pid)}
+                isDemo={isDemo}
+                userDeposits={userData?.count}
+                userValueUsd={userData?.usd}
+              />
+            );
+          })}
         </div>
       </section>
 
@@ -162,7 +189,7 @@ export function CapitalTab({ address, onSlideout, isDemo }: CapitalTabProps) {
           <div className="glass rounded-xl p-4 text-center">
             <p className="text-sm text-red-300 mb-2">{oppsError}</p>
             <button
-              onClick={loadOpps}
+              onClick={() => loadOpps()}
               className="flex items-center gap-1 mx-auto px-3 py-1.5 rounded border border-zinc-700 text-zinc-300 text-xs hover:bg-zinc-800"
             >
               <RefreshCw className="w-3 h-3" /> Retry

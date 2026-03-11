@@ -173,14 +173,15 @@ function VotingPowerSection({ address }: { address: string }) {
   const [basePower, setBasePower] = useState(0);
   const [tierMult, setTierMult] = useState(1);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     setLoading(true);
     try {
       const [repRes, vpRes] = await Promise.all([
-        apiFetch<ReputationData>(`/api/v1/zkdefi/reputation/user/${address}`).catch((): ReputationData => ({})),
-        fetch(apiUrl(`/api/v1/dao/voting_power/${address}`)).then((r) => r.ok ? r.json() : null).catch(() => null),
+        apiFetch<ReputationData>(`/api/v1/zkdefi/reputation/user/${address}`, { signal }).catch((): ReputationData => ({})),
+        fetch(apiUrl(`/api/v1/dao/voting_power/${address}`), { signal }).then((r) => r.ok ? r.json() : null).catch(() => null),
       ]);
+      if (signal?.aborted) return;
 
       const tierVal = Number(vpRes?.tier ?? repRes?.tier ?? repRes?.current_tier ?? 0);
       setTier(tierVal);
@@ -202,13 +203,18 @@ function VotingPowerSection({ address }: { address: string }) {
         setVp(Math.floor(base * (TIER_MULTIPLIERS[tierVal] ?? 1)));
       }
     } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Failed to load voting power");
     } finally {
       setLoading(false);
     }
   }, [address]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const ac = new AbortController();
+    load(ac.signal);
+    return () => ac.abort();
+  }, [load]);
 
   if (loading) {
     return (
@@ -231,7 +237,7 @@ function VotingPowerSection({ address }: { address: string }) {
           <p className="text-sm font-medium text-zinc-200">Voting Power</p>
           <p className="text-xs text-zinc-500">{error}</p>
         </div>
-        <button onClick={load} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1.5">
+        <button onClick={() => load()} className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Retry
         </button>
       </section>
@@ -287,14 +293,15 @@ function ActiveProposalsSection({ address }: { address: string }) {
   const [error, setError] = useState<string | null>(null);
   const [votingPower, setVotingPower] = useState(0);
 
-  const loadProposals = useCallback(async () => {
+  const loadProposals = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     setLoading(true);
     try {
-      const list = await apiFetch<Proposal[] | { items?: Proposal[] }>("/api/v1/dao/proposals");
+      const list = await apiFetch<Proposal[] | { items?: Proposal[] }>("/api/v1/dao/proposals", { signal });
       const raw = (Array.isArray(list) ? list : (list as { items?: unknown[] })?.items ?? []) as Record<string, unknown>[];
       setProposals(raw.map(normalizeProposal));
     } catch (e) {
+      if ((e as any)?.name === "AbortError") return;
       setProposals([]);
       setError(e instanceof Error ? e.message : "Failed to load proposals");
     } finally {
@@ -302,12 +309,18 @@ function ActiveProposalsSection({ address }: { address: string }) {
     }
   }, []);
 
-  useEffect(() => { loadProposals(); }, [loadProposals]);
+  useEffect(() => {
+    const ac = new AbortController();
+    loadProposals(ac.signal);
+    return () => ac.abort();
+  }, [loadProposals]);
 
   useEffect(() => {
-    apiFetch<VotingPowerData>(`/api/v1/dao/voting_power/${address}`)
+    const ac = new AbortController();
+    apiFetch<VotingPowerData>(`/api/v1/dao/voting_power/${address}`, { signal: ac.signal })
       .then((res) => setVotingPower(res?.voting_power ?? 0))
       .catch(() => setVotingPower(0));
+    return () => ac.abort();
   }, [address]);
 
   return (
@@ -316,7 +329,7 @@ function ActiveProposalsSection({ address }: { address: string }) {
         <h3 className="text-sm font-medium text-violet-400 flex items-center gap-2">
           <FileText className="w-4 h-4" /> Active Proposals
         </h3>
-        <button onClick={loadProposals} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button onClick={() => loadProposals()} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>

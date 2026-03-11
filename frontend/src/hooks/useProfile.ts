@@ -504,19 +504,20 @@ export function useRiskProfileV2(address: string | undefined) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (signal?: AbortSignal) => {
     if (!address) return;
     setLoading(true);
     setError(false);
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/risk_profile/v2/${address}`));
+      const response = await fetch(apiUrl(`/api/v1/zkdefi/risk_profile/v2/${address}`), { signal });
       if (!response.ok) {
         setError(true);
         setProfile(null);
         return;
       }
       setProfile((await response.json()) as RiskProfileV2);
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(true);
       setProfile(null);
     } finally {
@@ -531,7 +532,9 @@ export function useRiskProfileV2(address: string | undefined) {
       setLoading(false);
       return;
     }
-    refetch();
+    const ac = new AbortController();
+    refetch(ac.signal);
+    return () => ac.abort();
   }, [address, refetch]);
 
   return { profile, loading, error, refetch };
