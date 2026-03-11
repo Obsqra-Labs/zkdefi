@@ -1,0 +1,4 @@
+# Public inputs only (for verifier)
+expected_model_hash = "0"
+output_lower_bound = "0"
+output_upper_bound = "10000"

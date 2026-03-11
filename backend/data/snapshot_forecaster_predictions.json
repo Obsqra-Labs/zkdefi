@@ -762,5 +762,974 @@
     "created_at_ts": 1773183939,
     "reveal_salt_hash": "0x94e78568b172591f4f30fe2de19974f4f69403b710224a436af1c655cecb2880",
     "scored_at_ts": 1773183939
+  },
+  "0xb0ee249412448869c0afd17f5401ff022e67fa3f72668ad2183256320d7868ec": {
+    "forecast_id": "0xb0ee249412448869c0afd17f5401ff022e67fa3f72668ad2183256320d7868ec",
+    "window_id": "0x3dc9c0212cbfeadf3a659c6abae48977c025e44d3b7279e33e737d0c5d9f5174",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773184687,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x317d47f2b740786e6933dad94ae86f0a952ebbe60039f0b8dddb64f0543009a9",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773184688,
+    "outputs_scaled": {
+      "p240": 7828,
+      "p30": 6892,
+      "p5": 6077,
+      "r240": 156,
+      "r30": 102,
+      "r5": 63
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x02784df23e9b31d8d2cde08c411f5c95e1025d0bfdf6a4705b7d832d46d035d6",
+    "created_at_ts": 1773184688,
+    "reveal_salt_hash": "0xa2f0b6592e66389ff71931b916d8279487e4dd492bb00c494f58d568044563ae",
+    "scored_at_ts": 1773184688
+  },
+  "0x9ca15f6d230d78bbcb211a13cd6fe9bc55268388cf2976eed82fd5515d17476b": {
+    "forecast_id": "0x9ca15f6d230d78bbcb211a13cd6fe9bc55268388cf2976eed82fd5515d17476b",
+    "window_id": "0xf44511d552d634b0b476da169c3f7c070633cd50299cb78151a26b85dd7c4f9b",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773184951,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x5c4aa543fea3db7e78180532d50873f8d1876f5154236a615b095e07ca85b91b",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773184952,
+    "outputs_scaled": {
+      "p240": 7993,
+      "p30": 7028,
+      "p5": 6179,
+      "r240": 170,
+      "r30": 111,
+      "r5": 69
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x77d8d3ac2b627dd91755d736a4738a1705f4db2eee925fc6fdb1e718b1a2ca12",
+    "created_at_ts": 1773184952,
+    "reveal_salt_hash": "0xa9e2d7e649fe14cb116cc4658b28e7677d1c8b6c0267478af0024047d3fb14eb",
+    "scored_at_ts": 1773184952
+  },
+  "0x23d6678675afdf2c84fbd37ed114b3826fbbb940e90b72a4dd76fc3c86475d64": {
+    "forecast_id": "0x23d6678675afdf2c84fbd37ed114b3826fbbb940e90b72a4dd76fc3c86475d64",
+    "window_id": "0x0549c1f1b5701eeea7cd7ff6e5fb8c24a583c87f40cb66cdefe08591d575fd42",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773186632,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x5033ad76c7acb07ebf35f4b0612c51f715d8e185857a0daae8ed574b351969c8",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773186633,
+    "outputs_scaled": {
+      "p240": 8050,
+      "p30": 7073,
+      "p5": 6196,
+      "r240": 175,
+      "r30": 114,
+      "r5": 70
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x3c734c121e16775b1f0e0e6423a3baf681ccecd750fccf36378848631fc1945b",
+    "created_at_ts": 1773186633,
+    "reveal_salt_hash": "0x05cf77c0957eef2dbb2dc31e4c5113359d63637d29a7c56f1df72614b210b016",
+    "scored_at_ts": 1773186633
+  },
+  "0xd93fc83a41c84f21203dcb2258125e80a568ec33a6fba2a17612ea65150fc306": {
+    "forecast_id": "0xd93fc83a41c84f21203dcb2258125e80a568ec33a6fba2a17612ea65150fc306",
+    "window_id": "0x7c95149f090aa5e6c3508050a20b73a51eecd9bddcb2b07384fd5b594dd4982e",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773186873,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x55e9d3550770a70247475129589022a2745b2fc8a9743452fd6f97565ec56995",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773186874,
+    "outputs_scaled": {
+      "p240": 5507,
+      "p30": 5241,
+      "p5": 5005,
+      "r240": 5,
+      "r30": 4,
+      "r5": 2
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x0011327028cce1482b2c9aca4f111de5117f7d5db6056586387475090bfc2937",
+    "created_at_ts": 1773186874,
+    "reveal_salt_hash": "0x129dc192f41b83e5c125564d5f059d343711d6a869884ced1255a7e65c4280cc",
+    "scored_at_ts": 1773186874
+  },
+  "0x282a1081cf6117a1c0cb913073d909be8f39cd616b7216b145ccbb490ef6147b": {
+    "forecast_id": "0x282a1081cf6117a1c0cb913073d909be8f39cd616b7216b145ccbb490ef6147b",
+    "window_id": "0x12ee652700b6ae8c1759c28eaec40ab9449b932bd42d21bdd4abbf565213f939",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773187058,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x2f82f74b005bf26311ae29e175593ed0deb67fe174229d29b7a70c0579cd5e0d",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773187059,
+    "outputs_scaled": {
+      "p240": 6250,
+      "p30": 5718,
+      "p5": 5309,
+      "r240": 48,
+      "r30": 31,
+      "r5": 19
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x8a6b94abc3c8742522f044a56ed2653c9f006a0cc230aab3e18c7bd48c1c3251",
+    "created_at_ts": 1773187059,
+    "reveal_salt_hash": "0x056b0669b8e7cc813f767776a6b532e85c53c2404bcb1f68ef21a2a05154fd33",
+    "scored_at_ts": 1773187059
+  },
+  "0x11dcd0a4927d2488fc7b218c7d6f50312be7638953918b846cd2e63cfe0ba8f8": {
+    "forecast_id": "0x11dcd0a4927d2488fc7b218c7d6f50312be7638953918b846cd2e63cfe0ba8f8",
+    "window_id": "0x508f1faf35175c189a798cc64c5e051f7d0543e31d553376d695ad5b8336736b",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773187745,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x0610b6214a24a6132fa2241326de42c0e3065bdd2e3f8ef17148f6316ac0e9d6",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773187746,
+    "outputs_scaled": {
+      "p240": 6448,
+      "p30": 5857,
+      "p5": 5397,
+      "r240": 60,
+      "r30": 39,
+      "r5": 24
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x54d4da9144653be61ef051e3e9d71f522d22e39953553232d0085f40a0a87386",
+    "created_at_ts": 1773187746,
+    "reveal_salt_hash": "0x36f7728457f7665c0510940778eec283545e4ea19ef415e98da61f93f5a5a653",
+    "scored_at_ts": 1773187746
+  },
+  "0x2c374259109da1201d8b440aa8e15f30ab7ea6482493747371c2664e39c11f9a": {
+    "forecast_id": "0x2c374259109da1201d8b440aa8e15f30ab7ea6482493747371c2664e39c11f9a",
+    "window_id": "0x177ddbebff6012440640ac6d5aa9e44cb43cd6da9766fe1dcc6eb96575a091e4",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773188037,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x4e3be883a23a4875ffbb4153fe450de6dd22f3194f69156ac8179234cf7777d7",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773188038,
+    "outputs_scaled": {
+      "p240": 7754,
+      "p30": 6831,
+      "p5": 6026,
+      "r240": 150,
+      "r30": 98,
+      "r5": 60
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x539e6038315715bdbf79f11927c44c0d049417ec9336f0fab475144f114c0c49",
+    "created_at_ts": 1773188038,
+    "reveal_salt_hash": "0x8cbc67ec0a25429f2acc145ebaf21e10894e336f146a12d6d8cb152ad974cdd4",
+    "scored_at_ts": 1773188038
+  },
+  "0x7f91ce350cc0c796cec962cc843c821c9404878e275ea1bf8c556228d1921bb5": {
+    "forecast_id": "0x7f91ce350cc0c796cec962cc843c821c9404878e275ea1bf8c556228d1921bb5",
+    "window_id": "0xef50c8af13691c6600a22381662e10b41b67a958f54117f81deb5cc28a2f473d",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773188375,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x0156856d48ec89139203b85b3cee9525134b2e67373cac7fa3900e9ed90f1f0d",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773188376,
+    "outputs_scaled": {
+      "p240": 6594,
+      "p30": 5961,
+      "p5": 5468,
+      "r240": 69,
+      "r30": 45,
+      "r5": 28
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x5967af56f2c0220e6bfcc27d2bbe4e59cf7e4a883e53366163f16d74d6716326",
+    "created_at_ts": 1773188376,
+    "reveal_salt_hash": "0x368c61619cc0e263de8be8385a4fa4176269e079dbe0c64a8057f41263738f4f",
+    "scored_at_ts": 1773188376
+  },
+  "0x14a3f82e23cc98cfe784b54b8be27cf529a71ea43503022226999fcfc6bec64c": {
+    "forecast_id": "0x14a3f82e23cc98cfe784b54b8be27cf529a71ea43503022226999fcfc6bec64c",
+    "window_id": "0x85a25d95c418e6b260b573663c05daf2859f58baca065fb4b7c506d1ab742f7d",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773188736,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x71ec07b3f2bc26884b95fe0df9d401ad63904db6c32c94176e31c7b4a305a84d",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773188737,
+    "outputs_scaled": {
+      "p240": 4830,
+      "p30": 4777,
+      "p5": 4738,
+      "r240": -33,
+      "r30": -22,
+      "r5": -13
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xc97dca615909ca2c230412526268bb6af94d60cb9b371a5e655e5c03d4ab4962",
+    "created_at_ts": 1773188737,
+    "reveal_salt_hash": "0x2b61de57b63cf5d06f3d8d3b6e0ee7d0400c5b4c23234cc8f0f221c9a1e7f9af",
+    "scored_at_ts": 1773188737
+  },
+  "0x57cab16e3c19f3b176e534c4249a1a4045db92af175c265bdb85a3cbd487450d": {
+    "forecast_id": "0x57cab16e3c19f3b176e534c4249a1a4045db92af175c265bdb85a3cbd487450d",
+    "window_id": "0x7cf4313dccbba8e65a288748f9af233d201a483ea582214d81e22d4b86881f8b",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773189114,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x458f06ea6f171e9a2b4e2f74b8fba27d1687807fbfd7431e061aefda12629024",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773189115,
+    "outputs_scaled": {
+      "p240": 5736,
+      "p30": 5383,
+      "p5": 5095,
+      "r240": 18,
+      "r30": 12,
+      "r5": 7
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x5371a284b6d6dc324473dc393c54e0900c4633da804eb4602d76b3a09c5798aa",
+    "created_at_ts": 1773189115,
+    "reveal_salt_hash": "0xbc535a22825aaed30b966cf96ec83d64e2473092f476ab0a11a6c291ad0fdbc7",
+    "scored_at_ts": 1773189115
+  },
+  "0x8095519ac2e4e4e37aca0a9d276b9508b21ba56a113dcbe6905fdd4c31c1563c": {
+    "forecast_id": "0x8095519ac2e4e4e37aca0a9d276b9508b21ba56a113dcbe6905fdd4c31c1563c",
+    "window_id": "0xa303636277baa35d51507cdc1e3194679b444ad0284ad1f14905e2e424160315",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773189309,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0xca29ca34b6693fbafe519cac5d5f65de2d0775540ed48ef7b2ed8f52c39ab849",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773189310,
+    "outputs_scaled": {
+      "p240": 4723,
+      "p30": 4706,
+      "p5": 4684,
+      "r240": -39,
+      "r30": -26,
+      "r5": -16
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x999f4512f404a3de663991760ac00279a1cb0c1fd4f44352e94c06f77bfb6975",
+    "created_at_ts": 1773189310,
+    "reveal_salt_hash": "0x3a7a9e1e87a28e856f1d2845e2ae7254fc183cdd5841d9f472efd9f623cf6147",
+    "scored_at_ts": 1773189310
+  },
+  "0xdee68a637eb5b9399c36e53af093f59e64665ef2ea6bc4acc9c2589a7dd6ceb7": {
+    "forecast_id": "0xdee68a637eb5b9399c36e53af093f59e64665ef2ea6bc4acc9c2589a7dd6ceb7",
+    "window_id": "0x5fbe39b967b4b4f5492838dae4604a60d6bd1b281bf7b8c26ea9923b077736e0",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773189999,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x73c0a85494207d456dcef6fcb03dec290ca91053600ab7b84fff56729e6c47c7",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773190003,
+    "outputs_scaled": {
+      "p240": 7876,
+      "p30": 6938,
+      "p5": 6111,
+      "r240": 160,
+      "r30": 105,
+      "r5": 65
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xe20d5f2f567f440ae4c88de1bf1e32f8754b3465bac9829caafb27a41e49bc19",
+    "created_at_ts": 1773190003,
+    "reveal_salt_hash": "0xabcee5bbdf5d1b2d2c76a1836e7715eb81c5d8bc7c12ded7f1afc5e0fbe1a1ae",
+    "scored_at_ts": 1773190003
+  },
+  "0x00280082c3043e96199eb4f1f4a9cd0d8ec5ec9342f93ace06d6cf327ecd6247": {
+    "forecast_id": "0x00280082c3043e96199eb4f1f4a9cd0d8ec5ec9342f93ace06d6cf327ecd6247",
+    "window_id": "0x98973ed7d691f8ac632f31ee01ac65b609f539f5cc680748741908b0943d7b0d",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773190010,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x7a6f631c9698c83cb207789252f7c9d36f928741be8d0298cda86989222e8741",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773190011,
+    "outputs_scaled": {
+      "p240": 6132,
+      "p30": 5648,
+      "p5": 5273,
+      "r240": 41,
+      "r30": 27,
+      "r5": 17
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x442c1bd519606af248efffeb43d385b54d29f8907fd66884d99e746e3e03d8fa",
+    "created_at_ts": 1773190011,
+    "reveal_salt_hash": "0x8725ba76eb042e3cd2354ba3003d404a6db4395a107e6bd393e9119b9c1672ba",
+    "scored_at_ts": 1773190011
+  },
+  "0x974032428157165bb385105c9a3d6d4000c2f70cd976cf1b6ac699fcb63ea66f": {
+    "forecast_id": "0x974032428157165bb385105c9a3d6d4000c2f70cd976cf1b6ac699fcb63ea66f",
+    "window_id": "0x9a159a187d45a9f0e67e385e5f224053a6959bdebd14faa756ae3e9faa52f06a",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773190181,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x2cd3c52d91f224071f87d6cc9e5e2477ca020cb57e7c5f3874ae1584ea136702",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773190181,
+    "outputs_scaled": {
+      "p240": 5631,
+      "p30": 5312,
+      "p5": 5059,
+      "r240": 12,
+      "r30": 8,
+      "r5": 5
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x1f5844d82968f2dac95d120f6fb099f1b78fbf235af35f2c0821885db63b7158",
+    "created_at_ts": 1773190181,
+    "reveal_salt_hash": "0x96d014b22b7847b1c1023d032029e8941f0f59ca834e8f0ac637a294a6fd66fd",
+    "scored_at_ts": 1773190181
+  },
+  "0xf27b4263f04100980bcd89cae15a7d43f4760d63327e38e4983ed7e9a7440e02": {
+    "forecast_id": "0xf27b4263f04100980bcd89cae15a7d43f4760d63327e38e4983ed7e9a7440e02",
+    "window_id": "0xa7a8586f0ee6577f48e0448d47bd7bd1f0b42917cf1cb0f6557abb9ed486bede",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773190367,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x9182e36601e7bcbd9204b1e1d20c577f81a176f74f4eab8268b77a6165217975",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773190367,
+    "outputs_scaled": {
+      "p240": 6721,
+      "p30": 6047,
+      "p5": 5521,
+      "r240": 77,
+      "r30": 50,
+      "r5": 31
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xc01d5829cfa15cddc8f6f026bd808e792369df7c1ae732f8e1a2ab09c467a67c",
+    "created_at_ts": 1773190367,
+    "reveal_salt_hash": "0x9a1ca1103f7abff85e114dd32e78013b19e9fe6da872b815eae4ce0c88ac890e",
+    "scored_at_ts": 1773190367
+  },
+  "0xc516c5f1b8d139ac8c8ebe38eda3ac7d96a8e01c691644bdccd2bf380fd5d363": {
+    "forecast_id": "0xc516c5f1b8d139ac8c8ebe38eda3ac7d96a8e01c691644bdccd2bf380fd5d363",
+    "window_id": "0x03d452e49fbf814e5ae971dd828ef962cdbb0d87aba2fe4454c2d1f54ec614d9",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773190851,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x58913f176143bf39653b0ab9ec884039b0973ec3732244829510070e6c6dba36",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773190851,
+    "outputs_scaled": {
+      "p240": 4759,
+      "p30": 4741,
+      "p5": 4702,
+      "r240": -37,
+      "r30": -24,
+      "r5": -15
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xfa31d98614f940589a057900631c0e9dd2982326cdfc68d6b22d8b500fbac36d",
+    "created_at_ts": 1773190851,
+    "reveal_salt_hash": "0xb75a98e771257e1844772db8f7e28525eafe890db3ed98b638e3e3246fbc68c4",
+    "scored_at_ts": 1773190851
+  },
+  "0xf1142e92952621e2f5f443251275c5193e60255d7e0d104a91621996b146259a": {
+    "forecast_id": "0xf1142e92952621e2f5f443251275c5193e60255d7e0d104a91621996b146259a",
+    "window_id": "0xb4458d905b389fd26a9cd66ad0bc2e94b4cbdae203f84dc0f17e2eda30fc47f4",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773191505,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x059aa141f67f0776c48b0babd62f3e69d192d9e6d91c7cf2b683c14254cbde0e",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773191506,
+    "outputs_scaled": {
+      "p240": 4813,
+      "p30": 4777,
+      "p5": 4720,
+      "r240": -34,
+      "r30": -22,
+      "r5": -14
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xfa557c7c455d83c95e51b5f26393f93588c829b67ce1692654af7f43f3924655",
+    "created_at_ts": 1773191506,
+    "reveal_salt_hash": "0xc9e5e36fd46ca9913cbc5c73b36125e5f69c79d320b6642679320191753459a7",
+    "scored_at_ts": 1773191506
+  },
+  "0x2ccb04438b6c06b93f7aad62e6f3363e71684f99db2b63fd6cb1706cfbb4909f": {
+    "forecast_id": "0x2ccb04438b6c06b93f7aad62e6f3363e71684f99db2b63fd6cb1706cfbb4909f",
+    "window_id": "0x2c90fb5f5082aeed0ea7c2c44790938faaf61d2d798259cfb2d923a843c02691",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773191628,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x0f347df1ee875fbd7d0b0abf3abd4987248d320a94dd6debe7b3f3f0ef5a0fa9",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773191629,
+    "outputs_scaled": {
+      "p240": 7876,
+      "p30": 6938,
+      "p5": 6111,
+      "r240": 160,
+      "r30": 105,
+      "r5": 65
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0xb9f941b70acfef3724343fff69c7fee5483dddef068d082b09715f024c17e244",
+    "created_at_ts": 1773191629,
+    "reveal_salt_hash": "0x514223bd55a9643fd4523a006ef23262e674d1cc4ded9a7100a743f0b6e65401",
+    "scored_at_ts": 1773191629
+  },
+  "0x71a783a2c71c4c5e2ba273e8b169b1d5d1ce2de9fc0ac3ef20cf8b72002ce3aa": {
+    "forecast_id": "0x71a783a2c71c4c5e2ba273e8b169b1d5d1ce2de9fc0ac3ef20cf8b72002ce3aa",
+    "window_id": "0xb3ac67172b91314bdcdb57435d5e88729eb2c424137caf9c53027cda8bb7595f",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773192273,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0x30e5c52b16bb02953f74774ef827306bb14e91a8d1cd508723b95f97dfef109a",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773192274,
+    "outputs_scaled": {
+      "p240": 7509,
+      "p30": 6626,
+      "p5": 5906,
+      "r240": 131,
+      "r30": 85,
+      "r5": 53
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x0abdcb07396b50b88c2af78c956606b4cee4c188ce67d8a432dae24c77586506",
+    "created_at_ts": 1773192274,
+    "reveal_salt_hash": "0x2eecbbd6da71b26be2608b4eef764240ed01d45c4a9d77a2f37e45273a847a69",
+    "scored_at_ts": 1773192274
   }
 }

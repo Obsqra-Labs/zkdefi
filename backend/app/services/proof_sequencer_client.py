@@ -64,6 +64,7 @@ class ProofSequencerClient:
         model_name: str = "",
         metadata: dict | None = None,
         groth16_calldata: list[str] | None = None,
+        honk_calldata: list[str] | None = None,
         circuit_name: str = "",
     ) -> SequencerSubmission:
         """
@@ -83,12 +84,14 @@ class ProofSequencerClient:
         payload = {
             "proof_id": proof_id,
             "fact_hash": fact_hash,
-            "proof_type": "groth16" if groth16_calldata else "stark",
+            "proof_type": "noir_honk" if honk_calldata else ("groth16" if groth16_calldata else "stark"),
             "public_inputs": [],
             "source": "zkdefi",
         }
         if groth16_calldata:
             payload["groth16_calldata"] = groth16_calldata
+        if honk_calldata:
+            payload["honk_calldata"] = honk_calldata
         if circuit_name:
             payload["circuit_name"] = circuit_name
         if metadata:
@@ -131,6 +134,7 @@ class ProofSequencerClient:
             "model_name": model_name,
             "metadata": metadata,
             "groth16_calldata": groth16_calldata,
+            "honk_calldata": honk_calldata,
             "circuit_name": circuit_name,
             "timestamp": time.time(),
         })
@@ -155,6 +159,7 @@ class ProofSequencerClient:
                 model_name=item.get("model_name", ""),
                 metadata=item.get("metadata"),
                 groth16_calldata=item.get("groth16_calldata"),
+                honk_calldata=item.get("honk_calldata"),
                 circuit_name=item.get("circuit_name", ""),
             )
             if result.accepted:

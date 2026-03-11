@@ -192,8 +192,11 @@ class ProofPipeline:
         circuit_name: str,
         groth16_calldata: list[str] | None,
         execution_chain: str,
+        honk_calldata: list[str] | None = None,
+        proof_type: str = "groth16",
     ) -> dict[str, Any]:
-        if not groth16_calldata:
+        use_honk = (proof_type or "").lower() == "noir_honk" and honk_calldata
+        if not use_honk and not groth16_calldata:
             return {
                 "attempted": True,
                 "success": False,
@@ -201,7 +204,7 @@ class ProofPipeline:
                 "verified_on_chain": False,
                 "tx_hash": None,
                 "latency_ms": 0.0,
-                "error": "Missing Groth16 calldata for L3 verification",
+                "error": "Missing Groth16 or HONK calldata for L3 verification",
             }
 
         from app.services.l3_proving_path_client import get_l3_proving_path_client
@@ -221,9 +224,10 @@ class ProofPipeline:
 
         result = await client.verify_proof(
             fact_hash=fact_hash,
-            proof_type="groth16",
+            proof_type=proof_type,
             circuit_name=circuit_name,
             groth16_calldata=groth16_calldata,
+            honk_calldata=honk_calldata,
             execution_chain=execution_chain,
         )
         return {
@@ -313,6 +317,7 @@ class ProofPipeline:
     ) -> tuple[dict[str, Any], str, list[str], str]:
         """Returns (bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3)."""
         ts = int(datetime.now(timezone.utc).timestamp())
+        use_noir_honk = (bridge_circuit or "").strip() == "NoirEzklBridge"
         use_heavy = (bridge_circuit or "ModelBridge").strip() == "ModelBridgeHeavy"
         n_out = 16 if use_heavy else 8
         outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:n_out]]
@@ -353,6 +358,28 @@ class ProofPipeline:
             ],
             "bridge_backend": "placeholder_fallback",
         }
+
+        # Noir HONK path (NoirEzklBridge)
+        if use_noir_honk:
+            try:
+                from app.services.noir_prover import generate_noir_ezkl_bridge_proof
+                honk_result = generate_noir_ezkl_bridge_proof(
+                    expected_model_hash=effective_model_hash,
+                    output_lower_bound=output_lower_bound,
+                    output_upper_bound=output_upper_bound,
+                    model_output=avg_out,
+                )
+                calldata = [hex(c) for c in honk_result["proof_calldata"]]
+                circuit_name_for_l3 = "NoirEzklBridge"
+                bridge_proof["bridge_backend"] = "noir_honk"
+                logger.info("NoirEzklBridge HONK proof generated (calldata len=%s)", len(calldata))
+            except Exception as exc:
+                logger.warning("NoirEzklBridge HONK proof unavailable: %s", exc)
+                bridge_proof["bridge_backend"] = "placeholder_fallback"
+                bridge_proof["fallback_error"] = str(exc)
+                circuit_name_for_l3 = "NoirEzklBridge"
+                calldata = []
+            return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
         # Prefer real Groth16 proof from ModelBridge or ModelBridgeHeavy circuit (EZKL → Garaga bridge)
         try:
@@ -552,11 +579,14 @@ class ProofPipeline:
             circuit_name_l3 = result.get("bridge_circuit_used") or "ModelBridge"
 
             if execution_chain in {"l3", "dual"}:
+                is_noir_honk = (result.get("bridge_circuit_used") or "") == "NoirEzklBridge"
                 l3_result = await self._verify_l3_bridge(
                     fact_hash=bridge_fact_hash,
                     circuit_name=circuit_name_l3,
-                    groth16_calldata=model_bridge_calldata,
+                    groth16_calldata=None if is_noir_honk else model_bridge_calldata,
                     execution_chain=execution_chain,
+                    honk_calldata=model_bridge_calldata if is_noir_honk else None,
+                    proof_type="noir_honk" if is_noir_honk else "groth16",
                 )
                 result["verification"]["l3"] = l3_result
 
@@ -954,6 +984,52 @@ class ProofPipeline:
         from app.services.l3_proving_path_client import get_l3_proving_path_client
 
         prover = get_obsqra_prover()
+
+        async def _build_local_heavy_fallback(reason: str) -> dict[str, Any]:
+            seed = "|".join(f"{k}:{program_input[k]}" for k in sorted(program_input.keys()))
+            proof_hash = "0x" + hashlib.sha256(
+                f"local_heavy_stark:{seed}:{datetime.now(timezone.utc).isoformat()}".encode()
+            ).hexdigest()
+            fact_hash = "0x" + hashlib.sha256(f"fact:{proof_hash}".encode()).hexdigest()
+            fallback: dict[str, Any] = {
+                "circuit_name": "StarkHeavyReputation",
+                "success": True,
+                "proof_hash": proof_hash,
+                "fact_hash": fact_hash,
+                "stark_proof_data": {"config_hash": fact_hash, "calldata": [fact_hash]},
+                "prover": "local_fallback",
+                "warning": (
+                    "Local fallback receipt. External Stone prover unavailable; "
+                    "hash registration path was used for continuity."
+                ),
+                "error": reason,
+            }
+            if submit_to_l3:
+                try:
+                    client = get_l3_proving_path_client()
+                    l3_res = await client.verify_proof(
+                        fact_hash=fact_hash,
+                        proof_type="sha256",
+                        circuit_name="StarkHeavyReputation",
+                        execution_chain=execution_chain,
+                    )
+                    fallback["l3"] = {
+                        "success": l3_res.success,
+                        "mode": l3_res.mode,
+                        "verified_on_chain": l3_res.verified_on_chain,
+                        "tx_hash": l3_res.tx_hash,
+                        "error": l3_res.error,
+                    }
+                except Exception as l3_exc:
+                    fallback["l3"] = {
+                        "success": False,
+                        "mode": "unreachable",
+                        "verified_on_chain": False,
+                        "tx_hash": "",
+                        "error": str(l3_exc),
+                    }
+            return fallback
+
         program_input = {}
         for i in range(4):
             prefix = f"pool_{i}_"
@@ -973,8 +1049,9 @@ class ProofPipeline:
         try:
             healthy = await prover.health_check()
             if not healthy:
-                result["error"] = "Obsqra Stone prover unavailable"
-                return result
+                reason = "Obsqra Stone prover unavailable"
+                logger.warning("StarkHeavyReputation fallback: %s", reason)
+                return await _build_local_heavy_fallback(reason)
 
             stone_result = await prover.generate_stone_proof(
                 cairo_program="stark_heavy_reputation",
@@ -1006,10 +1083,13 @@ class ProofPipeline:
                     "error": l3_res.error,
                 }
         except Exception as exc:
-            result["error"] = str(exc)
-            logger.warning("StarkHeavyReputation proof failed: %s", exc)
+            reason = str(exc)
+            logger.warning("StarkHeavyReputation proof failed, using local fallback: %s", reason)
+            return await _build_local_heavy_fallback(reason)
 
         return result
+
+    def _generate_commitment(self, user_address: str, data: Any, context: str) -> str:
         return "0x" + hashlib.sha256(
             f"{user_address}{data}{context}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:32]

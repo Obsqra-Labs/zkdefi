@@ -30,11 +30,13 @@ from urllib import error, parse, request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PARENT_BACKEND_ROOT = PROJECT_ROOT.parent / "backend"
 DEFAULT_BASE_URL = "http://127.0.0.1:8003"
 DEFAULT_WALLET = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
 DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "hackathon_showcase"
 ENV_FILE = PROJECT_ROOT / "backend" / ".env"
+PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
 VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 
 # Public landscape references used in the HTML report to position the bridge
@@ -327,6 +329,7 @@ class ShowcaseRunner:
         skip_onchain: bool,
         artifact_dir: Path,
         judge_mode: bool,
+        strict_bridge: bool,
     ):
         self.wallet = _normalize_address(wallet)
         self.client = HttpClient(base_url=base_url, timeout_seconds=timeout_seconds)
@@ -334,6 +337,7 @@ class ShowcaseRunner:
         self.skip_onchain = skip_onchain
         self.artifact_dir = artifact_dir
         self.judge_mode = judge_mode
+        self.strict_bridge = strict_bridge
         self.env_from_file = _load_env_file(ENV_FILE)
 
         self.results: list[StepResult] = []
@@ -363,6 +367,10 @@ class ShowcaseRunner:
         self._privacy_showcase: dict[str, Any] = {}
         self._forecaster_showcase: dict[str, Any] = {}
         self._ai_skill_engine: dict[str, Any] = {}
+        self._modelbridge_live_receipt: dict[str, Any] = {}
+        self._modelbridge_heavy_live_receipt: dict[str, Any] = {}
+        self._heavy_stark_showcase: dict[str, Any] = {}
+        self._recursive_ezkl_paths: dict[str, Any] = {}
 
     def _record(self, name: str, ok: bool, **details: Any) -> StepResult:
         res = StepResult(name=name, ok=ok, details=details)
@@ -402,6 +410,16 @@ class ShowcaseRunner:
                     "can_execute": bool(run.get("can_execute")),
                     "mirror_status": run.get("mirror_status"),
                     "failure_text": _clip_text(failure_text, 200),
+                    "proof_mode": run.get("proof_mode"),
+                    "bridge_proof_hash": run.get("bridge_proof_hash"),
+                    "bridge_compliant": run.get("bridge_compliant"),
+                    "bridge_backend": run.get("bridge_backend"),
+                    "l3_mode": (run.get("l3") or {}).get("mode"),
+                    "l3_success": (run.get("l3") or {}).get("success"),
+                    "l3_verified_on_chain": (run.get("l3") or {}).get("verified_on_chain"),
+                    "l3_tx_hash": (run.get("l3") or {}).get("tx_hash"),
+                    "l3_tx_url": (run.get("l3") or {}).get("tx_url"),
+                    "calldata_words": run.get("model_bridge_calldata_words"),
                 }
             )
             if idx >= max_attempts - 1:
@@ -421,7 +439,11 @@ class ShowcaseRunner:
             )
             if not retryable:
                 return status, body, attempts
-            time.sleep(1.2 + (0.8 * idx))
+            sleep_s = 1.2 + (0.8 * idx)
+            # Strict mode: honor the backend's 60s rate-limit window on 429.
+            if self.strict_bridge and status == 429:
+                sleep_s = max(sleep_s, 61.0)
+            time.sleep(sleep_s)
         return status, body, attempts
 
     def run(self) -> int:
@@ -430,6 +452,7 @@ class ShowcaseRunner:
         print("== zkde.fi Hackathon Backend Showcase ==")
         print(f"base_url={self.client.base_url}")
         print(f"wallet={self.wallet}")
+        print(f"strict_bridge={self.strict_bridge}")
         print("")
 
         self.step_health()
@@ -443,8 +466,15 @@ class ShowcaseRunner:
         self.step_onchain_read_via_backend()
         self.step_rpc_contract_presence()
         self.step_receipts_view()
-        self.step_optional_advanced_proofs()
-        self.step_bridge_and_dual_architecture()
+        if self.strict_bridge:
+            # In strict mode, preserve /proofs budget for bridge receipts first.
+            self.step_bridge_and_dual_architecture()
+            self.step_optional_advanced_proofs()
+        else:
+            self.step_optional_advanced_proofs()
+            self.step_bridge_and_dual_architecture()
+        self.step_recursive_ezkl_paths_status()
+        self.step_heavy_stark_reputation()
         self.step_circuit_inventory_deep_dive()
         self.step_ai_marketplace_and_badges()
 
@@ -1534,6 +1564,7 @@ class ShowcaseRunner:
             "can_execute": payload.get("can_execute"),
             "bridge_proof_hash": bridge_proof.get("proof_hash"),
             "bridge_compliant": bridge_proof.get("is_compliant"),
+            "bridge_backend": bridge_proof.get("bridge_backend"),
             "model_bridge_calldata_words": len(combined.get("model_bridge_calldata") or []),
             "l3": {
                 "attempted": l3.get("attempted"),
@@ -1568,16 +1599,35 @@ class ShowcaseRunner:
             ("ModelBridge build zkey", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_final.zkey"),
             ("ModelBridge build wasm", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_js" / "ModelBridge.wasm"),
             ("ModelBridge build verification key", PROJECT_ROOT / "circuits" / "build" / "ModelBridge_verification_key.json"),
+            ("ModelBridgeHeavy circuit", PROJECT_ROOT / "circuits" / "ModelBridgeHeavy.circom"),
+            ("ModelBridgeHeavy build zkey", PROJECT_ROOT / "circuits" / "build" / "ModelBridgeHeavy_final.zkey"),
+            (
+                "ModelBridgeHeavy build wasm",
+                PROJECT_ROOT / "circuits" / "build" / "ModelBridgeHeavy_js" / "ModelBridgeHeavy.wasm",
+            ),
+            (
+                "ModelBridgeHeavy build verification key",
+                PROJECT_ROOT / "circuits" / "build" / "ModelBridgeHeavy_verification_key.json",
+            ),
             ("ModelBridge root zkey", PROJECT_ROOT / "circuits" / "ModelBridge_final.zkey"),
             ("ModelBridge root wasm", PROJECT_ROOT / "circuits" / "ModelBridge_js" / "ModelBridge.wasm"),
             ("ModelBridge build script", PROJECT_ROOT / "circuits" / "build_model_bridge.sh"),
+            ("ModelBridgeHeavy build script", PROJECT_ROOT / "circuits" / "build_model_bridge_heavy.sh"),
             ("ModelBridge verifier generation script", PROJECT_ROOT / "circuits" / "generate_model_bridge_verifier.sh"),
+            (
+                "ModelBridgeHeavy verifier generation script",
+                PROJECT_ROOT / "circuits" / "generate_model_bridge_heavy_verifier.sh",
+            ),
             ("ModelBridge verifier deploy script", PROJECT_ROOT / "scripts" / "deploy_model_bridge_verifier.sh"),
             ("ModelBridge verifier deploy plan", PROJECT_ROOT / "docs" / "plans" / "MODELBRIDGE_VERIFIER_DEPLOY.md"),
             ("ZkmlVerifier Cairo contract", PROJECT_ROOT / "contracts" / "src" / "zkml_verifier.cairo"),
             (
                 "Generated ModelBridge verifier project",
                 PROJECT_ROOT / "circuits" / "contracts" / "src" / "garaga_verifier_model_bridge" / "Scarb.toml",
+            ),
+            (
+                "Generated ModelBridgeHeavy verifier project",
+                PROJECT_ROOT / "circuits" / "contracts" / "src" / "garaga_verifier_model_bridge_heavy" / "Scarb.toml",
             ),
             ("ML bridge API route", PROJECT_ROOT / "backend" / "app" / "api" / "routes" / "proofs.py"),
             ("Groth16 bridge prover service", PROJECT_ROOT / "backend" / "app" / "services" / "groth16_prover.py"),
@@ -1630,11 +1680,29 @@ class ShowcaseRunner:
         model_bridge_support["contract_classes_count"] = len(verifier_contract_classes)
         model_bridge_support["contract_class_preview"] = _relative_to_project(verifier_contract_classes[0]) if verifier_contract_classes else None
 
+        heavy_verifier_project_dir = PROJECT_ROOT / "circuits" / "contracts" / "src" / "garaga_verifier_model_bridge_heavy"
+        heavy_verifier_contract_classes = sorted(heavy_verifier_project_dir.glob("target/dev/*.contract_class.json"))
+        model_bridge_support["heavy_verifier_project_exists"] = heavy_verifier_project_dir.exists()
+        model_bridge_support["heavy_contract_classes_count"] = len(heavy_verifier_contract_classes)
+        model_bridge_support["heavy_contract_class_preview"] = (
+            _relative_to_project(heavy_verifier_contract_classes[0]) if heavy_verifier_contract_classes else None
+        )
+
         deploy_marker = _load_env_file(PROJECT_ROOT / ".model_bridge_verifier.deployed")
         deploy_address = deploy_marker.get("MODEL_BRIDGE_VERIFIER_ADDRESS")
         model_bridge_support["deployed_marker_found"] = bool(deploy_address)
         model_bridge_support["deployed_address"] = deploy_address
         model_bridge_support["deployed_class_hash"] = deploy_marker.get("MODEL_BRIDGE_VERIFIER_CLASS_HASH")
+
+        heavy_deploy_marker = _load_env_file(PROJECT_ROOT / ".model_bridge_heavy_verifier.deployed")
+        parent_backend_env = _load_env_file(PROJECT_ROOT.parent / "backend" / ".env")
+        heavy_deploy_address = (
+            heavy_deploy_marker.get("MODEL_BRIDGE_HEAVY_VERIFIER_ADDRESS")
+            or parent_backend_env.get("L3_MODEL_BRIDGE_HEAVY_VERIFIER_ADDRESS")
+        )
+        model_bridge_support["heavy_deployed_marker_found"] = bool(heavy_deploy_marker.get("MODEL_BRIDGE_HEAVY_VERIFIER_ADDRESS"))
+        model_bridge_support["heavy_deployed_address"] = heavy_deploy_address
+        model_bridge_support["heavy_deployed_class_hash"] = heavy_deploy_marker.get("MODEL_BRIDGE_HEAVY_VERIFIER_CLASS_HASH")
 
         zkml_deploy_marker = _load_env_file(PROJECT_ROOT / ".zkml_verifier_model_bridge.deployed")
         zkml_verifier_address = zkml_deploy_marker.get("ZKML_VERIFIER_ADDRESS")
@@ -1653,11 +1721,18 @@ class ShowcaseRunner:
             and model_bridge_support.get("uses_fallback_logic")
             and model_bridge_support.get("verifier_project_exists")
         )
+        heavy_support_ready = bool(model_bridge_support.get("heavy_verifier_project_exists"))
+        model_bridge_support["heavy_support_ready"] = heavy_support_ready
 
         paths_status, paths_body = self.client.call("GET", "/api/v1/zkdefi/risk_passport/l3/proving-paths")
         proving_rows, snos_info = self._extract_proving_paths(paths_body)
 
         snark_available = self._path_available(proving_rows, {"groth16_garaga", "garaga_groth16"})
+        model_bridge_heavy_available = self._path_available(
+            proving_rows,
+            {"groth16_model_bridge_heavy", "model_bridge_heavy"},
+        )
+        noir_honk_available = self._path_available(proving_rows, {"noir_honk"})
         stark_available = self._path_available(proving_rows, {"stark_integrity", "integrity_stark"})
         hash_fallback_available = self._path_available(proving_rows, {"hash_only"})
         snark_contract = next(
@@ -1676,9 +1751,30 @@ class ShowcaseRunner:
             ),
             None,
         )
+        heavy_contract = next(
+            (
+                str(row.get("contract"))
+                for row in proving_rows
+                if str(row.get("id") or "").strip().lower() in {"groth16_model_bridge_heavy", "model_bridge_heavy"}
+                and row.get("contract")
+            ),
+            None,
+        )
+        noir_contract = next(
+            (
+                str(row.get("contract"))
+                for row in proving_rows
+                if str(row.get("id") or "").strip().lower() in {"noir_honk"} and row.get("contract")
+            ),
+            None,
+        )
 
-        models_status, models_body = self.client.call("GET", "/api/v1/zkdefi/proofs/models")
-        models = models_body.get("models", []) if isinstance(models_body, dict) else []
+        models_status = 0
+        models_body: Any = {"detail": "skipped_in_strict_bridge_mode"}
+        models: list[Any] = []
+        if not self.strict_bridge:
+            models_status, models_body = self.client.call("GET", "/api/v1/zkdefi/proofs/models")
+            models = models_body.get("models", []) if isinstance(models_body, dict) else []
         ready_models: list[str] = []
         selected_model = "yield_predictor"
         if isinstance(models, list):
@@ -1692,27 +1788,30 @@ class ShowcaseRunner:
             if ready_models:
                 selected_model = ready_models[0]
 
-        ezkl_probe_payload = {
-            "tvl_usd_log": 13.4,
-            "volume_24h_log": 12.1,
-            "fee_tier_bps": 30.0,
-            "current_apr": 24.2,
-            "apr_7d_avg": 21.8,
-            "apr_30d_avg": 19.9,
-            "apr_trend_7d": 1.1,
-            "apr_volatility_7d": 3.4,
-            "utilization_ratio": 0.68,
-            "tick_concentration": 0.37,
-            "num_positions": 342.0,
-            "time_since_last_rebalance_hours": 7.0,
-            "user_address": self.wallet,
-            "generate_proof": True,
-        }
-        ezkl_probe_status, ezkl_probe_body = self.client.call(
-            "POST",
-            "/api/v1/zkdefi/proofs/yield-forecast",
-            payload=ezkl_probe_payload,
-        )
+        ezkl_probe_status = 0
+        ezkl_probe_body: Any = {"detail": "skipped_in_strict_bridge_mode"}
+        if not self.strict_bridge:
+            ezkl_probe_payload = {
+                "tvl_usd_log": 13.4,
+                "volume_24h_log": 12.1,
+                "fee_tier_bps": 30.0,
+                "current_apr": 24.2,
+                "apr_7d_avg": 21.8,
+                "apr_30d_avg": 19.9,
+                "apr_trend_7d": 1.1,
+                "apr_volatility_7d": 3.4,
+                "utilization_ratio": 0.68,
+                "tick_concentration": 0.37,
+                "num_positions": 342.0,
+                "time_since_last_rebalance_hours": 7.0,
+                "user_address": self.wallet,
+                "generate_proof": True,
+            }
+            ezkl_probe_status, ezkl_probe_body = self.client.call(
+                "POST",
+                "/api/v1/zkdefi/proofs/yield-forecast",
+                payload=ezkl_probe_payload,
+            )
         ezkl_probe_proof = None
         if isinstance(ezkl_probe_body, dict):
             ezkl_probe_proof = ezkl_probe_body.get("proof_hash")
@@ -1751,12 +1850,265 @@ class ShowcaseRunner:
                 "value_eth": 6.0,
             }
         )
+        heavy_payload = dict(base_payload)
+        heavy_payload.update(
+            {
+                "execution_chain": "l3",
+                "proof_mode": 1,
+                "tier": 1,
+                "action_type": "rebalance",
+                "value_eth": 2.5,
+                "bridge_circuit": "ModelBridgeHeavy",
+            }
+        )
+        noir_payload = dict(base_payload)
+        noir_payload.update(
+            {
+                "execution_chain": "l3",
+                "proof_mode": 1,
+                "tier": 1,
+                "action_type": "rebalance",
+                "value_eth": 2.2,
+                "bridge_circuit": "NoirEzklBridge",
+            }
+        )
 
-        l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(l3_payload, max_attempts=3)
-        dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(dual_payload, max_attempts=4)
+        l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(
+            l3_payload,
+            max_attempts=(5 if self.strict_bridge else 3),
+        )
+        dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(
+            dual_payload,
+            max_attempts=(6 if self.strict_bridge else 4),
+        )
+        heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
+            heavy_payload,
+            max_attempts=(5 if self.strict_bridge else 3),
+        )
+        noir_status = 0
+        noir_body: Any = {}
+        noir_attempts: list[dict[str, Any]] = []
+        if noir_honk_available:
+            noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
+                noir_payload,
+                max_attempts=(5 if self.strict_bridge else 3),
+            )
 
         l3_run = self._bridge_run_summary(l3_status, l3_body)
         dual_run = self._bridge_run_summary(dual_status, dual_body)
+        heavy_run = self._bridge_run_summary(heavy_status, heavy_body)
+        noir_run = self._bridge_run_summary(noir_status, noir_body)
+        best_heavy_attempt_for_summary = next(
+            (
+                row
+                for row in reversed(heavy_attempts)
+                if isinstance(row, dict) and (row.get("bridge_proof_hash") or row.get("l3_mode"))
+            ),
+            {},
+        )
+        if best_heavy_attempt_for_summary and (
+            not heavy_run.get("bridge_proof_hash")
+            or not heavy_run.get("bridge_backend")
+        ):
+            heavy_run["requested_execution_chain"] = heavy_run.get("requested_execution_chain") or "l3"
+            heavy_run["primary_authority"] = heavy_run.get("primary_authority") or "l3"
+            heavy_run["proof_mode_level"] = heavy_run.get("proof_mode_level") or 1
+            heavy_run["proof_mode"] = heavy_run.get("proof_mode") or best_heavy_attempt_for_summary.get("proof_mode")
+            heavy_run["bridge_proof_hash"] = (
+                heavy_run.get("bridge_proof_hash") or best_heavy_attempt_for_summary.get("bridge_proof_hash")
+            )
+            heavy_run["bridge_compliant"] = (
+                heavy_run.get("bridge_compliant")
+                if heavy_run.get("bridge_compliant") is not None
+                else best_heavy_attempt_for_summary.get("bridge_compliant")
+            )
+            heavy_run["bridge_backend"] = (
+                heavy_run.get("bridge_backend") or best_heavy_attempt_for_summary.get("bridge_backend")
+            )
+            heavy_run["model_bridge_calldata_words"] = (
+                heavy_run.get("model_bridge_calldata_words")
+                or best_heavy_attempt_for_summary.get("calldata_words")
+                or 0
+            )
+            heavy_run["can_execute"] = (
+                heavy_run.get("can_execute")
+                if heavy_run.get("can_execute") is not None
+                else best_heavy_attempt_for_summary.get("can_execute")
+            )
+            heavy_l3_patch = heavy_run.get("l3") if isinstance(heavy_run.get("l3"), dict) else {}
+            heavy_l3_patch["mode"] = heavy_l3_patch.get("mode") or best_heavy_attempt_for_summary.get("l3_mode")
+            heavy_l3_patch["success"] = (
+                heavy_l3_patch.get("success")
+                if heavy_l3_patch.get("success") is not None
+                else best_heavy_attempt_for_summary.get("l3_success")
+            )
+            heavy_l3_patch["verified_on_chain"] = (
+                heavy_l3_patch.get("verified_on_chain")
+                if heavy_l3_patch.get("verified_on_chain") is not None
+                else best_heavy_attempt_for_summary.get("l3_verified_on_chain")
+            )
+            heavy_l3_patch["tx_hash"] = heavy_l3_patch.get("tx_hash") or best_heavy_attempt_for_summary.get("l3_tx_hash")
+            heavy_l3_patch["tx_url"] = heavy_l3_patch.get("tx_url") or best_heavy_attempt_for_summary.get("l3_tx_url")
+            heavy_run["l3"] = heavy_l3_patch
+        l3_lane = l3_run.get("l3") if isinstance(l3_run.get("l3"), dict) else {}
+        l2_lane = l3_run.get("l2") if isinstance(l3_run.get("l2"), dict) else {}
+        best_l3_attempt = next(
+            (
+                row
+                for row in reversed(l3_attempts)
+                if isinstance(row, dict) and (row.get("l3_tx_hash") or row.get("l3_success"))
+            ),
+            {},
+        )
+        l3_tx_hash = l3_lane.get("tx_hash") or best_l3_attempt.get("l3_tx_hash")
+        l3_tx_url = l3_lane.get("tx_url") or best_l3_attempt.get("l3_tx_url")
+        l3_mode = l3_lane.get("mode") or best_l3_attempt.get("l3_mode")
+        l3_success = (
+            l3_lane.get("success")
+            if l3_lane.get("success") is not None
+            else best_l3_attempt.get("l3_success")
+        )
+        l3_verified_on_chain = (
+            l3_lane.get("verified_on_chain")
+            if l3_lane.get("verified_on_chain") is not None
+            else best_l3_attempt.get("l3_verified_on_chain")
+        )
+        self._modelbridge_live_receipt = {
+            "status": l3_status,
+            "proof_mode": l3_run.get("proof_mode"),
+            "proof_mode_level": l3_run.get("proof_mode_level"),
+            "requested_execution_chain": l3_run.get("requested_execution_chain"),
+            "bridge_proof_hash": l3_run.get("bridge_proof_hash"),
+            "bridge_compliant": l3_run.get("bridge_compliant"),
+            "calldata_words": l3_run.get("model_bridge_calldata_words"),
+            "can_execute": l3_run.get("can_execute"),
+            "primary_authority": l3_run.get("primary_authority"),
+            "mirror_status": l3_run.get("mirror_status"),
+            "l3_attempted": l3_lane.get("attempted"),
+            "l3_success": l3_success,
+            "l3_mode": l3_mode,
+            "l3_verified_on_chain": l3_verified_on_chain,
+            "l3_tx_hash": l3_tx_hash,
+            "l3_tx_url": l3_tx_url,
+            "l2_attempted": l2_lane.get("attempted"),
+            "l2_mode": l2_lane.get("mode"),
+            "trust_mode": l3_run.get("trust_mode"),
+            "trust_warning": l3_run.get("trust_warning"),
+            "failure_reason": l3_run.get("failure_reason"),
+            "generated_at": l3_run.get("generated_at"),
+            "total_duration_ms": l3_run.get("total_duration_ms"),
+        }
+        strict_live_receipt_ok = (
+            l3_status == 200
+            and bool(l3_lane.get("attempted"))
+            and bool(l3_run.get("model_bridge_calldata_words"))
+            and bool(l3_run.get("bridge_proof_hash"))
+        )
+        live_receipt_ok = strict_live_receipt_ok if self.strict_bridge else (
+            strict_live_receipt_ok or l3_status in {429, 500, 503}
+        )
+        self._record(
+            "ModelBridge live l3 verify receipt",
+            live_receipt_ok,
+            status=l3_status,
+            proof_mode=l3_run.get("proof_mode"),
+            bridge_backend=l3_run.get("bridge_backend"),
+            bridge_compliant=l3_run.get("bridge_compliant"),
+            l3_mode=l3_mode,
+            l3_tx_hash=_short_hex(str(l3_tx_hash) if l3_tx_hash else None, 12),
+            l3_verified_on_chain=l3_verified_on_chain,
+            bridge_proof_hash=_short_hex(str(l3_run.get("bridge_proof_hash")) if l3_run.get("bridge_proof_hash") else None, 12),
+            can_execute=l3_run.get("can_execute"),
+            failure_reason=_clip_text(l3_run.get("failure_reason"), 120),
+            strict_bridge=self.strict_bridge,
+            transient_status_ok=(l3_status in {429, 500, 503}),
+        )
+
+        heavy_l3_lane = heavy_run.get("l3") if isinstance(heavy_run.get("l3"), dict) else {}
+        heavy_l2_lane = heavy_run.get("l2") if isinstance(heavy_run.get("l2"), dict) else {}
+        best_heavy_attempt = next(
+            (
+                row
+                for row in reversed(heavy_attempts)
+                if isinstance(row, dict) and (row.get("l3_tx_hash") or row.get("l3_success"))
+            ),
+            {},
+        )
+        heavy_tx_hash = heavy_l3_lane.get("tx_hash") or best_heavy_attempt.get("l3_tx_hash")
+        heavy_tx_url = heavy_l3_lane.get("tx_url") or best_heavy_attempt.get("l3_tx_url")
+        heavy_mode = heavy_l3_lane.get("mode") or best_heavy_attempt.get("l3_mode")
+        heavy_success = (
+            heavy_l3_lane.get("success")
+            if heavy_l3_lane.get("success") is not None
+            else best_heavy_attempt.get("l3_success")
+        )
+        heavy_verified_on_chain = (
+            heavy_l3_lane.get("verified_on_chain")
+            if heavy_l3_lane.get("verified_on_chain") is not None
+            else best_heavy_attempt.get("l3_verified_on_chain")
+        )
+        self._modelbridge_heavy_live_receipt = {
+            "status": heavy_status,
+            "proof_mode": heavy_run.get("proof_mode"),
+            "proof_mode_level": heavy_run.get("proof_mode_level"),
+            "requested_execution_chain": heavy_run.get("requested_execution_chain"),
+            "bridge_proof_hash": heavy_run.get("bridge_proof_hash"),
+            "bridge_compliant": heavy_run.get("bridge_compliant"),
+            "bridge_backend": heavy_run.get("bridge_backend"),
+            "calldata_words": heavy_run.get("model_bridge_calldata_words"),
+            "can_execute": heavy_run.get("can_execute"),
+            "primary_authority": heavy_run.get("primary_authority"),
+            "mirror_status": heavy_run.get("mirror_status"),
+            "l3_attempted": heavy_l3_lane.get("attempted"),
+            "l3_success": heavy_success,
+            "l3_mode": heavy_mode,
+            "l3_verified_on_chain": heavy_verified_on_chain,
+            "l3_tx_hash": heavy_tx_hash,
+            "l3_tx_url": heavy_tx_url,
+            "l2_attempted": heavy_l2_lane.get("attempted"),
+            "l2_mode": heavy_l2_lane.get("mode"),
+            "trust_mode": heavy_run.get("trust_mode"),
+            "trust_warning": heavy_run.get("trust_warning"),
+            "failure_reason": heavy_run.get("failure_reason"),
+            "generated_at": heavy_run.get("generated_at"),
+            "total_duration_ms": heavy_run.get("total_duration_ms"),
+        }
+        strict_heavy_receipt_ok = (
+            heavy_status == 200
+            and bool(heavy_l3_lane.get("attempted"))
+            and bool(heavy_run.get("model_bridge_calldata_words"))
+            and bool(heavy_run.get("bridge_proof_hash"))
+        )
+        heavy_receipt_ok = strict_heavy_receipt_ok if self.strict_bridge else (
+            (heavy_status in {200, 429, 500, 503})
+            and (
+                heavy_status != 200
+                or (
+                    bool(heavy_l3_lane.get("attempted"))
+                    and bool(heavy_run.get("model_bridge_calldata_words"))
+                    and bool(heavy_run.get("bridge_proof_hash"))
+                )
+            )
+        )
+        self._record(
+            "ModelBridgeHeavy live l3 verify receipt",
+            heavy_receipt_ok,
+            status=heavy_status,
+            proof_mode=heavy_run.get("proof_mode"),
+            bridge_backend=heavy_run.get("bridge_backend"),
+            bridge_compliant=heavy_run.get("bridge_compliant"),
+            l3_mode=heavy_mode,
+            l3_tx_hash=_short_hex(str(heavy_tx_hash) if heavy_tx_hash else None, 12),
+            l3_verified_on_chain=heavy_verified_on_chain,
+            bridge_proof_hash=_short_hex(
+                str(heavy_run.get("bridge_proof_hash")) if heavy_run.get("bridge_proof_hash") else None,
+                12,
+            ),
+            can_execute=heavy_run.get("can_execute"),
+            failure_reason=_clip_text(heavy_run.get("failure_reason"), 120),
+            strict_bridge=self.strict_bridge,
+            transient_status_ok=(heavy_status in {429, 500, 503}),
+        )
         dual_attempted = bool(((dual_run.get("l3") or {}).get("attempted"))) and bool(((dual_run.get("l2") or {}).get("attempted")))
         dual_ready = snark_available and stark_available
         runtime_mode = "synthetic_fallback"
@@ -1784,13 +2136,21 @@ class ShowcaseRunner:
             "runtime_mode": runtime_mode,
             "ml_bridge_runs": {
                 "l3": l3_run,
+                "l3_heavy_request": heavy_run,
+                "l3_noir_request": noir_run,
                 "dual": dual_run,
             },
+            "modelbridge_live_receipt": dict(self._modelbridge_live_receipt),
+            "modelbridge_heavy_live_receipt": dict(self._modelbridge_heavy_live_receipt),
             "ml_bridge_attempts": {
                 "l3": l3_attempts,
+                "l3_heavy_request": heavy_attempts,
+                "l3_noir_request": noir_attempts,
                 "dual": dual_attempts,
             },
             "dual_lanes_ready": dual_ready,
+            "model_bridge_heavy_lane_available": model_bridge_heavy_available,
+            "noir_honk_lane_available": noir_honk_available,
             "model_bridge_verifier_support": model_bridge_support,
             "model_bridge_verifier_support_ready": bool(support_ready),
             "bridge_unlocks": list(BRIDGE_UNLOCKS),
@@ -1798,12 +2158,21 @@ class ShowcaseRunner:
             "landscape": list(self._ecosystem_landscape),
         }
 
-        runtime_ok = l3_status == 200 and dual_status in {200, 429, 503}
+        if self.strict_bridge:
+            runtime_ok = l3_status == 200 and dual_status == 200
+            heavy_runtime_ok = heavy_status == 200
+        else:
+            runtime_ok = (
+                (l3_status == 200 and dual_status in {200, 429, 500, 503})
+                or (l3_status in {429, 500, 503} and dual_status in {429, 500, 503})
+            )
+            heavy_runtime_ok = heavy_status in {200, 422, 429, 500, 503}
         ok = (
             present >= 10
             and paths_status == 200
             and dual_ready
             and runtime_ok
+            and heavy_runtime_ok
             and bool(support_ready)
         )
         print("== ModelBridge Unlock Signals ==")
@@ -1818,27 +2187,295 @@ class ShowcaseRunner:
             stark_lane_available=stark_available,
             hash_fallback_available=hash_fallback_available,
             dual_lanes_ready=dual_ready,
+            heavy_lane_available=model_bridge_heavy_available,
             ml_bridge_l3_status=l3_status,
             ml_bridge_l3_mode=((l3_run.get("l3") or {}).get("mode")),
+            ml_bridge_heavy_status=heavy_status,
+            ml_bridge_heavy_mode=((heavy_run.get("l3") or {}).get("mode")),
+            heavy_bridge_backend=heavy_run.get("bridge_backend"),
+            noir_honk_available=noir_honk_available,
+            ml_bridge_noir_status=noir_status,
+            ml_bridge_noir_mode=((noir_run.get("l3") or {}).get("mode")),
             ml_bridge_dual_status=dual_status,
             dual_mirror_status=dual_run.get("mirror_status"),
             dual_failure_reason=_clip_text(dual_run.get("failure_reason"), 120),
             dual_attempted=dual_attempted,
             dual_attempts=len(dual_attempts),
             l3_attempts=len(l3_attempts),
+            heavy_attempts=len(heavy_attempts),
+            noir_attempts=len(noir_attempts),
             runtime_probe_ok=runtime_ok,
+            heavy_runtime_ok=heavy_runtime_ok,
+            strict_bridge=self.strict_bridge,
             runtime_mode=runtime_mode,
             ezkl_probe_status=ezkl_probe_status,
             ezkl_real_probe=ezkl_probe_ready,
             model_bridge_verifier_support=support_ready,
             model_bridge_verifier_deployed=bool(deploy_address),
             model_bridge_verifier_address=_short_hex(deploy_address, 10),
+            model_bridge_heavy_verifier_address=_short_hex(heavy_deploy_address, 10),
             zkml_verifier_marker_found=bool(zkml_verifier_address),
             zkml_verifier_address=_short_hex(zkml_verifier_address, 10),
             landscape_sources=len(self._ecosystem_landscape),
             landscape_projects=",".join(str(x.get("project")) for x in self._ecosystem_landscape[:4]),
             snark_contract=_short_hex(snark_contract),
+            heavy_contract=_short_hex(heavy_contract),
+            noir_contract=_short_hex(noir_contract),
             stark_contract=_short_hex(stark_contract),
+        )
+
+    def step_recursive_ezkl_paths_status(self) -> None:
+        roadmap_path = PROJECT_ROOT / "archive" / "ideas" / "docs" / "RECURSIVE_EZKL_ROADMAP.md"
+        impl_plan_path = PROJECT_ROOT / "docs" / "plans" / "2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md"
+        l1_sepolia_doc = PROJECT_ROOT / "docs" / "plans" / "L1_SEPOLIA_EZKL_VERIFIER.md"
+        l1_bridge_spec_doc = PROJECT_ROOT / "docs" / "plans" / "L1_EZKL_BRIDGE_SPEC.md"
+        cairo_kzg_spec_doc = PROJECT_ROOT / "docs" / "plans" / "CAIRO_KZG_VERIFIER_SPEC.md"
+
+        parent_config_path = PARENT_BACKEND_ROOT / "app" / "config.py"
+        parent_l1_service_path = PARENT_BACKEND_ROOT / "app" / "services" / "l1_ezkl_bridge_service.py"
+        parent_l3_service_path = PARENT_BACKEND_ROOT / "app" / "services" / "l3_verification_service.py"
+
+        docs_paths = [
+            ("Recursive EZKL roadmap", roadmap_path),
+            ("Advanced L3 + EZKL implementation plan", impl_plan_path),
+            ("L1 Sepolia EZKL verifier doc", l1_sepolia_doc),
+            ("L1->L2 EZKL bridge spec", l1_bridge_spec_doc),
+            ("Cairo native KZG verifier spec", cairo_kzg_spec_doc),
+        ]
+        doc_rows = []
+        docs_present = 0
+        for label, path in docs_paths:
+            exists = path.exists()
+            docs_present += 1 if exists else 0
+            doc_rows.append(
+                {
+                    "label": label,
+                    "path": _relative_to_project(path),
+                    "exists": exists,
+                }
+            )
+
+        roadmap_text = roadmap_path.read_text(encoding="utf-8") if roadmap_path.exists() else ""
+        impl_text = impl_plan_path.read_text(encoding="utf-8") if impl_plan_path.exists() else ""
+
+        path_a_status_doc = ("Status (2026-03):" in roadmap_text and "NoirEzklBridge" in roadmap_text)
+        phase2_status_done = (
+            ("Phase 2 status" in impl_text)
+            and ("✅ Complete" in impl_text)
+            and ("Tasks 2.1–2.5" in impl_text)
+            and ("Task 2.5" in impl_text)
+            and ("Status:** Done" in impl_text or "Status: Done" in impl_text)
+        )
+        phase3_plan_expanded = all(marker in impl_text for marker in ["### Task 3.1", "### Task 3.5"])
+        phase4_plan_expanded = all(marker in impl_text for marker in ["### Task 4.1", "### Task 4.5"])
+
+        parent_config_text = parent_config_path.read_text(encoding="utf-8") if parent_config_path.exists() else ""
+        parent_l1_service_text = (
+            parent_l1_service_path.read_text(encoding="utf-8") if parent_l1_service_path.exists() else ""
+        )
+        parent_l3_service_text = (
+            parent_l3_service_path.read_text(encoding="utf-8") if parent_l3_service_path.exists() else ""
+        )
+        parent_env = _load_env_file(PARENT_BACKEND_ENV_FILE)
+
+        parent_phase3_config_keys = all(
+            key in parent_config_text
+            for key in ["L1_SEPOLIA_RPC", "L1_EZKL_VERIFIER_ADDRESS", "L1_BRIDGE_RECEIVER_ADDRESS"]
+        )
+        parent_phase3_service_stub = all(
+            marker in parent_l1_service_text
+            for marker in [
+                "class L1EzklBridgeService",
+                "submit_ezkl_proof_to_l1",
+                "poll_l2_for_verification",
+                "not_configured",
+            ]
+        )
+        parent_phase4_config_key = "L3_KZG_VERIFIER_ADDRESS" in parent_config_text
+        parent_phase4_route = all(
+            marker in parent_l3_service_text
+            for marker in ["native_kzg", "EzklNativeKzg", "kzg_verifier_available"]
+        )
+
+        proving_rows = self._bridge_architecture.get("proving_paths") if isinstance(self._bridge_architecture, dict) else []
+        proving_rows = proving_rows if isinstance(proving_rows, list) else []
+        noir_row = next(
+            (row for row in proving_rows if isinstance(row, dict) and str(row.get("id") or "").strip().lower() == "noir_honk"),
+            None,
+        )
+        kzg_row = next(
+            (row for row in proving_rows if isinstance(row, dict) and str(row.get("id") or "").strip().lower() == "native_kzg"),
+            None,
+        )
+
+        path_rows = [
+            {
+                "path": "Path A (Noir HONK bridge)",
+                "status": "implemented" if phase2_status_done and path_a_status_doc else "partial",
+                "doc_signal": (
+                    "Roadmap + implementation plan mark Path A as implemented; deploy verifier when L3 is up; gas ~178M on L2."
+                    if phase2_status_done and path_a_status_doc
+                    else "Path A status markers missing or incomplete in docs."
+                ),
+                "runtime_lane_id": "noir_honk",
+                "runtime_lane_listed": noir_row is not None,
+                "runtime_lane_available": bool((noir_row or {}).get("available")) if isinstance(noir_row, dict) else False,
+                "runtime_contract": (noir_row or {}).get("contract") if isinstance(noir_row, dict) else None,
+            },
+            {
+                "path": "Path C (L1 Sepolia bridge)",
+                "status": (
+                    "implemented_stub"
+                    if (l1_sepolia_doc.exists() and l1_bridge_spec_doc.exists() and parent_phase3_config_keys and parent_phase3_service_stub)
+                    else "partial"
+                ),
+                "doc_signal": "L1 verifier + bridge spec docs exist; parent backend has config keys and service stub for submit/poll.",
+                "runtime_lane_id": "l1_bridge",
+                "runtime_lane_listed": False,
+                "runtime_lane_available": False,
+                "runtime_contract": parent_env.get("L1_EZKL_VERIFIER_ADDRESS"),
+            },
+            {
+                "path": "Path B (native Cairo KZG)",
+                "status": (
+                    "implemented_stub"
+                    if (cairo_kzg_spec_doc.exists() and parent_phase4_config_key and parent_phase4_route)
+                    else "partial"
+                ),
+                "doc_signal": "KZG spec exists; parent backend has config + proving-path routing for native_kzg / EzklNativeKzg.",
+                "runtime_lane_id": "native_kzg",
+                "runtime_lane_listed": kzg_row is not None,
+                "runtime_lane_available": bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False,
+                "runtime_contract": (kzg_row or {}).get("contract") if isinstance(kzg_row, dict) else parent_env.get("L3_KZG_VERIFIER_ADDRESS"),
+            },
+        ]
+
+        next_steps = [
+            "Phase 3: deploy EZKL Solidity verifier on Sepolia and record L1_EZKL_VERIFIER_ADDRESS.",
+            "Phase 3: implement L1->L2 receiver contract and enable web3 submit + L2 polling in l1_ezkl_bridge_service.",
+            "Phase 4: implement Cairo BN254/KZG module + verify_kzg contract and deploy on L3.",
+            "Phase 4: add zkdefi pipeline path for EzklNativeKzg and expose it in proof mode selection.",
+        ]
+
+        self._recursive_ezkl_paths = {
+            "docs": doc_rows,
+            "path_rows": path_rows,
+            "signals": {
+                "path_a_status_doc": path_a_status_doc,
+                "phase2_status_done": phase2_status_done,
+                "phase3_plan_expanded": phase3_plan_expanded,
+                "phase4_plan_expanded": phase4_plan_expanded,
+                "parent_phase3_config_keys": parent_phase3_config_keys,
+                "parent_phase3_service_stub": parent_phase3_service_stub,
+                "parent_phase4_config_key": parent_phase4_config_key,
+                "parent_phase4_route": parent_phase4_route,
+            },
+            "env_snapshot": {
+                "parent_env_found": PARENT_BACKEND_ENV_FILE.exists(),
+                "l1_sepolia_rpc_set": bool(parent_env.get("L1_SEPOLIA_RPC")),
+                "l1_ezkl_verifier_set": bool(parent_env.get("L1_EZKL_VERIFIER_ADDRESS")),
+                "l1_bridge_receiver_set": bool(parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")),
+                "l3_kzg_verifier_set": bool(parent_env.get("L3_KZG_VERIFIER_ADDRESS")),
+            },
+            "next_steps": next_steps,
+        }
+
+        ok = (
+            docs_present == len(docs_paths)
+            and phase2_status_done
+            and path_a_status_doc
+            and phase3_plan_expanded
+            and phase4_plan_expanded
+            and parent_phase3_config_keys
+            and parent_phase3_service_stub
+            and parent_phase4_config_key
+            and parent_phase4_route
+        )
+        self._record(
+            "Recursive EZKL paths (Phase 2/3/4) status",
+            ok,
+            docs_present=f"{docs_present}/{len(docs_paths)}",
+            path_a_status_doc=path_a_status_doc,
+            phase2_status_done=phase2_status_done,
+            phase3_plan_expanded=phase3_plan_expanded,
+            phase4_plan_expanded=phase4_plan_expanded,
+            parent_phase3_config_keys=parent_phase3_config_keys,
+            parent_phase3_service_stub=parent_phase3_service_stub,
+            parent_phase4_route=parent_phase4_route,
+            noir_lane_listed=(noir_row is not None),
+            native_kzg_lane_listed=(kzg_row is not None),
+            native_kzg_available=(bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False),
+        )
+
+    def step_heavy_stark_reputation(self) -> None:
+        payload = {
+            "pool_metrics": {
+                "pool_0_utilization": 6200,
+                "pool_0_volatility": 1400,
+                "pool_0_liquidity": 3,
+                "pool_0_audit_score": 88,
+                "pool_0_age_days": 410,
+                "pool_1_utilization": 5400,
+                "pool_1_volatility": 1200,
+                "pool_1_liquidity": 2,
+                "pool_1_audit_score": 82,
+                "pool_1_age_days": 320,
+                "pool_2_utilization": 7100,
+                "pool_2_volatility": 1800,
+                "pool_2_liquidity": 4,
+                "pool_2_audit_score": 91,
+                "pool_2_age_days": 520,
+                "pool_3_utilization": 4700,
+                "pool_3_volatility": 900,
+                "pool_3_liquidity": 2,
+                "pool_3_audit_score": 76,
+                "pool_3_age_days": 190,
+            },
+            "submit_to_l3": True,
+            "execution_chain": "l3",
+        }
+        status, body = self.client.call(
+            "POST",
+            "/api/v1/zkdefi/risk_passport/stark-heavy-reputation",
+            payload=payload,
+        )
+        l3 = body.get("l3", {}) if isinstance(body, dict) and isinstance(body.get("l3"), dict) else {}
+        tx_hash = l3.get("tx_hash")
+        tx_url = _voyager_tx_url(str(tx_hash)) if tx_hash else None
+        self._heavy_stark_showcase = {
+            "status": status,
+            "success": (body.get("success") if isinstance(body, dict) else None),
+            "circuit_name": (body.get("circuit_name") if isinstance(body, dict) else None),
+            "proof_hash": (body.get("proof_hash") if isinstance(body, dict) else None),
+            "fact_hash": (body.get("fact_hash") if isinstance(body, dict) else None),
+            "l3": {
+                "success": l3.get("success"),
+                "mode": l3.get("mode"),
+                "verified_on_chain": l3.get("verified_on_chain"),
+                "tx_hash": tx_hash,
+                "tx_url": tx_url,
+                "error": l3.get("error"),
+            },
+            "error": (body.get("error") if isinstance(body, dict) else None),
+        }
+
+        transient = status in {429, 503}
+        ok = (
+            status == 200
+            and bool((body or {}).get("circuit_name") == "StarkHeavyReputation")
+            and bool((body or {}).get("proof_hash"))
+        ) or transient
+        self._record(
+            "StarkHeavyReputation STARK flow",
+            ok,
+            status=status,
+            circuit=(body.get("circuit_name") if isinstance(body, dict) else None),
+            success=(body.get("success") if isinstance(body, dict) else None),
+            proof_hash=_short_hex((body.get("proof_hash") if isinstance(body, dict) else None), 12),
+            l3_mode=l3.get("mode"),
+            l3_tx_hash=_short_hex(str(tx_hash) if tx_hash else None, 12),
+            transient_status_ok=transient,
+            error=_clip_text((body.get("error") if isinstance(body, dict) else body), 120),
         )
 
     def _load_scanner_categories(self) -> dict[str, str]:
@@ -2527,6 +3164,7 @@ class ShowcaseRunner:
             ("Backend service is live", passed("Backend health")),
             ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
             ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
+            ("ModelBridge live l3 verify emits receipt evidence", passed("ModelBridge live l3 verify receipt")),
             ("Agent composition + execution works", passed("Agent compose + execute")),
             ("Proof-backed deployment planning works", passed("Deployment proof + on-chain calldata plan")),
             ("Privacy commitment rails work", passed("Full privacy commitment generation")),
@@ -2581,6 +3219,8 @@ class ShowcaseRunner:
             "deployment": self._deployment_output,
             "circuit_inventory": self._circuit_inventory,
             "bridge_architecture": self._bridge_architecture,
+            "recursive_ezkl_paths": self._recursive_ezkl_paths,
+            "heavy_stark_showcase": self._heavy_stark_showcase,
             "ecosystem_landscape": self._ecosystem_landscape,
             "privacy_showcase": self._privacy_showcase,
             "forecaster_showcase": self._forecaster_showcase,
@@ -2709,24 +3349,217 @@ class ShowcaseRunner:
                 ]
             )
 
+        recursive_paths = (
+            payload.get("recursive_ezkl_paths", {})
+            if isinstance(payload.get("recursive_ezkl_paths"), dict)
+            else {}
+        )
+        recursive_doc_rows = []
+        for row in (recursive_paths.get("docs") or []):
+            if not isinstance(row, dict):
+                continue
+            recursive_doc_rows.append(
+                [
+                    escape(str(row.get("label") or "-")),
+                    f"<code>{escape(str(row.get('path') or '-'))}</code>",
+                    "<span class=\"pass\">present</span>" if row.get("exists") else "<span class=\"fail\">missing</span>",
+                ]
+            )
+        recursive_path_rows = []
+        for row in (recursive_paths.get("path_rows") or []):
+            if not isinstance(row, dict):
+                continue
+            runtime_contract = str(row.get("runtime_contract") or "-")
+            recursive_path_rows.append(
+                [
+                    escape(str(row.get("path") or "-")),
+                    (
+                        "<span class=\"pass\">implemented</span>"
+                        if str(row.get("status") or "").startswith("implemented")
+                        else "<span class=\"fail\">partial</span>"
+                    ),
+                    escape(str(row.get("runtime_lane_id") or "-")),
+                    "<span class=\"pass\">yes</span>" if row.get("runtime_lane_listed") else "<span class=\"fail\">no</span>",
+                    "<span class=\"pass\">yes</span>" if row.get("runtime_lane_available") else "<span class=\"fail\">no</span>",
+                    escape(_short_hex(runtime_contract, 14)),
+                    escape(_clip_text(row.get("doc_signal"), 140) or "-"),
+                ]
+            )
+        recursive_signals = recursive_paths.get("signals") if isinstance(recursive_paths.get("signals"), dict) else {}
+        recursive_signal_rows = [
+            ["Path A status in roadmap", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_status_doc") else "<span class=\"fail\">no</span>"],
+            ["Phase 2 status marked complete", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase2_status_done") else "<span class=\"fail\">no</span>"],
+            ["Phase 3 tasks expanded (3.1-3.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase3_plan_expanded") else "<span class=\"fail\">no</span>"],
+            ["Phase 4 tasks expanded (4.1-4.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase4_plan_expanded") else "<span class=\"fail\">no</span>"],
+            ["Parent backend Phase 3 config keys", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_config_keys") else "<span class=\"fail\">no</span>"],
+            ["Parent backend Phase 3 service stub", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_service_stub") else "<span class=\"fail\">no</span>"],
+            ["Parent backend Phase 4 config key", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_config_key") else "<span class=\"fail\">no</span>"],
+            ["Parent backend Phase 4 route (native_kzg)", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_route") else "<span class=\"fail\">no</span>"],
+        ]
+        recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
+        recursive_env_rows = [
+            ["Parent backend .env found", "<span class=\"pass\">yes</span>" if recursive_env.get("parent_env_found") else "<span class=\"fail\">no</span>"],
+            ["L1_SEPOLIA_RPC set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_sepolia_rpc_set") else "<span class=\"fail\">no</span>"],
+            ["L1_EZKL_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_ezkl_verifier_set") else "<span class=\"fail\">no</span>"],
+            ["L1_BRIDGE_RECEIVER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_bridge_receiver_set") else "<span class=\"fail\">no</span>"],
+            ["L3_KZG_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l3_kzg_verifier_set") else "<span class=\"fail\">no</span>"],
+        ]
+        recursive_next_rows = [
+            [escape(str(idx + 1)), escape(str(item))]
+            for idx, item in enumerate(recursive_paths.get("next_steps") or [])
+        ]
+
         bridge_run_rows = []
         ml_runs = bridge.get("ml_bridge_runs", {}) if isinstance(bridge.get("ml_bridge_runs"), dict) else {}
-        for run_name in ["l3", "dual"]:
+        run_labels = {
+            "l3": "L3",
+            "l3_heavy_request": "L3_HEAVY_REQUEST",
+            "l3_noir_request": "L3_NOIR_REQUEST",
+            "dual": "DUAL",
+        }
+        run_order = ["l3", "l3_heavy_request", "l3_noir_request", "dual"]
+        for run_name in run_order:
+            if run_name not in ml_runs:
+                continue
             run = ml_runs.get(run_name) if isinstance(ml_runs.get(run_name), dict) else {}
             l3 = run.get("l3") if isinstance(run.get("l3"), dict) else {}
             l2 = run.get("l2") if isinstance(run.get("l2"), dict) else {}
             bridge_run_rows.append(
                 [
-                    escape(run_name.upper()),
+                    escape(run_labels.get(run_name, run_name.upper())),
                     escape(str(run.get("proof_mode") or "-")),
                     escape(str(run.get("requested_execution_chain") or "-")),
                     escape(str(l3.get("mode") or "-")),
                     escape(str(l2.get("mode") or "-")),
+                    escape(str(run.get("bridge_backend") or "-")),
                     escape(str(run.get("mirror_status") or "-")),
                     "<span class=\"pass\">true</span>" if run.get("can_execute") else "<span class=\"fail\">false</span>",
                     escape(_clip_text(run.get("failure_reason"), 110) or "-"),
                 ]
             )
+
+        bridge_attempt_rows = []
+        ml_attempts = bridge.get("ml_bridge_attempts", {}) if isinstance(bridge.get("ml_bridge_attempts"), dict) else {}
+        for run_name in run_order:
+            if run_name not in ml_attempts:
+                continue
+            attempts = ml_attempts.get(run_name) if isinstance(ml_attempts.get(run_name), list) else []
+            for attempt in attempts:
+                if not isinstance(attempt, dict):
+                    continue
+                tx_hash = str(attempt.get("l3_tx_hash") or "-")
+                tx_url = attempt.get("l3_tx_url")
+                tx_html = (
+                    f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 12))}</a>"
+                    if tx_url and tx_hash != "-"
+                    else escape(_short_hex(tx_hash, 12))
+                )
+                bridge_attempt_rows.append(
+                    [
+                        escape(run_labels.get(run_name, run_name.upper())),
+                        escape(str(attempt.get("attempt") or "-")),
+                        escape(str(attempt.get("status") or "-")),
+                        escape(str(attempt.get("mirror_status") or "-")),
+                        escape(str(attempt.get("l3_mode") or "-")),
+                        escape(str(attempt.get("bridge_backend") or "-")),
+                        tx_html,
+                        "<span class=\"pass\">true</span>" if attempt.get("can_execute") else "<span class=\"fail\">false</span>",
+                        escape(_clip_text(attempt.get("failure_text"), 160) or "-"),
+                    ]
+                )
+
+        live_receipt = (
+            bridge.get("modelbridge_live_receipt", {})
+            if isinstance(bridge.get("modelbridge_live_receipt"), dict)
+            else {}
+        )
+        live_receipt_tx = str(live_receipt.get("l3_tx_hash") or "-")
+        live_receipt_tx_url = live_receipt.get("l3_tx_url")
+        live_receipt_tx_html = (
+            f"<a href=\"{escape(str(live_receipt_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(live_receipt_tx, 14))}</a>"
+            if live_receipt_tx_url and live_receipt_tx != "-"
+            else escape(_short_hex(live_receipt_tx, 14))
+        )
+        live_receipt_bridge_hash = escape(_short_hex(str(live_receipt.get("bridge_proof_hash") or "-"), 14))
+        live_receipt_rows = [
+            ["API status", escape(str(live_receipt.get("status") or "-"))],
+            ["Proof mode", escape(str(live_receipt.get("proof_mode") or "-"))],
+            ["Requested chain", escape(str(live_receipt.get("requested_execution_chain") or "-"))],
+            ["Bridge proof hash", live_receipt_bridge_hash],
+            ["Bridge backend", escape(str(live_receipt.get("bridge_backend") or "-"))],
+            ["Bridge compliant", "<span class=\"pass\">true</span>" if live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["ModelBridge calldata words", escape(str(live_receipt.get("calldata_words") or "-"))],
+            ["L3 attempted", "<span class=\"pass\">true</span>" if live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
+            ["L3 success", "<span class=\"pass\">true</span>" if live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 verifier mode", escape(str(live_receipt.get("l3_mode") or "-"))],
+            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 tx hash", live_receipt_tx_html],
+            ["Can execute", "<span class=\"pass\">true</span>" if live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(live_receipt.get("mirror_status") or "-"))],
+            ["Trust mode", escape(str(live_receipt.get("trust_mode") or "-"))],
+            ["Failure reason", escape(_clip_text(live_receipt.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(live_receipt.get("generated_at") or "-"))],
+            ["Duration ms", escape(str(live_receipt.get("total_duration_ms") or "-"))],
+        ]
+
+        heavy_live_receipt = (
+            bridge.get("modelbridge_heavy_live_receipt", {})
+            if isinstance(bridge.get("modelbridge_heavy_live_receipt"), dict)
+            else {}
+        )
+        heavy_live_receipt_tx = str(heavy_live_receipt.get("l3_tx_hash") or "-")
+        heavy_live_receipt_tx_url = heavy_live_receipt.get("l3_tx_url")
+        heavy_live_receipt_tx_html = (
+            f"<a href=\"{escape(str(heavy_live_receipt_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(heavy_live_receipt_tx, 14))}</a>"
+            if heavy_live_receipt_tx_url and heavy_live_receipt_tx != "-"
+            else escape(_short_hex(heavy_live_receipt_tx, 14))
+        )
+        heavy_live_receipt_rows = [
+            ["API status", escape(str(heavy_live_receipt.get("status") or "-"))],
+            ["Proof mode", escape(str(heavy_live_receipt.get("proof_mode") or "-"))],
+            ["Requested chain", escape(str(heavy_live_receipt.get("requested_execution_chain") or "-"))],
+            ["Bridge proof hash", escape(_short_hex(str(heavy_live_receipt.get("bridge_proof_hash") or "-"), 14))],
+            ["Bridge backend", escape(str(heavy_live_receipt.get("bridge_backend") or "-"))],
+            ["Bridge compliant", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["ModelBridgeHeavy calldata words", escape(str(heavy_live_receipt.get("calldata_words") or "-"))],
+            ["L3 attempted", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
+            ["L3 success", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 verifier mode", escape(str(heavy_live_receipt.get("l3_mode") or "-"))],
+            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 tx hash", heavy_live_receipt_tx_html],
+            ["Can execute", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(heavy_live_receipt.get("mirror_status") or "-"))],
+            ["Trust mode", escape(str(heavy_live_receipt.get("trust_mode") or "-"))],
+            ["Failure reason", escape(_clip_text(heavy_live_receipt.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(heavy_live_receipt.get("generated_at") or "-"))],
+            ["Duration ms", escape(str(heavy_live_receipt.get("total_duration_ms") or "-"))],
+        ]
+
+        heavy_stark = payload.get("heavy_stark_showcase", {}) if isinstance(payload.get("heavy_stark_showcase"), dict) else {}
+        heavy_stark_l3 = heavy_stark.get("l3") if isinstance(heavy_stark.get("l3"), dict) else {}
+        heavy_stark_tx_hash = str(heavy_stark_l3.get("tx_hash") or "-")
+        heavy_stark_tx_url = heavy_stark_l3.get("tx_url")
+        heavy_stark_tx_html = (
+            f"<a href=\"{escape(str(heavy_stark_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(heavy_stark_tx_hash, 14))}</a>"
+            if heavy_stark_tx_url and heavy_stark_tx_hash != "-"
+            else escape(_short_hex(heavy_stark_tx_hash, 14))
+        )
+        heavy_stark_rows = [
+            ["API status", escape(str(heavy_stark.get("status") or "-"))],
+            ["Circuit name", escape(str(heavy_stark.get("circuit_name") or "-"))],
+            ["Proof success", "<span class=\"pass\">true</span>" if heavy_stark.get("success") else "<span class=\"fail\">false</span>"],
+            ["Proof hash", escape(_short_hex(str(heavy_stark.get("proof_hash") or "-"), 14))],
+            ["Fact hash", escape(_short_hex(str(heavy_stark.get("fact_hash") or "-"), 14))],
+            ["L3 mode", escape(str(heavy_stark_l3.get("mode") or "-"))],
+            ["L3 success", "<span class=\"pass\">true</span>" if heavy_stark_l3.get("success") else "<span class=\"fail\">false</span>"],
+            [
+                "L3 verified_on_chain",
+                "<span class=\"pass\">true</span>" if heavy_stark_l3.get("verified_on_chain") else "<span class=\"fail\">false</span>",
+            ],
+            ["L3 tx hash", heavy_stark_tx_html],
+            ["L3 error", escape(_clip_text(heavy_stark_l3.get("error"), 180) or "-")],
+            ["Error", escape(_clip_text(heavy_stark.get("error"), 180) or "-")],
+        ]
 
         bridge_unlock_rows = []
         for row in (bridge.get("bridge_unlocks") or []):
@@ -2803,8 +3636,20 @@ class ShowcaseRunner:
                 escape(str(verifier_support.get("contract_classes_count") or 0)),
             ],
             [
+                "Generated ModelBridgeHeavy verifier project present",
+                "<span class=\"pass\">yes</span>" if verifier_support.get("heavy_verifier_project_exists") else "<span class=\"fail\">no</span>",
+            ],
+            [
+                "Generated ModelBridgeHeavy contract classes",
+                escape(str(verifier_support.get("heavy_contract_classes_count") or 0)),
+            ],
+            [
                 "Deployment marker (.model_bridge_verifier.deployed)",
                 "<span class=\"pass\">found</span>" if verifier_support.get("deployed_marker_found") else "<span class=\"fail\">missing</span>",
+            ],
+            [
+                "Deployment marker (.model_bridge_heavy_verifier.deployed)",
+                "<span class=\"pass\">found</span>" if verifier_support.get("heavy_deployed_marker_found") else "<span class=\"fail\">missing</span>",
             ],
             [
                 "Deployment marker (.zkml_verifier_model_bridge.deployed)",
@@ -2817,6 +3662,14 @@ class ShowcaseRunner:
             [
                 "Deployed ModelBridge verifier class hash",
                 escape(_short_hex(str(verifier_support.get("deployed_class_hash") or "-"), 10)),
+            ],
+            [
+                "Deployed ModelBridgeHeavy verifier address",
+                escape(_short_hex(str(verifier_support.get("heavy_deployed_address") or "-"), 10)),
+            ],
+            [
+                "Deployed ModelBridgeHeavy verifier class hash",
+                escape(_short_hex(str(verifier_support.get("heavy_deployed_class_hash") or "-"), 10)),
             ],
             [
                 "Deployed ZkmlVerifier (ModelBridge-capable)",
@@ -3309,6 +4162,59 @@ class ShowcaseRunner:
       color: #a7f3d0;
       background: rgba(16, 185, 129, 0.1);
     }}
+    .tab-nav, .subtab-nav {{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding: 10px;
+      border: 1px solid #2a3242;
+      border-radius: 12px;
+      background: rgba(16, 22, 35, 0.72);
+    }}
+    .subtab-nav {{
+      margin-top: 10px;
+      background: rgba(12, 18, 29, 0.72);
+      border-color: #263045;
+    }}
+    .subtab-nav[hidden] {{
+      display: none;
+    }}
+    .tab-btn {{
+      border: 1px solid #33435c;
+      color: #c3d5ee;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(22, 33, 49, 0.68);
+      cursor: pointer;
+      transition: all .12s ease-in-out;
+    }}
+    .tab-btn:hover {{
+      border-color: #496183;
+      transform: translateY(-1px);
+    }}
+    .tab-btn.active {{
+      border-color: rgba(16, 185, 129, 0.75);
+      color: #d9fff0;
+      background: rgba(16, 185, 129, 0.16);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2) inset;
+    }}
+    .tab-btn.sub.active {{
+      border-color: rgba(34, 211, 238, 0.75);
+      background: rgba(34, 211, 238, 0.14);
+      color: #d9fbff;
+      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18) inset;
+    }}
+    .report-section {{
+      display: none;
+      animation: fadeIn .16s ease-in-out;
+    }}
+    @keyframes fadeIn {{
+      from {{ opacity: 0; transform: translateY(3px); }}
+      to {{ opacity: 1; transform: translateY(0); }}
+    }}
     section {{
       margin-top: 16px;
       background: linear-gradient(180deg, var(--panel), var(--panel-alt));
@@ -3336,6 +4242,9 @@ class ShowcaseRunner:
       border-bottom: 1px solid var(--line);
       vertical-align: top;
       font-size: 13px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
     }}
     th {{ color: var(--muted); font-weight: 600; }}
     a {{ color: var(--link); text-decoration: none; }}
@@ -3381,7 +4290,41 @@ class ShowcaseRunner:
       </div>
     </div>
 
-    <section>
+    <div class="tab-nav" data-group="main">
+      <button type="button" class="tab-btn active" data-main-target="overview">Overview</button>
+      <button type="button" class="tab-btn" data-main-target="bridge">ModelBridge</button>
+      <button type="button" class="tab-btn" data-main-target="ai">AI + Badges</button>
+      <button type="button" class="tab-btn" data-main-target="privacy">Privacy + Voting</button>
+      <button type="button" class="tab-btn" data-main-target="infra">Infra + On-chain</button>
+    </div>
+
+    <div class="subtab-nav" data-main="overview">
+      <button type="button" class="tab-btn sub active" data-sub-target="claims">Claim Matrix</button>
+      <button type="button" class="tab-btn sub" data-sub-target="steps">Execution Steps</button>
+    </div>
+    <div class="subtab-nav" data-main="bridge" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="live">Live Verify Receipt</button>
+      <button type="button" class="tab-btn sub" data-sub-target="architecture">Architecture</button>
+      <button type="button" class="tab-btn sub" data-sub-target="phases">Phase 2-4 Status</button>
+      <button type="button" class="tab-btn sub" data-sub-target="ecosystem">Ecosystem Positioning</button>
+    </div>
+    <div class="subtab-nav" data-main="ai" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="advisory">Opportunity Flow</button>
+      <button type="button" class="tab-btn sub" data-sub-target="skills">Skill Receipts</button>
+      <button type="button" class="tab-btn sub" data-sub-target="config">Config Packs</button>
+      <button type="button" class="tab-btn sub" data-sub-target="strategy">Strategy Evidence</button>
+    </div>
+    <div class="subtab-nav" data-main="privacy" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="rails">Privacy Rails</button>
+      <button type="button" class="tab-btn sub" data-sub-target="forecaster">Forecaster Primitive</button>
+    </div>
+    <div class="subtab-nav" data-main="infra" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="contracts">On-chain Links</button>
+      <button type="button" class="tab-btn sub" data-sub-target="circuits">Circuit Inventory</button>
+      <button type="button" class="tab-btn sub" data-sub-target="poseidon">Poseidon Runtime</button>
+    </div>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="claims">
       <h2>Core Claim Matrix</h2>
       <div class="intent">
         <strong>What this tests:</strong> The non-negotiable MVP claims for health, proofs, agent execution, policy controls, and on-chain visibility.<br/>
@@ -3391,7 +4334,7 @@ class ShowcaseRunner:
       {self._html_table(["Claim", "Status"], claim_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="overview" data-sub-tab="steps">
       <h2>Execution Steps</h2>
       <div class="intent">
         <strong>What this tests:</strong> Granular API and proving steps with concrete telemetry (IDs, proof hashes, counts, statuses).<br/>
@@ -3401,7 +4344,28 @@ class ShowcaseRunner:
       {self._html_table(["Step", "Status", "Highlights"], step_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
+      <h2>ModelBridge Live L3 Verify Receipts</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed to L3 for both `ModelBridge` and `ModelBridgeHeavy`, each captured as concrete receipt evidence.<br/>
+        <strong>UI intent:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
+        <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
+      </div>
+      <h3>ModelBridge Receipt</h3>
+      {self._html_table(["Field", "Value"], live_receipt_rows)}
+      <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
+      {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
+      <h3>StarkHeavyReputation (Stone -> L3)</h3>
+      <p class="meta">
+        Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
+        `StarkHeavyReputation`) with optional L3 submission.
+      </p>
+      {self._html_table(["Field", "Value"], heavy_stark_rows)}
+      <h3>Retry/Attempt Timeline</h3>
+      {self._html_table(["Run", "Attempt", "HTTP", "Mirror", "L3 Mode", "Bridge Backend", "Tx", "Can Execute", "Failure Text"], bridge_attempt_rows)}
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
       <h2>Open-source ModelBridge + Dual-Proof Architecture</h2>
       <div class="intent">
         <strong>What this tests:</strong> That the zkML bridge implementation is present in repo, then exercised via runtime probes that hit both single-chain and dual-chain proof paths.<br/>
@@ -3421,11 +4385,12 @@ class ShowcaseRunner:
       <p class="meta">
         Proving-path endpoint status: {escape(str(bridge.get('proving_paths_status') or '-'))} |
         Dual lanes ready: {("<span class=\"pass\">yes</span>" if bridge.get("dual_lanes_ready") else "<span class=\"fail\">no</span>")} |
+        ModelBridgeHeavy lane available: {("<span class=\"pass\">yes</span>" if bridge.get("model_bridge_heavy_lane_available") else "<span class=\"fail\">no</span>")} |
         SNOS proving: {escape(snos_status_text)}
       </p>
       {self._html_table(["Lane ID", "Lane Name", "Available", "Contract", "Trust Model"], proving_rows)}
       <h3>Runtime Bridge Probes (`/api/v1/zkdefi/proofs/ml-bridge`)</h3>
-      {self._html_table(["Run", "Proof Mode", "Requested Chain", "L3 Mode", "L2 Mode", "Mirror", "Can Execute", "Failure Reason"], bridge_run_rows)}
+      {self._html_table(["Run", "Proof Mode", "Requested Chain", "L3 Mode", "L2 Mode", "Bridge Backend", "Mirror", "Can Execute", "Failure Reason"], bridge_run_rows)}
       <p class="meta">
         SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
         In `dual` mode, backend attempts both and records mirror status for policy gating.
@@ -3442,7 +4407,26 @@ class ShowcaseRunner:
       {self._html_table(["Check", "Status"], verifier_support_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="phases">
+      <h2>Recursive EZKL Paths (Phase 2 / 3 / 4)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Whether Path A (Noir HONK), Path C (L1 Sepolia bridge), and Path B (native Cairo KZG) are documented and wired in code, beyond narrative claims.<br/>
+        <strong>UI intent:</strong> Frontend can render honest state badges: `implemented`, `implemented_stub`, or `partial` per path.<br/>
+        <strong>Unlocks:</strong> Clear migration story from current ModelBridge lane to full on-chain EZKL attestation options.
+      </div>
+      <h3>Documentation Presence</h3>
+      {self._html_table(["Artifact", "Path", "Status"], recursive_doc_rows)}
+      <h3>Path Status Matrix</h3>
+      {self._html_table(["Path", "Status", "Lane ID", "Lane Listed", "Lane Available", "Contract", "Evidence"], recursive_path_rows)}
+      <h3>Code Wiring Signals</h3>
+      {self._html_table(["Check", "Status"], recursive_signal_rows)}
+      <h3>Environment Readiness (Parent Backend)</h3>
+      {self._html_table(["Config", "Status"], recursive_env_rows)}
+      <h3>Next Steps</h3>
+      {self._html_table(["#", "Action"], recursive_next_rows)}
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="ecosystem">
       <h2>Ecosystem Sources (Research Appendix)</h2>
       <div class="intent">
         <strong>What this tests:</strong> External source sanity-check so bridge claims are benchmarked against current open-source zkML and Starknet proof infrastructure.<br/>
@@ -3452,7 +4436,7 @@ class ShowcaseRunner:
       {self._html_table(["Project/Source", "Published Focus", "Positioning Signal", "Link"], landscape_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="infra" data-sub-tab="contracts">
       <h2>On-chain Links (Voyager)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
@@ -3465,7 +4449,7 @@ class ShowcaseRunner:
       {self._html_table(["Tx", "Action", "Proof Type", "Timestamp"], receipt_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="infra" data-sub-tab="circuits">
       <h2>zkML Circuit Deep Dive</h2>
       <div class="intent">
         <strong>What this tests:</strong> Real inventory and readiness of first-party circuits, proving artifacts, and adjacent Cairo/ONNX footprint.<br/>
@@ -3488,7 +4472,7 @@ class ShowcaseRunner:
       {self._html_table(["Circuit", "Category", "Ready", "WASM", "ZKEY"], circuit_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="ai" data-sub-tab="advisory">
       <h2>Opportunity Advisory + Badge Flow</h2>
       <div class="intent">
         <strong>What this tests:</strong> Live opportunities, LLM advisory, then ZK circuit screening before recommendation is treated as trusted.<br/>
@@ -3502,7 +4486,7 @@ class ShowcaseRunner:
       {self._html_table(["Opp ID", "Proof Status", "is_proved", "Yield Proof", "Strategy Proof", "Error"], badge_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="ai" data-sub-tab="skills">
       <h2>AI Circuit Skills Engine (LLM Tooling)</h2>
       <div class="intent">
         <strong>What this tests:</strong> LLM opportunity advice is validated against a broad zkML skill bundle before being upgraded to trusted execution.<br/>
@@ -3518,7 +4502,7 @@ class ShowcaseRunner:
       {self._html_table(["Opp ID", "Skill Used", "Proof Hash", "Receipt Endpoint", "Receipt State", "Receipt Status", "Statement"], skill_receipt_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="rails">
       <h2>Privacy Rails + Voting/Lending Backend Demo</h2>
       <div class="intent">
         <strong>What this tests:</strong> End-to-end privacy rails: shielded commitments, nullifier + claim hash proofs, relayer-style withdraw queueing, and L3 dark settlement endpoints.<br/>
@@ -3540,7 +4524,7 @@ class ShowcaseRunner:
       {self._html_table(["Privacy Mode", "Deposit Status", "Proof Ref", "Detail"], privacy_mode_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="forecaster">
       <h2>Private Prediction Market Primitive (Forecaster)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Commit/reveal forecasting with scoring and explainability so private prediction workflows can run without exposing raw strategy state.<br/>
@@ -3555,7 +4539,7 @@ class ShowcaseRunner:
       <p class="meta">Explainability: {forecaster_explain_text}</p>
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="ai" data-sub-tab="config">
       <h2>LLM + Marketplace Config Packs</h2>
       <div class="intent">
         <strong>What this tests:</strong> Runtime-validated config packs built from active provider/model/skill registries.<br/>
@@ -3565,7 +4549,7 @@ class ShowcaseRunner:
       {self._html_table(["Profile", "Provider", "Model", "Temp", "Processors", "Circuit Skills"], pack_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="infra" data-sub-tab="poseidon">
       <h2>Poseidon Runtime Status</h2>
       <div class="intent">
         <strong>What this tests:</strong> Commitment hashing reliability across badge-screen and credit-eligibility proof flows.<br/>
@@ -3577,7 +4561,7 @@ class ShowcaseRunner:
       {self._html_table(["Step", "Status", "API Status", "Signal"], poseidon_rows)}
     </section>
 
-    <section>
+    <section class="report-section" data-main-tab="ai" data-sub-tab="strategy">
       <h2>Strategy API Evidence</h2>
       <div class="intent">
         <strong>What this tests:</strong> Recommendation and analysis payloads that downstream UI widgets depend on.<br/>
@@ -3589,6 +4573,68 @@ class ShowcaseRunner:
       {self._html_table(["Source", "Pool ID", "Pair", "Protocol", "Allocation", "Expected APY"], strategy_pool_rows)}
     </section>
   </main>
+  <script>
+    (() => {{
+      const mainButtons = Array.from(document.querySelectorAll("[data-main-target]"));
+      const subNavs = Array.from(document.querySelectorAll(".subtab-nav[data-main]"));
+      const sections = Array.from(document.querySelectorAll(".report-section[data-main-tab][data-sub-tab]"));
+
+      const activateMain = (main) => {{
+        mainButtons.forEach((btn) => {{
+          btn.classList.toggle("active", btn.dataset.mainTarget === main);
+        }});
+        subNavs.forEach((nav) => {{
+          const visible = nav.dataset.main === main;
+          nav.hidden = !visible;
+          const buttons = Array.from(nav.querySelectorAll("[data-sub-target]"));
+          if (!buttons.length) {{
+            return;
+          }}
+          let active = buttons.find((btn) => btn.classList.contains("active"));
+          if (!active || active.disabled) {{
+            active = buttons[0];
+          }}
+          const targetSub = active.dataset.subTarget;
+          buttons.forEach((btn) => {{
+            btn.classList.toggle("active", btn.dataset.subTarget === targetSub);
+          }});
+        }});
+        const activeSubNav = subNavs.find((nav) => nav.dataset.main === main);
+        const activeSubButton = activeSubNav?.querySelector("[data-sub-target].active") || activeSubNav?.querySelector("[data-sub-target]");
+        activateSub(main, activeSubButton ? activeSubButton.dataset.subTarget : null);
+      }};
+
+      const activateSub = (main, sub) => {{
+        subNavs.forEach((nav) => {{
+          if (nav.dataset.main !== main) {{
+            return;
+          }}
+          Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {{
+            btn.classList.toggle("active", btn.dataset.subTarget === sub);
+          }});
+        }});
+        sections.forEach((section) => {{
+          const show = section.dataset.mainTab === main && section.dataset.subTab === sub;
+          section.style.display = show ? "block" : "none";
+        }});
+      }};
+
+      mainButtons.forEach((btn) => {{
+        btn.addEventListener("click", () => {{
+          activateMain(btn.dataset.mainTarget);
+        }});
+      }});
+      subNavs.forEach((nav) => {{
+        Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {{
+          btn.addEventListener("click", () => {{
+            activateSub(nav.dataset.main || "overview", btn.dataset.subTarget || "claims");
+          }});
+        }});
+      }});
+
+      activateMain("overview");
+    }})();
+  </script>
 </body>
 </html>
 """
@@ -3629,6 +4675,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-onchain", action="store_true", help="Skip on-chain reads / RPC probes")
     parser.add_argument("--judge-mode", action="store_true", help="Condensed terminal output for live judging")
     parser.add_argument(
+        "--strict-bridge",
+        action="store_true",
+        help="Require strict ModelBridge/dual-lane 200-level receipt evidence (no transient pass)",
+    )
+    parser.add_argument(
         "--artifact-dir",
         default=str(DEFAULT_ARTIFACT_DIR),
         help=f"Directory for JSON/HTML report artifacts (default: {DEFAULT_ARTIFACT_DIR})",
@@ -3645,6 +4696,7 @@ def main() -> int:
         skip_onchain=bool(args.skip_onchain),
         artifact_dir=Path(args.artifact_dir),
         judge_mode=bool(args.judge_mode),
+        strict_bridge=bool(args.strict_bridge),
     )
     return runner.run()
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, ShieldCheck, TrendingUp } from "lucide-react";
-import type { PrivacyMethod, VaultCommitment } from "@/hooks/usePrivacyVault";
+import { ChevronDown, ChevronRight, Layers, Lock, ShieldCheck, TrendingUp, Zap } from "lucide-react";
+import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import { API_BASE } from "@/lib/api/client";
 import { CapitalFlowPipeline } from "./CapitalFlowPipeline";
 
@@ -18,53 +18,54 @@ interface PositionsOverviewProps {
 }
 
 // ---------------------------------------------------------------------------
-// Pool ordering
+// Adapter / Strategy styling
 // ---------------------------------------------------------------------------
 
-/** Canonical pool keys in display order */
-const POOL_ORDER = ["conservative", "moderate", "aggressive"] as const;
-type PoolKey = (typeof POOL_ORDER)[number];
+type AdapterKey = "ekubo_lp" | "lending" | "staking" | "idle";
 
-// ---------------------------------------------------------------------------
-// Styling maps
-// ---------------------------------------------------------------------------
-
-const METHOD_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-  commitment_shield: { bg: "bg-blue-400/10", text: "text-blue-400", bar: "bg-blue-400" },
-  nullifier_set: { bg: "bg-emerald-400/10", text: "text-emerald-400", bar: "bg-emerald-400" },
-  hashed_proof: { bg: "bg-amber-400/10", text: "text-amber-400", bar: "bg-amber-400" },
+const ADAPTER_META: Record<
+  AdapterKey,
+  { label: string; icon: string; color: string; bg: string; text: string; border: string; bar: string }
+> = {
+  ekubo_lp: {
+    label: "Ekubo LP",
+    icon: "🔄",
+    color: "emerald",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-400",
+  },
+  lending: {
+    label: "Lending",
+    icon: "🏦",
+    color: "blue",
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    border: "border-blue-500/20",
+    bar: "bg-blue-400",
+  },
+  staking: {
+    label: "Staking",
+    icon: "⚡",
+    color: "violet",
+    bg: "bg-violet-500/10",
+    text: "text-violet-400",
+    border: "border-violet-500/20",
+    bar: "bg-violet-400",
+  },
+  idle: {
+    label: "Idle",
+    icon: "💤",
+    color: "zinc",
+    bg: "bg-zinc-500/10",
+    text: "text-zinc-400",
+    border: "border-zinc-500/20",
+    bar: "bg-zinc-500",
+  },
 };
 
-const FALLBACK_METHOD_COLOR = { bg: "bg-zinc-400/10", text: "text-zinc-400", bar: "bg-zinc-400" };
-const FALLBACK_POOL_COLOR = { bg: "bg-zinc-500/10", text: "text-zinc-400", bar: "bg-zinc-400", border: "border-zinc-500/20" };
-
-const METHOD_LABELS: Record<string, string> = {
-  commitment_shield: "Shield",
-  nullifier_set: "Full Privacy",
-  hashed_proof: "Hashed Proof",
-};
-
-const SHIELDED_METHODS: PrivacyMethod[] = ["nullifier_set", "hashed_proof"];
-
-const POOL_COLORS: Record<string, { bg: string; text: string; bar: string; border: string }> = {
-  conservative: { bg: "bg-blue-500/10", text: "text-blue-400", bar: "bg-blue-400", border: "border-blue-500/20" },
-  moderate:     { bg: "bg-emerald-500/10", text: "text-emerald-400", bar: "bg-emerald-400", border: "border-emerald-500/20" },
-  balanced:     { bg: "bg-emerald-500/10", text: "text-emerald-400", bar: "bg-emerald-400", border: "border-emerald-500/20" },
-  aggressive:   { bg: "bg-orange-500/10", text: "text-orange-400", bar: "bg-orange-400", border: "border-orange-500/20" },
-};
-
-const POOL_LABELS: Record<string, string> = {
-  conservative: "Conservative",
-  moderate: "Moderate",
-  balanced: "Moderate",
-  aggressive: "Aggressive",
-};
-
-const POOL_DESCRIPTIONS: Record<string, string> = {
-  conservative: "80/20 Stablecoin-weighted",
-  moderate: "50/50 Balanced allocation",
-  aggressive: "20/80 High-yield strategies",
-};
+const ADAPTER_ORDER: AdapterKey[] = ["ekubo_lp", "lending", "staking", "idle"];
 
 const FALLBACK_DEPLOYMENT = [
   { source: "Ekubo LP", pct: 45, color: "bg-emerald-400" },
@@ -72,6 +73,15 @@ const FALLBACK_DEPLOYMENT = [
   { source: "Staking", pct: 20, color: "bg-violet-400" },
   { source: "Idle", pct: 5, color: "bg-zinc-500" },
 ];
+
+/** Map deployment source names → adapter keys */
+function sourceToAdapter(source: string): AdapterKey {
+  const s = source.toLowerCase();
+  if (s.includes("ekubo") || s.includes("lp")) return "ekubo_lp";
+  if (s.includes("lend")) return "lending";
+  if (s.includes("stak")) return "staking";
+  return "idle";
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -98,31 +108,16 @@ function timeAgo(dateStr: string): string {
   return "just now";
 }
 
-function daysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-}
-
-/** Normalize pool_variant / pool_type to canonical pool key */
-function resolvePoolKey(c: VaultCommitment): PoolKey {
-  const v = c.pool_variant?.toLowerCase();
-  if (v === "conservative" || v === "moderate" || v === "aggressive") return v;
-  if (v === "balanced" || v === "neutral") return "moderate";
-  // Fallback: pool_type number → key
-  if (c.pool_type === 0) return "conservative";
-  if (c.pool_type === 2) return "aggressive";
-  return "moderate"; // default
-}
-
 // ---------------------------------------------------------------------------
-// Pool group type
+// Adapter group type
 // ---------------------------------------------------------------------------
 
-interface PoolGroup {
-  key: PoolKey;
-  commitments: VaultCommitment[];
-  totalWei: bigint;
-  yieldWei: bigint;
-  methodCounts: Partial<Record<PrivacyMethod, number>>;
+interface AdapterGroup {
+  key: AdapterKey;
+  /** Deployed % from vault stats endpoint */
+  pct: number;
+  /** Estimated STRK value deployed to this adapter (from % × total) */
+  deployedWei: bigint;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,10 +130,9 @@ export default function PositionsOverview({
   address,
   walletBalance = "0",
 }: PositionsOverviewProps) {
-  const [view, setView] = useState<"privacy" | "public">("privacy");
   const [deployment, setDeployment] = useState(FALLBACK_DEPLOYMENT);
   const [poolApys, setPoolApys] = useState<Record<string, number>>({});
-  const [expandedPools, setExpandedPools] = useState<Set<PoolKey>>(new Set(POOL_ORDER));
+  const [expandedAdapter, setExpandedAdapter] = useState<AdapterKey | null>(null);
 
   // Fetch capital deployment stats
   useEffect(() => {
@@ -191,55 +185,45 @@ export default function PositionsOverview({
 
   // ---- Derived data ----
 
-  /** Group commitments by pool */
-  const poolGroups = useMemo<PoolGroup[]>(() => {
-    const map: Record<PoolKey, PoolGroup> = {
-      conservative: { key: "conservative", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
-      moderate: { key: "moderate", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
-      aggressive: { key: "aggressive", commitments: [], totalWei: BigInt(0), yieldWei: BigInt(0), methodCounts: {} },
-    };
-    for (const c of commitments) {
-      const pk = resolvePoolKey(c);
-      const g = map[pk];
-      g.commitments.push(c);
-      g.totalWei += BigInt(c.amount_wei || "0");
-      if (c.yield_accrued) g.yieldWei += BigInt(c.yield_accrued);
-      g.methodCounts[c.method] = (g.methodCounts[c.method] ?? 0) + 1;
-    }
-    return POOL_ORDER.map((k) => map[k]);
-  }, [commitments]);
-
   const totalValueWei = useMemo(
-    () => poolGroups.reduce((a, g) => a + g.totalWei, BigInt(0)),
-    [poolGroups],
+    () => commitments.reduce((sum, c) => sum + BigInt(c.amount_wei || "0"), BigInt(0)),
+    [commitments],
   );
 
-  const privacyCoverage = useMemo(() => {
-    if (totalValueWei === BigInt(0)) return 0;
-    const shielded = commitments
-      .filter((c) => SHIELDED_METHODS.includes(c.method))
-      .reduce((sum, c) => sum + BigInt(c.amount_wei || "0"), BigInt(0));
-    return Math.round(Number((shielded * BigInt(100)) / totalValueWei));
-  }, [commitments, totalValueWei]);
-
   const yieldTotal = useMemo(() => {
-    const total = poolGroups.reduce((a, g) => a + g.yieldWei, BigInt(0));
+    const total = commitments.reduce(
+      (sum, c) => sum + BigInt(c.yield_accrued || "0"),
+      BigInt(0),
+    );
     return total > BigInt(0) ? total : null;
-  }, [poolGroups]);
+  }, [commitments]);
 
-  // Pipeline balances (ETH strings)
+  /** Build adapter groups from deployment % and total value */
+  const adapterGroups = useMemo<AdapterGroup[]>(() => {
+    return deployment.map((d) => {
+      const key = sourceToAdapter(d.source);
+      const deployedWei =
+        totalValueWei > BigInt(0)
+          ? (totalValueWei * BigInt(Math.round(d.pct * 100))) / BigInt(10000)
+          : BigInt(0);
+      return { key, pct: d.pct, deployedWei };
+    });
+  }, [deployment, totalValueWei]);
+
+  // Blended APY across all pools
+  const blendedApy = useMemo(() => {
+    const values = Object.values(poolApys);
+    if (values.length === 0) return null;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }, [poolApys]);
+
+  // Pipeline balances
   const totalEth = Number(totalValueWei) / 1e18;
   const idlePct = deployment.find((d) => d.source === "Idle")?.pct ?? 0;
   const deployedEth = totalEth * (1 - idlePct / 100);
   const idleEth = totalEth * (idlePct / 100);
 
-  const togglePool = (k: PoolKey) => {
-    setExpandedPools((prev) => {
-      const n = new Set(prev);
-      if (n.has(k)) n.delete(k); else n.add(k);
-      return n;
-    });
-  };
+  const activeStrategies = deployment.filter((d) => d.pct > 0 && d.source !== "Idle").length;
 
   // ---- Render ----
 
@@ -252,38 +236,36 @@ export default function PositionsOverview({
         idleBalance={idleEth.toFixed(2)}
       />
 
-      {/* Privacy / Public toggle */}
+      {/* ── Shielded Vault Banner ── */}
+      <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-400/15">
+          <Lock size={16} className="text-amber-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-amber-300">Shielded Vault</div>
+          <div className="text-[11px] text-amber-400/60">
+            All deposits use hashed proofs — your vault is fully shielded by default
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-400 text-[11px] font-medium">
+          <ShieldCheck size={12} />
+          100% Shielded
+        </div>
+      </div>
+
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white/80 tracking-wide uppercase">
           Your Positions
         </h3>
-        <div className="flex gap-1 rounded-lg bg-white/[0.04] p-0.5">
-          <button
-            onClick={() => setView("privacy")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-md transition-colors ${
-              view === "privacy"
-                ? "bg-white/10 text-white"
-                : "text-white/40 hover:text-white/60"
-            }`}
-          >
-            <EyeOff size={12} />
-            Privacy View
-          </button>
-          <button
-            onClick={() => setView("public")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-md transition-colors ${
-              view === "public"
-                ? "bg-white/10 text-white"
-                : "text-white/40 hover:text-white/60"
-            }`}
-          >
-            <Eye size={12} />
-            Public View
-          </button>
-        </div>
+        {blendedApy != null && (
+          <span className="text-emerald-400 text-xs font-medium">
+            ~{blendedApy.toFixed(1)}% blended APY
+          </span>
+        )}
       </div>
 
-      {/* Summary stats */}
+      {/* ── Summary stats ── */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
           <div className="flex items-center gap-1.5 text-white/40 text-[11px] mb-1">
@@ -291,19 +273,17 @@ export default function PositionsOverview({
             Total Value
           </div>
           <div className="text-white text-sm font-medium">
-            {totalValueWei === BigInt(0)
-              ? "--"
-              : `${formatWeiShort(totalValueWei)} STRK`}
+            {totalValueWei === BigInt(0) ? "--" : `${formatWeiShort(totalValueWei)} STRK`}
           </div>
         </div>
 
         <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
           <div className="flex items-center gap-1.5 text-white/40 text-[11px] mb-1">
-            <ShieldCheck size={12} />
-            Privacy Coverage
+            <Zap size={12} />
+            Active Strategies
           </div>
           <div className="text-white text-sm font-medium">
-            {commitments.length === 0 ? "--" : `${privacyCoverage}% shielded`}
+            {commitments.length === 0 ? "--" : `${activeStrategies} adapter${activeStrategies !== 1 ? "s" : ""}`}
           </div>
         </div>
 
@@ -318,137 +298,110 @@ export default function PositionsOverview({
         </div>
       </div>
 
-      {/* ── Pool-centric position groups ── */}
+      {/* ── Strategy Deployment ── */}
       {commitments.length === 0 ? (
-        <p className="text-center text-white/30 text-sm py-6">No positions yet — deposit to get started</p>
+        <p className="text-center text-white/30 text-sm py-6">
+          No positions yet — deposit to get started
+        </p>
       ) : (
         <div className="space-y-3">
-          {/* Pool allocation bar */}
+          {/* Adapter allocation bar */}
           <div className="space-y-2">
-            <div className="flex h-2.5 rounded-full overflow-hidden bg-white/[0.04]">
-              {poolGroups.map((g) => {
-                if (g.totalWei === BigInt(0) || totalValueWei === BigInt(0)) return null;
-                const pct = Number((g.totalWei * BigInt(10000)) / totalValueWei) / 100;
+            <h4 className="text-[11px] text-white/40 uppercase tracking-wide">
+              Capital Deployment
+            </h4>
+            <div className="flex h-3 rounded-full overflow-hidden bg-white/[0.04]">
+              {adapterGroups.map((ag) => {
+                if (ag.pct <= 0) return null;
+                const meta = ADAPTER_META[ag.key];
                 return (
                   <div
-                    key={g.key}
-                    className={`${POOL_COLORS[g.key].bar} first:rounded-l-full last:rounded-r-full`}
-                    style={{ width: `${pct}%` }}
-                    title={`${POOL_LABELS[g.key]}: ${pct.toFixed(1)}%`}
+                    key={ag.key}
+                    className={`${meta.bar} first:rounded-l-full last:rounded-r-full transition-all`}
+                    style={{ width: `${ag.pct}%` }}
+                    title={`${meta.label}: ${ag.pct}%`}
                   />
                 );
               })}
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {poolGroups.filter((g) => g.totalWei > BigInt(0)).map((g) => (
-                <div key={g.key} className="flex items-center gap-1.5 text-[11px] text-white/50">
-                  <span className={`inline-block w-2 h-2 rounded-full ${POOL_COLORS[g.key].bar}`} />
-                  <span>{POOL_LABELS[g.key]}</span>
-                  <span className="text-white/30">
-                    {formatWeiShort(g.totalWei)} STRK
-                  </span>
-                </div>
-              ))}
+              {adapterGroups
+                .filter((ag) => ag.pct > 0)
+                .map((ag) => {
+                  const meta = ADAPTER_META[ag.key];
+                  return (
+                    <div key={ag.key} className="flex items-center gap-1.5 text-[11px] text-white/50">
+                      <span className={`inline-block w-2 h-2 rounded-full ${meta.bar}`} />
+                      <span>{meta.label}</span>
+                      <span className="text-white/30">{ag.pct}%</span>
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
-          {/* Pool groups */}
-          {poolGroups.map((g) => {
-            const apy = poolApys[g.key] ?? poolApys[POOL_LABELS[g.key]?.toLowerCase() ?? ""] ?? null;
-            const colors = POOL_COLORS[g.key] ?? FALLBACK_POOL_COLOR;
-            const expanded = expandedPools.has(g.key);
-            const hasPositions = g.commitments.length > 0;
+          {/* Adapter strategy cards */}
+          {adapterGroups.map((ag) => {
+            if (ag.pct <= 0) return null;
+            const meta = ADAPTER_META[ag.key];
+            const expanded = expandedAdapter === ag.key;
 
             return (
-              <div key={g.key} className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden`}>
-                {/* Pool header — always shown */}
+              <div key={ag.key} className={`rounded-lg border ${meta.border} ${meta.bg} overflow-hidden`}>
                 <button
-                  onClick={() => hasPositions && togglePool(g.key)}
+                  onClick={() => setExpandedAdapter(expanded ? null : ag.key)}
                   className="w-full flex items-center justify-between px-4 py-3 text-left"
                 >
                   <div className="flex items-center gap-3">
-                    {hasPositions ? (
-                      expanded ? <ChevronDown size={14} className="text-white/30" /> : <ChevronRight size={14} className="text-white/30" />
+                    {expanded ? (
+                      <ChevronDown size={14} className="text-white/30" />
                     ) : (
-                      <div className="w-3.5" />
+                      <ChevronRight size={14} className="text-white/30" />
                     )}
+                    <span className="text-base">{meta.icon}</span>
                     <div>
-                      <span className={`text-sm font-semibold ${colors.text}`}>
-                        {POOL_LABELS[g.key]}
-                      </span>
+                      <span className={`text-sm font-semibold ${meta.text}`}>{meta.label}</span>
                       <span className="text-[11px] text-white/30 ml-2">
-                        {POOL_DESCRIPTIONS[g.key]}
+                        {ag.pct}% of vault
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs">
-                    {apy != null && (
-                      <span className="text-emerald-400 font-medium">{apy.toFixed(1)}% APY</span>
-                    )}
-                    {hasPositions ? (
-                      <>
-                        <span className="text-white/60 font-medium">
-                          {formatWeiShort(g.totalWei)} STRK
-                        </span>
-                        <span className="text-white/30">
-                          {g.commitments.length} position{g.commitments.length > 1 ? "s" : ""}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-white/20">No positions</span>
-                    )}
+                    <span className="text-white/60 font-medium">
+                      {ag.deployedWei > BigInt(0) ? `${formatWeiShort(ag.deployedWei)} STRK` : "--"}
+                    </span>
                   </div>
                 </button>
 
-                {/* Expanded: show commitments */}
-                {hasPositions && expanded && (
+                {expanded && (
                   <div className="border-t border-white/[0.06] px-4 pb-3 pt-2 space-y-1.5">
-                    {/* Privacy View — aggregated only */}
-                    {view === "privacy" ? (
-                      <div className="flex flex-wrap gap-2 py-1">
-                        {(Object.entries(g.methodCounts) as [PrivacyMethod, number][]).map(([m, count]) => (
-                          <div key={m} className="flex items-center gap-1.5 text-xs">
-                            <span className={`px-2 py-0.5 rounded ${(METHOD_COLORS[m] ?? FALLBACK_METHOD_COLOR).bg} ${(METHOD_COLORS[m] ?? FALLBACK_METHOD_COLOR).text}`}>
-                              {METHOD_LABELS[m] ?? m}
-                            </span>
-                            <span className="text-white/40">
-                              {count} position{count > 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="ml-auto text-[11px] text-white/30 self-center">
-                          aggregated — individual positions hidden
+                    <div className="text-[11px] text-white/30 mb-2">
+                      Positions deployed via {meta.label} adapter
+                    </div>
+                    {commitments.map((c) => (
+                      <div
+                        key={c.id}
+                        onClick={() => onSelectCommitment?.(c.id)}
+                        className="flex items-center justify-between rounded-md px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-white/80 text-xs font-medium min-w-[100px]">
+                            {formatWei(c.amount_wei, c.asset)}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[11px] bg-amber-400/10 text-amber-400">
+                            Shielded
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px]">
+                          <span className="text-white/40">
+                            {c.yield_accrued ? formatWei(c.yield_accrued, c.asset) : "—"}
+                          </span>
+                          <span className="text-white/30 min-w-[40px] text-right">
+                            {timeAgo(c.deposited_at)}
+                          </span>
                         </div>
                       </div>
-                    ) : (
-                      /* Public View — per-commitment rows */
-                      <div className="space-y-1">
-                        {g.commitments.map((c) => (
-                          <div
-                            key={c.id}
-                            onClick={() => onSelectCommitment?.(c.id)}
-                            className="flex items-center justify-between rounded-md px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-white/80 text-xs font-medium min-w-[100px]">
-                                {formatWei(c.amount_wei, c.asset)}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded text-[11px] ${(METHOD_COLORS[c.method] ?? FALLBACK_METHOD_COLOR).bg} ${(METHOD_COLORS[c.method] ?? FALLBACK_METHOD_COLOR).text}`}>
-                                {METHOD_LABELS[c.method] ?? c.method ?? "Unknown"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-[11px]">
-                              <span className="text-white/40">
-                                {c.yield_accrued ? formatWei(c.yield_accrued, c.asset) : "—"}
-                              </span>
-                              <span className="text-white/30 min-w-[40px] text-right">
-                                {timeAgo(c.deposited_at)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
@@ -457,44 +410,20 @@ export default function PositionsOverview({
 
           {/* Totals row */}
           <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
-            <span className="text-white/50 font-medium uppercase tracking-wide">Total Portfolio</span>
+            <span className="text-white/50 font-medium uppercase tracking-wide">
+              Total Portfolio
+            </span>
             <div className="flex items-center gap-4">
               <span className="text-white font-semibold">
                 {formatWeiShort(totalValueWei)} STRK
               </span>
               <span className="text-white/30">
-                {commitments.length} commitment{commitments.length !== 1 ? "s" : ""}
+                {commitments.length} position{commitments.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
         </div>
       )}
-
-      {/* Capital Deployed */}
-      <div className="space-y-2">
-        <h4 className="text-[11px] text-white/40 uppercase tracking-wide">Capital Deployed</h4>
-        <div className="grid grid-cols-2 gap-2">
-          {deployment.map((d) => (
-            <div
-              key={d.source}
-              className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-white/60 truncate">{d.source}</span>
-                  <span className="text-white/40 ml-2">{d.pct}%</span>
-                </div>
-                <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${d.color}`}
-                    style={{ width: `${d.pct}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

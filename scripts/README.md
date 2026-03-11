@@ -31,6 +31,7 @@ Optional flags:
 - `--wallet 0x...`
 - `--skip-onchain` (useful if RPC is flaky/offline)
 - `--judge-mode` (compact terminal output for live judging)
+- `--strict-bridge` (requires strict `200` ModelBridge + dual-lane evidence; no transient pass)
 - `--artifact-dir artifacts/hackathon_showcase`
 
 ### Hackathon showcase artifacts
@@ -44,7 +45,10 @@ Each run writes timestamped and latest report files:
 
 The HTML report includes:
 
+- Tabbed + subtabbed readout for judges (`Overview`, `ModelBridge`, `AI + Badges`, `Privacy + Voting`, `Infra + On-chain`) with wrapped tables for long hashes/errors
 - Core claim matrix and step-by-step terminal evidence
+- Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
+- Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness

@@ -525527,5 +525527,3987 @@
       "action_type": "autonomous_rebalance"
     },
     "created_at": "2026-03-10T23:06:35.857152+00:00"
+  },
+  {
+    "id": 20646,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x7f9c868c8fbb4b68c8ff40d3bdd593006a6a4b5af24a90fe662ba73cd65e798c",
+      "envelope_id": "env_1773184697_0x49d36570"
+    },
+    "created_at": "2026-03-10T23:18:17.791931+00:00"
+  },
+  {
+    "id": 20647,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3d6",
+    "metadata": {
+      "commitment_hash": "0x35843a610261e095c1b4d8fbad20917c",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:18:22.423327+00:00"
+  },
+  {
+    "id": 20648,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3d7",
+    "metadata": {
+      "commitment_hash": "0x5e8f70af27dc22ec38b431fb2664d414",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:18:27.840486+00:00"
+  },
+  {
+    "id": 20649,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:32.193670+00:00"
+  },
+  {
+    "id": 20650,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:32.569461+00:00"
+  },
+  {
+    "id": 20651,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:32.971483+00:00"
+  },
+  {
+    "id": 20652,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3d8",
+    "metadata": {
+      "commitment_hash": "0x54aa9e0322f69bc297e30689b4d80be7",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:18:37.848501+00:00"
+  },
+  {
+    "id": 20653,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3d9",
+    "metadata": {
+      "commitment_hash": "0xb8d3da3b2a662dd106d88cebb1036bbf",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:18:42.732179+00:00"
+  },
+  {
+    "id": 20654,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:51.219357+00:00"
+  },
+  {
+    "id": 20655,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:51.588674+00:00"
+  },
+  {
+    "id": 20656,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-10T23:18:51.988912+00:00"
+  },
+  {
+    "id": 20657,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x6a556b75907d522d6bcd2a81e3e267e0c0d21739eb45f0b3c0383359f460267",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x74ddc0731e33adfae638585f1998aa79",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:18:52.546228+00:00"
+  },
+  {
+    "id": 20658,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x9af674fe1b60c8c9fce916e566b6dc1846870d99ea91148ea3a296cd2b15bfe8",
+      "envelope_id": "env_1773184961_0x49d36570"
+    },
+    "created_at": "2026-03-10T23:22:41.713882+00:00"
+  },
+  {
+    "id": 20659,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x3df2372c4395630947f663a257581fd5921c6b05842f03e4658b72e3fdfd864",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xd02d7e4dd02412bb1df22c549931d8e5",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:22:47.912105+00:00"
+  },
+  {
+    "id": 20660,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3e0",
+    "metadata": {
+      "commitment_hash": "0xeeb20d6b6e2a47ad6c513af2b60d7569",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:22:52.276397+00:00"
+  },
+  {
+    "id": 20661,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3e1",
+    "metadata": {
+      "commitment_hash": "0x1879867a374f370180db0c73e1e4637a",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:22:58.504228+00:00"
+  },
+  {
+    "id": 20662,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x1822b9f184c2753e7f624498ce0f39b7493be84c8ea9a3b3968eecdf70d4ee4",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xa322fbfc835d67a0817d44f1a0c9e4ee",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:23:08.303877+00:00"
+  },
+  {
+    "id": 20663,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x487082d6061a75906790d5ab496e8d0bdaef8ea66409fbf09fe5e50e36ed4fa8",
+      "envelope_id": "env_1773186643_0x49d36570"
+    },
+    "created_at": "2026-03-10T23:50:43.967115+00:00"
+  },
+  {
+    "id": 20664,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3ea",
+    "metadata": {
+      "commitment_hash": "0x72cd4ec059c9e2879edaf0fda317ff65",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:50:48.594994+00:00"
+  },
+  {
+    "id": 20665,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3eb",
+    "metadata": {
+      "commitment_hash": "0x9b554598c81852fb55f93fcb80ec9ad5",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:50:54.218083+00:00"
+  },
+  {
+    "id": 20666,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3ec",
+    "metadata": {
+      "commitment_hash": "0xc62862275a1880afa64d316743eb959c",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:51:00.494408+00:00"
+  },
+  {
+    "id": 20667,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x463a9c7c180baee09659eca539eabc685543004477dc0a521cf88eb96d5be2e",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x6bf95229c6139604d0032645fb40a05e",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:51:08.236246+00:00"
+  },
+  {
+    "id": 20668,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3ef",
+    "metadata": {
+      "commitment_hash": "0xa2928cb0bf9b6f16d93fea41c713dd1c",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:51:13.072975+00:00"
+  },
+  {
+    "id": 20669,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x232583f5eb9a9cd42243c4ea0b08dfb9c5b9536ab832ce8b34fc9e55ff515606",
+      "envelope_id": "env_1773186883_0x49d36570"
+    },
+    "created_at": "2026-03-10T23:54:43.142391+00:00"
+  },
+  {
+    "id": 20670,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3f3",
+    "metadata": {
+      "commitment_hash": "0x8222662438e0398092d458a10b9c5382",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:54:47.405562+00:00"
+  },
+  {
+    "id": 20671,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3f4",
+    "metadata": {
+      "commitment_hash": "0xe4104c7aca495b9a8538912660476d45",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:54:53.928123+00:00"
+  },
+  {
+    "id": 20672,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3f5",
+    "metadata": {
+      "commitment_hash": "0xa30a000743fc40256f2d09b30bb92f97",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:55:00.932001+00:00"
+  },
+  {
+    "id": 20673,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x9a14a070e229ad8dd8969e69dd1c072f731a2dc3990fe03bfd3a446a6a82ef",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x8e2f2ceb3bb293157276074be15ccbb7",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:55:08.835706+00:00"
+  },
+  {
+    "id": 20674,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3f8",
+    "metadata": {
+      "commitment_hash": "0x3ff6bad1928ee2236ba9cfc00707e5ea",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:55:13.696184+00:00"
+  },
+  {
+    "id": 20675,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xd31b03502d4ecaca84cb1b915e51b78603468bae082e9408b6275ca6808ff9a8",
+      "envelope_id": "env_1773187072_0x49d36570"
+    },
+    "created_at": "2026-03-10T23:57:52.676160+00:00"
+  },
+  {
+    "id": 20676,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3fa",
+    "metadata": {
+      "commitment_hash": "0x807de2807637409288a29692ed868e8f",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:57:58.027164+00:00"
+  },
+  {
+    "id": 20677,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3fb",
+    "metadata": {
+      "commitment_hash": "0xfa972bd8d245451d1da45a8f483f1448",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:58:05.011085+00:00"
+  },
+  {
+    "id": 20678,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3fc",
+    "metadata": {
+      "commitment_hash": "0xc6f77a0e8266ede7125f5cf26684aebc",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-10T23:58:11.017955+00:00"
+  },
+  {
+    "id": 20679,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3fd",
+    "metadata": {
+      "commitment_hash": "0x30ecb8651d818925ba0f6591478dd31e",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:58:14.864708+00:00"
+  },
+  {
+    "id": 20680,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x3fe",
+    "metadata": {
+      "commitment_hash": "0x2ac7aec783830f33fb368f5ce2a6ce98",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-10T23:58:20.695270+00:00"
+  },
+  {
+    "id": 20681,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:21.223229+00:00"
+  },
+  {
+    "id": 20682,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:21.834675+00:00"
+  },
+  {
+    "id": 20683,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:22.411193+00:00"
+  },
+  {
+    "id": 20684,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:39.101275+00:00"
+  },
+  {
+    "id": 20685,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:39.682639+00:00"
+  },
+  {
+    "id": 20686,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:40.414739+00:00"
+  },
+  {
+    "id": 20687,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:48.486713+00:00"
+  },
+  {
+    "id": 20688,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:49.090380+00:00"
+  },
+  {
+    "id": 20689,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:00:49.721517+00:00"
+  },
+  {
+    "id": 20690,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:06.072751+00:00"
+  },
+  {
+    "id": 20691,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:06.519866+00:00"
+  },
+  {
+    "id": 20692,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:06.931083+00:00"
+  },
+  {
+    "id": 20693,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:42.122469+00:00"
+  },
+  {
+    "id": 20694,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:42.572071+00:00"
+  },
+  {
+    "id": 20695,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:43.050416+00:00"
+  },
+  {
+    "id": 20696,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:59.385581+00:00"
+  },
+  {
+    "id": 20697,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:01:59.926129+00:00"
+  },
+  {
+    "id": 20698,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:00.533129+00:00"
+  },
+  {
+    "id": 20699,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:16.426043+00:00"
+  },
+  {
+    "id": 20700,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:16.890903+00:00"
+  },
+  {
+    "id": 20701,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:17.334427+00:00"
+  },
+  {
+    "id": 20702,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:33.754772+00:00"
+  },
+  {
+    "id": 20703,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:34.276559+00:00"
+  },
+  {
+    "id": 20704,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:34.745219+00:00"
+  },
+  {
+    "id": 20705,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:50.716725+00:00"
+  },
+  {
+    "id": 20706,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:51.171706+00:00"
+  },
+  {
+    "id": 20707,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:02:51.617245+00:00"
+  },
+  {
+    "id": 20708,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xac1a873bfef4f2119d63e3c1a1d8fb1b54e42b54b9af440fae41499a62220d2e",
+      "envelope_id": "env_1773187754_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:09:14.609748+00:00"
+  },
+  {
+    "id": 20709,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x402",
+    "metadata": {
+      "commitment_hash": "0xffe8731c5b9160bf9ee8396896a3ebb7",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:09:19.137882+00:00"
+  },
+  {
+    "id": 20710,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x403",
+    "metadata": {
+      "commitment_hash": "0xccbe4de81bcdb7a84de8e6f6a9638b28",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:09:25.694796+00:00"
+  },
+  {
+    "id": 20711,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x3c9a69d119e4aa79c379c55b431f35501838ff4944a34d5c150baa4dc16c178",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x75ff2190c1a8fef45e1ffa4d794c0483",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:09:36.939848+00:00"
+  },
+  {
+    "id": 20712,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x406",
+    "metadata": {
+      "commitment_hash": "0xcedb8d0e0901baa296ed4476dc7a4d0c",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:09:41.914997+00:00"
+  },
+  {
+    "id": 20713,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x407",
+    "metadata": {
+      "commitment_hash": "0xaf5613d946a89a9341def0062735fc97",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:09:48.946100+00:00"
+  },
+  {
+    "id": 20714,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x04aa230bce1135fe5681d016ccf568885fb6c3344f5a3f31d96a5c093848761b",
+      "envelope_id": "env_1773188046_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:14:06.392257+00:00"
+  },
+  {
+    "id": 20715,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x40a",
+    "metadata": {
+      "commitment_hash": "0x04f664713d1b8ef5e6c8cedfa082abb1",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:14:11.865556+00:00"
+  },
+  {
+    "id": 20716,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x6ce53a0dec6d3b03cb0c2be20e916ef75e69b1593f93d24436320938bbb9859",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x31f8bded58bdf397d376393a61dc070c",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:14:20.643731+00:00"
+  },
+  {
+    "id": 20717,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x40d",
+    "metadata": {
+      "commitment_hash": "0xc0805bcb5d8dd92eb8448be1883108ba",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:14:26.797724+00:00"
+  },
+  {
+    "id": 20718,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x22b035835024ccf5d27aa4faa81aef46203da5d9c72c8de33288bb9eb8d0475",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xd2ee748bdf8099060066f8990148e5de",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:14:36.025457+00:00"
+  },
+  {
+    "id": 20719,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x410",
+    "metadata": {
+      "commitment_hash": "0x1ca2a79e01510bd5e28b1bd8b4fbf1eb",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:14:40.971321+00:00"
+  },
+  {
+    "id": 20720,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x5ad44b936b4eb2124e310cc9b6f76a7f115f91877b577d7391a7fb475f64edc7",
+      "envelope_id": "env_1773188383_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:19:43.855786+00:00"
+  },
+  {
+    "id": 20721,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x5fb33db49a82a6544a79f4e9e42b54906d8d38f2ded3c562cb1672da449cd72",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xcb5e91b1466cb26c6ee5d321b0b7816a",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:19:52.671074+00:00"
+  },
+  {
+    "id": 20722,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x416",
+    "metadata": {
+      "commitment_hash": "0x1fc1419bb23ffdb0ee177b7372bfcf84",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:19:57.804177+00:00"
+  },
+  {
+    "id": 20723,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x6285479d38d2cdbdb130bfd8bf95c518a742b30028d0625ce05c9a24fb2fd07",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xb397ac7086d16a67aa8886893dc20ecd",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:20:07.049610+00:00"
+  },
+  {
+    "id": 20724,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x419",
+    "metadata": {
+      "commitment_hash": "0x1beeed77d9ea00baeef4fffe0006a522",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:20:12.995362+00:00"
+  },
+  {
+    "id": 20725,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41a",
+    "metadata": {
+      "commitment_hash": "0x7994e7e0872ad17311e39fc944676209",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:20:20.155409+00:00"
+  },
+  {
+    "id": 20726,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41b",
+    "metadata": {
+      "commitment_hash": "0xb7afae83c9f8939a9579fbefc94027af",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:21:42.761035+00:00"
+  },
+  {
+    "id": 20727,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41b",
+    "metadata": {
+      "commitment_hash": "0x42aa7a4cc4456a0dbf3ec3a627767aae",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:21:43.352326+00:00"
+  },
+  {
+    "id": 20728,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41b",
+    "metadata": {
+      "commitment_hash": "0xf1a28e6c1c72d1f67048d765d63d5476",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:21:43.962331+00:00"
+  },
+  {
+    "id": 20729,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41b",
+    "metadata": {
+      "commitment_hash": "0xccc49c2031201b4f24ecd14136b42b55",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:21:44.479255+00:00"
+  },
+  {
+    "id": 20730,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0x41c",
+    "metadata": {
+      "commitment_hash": "0xeb69272105a725341d2f25864a842bcd",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:21:56.411857+00:00"
+  },
+  {
+    "id": 20731,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x454b6679e2ae9135360cb459f8335bf8f3ce7e0e88819d77fce46f149a1ba80",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x60b763861973a1c68c700cc2c1ea6b1e",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:23:44.559991+00:00"
+  },
+  {
+    "id": 20732,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x1b67b012de9d50f9e48ba29bd6bd3cd295edde5b103c2483a1fb42e05027444",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x93461ab88f4289f8fd0b36e87b43ae8d",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:23:52.989371+00:00"
+  },
+  {
+    "id": 20733,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x113ccd2ac9d0c63541da2b565c721be54d7211de7a3fe235c2f3c9ccd90e1ad",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x25cdaf2dfaf5e21b3602853617e4acc1",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:24:01.600664+00:00"
+  },
+  {
+    "id": 20734,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "unreachable",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Parent obsqra API unreachable",
+    "metadata": {
+      "commitment_hash": "0x754eb8365b95e41914b356f704f84f87",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:24:14.744623+00:00"
+  },
+  {
+    "id": 20735,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "unreachable",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Parent obsqra API unreachable",
+    "metadata": {
+      "commitment_hash": "0xfd703093e28e180c5d73e16f456e2a80",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:24:15.281907+00:00"
+  },
+  {
+    "id": 20736,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xb67c2403f71847b8b393653af882527dab1c94779a2c8f9a9cb543fe73306d7e",
+      "envelope_id": "env_1773188743_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:25:44.127899+00:00"
+  },
+  {
+    "id": 20737,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x46e9807e6154b58e6448d7dfa2727d97a3e81e74e27030ff7c790ad2c4b7432",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x9d6594f4472299d58acd2627ff37ef28",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:26:03.481691+00:00"
+  },
+  {
+    "id": 20738,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x214932ca995e0856f954d73c92bd55369b39dcaf34526b27bf35e9f28a07c03",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xbf8e7a665c8cb3b08bf0db01147b87bb",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T00:26:11.666904+00:00"
+  },
+  {
+    "id": 20739,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x6dc182c1b1bae46053a5a7b9493c1dd768e61f21d24e9cabb6ffc90f5c5d00b",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xd4b4d79e04f1c7b466dc3f2b027ef80f",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T00:26:23.198475+00:00"
+  },
+  {
+    "id": 20740,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x5d4032eacb1b4eef2c8e336e8318ab8a3340a38a7c398c12d80d32bb04810a55",
+      "envelope_id": "env_1773189127_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:32:08.161136+00:00"
+  },
+  {
+    "id": 20741,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xb7e1735930bbbeec7acc79760bfb99f29ca33ea8348bf3f2771ce3ad4f0e0147",
+      "envelope_id": "env_1773189320_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:35:20.386606+00:00"
+  },
+  {
+    "id": 20742,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:10.757017+00:00"
+  },
+  {
+    "id": 20743,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:11.169424+00:00"
+  },
+  {
+    "id": 20744,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:11.598636+00:00"
+  },
+  {
+    "id": 20745,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:24.253010+00:00"
+  },
+  {
+    "id": 20746,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:24.769654+00:00"
+  },
+  {
+    "id": 20747,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-11T00:40:25.233533+00:00"
+  },
+  {
+    "id": 20748,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:24.134160+00:00"
+  },
+  {
+    "id": 20749,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:24.627709+00:00"
+  },
+  {
+    "id": 20750,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:25.149771+00:00"
+  },
+  {
+    "id": 20751,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:37.890533+00:00"
+  },
+  {
+    "id": 20752,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:38.323242+00:00"
+  },
+  {
+    "id": 20753,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-11T00:41:38.759873+00:00"
+  },
+  {
+    "id": 20754,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x2ee16c600d9f4981069a3f49148b9fafdb325e72bfdc50166902a3c595b045f2",
+      "envelope_id": "env_1773190017_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:46:57.944264+00:00"
+  },
+  {
+    "id": 20755,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x772e785f21efaaf15d3fbf5dc1036b2a86154e8eac801e08caa044df3ad67b02",
+      "envelope_id": "env_1773190019_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:46:59.165185+00:00"
+  },
+  {
+    "id": 20756,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x48b45abe5ce44c059f8e9f3698fbef131bbb3e59ad4e580f26db9d8776ff4bb4",
+      "envelope_id": "env_1773190188_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:49:48.545839+00:00"
+  },
+  {
+    "id": 20757,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xcae2bc8a920eff8f0e88285cf4cbae8b116780f242440eb913fa7b475280f940",
+      "envelope_id": "env_1773190375_0x49d36570"
+    },
+    "created_at": "2026-03-11T00:52:55.408077+00:00"
+  },
+  {
+    "id": 20758,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:04.762282+00:00"
+  },
+  {
+    "id": 20759,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:05.250183+00:00"
+  },
+  {
+    "id": 20760,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:05.721258+00:00"
+  },
+  {
+    "id": 20761,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:18.756695+00:00"
+  },
+  {
+    "id": 20762,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:19.169115+00:00"
+  },
+  {
+    "id": 20763,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T00:55:19.555897+00:00"
+  },
+  {
+    "id": 20764,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:26.301711+00:00"
+  },
+  {
+    "id": 20765,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:26.751457+00:00"
+  },
+  {
+    "id": 20766,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:27.220008+00:00"
+  },
+  {
+    "id": 20767,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:39.970865+00:00"
+  },
+  {
+    "id": 20768,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:40.490465+00:00"
+  },
+  {
+    "id": 20769,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:00:40.996511+00:00"
+  },
+  {
+    "id": 20770,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:36.250715+00:00"
+  },
+  {
+    "id": 20771,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:36.712940+00:00"
+  },
+  {
+    "id": 20772,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:37.656669+00:00"
+  },
+  {
+    "id": 20773,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:50.359851+00:00"
+  },
+  {
+    "id": 20774,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:50.848930+00:00"
+  },
+  {
+    "id": 20775,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:01:51.326213+00:00"
+  },
+  {
+    "id": 20776,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xd2f154b12c3b354567658fc05e8100e2e30eef3c99932761e48228d574b8d0e0",
+      "envelope_id": "env_1773191012_0x49d36570"
+    },
+    "created_at": "2026-03-11T01:03:32.129245+00:00"
+  },
+  {
+    "id": 20777,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:12.189141+00:00"
+  },
+  {
+    "id": 20778,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:12.683270+00:00"
+  },
+  {
+    "id": 20779,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:13.162066+00:00"
+  },
+  {
+    "id": 20780,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:25.850868+00:00"
+  },
+  {
+    "id": 20781,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:26.366359+00:00"
+  },
+  {
+    "id": 20782,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:07:26.804052+00:00"
+  },
+  {
+    "id": 20783,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0xfda17107aa4061d8794b407364914068c2f0eba94147985b5d293a9494e5d5",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xf84be15d4cc1cacf250ee2ca590c4140",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:08:18.609439+00:00"
+  },
+  {
+    "id": 20784,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x34653642b17d42b5dfe261faf07ba35af02c8a3eb5e24ef51730e525f544731",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x71ddf67af79672d227b0c63760b24c92",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:08:25.580735+00:00"
+  },
+  {
+    "id": 20785,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "missing_calldata",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Missing Groth16 or HONK calldata for L3 verification",
+    "metadata": {
+      "commitment_hash": "0xf451686139216175ea016b0cee8c5439",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:08:26.052353+00:00"
+  },
+  {
+    "id": 20786,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:39.638560+00:00"
+  },
+  {
+    "id": 20787,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:40.176316+00:00"
+  },
+  {
+    "id": 20788,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:40.731045+00:00"
+  },
+  {
+    "id": 20789,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:54.540698+00:00"
+  },
+  {
+    "id": 20790,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:55.132270+00:00"
+  },
+  {
+    "id": 20791,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T01:08:55.957151+00:00"
+  },
+  {
+    "id": 20792,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.2,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "missing_calldata",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Missing Groth16 or HONK calldata for L3 verification",
+    "metadata": {
+      "commitment_hash": "0x2da00f53c40cf4b787d0980bb30cd2a5",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:09:36.098513+00:00"
+  },
+  {
+    "id": 20793,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x4726d99f22f1713217e7b4894489691d60654939cc32ad58ac3371ca80d90cb",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x618d6b4a4d895b56eac2e23426c4f4c6",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:09:40.307497+00:00"
+  },
+  {
+    "id": 20794,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x601dc08f1db4ce67944fa907e6eb3932ebbbb53e0868a84c6be6cfb79135c19",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xfee997359faadea08649436ddeb22af1",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:09:49.658494+00:00"
+  },
+  {
+    "id": 20795,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x49d66161c372783d201bf29ab69842e7bedddb5907f906d101115eb7e66150b",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x24dc60c3485f15859d59e9522476e83f",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:11:59.422646+00:00"
+  },
+  {
+    "id": 20796,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x54ad2b4a568fe3e108417f68fd5e377c9e6654e47f3d379d8f896928710bedc",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x0aac6001441c909eca5c4665fcb1d10b",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:14:03.428818+00:00"
+  },
+  {
+    "id": 20797,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x71ab8cd0a50ecb72c832d8a34eebf88599986ab24be56842dffee151c0dfc37",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x575aa51b7211516b93b40488c0afb673",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T01:14:15.943137+00:00"
+  },
+  {
+    "id": 20798,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0xd76003b642bb066db2290d5f5b8636f23691e8623a5fcd10608ea04fee3c03",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x6c6d2889e1aa993cf49658c10fdbef08",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:14:18.956932+00:00"
+  },
+  {
+    "id": 20799,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0xf498ee6e63659b12e6fe5d09affb0a665d337e35cb31dc70d9a9c6ea6edac8f2",
+      "envelope_id": "env_1773191664_0x49d36570"
+    },
+    "created_at": "2026-03-11T01:14:25.171071+00:00"
+  },
+  {
+    "id": 20800,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x157ef3a4b3b9ecfb6c003cfbc22f59228908ffc64357ba6aa56f2bc3063c611",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x222b01356b977661f16cbb28770dbe10",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:17:23.527498+00:00"
+  },
+  {
+    "id": 20801,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x2233f7515a895298c95c5c0914d4199798d7fb8322c8d723bb3b9402af8a5f0",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xa2137e4bd43795209ebc239bf4345c89",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:17:34.412353+00:00"
+  },
+  {
+    "id": 20802,
+    "user_address": "0x123",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "missing_calldata",
+    "verified_on_chain": false,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Missing Groth16 or HONK calldata for L3 verification",
+    "metadata": {
+      "commitment_hash": "0x4ea0fbd363df8988db40ffde01a66123",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:17:34.856274+00:00"
+  },
+  {
+    "id": 20803,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x1326828692c3a1549e2cdc1545e38477deccf6aecbc27ccf9790bd404f4a66c2",
+      "envelope_id": "env_1773192283_0x49d36570"
+    },
+    "created_at": "2026-03-11T01:24:43.509643+00:00"
+  },
+  {
+    "id": 20804,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0xbe26d46cbe621e0abd269877c92afb997ec6f55c7f78f534f0861421b989e5",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xb62a875f820792ec23a3fd2d051c7f57",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:24:53.994654+00:00"
+  },
+  {
+    "id": 20805,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x7237261c3f1f2424ec3451354b2389b200b98229f48f17c90ae27bd89e98dd",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x4d4686772c0fb709b8b907d81bf4c869",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T01:25:04.581827+00:00"
+  },
+  {
+    "id": 20806,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x5a399461c6688f878155f55d4e2c8f75d3a5d482824816107e3df0b1621558d",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x7518b236b80ff65a926b99c68b89cbf2",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T01:25:09.476695+00:00"
   }
 ]

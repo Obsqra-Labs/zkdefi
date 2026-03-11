@@ -84,6 +84,10 @@ class MLBridgeProofRequest(BaseModel):
     expected_model_hash: int = Field(default=0, description="Expected model hash felt")
     output_lower_bound: int = Field(default=0, description="Model output lower bound")
     output_upper_bound: int = Field(default=10000, description="Model output upper bound")
+    bridge_circuit: Literal["ModelBridge", "ModelBridgeHeavy", "NoirEzklBridge"] = Field(
+        default="ModelBridge",
+        description="Bridge circuit lane to use for L3 verification",
+    )
 
 
 # ── Read Endpoints ──────────────────────────────────────────────────────
@@ -306,4 +310,5 @@ async def generate_ml_bridge_proof(req: MLBridgeProofRequest) -> dict[str, Any]:
         output_lower_bound=req.output_lower_bound,
         output_upper_bound=req.output_upper_bound,
         execution_chain=req.execution_chain,
+        bridge_circuit=req.bridge_circuit,
     )

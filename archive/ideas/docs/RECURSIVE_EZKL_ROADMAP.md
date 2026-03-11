@@ -23,6 +23,8 @@ However, it does NOT verify the KZG/Halo2 proof on-chain. The trust assumption i
 
 ## Path A: Noir HONK Bridge (6–10 weeks)
 
+**Status (2026-03):** Circuit and pipeline implemented. Noir circuit `noir_ezkl_bridge`; Garaga HONK verifier script; zkdefi pipeline supports `NoirEzklBridge` / `proof_type=noir_honk`; parent backend routes to L3 HONK verifier. Deploy verifier on L3 when Madara is up. Gas ~178M on L2.
+
 **Most viable near-term path to full on-chain ML proof verification.**
 
 ### Key Insight
@@ -143,10 +145,10 @@ Phase 1 (NOW):     Pragmatic Bridge (ModelBridge.circom → Groth16 → Garaga)
                     ✅ Implemented in v6
 
 Phase 2 (Month 2): Noir HONK Bridge (Path A, Steps 1-3)
-                    Target: Full ML proof verification for large-value operations
-                    Trigger: Ship when >$100K TVL or institutional demand
+                    ✅ Implemented: Noir circuit, HONK verifier script, pipeline, L3 routing.
+                    Deploy verifier when L3 (Madara) is up. Gas ~178M on L2.
 
-Phase 3 (Month 4): L1 Solidity Bridge (Path C)
+Phase 3 (Month 4): L1 Solidity Bridge (Path C) — Ethereum Sepolia
                     Target: Time-insensitive operations (certification, audits)
                     Use: Robustness certificates, model registration
 
@@ -203,5 +205,5 @@ Future modes (post-Path A):
 
 ---
 
-*Last updated: v6 implementation*
+*Last updated: 2026-03 — Phase 2 (Noir HONK) implementation complete*
 *Author: zkDeFi AI Agent Infrastructure*
