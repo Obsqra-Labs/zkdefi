@@ -29,13 +29,16 @@ type PoolKey = (typeof POOL_ORDER)[number];
 // Styling maps
 // ---------------------------------------------------------------------------
 
-const METHOD_COLORS: Record<PrivacyMethod, { bg: string; text: string; bar: string }> = {
+const METHOD_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
   commitment_shield: { bg: "bg-blue-400/10", text: "text-blue-400", bar: "bg-blue-400" },
   nullifier_set: { bg: "bg-emerald-400/10", text: "text-emerald-400", bar: "bg-emerald-400" },
   hashed_proof: { bg: "bg-amber-400/10", text: "text-amber-400", bar: "bg-amber-400" },
 };
 
-const METHOD_LABELS: Record<PrivacyMethod, string> = {
+const FALLBACK_METHOD_COLOR = { bg: "bg-zinc-400/10", text: "text-zinc-400", bar: "bg-zinc-400" };
+const FALLBACK_POOL_COLOR = { bg: "bg-zinc-500/10", text: "text-zinc-400", bar: "bg-zinc-400", border: "border-zinc-500/20" };
+
+const METHOD_LABELS: Record<string, string> = {
   commitment_shield: "Shield",
   nullifier_set: "Full Privacy",
   hashed_proof: "Hashed Proof",
@@ -352,7 +355,7 @@ export default function PositionsOverview({
           {/* Pool groups */}
           {poolGroups.map((g) => {
             const apy = poolApys[g.key] ?? poolApys[POOL_LABELS[g.key]?.toLowerCase() ?? ""] ?? null;
-            const colors = POOL_COLORS[g.key];
+            const colors = POOL_COLORS[g.key] ?? FALLBACK_POOL_COLOR;
             const expanded = expandedPools.has(g.key);
             const hasPositions = g.commitments.length > 0;
 
@@ -405,8 +408,8 @@ export default function PositionsOverview({
                       <div className="flex flex-wrap gap-2 py-1">
                         {(Object.entries(g.methodCounts) as [PrivacyMethod, number][]).map(([m, count]) => (
                           <div key={m} className="flex items-center gap-1.5 text-xs">
-                            <span className={`px-2 py-0.5 rounded ${METHOD_COLORS[m].bg} ${METHOD_COLORS[m].text}`}>
-                              {METHOD_LABELS[m]}
+                            <span className={`px-2 py-0.5 rounded ${(METHOD_COLORS[m] ?? FALLBACK_METHOD_COLOR).bg} ${(METHOD_COLORS[m] ?? FALLBACK_METHOD_COLOR).text}`}>
+                              {METHOD_LABELS[m] ?? m}
                             </span>
                             <span className="text-white/40">
                               {count} position{count > 1 ? "s" : ""}
@@ -430,8 +433,8 @@ export default function PositionsOverview({
                               <span className="text-white/80 text-xs font-medium min-w-[100px]">
                                 {formatWei(c.amount_wei, c.asset)}
                               </span>
-                              <span className={`px-2 py-0.5 rounded text-[11px] ${METHOD_COLORS[c.method].bg} ${METHOD_COLORS[c.method].text}`}>
-                                {METHOD_LABELS[c.method]}
+                              <span className={`px-2 py-0.5 rounded text-[11px] ${(METHOD_COLORS[c.method] ?? FALLBACK_METHOD_COLOR).bg} ${(METHOD_COLORS[c.method] ?? FALLBACK_METHOD_COLOR).text}`}>
+                                {METHOD_LABELS[c.method] ?? c.method ?? "Unknown"}
                               </span>
                             </div>
                             <div className="flex items-center gap-4 text-[11px]">
