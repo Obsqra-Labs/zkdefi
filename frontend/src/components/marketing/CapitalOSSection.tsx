@@ -15,7 +15,6 @@ export function CapitalOSSection() {
     riskTolerance: 50,
     enabledSkills: DEFAULT_ENABLED,
     protocolWeights: { ekubo: 50, vesu: 30, lending: 20 },
-    venuePref: "best",
   });
   const [triggerKey, setTriggerKey] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -42,14 +41,13 @@ export function CapitalOSSection() {
             </p>
           </div>
           <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-0.5 text-[10px] text-zinc-500">
-            Trade privately on your favorite protocols
+            Walletless demo · No keys needed
           </span>
         </div>
         <TrustDemo
           riskTolerance={config.riskTolerance}
           enabledSkills={config.enabledSkills}
           protocolWeights={config.protocolWeights}
-          venuePref={config.venuePref}
           triggerKey={triggerKey}
           onLoadingChange={setLoading}
         />

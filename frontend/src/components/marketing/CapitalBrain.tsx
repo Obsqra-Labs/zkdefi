@@ -28,13 +28,10 @@ export const DEFAULT_ENABLED = DEMO_SKILLS.filter((s) => s.defaultOn).map((s) =>
 
 /* ═══════════════════ types ═══════════════════ */
 
-export type VenuePref = "best" | "ekubo" | "avnu";
-
 export interface BrainConfig {
   riskTolerance: number;
   enabledSkills: string[];
   protocolWeights: { ekubo: number; vesu: number; lending: number };
-  venuePref: VenuePref;
 }
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -56,17 +53,10 @@ interface CapitalBrainProps {
   loading: boolean;
 }
 
-const VENUE_OPTIONS: { key: VenuePref; label: string; desc: string }[] = [
-  { key: "best", label: "Best", desc: "Auto-route via AVNU + Ekubo" },
-  { key: "ekubo", label: "Ekubo", desc: "Direct Ekubo pools" },
-  { key: "avnu", label: "AVNU", desc: "AVNU aggregator" },
-];
-
 export function CapitalBrain({ onAnalyze, loading }: CapitalBrainProps) {
   const [risk, setRisk] = useState(50);
   const [skills, setSkills] = useState<Set<string>>(new Set(DEFAULT_ENABLED));
   const [weights, setWeights] = useState({ ekubo: 50, vesu: 30, lending: 20 });
-  const [venue, setVenue] = useState<VenuePref>("best");
 
   const toggleSkill = useCallback((id: string) => {
     setSkills((prev) => {
@@ -92,7 +82,6 @@ export function CapitalBrain({ onAnalyze, loading }: CapitalBrainProps) {
       riskTolerance: risk,
       enabledSkills: Array.from(skills),
       protocolWeights: weights,
-      venuePref: venue,
     });
   };
 
@@ -202,32 +191,6 @@ export function CapitalBrain({ onAnalyze, loading }: CapitalBrainProps) {
             </div>
           );
         })}
-      </div>
-
-      {/* Venue routing */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 space-y-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-          Swap Routing
-        </span>
-        <div className="flex gap-1">
-          {VENUE_OPTIONS.map(({ key, label, desc }) => (
-            <button
-              key={key}
-              onClick={() => setVenue(key)}
-              title={desc}
-              className={`flex-1 rounded-md border px-2 py-1.5 text-[10px] font-medium transition-all ${
-                venue === key
-                  ? "border-cyan-500/30 bg-cyan-500/15 text-cyan-300"
-                  : "border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="text-[9px] text-zinc-700">
-          {venue === "best" ? "Compares Ekubo & AVNU, picks best rate" : venue === "ekubo" ? "Direct Ekubo concentrated liquidity" : "AVNU multi-hop aggregator"}
-        </p>
       </div>
 
       {/* Analyze button */}

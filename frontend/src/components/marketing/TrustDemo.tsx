@@ -12,17 +12,17 @@ import {
   Cpu,
   BarChart3,
   X,
-  ArrowRightLeft,
   MessageSquare,
   Info,
   TrendingUp,
+  ExternalLink,
 } from "lucide-react";
 import {
   ExplainerModal,
   type ExplainerType,
   type PoolExplanation,
 } from "./ExplainerModal";
-import { InlineSwap } from "./InlineSwap";
+import { voyagerContractUrl, voyagerClassUrl, l3ExplorerUrl } from "@/lib/explorer";
 
 /* ═══════════════════ types ═══════════════════ */
 
@@ -110,6 +110,43 @@ const PROTOCOL_COLORS: Record<string, string> = {
   vesu: "bg-emerald-500",
 };
 
+/* ── EZKL Model artifacts (real hashes from trained models) ── */
+const EZKL_MODELS = [
+  {
+    name: "Anomaly Detector",
+    onnx_hash: "66a7d0b3…e852e3a5a4",
+    vk_hash: "51758428…3f6a8436",
+    rows: 1534,
+    logrows: 15,
+  },
+  {
+    name: "Creditworthiness",
+    onnx_hash: "be1ad11f…20cc2812",
+    vk_hash: "858d881d…2bd801b3",
+    rows: 4964,
+    logrows: 15,
+  },
+  {
+    name: "Yield Forecast",
+    onnx_hash: "7b41f26e…8b91afec",
+    vk_hash: "f2f79850…ab1482ec",
+    rows: 2188,
+    logrows: 15,
+  },
+];
+
+/* ── On-chain contract addresses (Starknet mainnet reporting) ── */
+const CONTRACTS = {
+  agent_skill_registry: "0x6a039b4e59b39fc2ab44c3c70a5ecdbe765a9afabb4b2765f9bb966dfb6ddda",
+  agent_performance: "0x67f10e598223c89135cd8b6a6f58b081e658069231b5a9064d29d5204d4c450",
+  validation_proofs: "0x20ea9a32eae3fe6fe5137ca9f576383f8723913e1619f17120cf1aeb7e06305",
+  constraint_receipt: "0x59c5a05987025ee88e89cc266aadc17676db42ea4eb08c99099ed12f32b7607",
+  allocation_router: "0xabda1150d8fc9db11b99c8485d671c53bc2ad65fe21a8d218c1e621a85843b",
+  reputation_registry: "0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022",
+  batch_verifier: "0x285f944aa5cb8f90fa37c4dbdf5dd1eb2e34ab0bde9669e61fbd7a9a0f3b869",
+  ezkl_kzg_verifier_class: "0x3e5927705e38ef0868f56dfb6906eb53edf3497eb4be8798c92dc47c747c78",
+};
+
 /* genome factors: derived from pool risk scores */
 function computeGenome(pool: Pool) {
   const riskNorm = pool.risk_score;
@@ -146,8 +183,6 @@ interface TrustDemoProps {
   enabledSkills: string[];
   /** protocol weights from brain sliders */
   protocolWeights: { ekubo: number; vesu: number; lending: number };
-  /** venue routing preference */
-  venuePref?: "best" | "ekubo" | "avnu";
   /** incremented to trigger re-analysis */
   triggerKey: number;
   /** report loading state to parent */
@@ -160,7 +195,6 @@ export function TrustDemo({
   riskTolerance,
   enabledSkills,
   protocolWeights,
-  venuePref = "best",
   triggerKey,
   onLoadingChange,
 }: TrustDemoProps) {
@@ -174,10 +208,6 @@ export function TrustDemo({
   const [batchLoading, setBatchLoading] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verified, setVerified] = useState<Record<string, boolean>>({});
-  const [venueComparison, setVenueComparison] = useState<Record<string, {
-    loading: boolean;
-    preflight?: { can_submit: boolean; expected_out_usd: number; impact_bps: number; warnings: string[] };
-  }>>({});
   const [narration, setNarration] = useState<NarrationResult | null>(null);
   const [narrationLoading, setNarrationLoading] = useState(false);
   const [explainer, setExplainer] = useState<ExplainerState>({
@@ -346,52 +376,16 @@ export function TrustDemo({
     }
   }, [skillScreening]);
 
-  /* fetch venue quote comparison via execution/preflight */
-  const fetchVenueComparison = useCallback(async (poolId: string) => {
-    if (venueComparison[poolId]?.preflight) return;
-    setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: true } }));
-    try {
-      /* ETH -> STRK demo pair for preflight */
-      const ETH = "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
-      const STRK = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
-      const res = await fetch("/api/v1/zkdefi/state/execution/preflight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token_in: ETH,
-          token_out: STRK,
-          amount_in: "100000000000000000",
-          slippage_bps: 9500,
-          venue_pref: venuePref,
-          user_address: "0xdemo",
-        }),
-        signal: AbortSignal.timeout(12000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setVenueComparison((prev) => ({
-          ...prev,
-          [poolId]: { loading: false, preflight: data },
-        }));
-      } else {
-        setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: false } }));
-      }
-    } catch {
-      setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: false } }));
-    }
-  }, [venueComparison, venuePref]);
-
   /* expand pool detail */
   const togglePool = useCallback((poolId: string) => {
     setExpandedPool((prev) => {
       const next = prev === poolId ? null : poolId;
       if (next) {
         screenPool(poolId);
-        fetchVenueComparison(poolId);
       }
       return next;
     });
-  }, [screenPool, fetchVenueComparison]);
+  }, [screenPool]);
 
   /* verify a proof hash */
   const verifyHash = useCallback(async (hash: string) => {
@@ -448,12 +442,14 @@ export function TrustDemo({
           extra={status?.madara ? `#${status.madara.latest_block.toLocaleString()}` : undefined}
         />
         <Sep />
-        <StatusDot ok={true} label="Starknet" />
+        <a href="https://voyager.online" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">
+          <StatusDot ok={true} label="Starknet Mainnet" />
+        </a>
         <Sep />
         <StatusDot ok={true} label="Ethereum" />
-        <div className="ml-auto flex items-center gap-1.5 text-zinc-600">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500/60" />
-          Mainnet TBD
+        <div className="ml-auto flex items-center gap-1.5 text-zinc-500">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
+          <span className="text-[9px]">No wallet needed</span>
         </div>
       </div>
 
@@ -466,8 +462,6 @@ export function TrustDemo({
         <span>{enabledSkills.length} circuits</span>
         <span className="text-zinc-700">·</span>
         <span>Ekubo {protocolWeights.ekubo}% / Vesu {protocolWeights.vesu}%</span>
-        <span className="text-zinc-700">·</span>
-        <span className="text-cyan-500 font-medium">{venuePref.toUpperCase()}</span>
       </div>
 
       {/* ── Loading ── */}
@@ -481,15 +475,15 @@ export function TrustDemo({
       {/* ── Results ── */}
       {result && !loading && (
         <div className="space-y-3">
-          {/* ── AI Narration ── */}
+          {/* ── AI Oracle Narration ── */}
           {(narrationLoading || narration) && (
             <div className="rounded-xl border border-violet-500/15 bg-violet-950/5 p-4">
               <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-400">
                 <MessageSquare className="h-3 w-3" />
-                AI Oracle
+                AI Oracle · Onyx LLM
                 {narration && (
                   <span className="ml-auto rounded-full border border-zinc-800 px-1.5 py-0.5 text-[8px] font-normal text-zinc-600">
-                    {narration.source === "llm" ? "GPT-4o-mini" : "deterministic"}
+                    {narration.source === "llm" ? "GPT-4o-mini via Onyx" : "deterministic fallback"}
                   </span>
                 )}
               </div>
@@ -503,6 +497,45 @@ export function TrustDemo({
               ) : null}
             </div>
           )}
+
+          {/* ── EZKL Model Hashes ── */}
+          <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-4">
+            <div className="mb-2.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-500">
+              <Zap className="h-3 w-3" />
+              EZKL zkML Models
+              <span className="ml-auto text-[8px] font-normal text-zinc-600">KZG commitments · logrows=15</span>
+            </div>
+            <div className="space-y-2">
+              {EZKL_MODELS.map((model) => (
+                <div key={model.name} className="rounded-lg bg-zinc-800/30 p-2.5 space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-medium text-zinc-300">{model.name}</span>
+                    <span className="text-zinc-600">{model.rows.toLocaleString()} rows</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px]">
+                    <span className="w-10 text-zinc-600">ONNX</span>
+                    <code className="flex-1 truncate font-mono text-cyan-400/70">{model.onnx_hash}</code>
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px]">
+                    <span className="w-10 text-zinc-600">VK</span>
+                    <code className="flex-1 truncate font-mono text-violet-400/70">{model.vk_hash}</code>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2.5 flex items-center gap-2 text-[9px] text-zinc-600">
+              <Fingerprint className="h-3 w-3" />
+              <span>Verifier:</span>
+              <a
+                href={voyagerClassUrl(CONTRACTS.ezkl_kzg_verifier_class)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-cyan-500/70 hover:text-cyan-400 transition-colors"
+              >
+                EzklKzgVerifier <ExternalLink className="inline h-2.5 w-2.5" />
+              </a>
+            </div>
+          </div>
 
           {/* Allocation bar + pool list */}
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
@@ -675,68 +708,7 @@ export function TrustDemo({
                           )}
                         </div>
 
-                        {/* Venue quote comparison */}
-                        <div>
-                          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                            <ArrowRightLeft className="h-3 w-3" />
-                            Route Comparison
-                            <span className="ml-auto rounded-full border border-cyan-500/20 bg-cyan-500/8 px-1.5 py-0.5 text-[9px] font-medium text-cyan-400">
-                              {venuePref.toUpperCase()}
-                            </span>
-                          </div>
-                          {(() => {
-                            const vc = venueComparison[pool.pool_id];
-                            if (!vc || vc.loading) {
-                              return (
-                                <div className="flex items-center gap-2 py-2 text-xs text-zinc-500">
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                  Fetching {venuePref} route quote…
-                                </div>
-                              );
-                            }
-                            if (!vc.preflight) {
-                              return <div className="text-[10px] text-zinc-600">Quote unavailable</div>;
-                            }
-                            const pf = vc.preflight;
-                            const sourceWarning = pf.warnings.find((w) => w.startsWith("Preflight source:"));
-                            const source = sourceWarning?.match(/source: (\w+)/)?.[1] ?? venuePref.toUpperCase();
-                            return (
-                              <div className="space-y-1.5 rounded-lg bg-zinc-800/30 p-2.5">
-                                <div className="flex items-center justify-between text-[10px]">
-                                  <span className="text-zinc-500">Selected Route</span>
-                                  <span className="font-medium text-cyan-400">{source}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-[10px]">
-                                  <span className="text-zinc-500">Expected Out</span>
-                                  <span className="font-mono text-zinc-300">${pf.expected_out_usd.toFixed(4)}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-[10px]">
-                                  <span className="text-zinc-500">Price Impact</span>
-                                  <span className={`font-mono ${pf.impact_bps > 100 ? "text-amber-400" : "text-emerald-400"}`}>
-                                    {(pf.impact_bps / 100).toFixed(2)}%
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between text-[10px]">
-                                  <span className="text-zinc-500">Can Submit</span>
-                                  {pf.can_submit ? (
-                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                                  ) : (
-                                    <X className="h-3 w-3 text-rose-500" />
-                                  )}
-                                </div>
-                                {pf.warnings.filter((w) => !w.startsWith("Preflight source:")).length > 0 && (
-                                  <div className="mt-1 space-y-0.5">
-                                    {pf.warnings.filter((w) => !w.startsWith("Preflight source:")).map((w, i) => (
-                                      <div key={i} className="text-[9px] text-amber-500/70">{w}</div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* On-chain attestation */}
+                        {/* On-chain attestation with Voyager links */}
                         <div>
                           <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                             <Fingerprint className="h-3 w-3" />
@@ -750,6 +722,32 @@ export function TrustDemo({
                               <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-violet-400">
                                 Madara L3 → Starknet L2 → Ethereum L1
                               </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 pt-1 text-[9px]">
+                              <a
+                                href={voyagerContractUrl(CONTRACTS.validation_proofs)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-cyan-500/70 hover:text-cyan-400 transition-colors"
+                              >
+                                ProofRegistry <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                              <a
+                                href={voyagerContractUrl(CONTRACTS.batch_verifier)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-cyan-500/70 hover:text-cyan-400 transition-colors"
+                              >
+                                BatchVerifier <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                              <a
+                                href={l3ExplorerUrl()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-violet-500/70 hover:text-violet-400 transition-colors"
+                              >
+                                L3 Explorer <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
                             </div>
                           </div>
                         </div>
@@ -839,6 +837,37 @@ export function TrustDemo({
             </div>
           )}
 
+          {/* ── On-Chain Contracts (Voyager links) ── */}
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
+            <div className="mb-2.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              <ExternalLink className="h-3 w-3" />
+              Starknet Contracts
+              <span className="ml-auto text-[8px] font-normal text-zinc-700">Mainnet · Voyager</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { name: "Skill Registry", addr: CONTRACTS.agent_skill_registry },
+                { name: "Performance", addr: CONTRACTS.agent_performance },
+                { name: "Proof Registry", addr: CONTRACTS.validation_proofs },
+                { name: "Constraints", addr: CONTRACTS.constraint_receipt },
+                { name: "Router", addr: CONTRACTS.allocation_router },
+                { name: "Reputation", addr: CONTRACTS.reputation_registry },
+              ].map((c) => (
+                <a
+                  key={c.name}
+                  href={voyagerContractUrl(c.addr)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-lg bg-zinc-800/30 px-2.5 py-1.5 text-[9px] transition-colors hover:bg-zinc-800/50"
+                >
+                  <span className="text-zinc-400">{c.name}</span>
+                  <code className="ml-auto font-mono text-zinc-600 truncate max-w-[80px]">{c.addr.slice(0, 8)}…</code>
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0 text-zinc-700" />
+                </a>
+              ))}
+            </div>
+          </div>
+
           {/* Trust attestation strip */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-violet-500/15 bg-violet-950/5 px-4 py-2.5">
             <Fingerprint className="h-3.5 w-3.5 text-violet-400" />
@@ -860,9 +889,6 @@ export function TrustDemo({
             </div>
             <span className="ml-auto text-[9px] text-zinc-600">SHA-256 · click to verify</span>
           </div>
-
-          {/* ── Inline Swap ── */}
-          <InlineSwap venuePref={venuePref} />
         </div>
       )}
 

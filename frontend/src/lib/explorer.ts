@@ -1,7 +1,32 @@
 /**
- * Starknet Sepolia explorer – single source of truth for tx/contract links.
- * Working base: https://sepolia.starkscan.co
+ * Starknet explorers – single source of truth for tx/contract links.
+ * Mainnet Voyager used for the demo dashboard reporting.
+ * Sepolia Starkscan kept for testnet tx references.
  */
+
+// ── Mainnet Voyager (primary for demo) ──
+export const VOYAGER_BASE = "https://voyager.online";
+
+export function voyagerTxUrl(txHash: string): string {
+  const hash = txHash.startsWith("0x") ? txHash : `0x${txHash}`;
+  return `${VOYAGER_BASE}/tx/${hash}`;
+}
+
+export function voyagerContractUrl(address: string): string {
+  const addr = address.startsWith("0x") ? address : `0x${address}`;
+  return `${VOYAGER_BASE}/contract/${addr}`;
+}
+
+export function voyagerClassUrl(classHash: string): string {
+  const hash = classHash.startsWith("0x") ? classHash : `0x${classHash}`;
+  return `${VOYAGER_BASE}/class/${hash}`;
+}
+
+export function voyagerBlockUrl(block: number | string): string {
+  return `${VOYAGER_BASE}/block/${block}`;
+}
+
+// ── Sepolia (testnet) ──
 export const SEPOLIA_STARKSCAN_BASE = "https://sepolia.starkscan.co";
 
 export function sepoliaStarkscanTxUrl(txHash: string): string {
