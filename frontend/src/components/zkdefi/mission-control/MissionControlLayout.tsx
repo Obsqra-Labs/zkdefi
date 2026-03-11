@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { UnifiedHeader } from "./UnifiedHeader";
+import Link from "next/link";
 import { ProofChainStrip } from "./ProofChainStrip";
+import { ConnectButton } from "../ConnectButton";
 import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
 export type OverlayMode = OverlayModeV2;
@@ -32,11 +33,13 @@ export function MissionControlLayout({
 }: MissionControlLayoutProps) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-      <UnifiedHeader
-        address={address}
-        activeOverlay={activeOverlay}
-        onOverlayChange={onOverlayChange}
-      />
+      {/* Minimal top strip: logo + wallet connect */}
+      <div className="h-8 flex-shrink-0 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between px-3">
+        <Link href="/" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+          <img src="/logo.png" alt="zkde.fi" className="h-6 w-6 rounded object-contain" />
+        </Link>
+        <ConnectButton />
+      </div>
 
       <ProofChainStrip />
 

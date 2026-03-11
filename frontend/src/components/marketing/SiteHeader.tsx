@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Menu, Shield, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { PRODUCT_CATEGORIES, PRODUCTS_BY_CATEGORY } from "@/lib/products/catalog";
@@ -46,9 +46,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/95 px-6 py-4 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600">
-            <Shield className="h-5 w-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="zkde.fi" className="h-8 w-8 rounded-lg object-contain" />
           <span className="text-lg font-semibold">zkde.fi</span>
         </Link>
 

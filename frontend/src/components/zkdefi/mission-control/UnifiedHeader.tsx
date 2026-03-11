@@ -20,7 +20,6 @@ import {
   LayoutDashboard,
   Lock,
   Menu,
-  Shield,
   Store,
   TrendingUp,
   User,
@@ -154,9 +153,7 @@ export function UnifiedHeader({ address, activeOverlay, onOverlayChange }: Unifi
       <div className="flex items-center gap-2 min-w-0">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity shrink-0">
-          <div className="w-5 h-5 rounded bg-emerald-600 flex items-center justify-center">
-            <Shield className="w-3 h-3 text-white" />
-          </div>
+          <img src="/logo.png" alt="zkde.fi" className="w-5 h-5 rounded object-contain" />
           <span className="font-semibold text-sm text-white hidden sm:inline">zkde.fi</span>
         </Link>
 

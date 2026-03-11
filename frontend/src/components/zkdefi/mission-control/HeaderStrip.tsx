@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shield, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import type { RiskProfileV2 } from "@/hooks/useProfile";
 import { getExecutionGate } from "@/lib/trust/adapters";
@@ -80,9 +80,7 @@ export function HeaderStrip({ address, activeOverlay, onOverlayChange }: HeaderS
       {/* Left: Brand */}
       <div className="flex items-center gap-3">
         <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-5 h-5 rounded bg-emerald-600 flex items-center justify-center">
-            <Shield className="w-3 h-3 text-white" />
-          </div>
+          <img src="/logo.png" alt="zkde.fi" className="w-5 h-5 rounded object-contain" />
           <span className="font-semibold text-sm">zkde.fi</span>
         </a>
         <span className="text-zinc-600">/</span>
