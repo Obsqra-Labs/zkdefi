@@ -72,3 +72,23 @@ input[type="range"].alloc-slider::-moz-range-thumb {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: grab;
 }
+
+/* ── Thin custom scrollbar for slide-out drawers ────────── */
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.2);
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.35);
+}
+/* Firefox */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.2) transparent;
+}

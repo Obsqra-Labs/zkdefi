@@ -269,7 +269,7 @@ function AgentPageInner() {
             className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={() => { setSlideout(null); setSlideoutPool(undefined); }}
           />
-          <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto p-6 animate-in slide-in-from-right`}>
+          <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto thin-scroll p-6 animate-in slide-in-from-right`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
                 {slideout === "fund" && "Fund Vault"}

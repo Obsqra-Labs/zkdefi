@@ -16,17 +16,13 @@ import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
-  ArrowDownToLine,
   Brain,
-  Clock,
   Coins,
   Fingerprint,
   Loader2,
   Lock,
-  RefreshCw,
   ShieldCheck,
   Sparkles,
-  TrendingUp,
   Zap,
 } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
@@ -285,7 +281,7 @@ export function FundVaultPanel({
       try {
         const res = await fetch(`${API_BASE}/v1/strategies/recommend`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
           body: JSON.stringify({
             user_address: address || "anonymous",
             risk_profile: "balanced", // default — could be wired to user's profile
@@ -352,7 +348,7 @@ export function FundVaultPanel({
         `${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
           body: JSON.stringify({
             user_address: address,
             amount: amountWei,
@@ -416,7 +412,7 @@ export function FundVaultPanel({
             `${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
               body: JSON.stringify({ commitment: commitmentHash }),
             },
           );
@@ -731,27 +727,8 @@ export function FundVaultPanel({
         </div>
       )}
 
-      {/* Proof stepper */}
-      <ProofStepper steps={depositSteps} />
-
-      {/* Proof info */}
-      <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-zinc-500" />
-            Proof generation
-          </span>
-          <span className="text-zinc-300">~10-15s (Groth16)</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>What happens</span>
-          <span className="text-zinc-300">Commitment + Pedersen hash + Merkle insert</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>Privacy</span>
-          <span className="text-amber-400">Fully shielded — hashed proof commitment</span>
-        </div>
-      </div>
+      {/* Proof stepper — auto-hidden until flow starts */}
+      <ProofStepper steps={depositSteps} accent="violet" />
 
       {/* Submit */}
       <button

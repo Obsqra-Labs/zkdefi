@@ -8,8 +8,8 @@ Optional: EZKL_MODEL_NAME (default: creditworthiness), EZKL_ARTIFACT_DIR (defaul
 Steps:
   1. Create backend/.l1-sepolia-keystore.json from mnemonic if missing.
   2. Generate contracts/l1_ezkl/EZKLVerifier.sol + ABI using ezkl.create_evm_verifier (creditworthiness vk/settings/srs).
-  3. Try to compile with Foundry (forge build in contracts/l1_ezkl). If "stack too deep", print instructions.
-  4. If artifact exists (out/ or EZKLVerifier_artifact.json), deploy with deploy_ezkl_verifier_l1_sepolia.py and print address.
+  3. Run contracts/l1_ezkl/build_halo2_verifier.sh (tries default forge build, then via_ir=false + solc 0.8.24 if stack too deep).
+  4. If artifact exists at out/EZKLVerifier.sol/Halo2Verifier.json, deploy to Sepolia and print L1_EZKL_VERIFIER_ADDRESS.
 """
 
 from __future__ import annotations
@@ -26,10 +26,6 @@ KEYSTORE_PATH = REPO_ROOT / "backend" / ".l1-sepolia-keystore.json"
 L1_EZKL_DIR = REPO_ROOT / "contracts" / "l1_ezkl"
 ARTIFACT_JSON = L1_EZKL_DIR / "EZKLVerifier_artifact.json"
 FORGE_ARTIFACT = L1_EZKL_DIR / "out" / "EZKLVerifier.sol" / "Halo2Verifier.json"
-
-
-async def _await_future(fut):
-    return await fut
 
 
 def ensure_keystore() -> bool:
@@ -56,7 +52,11 @@ def ensure_keystore() -> bool:
 
 
 def generate_sol() -> bool:
-    """Generate EZKLVerifier.sol and ABI via ezkl Python API."""
+    """Generate EZKLVerifier.sol and ABI via ezkl Python API (runs in event loop)."""
+    return asyncio.run(_generate_sol_async())
+
+
+async def _generate_sol_async() -> bool:
     model_name = os.getenv("EZKL_MODEL_NAME", "creditworthiness")
     base = REPO_ROOT / "backend" / "app" / "data" / "ezkl_models" / model_name
     vk = base / "vk.key"
@@ -75,7 +75,7 @@ def generate_sol() -> bool:
         srs_path=str(srs), reusable=False,
     )
     if asyncio.isfuture(result):
-        result = asyncio.run(_await_future(result))
+        result = await result
     if not result:
         return False
     print(f"Generated {sol_out} and {abi_out}")
@@ -83,22 +83,22 @@ def generate_sol() -> bool:
 
 
 def try_compile() -> bool:
-    """Run forge build; if success, write EZKLVerifier_artifact.json from out/."""
-    if not (L1_EZKL_DIR / "foundry.toml").exists():
-        return False
-    r = subprocess.run(
-        ["forge", "build", "--contracts", str(L1_EZKL_DIR)],
-        cwd=str(L1_EZKL_DIR),
-        capture_output=True,
-        text=True,
-    )
-    if r.returncode != 0:
-        print("Forge build failed (EZKL Halo2 verifier often hits 'stack too deep').")
-        print("Compile manually with: cd contracts/l1_ezkl && forge build (via_ir=true in foundry.toml).")
-        print("Or use Remix with optimizer + via-ir, then save bytecode+abi as EZKLVerifier_artifact.json.")
-        print(r.stderr or r.stdout)
-        return False
-    # Forge writes out/EZKLVerifier.sol/Halo2Verifier.json
+    """Run build_halo2_verifier.sh (tries default forge build, then via_ir=false + solc 0.8.24)."""
+    build_script = L1_EZKL_DIR / "build_halo2_verifier.sh"
+    if not build_script.exists():
+        # Fallback: raw forge build
+        if not (L1_EZKL_DIR / "foundry.toml").exists():
+            return False
+        r = subprocess.run(["forge", "build"], cwd=str(L1_EZKL_DIR), capture_output=True, text=True)
+        if r.returncode != 0:
+            print(r.stderr or r.stdout)
+            return False
+    else:
+        r = subprocess.run(["bash", str(build_script)], cwd=str(REPO_ROOT), capture_output=True, text=True)
+        if r.returncode != 0:
+            print(r.stderr or r.stdout, file=sys.stderr)
+            return False
+        print(r.stdout)
     if not FORGE_ARTIFACT.exists():
         return False
     data = json.loads(FORGE_ARTIFACT.read_text())

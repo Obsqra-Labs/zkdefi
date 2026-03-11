@@ -204,7 +204,7 @@ export function VaultStrategyDeposit({
     try {
       const res = await fetch(`${API_BASE}/v1/zkdefi/ai/allocation/recommend`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
         body: JSON.stringify({
           address,
           amount_wei: amount ? toWei(amount) : "0",
@@ -358,7 +358,7 @@ export function VaultStrategyDeposit({
 
         const commitRes = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
           body: JSON.stringify({
             user_address: address,
             amount: pd.amountWei,
@@ -408,7 +408,7 @@ export function VaultStrategyDeposit({
         try {
           const regRes = await fetch(`${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
             body: JSON.stringify({
               user_address: address,
               commitment: commitData.commitment,
@@ -456,7 +456,7 @@ export function VaultStrategyDeposit({
       try {
         await fetch(`${API_BASE}/v1/zkdefi/vault/strategy`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
           body: JSON.stringify({
             address,
             strategy_id: strategyId,
@@ -714,10 +714,10 @@ export function VaultStrategyDeposit({
         )}
       </button>
 
-      {/* Proof Stepper */}
+      {/* Proof Stepper — auto-hidden until flow starts */}
       {depositSteps.length > 0 && (
         <div className="mt-4">
-          <ProofStepper steps={depositSteps} />
+          <ProofStepper steps={depositSteps} accent="emerald" />
         </div>
       )}
     </div>

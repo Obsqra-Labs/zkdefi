@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, Clock, Coins, Loader2, Info } from "lucide-react";
+import { ArrowDownToLine, Coins, Loader2, Info } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { getDepositStepsForMethod } from "@/hooks/usePrivacyVault";
 import { ProofStepper } from "@/components/zkdefi/vault/ProofStepper";
@@ -262,7 +262,7 @@ export function DepositPanel({
     setDepositSteps((prev) => updateStep(prev, 0, "active", "Generating..."));
     const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_deposit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
       body: JSON.stringify({
         user_address: address,
         pool_type: ["conservative", "neutral", "aggressive"][poolBucketToType(selectedPool)] ?? "neutral",
@@ -328,7 +328,7 @@ export function DepositPanel({
       `${API_BASE}/v1/zkdefi/full_privacy/deposit/generate_commitment`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
         body: JSON.stringify({
           user_address: address,
           amount: amountWei,
@@ -404,7 +404,7 @@ export function DepositPanel({
           `${API_BASE}/v1/zkdefi/full_privacy/deposit/register_commitment`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
             body: JSON.stringify({ commitment: commitmentHash }),
           },
         );
@@ -642,27 +642,8 @@ export function DepositPanel({
       {/* Allocation preview — only for non-pool-direct deposits */}
       {!isPoolDirect && <AllocationPreview amount={amount} asset={selectedAsset} riskProfile={selectedPool} isDemo={isDemo} />}
 
-      {/* Proof stepper */}
-      <ProofStepper steps={depositSteps} />
-
-      {/* Proof generation info */}
-      <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-zinc-500" />
-            Proof generation
-          </span>
-          <span className="text-zinc-300">~10-15s (Groth16)</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>What happens</span>
-          <span className="text-zinc-300">Commitment + Pedersen hash + Merkle insert</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>Privacy</span>
-          <span className="text-emerald-400">Shielded deposit — hashed proof commitment</span>
-        </div>
-      </div>
+      {/* Proof stepper — auto-hidden until flow starts */}
+      <ProofStepper steps={depositSteps} accent="emerald" />
 
       {/* Submit */}
       <button

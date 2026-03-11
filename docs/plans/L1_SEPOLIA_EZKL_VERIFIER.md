@@ -43,6 +43,16 @@ L1_SEPOLIA_RPC=https://ethereum-sepolia-rpc.publicnode.com L1_SEPOLIA_KEYSTORE_P
 
 Optional: `--constructor-args '[]'` (default), `--keystore path/to/keystore.json` (default: `backend/.l1-sepolia-keystore.json`). The script prints the deployed contract address; set `L1_EZKL_VERIFIER_ADDRESS` in backend env to that value.
 
+### 1.3 One-shot script (keystore + generate + compile + deploy)
+
+From repo root, with `L1_SEPOLIA_MNEMONIC`, `L1_SEPOLIA_KEYSTORE_PASSWORD`, and `L1_SEPOLIA_RPC` set:
+
+```bash
+python3 scripts/l1_sepolia_ezkl_verifier_one_shot.py
+```
+
+This creates the keystore (if missing), generates `contracts/l1_ezkl/EZKLVerifier.sol` from the creditworthiness EZKL model, runs `forge build` in `contracts/l1_ezkl`. If compilation fails with "stack too deep" (common with EZKL Halo2 verifiers), compile manually (e.g. Remix with optimizer + via-ir) or use a smaller EZKL model; place bytecode+abi at `contracts/l1_ezkl/EZKLVerifier_artifact.json` and re-run the script to deploy, or run `deploy_ezkl_verifier_l1_sepolia.py --artifact contracts/l1_ezkl/EZKLVerifier_artifact.json` after compiling.
+
 ## 2. Environment variables (parent backend)
 
 | Variable | Description |
@@ -58,6 +68,28 @@ Unset = L1 bridge flow disabled. Keep `L1_SEPOLIA_MNEMONIC` and `L1_SEPOLIA_KEYS
 **Reference transaction (Sepolia):** `0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/tx/0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59)
 
 **Current keystore deployer (testnet):** `0x286573Ccf1Ca01D97a41Dc16Fed01c8e0a0b2337` — fund this address with Sepolia ETH if needed; use with `L1_SEPOLIA_KEYSTORE_PASSWORD` for deploy and L1 verify.
+
+**Deployed EZKL verifier (Sepolia):** `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9). Set `L1_EZKL_VERIFIER_ADDRESS` to this in backend env.
+
+### 2.5 Stack-limit workaround (one-shot build gate)
+
+Large generated Halo2/EZKL verifiers can fail with:
+- `Yul exception ... too deep in the stack`
+
+Use the one-shot helper in this repo:
+
+```bash
+bash contracts/l1_ezkl/build_halo2_verifier.sh
+```
+
+What it does:
+1. Tries normal `forge build` in `contracts/l1_ezkl`.
+2. If that fails, retries with `FOUNDRY_VIA_IR=false` and `solc 0.8.24`.
+3. Verifies `contracts/l1_ezkl/out/EZKLVerifier.sol/Halo2Verifier.json` exists.
+
+Deploy rule:
+- Run L1 deploy only when the artifact exists.
+- If artifact still cannot be produced in this environment, compile elsewhere (or use a smaller model verifier), then copy the artifact back before deploy.
 
 ## 3. L1→L2 flow
 

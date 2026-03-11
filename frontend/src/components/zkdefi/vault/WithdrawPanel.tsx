@@ -260,7 +260,7 @@ export function WithdrawPanel({
     setWithdrawSteps((prev) => updateStep(prev, 0, "active", "Verifying..."));
     const res = await fetch(`${API_BASE}/v1/zkdefi/shielded_withdraw`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
       body: JSON.stringify({
         user_address: address,
         commitment: commitment.commitment_hash,
@@ -362,7 +362,7 @@ export function WithdrawPanel({
 
     const res = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
       body: JSON.stringify({
         user_secret: userSecret,
         amount: commitment.amount_wei,
@@ -492,7 +492,7 @@ export function WithdrawPanel({
   ) {
     const res = await fetch(`${API_BASE}/v1/zkdefi/relayer/request`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
       body: JSON.stringify({
         requester: address,
         nullifier_low: nullLow,
@@ -856,27 +856,8 @@ export function WithdrawPanel({
         </div>
       )}
 
-      {/* Proof stepper */}
-      <ProofStepper steps={withdrawSteps} />
-
-      {/* Proof generation info */}
-      <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-400 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-zinc-500" />
-            Proof generation
-          </span>
-          <span className="text-zinc-300">~10-15s (Groth16)</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>What happens</span>
-          <span className="text-zinc-300">Nullifier reveal + Merkle proof + balance verify</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>Privacy</span>
-          <span className="text-emerald-400">Source commitment stays hidden</span>
-        </div>
-      </div>
+      {/* Proof stepper — auto-hidden until flow starts */}
+      <ProofStepper steps={withdrawSteps} accent="rose" />
 
       {/* Submit */}
       <button

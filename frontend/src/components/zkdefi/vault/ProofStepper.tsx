@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * ProofStepper — Step-by-step visualization of proof pipeline.
- * Inspired by obsqra.fi DataPathVisualization with horizontal stepper.
+ * ProofStepper — Compact vertical step tracker for deposit / withdraw flows.
+ * Only renders when at least one step is active or done, keeping the UI
+ * clean before the user triggers a transaction.
  */
 
-import { Check, Loader2, X, Circle } from "lucide-react";
-import { motion } from "framer-motion";
+import { Check, Loader2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface ProofStepperProps {
   steps: Array<{
@@ -14,98 +15,132 @@ export interface ProofStepperProps {
     status: "pending" | "active" | "done" | "error";
     detail?: string;
   }>;
+  /** Override accent color (default emerald). Accepts a tailwind hue name. */
+  accent?: "emerald" | "violet" | "rose" | "blue";
 }
 
-export function ProofStepper({ steps }: ProofStepperProps) {
-  if (steps.length === 0) return null;
+const ACCENT = {
+  emerald: { active: "border-emerald-500 bg-emerald-500/10", done: "bg-emerald-500", line: "bg-emerald-500", text: "text-emerald-400" },
+  violet:  { active: "border-violet-500 bg-violet-500/10",  done: "bg-violet-500",  line: "bg-violet-500",  text: "text-violet-400"  },
+  rose:    { active: "border-rose-500 bg-rose-500/10",      done: "bg-rose-500",     line: "bg-rose-500",    text: "text-rose-400"    },
+  blue:    { active: "border-blue-500 bg-blue-500/10",      done: "bg-blue-500",     line: "bg-blue-500",    text: "text-blue-400"    },
+} as const;
+
+export function ProofStepper({ steps, accent = "emerald" }: ProofStepperProps) {
+  // Only show once the flow has started (at least one step is non-pending)
+  const hasStarted = steps.some((s) => s.status !== "pending");
+  if (steps.length === 0 || !hasStarted) return null;
+
+  const c = ACCENT[accent];
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4" role="region" aria-label="Proof generation progress">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        {steps.map((step, index) => {
-          const isLast = index === steps.length - 1;
-
-          let icon;
-          let iconColor;
-          let lineColor;
-
-          if (step.status === "done") {
-            icon = <Check className="w-4 h-4" />;
-            iconColor = "bg-emerald-500 text-white";
-            lineColor = "bg-emerald-500";
-          } else if (step.status === "active") {
-            icon = <Loader2 className="w-4 h-4 animate-spin" />;
-            iconColor = "bg-blue-500 text-white";
-            lineColor = "bg-zinc-700";
-          } else if (step.status === "error") {
-            icon = <X className="w-4 h-4" />;
-            iconColor = "bg-red-500 text-white";
-            lineColor = "bg-zinc-700";
-          } else {
-            icon = <Circle className="w-3 h-3" />;
-            iconColor = "bg-zinc-700 text-zinc-500";
-            lineColor = "bg-zinc-700";
-          }
-
-          return (
-            <div key={index} className="flex items-center gap-2 shrink-0">
-              <div className="flex flex-col items-center gap-1">
-                {step.status === "done" ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor}`}
-                  >
-                    {icon}
-                  </motion.div>
-                ) : step.status === "error" ? (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor}`}
-                  >
-                    {icon}
-                  </motion.div>
-                ) : (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor} ${step.status === "active" ? "animate-pulse" : ""}`}>
-                    {icon}
-                  </div>
-                )}
-                <span 
-                  className={`text-xs whitespace-nowrap ${
-                    step.status === "active" ? "text-blue-400 font-medium" :
-                    step.status === "done" ? "text-emerald-400" :
-                    step.status === "error" ? "text-red-400" :
-                    "text-zinc-400"
-                  }`}
-                  role={step.status === "active" ? "status" : undefined}
-                  aria-label={step.status === "active" ? `${step.label} in progress` : undefined}
-                >{step.label}</span>
-                {step.detail && (
-                  <span className="text-xs text-zinc-600 whitespace-nowrap">{step.detail}</span>
-                )}
-              </div>
-              {!isLast && (
-                <div className="relative h-0.5 w-8">
-                  <div className="absolute inset-0 bg-zinc-700" aria-hidden />
-                  {steps[index + 1].status !== "pending" && (
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 bg-emerald-500"
-                    />
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        exit={{ opacity: 0, height: 0 }}
+        className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3"
+        role="region"
+        aria-label="Transaction progress"
+      >
+        <div className="space-y-0">
+          {steps.map((step, idx) => {
+            const isLast = idx === steps.length - 1;
+            return (
+              <div key={idx} className="flex gap-3">
+                {/* Left rail — icon + connector line */}
+                <div className="flex flex-col items-center">
+                  <StepIcon step={step} accent={c} />
+                  {!isLast && (
+                    <div className="relative w-0.5 flex-1 min-h-[16px] bg-zinc-800">
+                      {(step.status === "done") && (
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: "100%" }}
+                          transition={{ duration: 0.25 }}
+                          className={`absolute inset-x-0 top-0 ${c.line}`}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+
+                {/* Right — label + detail */}
+                <div className={`pb-3 ${isLast ? "" : ""}`}>
+                  <span
+                    className={`text-xs leading-none ${
+                      step.status === "active" ? `${c.text} font-medium` :
+                      step.status === "done"   ? "text-zinc-300" :
+                      step.status === "error"  ? "text-red-400 font-medium" :
+                      "text-zinc-500"
+                    }`}
+                    role={step.status === "active" ? "status" : undefined}
+                  >
+                    {step.label}
+                  </span>
+                  {step.detail && (
+                    <span className="block text-[10px] text-zinc-500 mt-0.5">{step.detail}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Step icon sub-component
+// ---------------------------------------------------------------------------
+
+function StepIcon({
+  step,
+  accent,
+}: {
+  step: { status: string };
+  accent: (typeof ACCENT)[keyof typeof ACCENT];
+}) {
+  const base = "w-5 h-5 rounded-full flex items-center justify-center shrink-0";
+
+  if (step.status === "done") {
+    return (
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        className={`${base} ${accent.done} text-white`}
+      >
+        <Check className="w-3 h-3" />
+      </motion.div>
+    );
+  }
+
+  if (step.status === "error") {
+    return (
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className={`${base} bg-red-500 text-white`}
+      >
+        <X className="w-3 h-3" />
+      </motion.div>
+    );
+  }
+
+  if (step.status === "active") {
+    return (
+      <div className={`${base} border ${accent.active}`}>
+        <Loader2 className={`w-3 h-3 animate-spin ${accent.text}`} />
+      </div>
+    );
+  }
+
+  // pending
+  return <div className={`${base} bg-zinc-800 border border-zinc-700`}>
+    <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+  </div>;
 }
 
 // Pre-defined step sequences per privacy tier

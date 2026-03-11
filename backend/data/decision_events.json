@@ -530366,5 +530366,157 @@
       ]
     },
     "created_at": "2026-03-11T02:20:29.142289+00:00"
+  },
+  {
+    "id": 20841,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:09.365637+00:00"
+  },
+  {
+    "id": 20842,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:09.860373+00:00"
+  },
+  {
+    "id": 20843,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:10.413147+00:00"
+  },
+  {
+    "id": 20844,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:23.101678+00:00"
+  },
+  {
+    "id": 20845,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:23.573192+00:00"
+  },
+  {
+    "id": 20846,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T02:39:24.054696+00:00"
   }
 ]

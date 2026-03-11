@@ -211,6 +211,8 @@
 
 **While waiting for Sepolia ETH (faucet):** You can (1) obtain an Sepolia RPC URL (e.g. Alchemy/Infura) and set `L1_SEPOLIA_RPC`, (2) implement the web3/L1 submit logic in `l1_ezkl_bridge_service` (calls will fail until the verifier is deployed), (3) implement L2 polling for the receiver contract, (4) prepare the EZKL Solidity verifier build and a deploy script (Foundry/Hardhat/Remix). Faucet options and env usage are documented in `docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md` §0.
 
+**Phase 3 one-shot (do it all):** Run from repo root with `L1_SEPOLIA_MNEMONIC`, `L1_SEPOLIA_KEYSTORE_PASSWORD`, and `L1_SEPOLIA_RPC` set. Script: `python3 scripts/l1_sepolia_ezkl_verifier_one_shot.py`. It (1) creates `backend/.l1-sepolia-keystore.json` from the mnemonic if missing, (2) generates `contracts/l1_ezkl/EZKLVerifier.sol` and ABI via `ezkl.create_evm_verifier` using the creditworthiness EZKL model (vk/settings/srs), (3) runs Foundry compile. For large Halo2 verifiers that fail with Yul stack-limit, use `bash contracts/l1_ezkl/build_halo2_verifier.sh` (fallback: `FOUNDRY_VIA_IR=false` + solc `0.8.24`). If an artifact exists (e.g. `contracts/l1_ezkl/out/EZKLVerifier.sol/Halo2Verifier.json` or exported `contracts/l1_ezkl/EZKLVerifier_artifact.json`), then (4) deploy to Sepolia and set `L1_EZKL_VERIFIER_ADDRESS`.
+
 ### Task 3.1: EZKL Solidity verifier on Sepolia
 
 **Files:**
