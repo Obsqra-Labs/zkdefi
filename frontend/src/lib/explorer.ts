@@ -46,6 +46,16 @@ export function sepoliaVoyagerTxUrl(txHash: string): string {
   return `${SEPOLIA_VOYAGER_BASE}/tx/${hash}`;
 }
 
+export function sepoliaVoyagerContractUrl(address: string): string {
+  const addr = address.startsWith("0x") ? address : `0x${address}`;
+  return `${SEPOLIA_VOYAGER_BASE}/contract/${addr}`;
+}
+
+export function sepoliaVoyagerClassUrl(classHash: string): string {
+  const hash = classHash.startsWith("0x") ? classHash : `0x${classHash}`;
+  return `${SEPOLIA_VOYAGER_BASE}/class/${hash}`;
+}
+
 // ── Obsqra Proof Chain (L3) ──
 export const L3_FORGE_BASE = "https://starknet.obsqra.fi/forge";
 
