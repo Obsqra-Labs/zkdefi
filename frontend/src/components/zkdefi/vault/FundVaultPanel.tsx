@@ -19,12 +19,14 @@ import {
   Brain,
   Clock,
   Coins,
+  Fingerprint,
   Loader2,
   Lock,
   RefreshCw,
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import type { PrivacyMethod, VaultCommitment, ProofStep } from "@/hooks/usePrivacyVault";
 import { getDepositStepsForMethod } from "@/hooks/usePrivacyVault";
@@ -58,6 +60,14 @@ const FULL_PRIVACY_POOL_ADDRESS =
 
 type Asset = "STRK" | "ETH" | "strkBTC";
 
+interface ZkMLSignal {
+  circuit: string;
+  verified: boolean;
+  proof_type: string;
+  constraint: string;
+  fact_registry: string;
+}
+
 interface StrategyPool {
   pool_id: string;
   protocol: string;
@@ -66,6 +76,23 @@ interface StrategyPool {
   allocation_amount: number;
   expected_apy: number;
   risk_score: number;
+  zkml_signal?: ZkMLSignal | null;
+}
+
+interface Provenance {
+  fact_registry: string;
+  garaga_verifier: string;
+  circuits_used: string[];
+  proof_types: string[];
+  settlement: string;
+}
+
+interface Genome {
+  yield: number;
+  risk: number;
+  volatility: number;
+  liquidity: number;
+  efficiency: number;
 }
 
 interface AIRecommendation {
@@ -74,6 +101,10 @@ interface AIRecommendation {
   ai_confidence: number;
   expected_portfolio_apy: number;
   risk_profile: string;
+  attestation_hash?: string;
+  provenance?: Provenance;
+  genome?: Genome;
+  recommendation_id?: string;
 }
 
 type DepositResult = {
@@ -192,7 +223,7 @@ export function FundVaultPanel({
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
-  const [showReasoning, setShowReasoning] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(true);
 
   const amountNum = parseFloat(amount);
   const showPreview = amountNum > 0;
@@ -269,6 +300,10 @@ export function FundVaultPanel({
             ai_confidence: data.ai_confidence ?? 0,
             expected_portfolio_apy: data.expected_portfolio_apy ?? 0,
             risk_profile: data.risk_profile ?? "balanced",
+            attestation_hash: data.attestation_hash ?? undefined,
+            provenance: data.provenance ?? undefined,
+            genome: data.genome ?? undefined,
+            recommendation_id: data.recommendation_id ?? undefined,
           });
         } else if (!dead) {
           setRecError("Could not fetch recommendation");
@@ -569,6 +604,12 @@ export function FundVaultPanel({
                         <span className={`px-1.5 py-0.5 rounded text-[10px] ${color.bg} ${color.text}`}>
                           {pool.protocol}
                         </span>
+                        {pool.zkml_signal?.verified && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-medium">
+                            <Zap className="w-2.5 h-2.5" />
+                            {pool.zkml_signal.proof_type}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-zinc-400">{pool.allocation_percent.toFixed(0)}%</span>
@@ -592,6 +633,57 @@ export function FundVaultPanel({
                   );
                 })}
               </div>
+
+              {/* Genome fingerprint */}
+              {recommendation.genome && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Strategy Genome</span>
+                  {([
+                    { key: "yield" as const, label: "Yield", color: "bg-cyan-400" },
+                    { key: "risk" as const, label: "Risk", color: "bg-red-400" },
+                    { key: "volatility" as const, label: "Vol", color: "bg-amber-400" },
+                    { key: "liquidity" as const, label: "Liq", color: "bg-emerald-400" },
+                    { key: "efficiency" as const, label: "Eff", color: "bg-violet-400" },
+                  ] as const).map(({ key, label, color }) => (
+                    <div key={key} className="flex items-center gap-2 text-[10px]">
+                      <span className="w-6 text-zinc-500 text-right">{label}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${color} transition-all`}
+                          style={{ width: `${recommendation.genome![key]}%` }}
+                        />
+                      </div>
+                      <span className="w-6 text-zinc-500 text-right font-mono">{recommendation.genome![key]}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Provenance & attestation */}
+              {(recommendation.provenance || recommendation.attestation_hash) && (
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
+                  {recommendation.provenance && (
+                    <>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/15 text-violet-400">
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        {recommendation.provenance.settlement}
+                      </span>
+                      {recommendation.provenance.circuits_used.map((c) => (
+                        <span key={c} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-cyan-500/8 border border-cyan-500/15 text-cyan-400/80">
+                          <Zap className="w-2.5 h-2.5" />
+                          {c}
+                        </span>
+                      ))}
+                    </>
+                  )}
+                  {recommendation.attestation_hash && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-700/40 border border-zinc-600/30 text-zinc-400 font-mono">
+                      <Fingerprint className="w-2.5 h-2.5" />
+                      {recommendation.attestation_hash.slice(0, 10)}…
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Confidence & reasoning toggle */}
               <div className="flex items-center justify-between">

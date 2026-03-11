@@ -5,6 +5,7 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 starknet-py>=0.21.0
 eth-account>=0.13.0
+web3>=6.0.0
 # crypto_cpp_py (pulled by starknet-py) expects igcdex in sympy.core.numbers.
 # sympy>=1.13 removed that location and breaks imports.
 sympy<1.13
