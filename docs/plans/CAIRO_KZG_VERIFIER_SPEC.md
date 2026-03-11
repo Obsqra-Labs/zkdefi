@@ -6,13 +6,15 @@ Verify EZKL (KZG/Halo2) proofs natively in Cairo on Starknet/L3. No L1 or Noir l
 
 - Path B is **in progress**.
 - zkdefi backend now supports `bridge_circuit="EzklNativeKzg"` and routes `proof_type="native_kzg"` with non-empty `kzg_calldata`.
+- EZKL path now auto-discovers on-disk model artifacts and attempts `setup_model(..., force=False)` before falling back.
 - If local EZKL artifacts are available, backend serializes real EZKL proof payload (`ezkl_kzg_v1`).
-- If artifacts are unavailable, backend emits deterministic placeholder payload (`native_kzg_placeholder_v1`) so proving-path routing and integration tests still run.
+- If artifacts are unavailable, backend can still build deterministic placeholder payload (`native_kzg_placeholder_v1`), but strict mode marks the bridge as non-compliant and blocks execution.
 - Native Cairo verifier package now exists at `circuits/contracts/src/ezkl_kzg_verifier` and builds via `bash circuits/generate_ezkl_kzg_verifier.sh`.
 - Parent backend now attempts strict ABI `verify_ezkl_kzg_v1(expected_fact_hash, payload)` first, then legacy `verify_kzg(payload)`.
 - Live lane rejects placeholder payload marker (`native_kzg_placeholder_v1`) before on-chain call.
 - Cairo verifier now enforces a `kzg_mpcheck_v1` trailer and runs `multi_pairing_check_bn254_2P_2F` on-chain with fixed KZG G2 points.
 - Parent backend validates trailer shape (`kzg_mpcheck_v1`, two G1 points, non-empty MPCheck hint span) before submitting on-chain calls.
+- Parent verifier now treats explicit `native_kzg` / `noir_honk` / `groth16` requests as strict cryptographic lanes and does not downgrade them to hash-only registration.
 - Latest L3 deploy (Madara): class hash `0x07294fe4a60b45de1da26dc528359b2bd3bbb27a74ee4a20aa69b6bf89aeaada`, contract `0x026b2298aae275009ae68c1733e662981f056d99e1c241a16b78780fee52a5bf`.
 - Remaining gap for full production Path B is automatic extraction of KZG pairing witness (pair0/pair1 + hint) from raw EZKL proof artifacts in every model flow.
 
@@ -66,6 +68,7 @@ Current fact binding:
 ```
 
 - If `mpcheck_hint_felts` is omitted and `auto_build_hint=true`, serializer attempts local Garaga npm `mpcCalldataBuilder` (BN254, `n_fixed_g2=2`) to generate the hint.
+- Serializer also attempts structured extraction from common pairing containers (`kzg_mpcheck_bundle`, `kzg_pairing_bundle`, nested `kzg/mpcheck/proof_metadata`, and `pairings` arrays).
 - When bundle generation fails, payload still serializes as `ezkl_kzg_v1` but is marked `verification_semantics=payload_and_fact_binding_only` and L3 strict validation rejects it.
 
 ### `native_kzg_placeholder_v1` (deterministic fallback)

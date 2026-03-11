@@ -156,6 +156,35 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
 
     captured = {}
 
+    class _FakeEzklProof:
+        proof_hash = "0x1234"
+        model_hash = "0x5678"
+        verify_key_hash = "0x9abc"
+        public_inputs = [1.0]
+        inference_output = [2.0]
+        proof_hex = "0x11"
+        proof_bytes = b"\x11"
+        raw_proof_json = {
+            "kzg_mpcheck_bundle": {
+                "pair0": {
+                    "x": "1",
+                    "y": "2",
+                },
+                "pair1": {
+                    "x": "3",
+                    "y": "4",
+                },
+                "mpcheck_hint_felts": ["7"],
+                "auto_build_hint": False,
+            }
+        }
+
+        def to_dict(self):
+            return {
+                "proof_hash": self.proof_hash,
+                "model_hash": self.model_hash,
+            }
+
     async def fake_l3(**kwargs):
         captured.update(kwargs)
         return {
@@ -167,7 +196,11 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
             "error": None,
         }
 
+    async def fake_real_ezkl(**kwargs):
+        return _FakeEzklProof(), True
+
     monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
 
     result = await pipeline.generate_ml_proofs(
         user_address="0x1",
@@ -179,17 +212,48 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
     )
 
     assert result["bridge_circuit_used"] == "EzklNativeKzg"
-    assert result["bridge_proof"]["bridge_backend"] in {
-        "native_kzg_placeholder",
-        "native_kzg_ezkl_serialized_no_mpcheck",
-        "native_kzg_ezkl_serialized_mpcheck",
-    }
+    assert result["bridge_proof"]["bridge_backend"] == "native_kzg_ezkl_serialized_mpcheck"
     assert captured["proof_type"] == "native_kzg"
     assert captured["kzg_calldata"]
     assert captured["groth16_calldata"] is None
-    if result["bridge_proof"]["bridge_backend"] in {
-        "native_kzg_ezkl_serialized_no_mpcheck",
-        "native_kzg_ezkl_serialized_mpcheck",
-    }:
-        assert result["bridge_proof"]["proof_hash"] == result["bridge_proof"]["kzg_payload"]["fact_hash_felt"]
+    assert result["bridge_proof"]["proof_hash"] == result["bridge_proof"]["kzg_payload"]["fact_hash_felt"]
     assert result["can_execute"] is True
+
+
+@pytest.mark.asyncio
+async def test_native_kzg_strict_blocks_placeholder(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    async def fake_real_ezkl(**kwargs):
+        return None, False
+
+    called = {"l3": False}
+
+    async def fake_l3(**kwargs):
+        called["l3"] = True
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "native_kzg",
+            "tx_hash": "0xkzg",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="EzklNativeKzg",
+    )
+
+    assert result["bridge_proof"]["bridge_backend"] == "native_kzg_placeholder"
+    assert result["can_execute"] is False
+    assert "Real EZKL proof unavailable" in (result["verification"]["failure_reason"] or "")
+    assert called["l3"] is False

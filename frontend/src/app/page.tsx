@@ -119,9 +119,10 @@ const ROADMAP = [
     ],
   },
   {
-    phase: "Phase 5 — Mainnet",
+    phase: "Phase 5 — Mainnet + Capital OS",
     status: "planned" as const,
     items: [
+      "Capital OS: full portfolio management, auto-rebalance, LP orchestration",
       "Starknet mainnet contract deployment",
       "Ethereum mainnet bridge finalization",
       "Production Madara L3 with economic security",
@@ -153,6 +154,15 @@ export default function LandingPage() {
               Verifiable execution.
             </span>
           </h1>
+
+          <div className="mx-auto mt-8 flex items-center justify-center gap-3">
+            <span className="font-mono text-2xl tracking-wide text-zinc-200 sm:text-3xl">
+              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs text-zinc-600 italic">
+            <span className="text-amber-400">*</span>over time
+          </p>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg text-zinc-300">
             Run zkML inference on-chain and off-chain. Encapsulate SNARKs within STARKs for
@@ -191,16 +201,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Stats ═══ */}
+      {/* ═══ Capital OS: Stats + Live Demo ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
-            {STATS.map((s) => (
-              <div key={s.label} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-400">{s.value}</p>
-                <p className="mt-1 text-xs text-zinc-500">{s.label}</p>
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+            {/* Left: Stats column */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">By the numbers</h3>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                {STATS.map((s) => (
+                  <div key={s.label} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-center lg:text-left">
+                    <p className="text-xl font-bold text-emerald-400 lg:text-2xl">{s.value}</p>
+                    <p className="mt-0.5 text-[10px] text-zinc-500">{s.label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Right: Mini Capital OS demo */}
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-200">Capital OS</h3>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    zkML-scored strategy analysis — live on devnet
+                  </p>
+                </div>
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium text-cyan-400">
+                  Devnet Preview
+                </span>
+              </div>
+              <TrustDemo />
+              <p className="mt-3 text-center text-[10px] text-zinc-600">
+                Full Capital OS with portfolio management, auto-rebalancing &amp; LP orchestration →{" "}
+                <span className="text-zinc-500">Roadmap Phase 5</span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -414,19 +450,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Try It Live ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Try It Live</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-zinc-400">
-              Run the trust pipeline yourself. Pick a risk profile, get zkML-scored pool
-              recommendations, and verify the proof hashes — all without connecting a wallet.
-            </p>
-          </div>
-          <TrustDemo />
-        </div>
-      </section>
+
 
       {/* ═══ Tri-Chain Deployment ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">

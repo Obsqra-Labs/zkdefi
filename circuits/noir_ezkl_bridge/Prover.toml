@@ -1,6 +1,4 @@
-# Public inputs (same as Verifier.toml for verification)
-expected_model_hash = "0"
+expected_model_hash = "24341033561490884202419192372229712113436241727419639384080677534007767836676"
 output_lower_bound = "0"
 output_upper_bound = "10000"
-# Private input
-model_output = "500"
+model_output = "1"

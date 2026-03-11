@@ -137,6 +137,8 @@ class L3VerifyProofRequest(BaseModel):
     proof_type: str = "stark"
     circuit_name: str = ""
     groth16_calldata: list[str] | None = None
+    honk_calldata: list[str] | None = None
+    kzg_calldata: list[str] | None = None
     stark_proof_data: dict[str, Any] | None = None
     execution_chain: Literal["l3", "l2", "dual"] = "l3"
 
@@ -178,6 +180,8 @@ async def l3_verify_proof(request: L3VerifyProofRequest):
         proof_type=request.proof_type,
         circuit_name=request.circuit_name,
         groth16_calldata=request.groth16_calldata,
+        honk_calldata=request.honk_calldata,
+        kzg_calldata=request.kzg_calldata,
         stark_proof_data=request.stark_proof_data,
         execution_chain=request.execution_chain,
     )

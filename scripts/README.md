@@ -44,6 +44,12 @@ Optional flags:
 - `--strict-bridge` (requires strict `200` ModelBridge + dual-lane evidence; no transient pass)
 - `--artifact-dir artifacts/hackathon_showcase`
 
+Native KZG strictness defaults (backend):
+
+- `NATIVE_KZG_REQUIRE_REAL_EZKL=true` (block `EzklNativeKzg` execution if only synthetic/placeholder proof is available)
+- `NATIVE_KZG_REQUIRE_MPCHECK=true` (block `EzklNativeKzg` execution if `ezkl_kzg_v1` payload has no `kzg_mpcheck_v1` trailer)
+- `EZKL_AUTO_SETUP_ON_DEMAND=true` (auto-discover local ONNX artifacts and attempt `setup_model(..., force=False)` before fallback)
+
 ### Hackathon showcase artifacts
 
 Each run writes timestamped and latest report files:

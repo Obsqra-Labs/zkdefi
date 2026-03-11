@@ -109,6 +109,100 @@ def _parse_felt_list(values: Any) -> list[int]:
     return out
 
 
+def _bundle_from_pairings(pairings: Any, hints: Any = None) -> dict[str, Any]:
+    if not isinstance(pairings, (list, tuple)) or len(pairings) < 2:
+        return {}
+
+    def _pick_pair_point(value: Any) -> tuple[int, int] | None:
+        if isinstance(value, dict):
+            for key in ("p", "g1", "lhs", "point"):
+                parsed = _parse_g1_point(value.get(key))
+                if parsed:
+                    return parsed
+        return _parse_g1_point(value)
+
+    p0 = _pick_pair_point(pairings[0])
+    p1 = _pick_pair_point(pairings[1])
+    if not p0 or not p1:
+        return {}
+    bundle: dict[str, Any] = {
+        "pair0": {"x": str(p0[0]), "y": str(p0[1])},
+        "pair1": {"x": str(p1[0]), "y": str(p1[1])},
+    }
+    hint_felts = _parse_felt_list(hints)
+    if hint_felts:
+        bundle["mpcheck_hint_felts"] = [str(v) for v in hint_felts]
+        bundle["auto_build_hint"] = False
+    return bundle
+
+
+def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    if not isinstance(raw_json, dict):
+        return {}, "none"
+
+    direct_keys = (
+        "kzg_mpcheck_bundle",
+        "kzg_pairing_bundle",
+        "kzg_bundle",
+        "pairing_bundle",
+        "mpcheck_bundle",
+    )
+    for key in direct_keys:
+        value = raw_json.get(key)
+        if isinstance(value, dict) and value:
+            return value, key
+
+    # Optional nested containers used by some proof wrappers.
+    nested_containers = (
+        ("kzg", raw_json.get("kzg")),
+        ("mpcheck", raw_json.get("mpcheck")),
+        ("proof_metadata", raw_json.get("proof_metadata")),
+        ("metadata", raw_json.get("metadata")),
+    )
+    for name, container in nested_containers:
+        if not isinstance(container, dict):
+            continue
+        for key in direct_keys:
+            value = container.get(key)
+            if isinstance(value, dict) and value:
+                return value, f"{name}.{key}"
+        maybe_direct = _bundle_from_pairings(
+            container.get("pairings") or container.get("pairs"),
+            container.get("mpcheck_hint_felts")
+            or container.get("hint_felts")
+            or container.get("mpcheck_hint")
+            or container.get("hints"),
+        )
+        if maybe_direct:
+            return maybe_direct, f"{name}.pairings"
+
+    # Flat top-level pairings fallback.
+    maybe_top = _bundle_from_pairings(
+        raw_json.get("kzg_pairings") or raw_json.get("pairings") or raw_json.get("pairs"),
+        raw_json.get("mpcheck_hint_felts")
+        or raw_json.get("hint_felts")
+        or raw_json.get("mpcheck_hint")
+        or raw_json.get("hints"),
+    )
+    if maybe_top:
+        return maybe_top, "top_level_pairings"
+
+    # Flat top-level pair0/pair1 fallback.
+    if raw_json.get("pair0") and raw_json.get("pair1"):
+        maybe = {
+            "pair0": raw_json.get("pair0"),
+            "pair1": raw_json.get("pair1"),
+            "mpcheck_hint_felts": raw_json.get("mpcheck_hint_felts")
+            or raw_json.get("hint_felts")
+            or raw_json.get("mpcheck_hint")
+            or raw_json.get("hints"),
+            "auto_build_hint": raw_json.get("auto_build_hint", True),
+        }
+        return maybe, "top_level_pairs"
+
+    return {}, "none"
+
+
 def _garaga_module_path() -> Path | None:
     root = Path(__file__).resolve().parents[3]
     module = root / "circuits" / "node_modules" / "garaga" / "dist" / "index.cjs"
@@ -184,11 +278,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
     Optional cryptographic trailer for ezkl_kzg_v1:
       [kzg_mpcheck_v1][pair0_g1(8 felts)][pair1_g1(8 felts)][hint_len][hint_felts...]
     """
-    bundle = (
-        raw_json.get("kzg_mpcheck_bundle")
-        or raw_json.get("kzg_pairing_bundle")
-        or {}
-    )
+    bundle, bundle_source = _extract_kzg_bundle(raw_json)
     if not isinstance(bundle, dict):
         bundle = {}
 
@@ -210,6 +300,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
             "kzg_mpcheck_bundle_present": False,
             "kzg_mpcheck_hint_felts": 0,
             "kzg_mpcheck_hint_source": "none",
+            "kzg_mpcheck_bundle_source": bundle_source,
         }
 
     pair0_x_limbs = _u384_to_limbs(pair0[0])
@@ -221,6 +312,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
             "kzg_mpcheck_bundle_present": False,
             "kzg_mpcheck_hint_felts": 0,
             "kzg_mpcheck_hint_source": "none",
+            "kzg_mpcheck_bundle_source": bundle_source,
         }
 
     trailer = [KZG_MPCHECK_V1_MARKER]
@@ -232,6 +324,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
     trailer.extend(hint_felts)
     return trailer, {
         "kzg_mpcheck_bundle_present": True,
+        "kzg_mpcheck_bundle_source": bundle_source,
         "kzg_mpcheck_hint_felts": len(hint_felts),
         "kzg_mpcheck_hint_source": hint_source,
         "kzg_mpcheck_pair0_x": hex(pair0[0]),

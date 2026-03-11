@@ -68,3 +68,28 @@ def test_real_ezkl_serialization_accepts_explicit_mpcheck_bundle():
     assert meta["kzg_mpcheck_bundle_present"] is True
     assert meta["kzg_mpcheck_hint_felts"] == 3
     assert meta["verification_semantics"] == "cryptographic_pairing"
+
+
+def test_real_ezkl_serialization_extracts_pairings_bundle():
+    fake_proof = SimpleNamespace(
+        proof_hash="0x" + "33" * 32,
+        model_hash="0x" + "44" * 32,
+        verify_key_hash="0x" + "55" * 32,
+        public_inputs=[1.0],
+        inference_output=[2.0],
+        proof_hex="0x" + "66" * 64,
+        proof_bytes=b"",
+        raw_proof_json={
+            "pairings": [
+                {"p": {"x": "0x111", "y": "0x222"}},
+                {"p": {"x": "0x333", "y": "0x444"}},
+            ],
+            "hint_felts": ["0x9", "0xa"],
+        },
+    )
+
+    calldata, meta = serialize_ezkl_proof_to_kzg_calldata(fake_proof)
+    assert len(calldata) > 20
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert meta["kzg_mpcheck_bundle_source"] == "top_level_pairings"
+    assert meta["kzg_mpcheck_hint_felts"] == 2
