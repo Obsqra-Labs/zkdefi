@@ -227,6 +227,7 @@ credit_lines_router = _optional_router("app.api.routes.credit_lines")
 collateral_router = _optional_router("app.api.routes.collateral")
 batch_verification_router = _optional_router("app.api.routes.batch_verification")
 system_metrics_router = _optional_router("app.api.routes.system_metrics")
+landing_router = _optional_router("app.api.routes.landing")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -372,6 +373,12 @@ if system_metrics_router:
         system_metrics_router,
         prefix="/api/v1/zkdefi",
         tags=["system-metrics"],
+    )
+if landing_router:
+    app.include_router(
+        landing_router,
+        prefix="/api/v1/zkdefi",
+        tags=["landing"],
     )
 if orchestration_router:
     app.include_router(
