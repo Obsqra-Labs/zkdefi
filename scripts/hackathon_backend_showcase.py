@@ -244,6 +244,7 @@ class HttpClient:
         path: str,
         payload: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
+        timeout_seconds: float | None = None,
     ) -> tuple[int, Any]:
         url = f"{self.base_url}{path}"
         data: bytes | None = None
@@ -258,8 +259,9 @@ class HttpClient:
             req_headers["Content-Type"] = "application/json"
 
         req = request.Request(url=url, data=data, method=method.upper(), headers=req_headers)
+        req_timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as resp:
+            with request.urlopen(req, timeout=req_timeout) as resp:
                 status = int(resp.status)
                 body = resp.read().decode("utf-8", errors="replace")
                 if not body:
@@ -390,10 +392,16 @@ class ShowcaseRunner:
         payload: dict[str, Any],
         *,
         max_attempts: int = 3,
+        timeout_seconds: float | None = None,
     ) -> tuple[int, Any, list[dict[str, Any]]]:
         attempts: list[dict[str, Any]] = []
         for idx in range(max_attempts):
-            status, body = self.client.call("POST", "/api/v1/zkdefi/proofs/ml-bridge", payload=payload)
+            status, body = self.client.call(
+                "POST",
+                "/api/v1/zkdefi/proofs/ml-bridge",
+                payload=payload,
+                timeout_seconds=timeout_seconds,
+            )
             run = self._bridge_run_summary(status, body)
             failure_text = " ".join(
                 [
@@ -1873,17 +1881,22 @@ class ShowcaseRunner:
             }
         )
 
+        bridge_timeout = max(self.timeout_seconds, 240.0) if self.strict_bridge else None
+
         l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(
             l3_payload,
             max_attempts=(5 if self.strict_bridge else 3),
+            timeout_seconds=bridge_timeout,
         )
         dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(
             dual_payload,
             max_attempts=(6 if self.strict_bridge else 4),
+            timeout_seconds=bridge_timeout,
         )
         heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
             heavy_payload,
             max_attempts=(5 if self.strict_bridge else 3),
+            timeout_seconds=bridge_timeout,
         )
         noir_status = 0
         noir_body: Any = {}
@@ -1892,6 +1905,7 @@ class ShowcaseRunner:
             noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
                 noir_payload,
                 max_attempts=(5 if self.strict_bridge else 3),
+                timeout_seconds=bridge_timeout,
             )
 
         l3_run = self._bridge_run_summary(l3_status, l3_body)
@@ -2500,6 +2514,7 @@ class ShowcaseRunner:
             "POST",
             "/api/v1/zkdefi/risk_passport/stark-heavy-reputation",
             payload=payload,
+            timeout_seconds=max(self.timeout_seconds, 120.0),
         )
         l3 = body.get("l3", {}) if isinstance(body, dict) and isinstance(body.get("l3"), dict) else {}
         tx_hash = l3.get("tx_hash")

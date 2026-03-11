@@ -52,6 +52,12 @@ interface SkillResult {
   error: string | null;
 }
 
+interface BatchSkillResult {
+  pool_id: string;
+  results: SkillResult[];
+  summary: { total: number; passed: number; failed: number };
+}
+
 interface SkillScreening {
   pool_id: string;
   is_proved: boolean;
@@ -67,35 +73,7 @@ interface PipelineStatus {
 
 /* ═══════════════════ constants ═══════════════════ */
 
-const PROFILES = ["CONSERVATIVE", "BALANCED", "AGGRESSIVE"] as const;
-type Profile = (typeof PROFILES)[number];
-
-const PROFILE_META: Record<Profile, { label: string; icon: string; color: string; bg: string; border: string; activeRing: string }> = {
-  CONSERVATIVE: {
-    label: "Conservative",
-    icon: "🛡️",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/8",
-    border: "border-emerald-500/20",
-    activeRing: "ring-emerald-500/40",
-  },
-  BALANCED: {
-    label: "Balanced",
-    icon: "⚖️",
-    color: "text-cyan-400",
-    bg: "bg-cyan-500/8",
-    border: "border-cyan-500/20",
-    activeRing: "ring-cyan-500/40",
-  },
-  AGGRESSIVE: {
-    label: "Aggressive",
-    icon: "⚡",
-    color: "text-amber-400",
-    bg: "bg-amber-500/8",
-    border: "border-amber-500/20",
-    activeRing: "ring-amber-500/40",
-  },
-};
+type Profile = "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE";
 
 const SAFETY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   safe: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
@@ -130,19 +108,57 @@ const GENOME_KEYS = [
   { key: "efficiency" as const, label: "Eff", color: "bg-violet-400" },
 ];
 
+function riskToProfile(tolerance: number): Profile {
+  if (tolerance <= 33) return "CONSERVATIVE";
+  if (tolerance <= 66) return "BALANCED";
+  return "AGGRESSIVE";
+}
+
+/* ═══════════════════ props ═══════════════════ */
+
+interface TrustDemoProps {
+  /** 0-100 from brain panel */
+  riskTolerance: number;
+  /** skill IDs toggled on */
+  enabledSkills: string[];
+  /** protocol weights from brain sliders */
+  protocolWeights: { ekubo: number; vesu: number; lending: number };
+  /** incremented to trigger re-analysis */
+  triggerKey: number;
+  /** report loading state to parent */
+  onLoadingChange?: (loading: boolean) => void;
+}
+
 /* ═══════════════════ component ═══════════════════ */
 
-export function TrustDemo() {
+export function TrustDemo({
+  riskTolerance,
+  enabledSkills,
+  protocolWeights,
+  triggerKey,
+  onLoadingChange,
+}: TrustDemoProps) {
   const [status, setStatus] = useState<PipelineStatus | null>(null);
-  const [selected, setSelected] = useState<Profile>("BALANCED");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [expandedPool, setExpandedPool] = useState<string | null>(null);
   const [skillScreening, setSkillScreening] = useState<Record<string, SkillScreening>>({});
+  const [batchResults, setBatchResults] = useState<BatchSkillResult | null>(null);
   const [screeningLoading, setScreeningLoading] = useState<string | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verified, setVerified] = useState<Record<string, boolean>>({});
   const hasAutoRun = useRef(false);
+  const prevTrigger = useRef(triggerKey);
+
+  const profile = riskToProfile(riskTolerance);
+  const profileColor =
+    profile === "CONSERVATIVE" ? "text-emerald-400" : profile === "BALANCED" ? "text-cyan-400" : "text-amber-400";
+
+  /* sync loading state to parent */
+  useEffect(() => {
+    onLoadingChange?.(loading || batchLoading);
+  }, [loading, batchLoading, onLoadingChange]);
 
   /* fetch pipeline status on mount */
   useEffect(() => {
@@ -166,12 +182,13 @@ export function TrustDemo() {
   }, []);
 
   /* run analysis */
-  const runAnalysis = useCallback(async (profile: Profile) => {
-    setSelected(profile);
+  const runAnalysis = useCallback(async () => {
+    const p = riskToProfile(riskTolerance);
     setLoading(true);
     setResult(null);
     setExpandedPool(null);
     setSkillScreening({});
+    setBatchResults(null);
     setVerified({});
     try {
       const res = await fetch("/api/v1/strategies/analyze", {
@@ -179,27 +196,61 @@ export function TrustDemo() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deposit_amount: 1000000000,
-          risk_profile: profile,
+          risk_profile: p,
           user_address: "0xdemo",
         }),
         signal: AbortSignal.timeout(12000),
       });
       if (!res.ok) throw new Error(`${res.status}`);
-      setResult(await res.json());
+      const data = await res.json();
+      setResult(data);
+
+      /* run batch skill screening in parallel */
+      if (enabledSkills.length > 0 && data.recommended_pools?.[0]) {
+        setBatchLoading(true);
+        try {
+          const batchRes = await fetch("/api/v1/zkdefi/skills/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pool_id: data.recommended_pools[0].pool_id,
+              position_size: 1000000,
+              entry_price: 2000,
+              current_price: 2067,
+            }),
+            signal: AbortSignal.timeout(20000),
+          });
+          if (batchRes.ok) {
+            setBatchResults(await batchRes.json());
+          }
+        } catch {
+          /* non-critical */
+        } finally {
+          setBatchLoading(false);
+        }
+      }
     } catch {
       setResult(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [riskTolerance, enabledSkills]);
 
   /* auto-run BALANCED on mount */
   useEffect(() => {
     if (!hasAutoRun.current) {
       hasAutoRun.current = true;
-      runAnalysis("BALANCED");
+      runAnalysis();
     }
   }, [runAnalysis]);
+
+  /* re-run when triggerKey changes (brain panel "Run Analysis" clicked) */
+  useEffect(() => {
+    if (triggerKey > 0 && triggerKey !== prevTrigger.current) {
+      prevTrigger.current = triggerKey;
+      runAnalysis();
+    }
+  }, [triggerKey, runAnalysis]);
 
   /* screen a pool for skill proofs */
   const screenPool = useCallback(async (poolId: string) => {
@@ -258,7 +309,10 @@ export function TrustDemo() {
     }
   }, []);
 
-  const profileMeta = PROFILE_META[selected];
+  /* filter batch results to only enabled skills */
+  const filteredBatchResults = batchResults?.results?.filter((r) =>
+    enabledSkills.includes(r.skill_id),
+  );
 
   return (
     <div className="space-y-3">
@@ -281,28 +335,15 @@ export function TrustDemo() {
         </div>
       </div>
 
-      {/* ── Profile picker (inline pills) ── */}
-      <div className="flex items-center gap-2">
-        {PROFILES.map((p) => {
-          const meta = PROFILE_META[p];
-          const isActive = selected === p;
-          return (
-            <button
-              key={p}
-              onClick={() => runAnalysis(p)}
-              disabled={loading}
-              className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all ${
-                isActive
-                  ? `${meta.border} ${meta.bg} ${meta.color} ring-2 ${meta.activeRing}`
-                  : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-400"
-              } disabled:opacity-40`}
-            >
-              <span>{meta.icon}</span>
-              {meta.label}
-            </button>
-          );
-        })}
-        <span className="ml-auto text-[10px] text-zinc-600">No wallet required</span>
+      {/* ── Active config indicator ── */}
+      <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
+        <span className={`font-medium ${profileColor}`}>{profile}</span>
+        <span className="text-zinc-700">·</span>
+        <span>Risk {riskTolerance}%</span>
+        <span className="text-zinc-700">·</span>
+        <span>{enabledSkills.length} circuits</span>
+        <span className="text-zinc-700">·</span>
+        <span>Ekubo {protocolWeights.ekubo}% / Vesu {protocolWeights.vesu}%</span>
       </div>
 
       {/* ── Loading ── */}
@@ -320,7 +361,7 @@ export function TrustDemo() {
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
             <div className="mb-3 flex items-center justify-between text-xs">
               <span className="text-zinc-400">Allocation</span>
-              <span className={`font-medium ${profileMeta.color}`}>
+              <span className={`font-medium ${profileColor}`}>
                 {(result.confidence_score * 100).toFixed(0)}% confidence
               </span>
             </div>
@@ -463,6 +504,33 @@ export function TrustDemo() {
               })}
             </div>
           </div>
+
+          {/* ── Batch circuit results ── */}
+          {(batchLoading || (filteredBatchResults && filteredBatchResults.length > 0)) && (
+            <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-500">
+                <Cpu className="h-3 w-3" />
+                Batch Circuit Skills
+                {batchResults?.summary && (
+                  <span className="ml-auto text-[9px] font-normal text-zinc-500">
+                    {batchResults.summary.passed}/{batchResults.summary.total} passed
+                  </span>
+                )}
+              </div>
+              {batchLoading ? (
+                <div className="flex items-center gap-2 py-2 text-xs text-zinc-500">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Running {enabledSkills.length} circuit skills…
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredBatchResults?.map((r) => (
+                    <CircuitRow key={r.skill_id} result={r} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Trust attestation strip */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-violet-500/15 bg-violet-950/5 px-4 py-2.5">

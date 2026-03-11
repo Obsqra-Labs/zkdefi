@@ -13,6 +13,7 @@ Garaga (Circom/BN254) circuits and generated verifiers used by zkde.fi for reput
 | **TraderPerformanceProofVerifier** | Verifies trader performance proof. |
 | **StrategyIntegrityVerifier** | Verifies strategy constraint proof. |
 | **ExecutionIntegrityVerifier** | Verifies execution integrity proof. |
+| **ModelBridge / ModelBridgeHeavy** | Bridges zkML outputs into Groth16-verified policy gates (8-output + 16-output lanes). |
 | **full_privacy_*** / private_*** | Deposit/withdraw proofs for full-privacy pool. |
 
 Verifier packages live under `build/` (e.g. `build/SolvencyProofVerifier/`) with Cairo output for Starknet deployment. VKeys: `*_vkey.json` in `build/`.
@@ -49,3 +50,4 @@ The backend builds circuit inputs and runs proofs via `backend/app/services/zkml
 - Circom circuits are compiled to Groth16 verifiers; output is used to generate Cairo verifier contracts (e.g. Garaga tooling).
 - Scarb/Cairo toolchain may live under `contracts/` or a dedicated path; see repo docs or `circuits/contracts` for Scarb config.
 - Native KZG lane (Path B): build Cairo verifier package with `bash circuits/generate_ezkl_kzg_verifier.sh` (artifacts under `circuits/contracts/src/ezkl_kzg_verifier/target/dev`).
+- ModelBridgeHeavy lane: `bash circuits/build_model_bridge_heavy.sh` then `bash circuits/generate_model_bridge_heavy_verifier.sh` (artifacts under `circuits/contracts/src/garaga_verifier_model_bridge_heavy/target/dev`).

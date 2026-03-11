@@ -16,18 +16,9 @@ import {
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
-import { TrustDemo } from "@/components/marketing/TrustDemo";
+import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
 
 /* ─── data ─────────────────────────────────────────────────────────── */
-
-const STATS = [
-  { value: "1 817", label: "zkML Models" },
-  { value: "11", label: "Contracts" },
-  { value: "3", label: "Chains" },
-  { value: "136+", label: "Trust Receipts" },
-  { value: "5 s", label: "L3 Block Time" },
-  { value: "SNARK+STARK", label: "Heterogeneous Proofs" },
-] as const;
 
 const TRUST_MODES = [
   {
@@ -201,40 +192,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Capital OS: Stats + Live Demo ═══ */}
+      {/* ═══ Capital OS: AI Brain + Live Demo ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-            {/* Left: Stats column */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">By the numbers</h3>
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                {STATS.map((s) => (
-                  <div key={s.label} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-center lg:text-left">
-                    <p className="text-xl font-bold text-emerald-400 lg:text-2xl">{s.value}</p>
-                    <p className="mt-0.5 text-[10px] text-zinc-500">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Capital OS demo */}
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">Capital OS</h3>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    zkML-scored strategy analysis with Groth16 circuit proofs
-                  </p>
-                </div>
-              </div>
-              <TrustDemo />
-              <p className="mt-3 text-center text-[10px] text-zinc-600">
-                Full Capital OS with portfolio management, auto-rebalancing &amp; LP orchestration →{" "}
-                <span className="text-zinc-500">Phase 5</span>
-              </p>
-            </div>
-          </div>
+          <CapitalOSSection />
+          <p className="mt-4 text-center text-[10px] text-zinc-600">
+            Full Capital OS with portfolio management, auto-rebalancing &amp; LP orchestration →{" "}
+            <span className="text-zinc-500">Phase 5</span>
+          </p>
         </div>
       </section>
 
@@ -684,19 +649,24 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="mt-6 flex items-center justify-center gap-4">
-            <a
-              href="https://github.com/Obsqra-Labs/zkdefi"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
-            >
-              github.com/Obsqra-Labs/zkdefi
-            </a>
-            <span className="text-zinc-800">·</span>
-            <span className="text-xs text-zinc-600">
-              Built on Starknet · Powered by Stone + Garaga + EZKL
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <span className="text-sm font-medium text-zinc-400">
+              zkde.fi <span className="text-zinc-600">by</span> Obsqra Labs
             </span>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://github.com/Obsqra-Labs/zkdefi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+              >
+                github.com/Obsqra-Labs/zkdefi
+              </a>
+              <span className="text-zinc-800">·</span>
+              <span className="text-xs text-zinc-600">
+                Built on Starknet · Infra by Obsqra · Powered by Stone + Garaga + EZKL
+              </span>
+            </div>
           </div>
         </div>
       </section>

@@ -1776,10 +1776,9 @@
     "execution.gate_state": {
       "mode": "advisory",
       "reason_codes": [
-        "no_active_session",
         "passport_low_confidence"
       ],
-      "active_sessions": 0
+      "active_sessions": 1
     }
   }
 }

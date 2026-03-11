@@ -23,6 +23,7 @@ from app.services.zkml_anomaly_service import get_anomaly_service
 from app.services.zkml_risk_service import get_risk_service
 
 logger = logging.getLogger(__name__)
+STARKNET_PRIME = 0x800000000000011000000000000000000000000000000000000000000000001
 
 
 class ProofMode(IntEnum):
@@ -300,6 +301,19 @@ class ProofPipeline:
     def _to_hex_felt(text: str) -> str:
         return hex(int.from_bytes(text.encode("utf-8"), "big"))
 
+    @staticmethod
+    def _felt_hex(value: int | str) -> str:
+        """Normalize integers/hashes into felt252-safe hex for Starknet calldata."""
+        if isinstance(value, str):
+            raw = value.strip()
+            if raw.startswith(("0x", "0X")):
+                n = int(raw, 16)
+            else:
+                n = int(raw)
+        else:
+            n = int(value)
+        return hex(n % STARKNET_PRIME)
+
     def _generate_synthetic_ezkl_proof(
         self,
         *,
@@ -512,10 +526,10 @@ class ProofPipeline:
                 bridge_proof["fallback_error"] = str(exc)
                 calldata = [
                     self._to_hex_felt("native_kzg_fallback"),
-                    hex(effective_model_hash),
-                    bridge_fact_hash,
+                    self._felt_hex(effective_model_hash),
+                    self._felt_hex(bridge_fact_hash),
                     hex(ts),
-                    hex(int(ezkl_proof.proof_hash, 16)),
+                    self._felt_hex(ezkl_proof.proof_hash),
                 ]
             return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
@@ -560,11 +574,11 @@ class ProofPipeline:
             circuit_name_for_l3 = "ModelBridge" if not use_heavy else "ModelBridgeHeavy"
             calldata = [
                 self._to_hex_felt("model_bridge"),
-                hex(effective_model_hash),
-                output_commitment,
-                bridge_fact_hash,
+                self._felt_hex(effective_model_hash),
+                self._felt_hex(output_commitment),
+                self._felt_hex(bridge_fact_hash),
                 hex(ts),
-                hex(int(ezkl_proof.proof_hash, 16)),
+                self._felt_hex(ezkl_proof.proof_hash),
             ]
 
         return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
