@@ -2280,7 +2280,12 @@ class ShowcaseRunner:
 
         parent_phase3_config_keys = all(
             key in parent_config_text
-            for key in ["L1_SEPOLIA_RPC", "L1_EZKL_VERIFIER_ADDRESS", "L1_BRIDGE_RECEIVER_ADDRESS"]
+            for key in [
+                "L1_SEPOLIA_RPC",
+                "L1_EZKL_VERIFIER_ADDRESS",
+                "L1_EZKL_BRIDGE_SENDER_ADDRESS",
+                "L1_BRIDGE_RECEIVER_ADDRESS",
+            ]
         )
         parent_phase3_service_stub = all(
             marker in parent_l1_service_text
@@ -2288,6 +2293,7 @@ class ShowcaseRunner:
                 "class L1EzklBridgeService",
                 "submit_ezkl_proof_to_l1",
                 "poll_l2_for_verification",
+                "verifyAndBridge",
                 "not_configured",
             ]
         )
@@ -2325,15 +2331,33 @@ class ShowcaseRunner:
             {
                 "path": "Path C (L1 Sepolia bridge)",
                 "status": (
-                    "implemented_stub"
+                    "implemented"
+                    if (
+                        l1_sepolia_doc.exists()
+                        and l1_bridge_spec_doc.exists()
+                        and parent_phase3_config_keys
+                        and parent_phase3_service_stub
+                        and bool(parent_env.get("L1_EZKL_VERIFIER_ADDRESS"))
+                        and bool(parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"))
+                        and bool(parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS"))
+                    )
+                    else "implemented_stub"
                     if (l1_sepolia_doc.exists() and l1_bridge_spec_doc.exists() and parent_phase3_config_keys and parent_phase3_service_stub)
                     else "partial"
                 ),
-                "doc_signal": "L1 verifier + bridge spec docs exist; parent backend has config keys and service stub for submit/poll.",
+                "doc_signal": (
+                    "L1 verifier + sender + receiver are wired; parent backend can call verifyAndBridge and poll L2 receiver."
+                    if (
+                        bool(parent_env.get("L1_EZKL_VERIFIER_ADDRESS"))
+                        and bool(parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"))
+                        and bool(parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS"))
+                    )
+                    else "L1 verifier + bridge spec docs exist; parent backend has config keys and service support."
+                ),
                 "runtime_lane_id": "l1_bridge",
                 "runtime_lane_listed": False,
                 "runtime_lane_available": False,
-                "runtime_contract": parent_env.get("L1_EZKL_VERIFIER_ADDRESS"),
+                "runtime_contract": parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS") or parent_env.get("L1_EZKL_VERIFIER_ADDRESS"),
             },
             {
                 "path": "Path B (native Cairo KZG)",
@@ -2351,8 +2375,8 @@ class ShowcaseRunner:
         ]
 
         next_steps = [
-            "Phase 3: deploy EZKL Solidity verifier on Sepolia and record L1_EZKL_VERIFIER_ADDRESS.",
-            "Phase 3: implement L1->L2 receiver contract and enable web3 submit + L2 polling in l1_ezkl_bridge_service.",
+            "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status.",
+            "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
             "Phase 4: implement Cairo BN254/KZG module + verify_kzg contract and deploy on L3.",
             "Phase 4: add zkdefi pipeline path for EzklNativeKzg and expose it in proof mode selection.",
         ]
@@ -2374,7 +2398,13 @@ class ShowcaseRunner:
                 "parent_env_found": PARENT_BACKEND_ENV_FILE.exists(),
                 "l1_sepolia_rpc_set": bool(parent_env.get("L1_SEPOLIA_RPC")),
                 "l1_ezkl_verifier_set": bool(parent_env.get("L1_EZKL_VERIFIER_ADDRESS")),
+                "l1_bridge_sender_set": bool(parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS")),
                 "l1_bridge_receiver_set": bool(parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")),
+                "l1_signer_set": bool(
+                    parent_env.get("L1_SEPOLIA_PRIVATE_KEY")
+                    or parent_env.get("L1_SEPOLIA_MNEMONIC")
+                    or parent_env.get("L1_SEPOLIA_KEYSTORE_PATH")
+                ),
                 "l3_kzg_verifier_set": bool(parent_env.get("L3_KZG_VERIFIER_ADDRESS")),
             },
             "next_steps": next_steps,
@@ -3401,7 +3431,9 @@ class ShowcaseRunner:
             ["Parent backend .env found", "<span class=\"pass\">yes</span>" if recursive_env.get("parent_env_found") else "<span class=\"fail\">no</span>"],
             ["L1_SEPOLIA_RPC set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_sepolia_rpc_set") else "<span class=\"fail\">no</span>"],
             ["L1_EZKL_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_ezkl_verifier_set") else "<span class=\"fail\">no</span>"],
+            ["L1_EZKL_BRIDGE_SENDER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_bridge_sender_set") else "<span class=\"fail\">no</span>"],
             ["L1_BRIDGE_RECEIVER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_bridge_receiver_set") else "<span class=\"fail\">no</span>"],
+            ["L1 signer configured", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_signer_set") else "<span class=\"fail\">no</span>"],
             ["L3_KZG_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l3_kzg_verifier_set") else "<span class=\"fail\">no</span>"],
         ]
         recursive_next_rows = [

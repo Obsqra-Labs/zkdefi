@@ -39,6 +39,10 @@ import {
   type AgentBuilderDraft,
 } from "@/components/zkdefi/mission-control/AgentBuilderDrawer";
 import {
+  SignalExecutionDrawer,
+  type SignalForExecution,
+} from "@/components/zkdefi/mission-control/SignalExecutionDrawer";
+import {
   resolveViewParamV2,
   resolveViewOverlayV2,
   buildAgentUrl,
@@ -72,6 +76,7 @@ function AgentPageInner() {
   const [slideout, setSlideout] = useState<SlideoutModeV2>(null);
   const [slideoutPool, setSlideoutPool] = useState<string | undefined>(undefined);
   const [agentBuilderDraft, setAgentBuilderDraft] = useState<AgentBuilderDraft | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<SignalForExecution | null>(null);
   const showAdvancedPrivacyRails = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_PRIVACY_RAILS === "1";
 
   const isGuest = guestMode && !isConnected;
@@ -146,6 +151,12 @@ function AgentPageInner() {
     trackEvent("slideout_open", { slideout: "agent-builder" });
     setAgentBuilderDraft(draft);
     setSlideout("agent-builder");
+  }, []);
+
+  const handleDeploy = useCallback((signal: SignalForExecution) => {
+    trackEvent("slideout_open", { slideout: "execute", signal: signal.id });
+    setSelectedSignal(signal);
+    setSlideout("execute");
   }, []);
 
   const openSlideout = useCallback((mode: NonNullable<SlideoutModeV2>, poolId?: string) => {
@@ -249,6 +260,7 @@ function AgentPageInner() {
               activeTab={vaultTab}
               onTabChange={handleVaultTabChange}
               onSlideout={isGuest ? () => toast("info", "Connect a wallet to deposit or withdraw") : (m, poolId) => openSlideout(m as NonNullable<SlideoutModeV2>, poolId)}
+              onDeploy={isGuest ? undefined : handleDeploy}
               isDemo={isGuest}
               commitments={vault.commitments}
               walletBalance={String(vault.commitments.reduce((s, c) => s + Number(c.amount_wei), 0))}
@@ -270,6 +282,7 @@ function AgentPageInner() {
             onClick={() => { setSlideout(null); setSlideoutPool(undefined); }}
           />
           <div className={`w-full ${slideout === "zkrag" || slideout === "agent-builder" ? "max-w-2xl" : "max-w-lg"} bg-zinc-950 border-l border-zinc-800 overflow-y-auto thin-scroll p-6 animate-in slide-in-from-right`}>
+            {slideout !== "execute" && (
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">
                 {slideout === "fund" && "Fund Vault"}
@@ -292,6 +305,7 @@ function AgentPageInner() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            )}
             {slideout === "fund" && (
               <FundVaultPanel
                 method={vault.method}
@@ -341,6 +355,13 @@ function AgentPageInner() {
             {slideout === "zkrag" && address && <ZkRagAgentConsole userAddress={address} />}
             {slideout === "agent-builder" && address && (
               <AgentBuilderDrawer userAddress={address} draft={agentBuilderDraft} />
+            )}
+            {slideout === "execute" && address && selectedSignal && (
+              <SignalExecutionDrawer
+                signal={selectedSignal}
+                address={address}
+                onClose={() => { setSlideout(null); setSelectedSignal(null); }}
+              />
             )}
           </div>
         </div>

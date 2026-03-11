@@ -702,5 +702,21 @@
     "passed": false,
     "status": "voting",
     "description": "Private voting + dark settlement backend showcase"
+  },
+  "45": {
+    "id": 45,
+    "proposer": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "proposal_type": "privacy_param_update",
+    "target": "0x1",
+    "new_value": 42,
+    "votes_for": 1,
+    "votes_against": 0,
+    "total_votes": 1,
+    "created_at": 1773202308,
+    "voting_ends_at": 1773205908,
+    "executed": false,
+    "passed": false,
+    "status": "voting",
+    "description": "Private voting + dark settlement backend showcase"
   }
 }

@@ -13,7 +13,7 @@ You need Sepolia ETH to deploy the EZKL verifier and to send verification transa
 | [Tatum Sepolia](https://tatum.io/faucets/sepolia) | ~0.002 ETH/24h; Tatum signup |
 | [faucet.free](https://faucet.free/) | Up to ~0.65 ETH/24h; 0xNAME addresses |
 
-**What the ETH is for:** Deploying the EZKL Solidity verifier to Sepolia; paying gas for each `verify(...)` call when the backend submits proofs. Once you have a deployer address funded, set `L1_SEPOLIA_RPC` and deploy; then set `L1_EZKL_VERIFIER_ADDRESS` and (when the bridge is implemented) `L1_BRIDGE_RECEIVER_ADDRESS`.
+**What the ETH is for:** Deploying the EZKL Solidity verifier and bridge sender contracts to Sepolia, and paying gas for each `verify(...)` / `verifyAndBridge(...)` tx when the backend submits proofs. Once you have a deployer address funded, set `L1_SEPOLIA_RPC` and deploy; then set `L1_EZKL_VERIFIER_ADDRESS`, `L1_EZKL_BRIDGE_SENDER_ADDRESS`, and `L1_BRIDGE_RECEIVER_ADDRESS`.
 
 ## 1. EZKL Solidity verifier
 
@@ -59,7 +59,9 @@ This creates the keystore (if missing), generates `contracts/l1_ezkl/EZKLVerifie
 |----------|-------------|
 | `L1_SEPOLIA_RPC` | Ethereum Sepolia RPC URL |
 | `L1_EZKL_VERIFIER_ADDRESS` | EZKL Solidity verifier on Sepolia |
+| `L1_EZKL_BRIDGE_SENDER_ADDRESS` | L1 contract that calls `verifyProof` then forwards Starknet `sendMessageToL2` payload |
 | `L1_BRIDGE_RECEIVER_ADDRESS` | Starknet contract that receives L1→L2 messages |
+| `L1_SEPOLIA_PRIVATE_KEY` | Optional direct signer key for backend submit flow (testnet only) |
 | `L1_SEPOLIA_MNEMONIC` | (Optional) BIP39 mnemonic for the Sepolia deployer/signer. **Never commit.** Use only for a testnet throw-away account. |
 | `L1_SEPOLIA_KEYSTORE_PASSWORD` | Password for the L1 keystore (deploy script and future l1_ezkl_bridge_service). **Never commit.** |
 
@@ -70,6 +72,10 @@ Unset = L1 bridge flow disabled. Keep `L1_SEPOLIA_MNEMONIC` and `L1_SEPOLIA_KEYS
 **Current keystore deployer (testnet):** `0x286573Ccf1Ca01D97a41Dc16Fed01c8e0a0b2337` — fund this address with Sepolia ETH if needed; use with `L1_SEPOLIA_KEYSTORE_PASSWORD` for deploy and L1 verify.
 
 **Deployed EZKL verifier (Sepolia):** `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9). Set `L1_EZKL_VERIFIER_ADDRESS` to this in backend env.
+
+**Deployed L1 bridge sender (Sepolia):** `0xc5FF20Ab185869B9247FbD15E18212Ab9831F395` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0xc5FF20Ab185869B9247FbD15E18212Ab9831F395). Deploy tx: `0x64216ed9a654e92b920a91514234b1525e2b1cb2c8d8552be08d209a18f5bb85`.
+
+**Starknet receiver sender-auth update:** `set_allowed_l1_sender(0xc5FF20Ab185869B9247FbD15E18212Ab9831F395)` tx `0x02d260a52c9a0b47d702a4ae56954c65fbe87601dd33775c1aca064f01c4eef6`.
 
 ### 2.5 Stack-limit workaround (one-shot build gate)
 
@@ -96,7 +102,9 @@ Deploy rule:
 With `L1_EZKL_VERIFIER_ADDRESS` and `L1_SEPOLIA_RPC` set in the **parent backend**:
 
 1. **Wire L1 submit (Task 3.3)** — In parent repo: implement `l1_ezkl_bridge_service.submit_ezkl_proof_to_l1(proof_hex, public_inputs)` to load the L1 keystore (or use `L1_SEPOLIA_MNEMONIC`/private key), build calldata for the verifier’s `verifyProof(proof, instances)`, and send a transaction via web3 to the Sepolia verifier. Return L1 tx hash. Optional API: `POST /api/v1/aggregation/l1/verify` with proof payload; return tx hash and status.
-   - **Status (March 11, 2026): done in parent backend.** `submit_ezkl_proof_to_l1` now signs/sends `verifyProof` txs (private key or keystore), supports `proof_hex` and legacy calldata packing, and returns tx hash.
+   - **Status (March 11, 2026): done in parent backend.** `submit_ezkl_proof_to_l1` now supports both modes:
+     - `verifyProof` direct call (legacy, verifier-only)
+     - `verifyAndBridge` call via `L1_EZKL_BRIDGE_SENDER_ADDRESS` (requires `model_hash` + `output_commitment`), so L1→L2 payload is emitted in the same tx.
 
 2. **L1→L2 receiver (Task 3.2)** — Implement Starknet contract that receives L1→L2 messages (core messaging), validates sender, and stores/emits (model_hash, output_commitment, verified=true, nonce). Deploy on Starknet Sepolia; set `L1_BRIDGE_RECEIVER_ADDRESS`. Option A: extend EZKL verifier or add an L1 contract that, after verify, sends the bridge message. See `L1_EZKL_BRIDGE_SPEC.md`.
 
@@ -107,7 +115,7 @@ With `L1_EZKL_VERIFIER_ADDRESS` and `L1_SEPOLIA_RPC` set in the **parent backend
 ## 4. L1→L2 flow
 
 1. Backend submits EZKL proof to L1 verifier on Sepolia.
-2. On success, L1 sends message to Starknet bridge: (model_hash, output_commitment, verified=true, nonce).
+2. On success, L1 bridge sender contract sends message to Starknet core: (model_hash, output_commitment, verified=true, nonce, chain_id).
 3. Starknet receiver consumes message and updates proof record.
 
 See `L1_EZKL_BRIDGE_SPEC.md` for message format.

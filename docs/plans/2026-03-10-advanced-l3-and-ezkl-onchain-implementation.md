@@ -247,7 +247,7 @@
 
 ### Task 3.3: L1 submit and bridge trigger
 
-**Status:** ✅ L1 submit implemented in parent backend (`l1_ezkl_bridge_service.submit_ezkl_proof_to_l1` + `/api/v1/aggregation/l1/verify`). Signer sources: private key, keystore+password, or mnemonic fallback.
+**Status:** ✅ L1 submit + bridge trigger implemented. Parent backend supports both direct `verifyProof` and `verifyAndBridge` via `L1_EZKL_BRIDGE_SENDER_ADDRESS`; Sepolia sender deployed and Starknet receiver `allowed_l1_sender` updated.
 
 **Files:**
 - Create: parent repo `backend/app/services/l1_ezkl_bridge_service.py` — `submit_ezkl_proof_to_l1(proof_hex, public_inputs)` → call Sepolia EZKL verifier via RPC; on success, trigger or document L1→L2 message send (may be same tx or separate bridge contract call)

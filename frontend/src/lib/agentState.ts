@@ -33,7 +33,8 @@ export type SlideoutModeV2 =
   | "privacy"
   | "shielded"
   | "zkrag"
-  | "agent-builder";
+  | "agent-builder"
+  | "execute";
 
 /** Deposit flow sub-mode */
 export type DepositMode = "fund-vault" | "direct-to-pool";

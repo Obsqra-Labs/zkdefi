@@ -7,6 +7,7 @@ import {
   Vote,
   Activity,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { VaultTab } from "@/lib/agentState";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OverviewTab } from "@/components/zkdefi/tabs/OverviewTab";
@@ -21,6 +22,7 @@ export interface VaultCenterStageProps {
   activeTab: VaultTab;
   onTabChange: (tab: VaultTab) => void;
   onSlideout: (mode: string, poolId?: string) => void;
+  onDeploy?: (signal: any) => void;
   isDemo?: boolean;
   commitments?: VaultCommitment[];
   walletBalance?: string;
@@ -39,6 +41,7 @@ export function VaultCenterStage({
   activeTab,
   onTabChange,
   onSlideout,
+  onDeploy,
   isDemo,
   commitments,
   walletBalance,
@@ -68,31 +71,42 @@ export function VaultCenterStage({
 
       {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === "overview" && (
-          <ErrorBoundary>
-            <OverviewTab address={address} isDemo={isDemo} commitments={commitments} walletBalance={walletBalance} />
-          </ErrorBoundary>
-        )}
-        {activeTab === "capital" && (
-          <ErrorBoundary>
-            <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} />
-          </ErrorBoundary>
-        )}
-        {activeTab === "lend" && (
-          <ErrorBoundary>
-            <LendTab address={address} />
-          </ErrorBoundary>
-        )}
-        {activeTab === "govern" && (
-          <ErrorBoundary>
-            <GovernTab address={address} />
-          </ErrorBoundary>
-        )}
-        {activeTab === "activity" && (
-          <ErrorBoundary>
-            <ActivityTab address={address} />
-          </ErrorBoundary>
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="p-0"
+          >
+            {activeTab === "overview" && (
+              <ErrorBoundary>
+                <OverviewTab address={address} isDemo={isDemo} commitments={commitments} walletBalance={walletBalance} onDeploy={onDeploy} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "capital" && (
+              <ErrorBoundary>
+                <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "lend" && (
+              <ErrorBoundary>
+                <LendTab address={address} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "govern" && (
+              <ErrorBoundary>
+                <GovernTab address={address} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "activity" && (
+              <ErrorBoundary>
+                <ActivityTab address={address} />
+              </ErrorBoundary>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

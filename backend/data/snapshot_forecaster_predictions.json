@@ -1782,5 +1782,56 @@
     "created_at_ts": 1773192494,
     "reveal_salt_hash": "0x7567893fcb0cb6c6364b2a1e5f36ef6fd5b59474a42f8411359d81e5799c4f9c",
     "scored_at_ts": 1773192494
+  },
+  "0x16a413c6aa56dc35ff0c2a7ef5e0a88a5a61112e6102a530a86558f7d7c096bd": {
+    "forecast_id": "0x16a413c6aa56dc35ff0c2a7ef5e0a88a5a61112e6102a530a86558f7d7c096bd",
+    "window_id": "0x1961905acc579ddc7a78a6edd5052025bc3274d6428db0c1a814e6819494064b",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "guess_ts": 1773202312,
+    "horizons_min": [
+      5,
+      30,
+      240
+    ],
+    "status": "scored",
+    "prediction_commitment": "0xe21cfd4d13f253fd62fc919b8f3f67ddebe0f0df0007cfb9287ebc5b77238355",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "output_bounds": {
+      "return_min_bps": -5000,
+      "return_max_bps": 5000,
+      "prob_min": 0,
+      "prob_max": 10000
+    },
+    "metadata": {
+      "demo": "private_prediction_market_primitive",
+      "source": "hackathon_backend_showcase"
+    },
+    "revealed_at_ts": 1773202313,
+    "outputs_scaled": {
+      "p240": 4813,
+      "p30": 4777,
+      "p5": 4720,
+      "r240": -34,
+      "r30": -22,
+      "r5": -14
+    },
+    "ezkl_receipt": {
+      "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "proof_system": "halo2_kzg",
+      "verified_locally": true,
+      "verified_on_chain": false,
+      "verification_mode": "local_demo"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "score_receipt_id": "0x75df008b212d63a99281e854d0f7bf043f02c1e514ef0a323a50d70c5208bc37",
+    "created_at_ts": 1773202313,
+    "reveal_salt_hash": "0x77c607a3ef0bba36d1ebd111819cecc15c4146f6135afe78c826188325ff14ff",
+    "scored_at_ts": 1773202313
   }
 }

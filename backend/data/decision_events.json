@@ -531278,5 +531278,330 @@
       ]
     },
     "created_at": "2026-03-11T03:19:00.524918+00:00"
+  },
+  {
+    "id": 20877,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:39.538313+00:00"
+  },
+  {
+    "id": 20878,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:39.957450+00:00"
+  },
+  {
+    "id": 20879,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:40.380731+00:00"
+  },
+  {
+    "id": 20880,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:53.124910+00:00"
+  },
+  {
+    "id": 20881,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:53.544798+00:00"
+  },
+  {
+    "id": 20882,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:42:53.931531+00:00"
+  },
+  {
+    "id": 20883,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:49:59.448112+00:00"
+  },
+  {
+    "id": 20884,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-11T03:49:59.880785+00:00"
+  },
+  {
+    "id": 20885,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "onboarding_incomplete"
+      ]
+    },
+    "created_at": "2026-03-11T03:50:00.320579+00:00"
+  },
+  {
+    "id": 20886,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x7bba92e215cbfdca53a20fd4ac5e64cababb9c8465526ee09247e50d1bb4fa71",
+      "envelope_id": "env_1773202320_0x49d36570"
+    },
+    "created_at": "2026-03-11T04:12:01.083055+00:00"
+  },
+  {
+    "id": 20887,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.0,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x511ad36ea71bea32c8ac303f7a0da0fd3ee61947c15280403e52d69499989a0",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x2e6ed3a124364524425bd4c6b8c7eb8e",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T04:12:07.553627+00:00"
+  },
+  {
+    "id": 20888,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 6.0,
+    "proof_mode": "FULL_DUAL_PROVER",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x2d39524998b7ed7ef7c0f2945c8ecb15b6b26df9cefd8e3380718d7c912dca0",
+    "l2_tx_hash": null,
+    "mirror_status": "mirror_failed",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0x3f20aeb088565c7565f970cd8e4b14c3",
+      "action_type": "autonomous_rebalance"
+    },
+    "created_at": "2026-03-11T04:12:18.448927+00:00"
+  },
+  {
+    "id": 20889,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_failed",
+    "gate": "ml_inference",
+    "outcome": "fail",
+    "value_eth": 2.5,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "hash_only",
+    "verified_on_chain": false,
+    "l3_tx_hash": "0x700b21c552d74ab73c97052ffd0ea746f7ecc7a3040f8f2f04b7e27c02e6212",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": "Strict L3 verification failed",
+    "metadata": {
+      "commitment_hash": "0xb8470cebb69bf43300fe3f543c633f48",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-11T04:12:23.034100+00:00"
   }
 ]

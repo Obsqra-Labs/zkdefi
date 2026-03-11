@@ -238,6 +238,7 @@ export function AgentAllocationStrip({ address, commitments }: AgentAllocationSt
   );
 
   const hasCommitments = commitments.length > 0;
+  const loading = targetWeights === null;
 
   // ---- Session key summary ----
   const activeKeys = sessionKeys.filter(
@@ -245,6 +246,34 @@ export function AgentAllocationStrip({ address, commitments }: AgentAllocationSt
   );
 
   const agentRunning = agentState?.state === "running" && !agentState?.paused;
+
+  // ---- Loading skeleton ----
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-violet-800/30 bg-gradient-to-r from-violet-950/20 via-zinc-900/50 to-zinc-900/50 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-violet-800/30 animate-pulse" />
+            <div className="h-4 w-32 rounded bg-zinc-800/60 animate-pulse" />
+          </div>
+          <div className="h-7 w-28 rounded-lg bg-zinc-800/40 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 space-y-2">
+              <div className="h-3 w-16 rounded bg-zinc-800/60 animate-pulse" />
+              <div className="h-1 rounded-full bg-zinc-800/40 animate-pulse" />
+              <div className="h-1 rounded-full bg-zinc-800/40 animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 border-t border-white/5 pt-2">
+          <div className="h-3 w-24 rounded bg-zinc-800/50 animate-pulse" />
+          <div className="h-3 w-20 rounded bg-zinc-800/50 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   // ---- Render ----
   return (

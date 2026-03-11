@@ -23,6 +23,13 @@ Encoding on L1 (Solidity) and decoding on Starknet (Cairo) must match. Use fixed
 
 Only one L1 sender address should be allowed (receiver validates `from_address`).
 
+Current Sepolia deployment (March 11, 2026):
+- EZKL verifier: `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9`
+- L1 bridge sender (`L1EzklBridgeSender.sol`): `0xc5FF20Ab185869B9247FbD15E18212Ab9831F395`
+- Starknet core L1 messaging contract (Sepolia): `0xE2Bb56ee93665bF7d7B6E0fFB92E2045d53C5aA0`
+- Receiver selector (`on_l1_message`): `0x035b18ea40fc0fe052a663bca34b1c66f25e888f6d54d0c518b9c68f451c65ea`
+- Receiver allowed sender update tx: `0x02d260a52c9a0b47d702a4ae56954c65fbe87601dd33775c1aca064f01c4eef6`
+
 ## 3. Receiver (Starknet)
 
 - **Contract:** e.g. `L1EzklBridgeReceiver` or extend existing fact/attestation registry.
@@ -66,8 +73,12 @@ get_verification(model_hash: felt252, nonce_low: u128, nonce_high: u128)
 
 - ✅ `poll_l2_for_verification(model_hash: str, nonce: int)` in parent backend now calls `get_verification` at `L1_BRIDGE_RECEIVER_ADDRESS` via Starknet RPC and returns `verified_on_l2`, `output_commitment`, `block_timestamp`.
 - ✅ **GET** `/api/v1/aggregation/l1/verification-status?model_hash=<hex>&nonce=<int>` now returns JSON with `{ "verified_on_l2": bool, "output_commitment": str | null, "block_timestamp": int | null }` (plus compatibility fields).
+- ✅ **POST** `/api/v1/aggregation/l1/verify` supports bridge mode:
+  - if `L1_EZKL_BRIDGE_SENDER_ADDRESS` is set, backend calls `verifyAndBridge(proof, instances, model_hash, output_commitment)`;
+  - request must include `model_hash` and `output_commitment`;
+  - response includes `mode: "verify_and_bridge"` or `mode: "l1_verify_only"`.
 
-Config: `L1_BRIDGE_RECEIVER_ADDRESS`, `STARKNET_RPC_URL` (or existing L2 RPC) for contract reads.
+Config: `L1_EZKL_VERIFIER_ADDRESS`, `L1_EZKL_BRIDGE_SENDER_ADDRESS`, `L1_BRIDGE_RECEIVER_ADDRESS`, `STARKNET_RPC_URL` (or existing L2 RPC) for contract reads.
 
 ## 6. References
 

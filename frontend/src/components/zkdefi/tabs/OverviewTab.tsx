@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio } from "lucide-react";
+import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio, ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Zap } from "lucide-react";
 import { apiFetch, API_BASE } from "@/lib/api/client";
+import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
 import { getEkuboPositions } from "@/lib/api/ekubo";
 import { InlineOracleCard, type OracleSignal } from "@/components/zkdefi/shared/InlineOracleCard";
@@ -16,11 +17,14 @@ import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import PositionsOverview from "@/components/zkdefi/vault/PositionsOverview";
 import { AgentAllocationStrip } from "@/components/zkdefi/vault/AgentAllocationStrip";
 
+import type { SignalForExecution } from "@/components/zkdefi/mission-control/SignalExecutionDrawer";
+
 interface OverviewTabProps {
   address: string;
   isDemo?: boolean;
   commitments?: VaultCommitment[];
   walletBalance?: string;
+  onDeploy?: (signal: SignalForExecution) => void;
 }
 
 function usd(v: number) {
@@ -31,7 +35,7 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-zinc-800/60 ${className}`} />;
 }
 
-export function OverviewTab({ address, isDemo, commitments: commitmentsProp, walletBalance }: OverviewTabProps) {
+export function OverviewTab({ address, isDemo, commitments: commitmentsProp, walletBalance, onDeploy }: OverviewTabProps) {
   const vaultRaw = useVaultSummary(address);
 
   // In demo mode, overlay demo data when API returns nothing
@@ -51,6 +55,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   const [deployedLoading, setDeployedLoading] = useState(true);
 
   const [signals, setSignals] = useState<OracleSignal[]>([]);
+  const [rawOpps, setRawOpps] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [activityError, setActivityError] = useState(false);
 
@@ -131,6 +136,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
           };
         });
         setSignals(mapped);
+        setRawOpps(opps.slice(0, 6));
       })
       .catch(() => {});
 
@@ -234,7 +240,24 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
         ) : (
           <div className="space-y-2">
             {signals.map((s, i) => (
-              <InlineOracleCard key={i} signal={s} />
+              <InlineOracleCard
+                key={i}
+                signal={s}
+                onDeploy={onDeploy ? () => {
+                  const raw = rawOpps[i] ?? {};
+                  onDeploy({
+                    id: raw.id ?? raw.pool ?? `signal-${i}`,
+                    name: s.pair,
+                    type: raw.type ?? "dex",
+                    venue: raw.venue ?? raw.platform ?? undefined,
+                    apy_bps: Math.round((Number(raw.currentYield ?? raw.apy ?? 0)) * 100),
+                    risk_level: raw.risk_level ?? (Number(raw.riskScore ?? 50) < 35 ? "low" : Number(raw.riskScore ?? 50) < 65 ? "medium" : "high"),
+                    signal: raw.signal ?? undefined,
+                    signal_strength: raw.signal_strength ?? Math.round(s.confidence * 100),
+                    signal_reason: raw.signal_reason ?? raw.reason ?? undefined,
+                  });
+                } : undefined}
+              />
             ))}
           </div>
         )}
@@ -248,22 +271,60 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
         ) : activity.length === 0 ? (
           <p className="text-xs text-zinc-600 italic">No recent activity</p>
         ) : (
-          <div className="space-y-1">
-            {activity.map((ev, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-zinc-900/40 border border-zinc-800 text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-zinc-500 shrink-0">
-                    {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-                  </span>
-                  <span className="text-zinc-300 truncate">{ev.description ?? ev.event ?? ev.type ?? "Event"}</span>
+          <div className="space-y-1.5">
+            {activity.map((ev, i) => {
+              const evType = (ev.event ?? ev.type ?? "").toLowerCase();
+              const IconEl = evType.includes("deposit") || evType.includes("fund")
+                ? ArrowDownCircle
+                : evType.includes("withdraw")
+                  ? ArrowUpCircle
+                  : evType.includes("rebalance") || evType.includes("swap")
+                    ? RefreshCw
+                    : evType.includes("execute") || evType.includes("signal")
+                      ? Zap
+                      : Shield;
+              const iconColor = evType.includes("deposit") || evType.includes("fund")
+                ? "text-emerald-400"
+                : evType.includes("withdraw")
+                  ? "text-orange-400"
+                  : evType.includes("rebalance")
+                    ? "text-violet-400"
+                    : "text-cyan-400";
+              const txHash = ev.tx_hash ?? ev.proof_hash ?? null;
+
+              return (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-900/40 border border-zinc-800 text-xs group hover:bg-zinc-800/40 transition-colors">
+                  <div className={`p-1.5 rounded-md bg-zinc-800/60 ${iconColor}`}>
+                    <IconEl className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-zinc-200 truncate block">
+                      {ev.description ?? ev.event ?? ev.type ?? "Event"}
+                    </span>
+                    {ev.amount && (
+                      <span className="text-[10px] text-zinc-500">
+                        {ev.amount} {ev.token ?? "STRK"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-zinc-600">
+                      {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                    </span>
+                    {txHash && (
+                      <a
+                        href={sepoliaVoyagerTxUrl(txHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-600 hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-                {(ev.tx_hash ?? ev.proof_hash) && (
-                  <span className="text-zinc-600 font-mono ml-2 shrink-0">
-                    {(ev.tx_hash ?? ev.proof_hash).slice(0, 8)}…
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
