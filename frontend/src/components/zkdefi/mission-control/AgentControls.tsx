@@ -13,6 +13,7 @@ import {
   TrendingUp,
   BarChart3,
   Gauge,
+  ArrowRightLeft,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -35,6 +36,7 @@ interface AgentStatus {
 interface Constraints {
   risk_tolerance?: number;
   venue_limits?: { venues?: string[]; ekubo_pct?: number; lending_pct?: number };
+  venue_pref?: "best" | "ekubo" | "avnu";
   privacy_mode?: string;
 }
 
@@ -84,6 +86,10 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
   );
   const [constraintsErr, setConstraintsErr] = useState<string | null>(null);
   const [constraintsOpen, setConstraintsOpen] = useState(false);
+  const [venuePref, setVenuePref] = useState<"best" | "ekubo" | "avnu">(
+    isDemo ? "best" : "best"
+  );
+  const [venuePrefLoading, setVenuePrefLoading] = useState(false);
 
   const [sessionLine, setSessionLine] = useState<string>(
     isDemo ? `Active · ${DEMO_AGENT.session.expires_in} remaining` : "—"
@@ -536,6 +542,51 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
                 <span className="text-zinc-300">{constraints.privacy_mode}</span>
               </div>
             )}
+
+            {/* Venue routing preference */}
+            <div className="pt-2 mt-2 border-t border-zinc-800/50">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                <ArrowRightLeft className="w-3 h-3" />
+                Swap Routing
+              </div>
+              <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-[10px]">
+                {(["best", "ekubo", "avnu"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={async () => {
+                      const prev = venuePref;
+                      setVenuePref(v);
+                      setVenuePrefLoading(true);
+                      try {
+                        await apiFetchAuth(
+                          `/api/v1/zkdefi/mc/constraints/${address}`,
+                          address,
+                          {
+                            method: "PUT",
+                            body: JSON.stringify({ venue_pref: v }),
+                          },
+                        );
+                      } catch {
+                        setVenuePref(prev);
+                      } finally {
+                        setVenuePrefLoading(false);
+                      }
+                    }}
+                    disabled={venuePrefLoading}
+                    className={`flex-1 px-2 py-1.5 text-center transition-colors ${
+                      venuePref === v
+                        ? "bg-cyan-600/20 text-cyan-300 font-semibold"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    } disabled:opacity-50`}
+                  >
+                    {v === "best" ? "Best" : v === "ekubo" ? "Ekubo" : "AVNU"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-zinc-600 mt-1">
+                {venuePref === "best" ? "Auto-route: compares Ekubo & AVNU" : venuePref === "ekubo" ? "Direct Ekubo concentrated liquidity pools" : "AVNU multi-hop aggregator routing"}
+              </p>
+            </div>
           </div>
         )}
       </section>

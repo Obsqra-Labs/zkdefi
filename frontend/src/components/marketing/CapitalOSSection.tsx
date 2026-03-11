@@ -15,6 +15,7 @@ export function CapitalOSSection() {
     riskTolerance: 50,
     enabledSkills: DEFAULT_ENABLED,
     protocolWeights: { ekubo: 50, vesu: 30, lending: 20 },
+    venuePref: "best",
   });
   const [triggerKey, setTriggerKey] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,7 @@ export function CapitalOSSection() {
           riskTolerance={config.riskTolerance}
           enabledSkills={config.enabledSkills}
           protocolWeights={config.protocolWeights}
+          venuePref={config.venuePref}
           triggerKey={triggerKey}
           onLoadingChange={setLoading}
         />

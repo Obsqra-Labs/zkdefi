@@ -12,6 +12,7 @@ import {
   Cpu,
   BarChart3,
   X,
+  ArrowRightLeft,
 } from "lucide-react";
 
 /* ═══════════════════ types ═══════════════════ */
@@ -123,6 +124,8 @@ interface TrustDemoProps {
   enabledSkills: string[];
   /** protocol weights from brain sliders */
   protocolWeights: { ekubo: number; vesu: number; lending: number };
+  /** venue routing preference */
+  venuePref?: "best" | "ekubo" | "avnu";
   /** incremented to trigger re-analysis */
   triggerKey: number;
   /** report loading state to parent */
@@ -135,6 +138,7 @@ export function TrustDemo({
   riskTolerance,
   enabledSkills,
   protocolWeights,
+  venuePref = "best",
   triggerKey,
   onLoadingChange,
 }: TrustDemoProps) {
@@ -148,6 +152,10 @@ export function TrustDemo({
   const [batchLoading, setBatchLoading] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verified, setVerified] = useState<Record<string, boolean>>({});
+  const [venueComparison, setVenueComparison] = useState<Record<string, {
+    loading: boolean;
+    preflight?: { can_submit: boolean; expected_out_usd: number; impact_bps: number; warnings: string[] };
+  }>>({});
   const hasAutoRun = useRef(false);
   const prevTrigger = useRef(triggerKey);
 
@@ -279,14 +287,52 @@ export function TrustDemo({
     }
   }, [skillScreening]);
 
+  /* fetch venue quote comparison via execution/preflight */
+  const fetchVenueComparison = useCallback(async (poolId: string) => {
+    if (venueComparison[poolId]?.preflight) return;
+    setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: true } }));
+    try {
+      /* ETH -> STRK demo pair for preflight */
+      const ETH = "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
+      const STRK = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+      const res = await fetch("/api/v1/zkdefi/state/execution/preflight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token_in: ETH,
+          token_out: STRK,
+          amount_in: "100000000000000000",
+          slippage_bps: 9500,
+          venue_pref: venuePref,
+          user_address: "0xdemo",
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVenueComparison((prev) => ({
+          ...prev,
+          [poolId]: { loading: false, preflight: data },
+        }));
+      } else {
+        setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: false } }));
+      }
+    } catch {
+      setVenueComparison((prev) => ({ ...prev, [poolId]: { loading: false } }));
+    }
+  }, [venueComparison, venuePref]);
+
   /* expand pool detail */
   const togglePool = useCallback((poolId: string) => {
     setExpandedPool((prev) => {
       const next = prev === poolId ? null : poolId;
-      if (next) screenPool(poolId);
+      if (next) {
+        screenPool(poolId);
+        fetchVenueComparison(poolId);
+      }
       return next;
     });
-  }, [screenPool]);
+  }, [screenPool, fetchVenueComparison]);
 
   /* verify a proof hash */
   const verifyHash = useCallback(async (hash: string) => {
@@ -344,6 +390,8 @@ export function TrustDemo({
         <span>{enabledSkills.length} circuits</span>
         <span className="text-zinc-700">·</span>
         <span>Ekubo {protocolWeights.ekubo}% / Vesu {protocolWeights.vesu}%</span>
+        <span className="text-zinc-700">·</span>
+        <span className="text-cyan-500 font-medium">{venuePref.toUpperCase()}</span>
       </div>
 
       {/* ── Loading ── */}
@@ -471,6 +519,67 @@ export function TrustDemo({
                           ) : (
                             <div className="text-[10px] text-zinc-600">Fetching circuit proofs…</div>
                           )}
+                        </div>
+
+                        {/* Venue quote comparison */}
+                        <div>
+                          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                            <ArrowRightLeft className="h-3 w-3" />
+                            Route Comparison
+                            <span className="ml-auto rounded-full border border-cyan-500/20 bg-cyan-500/8 px-1.5 py-0.5 text-[9px] font-medium text-cyan-400">
+                              {venuePref.toUpperCase()}
+                            </span>
+                          </div>
+                          {(() => {
+                            const vc = venueComparison[pool.pool_id];
+                            if (!vc || vc.loading) {
+                              return (
+                                <div className="flex items-center gap-2 py-2 text-xs text-zinc-500">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  Fetching {venuePref} route quote…
+                                </div>
+                              );
+                            }
+                            if (!vc.preflight) {
+                              return <div className="text-[10px] text-zinc-600">Quote unavailable</div>;
+                            }
+                            const pf = vc.preflight;
+                            const sourceWarning = pf.warnings.find((w) => w.startsWith("Preflight source:"));
+                            const source = sourceWarning?.match(/source: (\w+)/)?.[1] ?? venuePref.toUpperCase();
+                            return (
+                              <div className="space-y-1.5 rounded-lg bg-zinc-800/30 p-2.5">
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-zinc-500">Selected Route</span>
+                                  <span className="font-medium text-cyan-400">{source}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-zinc-500">Expected Out</span>
+                                  <span className="font-mono text-zinc-300">${pf.expected_out_usd.toFixed(4)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-zinc-500">Price Impact</span>
+                                  <span className={`font-mono ${pf.impact_bps > 100 ? "text-amber-400" : "text-emerald-400"}`}>
+                                    {(pf.impact_bps / 100).toFixed(2)}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-zinc-500">Can Submit</span>
+                                  {pf.can_submit ? (
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                  ) : (
+                                    <X className="h-3 w-3 text-rose-500" />
+                                  )}
+                                </div>
+                                {pf.warnings.filter((w) => !w.startsWith("Preflight source:")).length > 0 && (
+                                  <div className="mt-1 space-y-0.5">
+                                    {pf.warnings.filter((w) => !w.startsWith("Preflight source:")).map((w, i) => (
+                                      <div key={i} className="text-[9px] text-amber-500/70">{w}</div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* On-chain attestation */}
