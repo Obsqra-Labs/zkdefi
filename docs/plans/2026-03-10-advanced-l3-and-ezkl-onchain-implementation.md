@@ -6,7 +6,7 @@
 
 **Phase 2 status:** ✅ Complete (Tasks 2.1–2.5). Noir circuit, HONK verifier script, pipeline, L3 routing. Run `generate_noir_ezkl_bridge_honk_verifier.sh` and L3 deploy when nargo/bb/garaga and Madara are available.
 
-**Phase 3 status:** 🟡 In progress. Task 3.3 (L1 submit in parent backend) is complete; Tasks 3.2, 3.4, 3.5 remain.
+**Phase 3 status:** 🟡 In progress. Task 3.1 (L1 verifier) done; Task 3.2 (L2 receiver) done in zkdefi and deployed on Starknet Sepolia (`0x02ed07ab9be1d632259f3dd1bbeaf6354c20046b6df8659a30e3e97415b1a220`); Task 3.3 (L1 submit) done in parent backend; Task 3.4 (poll L2 + GET `/api/v1/aggregation/l1/verification-status`) done in parent backend; Task 3.5 docs updated.
 
 **Goal:** Ship Phase 1 (one heavier Groth16 + one heavier STARK circuit on L3), then provide clear phased tasks for Path A (Noir HONK), Path C (L1 Sepolia), and Path B (Cairo KZG).
 
@@ -264,6 +264,8 @@
 ---
 
 ### Task 3.4: Backend — poll L2 for L1→L2 confirmation
+
+**Status:** ✅ Implemented in parent backend (`l1_ezkl_bridge_service.poll_l2_for_verification` + GET `/api/v1/aggregation/l1/verification-status` with `verified_on_l2`, `output_commitment`, `block_timestamp`).
 
 **Files:**
 - Modify: `l1_ezkl_bridge_service.py` — `poll_l2_for_verification(model_hash, nonce)` or similar: query L2 receiver contract or indexer for message consumption; return verified=true when message received

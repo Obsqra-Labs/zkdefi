@@ -15,6 +15,7 @@ import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
 import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
+import { setPendingTx, waitForPendingTx } from "@/lib/pendingTx";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -290,6 +291,12 @@ export function DepositPanel({
     setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
     if (!account) throw new Error("Wallet not connected");
 
+    // Guard: wait for any pending tx to settle first
+    await waitForPendingTx(90_000, (msg) =>
+      setDepositSteps((prev) => updateStep(prev, 1, "active", msg)),
+    );
+    setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
+
     // Contract sig: private_deposit(commitment: felt252, amount_public: u256, proof_calldata: Span<felt252>)
     const result = await account.execute([
       {
@@ -310,6 +317,7 @@ export function DepositPanel({
       },
     ]);
     const txHash = result.transaction_hash;
+    setPendingTx(txHash);
 
     setDepositSteps((prev) => updateStep(prev, 2, "done", "Confirmed"));
     return { commitmentHash, txHash };
@@ -371,19 +379,34 @@ export function DepositPanel({
       },
     ];
 
+    // Guard: wait for any pending tx to settle first (prevents nonce collision)
+    await waitForPendingTx(90_000, (msg) =>
+      setDepositSteps((prev) => updateStep(prev, 1, "active", msg)),
+    );
+    setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
+
     let result: { transaction_hash: string };
     try {
       result = await account.execute(calls);
     } catch (execErr: unknown) {
       const errMsg = execErr instanceof Error ? execErr.message : String(execErr);
       if (errMsg.includes("NonceTooOld") || errMsg.includes("nonce")) {
-        await new Promise((r) => setTimeout(r, 2000));
-        result = await account.execute(calls);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          await new Promise((r) => setTimeout(r, 5_000 * attempt));
+          try {
+            result = await account.execute(calls);
+            break;
+          } catch (retryErr: unknown) {
+            if (attempt === 3) throw retryErr;
+          }
+        }
+        result = result!;
       } else {
         throw execErr;
       }
     }
     const txHash = result.transaction_hash;
+    setPendingTx(txHash);
 
     // Register commitment with retries
     setDepositSteps((prev) => updateStep(prev, 2, "active", "Registering in Merkle tree..."));

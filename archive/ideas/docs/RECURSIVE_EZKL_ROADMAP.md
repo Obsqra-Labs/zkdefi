@@ -105,7 +105,7 @@ On-chain verification (~200-400M gas estimated)
 
 ## Path C: L1 Solidity Bridge (4–6 weeks)
 
-**Hybrid approach — verify KZG on Ethereum L1, bridge result to Starknet.**
+**Status (2026-03):** L1 EZKL verifier deployed on Sepolia (`0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9`); parent backend has real L1 submit (`submit_ezkl_proof_to_l1`, POST `/api/v1/aggregation/l1/verify`) and L2 poll (`poll_l2_for_verification`, GET `/api/v1/aggregation/l1/verification-status`). Signer opt-in (private key / keystore / mnemonic). zkdefi: L2 receiver contract `L1EzklBridgeReceiver` deployed on Starknet Sepolia at `0x02ed07ab9be1d632259f3dd1bbeaf6354c20046b6df8659a30e3e97415b1a220` (declare tx `0x01ecc230ae6aa82e71cfefa71f68c696282540a9c4307e8c0a9f9a25c6d014e8`, deploy tx `0x07025809c24146895a085e0acf89ccc5e731a80114c5f7e70271dbffd8eeef0a`). Parent backend env wired with `L1_BRIDGE_RECEIVER_ADDRESS`; next is end-to-end L1 message production/consumption in live bridge flow.
 
 ### Architecture
 ```

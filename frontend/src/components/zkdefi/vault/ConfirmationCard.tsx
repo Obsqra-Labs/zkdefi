@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowUpRight,
   Check,
@@ -16,6 +16,7 @@ import {
   Fingerprint,
   GitBranch,
   Layers,
+  Loader2,
   Lock,
   ShieldCheck,
   Sparkles,
@@ -23,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
+import { getTxStatus, type TxSettlementStatus } from "@/lib/pendingTx";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,6 +119,24 @@ const TYPE_LABELS: Record<string, string> = {
   fund: "Vault Funded",
 };
 
+const TX_STATUS_LABELS: Record<TxSettlementStatus, string> = {
+  pending: "Submitting…",
+  received: "Processing…",
+  accepted: "Confirmed on L2",
+  confirmed: "Confirmed on L1",
+  rejected: "Rejected",
+  unknown: "Checking…",
+};
+
+const TX_STATUS_COLORS: Record<TxSettlementStatus, string> = {
+  pending: "text-amber-400",
+  received: "text-amber-400",
+  accepted: "text-emerald-400",
+  confirmed: "text-emerald-400",
+  rejected: "text-red-400",
+  unknown: "text-zinc-400",
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -128,6 +148,51 @@ export function ConfirmationCard({
 }: ConfirmationCardProps) {
   const c = ACCENT_MAP[accent];
   const [copied, setCopied] = React.useState<string | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // Tx settlement polling — prevent the user from dismissing before the tx
+  // settles, which would cause a nonce collision on the next deposit.
+  // ---------------------------------------------------------------------------
+  const [txStatus, setTxStatus] = React.useState<TxSettlementStatus>(
+    data.txHash ? "pending" : "accepted",
+  );
+
+  React.useEffect(() => {
+    if (!data.txHash) return;
+    let dead = false;
+
+    // Poll every 4 s until settled (ACCEPTED_ON_L2 / ACCEPTED_ON_L1)
+    const poll = async () => {
+      const s = await getTxStatus(data.txHash!);
+      if (dead) return;
+      setTxStatus(s);
+    };
+
+    poll(); // immediate first check
+    const id = setInterval(poll, 4_000);
+
+    return () => {
+      dead = true;
+      clearInterval(id);
+    };
+  }, [data.txHash]);
+
+  // Tx has settled when status >= accepted (accepted, confirmed) or rejected
+  const txSettled =
+    !data.txHash ||
+    txStatus === "accepted" ||
+    txStatus === "confirmed" ||
+    txStatus === "rejected";
+
+  // Safety-valve: enable "Done" after 120 s regardless
+  const [forceEnable, setForceEnable] = React.useState(false);
+  React.useEffect(() => {
+    if (txSettled) return;
+    const t = setTimeout(() => setForceEnable(true), 120_000);
+    return () => clearTimeout(t);
+  }, [txSettled]);
+
+  const doneEnabled = txSettled || forceEnable;
 
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -234,38 +299,61 @@ export function ConfirmationCard({
         transition={{ delay: 0.35 }}
         className="rounded-lg border border-white/5 bg-zinc-900/60 p-3 space-y-2"
       >
-        {/* Tx hash */}
+        {/* Tx hash + live settlement status */}
         {data.txHash && (
-          <DetailRow
-            icon={<ArrowUpRight className="w-3.5 h-3.5" />}
-            label="Transaction"
-            value={truncate(data.txHash, 14)}
-            mono
-            actions={
-              <>
-                <button
-                  onClick={() => copyToClipboard(data.txHash!, "tx")}
-                  className="text-zinc-500 hover:text-zinc-300"
-                  title="Copy tx hash"
-                >
-                  {copied === "tx" ? (
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
+          <>
+            <DetailRow
+              icon={<ArrowUpRight className="w-3.5 h-3.5" />}
+              label="Transaction"
+              value={truncate(data.txHash, 14)}
+              mono
+              actions={
+                <>
+                  <button
+                    onClick={() => copyToClipboard(data.txHash!, "tx")}
+                    className="text-zinc-500 hover:text-zinc-300"
+                    title="Copy tx hash"
+                  >
+                    {copied === "tx" ? (
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                  <a
+                    href={sepoliaVoyagerTxUrl(data.txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-500 hover:text-zinc-300"
+                    title="View on Voyager"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </>
+              }
+            />
+            {/* Live settlement status */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={txStatus}
+                initial={{ opacity: 0, y: 2 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -2 }}
+                className="flex items-center justify-between text-xs pl-5"
+              >
+                <span className="text-zinc-500">Status</span>
+                <span className={`flex items-center gap-1.5 ${TX_STATUS_COLORS[txStatus]}`}>
+                  {!txSettled && (
+                    <Loader2 className="w-3 h-3 animate-spin" />
                   )}
-                </button>
-                <a
-                  href={sepoliaVoyagerTxUrl(data.txHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-zinc-500 hover:text-zinc-300"
-                  title="View on Voyager"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </>
-            }
-          />
+                  {txSettled && txStatus !== "rejected" && (
+                    <Check className="w-3 h-3" />
+                  )}
+                  {TX_STATUS_LABELS[txStatus]}
+                </span>
+              </motion.div>
+            </AnimatePresence>
+          </>
         )}
 
         {/* Relayer request ID */}
@@ -362,16 +450,30 @@ export function ConfirmationCard({
         </span>
       </motion.div>
 
-      {/* ── Done button ── */}
+      {/* ── Done button — gated by tx settlement ── */}
       <motion.button
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         onClick={onDismiss}
-        className={`w-full rounded-lg py-3 text-sm font-medium text-white ${c.button} transition-colors flex items-center justify-center gap-2`}
+        disabled={!doneEnabled}
+        className={`w-full rounded-lg py-3 text-sm font-medium text-white transition-colors flex items-center justify-center gap-2 ${
+          doneEnabled
+            ? `${c.button}`
+            : "bg-zinc-700 cursor-not-allowed opacity-60"
+        }`}
       >
-        <Sparkles className="w-4 h-4" />
-        Done
+        {doneEnabled ? (
+          <>
+            <Sparkles className="w-4 h-4" />
+            Done
+          </>
+        ) : (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Confirming transaction…
+          </>
+        )}
       </motion.button>
     </motion.div>
   );

@@ -41,7 +41,35 @@ Backend (or zkdefi) can poll L2 state or indexer:
 - Query: receiver contract `get_verification(model_hash, nonce)` or event log.
 - Output: `verified_on_l2: true` when the message was consumed and stored.
 
-## 5. References
+## 5. Receiver ABI / Poll contract (zkdefi)
+
+**Contract:** `L1EzklBridgeReceiver` (`contracts/src/l1_ezkl_bridge_receiver.cairo`).
+Current Starknet Sepolia deployment (March 11, 2026):
+- Address: `0x02ed07ab9be1d632259f3dd1bbeaf6354c20046b6df8659a30e3e97415b1a220`
+- Declare tx: `0x01ecc230ae6aa82e71cfefa71f68c696282540a9c4307e8c0a9f9a25c6d014e8`
+- Deploy tx: `0x07025809c24146895a085e0acf89ccc5e731a80114c5f7e70271dbffd8eeef0a`
+
+**View for polling:**
+
+```text
+get_verification(model_hash: felt252, nonce_low: u128, nonce_high: u128)
+  -> (verified: bool, output_commitment: felt252, block_timestamp: u64)
+```
+
+- `verified`: true iff a verification record exists for this (model_hash, nonce).
+- `output_commitment`: stored commitment when verified; 0 otherwise.
+- `block_timestamp`: L2 block when the L1 message was consumed; 0 if not verified.
+
+**Nonce encoding:** Parent backend uses a single `nonce: int`; pass as `nonce_low = nonce & ((1<<128)-1)`, `nonce_high = nonce >> 128` for u256→(u128,u128).
+
+**Parent backend implementation (status):**
+
+- ✅ `poll_l2_for_verification(model_hash: str, nonce: int)` in parent backend now calls `get_verification` at `L1_BRIDGE_RECEIVER_ADDRESS` via Starknet RPC and returns `verified_on_l2`, `output_commitment`, `block_timestamp`.
+- ✅ **GET** `/api/v1/aggregation/l1/verification-status?model_hash=<hex>&nonce=<int>` now returns JSON with `{ "verified_on_l2": bool, "output_commitment": str | null, "block_timestamp": int | null }` (plus compatibility fields).
+
+Config: `L1_BRIDGE_RECEIVER_ADDRESS`, `STARKNET_RPC_URL` (or existing L2 RPC) for contract reads.
+
+## 6. References
 
 - Implementation plan Phase 3: `docs/plans/2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md`
 - L1 deploy and env: `docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md`

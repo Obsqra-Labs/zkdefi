@@ -3,9 +3,7 @@
 // Payload: [model_hash, output_commitment, verified, nonce_low, nonce_high, chain_id_low, chain_id_high].
 // Validates from_address == allowed_l1_sender and verified == 1.
 
-use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-use starknet::storage::{Map, StorageMapReadAccess, StorageMapWriteAccess};
-use core::poseidon::PoseidonTrait;
+use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait IL1EzklBridgeReceiver<TContractState> {
@@ -23,8 +21,11 @@ pub trait IL1EzklBridgeReceiver<TContractState> {
 #[starknet::contract]
 mod L1EzklBridgeReceiver {
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use starknet::storage::{Map, StorageMapReadAccess, StorageMapWriteAccess};
-    use core::poseidon::PoseidonTrait;
+    use starknet::storage::{
+        Map, StorageMapReadAccess, StorageMapWriteAccess,
+        StoragePointerReadAccess, StoragePointerWriteAccess,
+    };
+    use core::poseidon::poseidon_hash_span;
     use super::IL1EzklBridgeReceiver;
 
     #[storage]
@@ -80,13 +81,13 @@ mod L1EzklBridgeReceiver {
         assert(verified == 1, 'VERIFIED_MUST_BE_TRUE');
 
         let key = self._verification_key(model_hash, nonce_low, nonce_high);
-        if self.verification_output.entry(key).read() != 0 {
+        if self.verification_output.read(key) != 0 {
             return;
         }
 
         let block_ts = get_block_timestamp();
-        self.verification_output.entry(key).write(output_commitment);
-        self.verification_block.entry(key).write(block_ts);
+        self.verification_output.write(key, output_commitment);
+        self.verification_block.write(key, block_ts);
 
         self.emit(L1VerificationReceived {
             model_hash,
@@ -106,8 +107,8 @@ mod L1EzklBridgeReceiver {
             nonce_high: u128,
         ) -> (bool, felt252, u64) {
             let key = self._verification_key(model_hash, nonce_low, nonce_high);
-            let out = self.verification_output.entry(key).read();
-            let block_ts = self.verification_block.entry(key).read();
+            let out = self.verification_output.read(key);
+            let block_ts = self.verification_block.read(key);
             (out != 0, out, block_ts)
         }
 
@@ -137,7 +138,7 @@ mod L1EzklBridgeReceiver {
         ) -> felt252 {
             let nonce_low_felt: felt252 = nonce_low.into();
             let nonce_high_felt: felt252 = nonce_high.into();
-            PoseidonTrait::poseidon_hash(array![model_hash, nonce_low_felt, nonce_high_felt].span())
+            poseidon_hash_span(array![model_hash, nonce_low_felt, nonce_high_felt].span())
         }
     }
 }

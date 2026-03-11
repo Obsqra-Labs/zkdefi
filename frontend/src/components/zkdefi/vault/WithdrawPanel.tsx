@@ -17,6 +17,7 @@ import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
 import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
+import { setPendingTx, waitForPendingTx } from "@/lib/pendingTx";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -292,6 +293,12 @@ export function WithdrawPanel({
     );
     if (!account) throw new Error("Wallet not connected");
 
+    // Guard: wait for any pending tx to settle first
+    await waitForPendingTx(90_000, (msg) =>
+      setWithdrawSteps((prev) => updateStep(prev, 1, "active", msg)),
+    );
+    setWithdrawSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
+
     const entrypoint = useRelayer
       ? "request_relayed_withdraw"
       : "private_withdraw";
@@ -312,6 +319,7 @@ export function WithdrawPanel({
       },
     ]);
     const txHash = result.transaction_hash;
+    setPendingTx(txHash);
 
     setWithdrawSteps((prev) => updateStep(prev, 2, "done", "Confirmed"));
     return txHash;
@@ -436,6 +444,12 @@ export function WithdrawPanel({
       );
       if (!account) throw new Error("Wallet not connected");
 
+      // Guard: wait for any pending tx to settle first
+      await waitForPendingTx(90_000, (msg) =>
+        setWithdrawSteps((prev) => updateStep(prev, 2, "active", msg)),
+      );
+      setWithdrawSteps((prev) => updateStep(prev, 2, "active", "Sign in wallet..."));
+
       let calldata: string[];
       let entrypoint: string;
 
@@ -478,6 +492,7 @@ export function WithdrawPanel({
         },
       ]);
       const txHash = result.transaction_hash;
+      setPendingTx(txHash);
 
       setWithdrawSteps((prev) => updateStep(prev, 3, "done", "Confirmed"));
       return txHash;

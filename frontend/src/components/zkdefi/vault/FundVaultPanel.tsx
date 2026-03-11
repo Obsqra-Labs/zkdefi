@@ -34,6 +34,7 @@ import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
 import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
+import { setPendingTx, waitForPendingTx } from "@/lib/pendingTx";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -386,19 +387,36 @@ export function FundVaultPanel({
         },
       ];
 
+      // Guard: wait for any pending tx to settle before sending a new one
+      // (prevents nonce collisions on Sepolia's ~30-60s block times)
+      await waitForPendingTx(90_000, (msg) =>
+        setDepositSteps((prev) => updateStep(prev, 1, "active", msg)),
+      );
+      setDepositSteps((prev) => updateStep(prev, 1, "active", "Sign in wallet..."));
+
       let result: { transaction_hash: string };
       try {
         result = await account.execute(calls);
       } catch (execErr: unknown) {
         const errMsg = execErr instanceof Error ? execErr.message : String(execErr);
         if (errMsg.includes("NonceTooOld") || errMsg.includes("nonce")) {
-          await new Promise((r) => setTimeout(r, 2000));
-          result = await account.execute(calls);
+          // Exponential back-off: wait 5s then 10s, up to 3 attempts
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            await new Promise((r) => setTimeout(r, 5_000 * attempt));
+            try {
+              result = await account.execute(calls);
+              break;
+            } catch (retryErr: unknown) {
+              if (attempt === 3) throw retryErr;
+            }
+          }
+          result = result!;
         } else {
           throw execErr;
         }
       }
       const txHash = result.transaction_hash;
+      setPendingTx(txHash);
 
       // Step 2 — Register commitment in Merkle tree
       setDepositSteps((prev) => updateStep(prev, 2, "active", "Registering in Merkle tree..."));
