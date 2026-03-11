@@ -185,7 +185,16 @@ class LinkedAddressVerificationService:
             return {}
         out: dict[str, dict[str, Any]] = {}
         for chain, meta in row.items():
-            if chain not in _ALLOWED_CHAINS or not isinstance(meta, dict):
+            if chain not in _ALLOWED_CHAINS and chain != "starknet":
+                continue
+            if not isinstance(meta, dict):
+                continue
+            if chain == "starknet":
+                out["starknet"] = {
+                    "address": stark,
+                    "verified": bool(meta.get("verified", False)),
+                    "verified_at": meta.get("verified_at"),
+                }
                 continue
             addr = meta.get("address")
             if not isinstance(addr, str) or not addr:
