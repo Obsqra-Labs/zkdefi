@@ -14,6 +14,7 @@ import { CapitalTab } from "@/components/zkdefi/tabs/CapitalTab";
 import { LendTab } from "@/components/zkdefi/tabs/LendTab";
 import { GovernTab } from "@/components/zkdefi/tabs/GovernTab";
 import { ActivityTab } from "@/components/zkdefi/tabs/ActivityTab";
+import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 
 export interface VaultCenterStageProps {
   address: string;
@@ -21,6 +22,8 @@ export interface VaultCenterStageProps {
   onTabChange: (tab: VaultTab) => void;
   onSlideout: (mode: string, poolId?: string) => void;
   isDemo?: boolean;
+  commitments?: VaultCommitment[];
+  walletBalance?: string;
 }
 
 const TABS = [
@@ -37,6 +40,8 @@ export function VaultCenterStage({
   onTabChange,
   onSlideout,
   isDemo,
+  commitments,
+  walletBalance,
 }: VaultCenterStageProps) {
   return (
     <div className="h-full flex flex-col">
@@ -65,7 +70,7 @@ export function VaultCenterStage({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === "overview" && (
           <ErrorBoundary>
-            <OverviewTab address={address} isDemo={isDemo} />
+            <OverviewTab address={address} isDemo={isDemo} commitments={commitments} walletBalance={walletBalance} />
           </ErrorBoundary>
         )}
         {activeTab === "capital" && (

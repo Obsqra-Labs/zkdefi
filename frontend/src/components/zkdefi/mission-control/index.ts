@@ -1,5 +1,6 @@
 export { MissionControlLayout, type OverlayMode } from "./MissionControlLayout";
 export { HeaderStrip } from "./HeaderStrip";
+export { UnifiedHeader } from "./UnifiedHeader";
 export { ControlPlane } from "./ControlPlane";
 export { UnifiedStream } from "./UnifiedStream";
 export { StreamCard, type StreamItem } from "./StreamCard";

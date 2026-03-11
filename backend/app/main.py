@@ -576,13 +576,24 @@ async def websocket_endpoint(websocket: WebSocket, user_address: str):
 @app.get("/health")
 def health() -> dict[str, Any]:
     import os
+    from pathlib import Path
     admin_key = os.getenv("ADMIN_API_KEY", "")
+    privacy_admin_addr = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_ADDRESS", "")
     privacy_admin_pk = os.getenv("FULL_PRIVACY_MERKLE_TREE_ADMIN_PRIVATE_KEY", "")
+
+    # Groth16 circuit availability
+    build_dir = Path(__file__).resolve().parent.parent.parent / "circuits" / "build"
+    groth16_wasm = build_dir / "private_vote_js" / "private_vote.wasm"
+    groth16_zkey = build_dir / "private_vote_final.zkey"
+    groth16_available = groth16_wasm.exists() and groth16_zkey.exists()
+
     return {
         "status": "ok",
         "service": "zkdefi-backend",
         "admin_configured": bool(admin_key),
-        "privacy_vault_admin_configured": bool(privacy_admin_pk),
+        "privacy_vault_admin_configured": bool(privacy_admin_addr and privacy_admin_pk),
+        "groth16_available": groth16_available,
+        "groth16_fallback": os.getenv("DAO_VOTING_ALLOW_FALLBACK", "auto"),
     }
 
 

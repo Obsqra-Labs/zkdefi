@@ -22,10 +22,18 @@ Predictive:
 from __future__ import annotations
 
 import logging
+import os
+import sqlite3
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Persistence ──────────────────────────────────────────────────────────────
+
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+_CL_DB_PATH = os.path.join(_DATA_DIR, "credit_lines.db")
 
 LTV_MAX = 0.80
 BASE_UNSECURED_CAP_ETH = 5.0
@@ -225,9 +233,46 @@ class CreditLineService:
     """
     Credit line operations service.
 
-    Ledger-only stubs until credit line contracts are deployed on Sepolia.
-    All result dicts include execution="simulated" and execution_note for honesty.
+    Persists credit line state to SQLite.  On-chain tx_hash remains None
+    until credit line contracts are deployed on Sepolia — the service is
+    honest about this via execution="simulated" labels.
     """
+
+    def __init__(self) -> None:
+        os.makedirs(_DATA_DIR, exist_ok=True)
+        self._init_db()
+
+    # ── SQLite helpers ────────────────────────────────────────────────
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(_CL_DB_PATH, timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS credit_lines (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_address    TEXT NOT NULL,
+                    collateral_token TEXT,
+                    collateral_amount INTEGER DEFAULT 0,
+                    credit_limit_usd INTEGER DEFAULT 0,
+                    borrowed_usd    INTEGER DEFAULT 0,
+                    status          TEXT DEFAULT 'open',
+                    tx_hash         TEXT,
+                    created_at      REAL NOT NULL,
+                    updated_at      REAL NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_cl_user
+                ON credit_lines (user_address)
+            """)
+
+    # ── Operations ────────────────────────────────────────────────────
 
     async def open_credit_line(
         self,
@@ -236,13 +281,27 @@ class CreditLineService:
         collateral_amount: int,
         desired_credit_usd: int,
     ) -> dict[str, Any]:
-        """Open a credit line (ledger-only stub)."""
+        """Open a credit line (persisted to SQLite, tx simulated)."""
+        now = time.time()
+        with self._conn() as conn:
+            cur = conn.execute(
+                """INSERT INTO credit_lines
+                   (user_address, collateral_token, collateral_amount,
+                    credit_limit_usd, borrowed_usd, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, 0, 'open', ?, ?)""",
+                (user_address, collateral_token, collateral_amount,
+                 desired_credit_usd, now, now),
+            )
+            line_id = cur.lastrowid
+
         result: dict[str, Any] = {
+            "credit_line_id": line_id,
             "user_address": user_address,
             "collateral_token": collateral_token,
             "collateral_amount": collateral_amount,
             "credit_limit_usd": desired_credit_usd,
-            "status": "pending",
+            "borrowed_usd": 0,
+            "status": "open",
         }
         _add_execution_labels(result)
         return result
@@ -252,10 +311,34 @@ class CreditLineService:
         user_address: str,
         amount_usd: int,
     ) -> dict[str, Any]:
-        """Borrow against credit line (ledger-only stub)."""
+        """Borrow against the user's most recent open credit line."""
+        with self._conn() as conn:
+            row = conn.execute(
+                """SELECT id, credit_limit_usd, borrowed_usd FROM credit_lines
+                   WHERE user_address = ? AND status = 'open'
+                   ORDER BY created_at DESC LIMIT 1""",
+                (user_address,),
+            ).fetchone()
+
+            if not row:
+                return {"error": "no_open_credit_line", "tx_hash": None}
+
+            line_id, limit_usd, already_borrowed = row["id"], row["credit_limit_usd"], row["borrowed_usd"]
+            new_balance = already_borrowed + amount_usd
+            if new_balance > limit_usd:
+                return {"error": "exceeds_credit_limit", "tx_hash": None,
+                        "limit_usd": limit_usd, "borrowed_usd": already_borrowed}
+
+            conn.execute(
+                """UPDATE credit_lines SET borrowed_usd = ?, updated_at = ?
+                   WHERE id = ?""",
+                (new_balance, time.time(), line_id),
+            )
+
         result: dict[str, Any] = {
+            "credit_line_id": line_id,
             "tx_hash": None,
-            "new_balance": amount_usd,
+            "new_balance": new_balance,
         }
         _add_execution_labels(result)
         return result
@@ -265,23 +348,90 @@ class CreditLineService:
         user_address: str,
         amount_usd: int,
     ) -> dict[str, Any]:
-        """Repay credit line (ledger-only stub)."""
+        """Repay against the user's most recent open credit line."""
+        with self._conn() as conn:
+            row = conn.execute(
+                """SELECT id, borrowed_usd FROM credit_lines
+                   WHERE user_address = ? AND status = 'open'
+                   ORDER BY created_at DESC LIMIT 1""",
+                (user_address,),
+            ).fetchone()
+
+            if not row:
+                return {"error": "no_open_credit_line", "tx_hash": None}
+
+            line_id, borrowed = row["id"], row["borrowed_usd"]
+            new_balance = max(0, borrowed - amount_usd)
+            status = "repaid" if new_balance == 0 else "open"
+
+            conn.execute(
+                """UPDATE credit_lines SET borrowed_usd = ?, status = ?, updated_at = ?
+                   WHERE id = ?""",
+                (new_balance, status, time.time(), line_id),
+            )
+
         result: dict[str, Any] = {
+            "credit_line_id": line_id,
             "tx_hash": None,
-            "new_balance": 0,
+            "new_balance": new_balance,
+            "status": status,
         }
         _add_execution_labels(result)
         return result
 
     async def get_user_credit_lines(self, address: str) -> list[dict[str, Any]]:
-        """List credit lines for user (ledger-only stub)."""
-        return []
+        """List all credit lines for a user."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT * FROM credit_lines WHERE user_address = ?
+                   ORDER BY created_at DESC""",
+                (address,),
+            ).fetchall()
+        return [dict(r) for r in rows]
 
     async def calculate_credit_score(self, address: str) -> dict[str, Any]:
-        """Calculate FICO score (ledger-only stub)."""
-        result: dict[str, Any] = {
-            "fico_score": 650,
-            "tier": "fair",
+        """
+        Calculate credit score based on credit line history.
+        Uses repayment behavior as a signal — better than a hardcoded 650.
+        """
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT status, borrowed_usd, credit_limit_usd FROM credit_lines
+                   WHERE user_address = ?""",
+                (address,),
+            ).fetchall()
+
+        if not rows:
+            # No history → baseline score
+            result: dict[str, Any] = {"fico_score": 620, "tier": "new"}
+            _add_execution_labels(result)
+            return result
+
+        total = len(rows)
+        repaid = sum(1 for r in rows if r["status"] == "repaid")
+        open_lines = sum(1 for r in rows if r["status"] == "open")
+        total_borrowed = sum(r["borrowed_usd"] for r in rows)
+        total_limit = sum(r["credit_limit_usd"] for r in rows) or 1
+
+        utilization = total_borrowed / total_limit
+        repay_ratio = repaid / total if total else 0
+
+        # Score: base 600, +100 for good repayment, -50 for high utilization
+        score = 600 + int(repay_ratio * 100) - int(utilization * 50)
+        score = max(300, min(850, score))
+
+        tier = (
+            "excellent" if score >= 750
+            else "good" if score >= 700
+            else "fair" if score >= 650
+            else "poor"
+        )
+
+        result = {
+            "fico_score": score,
+            "tier": tier,
+            "history": {"total_lines": total, "repaid": repaid, "open": open_lines},
+            "utilization": round(utilization, 4),
         }
         _add_execution_labels(result)
         return result

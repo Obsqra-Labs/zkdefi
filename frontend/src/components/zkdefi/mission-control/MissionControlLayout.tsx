@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { HeaderStrip } from "./HeaderStrip";
+import { UnifiedHeader } from "./UnifiedHeader";
 import { ProofChainStrip } from "./ProofChainStrip";
 import type { OverlayModeV2, VaultTab } from "@/lib/agentState";
 
@@ -32,7 +32,7 @@ export function MissionControlLayout({
 }: MissionControlLayoutProps) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-      <HeaderStrip
+      <UnifiedHeader
         address={address}
         activeOverlay={activeOverlay}
         onOverlayChange={onOverlayChange}

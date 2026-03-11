@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
-import { AppNavbar } from "@/components/zkdefi/AppNavbar";
+import { UnifiedHeader } from "@/components/zkdefi/mission-control/UnifiedHeader";
 import { TrustFlowChecklist } from "@/components/zkdefi/TrustFlowChecklist";
 import { TrustFlowProgressSummary } from "@/components/zkdefi/trust-flow/TrustFlowProgressSummary";
 import { useWalletSettled } from "@/lib/useWalletSettled";
@@ -667,7 +667,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
-      <AppNavbar />
+      <UnifiedHeader address={address} activeOverlay={null} onOverlayChange={() => {}} />
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

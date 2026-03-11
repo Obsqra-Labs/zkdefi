@@ -249,6 +249,8 @@ function AgentPageInner() {
               onTabChange={handleVaultTabChange}
               onSlideout={isGuest ? () => toast("info", "Connect a wallet to deposit or withdraw") : (m, poolId) => openSlideout(m as NonNullable<SlideoutModeV2>, poolId)}
               isDemo={isGuest}
+              commitments={vault.commitments}
+              walletBalance={String(vault.commitments.reduce((s, c) => s + Number(c.amount_wei), 0))}
             />
           }
           rightRail={

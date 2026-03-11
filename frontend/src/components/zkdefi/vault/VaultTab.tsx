@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * @deprecated — Orphaned component. PositionsOverview + AgentAllocationStrip are now
+ * rendered inside OverviewTab via VaultCenterStage. This file is kept for reference
+ * and will be removed in a future cleanup pass.
+ */
+
 import React, { useState, useCallback, useMemo } from "react";
 import type { PrivacyMethod, ProofStep, VaultCommitment } from "@/hooks/usePrivacyVault";
 import { Lock } from "lucide-react";

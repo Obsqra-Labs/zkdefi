@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle } from "lucide-react";
+import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio } from "lucide-react";
 import { apiFetch, API_BASE } from "@/lib/api/client";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
 import { getEkuboPositions } from "@/lib/api/ekubo";
@@ -12,10 +12,15 @@ import {
   DEMO_COMMITMENTS,
   DEMO_ALLOCATION,
 } from "@/lib/demoCapitalOS";
+import type { VaultCommitment } from "@/hooks/usePrivacyVault";
+import PositionsOverview from "@/components/zkdefi/vault/PositionsOverview";
+import { AgentAllocationStrip } from "@/components/zkdefi/vault/AgentAllocationStrip";
 
 interface OverviewTabProps {
   address: string;
   isDemo?: boolean;
+  commitments?: VaultCommitment[];
+  walletBalance?: string;
 }
 
 function usd(v: number) {
@@ -26,7 +31,7 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-zinc-800/60 ${className}`} />;
 }
 
-export function OverviewTab({ address, isDemo }: OverviewTabProps) {
+export function OverviewTab({ address, isDemo, commitments: commitmentsProp, walletBalance }: OverviewTabProps) {
   const vaultRaw = useVaultSummary(address);
 
   // In demo mode, overlay demo data when API returns nothing
@@ -109,11 +114,11 @@ export function OverviewTab({ address, isDemo }: OverviewTabProps) {
 
     let cancelled = false;
 
-    apiFetch<any>(`/api/v1/zkdefi/trade-desk/v2/opportunities?limit=3`)
+    apiFetch<any>(`/api/v1/zkdefi/trade-desk/v2/opportunities?limit=6`)
       .then((res) => {
         if (cancelled) return;
         const opps = Array.isArray(res?.opportunities) ? res.opportunities : Array.isArray(res) ? res : [];
-        const mapped: OracleSignal[] = opps.slice(0, 3).map((o: any) => {
+        const mapped: OracleSignal[] = opps.slice(0, 6).map((o: any) => {
           const yld = Number(o.currentYield ?? o.apy ?? o.yield ?? 0);
           const risk = Number(o.riskScore ?? o.risk_score ?? 50);
           const conf = o.confidence > 0 ? Number(o.confidence) : (100 - risk) / 100;
@@ -202,17 +207,38 @@ export function OverviewTab({ address, isDemo }: OverviewTabProps) {
         )}
       </section>
 
-      {/* Oracle Signals */}
-      {signals.length > 0 && (
-        <section>
-          <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Oracle Signals</h3>
+      {/* Pool-Grouped Positions (Phase C) */}
+      <PositionsOverview
+        commitments={isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? [])}
+        address={address}
+        walletBalance={walletBalance}
+      />
+
+      {/* Agent Allocation Drift (Phase D) */}
+      <AgentAllocationStrip
+        address={address}
+        commitments={isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? [])}
+      />
+
+      {/* Oracle Command Center (Gap 28) */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+            <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            Oracle Command Center
+          </h3>
+          <span className="text-[10px] text-zinc-600">{signals.length} signal{signals.length !== 1 ? "s" : ""}</span>
+        </div>
+        {signals.length === 0 ? (
+          <p className="text-xs text-zinc-600 italic">No active oracle signals</p>
+        ) : (
           <div className="space-y-2">
             {signals.map((s, i) => (
               <InlineOracleCard key={i} signal={s} />
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Recent Activity */}
       <section>
