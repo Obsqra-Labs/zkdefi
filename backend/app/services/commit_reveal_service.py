@@ -10,7 +10,7 @@ Implements the MEV-resistant commit-reveal flow:
   6. use_commitment(commitment, action_hash) → IntentCommitment (marks consumed)
 
 Contracts:
-  - VaultController at TIERED_AGENT_CONTROLLER_ADDRESS
+  - VaultController at VAULT_CONTROLLER_ADDRESS
   - IntentCommitment at CONSTRAINT_RECEIPT_ADDRESS
 """
 from __future__ import annotations
@@ -23,11 +23,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 from starknet_py.net.account.account import Account
-from starknet_py.net.client_models import Call, ResourceBoundsMapping
+from starknet_py.net.client_models import Call
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
 from starknet_py.net.signer.stark_curve_signer import KeyPair
 from starknet_py.hash.selector import get_selector_from_name
+from poseidon_py.poseidon_hash import poseidon_hash_many
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class CommitRevealService:
         self._client: Optional[FullNodeClient] = None
 
         self._vault_controller = _parse_int(
-            os.getenv("TIERED_AGENT_CONTROLLER_ADDRESS", "0x0")
+            os.getenv("VAULT_CONTROLLER_ADDRESS", "0x0")
         )
         self._intent_commitment = _parse_int(
             os.getenv("CONSTRAINT_RECEIPT_ADDRESS", "0x0")
@@ -100,13 +101,7 @@ class CommitRevealService:
         """Submit an on-chain transaction. Returns tx_hash hex or None."""
         account = await self._ensure_account()
         try:
-            estimate = await account.estimate_fee(calls=[call])
-            resource_bounds = ResourceBoundsMapping(
-                l1_gas=estimate.resource_bounds.l1_gas,
-                l2_gas=estimate.resource_bounds.l2_gas,
-                l1_data_gas=getattr(estimate.resource_bounds, "l1_data_gas", None),
-            )
-            resp = await account.execute_v3(calls=[call], resource_bounds=resource_bounds)
+            resp = await account.execute_v3(calls=[call], auto_estimate=True)
             await account.client.wait_for_tx(resp.transaction_hash)
             tx_hash = hex(resp.transaction_hash)
             logger.info("%s: tx=%s", description, tx_hash[:20])
@@ -149,13 +144,16 @@ class CommitRevealService:
         if salt is None:
             salt = int.from_bytes(os.urandom(16), "big") % (2**128)
 
-        # Compute proposal hash (must match VaultController's Poseidon recomputation)
-        # hash = poseidon(salt, adapter0, amount0_low, amount0_high, adapter1, ...)
-        hash_input = f"{salt}"
+        # Compute proposal hash using Poseidon — MUST match VaultController's
+        # on-chain poseidon_hash_span([salt, adapter0, amount0_low, amount0_high, ...])
+        hash_elements = [salt]
         for addr, amt in zip(adapters, amounts):
-            hash_input += f":{addr}:{amt & ((1 << 128) - 1)}:{amt >> 128}"
-        proposal_hash = "0x" + hashlib.sha256(hash_input.encode()).hexdigest()[:62]
-        proposal_hash_int = int(proposal_hash, 16)
+            addr_int = _parse_int(addr) if isinstance(addr, str) else addr
+            hash_elements.append(addr_int)
+            hash_elements.append(amt & ((1 << 128) - 1))  # low
+            hash_elements.append(amt >> 128)                # high
+        proposal_hash_int = poseidon_hash_many(hash_elements)
+        proposal_hash = hex(proposal_hash_int)
 
         block_num = await self._get_block_number()
 
@@ -232,7 +230,7 @@ class CommitRevealService:
         # Mark commitment as used
         if exec_tx:
             proposal_hash_int = int(proposal_hash, 16) % (2**251)
-            action_hash = int(hashlib.sha256(f"execute:{proposal_hash}".encode()).hexdigest(), 16) % (2**251)
+            action_hash = poseidon_hash_many([proposal_hash_int, get_selector_from_name("execute")])
             use_call = Call(
                 to_addr=self._intent_commitment,
                 selector=get_selector_from_name("use_commitment"),

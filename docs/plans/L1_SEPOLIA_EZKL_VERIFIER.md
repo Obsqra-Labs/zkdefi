@@ -67,15 +67,16 @@ This creates the keystore (if missing), generates `contracts/l1_ezkl/EZKLVerifie
 
 Unset = L1 bridge flow disabled. Keep `L1_SEPOLIA_MNEMONIC` and `L1_SEPOLIA_KEYSTORE_PASSWORD` only in local `.env` (gitignored); do not add to `.env.example`.
 
-**Reference transaction (Sepolia):** `0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/tx/0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59)
+**Funding transaction (Sepolia):** `0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59` (0.05 ETH transfer into deployer account) — [view on Sepolia Blockscout](https://eth-sepolia.blockscout.com/tx/0xaf32c1bec546520d9d55d6199666f617c0bfaec72915fc88163157e1b7338e59)
 
 **Current keystore deployer (testnet):** `0x286573Ccf1Ca01D97a41Dc16Fed01c8e0a0b2337` — fund this address with Sepolia ETH if needed; use with `L1_SEPOLIA_KEYSTORE_PASSWORD` for deploy and L1 verify.
 
 **Deployed EZKL verifier (Sepolia):** `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9). Set `L1_EZKL_VERIFIER_ADDRESS` to this in backend env.
+Verifier deploy tx: `0x0904ffd1b961f857304cb2b5cb3cef773855f9c71ff33b8c2bc532772be3d646` — [view on Sepolia Blockscout](https://eth-sepolia.blockscout.com/tx/0x0904ffd1b961f857304cb2b5cb3cef773855f9c71ff33b8c2bc532772be3d646).
 
-**Deployed L1 bridge sender (Sepolia):** `0xc5FF20Ab185869B9247FbD15E18212Ab9831F395` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0xc5FF20Ab185869B9247FbD15E18212Ab9831F395). Deploy tx: `0x64216ed9a654e92b920a91514234b1525e2b1cb2c8d8552be08d209a18f5bb85`.
+**Deployed L1 bridge sender (Sepolia):** `0x2a1b030f2835cB0ADC4ea271105e96da293853ab` — [view on Sepolia Etherscan](https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab). Deploy tx: `0x7da0788d72a7801db854ec8ad8400bef0b4f86a7ec032118c59f4c3b98e76aa5`.
 
-**Starknet receiver sender-auth update:** `set_allowed_l1_sender(0xc5FF20Ab185869B9247FbD15E18212Ab9831F395)` tx `0x02d260a52c9a0b47d702a4ae56954c65fbe87601dd33775c1aca064f01c4eef6`.
+**Starknet receiver sender-auth update:** `set_allowed_l1_sender(0x2a1b030f2835cB0ADC4ea271105e96da293853ab)` tx `0x03cfeac61eaea7010ffbf40b5496333c3064841055b6fc3895ccb2175d8c4f65`.
 
 ### 2.5 Stack-limit workaround (one-shot build gate)
 

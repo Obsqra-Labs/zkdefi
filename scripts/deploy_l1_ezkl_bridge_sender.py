@@ -23,7 +23,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ARTIFACT = REPO_ROOT / "contracts" / "l1_ezkl" / "out" / "L1EzklBridgeSender.sol" / "L1EzklBridgeSender.json"
 DEFAULT_OUTFILE = REPO_ROOT / ".l1_ezkl_bridge_sender.deployed"
-DEFAULT_STARKNET_CORE_SEPOLIA = "0xE2Bb56ee93665bF7d7B6E0fFB92E2045d53C5aA0"
+DEFAULT_STARKNET_CORE_SEPOLIA = "0xE2Bb56ee936fd6433DC0F6e7e3b8365C906AA057"
 DEFAULT_RECEIVER_SELECTOR = "0x035b18ea40fc0fe052a663bca34b1c66f25e888f6d54d0c518b9c68f451c65ea"
 
 

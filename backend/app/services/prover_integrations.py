@@ -144,6 +144,41 @@ class StoneProverClient:
         self.base_url = base_url
         self.api_key = api_key
         self.timeout = 300  # Stone proofs can take time
+
+    @staticmethod
+    def _to_int(value: Any, default: int) -> int:
+        try:
+            return int(float(value))
+        except Exception:
+            return default
+
+    @classmethod
+    def _proofs_generate_payload(cls, input_data: dict) -> dict:
+        if isinstance(input_data.get("jediswap_metrics"), dict) and isinstance(input_data.get("ekubo_metrics"), dict):
+            return {
+                "jediswap_metrics": input_data["jediswap_metrics"],
+                "ekubo_metrics": input_data["ekubo_metrics"],
+            }
+
+        risk = cls._to_int(input_data.get("risk_tolerance", input_data.get("risk", 50)), 50)
+        util = risk * 100 if risk <= 100 else risk
+        util = max(0, min(10000, util))
+        return {
+            "jediswap_metrics": {
+                "utilization": util,
+                "volatility": cls._to_int(input_data.get("volatility", 2800), 2800),
+                "liquidity": max(1, cls._to_int(input_data.get("liquidity", 2), 2)),
+                "audit_score": cls._to_int(input_data.get("audit_score", 85), 85),
+                "age_days": cls._to_int(input_data.get("age_days", 240), 240),
+            },
+            "ekubo_metrics": {
+                "utilization": min(10000, util + 700),
+                "volatility": cls._to_int(input_data.get("volatility", 2300), 2300),
+                "liquidity": max(1, cls._to_int(input_data.get("liquidity", 3), 3)),
+                "audit_score": cls._to_int(input_data.get("audit_score", 90), 90),
+                "age_days": cls._to_int(input_data.get("age_days", 320), 320),
+            },
+        }
     
     async def generate_zkml_proof(
         self,
@@ -166,34 +201,43 @@ class StoneProverClient:
             headers = {}
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
-            
+
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Preferred public endpoint.
                 response = await client.post(
-                    f"{self.base_url}/prove",
-                    json={
-                        "type": proof_type,
-                        "input": input_data,
-                        "program_hash": program_hash,
-                    },
+                    f"{self.base_url}/proofs/generate",
+                    json=self._proofs_generate_payload(input_data),
                     headers=headers,
                 )
-                
+                if response.status_code == 404:
+                    # Back-compat fallback for older stacks.
+                    response = await client.post(
+                        f"{self.base_url}/prove",
+                        json={
+                            "type": proof_type,
+                            "input": input_data,
+                            "program_hash": program_hash,
+                        },
+                        headers=headers,
+                    )
+
                 if response.status_code in [200, 201]:
                     data = response.json()
+                    stark = data.get("stark") if isinstance(data.get("stark"), dict) else {}
                     return {
                         "valid": True,
-                        "proof": data.get("proof"),
-                        "fact_hash": data.get("fact_hash"),
+                        "proof": data.get("proof") or stark or data,
+                        "fact_hash": data.get("fact_hash") or stark.get("fact_hash"),
                         "error": None,
                     }
-                else:
-                    logger.error(f"Stone prover error: {response.text}")
-                    return {
-                        "valid": False,
-                        "proof": None,
-                        "fact_hash": None,
-                        "error": response.text,
-                    }
+
+                logger.error(f"Stone prover error: {response.text}")
+                return {
+                    "valid": False,
+                    "proof": None,
+                    "fact_hash": None,
+                    "error": response.text,
+                }
         except Exception as e:
             logger.error(f"Stone prover client error: {e}")
             return {
@@ -223,7 +267,14 @@ class StoneProverClient:
                 response = await client.get(
                     f"{self.base_url}/verify/{fact_hash}?chain={chain_id}",
                 )
-                
+                if response.status_code == 404:
+                    return {
+                        "verified": False,
+                        "chain": chain_id,
+                        "block": None,
+                        "error": "L2 verification endpoint unavailable on OBSQRA API",
+                    }
+
                 if response.status_code == 200:
                     data = response.json()
                     return {

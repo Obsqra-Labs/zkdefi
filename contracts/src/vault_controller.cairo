@@ -36,6 +36,7 @@ pub trait IVaultController<TContractState> {
         proof_hash: felt252,
     );
     fn emergency_withdraw(ref self: TContractState, adapter: ContractAddress);
+    fn cancel_proposal(ref self: TContractState);
     fn total_value(self: @TContractState) -> u256;
     fn get_adapter_config(self: @TContractState, adapter: ContractAddress) -> AdapterConfig;
     fn get_policy_root(self: @TContractState) -> felt252;
@@ -293,6 +294,14 @@ mod VaultController {
             self.proposal_block.write(block_number);
 
             self.emit(ProposalCommitted { proposal_hash, block_number });
+        }
+
+        fn cancel_proposal(ref self: ContractState) {
+            assert_admin(@self);
+            let pending = self.pending_proposal.read();
+            assert(pending != 0, 'no pending proposal');
+            self.pending_proposal.write(0);
+            self.proposal_block.write(0);
         }
 
         fn execute_proposal(

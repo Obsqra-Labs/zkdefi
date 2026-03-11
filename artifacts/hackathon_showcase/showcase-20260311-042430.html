@@ -209,7 +209,7 @@
         Terminal-first evidence that the backend can run proof-gated strategy flows, expose on-chain trust state,
         and power UI surfaces that are currently lagging behind the full stack.
       </p>
-      <p class="meta">Generated: 2026-03-11T04:52:11.723999+00:00 UTC</p>
+      <p class="meta">Generated: 2026-03-11T04:24:30.518573+00:00 UTC</p>
       <p class="meta">Base URL: http://127.0.0.1:8003 | Wallet: 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</p>
       <p class="score">Core claims: 12 / 12 validated</p>
       <div class="chips">
@@ -285,22 +285,22 @@
       </div>
       <table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>status=200, service=zkdefi-backend, admin_configured=False</td></tr>
 <tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>status=200, pack_id=zkfico_pack_v1, circuits=6, circuits_with_wasm_and_zkey=6</td></tr>
-<tr><td>Agent compose + execute</td><td><span class="pass">PASS</span></td><td>create_status=200, execute_status=200, agent_id=317a100c0fe3cf8f, processors=risk_scoring,correlation_risk,twap_position, should_execute=False, processor_results=3</td></tr>
+<tr><td>Agent compose + execute</td><td><span class="pass">PASS</span></td><td>create_status=200, execute_status=200, agent_id=a9aeb03f1c1ce16a, processors=risk_scoring,correlation_risk,twap_position, should_execute=False, processor_results=3</td></tr>
 <tr><td>Deployment proof + on-chain calldata plan</td><td><span class="pass">PASS</span></td><td>status=200, deployment_id=fecf7cdb381f, circuit_type=allocation_valid, allocation_proof=0x3176091d49...e76daa95f93d, on_chain_calls=3</td></tr>
-<tr><td>Full privacy commitment generation</td><td><span class="pass">PASS</span></td><td>status=200, commitment=0x531c20f308...38872588ee9b, nonce=0x7deeb708636230f8, pool_type=1</td></tr>
+<tr><td>Full privacy commitment generation</td><td><span class="pass">PASS</span></td><td>status=200, commitment=0x23d488d55c...aed02760aa9d, nonce=0x52dcd7d331eab8f, pool_type=1</td></tr>
 <tr><td>Privacy tiers + shielded/nullifier/hash/relayer + private voting/lending</td><td><span class="pass">PASS</span></td><td>tiers=200, rails_proved=3/3, relayer_withdraw_status=200, dark_settlement_verify=200, private_vote_proof_status=200, private_lending_borrow_status=200</td></tr>
-<tr><td>Private prediction market primitive (snapshot forecaster)</td><td><span class="pass">PASS</span></td><td>window_status=200, commit_status=200, reveal_status=200, score_status=200, trust_mode=offchain_ezkl_verified, score_receipt=0x030cba04...319c2f1904</td></tr>
+<tr><td>Private prediction market primitive (snapshot forecaster)</td><td><span class="pass">PASS</span></td><td>window_status=200, commit_status=200, reveal_status=200, score_status=200, trust_mode=offchain_ezkl_verified, score_receipt=0xa2e5f266...1f5ec1b5b1</td></tr>
 <tr><td>Policy controls (vault constraints)</td><td><span class="pass">PASS</span></td><td>get_status=200, current_risk_tolerance=50, put_status=200, updated=True</td></tr>
 <tr><td>On-chain read via backend</td><td><span class="pass">PASS</span></td><td>status=200, tier=Strict, reputation_score=0, relayer=False</td></tr>
-<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7474214, resolved_contracts=7, voyager_links=7, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061</td></tr>
-<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=136, tx_hashes=0, first_tx_hash=-</td></tr>
-<tr><td>Optional: batch skill proof runtime</td><td><span class="pass">PASS</span></td><td>selected_skills=risk_score,anomaly_detection,yield_optimality,strategy_integrity,execution_integrity, listed_skills=15, batch_status=200, succeeded=5/5, proof_hashes=5, first_proof_hash=0x392b3ee646...aa2ec4f263d8</td></tr>
-<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>status=200, verified=True, proof_hash=0xc6147335c3...10ec2cc93acc, envelope_id=env_1773204605_0x49d36570, detail=None</td></tr>
-<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge, bridge_compliant=True, l3_mode=hash_only, l3_tx_hash=0x138cd8cea8...2d8c00cac779</td></tr>
-<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=placeholder_fallback, bridge_compliant=True, l3_mode=hash_only, l3_tx_hash=0x5c15ea5236...9307e4be9aef</td></tr>
+<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7473425, resolved_contracts=7, voyager_links=7, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061</td></tr>
+<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=127, tx_hashes=0, first_tx_hash=-</td></tr>
+<tr><td>Optional: batch skill proof runtime</td><td><span class="pass">PASS</span></td><td>selected_skills=risk_score,anomaly_detection,yield_optimality,strategy_integrity,execution_integrity, listed_skills=15, batch_status=200, succeeded=5/5, proof_hashes=5, first_proof_hash=0x0c61c0a803...fd1289db6e59</td></tr>
+<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>status=200, verified=True, proof_hash=0xbfa66b4818...716d17e89a00, envelope_id=env_1773202988_0x49d36570, detail=None</td></tr>
+<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge, bridge_compliant=True, l3_mode=hash_only, l3_tx_hash=0x47743ca19e...7b10b78152d8</td></tr>
+<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=placeholder_fallback, bridge_compliant=True, l3_mode=hash_only, l3_tx_hash=0x1714b773c2...b27146b1d080</td></tr>
 <tr><td>Open-source ModelBridge + dual-proof architecture</td><td><span class="pass">PASS</span></td><td>modelbridge_artifacts=16/23, proving_paths_status=200, snark_lane_available=True, stark_lane_available=True, hash_fallback_available=True, dual_lanes_ready=True</td></tr>
 <tr><td>Recursive EZKL paths (Phase 2/3/4) status</td><td><span class="pass">PASS</span></td><td>docs_present=5/5, path_a_status_doc=True, phase2_status_done=True, phase3_plan_expanded=True, phase4_plan_expanded=True, parent_phase3_config_keys=True</td></tr>
-<tr><td>StarkHeavyReputation STARK flow</td><td><span class="pass">PASS</span></td><td>status=200, circuit=StarkHeavyReputation, success=True, proof_hash=75536733e73c...c9926c1a870a, l3_mode=hash_only, l3_tx_hash=0x79fa22c069...dce3921934ae</td></tr>
+<tr><td>StarkHeavyReputation STARK flow</td><td><span class="pass">PASS</span></td><td>status=200, circuit=StarkHeavyReputation, success=True, proof_hash=0x541eeff506...e611be060072, l3_mode=hash_only, l3_tx_hash=0x11e3c1f0a8...561a598808b4</td></tr>
 <tr><td>Local zkML circuit inventory (20+ deep dive)</td><td><span class="pass">PASS</span></td><td>circom_sources=31, circuits_with_wasm=31, circuits_with_zkey=31, dual_ready=31, cairo_contracts=51, onnx_models=1817</td></tr>
 <tr><td>AI market advisory + strategy badge flow</td><td><span class="pass">PASS</span></td><td>providers=5, agent_models=24, marketplace_models=3, opportunities=6, advisory_calls=4, screening_calls=4</td></tr></tbody></table>
     </section>
@@ -316,7 +316,7 @@
       <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
 <tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
 <tr><td>Requested chain</td><td>l3</td></tr>
-<tr><td>Bridge proof hash</td><td>0x361522fdec9d...e1dcd86c51433e</td></tr>
+<tr><td>Bridge proof hash</td><td>0x7e1b9332b3cc...309a918cdf5c88</td></tr>
 <tr><td>Bridge backend</td><td>-</td></tr>
 <tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
 <tr><td>ModelBridge calldata words</td><td>2005</td></tr>
@@ -324,18 +324,18 @@
 <tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
 <tr><td>L3 verifier mode</td><td>hash_only</td></tr>
 <tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
-<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779" target="_blank" rel="noreferrer">0x138cd8cea84e...762d8c00cac779</a></td></tr>
+<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8" target="_blank" rel="noreferrer">0x47743ca19ed3...ae7b10b78152d8</a></td></tr>
 <tr><td>Can execute</td><td><span class="fail">false</span></td></tr>
 <tr><td>Mirror status</td><td>not_requested</td></tr>
 <tr><td>Trust mode</td><td>synthetic_dev_only</td></tr>
 <tr><td>Failure reason</td><td>Strict L3 verification failed</td></tr>
-<tr><td>Generated at</td><td>2026-03-11T04:50:06.015054+00:00</td></tr>
-<tr><td>Duration ms</td><td>12741</td></tr></tbody></table>
+<tr><td>Generated at</td><td>2026-03-11T04:23:09.033515+00:00</td></tr>
+<tr><td>Duration ms</td><td>10813</td></tr></tbody></table>
       <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
       <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
 <tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
 <tr><td>Requested chain</td><td>l3</td></tr>
-<tr><td>Bridge proof hash</td><td>0xb0230548a9b1...c54b77429706d3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x84075a665c9c...7d59476831c590</td></tr>
 <tr><td>Bridge backend</td><td>placeholder_fallback</td></tr>
 <tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
 <tr><td>ModelBridgeHeavy calldata words</td><td>6</td></tr>
@@ -343,13 +343,13 @@
 <tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
 <tr><td>L3 verifier mode</td><td>hash_only</td></tr>
 <tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
-<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef" target="_blank" rel="noreferrer">0x5c15ea5236b7...929307e4be9aef</a></td></tr>
+<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080" target="_blank" rel="noreferrer">0x1714b773c272...f6b27146b1d080</a></td></tr>
 <tr><td>Can execute</td><td><span class="fail">false</span></td></tr>
 <tr><td>Mirror status</td><td>not_requested</td></tr>
 <tr><td>Trust mode</td><td>synthetic_dev_only</td></tr>
 <tr><td>Failure reason</td><td>Strict L3 verification failed</td></tr>
-<tr><td>Generated at</td><td>2026-03-11T04:50:34.513746+00:00</td></tr>
-<tr><td>Duration ms</td><td>4204</td></tr></tbody></table>
+<tr><td>Generated at</td><td>2026-03-11T04:23:29.883648+00:00</td></tr>
+<tr><td>Duration ms</td><td>2856</td></tr></tbody></table>
       <h3>StarkHeavyReputation (Stone -> L3)</h3>
       <p class="meta">
         Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
@@ -358,18 +358,19 @@
       <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
 <tr><td>Circuit name</td><td>StarkHeavyReputation</td></tr>
 <tr><td>Proof success</td><td><span class="pass">true</span></td></tr>
-<tr><td>Proof hash</td><td>75536733e73ca1...b8c9926c1a870a</td></tr>
-<tr><td>Fact hash</td><td>0x3c100ba580a8...f086dfd5a13530</td></tr>
+<tr><td>Proof hash</td><td>0x541eeff506d4...a7e611be060072</td></tr>
+<tr><td>Fact hash</td><td>0x6225bbe860c0...f0e73a69dffcda</td></tr>
 <tr><td>L3 mode</td><td>hash_only</td></tr>
 <tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
 <tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
-<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x79fa22c069ebf31bc8bf0a474605ebac6ea68856227d6aee2d7dce3921934ae" target="_blank" rel="noreferrer">0x79fa22c069eb...d7dce3921934ae</a></td></tr>
+<tr><td>L3 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x11e3c1f0a803ab11be96a90b2929d597ae146339a143c16f944561a598808b4" target="_blank" rel="noreferrer">0x11e3c1f0a803...44561a598808b4</a></td></tr>
 <tr><td>L3 error</td><td>-</td></tr>
-<tr><td>Error</td><td>-</td></tr></tbody></table>
+<tr><td>Error</td><td>Obsqra prover error: Client error &#x27;404 Not Found&#x27; for url &#x27;https://starknet.obsqra.fi/api/v1/prove/stone&#x27;
+For more information check: https://developer.mozilla.org/en-US/docs/We...</td></tr></tbody></table>
       <h3>Retry/Attempt Timeline</h3>
-      <table><thead><tr><th>Run</th><th>Attempt</th><th>HTTP</th><th>Mirror</th><th>L3 Mode</th><th>Bridge Backend</th><th>Tx</th><th>Can Execute</th><th>Failure Text</th></tr></thead><tbody><tr><td>L3</td><td>1</td><td>200</td><td>not_requested</td><td>hash_only</td><td>groth16_modelbridge</td><td><a href="https://sepolia.voyager.online/tx/0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779" target="_blank" rel="noreferrer">0x138cd8cea8...2d8c00cac779</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
-<tr><td>L3_HEAVY_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>hash_only</td><td>placeholder_fallback</td><td><a href="https://sepolia.voyager.online/tx/0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef" target="_blank" rel="noreferrer">0x5c15ea5236...9307e4be9aef</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
-<tr><td>DUAL</td><td>1</td><td>200</td><td>mirror_failed</td><td>hash_only</td><td>groth16_modelbridge</td><td><a href="https://sepolia.voyager.online/tx/0x597a696774a026aac10b7385b38be02da682c690dfac6df8a349be075800f2" target="_blank" rel="noreferrer">0x597a696774...49be075800f2</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed  L2 verification endpoint unavailable on parent API</td></tr></tbody></table>
+      <table><thead><tr><th>Run</th><th>Attempt</th><th>HTTP</th><th>Mirror</th><th>L3 Mode</th><th>Bridge Backend</th><th>Tx</th><th>Can Execute</th><th>Failure Text</th></tr></thead><tbody><tr><td>L3</td><td>1</td><td>200</td><td>not_requested</td><td>hash_only</td><td>groth16_modelbridge</td><td><a href="https://sepolia.voyager.online/tx/0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8" target="_blank" rel="noreferrer">0x47743ca19e...7b10b78152d8</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>hash_only</td><td>placeholder_fallback</td><td><a href="https://sepolia.voyager.online/tx/0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080" target="_blank" rel="noreferrer">0x1714b773c2...b27146b1d080</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
+<tr><td>DUAL</td><td>1</td><td>200</td><td>mirror_failed</td><td>hash_only</td><td>groth16_modelbridge</td><td><a href="https://sepolia.voyager.online/tx/0x109b1828f62cca7c459c33ff9eb6881d0a2dbc939bc856bde5da48e34e05225" target="_blank" rel="noreferrer">0x109b1828f6...a48e34e05225</a></td><td><span class="fail">false</span></td><td>Strict L3 verification failed  {&quot;detail&quot;:&quot;Not Found&quot;}</td></tr></tbody></table>
     </section>
 
     <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
@@ -428,7 +429,7 @@
       <table><thead><tr><th>Run</th><th>Proof Mode</th><th>Requested Chain</th><th>L3 Mode</th><th>L2 Mode</th><th>Bridge Backend</th><th>Mirror</th><th>Can Execute</th><th>Failure Reason</th></tr></thead><tbody><tr><td>L3</td><td>EZKL_BRIDGE</td><td>l3</td><td>hash_only</td><td>-</td><td>groth16_modelbridge</td><td>not_requested</td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
 <tr><td>L3_HEAVY_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>hash_only</td><td>-</td><td>placeholder_fallback</td><td>not_requested</td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr>
 <tr><td>L3_NOIR_REQUEST</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="fail">false</span></td><td>-</td></tr>
-<tr><td>DUAL</td><td>FULL_DUAL_PROVER</td><td>dual</td><td>hash_only</td><td>l2_registry_unavailable</td><td>groth16_modelbridge</td><td>mirror_failed</td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr></tbody></table>
+<tr><td>DUAL</td><td>FULL_DUAL_PROVER</td><td>dual</td><td>hash_only</td><td>l2_unverified</td><td>groth16_modelbridge</td><td>mirror_failed</td><td><span class="fail">false</span></td><td>Strict L3 verification failed</td></tr></tbody></table>
       <p class="meta">
         SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
         In `dual` mode, backend attempts both and records mirror status for policy gating.
@@ -616,22 +617,22 @@
         <strong>UI intent:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
         <strong>Unlocks:</strong> <span class="chip novel">Novel</span> AI-guided suggestions with cryptographic gating, not opaque black-box outputs.
       </div>
-      <table><thead><tr><th>Opp ID</th><th>Title</th><th>Pair</th><th>Type</th><th>Yield %</th><th>Risk</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>Swap USDC/EURe</td><td>USDC/EURe</td><td>swap</td><td>267.25</td><td>45.0</td></tr>
-<tr><td>279abf8fb351462d</td><td>Swap ETH/EURe</td><td>ETH/EURe</td><td>swap</td><td>154.77</td><td>45.0</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>Swap WBTC/USDT</td><td>WBTC/USDT</td><td>swap</td><td>48.02</td><td>45.0</td></tr>
-<tr><td>5554e991885b4954</td><td>Swap ETH/USDC.e</td><td>ETH/USDC.e</td><td>swap</td><td>45.94</td><td>45.0</td></tr>
-<tr><td>f695210aab99e3ad</td><td>Swap ETH/USDC</td><td>ETH/USDC</td><td>swap</td><td>29.80</td><td>45.0</td></tr>
+      <table><thead><tr><th>Opp ID</th><th>Title</th><th>Pair</th><th>Type</th><th>Yield %</th><th>Risk</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>Swap USDC/EURe</td><td>USDC/EURe</td><td>swap</td><td>256.09</td><td>45.0</td></tr>
+<tr><td>279abf8fb351462d</td><td>Swap ETH/EURe</td><td>ETH/EURe</td><td>swap</td><td>150.41</td><td>45.0</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>Swap WBTC/USDT</td><td>WBTC/USDT</td><td>swap</td><td>47.44</td><td>45.0</td></tr>
+<tr><td>5554e991885b4954</td><td>Swap ETH/USDC.e</td><td>ETH/USDC.e</td><td>swap</td><td>43.58</td><td>45.0</td></tr>
+<tr><td>f695210aab99e3ad</td><td>Swap ETH/USDC</td><td>ETH/USDC</td><td>swap</td><td>29.45</td><td>45.0</td></tr>
 <tr><td>b9a951bdf6ae53e4</td><td>Swap EKUBO/USDC</td><td>EKUBO/USDC</td><td>swap</td><td>20.77</td><td>45.0</td></tr></tbody></table>
       <h3>AI Advisory Snapshot</h3>
-      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Narrative</th><th>Status</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.55</td><td>Swap USDC/EURe shows strong fundamentals with 267.2% yield and manageable risk.</td><td>200</td></tr>
-<tr><td>279abf8fb351462d</td><td>execute</td><td>0.55</td><td>Swap ETH/EURe shows strong fundamentals with 154.8% yield and manageable risk.</td><td>200</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.55</td><td>Swap WBTC/USDT shows strong fundamentals with 48.0% yield and manageable risk.</td><td>200</td></tr>
-<tr><td>5554e991885b4954</td><td>execute</td><td>0.55</td><td>Swap ETH/USDC.e shows strong fundamentals with 45.9% yield and manageable risk.</td><td>200</td></tr></tbody></table>
+      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Narrative</th><th>Status</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.55</td><td>Swap USDC/EURe shows strong fundamentals with 256.1% yield and manageable risk.</td><td>200</td></tr>
+<tr><td>279abf8fb351462d</td><td>execute</td><td>0.55</td><td>Swap ETH/EURe shows strong fundamentals with 150.4% yield and manageable risk.</td><td>200</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.55</td><td>Swap WBTC/USDT shows strong fundamentals with 47.4% yield and manageable risk.</td><td>200</td></tr>
+<tr><td>5554e991885b4954</td><td>execute</td><td>0.55</td><td>Swap ETH/USDC.e shows strong fundamentals with 43.6% yield and manageable risk.</td><td>200</td></tr></tbody></table>
       <h3>Badge Circuit Screening Snapshot</h3>
-      <table><thead><tr><th>Opp ID</th><th>Proof Status</th><th>is_proved</th><th>Yield Proof</th><th>Strategy Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>proved</td><td><span class="pass">true</span></td><td>0xb2e237ae...a4305cc01c</td><td>0x1212fc77...7e400795db</td><td></td></tr>
-<tr><td>279abf8fb351462d</td><td>proved</td><td><span class="pass">true</span></td><td>0x27850da2...e32dccfde1</td><td>0x45fefcd9...09a33d12b6</td><td></td></tr>
-<tr><td>fd6f074ba5f33703</td><td>proved</td><td><span class="pass">true</span></td><td>0x8f132ab9...f377d7e077</td><td>0x3bb3c2c1...1dbb2e4ad9</td><td></td></tr>
-<tr><td>5554e991885b4954</td><td>proved</td><td><span class="pass">true</span></td><td>0xe8001869...802a1bca4d</td><td>0x3c9c2d5b...e185d365cf</td><td></td></tr></tbody></table>
+      <table><thead><tr><th>Opp ID</th><th>Proof Status</th><th>is_proved</th><th>Yield Proof</th><th>Strategy Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>proved</td><td><span class="pass">true</span></td><td>0x16f066ce...71d785f98c</td><td>0xc0e98bb9...60b37ca711</td><td></td></tr>
+<tr><td>279abf8fb351462d</td><td>proved</td><td><span class="pass">true</span></td><td>0xd0cc9a91...0932f9d40e</td><td>0xc73ca21b...0a56641b46</td><td></td></tr>
+<tr><td>fd6f074ba5f33703</td><td>proved</td><td><span class="pass">true</span></td><td>0x06624865...99de601dfe</td><td>0x5875287f...3f9da22b4b</td><td></td></tr>
+<tr><td>5554e991885b4954</td><td>proved</td><td><span class="pass">true</span></td><td>0x2a6310e9...c80a666a9b</td><td>0x51bc7015...e8fd51b6c1</td><td></td></tr></tbody></table>
     </section>
 
     <section class="report-section" data-main-tab="ai" data-sub-tab="skills">
@@ -642,66 +643,66 @@
         <strong>Unlocks:</strong> AI recommendations become verifiable policy outputs, not opaque prompts.
       </div>
       <p class="meta">Skills in this pass: il_predictor, yield_optimality, slippage_bound, reputation_check, arb_check, liquidation_check, mev_protection, risk_score, anomaly_detection, solvency_proof, risk_passport, strategy_integrity, execution_integrity</p>
-      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Skills Passed</th><th>Skills Total</th><th>Rationale</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.95</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=267.25% risk=45.0. failed_skills=none.</td></tr>
-<tr><td>279abf8fb351462d</td><td>execute</td><td>0.86</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=154.77% risk=45.0. failed_skills=none.</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.76</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=48.02% risk=45.0. failed_skills=none.</td></tr></tbody></table>
+      <table><thead><tr><th>Opp ID</th><th>Recommendation</th><th>Confidence</th><th>Skills Passed</th><th>Skills Total</th><th>Rationale</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>execute</td><td>0.95</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=256.09% risk=45.0. failed_skills=none.</td></tr>
+<tr><td>279abf8fb351462d</td><td>execute</td><td>0.86</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=150.41% risk=45.0. failed_skills=none.</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>execute</td><td>0.76</td><td>13</td><td>13</td><td>13/13 zkML skill proofs passed; yield=47.44% risk=45.0. failed_skills=none.</td></tr></tbody></table>
       <h3>Skill Trail (sample)</h3>
-      <table><thead><tr><th>Opp ID</th><th>Skill</th><th>Result</th><th>Duration ms</th><th>Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>2817</td><td>0xae2b9d30...fc08845bdc</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>2749</td><td>0x5259f0c7...7b246a1a25</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>3024</td><td>0x235a1b67...11b3fef94f</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3281</td><td>0x4abe8c45...e95a5130da</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>arb_check</td><td><span class="pass">pass</span></td><td>2741</td><td>0x149272ac...4fe7147e78</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>3203</td><td>0xe71bc60f...96be0ba1f0</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>3244</td><td>0x5e38d770...dc89fe9a27</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3328</td><td>0x38437729...2ff46fd95e</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>2841</td><td>0xd7a31735...a4b0253827</td><td>-</td></tr>
-<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>2594</td><td>0xfdba887a...09b1bf52f0</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>4218</td><td>0x27633465...7bab3750eb</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>3753</td><td>0x2c27130e...749bfa542c</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>3772</td><td>0x7cad0772...22da6a0cd2</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3746</td><td>0xa5fa3c88...6f528d14c4</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>arb_check</td><td><span class="pass">pass</span></td><td>4099</td><td>0xb2fe3383...0d7b62dc02</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>3675</td><td>0xc4c8bb55...6d9efea6f2</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>3751</td><td>0x989a8b56...9ba3131fea</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3583</td><td>0x6112e40f...8a33f2d365</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>3849</td><td>0xc2901dc5...e1241e3ca2</td><td>-</td></tr>
-<tr><td>279abf8fb351462d</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3984</td><td>0x6e51d888...07d6f225f0</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>3771</td><td>0x3c199422...3fecebfd8e</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>3473</td><td>0x4f6ab229...de75d9cfe9</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>3565</td><td>0x6ee99785...18fac9f6ce</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3521</td><td>0xba82ce1d...c68e2274d2</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>arb_check</td><td><span class="pass">pass</span></td><td>3564</td><td>0x635f37f9...7ecc6c88d4</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>4299</td><td>0x9ad2e77d...16e52bab7a</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>4285</td><td>0xd208440b...fd19870cbd</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3329</td><td>0x461fbedd...d50b2843de</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>3408</td><td>0xdde774c9...efeb3a3004</td><td>-</td></tr>
-<tr><td>fd6f074ba5f33703</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3623</td><td>0x4fdcbb8c...a93f102a46</td><td>-</td></tr></tbody></table>
+      <table><thead><tr><th>Opp ID</th><th>Skill</th><th>Result</th><th>Duration ms</th><th>Proof</th><th>Error</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>4428</td><td>0xc71d43db...b72842d478</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>3322</td><td>0xdb042cc6...0ebc617d25</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>4682</td><td>0xf17894ee...28ce328477</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>4419</td><td>0x6be8ee75...a92c972685</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>arb_check</td><td><span class="pass">pass</span></td><td>4428</td><td>0x46a0caf9...c8449ab9b6</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>4428</td><td>0x3d23abe3...8450266255</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>4427</td><td>0x100852d7...13b4549383</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_score</td><td><span class="pass">pass</span></td><td>4427</td><td>0x606abd67...a88b1f1d5c</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>4427</td><td>0x96fd2ecf...0d74929d8e</td><td>-</td></tr>
+<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>4425</td><td>0xfd45cc92...064296abac</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>3646</td><td>0xe7571cdf...bfe578d054</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>3622</td><td>0x47d86f27...c695ae71ab</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>3789</td><td>0xdb48494f...01b9161072</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3635</td><td>0x4769cb35...e432e7e2d6</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>arb_check</td><td><span class="pass">pass</span></td><td>3473</td><td>0x16d9b4f2...7ace483291</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>4041</td><td>0x5acefb33...f351bfbfc9</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>3602</td><td>0x5ecef1d9...826aa59909</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3347</td><td>0xb302e044...f527903de0</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>3644</td><td>0x032787be...21a41f15d3</td><td>-</td></tr>
+<tr><td>279abf8fb351462d</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3820</td><td>0x5de7c754...8375e1e1b9</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>il_predictor</td><td><span class="pass">pass</span></td><td>3724</td><td>0x7ec04f13...0067893bc9</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>yield_optimality</td><td><span class="pass">pass</span></td><td>3686</td><td>0xfd2f95e1...fbd742d9b9</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>slippage_bound</td><td><span class="pass">pass</span></td><td>3835</td><td>0xf244cc44...5520933ea6</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>reputation_check</td><td><span class="pass">pass</span></td><td>3841</td><td>0xb712bbca...96c6f5f2f8</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>arb_check</td><td><span class="pass">pass</span></td><td>3728</td><td>0xedf691fb...c4f5f0e551</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>liquidation_check</td><td><span class="pass">pass</span></td><td>3882</td><td>0xfc9ec164...05afdcdb6c</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>mev_protection</td><td><span class="pass">pass</span></td><td>3684</td><td>0x761e7914...3ae1e1bf0b</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>risk_score</td><td><span class="pass">pass</span></td><td>3682</td><td>0xbaa958ba...528efa80b7</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>anomaly_detection</td><td><span class="pass">pass</span></td><td>3682</td><td>0x5b8d4170...5db1be552c</td><td>-</td></tr>
+<tr><td>fd6f074ba5f33703</td><td>solvency_proof</td><td><span class="pass">pass</span></td><td>3715</td><td>0x90064f48...b7f5a6d6a6</td><td>-</td></tr></tbody></table>
       <h3>Skill Proof Receipts</h3>
-      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `index_pending` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
-      <table><thead><tr><th>Opp ID</th><th>Skill Used</th><th>Proof Hash</th><th>Receipt Endpoint</th><th>Receipt State</th><th>Receipt Status</th><th>Statement</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td>0xae2b9d30...fc08845bdc</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill il_predictor for opportunity 2f9f604e72471d21 and generated proof 0xae2b9d30...fc08845bdc.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td>0x5259f0c7...7b246a1a25</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill yield_optimality for opportunity 2f9f604e72471d21 and generated proof 0x5259f0c7...7b246a1a25.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td>0x235a1b67...11b3fef94f</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill slippage_bound for opportunity 2f9f604e72471d21 and generated proof 0x235a1b67...11b3fef94f.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td>0x4abe8c45...e95a5130da</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill reputation_check for opportunity 2f9f604e72471d21 and generated proof 0x4abe8c45...e95a5130da.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>arb_check</td><td>0x149272ac...4fe7147e78</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill arb_check for opportunity 2f9f604e72471d21 and generated proof 0x149272ac...4fe7147e78.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td>0xe71bc60f...96be0ba1f0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill liquidation_check for opportunity 2f9f604e72471d21 and generated proof 0xe71bc60f...96be0ba1f0.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td>0x5e38d770...dc89fe9a27</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill mev_protection for opportunity 2f9f604e72471d21 and generated proof 0x5e38d770...dc89fe9a27.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>risk_score</td><td>0x38437729...2ff46fd95e</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_score for opportunity 2f9f604e72471d21 and generated proof 0x38437729...2ff46fd95e.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td>0xd7a31735...a4b0253827</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill anomaly_detection for opportunity 2f9f604e72471d21 and generated proof 0xd7a31735...a4b0253827.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td>0xfdba887a...09b1bf52f0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill solvency_proof for opportunity 2f9f604e72471d21 and generated proof 0xfdba887a...09b1bf52f0.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>risk_passport</td><td>0xcbc5521a...934186342b</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_passport for opportunity 2f9f604e72471d21 and generated proof 0xcbc5521a...934186342b.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>strategy_integrity</td><td>0x4325461b...1dfd71dffd</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill strategy_integrity for opportunity 2f9f604e72471d21 and generated proof 0x4325461b...1dfd71dffd.</td></tr>
-<tr><td>2f9f604e72471d21</td><td>execution_integrity</td><td>0x154d351e...f2bfb76286</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill execution_integrity for opportunity 2f9f604e72471d21 and generated proof 0x154d351e...f2bfb76286.</td></tr>
-<tr><td>279abf8fb351462d</td><td>il_predictor</td><td>0x27633465...7bab3750eb</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill il_predictor for opportunity 279abf8fb351462d and generated proof 0x27633465...7bab3750eb.</td></tr>
-<tr><td>279abf8fb351462d</td><td>yield_optimality</td><td>0x2c27130e...749bfa542c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill yield_optimality for opportunity 279abf8fb351462d and generated proof 0x2c27130e...749bfa542c.</td></tr>
-<tr><td>279abf8fb351462d</td><td>slippage_bound</td><td>0x7cad0772...22da6a0cd2</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill slippage_bound for opportunity 279abf8fb351462d and generated proof 0x7cad0772...22da6a0cd2.</td></tr>
-<tr><td>279abf8fb351462d</td><td>reputation_check</td><td>0xa5fa3c88...6f528d14c4</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill reputation_check for opportunity 279abf8fb351462d and generated proof 0xa5fa3c88...6f528d14c4.</td></tr>
-<tr><td>279abf8fb351462d</td><td>arb_check</td><td>0xb2fe3383...0d7b62dc02</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill arb_check for opportunity 279abf8fb351462d and generated proof 0xb2fe3383...0d7b62dc02.</td></tr>
-<tr><td>279abf8fb351462d</td><td>liquidation_check</td><td>0xc4c8bb55...6d9efea6f2</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill liquidation_check for opportunity 279abf8fb351462d and generated proof 0xc4c8bb55...6d9efea6f2.</td></tr>
-<tr><td>279abf8fb351462d</td><td>mev_protection</td><td>0x989a8b56...9ba3131fea</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill mev_protection for opportunity 279abf8fb351462d and generated proof 0x989a8b56...9ba3131fea.</td></tr>
-<tr><td>279abf8fb351462d</td><td>risk_score</td><td>0x6112e40f...8a33f2d365</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_score for opportunity 279abf8fb351462d and generated proof 0x6112e40f...8a33f2d365.</td></tr>
-<tr><td>279abf8fb351462d</td><td>anomaly_detection</td><td>0xc2901dc5...e1241e3ca2</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill anomaly_detection for opportunity 279abf8fb351462d and generated proof 0xc2901dc5...e1241e3ca2.</td></tr>
-<tr><td>279abf8fb351462d</td><td>solvency_proof</td><td>0x6e51d888...07d6f225f0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill solvency_proof for opportunity 279abf8fb351462d and generated proof 0x6e51d888...07d6f225f0.</td></tr>
-<tr><td>279abf8fb351462d</td><td>risk_passport</td><td>0x5e5cd6f6...e2b7ee5e26</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26</a></td><td>index_pending</td><td><span class="pass">index_pending (receipt cache not indexed yet)</span></td><td>I used skill risk_passport for opportunity 279abf8fb351462d and generated proof 0x5e5cd6f6...e2b7ee5e26.</td></tr></tbody></table>
+      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `local_receipt_only` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
+      <table><thead><tr><th>Opp ID</th><th>Skill Used</th><th>Proof Hash</th><th>Receipt Endpoint</th><th>Receipt State</th><th>Receipt Status</th><th>Statement</th></tr></thead><tbody><tr><td>2f9f604e72471d21</td><td>il_predictor</td><td>0xc71d43db...b72842d478</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill il_predictor for opportunity 2f9f604e72471d21 and generated proof 0xc71d43db...b72842d478.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>yield_optimality</td><td>0xdb042cc6...0ebc617d25</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill yield_optimality for opportunity 2f9f604e72471d21 and generated proof 0xdb042cc6...0ebc617d25.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>slippage_bound</td><td>0xf17894ee...28ce328477</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill slippage_bound for opportunity 2f9f604e72471d21 and generated proof 0xf17894ee...28ce328477.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>reputation_check</td><td>0x6be8ee75...a92c972685</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill reputation_check for opportunity 2f9f604e72471d21 and generated proof 0x6be8ee75...a92c972685.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>arb_check</td><td>0x46a0caf9...c8449ab9b6</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill arb_check for opportunity 2f9f604e72471d21 and generated proof 0x46a0caf9...c8449ab9b6.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>liquidation_check</td><td>0x3d23abe3...8450266255</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill liquidation_check for opportunity 2f9f604e72471d21 and generated proof 0x3d23abe3...8450266255.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>mev_protection</td><td>0x100852d7...13b4549383</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill mev_protection for opportunity 2f9f604e72471d21 and generated proof 0x100852d7...13b4549383.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_score</td><td>0x606abd67...a88b1f1d5c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill risk_score for opportunity 2f9f604e72471d21 and generated proof 0x606abd67...a88b1f1d5c.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>anomaly_detection</td><td>0x96fd2ecf...0d74929d8e</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill anomaly_detection for opportunity 2f9f604e72471d21 and generated proof 0x96fd2ecf...0d74929d8e.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>solvency_proof</td><td>0xfd45cc92...064296abac</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill solvency_proof for opportunity 2f9f604e72471d21 and generated proof 0xfd45cc92...064296abac.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>risk_passport</td><td>0xa4bf82a7...a7570c6a67</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill risk_passport for opportunity 2f9f604e72471d21 and generated proof 0xa4bf82a7...a7570c6a67.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>strategy_integrity</td><td>0x98b06e02...7a0ee4e47c</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill strategy_integrity for opportunity 2f9f604e72471d21 and generated proof 0x98b06e02...7a0ee4e47c.</td></tr>
+<tr><td>2f9f604e72471d21</td><td>execution_integrity</td><td>0x9a246680...855b2de2bc</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill execution_integrity for opportunity 2f9f604e72471d21 and generated proof 0x9a246680...855b2de2bc.</td></tr>
+<tr><td>279abf8fb351462d</td><td>il_predictor</td><td>0xe7571cdf...bfe578d054</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill il_predictor for opportunity 279abf8fb351462d and generated proof 0xe7571cdf...bfe578d054.</td></tr>
+<tr><td>279abf8fb351462d</td><td>yield_optimality</td><td>0x47d86f27...c695ae71ab</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill yield_optimality for opportunity 279abf8fb351462d and generated proof 0x47d86f27...c695ae71ab.</td></tr>
+<tr><td>279abf8fb351462d</td><td>slippage_bound</td><td>0xdb48494f...01b9161072</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill slippage_bound for opportunity 279abf8fb351462d and generated proof 0xdb48494f...01b9161072.</td></tr>
+<tr><td>279abf8fb351462d</td><td>reputation_check</td><td>0x4769cb35...e432e7e2d6</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill reputation_check for opportunity 279abf8fb351462d and generated proof 0x4769cb35...e432e7e2d6.</td></tr>
+<tr><td>279abf8fb351462d</td><td>arb_check</td><td>0x16d9b4f2...7ace483291</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill arb_check for opportunity 279abf8fb351462d and generated proof 0x16d9b4f2...7ace483291.</td></tr>
+<tr><td>279abf8fb351462d</td><td>liquidation_check</td><td>0x5acefb33...f351bfbfc9</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill liquidation_check for opportunity 279abf8fb351462d and generated proof 0x5acefb33...f351bfbfc9.</td></tr>
+<tr><td>279abf8fb351462d</td><td>mev_protection</td><td>0x5ecef1d9...826aa59909</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill mev_protection for opportunity 279abf8fb351462d and generated proof 0x5ecef1d9...826aa59909.</td></tr>
+<tr><td>279abf8fb351462d</td><td>risk_score</td><td>0xb302e044...f527903de0</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill risk_score for opportunity 279abf8fb351462d and generated proof 0xb302e044...f527903de0.</td></tr>
+<tr><td>279abf8fb351462d</td><td>anomaly_detection</td><td>0x032787be...21a41f15d3</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill anomaly_detection for opportunity 279abf8fb351462d and generated proof 0x032787be...21a41f15d3.</td></tr>
+<tr><td>279abf8fb351462d</td><td>solvency_proof</td><td>0x5de7c754...8375e1e1b9</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill solvency_proof for opportunity 279abf8fb351462d and generated proof 0x5de7c754...8375e1e1b9.</td></tr>
+<tr><td>279abf8fb351462d</td><td>risk_passport</td><td>0x69b22a8f...4dba79f98e</td><td><a href="http://127.0.0.1:8003/api/v1/zkdefi/proofs/0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e" target="_blank" rel="noreferrer">/api/v1/zkdefi/proofs/0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e</a></td><td>local_receipt_only</td><td><span class="pass">local_receipt_only (404 index pending)</span></td><td>I used skill risk_passport for opportunity 279abf8fb351462d and generated proof 0x69b22a8f...4dba79f98e.</td></tr></tbody></table>
     </section>
 
     <section class="report-section" data-main-tab="privacy" data-sub-tab="rails">
@@ -716,19 +717,19 @@
 <tr><td>1</td><td>Standard</td><td><span class="pass">yes</span></td><td>1.0</td><td>Constraint-bounded (setup proof only)</td><td>50.0</td></tr>
 <tr><td>2</td><td>Express</td><td><span class="pass">yes</span></td><td>-</td><td>Optimistic + batched proofs</td><td>-</td></tr></tbody></table>
       <h3>Shielded -> Nullifier -> Claim Hash Rails</h3>
-      <table><thead><tr><th>Pool Type</th><th>Generate</th><th>Register</th><th>Claim</th><th>Nullifier</th><th>Claim Hash</th><th>Relayer Ready</th></tr></thead><tbody><tr><td>0</td><td>200</td><td>200</td><td>200</td><td>0x2a8d6f06...aaefbb9a0a</td><td>0x2f2f826b...3b00a8ee4e</td><td><span class="pass">ready</span></td></tr>
-<tr><td>1</td><td>200</td><td>200</td><td>200</td><td>0xf5ea5958...65a91974f2</td><td>0x29900250...1d4623602c</td><td><span class="pass">ready</span></td></tr>
-<tr><td>2</td><td>200</td><td>200</td><td>200</td><td>0xa1d1a629...6303804296</td><td>0x20c379c3...ec374048dd</td><td><span class="pass">ready</span></td></tr></tbody></table>
+      <table><thead><tr><th>Pool Type</th><th>Generate</th><th>Register</th><th>Claim</th><th>Nullifier</th><th>Claim Hash</th><th>Relayer Ready</th></tr></thead><tbody><tr><td>0</td><td>200</td><td>200</td><td>200</td><td>0x58034fca...787e20876d</td><td>0x1a91ba75...639d119133</td><td><span class="pass">ready</span></td></tr>
+<tr><td>1</td><td>200</td><td>200</td><td>200</td><td>0x76be05c4...4ae0ed48b0</td><td>0x28b81cc2...40e801abc3</td><td><span class="pass">ready</span></td></tr>
+<tr><td>2</td><td>200</td><td>200</td><td>200</td><td>0x4f2480bb...e4774f8ae8</td><td>0x40caab69...7f1335cf1e</td><td><span class="pass">ready</span></td></tr></tbody></table>
       <h3>Ledger + Relayer Withdraw</h3>
-      <table><thead><tr><th>Flow</th><th>Status</th><th>Reference</th><th>Status URL</th><th>Settlement ETA</th></tr></thead><tbody><tr><td>shielded transfer_in</td><td>200</td><td>0x6851593a...5f46bbb2ea</td><td>/api/v1/zkdefi/mc/receipts/0x2060e928769ff41d28253d578a852a18e12ca1a1bc9b6e299ebcd4d91d0f6ad0</td><td>-</td></tr>
-<tr><td>relayer withdraw transfer_out</td><td>200</td><td>queued</td><td>/api/v1/zkdefi/relayer/pending/0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</td><td>2026-03-11T04:49:47Z</td></tr></tbody></table>
+      <table><thead><tr><th>Flow</th><th>Status</th><th>Reference</th><th>Status URL</th><th>Settlement ETA</th></tr></thead><tbody><tr><td>shielded transfer_in</td><td>200</td><td>0x24bca02a...7a4caefa42</td><td>/api/v1/zkdefi/mc/receipts/0x286654ee4fce89b97b2458ae935dc42a197e1dd3b1c48bcc792ed14890f3a140</td><td>-</td></tr>
+<tr><td>relayer withdraw transfer_out</td><td>200</td><td>queued</td><td>/api/v1/zkdefi/relayer/pending/0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</td><td>2026-03-11T04:22:54Z</td></tr></tbody></table>
       <h3>L3 Dark Settlement (Madara)</h3>
       <table><thead><tr><th>Endpoint</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>health</td><td>200</td><td>True</td></tr>
 <tr><td>config</td><td>200</td><td>madara_l3</td></tr>
 <tr><td>verify</td><td>200</td><td>False</td></tr>
-<tr><td>batch submit</td><td>200</td><td>3</td></tr></tbody></table>
+<tr><td>batch submit</td><td>200</td><td>2</td></tr></tbody></table>
       <h3>Private Voting</h3>
-      <table><thead><tr><th>Proposal ID</th><th>Create</th><th>Proof</th><th>Cast</th><th>Error</th></tr></thead><tbody><tr><td>49</td><td>200</td><td>200</td><td>200</td><td>-</td></tr></tbody></table>
+      <table><thead><tr><th>Proposal ID</th><th>Create</th><th>Proof</th><th>Cast</th><th>Error</th></tr></thead><tbody><tr><td>46</td><td>200</td><td>200</td><td>200</td><td>-</td></tr></tbody></table>
       <h3>Private Lending + Pool Privacy Modes</h3>
       <table><thead><tr><th>Lending Pool</th><th>Supply</th><th>Borrow</th><th>Health</th><th>DAO Policy</th><th>Active Loans</th></tr></thead><tbody><tr><td>200</td><td>200</td><td>200</td><td>200</td><td>200</td><td>2</td></tr></tbody></table>
       <table><thead><tr><th>Privacy Mode</th><th>Deposit Status</th><th>Proof Ref</th><th>Detail</th></tr></thead><tbody><tr><td>public</td><td>200</td><td>-</td><td>-</td></tr>
@@ -743,28 +744,28 @@
         <strong>UI intent:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
         <strong>Unlocks:</strong> Proof-aware forecasting that can plug into private voting, risk tiers, and strategy gating.
       </div>
-      <table><thead><tr><th>Stage</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>create_window</td><td>200</td><td>0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707</td></tr>
+      <table><thead><tr><th>Stage</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>create_window</td><td>200</td><td>0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9</td></tr>
 <tr><td>suggest_outputs</td><td>200</td><td>None</td></tr>
-<tr><td>commit</td><td>200</td><td>0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03</td></tr>
+<tr><td>commit</td><td>200</td><td>0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf</td></tr>
 <tr><td>reveal</td><td>200</td><td>offchain_ezkl_verified</td></tr>
 <tr><td>outcomes</td><td>200</td><td>None</td></tr>
-<tr><td>score</td><td>200</td><td>0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904</td></tr>
+<tr><td>score</td><td>200</td><td>0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1</td></tr>
 <tr><td>explain</td><td>200</td><td>200</td></tr></tbody></table>
       <h3>Suggested Outputs (scaled)</h3>
-      <table><thead><tr><th>Output Key</th><th>Value</th></tr></thead><tbody><tr><td>p240</td><td>7615</td></tr>
-<tr><td>p30</td><td>6721</td></tr>
-<tr><td>p5</td><td>5958</td></tr>
-<tr><td>r240</td><td>139</td></tr>
-<tr><td>r30</td><td>91</td></tr>
-<tr><td>r5</td><td>56</td></tr></tbody></table>
+      <table><thead><tr><th>Output Key</th><th>Value</th></tr></thead><tbody><tr><td>p240</td><td>7549</td></tr>
+<tr><td>p30</td><td>6658</td></tr>
+<tr><td>p5</td><td>5923</td></tr>
+<tr><td>r240</td><td>134</td></tr>
+<tr><td>r30</td><td>87</td></tr>
+<tr><td>r5</td><td>54</td></tr></tbody></table>
       <h3>Score Metrics</h3>
-      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>brier_score</td><td>0.109259</td></tr>
+      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>brier_score</td><td>0.112661</td></tr>
 <tr><td>directional_accuracy</td><td>1.0</td></tr>
-<tr><td>ece</td><td>0.323533</td></tr>
+<tr><td>ece</td><td>0.329</td></tr>
 <tr><td>horizon_count</td><td>3</td></tr>
-<tr><td>mae_bps</td><td>124.666667</td></tr>
-<tr><td>rmse_bps</td><td>155.003226</td></tr></tbody></table>
-      <p class="meta">Explainability: The model predicted returns of 0.56% for 5 minutes, 0.91% for 30 minutes, and 1.39% for 4 hours, with a probability of price increases of 59.6%, 67.2%, and 76.2%, respectively. After scoring, the actual returns were significantly higher at 0.90%, 1.80%, and...</p>
+<tr><td>mae_bps</td><td>128.333333</td></tr>
+<tr><td>rmse_bps</td><td>158.620091</td></tr></tbody></table>
+      <p class="meta">Explainability: The model predicted returns of 0.54% for 5 minutes, 0.87% for 30 minutes, and 1.34% for 4 hours, with probabilities of price increases at 59.2%, 66.6%, and 75.5%, respectively. It performed exceptionally well, achieving actual returns of 0.90%, 1.80%, and 3...</p>
     </section>
 
     <section class="report-section" data-main-tab="ai" data-sub-tab="config">
@@ -789,7 +790,7 @@
       <p class="meta">Current status: <span class="pass">PASS</span> (PASS)</p>
       <p class="meta">Shared persistent Poseidon worker is healthy across strategy badge + credit proof paths.</p>
       <table><thead><tr><th>Step</th><th>Status</th><th>API Status</th><th>Signal</th></tr></thead><tbody><tr><td>Optional: batch skill proof runtime</td><td><span class="pass">PASS</span></td><td>200</td><td>5/5</td></tr>
-<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>200</td><td>0xc6147335...ec2cc93acc</td></tr></tbody></table>
+<tr><td>Optional: credit eligibility proof</td><td><span class="pass">PASS</span></td><td>200</td><td>0xbfa66b48...6d17e89a00</td></tr></tbody></table>
     </section>
 
     <section class="report-section" data-main-tab="ai" data-sub-tab="strategy">
@@ -799,7 +800,7 @@
         <strong>UI intent:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
         <strong>Unlocks:</strong> Explainable strategy decisions with proof-linked context.
       </div>
-      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Evidence ID</th><th>Confidence</th><th>Signal</th><th>Failure</th></tr></thead><tbody><tr><td>recommend</td><td>200</td><td>7ad290ce9d1a</td><td>0.85</td><td>18.15%</td><td>For a balanced risk appetite I&#x27;m splitting capital across Ekubo LP (50%, 27.5% APY), lending (25%, 8.0% APY), and staking (20%, 12.0% APY). The LP allocation targets ETH/USDC and STRK/USDC — the tw...</td></tr>
+      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Evidence ID</th><th>Confidence</th><th>Signal</th><th>Failure</th></tr></thead><tbody><tr><td>recommend</td><td>200</td><td>8136fdeb2f42</td><td>0.85</td><td>18.15%</td><td>For a balanced risk appetite I&#x27;m splitting capital across Ekubo LP (50%, 27.5% APY), lending (25%, 8.0% APY), and staking (20%, 12.0% APY). The LP allocation targets ETH/USDC and STRK/USDC — the tw...</td></tr>
 <tr><td>analyze</td><td>500</td><td>-</td><td>-</td><td>cannot unpack non-iterable coroutine object</td><td>cannot unpack non-iterable coroutine object</td></tr></tbody></table>
       <h3>Allocation Rows</h3>
       <table><thead><tr><th>Source</th><th>Pool ID</th><th>Pair</th><th>Protocol</th><th>Allocation</th><th>Expected APY</th></tr></thead><tbody><tr><td>recommend</td><td>ekubo_eth_usdc</td><td>ETH/USDC</td><td>Ekubo</td><td>30.0%</td><td>27.50%</td></tr>

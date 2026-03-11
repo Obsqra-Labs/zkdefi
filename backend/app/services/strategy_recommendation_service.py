@@ -9,11 +9,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ── Deployed adapter addresses (from deploy_vault_controller_results.json) ──
+# ── Deployed adapter addresses (read from env, fallback to deploy_vault_controller_results.json) ──
+import os as _os
 WIRED_ADAPTERS = {
-    "Ekubo": "0x74febeff7301aa58d786b01756e36f20ab7208a52ce94a82b425af8f9933a0",
-    "Lending": "0x104f06b17e476bae294253ec1bba54dd4eaedd4f9d97468251fa6de62cfb90a",
-    "Staking": "0x63b4f90d0f3373700e30624191651c2d2d301a11c544a463ffd66df320b85e3",
+    "Ekubo": _os.getenv("EKUBO_LP_ADAPTER_ADDRESS", "0x1f5e68f5470f2d316afdd057029438d950baa3dc59fc7060fd0a57ef88c4245"),
+    "Lending": _os.getenv("LENDING_ADAPTER_ADDRESS", "0x2f76cf75ca90657b933686807884b3a1ffdc43347a9c5a053f2c2d108431357"),
+    "Staking": _os.getenv("STAKING_ADAPTER_ADDRESS", "0x66c048e79c11c5f3f94ad2a7f7cdd033e5cd5b5b3d207f6dd37cc22526edadf"),
     "Idle": None,  # idle reserve — no adapter needed
 }
 

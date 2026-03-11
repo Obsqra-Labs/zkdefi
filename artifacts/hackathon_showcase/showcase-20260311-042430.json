@@ -4,7 +4,7 @@
       {
         "confidence": 0.55,
         "detail": null,
-        "narrative": "Swap USDC/EURe shows strong fundamentals with 267.2% yield and manageable risk.",
+        "narrative": "Swap USDC/EURe shows strong fundamentals with 256.1% yield and manageable risk.",
         "opp_id": "2f9f604e72471d21",
         "recommendation": "execute",
         "status": 200
@@ -12,7 +12,7 @@
       {
         "confidence": 0.55,
         "detail": null,
-        "narrative": "Swap ETH/EURe shows strong fundamentals with 154.8% yield and manageable risk.",
+        "narrative": "Swap ETH/EURe shows strong fundamentals with 150.4% yield and manageable risk.",
         "opp_id": "279abf8fb351462d",
         "recommendation": "execute",
         "status": 200
@@ -20,7 +20,7 @@
       {
         "confidence": 0.55,
         "detail": null,
-        "narrative": "Swap WBTC/USDT shows strong fundamentals with 48.0% yield and manageable risk.",
+        "narrative": "Swap WBTC/USDT shows strong fundamentals with 47.4% yield and manageable risk.",
         "opp_id": "fd6f074ba5f33703",
         "recommendation": "execute",
         "status": 200
@@ -28,7 +28,7 @@
       {
         "confidence": 0.55,
         "detail": null,
-        "narrative": "Swap ETH/USDC.e shows strong fundamentals with 45.9% yield and manageable risk.",
+        "narrative": "Swap ETH/USDC.e shows strong fundamentals with 43.6% yield and manageable risk.",
         "opp_id": "5554e991885b4954",
         "recommendation": "execute",
         "status": 200
@@ -211,9 +211,9 @@
         "opp_id": "2f9f604e72471d21",
         "proof_status": "proved",
         "status": 200,
-        "strategy_proof_hash": "0x1212fc772f4aecdbd33c45502fc072243775327e72420c10bb5b597e400795db",
+        "strategy_proof_hash": "0xc0e98bb996797ba7a1dd9c0cab5f3f86352c57ae68a701f968a85f60b37ca711",
         "yield_error": null,
-        "yield_proof_hash": "0xb2e237aec78d1a4fa0cca79fd2b2b49182ab62fc58bc80bfade536a4305cc01c"
+        "yield_proof_hash": "0x16f066ce0a5c4f0b35142a702c4e03004c60c20475207c7b3eb7c671d785f98c"
       },
       {
         "integrity_error": null,
@@ -221,9 +221,9 @@
         "opp_id": "279abf8fb351462d",
         "proof_status": "proved",
         "status": 200,
-        "strategy_proof_hash": "0x45fefcd9ca39a1f2ac40c01f6d7ced56470917114f2947aab2681509a33d12b6",
+        "strategy_proof_hash": "0xc73ca21bf175e687ef2596592d49c84ce03c02052cec8c73170fa30a56641b46",
         "yield_error": null,
-        "yield_proof_hash": "0x27850da23264ef6625779363140e52b7bee42ed3c4793639e5d221e32dccfde1"
+        "yield_proof_hash": "0xd0cc9a91ba97b8c64f467a34aafbc9cdbc1e200ee7aa510ac23c100932f9d40e"
       },
       {
         "integrity_error": null,
@@ -231,9 +231,9 @@
         "opp_id": "fd6f074ba5f33703",
         "proof_status": "proved",
         "status": 200,
-        "strategy_proof_hash": "0x3bb3c2c1e8477ce16976eb5c95d20d6cffdbb3b76d23f770bf6d421dbb2e4ad9",
+        "strategy_proof_hash": "0x5875287fb8482d82d0237c7eaabbbca1e83d33d4c0e7ec2a86a84d3f9da22b4b",
         "yield_error": null,
-        "yield_proof_hash": "0x8f132ab9d6745677c361dd53247770ef061aac39b83e98238131ecf377d7e077"
+        "yield_proof_hash": "0x0662486505077654fe756a29a2117025648940bc62e949bc869fe499de601dfe"
       },
       {
         "integrity_error": null,
@@ -241,9 +241,9 @@
         "opp_id": "5554e991885b4954",
         "proof_status": "proved",
         "status": 200,
-        "strategy_proof_hash": "0x3c9c2d5baa5762991b5f0065c20ae08a50bc7341828ac4bf6c09a5e185d365cf",
+        "strategy_proof_hash": "0x51bc701539e03f9d2b8ec9ab5ceb919bfb7956ed9810f33c11aec0e8fd51b6c1",
         "yield_error": null,
-        "yield_proof_hash": "0xe8001869ead3b4a896f8f367d70212e3644637940eed7bf6ad785c802a1bca4d"
+        "yield_proof_hash": "0x2a6310e9f130c263f91191addd8d84046d2084f7e8de9fa0d8c078c80a666a9b"
       }
     ],
     "llm_config_packs": [
@@ -406,7 +406,7 @@
           "aiNarrative": null,
           "calldataBuilder": "ekubo_swap",
           "confidence": 0.0,
-          "currentYield": 267.24842778669324,
+          "currentYield": 256.0910948823177,
           "executionMode": "relayer",
           "gating": {
             "reason": "Tier 1 recommended",
@@ -425,14 +425,14 @@
           "riskScore": 45.0,
           "signal": null,
           "title": "Swap USDC/EURe",
-          "tvlUsd": 674.759427,
+          "tvlUsd": 704.15723,
           "type": "swap",
           "volume24h": 1646.830385
         },
         "risk_score": 45.0,
         "title": "Swap USDC/EURe",
         "type": "swap",
-        "yield_pct": 267.24842778669324
+        "yield_pct": 256.0910948823177
       },
       {
         "id": "279abf8fb351462d",
@@ -442,7 +442,7 @@
           "aiNarrative": null,
           "calldataBuilder": "ekubo_swap",
           "confidence": 0.0,
-          "currentYield": 154.77067779522915,
+          "currentYield": 150.40519857271303,
           "executionMode": "relayer",
           "gating": {
             "reason": "Tier 1 recommended",
@@ -461,14 +461,14 @@
           "riskScore": 45.0,
           "signal": null,
           "title": "Swap ETH/EURe",
-          "tvlUsd": 5411.40429652903,
+          "tvlUsd": 5539.561987664828,
           "type": "swap",
-          "volume24h": 4589.187456426367
+          "volume24h": 4565.363949373041
         },
         "risk_score": 45.0,
         "title": "Swap ETH/EURe",
         "type": "swap",
-        "yield_pct": 154.77067779522915
+        "yield_pct": 150.40519857271303
       },
       {
         "id": "fd6f074ba5f33703",
@@ -478,7 +478,7 @@
           "aiNarrative": null,
           "calldataBuilder": "ekubo_swap",
           "confidence": 0.0,
-          "currentYield": 48.01971192846117,
+          "currentYield": 47.43604487725315,
           "executionMode": "relayer",
           "gating": {
             "reason": "Tier 1 recommended",
@@ -497,14 +497,14 @@
           "riskScore": 45.0,
           "signal": null,
           "title": "Swap WBTC/USDT",
-          "tvlUsd": 157272.22387858576,
+          "tvlUsd": 156231.35269933223,
           "type": "swap",
-          "volume24h": 206850.72344335204
+          "volume24h": 202983.33122979407
         },
         "risk_score": 45.0,
         "title": "Swap WBTC/USDT",
         "type": "swap",
-        "yield_pct": 48.01971192846117
+        "yield_pct": 47.43604487725315
       },
       {
         "id": "5554e991885b4954",
@@ -514,7 +514,7 @@
           "aiNarrative": null,
           "calldataBuilder": "ekubo_swap",
           "confidence": 0.0,
-          "currentYield": 45.94066592187266,
+          "currentYield": 43.576585032814464,
           "executionMode": "relayer",
           "gating": {
             "reason": "Tier 1 recommended",
@@ -533,14 +533,14 @@
           "riskScore": 45.0,
           "signal": null,
           "title": "Swap ETH/USDC.e",
-          "tvlUsd": 4041.073774365152,
+          "tvlUsd": 4238.190556873518,
           "type": "swap",
-          "volume24h": 5086.290965308072
+          "volume24h": 5059.8868818319
         },
         "risk_score": 45.0,
         "title": "Swap ETH/USDC.e",
         "type": "swap",
-        "yield_pct": 45.94066592187266
+        "yield_pct": 43.576585032814464
       },
       {
         "id": "f695210aab99e3ad",
@@ -550,7 +550,7 @@
           "aiNarrative": null,
           "calldataBuilder": "ekubo_swap",
           "confidence": 0.0,
-          "currentYield": 29.79526945186462,
+          "currentYield": 29.45060212126025,
           "executionMode": "relayer",
           "gating": {
             "reason": "Tier 1 recommended",
@@ -569,14 +569,14 @@
           "riskScore": 45.0,
           "signal": null,
           "title": "Swap ETH/USDC",
-          "tvlUsd": 427467.97987811407,
+          "tvlUsd": 426257.62010495877,
           "type": "swap",
-          "volume24h": 564534.0990450175
+          "volume24h": 555742.7463899784
         },
         "risk_score": 45.0,
         "title": "Swap ETH/USDC",
         "type": "swap",
-        "yield_pct": 29.79526945186462
+        "yield_pct": 29.45060212126025
       },
       {
         "id": "b9a951bdf6ae53e4",
@@ -721,541 +721,541 @@
       "receipts": [
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc",
+          "proof_hash": "0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "il_predictor",
-          "statement": "I used skill il_predictor for opportunity 2f9f604e72471d21 and generated proof 0xae2b9d30...fc08845bdc."
+          "statement": "I used skill il_predictor for opportunity 2f9f604e72471d21 and generated proof 0xc71d43db...b72842d478."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25",
+          "proof_hash": "0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "yield_optimality",
-          "statement": "I used skill yield_optimality for opportunity 2f9f604e72471d21 and generated proof 0x5259f0c7...7b246a1a25."
+          "statement": "I used skill yield_optimality for opportunity 2f9f604e72471d21 and generated proof 0xdb042cc6...0ebc617d25."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f",
+          "proof_hash": "0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "slippage_bound",
-          "statement": "I used skill slippage_bound for opportunity 2f9f604e72471d21 and generated proof 0x235a1b67...11b3fef94f."
+          "statement": "I used skill slippage_bound for opportunity 2f9f604e72471d21 and generated proof 0xf17894ee...28ce328477."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da",
+          "proof_hash": "0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "reputation_check",
-          "statement": "I used skill reputation_check for opportunity 2f9f604e72471d21 and generated proof 0x4abe8c45...e95a5130da."
+          "statement": "I used skill reputation_check for opportunity 2f9f604e72471d21 and generated proof 0x6be8ee75...a92c972685."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78",
+          "proof_hash": "0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "arb_check",
-          "statement": "I used skill arb_check for opportunity 2f9f604e72471d21 and generated proof 0x149272ac...4fe7147e78."
+          "statement": "I used skill arb_check for opportunity 2f9f604e72471d21 and generated proof 0x46a0caf9...c8449ab9b6."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0",
+          "proof_hash": "0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "liquidation_check",
-          "statement": "I used skill liquidation_check for opportunity 2f9f604e72471d21 and generated proof 0xe71bc60f...96be0ba1f0."
+          "statement": "I used skill liquidation_check for opportunity 2f9f604e72471d21 and generated proof 0x3d23abe3...8450266255."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27",
+          "proof_hash": "0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "mev_protection",
-          "statement": "I used skill mev_protection for opportunity 2f9f604e72471d21 and generated proof 0x5e38d770...dc89fe9a27."
+          "statement": "I used skill mev_protection for opportunity 2f9f604e72471d21 and generated proof 0x100852d7...13b4549383."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e",
+          "proof_hash": "0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_score",
-          "statement": "I used skill risk_score for opportunity 2f9f604e72471d21 and generated proof 0x38437729...2ff46fd95e."
+          "statement": "I used skill risk_score for opportunity 2f9f604e72471d21 and generated proof 0x606abd67...a88b1f1d5c."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827",
+          "proof_hash": "0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "anomaly_detection",
-          "statement": "I used skill anomaly_detection for opportunity 2f9f604e72471d21 and generated proof 0xd7a31735...a4b0253827."
+          "statement": "I used skill anomaly_detection for opportunity 2f9f604e72471d21 and generated proof 0x96fd2ecf...0d74929d8e."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0",
+          "proof_hash": "0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "solvency_proof",
-          "statement": "I used skill solvency_proof for opportunity 2f9f604e72471d21 and generated proof 0xfdba887a...09b1bf52f0."
+          "statement": "I used skill solvency_proof for opportunity 2f9f604e72471d21 and generated proof 0xfd45cc92...064296abac."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b",
+          "proof_hash": "0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_passport",
-          "statement": "I used skill risk_passport for opportunity 2f9f604e72471d21 and generated proof 0xcbc5521a...934186342b."
+          "statement": "I used skill risk_passport for opportunity 2f9f604e72471d21 and generated proof 0xa4bf82a7...a7570c6a67."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd",
+          "proof_hash": "0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "strategy_integrity",
-          "statement": "I used skill strategy_integrity for opportunity 2f9f604e72471d21 and generated proof 0x4325461b...1dfd71dffd."
+          "statement": "I used skill strategy_integrity for opportunity 2f9f604e72471d21 and generated proof 0x98b06e02...7a0ee4e47c."
         },
         {
           "opp_id": "2f9f604e72471d21",
-          "proof_hash": "0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286",
+          "proof_hash": "0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "execution_integrity",
-          "statement": "I used skill execution_integrity for opportunity 2f9f604e72471d21 and generated proof 0x154d351e...f2bfb76286."
+          "statement": "I used skill execution_integrity for opportunity 2f9f604e72471d21 and generated proof 0x9a246680...855b2de2bc."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb",
+          "proof_hash": "0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "il_predictor",
-          "statement": "I used skill il_predictor for opportunity 279abf8fb351462d and generated proof 0x27633465...7bab3750eb."
+          "statement": "I used skill il_predictor for opportunity 279abf8fb351462d and generated proof 0xe7571cdf...bfe578d054."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c",
+          "proof_hash": "0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "yield_optimality",
-          "statement": "I used skill yield_optimality for opportunity 279abf8fb351462d and generated proof 0x2c27130e...749bfa542c."
+          "statement": "I used skill yield_optimality for opportunity 279abf8fb351462d and generated proof 0x47d86f27...c695ae71ab."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2",
+          "proof_hash": "0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "slippage_bound",
-          "statement": "I used skill slippage_bound for opportunity 279abf8fb351462d and generated proof 0x7cad0772...22da6a0cd2."
+          "statement": "I used skill slippage_bound for opportunity 279abf8fb351462d and generated proof 0xdb48494f...01b9161072."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4",
+          "proof_hash": "0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "reputation_check",
-          "statement": "I used skill reputation_check for opportunity 279abf8fb351462d and generated proof 0xa5fa3c88...6f528d14c4."
+          "statement": "I used skill reputation_check for opportunity 279abf8fb351462d and generated proof 0x4769cb35...e432e7e2d6."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02",
+          "proof_hash": "0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "arb_check",
-          "statement": "I used skill arb_check for opportunity 279abf8fb351462d and generated proof 0xb2fe3383...0d7b62dc02."
+          "statement": "I used skill arb_check for opportunity 279abf8fb351462d and generated proof 0x16d9b4f2...7ace483291."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2",
+          "proof_hash": "0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "liquidation_check",
-          "statement": "I used skill liquidation_check for opportunity 279abf8fb351462d and generated proof 0xc4c8bb55...6d9efea6f2."
+          "statement": "I used skill liquidation_check for opportunity 279abf8fb351462d and generated proof 0x5acefb33...f351bfbfc9."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea",
+          "proof_hash": "0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "mev_protection",
-          "statement": "I used skill mev_protection for opportunity 279abf8fb351462d and generated proof 0x989a8b56...9ba3131fea."
+          "statement": "I used skill mev_protection for opportunity 279abf8fb351462d and generated proof 0x5ecef1d9...826aa59909."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365",
+          "proof_hash": "0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_score",
-          "statement": "I used skill risk_score for opportunity 279abf8fb351462d and generated proof 0x6112e40f...8a33f2d365."
+          "statement": "I used skill risk_score for opportunity 279abf8fb351462d and generated proof 0xb302e044...f527903de0."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2",
+          "proof_hash": "0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "anomaly_detection",
-          "statement": "I used skill anomaly_detection for opportunity 279abf8fb351462d and generated proof 0xc2901dc5...e1241e3ca2."
+          "statement": "I used skill anomaly_detection for opportunity 279abf8fb351462d and generated proof 0x032787be...21a41f15d3."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0",
+          "proof_hash": "0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "solvency_proof",
-          "statement": "I used skill solvency_proof for opportunity 279abf8fb351462d and generated proof 0x6e51d888...07d6f225f0."
+          "statement": "I used skill solvency_proof for opportunity 279abf8fb351462d and generated proof 0x5de7c754...8375e1e1b9."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26",
+          "proof_hash": "0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_passport",
-          "statement": "I used skill risk_passport for opportunity 279abf8fb351462d and generated proof 0x5e5cd6f6...e2b7ee5e26."
+          "statement": "I used skill risk_passport for opportunity 279abf8fb351462d and generated proof 0x69b22a8f...4dba79f98e."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0xa99b47ee8f011679d90c10f69814429dec22a4492dacca7664c1270d169c3097",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xa99b47ee8f011679d90c10f69814429dec22a4492dacca7664c1270d169c3097",
+          "proof_hash": "0x9961878dfdddaddf12578fe58ab1ae2e602181b58ec40368888defcd6cb6fe78",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x9961878dfdddaddf12578fe58ab1ae2e602181b58ec40368888defcd6cb6fe78",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "strategy_integrity",
-          "statement": "I used skill strategy_integrity for opportunity 279abf8fb351462d and generated proof 0xa99b47ee...0d169c3097."
+          "statement": "I used skill strategy_integrity for opportunity 279abf8fb351462d and generated proof 0x9961878d...cd6cb6fe78."
         },
         {
           "opp_id": "279abf8fb351462d",
-          "proof_hash": "0x2559c2078428a5d1e5b282b17bb641d336ef725593e615da11749fdde8a54560",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x2559c2078428a5d1e5b282b17bb641d336ef725593e615da11749fdde8a54560",
+          "proof_hash": "0xb30dea9df6c5d311f959ab001193265bab5aaa9b2dc72d048c0665e9adb2504c",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xb30dea9df6c5d311f959ab001193265bab5aaa9b2dc72d048c0665e9adb2504c",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "execution_integrity",
-          "statement": "I used skill execution_integrity for opportunity 279abf8fb351462d and generated proof 0x2559c207...dde8a54560."
+          "statement": "I used skill execution_integrity for opportunity 279abf8fb351462d and generated proof 0xb30dea9d...e9adb2504c."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x3c199422951df5d565199d59090f2b0f7ccc99977344a4f09a1cae3fecebfd8e",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x3c199422951df5d565199d59090f2b0f7ccc99977344a4f09a1cae3fecebfd8e",
+          "proof_hash": "0x7ec04f134ab24ffd1f140918c661cebbb9bb97710a4f55217337e80067893bc9",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x7ec04f134ab24ffd1f140918c661cebbb9bb97710a4f55217337e80067893bc9",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "il_predictor",
-          "statement": "I used skill il_predictor for opportunity fd6f074ba5f33703 and generated proof 0x3c199422...3fecebfd8e."
+          "statement": "I used skill il_predictor for opportunity fd6f074ba5f33703 and generated proof 0x7ec04f13...0067893bc9."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x4f6ab229a4328fdd71f80d7e7e384ea42f7dccccbf93c241ed400bde75d9cfe9",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x4f6ab229a4328fdd71f80d7e7e384ea42f7dccccbf93c241ed400bde75d9cfe9",
+          "proof_hash": "0xfd2f95e1489754eedad133ce4d53303b09ca1ad1681f6ac900e640fbd742d9b9",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xfd2f95e1489754eedad133ce4d53303b09ca1ad1681f6ac900e640fbd742d9b9",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "yield_optimality",
-          "statement": "I used skill yield_optimality for opportunity fd6f074ba5f33703 and generated proof 0x4f6ab229...de75d9cfe9."
+          "statement": "I used skill yield_optimality for opportunity fd6f074ba5f33703 and generated proof 0xfd2f95e1...fbd742d9b9."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x6ee997851e56a8e6cad5e6158a57e455c88f060d8d003b9496f42018fac9f6ce",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x6ee997851e56a8e6cad5e6158a57e455c88f060d8d003b9496f42018fac9f6ce",
+          "proof_hash": "0xf244cc44c0b68af8896a38b8bce574206ab067f9191164d05a81155520933ea6",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xf244cc44c0b68af8896a38b8bce574206ab067f9191164d05a81155520933ea6",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "slippage_bound",
-          "statement": "I used skill slippage_bound for opportunity fd6f074ba5f33703 and generated proof 0x6ee99785...18fac9f6ce."
+          "statement": "I used skill slippage_bound for opportunity fd6f074ba5f33703 and generated proof 0xf244cc44...5520933ea6."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0xba82ce1dae78a66ca2b84a4cfabdb91621ad4f9cbc93ffe22b5cf7c68e2274d2",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xba82ce1dae78a66ca2b84a4cfabdb91621ad4f9cbc93ffe22b5cf7c68e2274d2",
+          "proof_hash": "0xb712bbcaed1ac3316c0eef384f92738452c9676ee71f99ec42639896c6f5f2f8",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xb712bbcaed1ac3316c0eef384f92738452c9676ee71f99ec42639896c6f5f2f8",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "reputation_check",
-          "statement": "I used skill reputation_check for opportunity fd6f074ba5f33703 and generated proof 0xba82ce1d...c68e2274d2."
+          "statement": "I used skill reputation_check for opportunity fd6f074ba5f33703 and generated proof 0xb712bbca...96c6f5f2f8."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x635f37f903a52b960f31a39e8f4af00b87a54121135797e81bbb6c7ecc6c88d4",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x635f37f903a52b960f31a39e8f4af00b87a54121135797e81bbb6c7ecc6c88d4",
+          "proof_hash": "0xedf691fbed89ab92d98d922a562f6b7e55c533529e9e189d197774c4f5f0e551",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xedf691fbed89ab92d98d922a562f6b7e55c533529e9e189d197774c4f5f0e551",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "arb_check",
-          "statement": "I used skill arb_check for opportunity fd6f074ba5f33703 and generated proof 0x635f37f9...7ecc6c88d4."
+          "statement": "I used skill arb_check for opportunity fd6f074ba5f33703 and generated proof 0xedf691fb...c4f5f0e551."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x9ad2e77d9d7826348e29cde3f3e9a8290f538b424bca7b70edc04616e52bab7a",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x9ad2e77d9d7826348e29cde3f3e9a8290f538b424bca7b70edc04616e52bab7a",
+          "proof_hash": "0xfc9ec16408b7c027a82ba7e7a1815b79521c85901ccbde2aaf4d7505afdcdb6c",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xfc9ec16408b7c027a82ba7e7a1815b79521c85901ccbde2aaf4d7505afdcdb6c",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "liquidation_check",
-          "statement": "I used skill liquidation_check for opportunity fd6f074ba5f33703 and generated proof 0x9ad2e77d...16e52bab7a."
+          "statement": "I used skill liquidation_check for opportunity fd6f074ba5f33703 and generated proof 0xfc9ec164...05afdcdb6c."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0xd208440b4390f120583d5b7db06a1212618f6c88f3645746f6e9d8fd19870cbd",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xd208440b4390f120583d5b7db06a1212618f6c88f3645746f6e9d8fd19870cbd",
+          "proof_hash": "0x761e7914b21b47f6c201be4c5257214ed84b72e5ed79dcf456b16b3ae1e1bf0b",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x761e7914b21b47f6c201be4c5257214ed84b72e5ed79dcf456b16b3ae1e1bf0b",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "mev_protection",
-          "statement": "I used skill mev_protection for opportunity fd6f074ba5f33703 and generated proof 0xd208440b...fd19870cbd."
+          "statement": "I used skill mev_protection for opportunity fd6f074ba5f33703 and generated proof 0x761e7914...3ae1e1bf0b."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x461fbedd2b003f0f72c055eabde5e74657897f7b1d0986f1b1abf5d50b2843de",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x461fbedd2b003f0f72c055eabde5e74657897f7b1d0986f1b1abf5d50b2843de",
+          "proof_hash": "0xbaa958ba3b4e63c3581ee0d47cc92ac54e90ab991ba38ad4df6f66528efa80b7",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xbaa958ba3b4e63c3581ee0d47cc92ac54e90ab991ba38ad4df6f66528efa80b7",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_score",
-          "statement": "I used skill risk_score for opportunity fd6f074ba5f33703 and generated proof 0x461fbedd...d50b2843de."
+          "statement": "I used skill risk_score for opportunity fd6f074ba5f33703 and generated proof 0xbaa958ba...528efa80b7."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0xdde774c91e38eaa5e395f4c39b3a7dac2c57af11b389926353c57cefeb3a3004",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xdde774c91e38eaa5e395f4c39b3a7dac2c57af11b389926353c57cefeb3a3004",
+          "proof_hash": "0x5b8d41705e2b16ca56aaff9bb93a9227fe0a3fe84c0a52a5ab33995db1be552c",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x5b8d41705e2b16ca56aaff9bb93a9227fe0a3fe84c0a52a5ab33995db1be552c",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "anomaly_detection",
-          "statement": "I used skill anomaly_detection for opportunity fd6f074ba5f33703 and generated proof 0xdde774c9...efeb3a3004."
+          "statement": "I used skill anomaly_detection for opportunity fd6f074ba5f33703 and generated proof 0x5b8d4170...5db1be552c."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x4fdcbb8c5d841283d9c9c1719a62f6ee1d1a55e6eca5b39307e4e0a93f102a46",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x4fdcbb8c5d841283d9c9c1719a62f6ee1d1a55e6eca5b39307e4e0a93f102a46",
+          "proof_hash": "0x90064f4859bc5965986a5a9820961f8e4d02e61b375e90404541a1b7f5a6d6a6",
+          "receipt_path": "/api/v1/zkdefi/proofs/0x90064f4859bc5965986a5a9820961f8e4d02e61b375e90404541a1b7f5a6d6a6",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "solvency_proof",
-          "statement": "I used skill solvency_proof for opportunity fd6f074ba5f33703 and generated proof 0x4fdcbb8c...a93f102a46."
+          "statement": "I used skill solvency_proof for opportunity fd6f074ba5f33703 and generated proof 0x90064f48...b7f5a6d6a6."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x6791140c17d2fba4f7531788c425fd61bf55dea3156bc89fdad5c63b7d62f7ae",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x6791140c17d2fba4f7531788c425fd61bf55dea3156bc89fdad5c63b7d62f7ae",
+          "proof_hash": "0xecc8960aa603a6f8fb890f28458c3fdb24afbd57030895a32c3e51e4cc111fce",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xecc8960aa603a6f8fb890f28458c3fdb24afbd57030895a32c3e51e4cc111fce",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "risk_passport",
-          "statement": "I used skill risk_passport for opportunity fd6f074ba5f33703 and generated proof 0x6791140c...3b7d62f7ae."
+          "statement": "I used skill risk_passport for opportunity fd6f074ba5f33703 and generated proof 0xecc8960a...e4cc111fce."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0xc1608ed5160eeefdd6b128e2f0d502ac6f087d413de6fbf04916ec48ccc1993f",
-          "receipt_path": "/api/v1/zkdefi/proofs/0xc1608ed5160eeefdd6b128e2f0d502ac6f087d413de6fbf04916ec48ccc1993f",
+          "proof_hash": "0xdb0c303c4c8420073efb8cb407baefbcf6e3a922651f8331b21a462d6fa637e7",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xdb0c303c4c8420073efb8cb407baefbcf6e3a922651f8331b21a462d6fa637e7",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "strategy_integrity",
-          "statement": "I used skill strategy_integrity for opportunity fd6f074ba5f33703 and generated proof 0xc1608ed5...48ccc1993f."
+          "statement": "I used skill strategy_integrity for opportunity fd6f074ba5f33703 and generated proof 0xdb0c303c...2d6fa637e7."
         },
         {
           "opp_id": "fd6f074ba5f33703",
-          "proof_hash": "0x1b1e1c39020663bcdccde1a570ffbec248bd70b956ac72befdcd57343b366428",
-          "receipt_path": "/api/v1/zkdefi/proofs/0x1b1e1c39020663bcdccde1a570ffbec248bd70b956ac72befdcd57343b366428",
+          "proof_hash": "0xcf5e9f153aab2350be58ec658fc0f11e24b5af4d18488f11666ee8d0a0018bef",
+          "receipt_path": "/api/v1/zkdefi/proofs/0xcf5e9f153aab2350be58ec658fc0f11e24b5af4d18488f11666ee8d0a0018bef",
           "receipt_signal": "Proof not found",
-          "receipt_state": "index_pending",
+          "receipt_state": "local_receipt_only",
           "receipt_status": 404,
           "skill_id": "execution_integrity",
-          "statement": "I used skill execution_integrity for opportunity fd6f074ba5f33703 and generated proof 0x1b1e1c39...343b366428."
+          "statement": "I used skill execution_integrity for opportunity fd6f074ba5f33703 and generated proof 0xcf5e9f15...d0a0018bef."
         }
       ],
       "runs": [
         {
           "confidence": 0.95,
           "opp_id": "2f9f604e72471d21",
-          "rationale": "13/13 zkML skill proofs passed; yield=267.25% risk=45.0. failed_skills=none.",
+          "rationale": "13/13 zkML skill proofs passed; yield=256.09% risk=45.0. failed_skills=none.",
           "recommendation": "execute",
           "skills": [
             {
-              "duration_ms": 2817,
+              "duration_ms": 4428,
               "error": null,
-              "proof_hash": "0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xae2b9d301d327f80447ba16292db137cbcc387da4219af9232da5bfc08845bdc",
+              "proof_hash": "0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xc71d43db52967d5635b9bc1fe829db718ec3193d15da7b1b922d76b72842d478",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "il_predictor",
               "success": true
             },
             {
-              "duration_ms": 2749,
+              "duration_ms": 3322,
               "error": null,
-              "proof_hash": "0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x5259f0c7186fcd65ac428503be4f023f9f797c0a116d722b9cf3f47b246a1a25",
+              "proof_hash": "0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xdb042cc64c0e092c1d7c6ccd7fd7b3e3c434fdf17d0e14d6a64bbe0ebc617d25",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "yield_optimality",
               "success": true
             },
             {
-              "duration_ms": 3024,
+              "duration_ms": 4682,
               "error": null,
-              "proof_hash": "0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x235a1b67929b4d0acb7f4771fffb5782cb053af6391b0849fb187711b3fef94f",
+              "proof_hash": "0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xf17894eee101ecf7a7cd4926336441d69a11e1568ae00b4bebcb5828ce328477",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "slippage_bound",
               "success": true
             },
             {
-              "duration_ms": 3281,
+              "duration_ms": 4419,
               "error": null,
-              "proof_hash": "0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x4abe8c45a277f4470a40a3ab9dddbd60243ca043a6aa4eb05c4ca8e95a5130da",
+              "proof_hash": "0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x6be8ee7598a7373ae2e1a3735b4f16329c1022dc73e0756f5aa37da92c972685",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "reputation_check",
               "success": true
             },
             {
-              "duration_ms": 2741,
+              "duration_ms": 4428,
               "error": null,
-              "proof_hash": "0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x149272ac557dd362e14bb0dce9218fcb239f8521eccdfacdc216a64fe7147e78",
+              "proof_hash": "0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x46a0caf996004bb2fee94b92d4b5b63ea90e07c9a2cec27088df3ac8449ab9b6",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "arb_check",
               "success": true
             },
             {
-              "duration_ms": 3203,
+              "duration_ms": 4428,
               "error": null,
-              "proof_hash": "0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xe71bc60f8b4cca550b704b3de005a99f032512914da38c30fafbd996be0ba1f0",
+              "proof_hash": "0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x3d23abe3c84b7db007e8abaf4dab3dd2be2a4e380df018d95f069d8450266255",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "liquidation_check",
               "success": true
             },
             {
-              "duration_ms": 3244,
+              "duration_ms": 4427,
               "error": null,
-              "proof_hash": "0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x5e38d7707f9121b1ef74b9b7611b68d113048a4d101d3a26f88922dc89fe9a27",
+              "proof_hash": "0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x100852d7c745bdd9f320b1b29209b7ef779244a3c46d8ef3f896c313b4549383",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "mev_protection",
               "success": true
             },
             {
-              "duration_ms": 3328,
+              "duration_ms": 4427,
               "error": null,
-              "proof_hash": "0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x384377291e9fcf0d580f0980a50c3b204cbf048e2cc081eb31da012ff46fd95e",
+              "proof_hash": "0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x606abd67b6d54d361b9dcad345a4cb66d79f57e92c6bb312d16558a88b1f1d5c",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_score",
               "success": true
             },
             {
-              "duration_ms": 2841,
+              "duration_ms": 4427,
               "error": null,
-              "proof_hash": "0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xd7a31735303f4c02b5b3b020a554c33e0319ccbfafa6e79723597ba4b0253827",
+              "proof_hash": "0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x96fd2ecfb03e1b209977440e87fe37a05ee3efacbaa66e92f5b6200d74929d8e",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "anomaly_detection",
               "success": true
             },
             {
-              "duration_ms": 2594,
+              "duration_ms": 4425,
               "error": null,
-              "proof_hash": "0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xfdba887a3e080452781b42bf979c7424d7060c1334d1d6c95ad60509b1bf52f0",
+              "proof_hash": "0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xfd45cc925d9c94eb01cfc6f9ac2306e7c1cdf9a40b9ba962dd2b1f064296abac",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "solvency_proof",
               "success": true
             },
             {
-              "duration_ms": 3216,
+              "duration_ms": 4520,
               "error": null,
-              "proof_hash": "0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xcbc5521abe27735e10e6d90eee44a1c7f39d0f53ddbbf7caf0a04c934186342b",
+              "proof_hash": "0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xa4bf82a7ad57f3d39d11c4ad8b1e3ac800ad46b4b4dbf7f33ed7b3a7570c6a67",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_passport",
               "success": true
             },
             {
-              "duration_ms": 3097,
+              "duration_ms": 4425,
               "error": null,
-              "proof_hash": "0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x4325461b7d28bf77983095aacfcd34007aac41acce8dd4867a3de91dfd71dffd",
+              "proof_hash": "0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x98b06e0212605210c54a980ed930ff7478178211a4deb5485c3f8c7a0ee4e47c",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "strategy_integrity",
               "success": true
             },
             {
-              "duration_ms": 4362,
+              "duration_ms": 5657,
               "error": null,
-              "proof_hash": "0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x154d351e7b41316bffa2c87b36a1164d36f08fb855f83e1c071378f2bfb76286",
+              "proof_hash": "0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x9a2466808ef058ca52c3c133f368e9d083c26376a83d006a877ecf855b2de2bc",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "execution_integrity",
               "success": true
@@ -1268,148 +1268,148 @@
         {
           "confidence": 0.86,
           "opp_id": "279abf8fb351462d",
-          "rationale": "13/13 zkML skill proofs passed; yield=154.77% risk=45.0. failed_skills=none.",
+          "rationale": "13/13 zkML skill proofs passed; yield=150.41% risk=45.0. failed_skills=none.",
           "recommendation": "execute",
           "skills": [
             {
-              "duration_ms": 4218,
+              "duration_ms": 3646,
               "error": null,
-              "proof_hash": "0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x276334658888e71f7917556c55d6d3b149ee505541d7a6be8cb9ce7bab3750eb",
+              "proof_hash": "0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xe7571cdf1c78ba2ef68b7b13d29e8bdaa6e52c8e903e532d28c30fbfe578d054",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "il_predictor",
               "success": true
             },
             {
-              "duration_ms": 3753,
+              "duration_ms": 3622,
               "error": null,
-              "proof_hash": "0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x2c27130e5a68261df9658367d39309b909d05c6604e0ae3cc276f7749bfa542c",
+              "proof_hash": "0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x47d86f27c520a5f30848bda32e3c21cd1edac4724924168d89682ac695ae71ab",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "yield_optimality",
               "success": true
             },
             {
-              "duration_ms": 3772,
+              "duration_ms": 3789,
               "error": null,
-              "proof_hash": "0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x7cad0772fffbedd2464f3c5eb08180f2d9606f94175874db6c588922da6a0cd2",
+              "proof_hash": "0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xdb48494ffbfeef1b716dd00d115a6e3bbe64e90190ce52a2dcdeb601b9161072",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "slippage_bound",
               "success": true
             },
             {
-              "duration_ms": 3746,
+              "duration_ms": 3635,
               "error": null,
-              "proof_hash": "0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xa5fa3c882bceb9e00765cd5a419b559fb4fe5b3b042f2dbf58914a6f528d14c4",
+              "proof_hash": "0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x4769cb350e9662bc280b326880b71e6a217880d9f04cfb9b40cdb9e432e7e2d6",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "reputation_check",
               "success": true
             },
             {
-              "duration_ms": 4099,
+              "duration_ms": 3473,
               "error": null,
-              "proof_hash": "0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xb2fe338371397fdb096af2027f6d03fb3a7d313164dbd420ea21590d7b62dc02",
+              "proof_hash": "0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x16d9b4f2f9d17431fa7c1a258cf9ec31e8a055f1a2b71dc532f0c97ace483291",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "arb_check",
               "success": true
             },
             {
-              "duration_ms": 3675,
+              "duration_ms": 4041,
               "error": null,
-              "proof_hash": "0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xc4c8bb552c9b6bb7dabf5dbf6b83e5e7beacaca73b5bd0efff64a96d9efea6f2",
+              "proof_hash": "0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x5acefb33ae531185ed2dbe488632a6d7193d12e10db0dc554375a6f351bfbfc9",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "liquidation_check",
               "success": true
             },
             {
-              "duration_ms": 3751,
+              "duration_ms": 3602,
               "error": null,
-              "proof_hash": "0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x989a8b56aff2c93088bcd60dfa26a64c8d03b1839f28ad56f55d799ba3131fea",
+              "proof_hash": "0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x5ecef1d95d2d841fa800a8d6295aaee99ba319e4ceba618ec8dbb9826aa59909",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "mev_protection",
               "success": true
             },
             {
-              "duration_ms": 3583,
+              "duration_ms": 3347,
               "error": null,
-              "proof_hash": "0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x6112e40f865bae75a83563abfd2bb2b876cdb0a185ef2ac5f1b2ce8a33f2d365",
+              "proof_hash": "0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xb302e04432cddc263fa2c0fd98d9609064ce58b8e351b4e69b9e90f527903de0",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_score",
               "success": true
             },
             {
-              "duration_ms": 3849,
+              "duration_ms": 3644,
               "error": null,
-              "proof_hash": "0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xc2901dc57de29d8eeaffb6063c87f980ca3e8a77ecf373ec5b6dcfe1241e3ca2",
+              "proof_hash": "0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x032787beac4bcb58cda6d5d944d8f8ea3a515fafc330ea5e39f2cb21a41f15d3",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "anomaly_detection",
               "success": true
             },
             {
-              "duration_ms": 3984,
+              "duration_ms": 3820,
               "error": null,
-              "proof_hash": "0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x6e51d888bd438c59a51900449b4fca29810d02275616f8d2cfa7b007d6f225f0",
+              "proof_hash": "0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x5de7c754da491fba2cfed792420269c0c2427df15ada9716144b3a8375e1e1b9",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "solvency_proof",
               "success": true
             },
             {
-              "duration_ms": 3750,
+              "duration_ms": 3925,
               "error": null,
-              "proof_hash": "0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x5e5cd6f6720874c2a5772d5c30c4f007e461f66beadd505a48b0dde2b7ee5e26",
+              "proof_hash": "0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x69b22a8fa776d24970ec2cdf7960d52314bd16e55623ce25f311c24dba79f98e",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_passport",
               "success": true
             },
             {
-              "duration_ms": 4297,
+              "duration_ms": 3925,
               "error": null,
-              "proof_hash": "0xa99b47ee8f011679d90c10f69814429dec22a4492dacca7664c1270d169c3097",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xa99b47ee8f011679d90c10f69814429dec22a4492dacca7664c1270d169c3097",
+              "proof_hash": "0x9961878dfdddaddf12578fe58ab1ae2e602181b58ec40368888defcd6cb6fe78",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x9961878dfdddaddf12578fe58ab1ae2e602181b58ec40368888defcd6cb6fe78",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "strategy_integrity",
               "success": true
             },
             {
-              "duration_ms": 5211,
+              "duration_ms": 4911,
               "error": null,
-              "proof_hash": "0x2559c2078428a5d1e5b282b17bb641d336ef725593e615da11749fdde8a54560",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x2559c2078428a5d1e5b282b17bb641d336ef725593e615da11749fdde8a54560",
+              "proof_hash": "0xb30dea9df6c5d311f959ab001193265bab5aaa9b2dc72d048c0665e9adb2504c",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xb30dea9df6c5d311f959ab001193265bab5aaa9b2dc72d048c0665e9adb2504c",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "execution_integrity",
               "success": true
@@ -1422,148 +1422,148 @@
         {
           "confidence": 0.76,
           "opp_id": "fd6f074ba5f33703",
-          "rationale": "13/13 zkML skill proofs passed; yield=48.02% risk=45.0. failed_skills=none.",
+          "rationale": "13/13 zkML skill proofs passed; yield=47.44% risk=45.0. failed_skills=none.",
           "recommendation": "execute",
           "skills": [
             {
-              "duration_ms": 3771,
+              "duration_ms": 3724,
               "error": null,
-              "proof_hash": "0x3c199422951df5d565199d59090f2b0f7ccc99977344a4f09a1cae3fecebfd8e",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x3c199422951df5d565199d59090f2b0f7ccc99977344a4f09a1cae3fecebfd8e",
+              "proof_hash": "0x7ec04f134ab24ffd1f140918c661cebbb9bb97710a4f55217337e80067893bc9",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x7ec04f134ab24ffd1f140918c661cebbb9bb97710a4f55217337e80067893bc9",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "il_predictor",
               "success": true
             },
             {
-              "duration_ms": 3473,
+              "duration_ms": 3686,
               "error": null,
-              "proof_hash": "0x4f6ab229a4328fdd71f80d7e7e384ea42f7dccccbf93c241ed400bde75d9cfe9",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x4f6ab229a4328fdd71f80d7e7e384ea42f7dccccbf93c241ed400bde75d9cfe9",
+              "proof_hash": "0xfd2f95e1489754eedad133ce4d53303b09ca1ad1681f6ac900e640fbd742d9b9",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xfd2f95e1489754eedad133ce4d53303b09ca1ad1681f6ac900e640fbd742d9b9",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "yield_optimality",
               "success": true
             },
             {
-              "duration_ms": 3565,
+              "duration_ms": 3835,
               "error": null,
-              "proof_hash": "0x6ee997851e56a8e6cad5e6158a57e455c88f060d8d003b9496f42018fac9f6ce",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x6ee997851e56a8e6cad5e6158a57e455c88f060d8d003b9496f42018fac9f6ce",
+              "proof_hash": "0xf244cc44c0b68af8896a38b8bce574206ab067f9191164d05a81155520933ea6",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xf244cc44c0b68af8896a38b8bce574206ab067f9191164d05a81155520933ea6",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "slippage_bound",
               "success": true
             },
             {
-              "duration_ms": 3521,
+              "duration_ms": 3841,
               "error": null,
-              "proof_hash": "0xba82ce1dae78a66ca2b84a4cfabdb91621ad4f9cbc93ffe22b5cf7c68e2274d2",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xba82ce1dae78a66ca2b84a4cfabdb91621ad4f9cbc93ffe22b5cf7c68e2274d2",
+              "proof_hash": "0xb712bbcaed1ac3316c0eef384f92738452c9676ee71f99ec42639896c6f5f2f8",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xb712bbcaed1ac3316c0eef384f92738452c9676ee71f99ec42639896c6f5f2f8",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "reputation_check",
               "success": true
             },
             {
-              "duration_ms": 3564,
+              "duration_ms": 3728,
               "error": null,
-              "proof_hash": "0x635f37f903a52b960f31a39e8f4af00b87a54121135797e81bbb6c7ecc6c88d4",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x635f37f903a52b960f31a39e8f4af00b87a54121135797e81bbb6c7ecc6c88d4",
+              "proof_hash": "0xedf691fbed89ab92d98d922a562f6b7e55c533529e9e189d197774c4f5f0e551",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xedf691fbed89ab92d98d922a562f6b7e55c533529e9e189d197774c4f5f0e551",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "arb_check",
               "success": true
             },
             {
-              "duration_ms": 4299,
+              "duration_ms": 3882,
               "error": null,
-              "proof_hash": "0x9ad2e77d9d7826348e29cde3f3e9a8290f538b424bca7b70edc04616e52bab7a",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x9ad2e77d9d7826348e29cde3f3e9a8290f538b424bca7b70edc04616e52bab7a",
+              "proof_hash": "0xfc9ec16408b7c027a82ba7e7a1815b79521c85901ccbde2aaf4d7505afdcdb6c",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xfc9ec16408b7c027a82ba7e7a1815b79521c85901ccbde2aaf4d7505afdcdb6c",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "liquidation_check",
               "success": true
             },
             {
-              "duration_ms": 4285,
+              "duration_ms": 3684,
               "error": null,
-              "proof_hash": "0xd208440b4390f120583d5b7db06a1212618f6c88f3645746f6e9d8fd19870cbd",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xd208440b4390f120583d5b7db06a1212618f6c88f3645746f6e9d8fd19870cbd",
+              "proof_hash": "0x761e7914b21b47f6c201be4c5257214ed84b72e5ed79dcf456b16b3ae1e1bf0b",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x761e7914b21b47f6c201be4c5257214ed84b72e5ed79dcf456b16b3ae1e1bf0b",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "mev_protection",
               "success": true
             },
             {
-              "duration_ms": 3329,
+              "duration_ms": 3682,
               "error": null,
-              "proof_hash": "0x461fbedd2b003f0f72c055eabde5e74657897f7b1d0986f1b1abf5d50b2843de",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x461fbedd2b003f0f72c055eabde5e74657897f7b1d0986f1b1abf5d50b2843de",
+              "proof_hash": "0xbaa958ba3b4e63c3581ee0d47cc92ac54e90ab991ba38ad4df6f66528efa80b7",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xbaa958ba3b4e63c3581ee0d47cc92ac54e90ab991ba38ad4df6f66528efa80b7",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_score",
               "success": true
             },
             {
-              "duration_ms": 3408,
+              "duration_ms": 3682,
               "error": null,
-              "proof_hash": "0xdde774c91e38eaa5e395f4c39b3a7dac2c57af11b389926353c57cefeb3a3004",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xdde774c91e38eaa5e395f4c39b3a7dac2c57af11b389926353c57cefeb3a3004",
+              "proof_hash": "0x5b8d41705e2b16ca56aaff9bb93a9227fe0a3fe84c0a52a5ab33995db1be552c",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x5b8d41705e2b16ca56aaff9bb93a9227fe0a3fe84c0a52a5ab33995db1be552c",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "anomaly_detection",
               "success": true
             },
             {
-              "duration_ms": 3623,
+              "duration_ms": 3715,
               "error": null,
-              "proof_hash": "0x4fdcbb8c5d841283d9c9c1719a62f6ee1d1a55e6eca5b39307e4e0a93f102a46",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x4fdcbb8c5d841283d9c9c1719a62f6ee1d1a55e6eca5b39307e4e0a93f102a46",
+              "proof_hash": "0x90064f4859bc5965986a5a9820961f8e4d02e61b375e90404541a1b7f5a6d6a6",
+              "receipt_path": "/api/v1/zkdefi/proofs/0x90064f4859bc5965986a5a9820961f8e4d02e61b375e90404541a1b7f5a6d6a6",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "solvency_proof",
               "success": true
             },
             {
-              "duration_ms": 4280,
+              "duration_ms": 3674,
               "error": null,
-              "proof_hash": "0x6791140c17d2fba4f7531788c425fd61bf55dea3156bc89fdad5c63b7d62f7ae",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x6791140c17d2fba4f7531788c425fd61bf55dea3156bc89fdad5c63b7d62f7ae",
+              "proof_hash": "0xecc8960aa603a6f8fb890f28458c3fdb24afbd57030895a32c3e51e4cc111fce",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xecc8960aa603a6f8fb890f28458c3fdb24afbd57030895a32c3e51e4cc111fce",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "risk_passport",
               "success": true
             },
             {
-              "duration_ms": 4351,
+              "duration_ms": 3674,
               "error": null,
-              "proof_hash": "0xc1608ed5160eeefdd6b128e2f0d502ac6f087d413de6fbf04916ec48ccc1993f",
-              "receipt_path": "/api/v1/zkdefi/proofs/0xc1608ed5160eeefdd6b128e2f0d502ac6f087d413de6fbf04916ec48ccc1993f",
+              "proof_hash": "0xdb0c303c4c8420073efb8cb407baefbcf6e3a922651f8331b21a462d6fa637e7",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xdb0c303c4c8420073efb8cb407baefbcf6e3a922651f8331b21a462d6fa637e7",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "strategy_integrity",
               "success": true
             },
             {
-              "duration_ms": 5543,
+              "duration_ms": 5333,
               "error": null,
-              "proof_hash": "0x1b1e1c39020663bcdccde1a570ffbec248bd70b956ac72befdcd57343b366428",
-              "receipt_path": "/api/v1/zkdefi/proofs/0x1b1e1c39020663bcdccde1a570ffbec248bd70b956ac72befdcd57343b366428",
+              "proof_hash": "0xcf5e9f153aab2350be58ec658fc0f11e24b5af4d18488f11666ee8d0a0018bef",
+              "receipt_path": "/api/v1/zkdefi/proofs/0xcf5e9f153aab2350be58ec658fc0f11e24b5af4d18488f11666ee8d0a0018bef",
               "receipt_signal": "Proof not found",
-              "receipt_state": "index_pending",
+              "receipt_state": "local_receipt_only",
               "receipt_status": 404,
               "skill_id": "execution_integrity",
               "success": true
@@ -1599,7 +1599,7 @@
       "recommend": {
         "ai_confidence": 0.85,
         "ai_reasoning": "For a balanced risk appetite I'm splitting capital across Ekubo LP (50%, 27.5% APY), lending (25%, 8.0% APY), and staking (20%, 12.0% APY). The LP allocation targets ETH/USDC and STRK/USDC \u2014 the two deepest Starknet pairs \u2014 to capture trading fees while diversifying across base assets. The split was verified by the YieldOptimality_v1 circuit \u2014 the blended yield of 18.1% is within 200 bps of the single-best-pool yield, so you gain diversification without a meaningful yield drag. StrategyIntegrity_v1 confirms no single position exceeds the maximum weight threshold, and effective leverage stays at 1x.",
-        "attestation_hash": "0x6364c79550aa127fadaf2bda623c960b07bb2815",
+        "attestation_hash": "0xd6edb91a889d5023a9dfb864656f1edd3ac802a2",
         "expected_portfolio_apy": 0.1815,
         "genome": {
           "efficiency": 15.0,
@@ -1622,7 +1622,7 @@
           ],
           "settlement": "Madara L3"
         },
-        "recommendation_id": "7ad290ce9d1a",
+        "recommendation_id": "8136fdeb2f42",
         "recommended_pools": [
           {
             "adapter_ready": true,
@@ -1710,7 +1710,7 @@
           }
         ],
         "risk_profile": "balanced",
-        "timestamp": "2026-03-11T04:51:56.457554+00:00",
+        "timestamp": "2026-03-11T04:24:14.142015+00:00",
         "total_amount": 5000.0,
         "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
       },
@@ -1818,14 +1818,14 @@
           "attempt": 1,
           "bridge_backend": "groth16_modelbridge",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0x75b11b0268e67b3f4f9c03bc681f2b4e6881122e983ec9affc0d6a679068b5be",
+          "bridge_proof_hash": "0x2d8f10aa4499fb463587106602aceef63878c7c722561139a346fe0073d770d7",
           "calldata_words": 2005,
           "can_execute": false,
-          "failure_text": "Strict L3 verification failed  L2 verification endpoint unavailable on parent API",
+          "failure_text": "Strict L3 verification failed  {\"detail\":\"Not Found\"}",
           "l3_mode": "hash_only",
           "l3_success": true,
-          "l3_tx_hash": "0x597a696774a026aac10b7385b38be02da682c690dfac6df8a349be075800f2",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x597a696774a026aac10b7385b38be02da682c690dfac6df8a349be075800f2",
+          "l3_tx_hash": "0x109b1828f62cca7c459c33ff9eb6881d0a2dbc939bc856bde5da48e34e05225",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x109b1828f62cca7c459c33ff9eb6881d0a2dbc939bc856bde5da48e34e05225",
           "l3_verified_on_chain": false,
           "mirror_status": "mirror_failed",
           "proof_mode": "FULL_DUAL_PROVER",
@@ -1837,14 +1837,14 @@
           "attempt": 1,
           "bridge_backend": "groth16_modelbridge",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0x361522fdec9da504a661d6ead6fe2d27eadfc4d7bde2e2e5a5e1dcd86c51433e",
+          "bridge_proof_hash": "0x7e1b9332b3cc88833b6a03940dd04cc803f1cfc5548565d5a4309a918cdf5c88",
           "calldata_words": 2005,
           "can_execute": false,
           "failure_text": "Strict L3 verification failed",
           "l3_mode": "hash_only",
           "l3_success": true,
-          "l3_tx_hash": "0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
+          "l3_tx_hash": "0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
           "l3_verified_on_chain": false,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
@@ -1856,14 +1856,14 @@
           "attempt": 1,
           "bridge_backend": "placeholder_fallback",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0xb0230548a9b1a7fbd04d7d6e34384321d81b92ab072146bafdc54b77429706d3",
+          "bridge_proof_hash": "0x84075a665c9cfa709be2250bc12b277335e256df044e0e375e7d59476831c590",
           "calldata_words": 6,
           "can_execute": false,
           "failure_text": "Strict L3 verification failed",
           "l3_mode": "hash_only",
           "l3_success": true,
-          "l3_tx_hash": "0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
+          "l3_tx_hash": "0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
           "l3_verified_on_chain": false,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
@@ -1877,14 +1877,14 @@
         "api_error": null,
         "bridge_backend": "groth16_modelbridge",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x75b11b0268e67b3f4f9c03bc681f2b4e6881122e983ec9affc0d6a679068b5be",
+        "bridge_proof_hash": "0x2d8f10aa4499fb463587106602aceef63878c7c722561139a346fe0073d770d7",
         "can_execute": false,
         "failure_reason": "Strict L3 verification failed",
-        "generated_at": "2026-03-11T04:50:18.828854+00:00",
+        "generated_at": "2026-03-11T04:23:20.094994+00:00",
         "l2": {
-          "attempted": false,
-          "error": "L2 verification endpoint unavailable on parent API",
-          "mode": "l2_registry_unavailable",
+          "attempted": true,
+          "error": "{\"detail\":\"Not Found\"}",
+          "mode": "l2_unverified",
           "success": false,
           "tx_hash": null,
           "tx_url": null,
@@ -1895,8 +1895,8 @@
           "error": null,
           "mode": "hash_only",
           "success": true,
-          "tx_hash": "0x597a696774a026aac10b7385b38be02da682c690dfac6df8a349be075800f2",
-          "tx_url": "https://sepolia.voyager.online/tx/0x597a696774a026aac10b7385b38be02da682c690dfac6df8a349be075800f2",
+          "tx_hash": "0x109b1828f62cca7c459c33ff9eb6881d0a2dbc939bc856bde5da48e34e05225",
+          "tx_url": "https://sepolia.voyager.online/tx/0x109b1828f62cca7c459c33ff9eb6881d0a2dbc939bc856bde5da48e34e05225",
           "verified_on_chain": false
         },
         "mirror_status": "mirror_failed",
@@ -1906,7 +1906,7 @@
         "proof_mode_level": 2,
         "requested_execution_chain": "dual",
         "status": 200,
-        "total_duration_ms": 15627,
+        "total_duration_ms": 9785,
         "trust_mode": "synthetic_dev_only",
         "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
       },
@@ -1914,10 +1914,10 @@
         "api_error": null,
         "bridge_backend": "groth16_modelbridge",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x361522fdec9da504a661d6ead6fe2d27eadfc4d7bde2e2e5a5e1dcd86c51433e",
+        "bridge_proof_hash": "0x7e1b9332b3cc88833b6a03940dd04cc803f1cfc5548565d5a4309a918cdf5c88",
         "can_execute": false,
         "failure_reason": "Strict L3 verification failed",
-        "generated_at": "2026-03-11T04:50:06.015054+00:00",
+        "generated_at": "2026-03-11T04:23:09.033515+00:00",
         "l2": {
           "attempted": false,
           "error": null,
@@ -1932,8 +1932,8 @@
           "error": null,
           "mode": "hash_only",
           "success": true,
-          "tx_hash": "0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
-          "tx_url": "https://sepolia.voyager.online/tx/0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
+          "tx_hash": "0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
+          "tx_url": "https://sepolia.voyager.online/tx/0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
           "verified_on_chain": false
         },
         "mirror_status": "not_requested",
@@ -1943,7 +1943,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 12741,
+        "total_duration_ms": 10813,
         "trust_mode": "synthetic_dev_only",
         "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
       },
@@ -1951,10 +1951,10 @@
         "api_error": null,
         "bridge_backend": "placeholder_fallback",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0xb0230548a9b1a7fbd04d7d6e34384321d81b92ab072146bafdc54b77429706d3",
+        "bridge_proof_hash": "0x84075a665c9cfa709be2250bc12b277335e256df044e0e375e7d59476831c590",
         "can_execute": false,
         "failure_reason": "Strict L3 verification failed",
-        "generated_at": "2026-03-11T04:50:34.513746+00:00",
+        "generated_at": "2026-03-11T04:23:29.883648+00:00",
         "l2": {
           "attempted": false,
           "error": null,
@@ -1969,8 +1969,8 @@
           "error": null,
           "mode": "hash_only",
           "success": true,
-          "tx_hash": "0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
-          "tx_url": "https://sepolia.voyager.online/tx/0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
+          "tx_hash": "0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
+          "tx_url": "https://sepolia.voyager.online/tx/0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
           "verified_on_chain": false
         },
         "mirror_status": "not_requested",
@@ -1980,7 +1980,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 4204,
+        "total_duration_ms": 2856,
         "trust_mode": "synthetic_dev_only",
         "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
       },
@@ -2053,18 +2053,18 @@
     "modelbridge_heavy_live_receipt": {
       "bridge_backend": "placeholder_fallback",
       "bridge_compliant": true,
-      "bridge_proof_hash": "0xb0230548a9b1a7fbd04d7d6e34384321d81b92ab072146bafdc54b77429706d3",
+      "bridge_proof_hash": "0x84075a665c9cfa709be2250bc12b277335e256df044e0e375e7d59476831c590",
       "calldata_words": 6,
       "can_execute": false,
       "failure_reason": "Strict L3 verification failed",
-      "generated_at": "2026-03-11T04:50:34.513746+00:00",
+      "generated_at": "2026-03-11T04:23:29.883648+00:00",
       "l2_attempted": false,
       "l2_mode": null,
       "l3_attempted": true,
       "l3_mode": "hash_only",
       "l3_success": true,
-      "l3_tx_hash": "0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
-      "l3_tx_url": "https://sepolia.voyager.online/tx/0x5c15ea5236b72923a3b6c1d702f31b69ce7b4504766b73a14929307e4be9aef",
+      "l3_tx_hash": "0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
+      "l3_tx_url": "https://sepolia.voyager.online/tx/0x1714b773c27203ba5d9ce8ca8fbc910e4f7a52d56249726b7f6b27146b1d080",
       "l3_verified_on_chain": false,
       "mirror_status": "not_requested",
       "primary_authority": "l3",
@@ -2072,24 +2072,24 @@
       "proof_mode_level": 1,
       "requested_execution_chain": "l3",
       "status": 200,
-      "total_duration_ms": 4204,
+      "total_duration_ms": 2856,
       "trust_mode": "synthetic_dev_only",
       "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
     },
     "modelbridge_live_receipt": {
       "bridge_compliant": true,
-      "bridge_proof_hash": "0x361522fdec9da504a661d6ead6fe2d27eadfc4d7bde2e2e5a5e1dcd86c51433e",
+      "bridge_proof_hash": "0x7e1b9332b3cc88833b6a03940dd04cc803f1cfc5548565d5a4309a918cdf5c88",
       "calldata_words": 2005,
       "can_execute": false,
       "failure_reason": "Strict L3 verification failed",
-      "generated_at": "2026-03-11T04:50:06.015054+00:00",
+      "generated_at": "2026-03-11T04:23:09.033515+00:00",
       "l2_attempted": false,
       "l2_mode": null,
       "l3_attempted": true,
       "l3_mode": "hash_only",
       "l3_success": true,
-      "l3_tx_hash": "0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
-      "l3_tx_url": "https://sepolia.voyager.online/tx/0x138cd8cea84e0a727ab276acdbba01791ab62762fd5231da7762d8c00cac779",
+      "l3_tx_hash": "0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
+      "l3_tx_url": "https://sepolia.voyager.online/tx/0x47743ca19ed35bbcf7d2078ccab0e9efecf858cf1204da2f9ae7b10b78152d8",
       "l3_verified_on_chain": false,
       "mirror_status": "not_requested",
       "primary_authority": "l3",
@@ -2097,7 +2097,7 @@
       "proof_mode_level": 1,
       "requested_execution_chain": "l3",
       "status": 200,
-      "total_duration_ms": 12741,
+      "total_duration_ms": 10813,
       "trust_mode": "synthetic_dev_only",
       "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
     },
@@ -2758,16 +2758,16 @@
   "exit_code": 0,
   "forecaster_showcase": {
     "commit_status": 200,
-    "explain_narration": "The model predicted returns of 0.56% for 5 minutes, 0.91% for 30 minutes, and 1.39% for 4 hours, with a probability of price increases of 59.6%, 67.2%, and 76.2%, respectively. After scoring, the actual returns were significantly higher at 0.90%, 1.80%, and 3.90%, indicating perfect directional accuracy. Keep in mind that while the predictions were close, actual market conditions can vary widely, so always consider potential risks.",
+    "explain_narration": "The model predicted returns of 0.54% for 5 minutes, 0.87% for 30 minutes, and 1.34% for 4 hours, with probabilities of price increases at 59.2%, 66.6%, and 75.5%, respectively. It performed exceptionally well, achieving actual returns of 0.90%, 1.80%, and 3.90%, with perfect directional accuracy. Keep in mind that while the predictions were accurate, actual market conditions can vary significantly.",
     "explain_status": 200,
-    "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
+    "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
     "outcomes_status": 200,
     "records": {
       "commit": {
-        "created_at_ts": 1773204595,
+        "created_at_ts": 1773202979,
         "ezkl_receipt": null,
-        "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
-        "guess_ts": 1773204594,
+        "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
+        "guess_ts": 1773202978,
         "horizons_min": [
           5,
           30,
@@ -2790,13 +2790,13 @@
           "return_min_bps": -5000
         },
         "outputs_scaled": null,
-        "prediction_commitment": "0x633f7f7f8e5c1177bda16b1e5e20e30169873983090220feb1df96967ee07c0c",
+        "prediction_commitment": "0x4ca8e7e1b83aafe153154cb98da8320b5d1c7482932023c57cf4c25ccac6ce2f",
         "revealed_at_ts": null,
         "score_receipt_id": null,
         "status": "committed",
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "commit_reveal_only",
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
       },
       "explain": {
         "context": {
@@ -2806,36 +2806,36 @@
           "a30_pct": 1.8,
           "a5_bps": 90,
           "a5_pct": 0.9,
-          "brier": 0.109259,
+          "brier": 0.112661,
           "directional_pct": 100.0,
-          "ece": 0.323533,
-          "mae_bps": 124.666667,
-          "mae_pct": 1.24666667,
-          "p240_pct": 76.15,
-          "p30_pct": 67.21,
-          "p5_pct": 59.58,
+          "ece": 0.329,
+          "mae_bps": 128.333333,
+          "mae_pct": 1.28333333,
+          "p240_pct": 75.49,
+          "p30_pct": 66.58,
+          "p5_pct": 59.23,
           "pair_id": "ETH/USDC",
-          "r240_bps": 139,
-          "r240_pct": 1.39,
-          "r30_bps": 91,
-          "r30_pct": 0.91,
-          "r5_bps": 56,
-          "r5_pct": 0.56,
+          "r240_bps": 134,
+          "r240_pct": 1.34,
+          "r30_bps": 87,
+          "r30_pct": 0.87,
+          "r5_bps": 54,
+          "r5_pct": 0.54,
           "status": "scored",
           "trust_mode": "offchain_ezkl_verified"
         },
         "context_type": "snapshot_forecast_explain",
         "fallback_reason": null,
-        "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
+        "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
         "highlights": [
-          "Predicted returns: 5m 0.56% (56 bps), 30m 0.91% (91 bps), 4h 1.39% (139 bps)",
-          "Predicted up probability: 5m 59.6%, 30m 67.2%, 4h 76.2%",
-          "Scored metrics: directional 100.0%, MAE 1.25% (124.7 bps), Brier 0.1093, ECE 0.3235"
+          "Predicted returns: 5m 0.54% (54 bps), 30m 0.87% (87 bps), 4h 1.34% (134 bps)",
+          "Predicted up probability: 5m 59.2%, 30m 66.6%, 4h 75.5%",
+          "Scored metrics: directional 100.0%, MAE 1.28% (128.3 bps), Brier 0.1127, ECE 0.3290"
         ],
-        "narration": "The model predicted returns of 0.56% for 5 minutes, 0.91% for 30 minutes, and 1.39% for 4 hours, with a probability of price increases of 59.6%, 67.2%, and 76.2%, respectively. After scoring, the actual returns were significantly higher at 0.90%, 1.80%, and 3.90%, indicating perfect directional accuracy. Keep in mind that while the predictions were close, actual market conditions can vary widely, so always consider potential risks.",
+        "narration": "The model predicted returns of 0.54% for 5 minutes, 0.87% for 30 minutes, and 1.34% for 4 hours, with probabilities of price increases at 59.2%, 66.6%, and 75.5%, respectively. It performed exceptionally well, achieving actual returns of 0.90%, 1.80%, and 3.90%, with perfect directional accuracy. Keep in mind that while the predictions were accurate, actual market conditions can vary significantly.",
         "records": {
           "prediction": {
-            "created_at_ts": 1773204595,
+            "created_at_ts": 1773202979,
             "ezkl_receipt": {
               "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
               "proof_system": "halo2_kzg",
@@ -2844,8 +2844,8 @@
               "verified_on_chain": false,
               "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444"
             },
-            "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
-            "guess_ts": 1773204594,
+            "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
+            "guess_ts": 1773202978,
             "horizons_min": [
               5,
               30,
@@ -2868,25 +2868,25 @@
               "return_min_bps": -5000
             },
             "outputs_scaled": {
-              "p240": 7615,
-              "p30": 6721,
-              "p5": 5958,
-              "r240": 139,
-              "r30": 91,
-              "r5": 56
+              "p240": 7549,
+              "p30": 6658,
+              "p5": 5923,
+              "r240": 134,
+              "r30": 87,
+              "r5": 54
             },
-            "prediction_commitment": "0x633f7f7f8e5c1177bda16b1e5e20e30169873983090220feb1df96967ee07c0c",
-            "reveal_salt_hash": "0x7cc8df5a073f70a4010c3c96f1c3e29e0e9dd35325bdd5fa4cc9f899a746c5c6",
-            "revealed_at_ts": 1773204595,
-            "score_receipt_id": "0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904",
-            "scored_at_ts": 1773204595,
+            "prediction_commitment": "0x4ca8e7e1b83aafe153154cb98da8320b5d1c7482932023c57cf4c25ccac6ce2f",
+            "reveal_salt_hash": "0x8d66b3d44edbf4eac4fc9e426d04699f79bed94d2c76adc0ee7ded6053f7076a",
+            "revealed_at_ts": 1773202979,
+            "score_receipt_id": "0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1",
+            "scored_at_ts": 1773202979,
             "status": "scored",
             "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "trust_mode": "offchain_ezkl_verified",
-            "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+            "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
           },
           "score": {
-            "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
+            "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
             "metric_tiers": {
               "brier_tier": "tier_1",
               "directional_accuracy_tier": "tier_1",
@@ -2894,12 +2894,12 @@
               "mae_tier": "tier_3"
             },
             "metrics": {
-              "brier_score": 0.109259,
+              "brier_score": 0.112661,
               "directional_accuracy": 1.0,
-              "ece": 0.323533,
+              "ece": 0.329,
               "horizon_count": 3,
-              "mae_bps": 124.666667,
-              "rmse_bps": 155.003226
+              "mae_bps": 128.333333,
+              "rmse_bps": 158.620091
             },
             "model_identity": {
               "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
@@ -2910,44 +2910,44 @@
             "pair_id": "ETH/USDC",
             "per_horizon": {
               "240": {
-                "abs_error_bps": 251.0,
+                "abs_error_bps": 256.0,
                 "actual_return_bps": 390,
                 "actual_up": 1,
-                "brier": 0.05688225000000002,
+                "brier": 0.06007400999999999,
                 "directional_hit": true,
                 "horizon_min": 240,
-                "predicted_prob_up": 0.7615,
-                "predicted_return_bps": 139,
-                "squared_error_bps2": 63001.0
+                "predicted_prob_up": 0.7549,
+                "predicted_return_bps": 134,
+                "squared_error_bps2": 65536.0
               },
               "30": {
-                "abs_error_bps": 89.0,
+                "abs_error_bps": 93.0,
                 "actual_return_bps": 180,
                 "actual_up": 1,
-                "brier": 0.10751840999999998,
+                "brier": 0.11168964000000003,
                 "directional_hit": true,
                 "horizon_min": 30,
-                "predicted_prob_up": 0.6721,
-                "predicted_return_bps": 91,
-                "squared_error_bps2": 7921.0
+                "predicted_prob_up": 0.6658,
+                "predicted_return_bps": 87,
+                "squared_error_bps2": 8649.0
               },
               "5": {
-                "abs_error_bps": 34.0,
+                "abs_error_bps": 36.0,
                 "actual_return_bps": 90,
                 "actual_up": 1,
-                "brier": 0.16337764,
+                "brier": 0.16621928999999996,
                 "directional_hit": true,
                 "horizon_min": 5,
-                "predicted_prob_up": 0.5958,
-                "predicted_return_bps": 56,
-                "squared_error_bps2": 1156.0
+                "predicted_prob_up": 0.5923,
+                "predicted_return_bps": 54,
+                "squared_error_bps2": 1296.0
               }
             },
-            "score_receipt_id": "0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904",
-            "scored_at_ts": 1773204595,
+            "score_receipt_id": "0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1",
+            "scored_at_ts": 1773202979,
             "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "trust_mode": "offchain_ezkl_verified",
-            "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+            "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
           },
           "window": {
             "attestation": {
@@ -2959,7 +2959,7 @@
               "tx_hash": null
             },
             "cadence_id": "demo_1m",
-            "created_at_ts": 1773204594,
+            "created_at_ts": 1773202978,
             "data_source_id": "hackathon_showcase",
             "feature_schema_id": "snapshot_forecaster.v1",
             "feature_vector": {
@@ -2974,30 +2974,30 @@
                 "actual_return_bps": 390,
                 "actual_up": 1,
                 "horizon_min": 240,
-                "maturity_ts": 1773218934,
-                "recorded_at_ts": 1773204595,
+                "maturity_ts": 1773217318,
+                "recorded_at_ts": 1773202979,
                 "source_id": "hackathon_showcase"
               },
               "30": {
                 "actual_return_bps": 180,
                 "actual_up": 1,
                 "horizon_min": 30,
-                "maturity_ts": 1773206334,
-                "recorded_at_ts": 1773204595,
+                "maturity_ts": 1773204718,
+                "recorded_at_ts": 1773202979,
                 "source_id": "hackathon_showcase"
               },
               "5": {
                 "actual_return_bps": 90,
                 "actual_up": 1,
                 "horizon_min": 5,
-                "maturity_ts": 1773204834,
-                "recorded_at_ts": 1773204595,
+                "maturity_ts": 1773203218,
+                "recorded_at_ts": 1773202979,
                 "source_id": "hackathon_showcase"
               }
             },
             "pair_id": "ETH/USDC",
             "prediction_ids": [
-              "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03"
+              "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf"
             ],
             "snapshot_data": {
               "liquidity": 1000000,
@@ -3006,14 +3006,14 @@
             },
             "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
             "snapshot_provenance_hash": null,
-            "window_close_ts": 1773205194,
-            "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707",
-            "window_open_ts": 1773204534
+            "window_close_ts": 1773203578,
+            "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9",
+            "window_open_ts": 1773202918
           }
         },
-        "score_receipt_id": "0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904",
+        "score_receipt_id": "0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1",
         "source": "llm",
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
       },
       "outcomes": {
         "attestation": {
@@ -3025,7 +3025,7 @@
           "tx_hash": null
         },
         "cadence_id": "demo_1m",
-        "created_at_ts": 1773204594,
+        "created_at_ts": 1773202978,
         "data_source_id": "hackathon_showcase",
         "feature_schema_id": "snapshot_forecaster.v1",
         "feature_vector": {
@@ -3040,30 +3040,30 @@
             "actual_return_bps": 390,
             "actual_up": 1,
             "horizon_min": 240,
-            "maturity_ts": 1773218934,
-            "recorded_at_ts": 1773204595,
+            "maturity_ts": 1773217318,
+            "recorded_at_ts": 1773202979,
             "source_id": "hackathon_showcase"
           },
           "30": {
             "actual_return_bps": 180,
             "actual_up": 1,
             "horizon_min": 30,
-            "maturity_ts": 1773206334,
-            "recorded_at_ts": 1773204595,
+            "maturity_ts": 1773204718,
+            "recorded_at_ts": 1773202979,
             "source_id": "hackathon_showcase"
           },
           "5": {
             "actual_return_bps": 90,
             "actual_up": 1,
             "horizon_min": 5,
-            "maturity_ts": 1773204834,
-            "recorded_at_ts": 1773204595,
+            "maturity_ts": 1773203218,
+            "recorded_at_ts": 1773202979,
             "source_id": "hackathon_showcase"
           }
         },
         "pair_id": "ETH/USDC",
         "prediction_ids": [
-          "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03"
+          "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf"
         ],
         "snapshot_data": {
           "liquidity": 1000000,
@@ -3072,12 +3072,12 @@
         },
         "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
         "snapshot_provenance_hash": null,
-        "window_close_ts": 1773205194,
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707",
-        "window_open_ts": 1773204534
+        "window_close_ts": 1773203578,
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9",
+        "window_open_ts": 1773202918
       },
       "reveal": {
-        "created_at_ts": 1773204595,
+        "created_at_ts": 1773202979,
         "ezkl_receipt": {
           "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
           "proof_system": "halo2_kzg",
@@ -3086,8 +3086,8 @@
           "verified_on_chain": false,
           "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444"
         },
-        "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
-        "guess_ts": 1773204594,
+        "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
+        "guess_ts": 1773202978,
         "horizons_min": [
           5,
           30,
@@ -3110,24 +3110,24 @@
           "return_min_bps": -5000
         },
         "outputs_scaled": {
-          "p240": 7615,
-          "p30": 6721,
-          "p5": 5958,
-          "r240": 139,
-          "r30": 91,
-          "r5": 56
+          "p240": 7549,
+          "p30": 6658,
+          "p5": 5923,
+          "r240": 134,
+          "r30": 87,
+          "r5": 54
         },
-        "prediction_commitment": "0x633f7f7f8e5c1177bda16b1e5e20e30169873983090220feb1df96967ee07c0c",
-        "reveal_salt_hash": "0x7cc8df5a073f70a4010c3c96f1c3e29e0e9dd35325bdd5fa4cc9f899a746c5c6",
-        "revealed_at_ts": 1773204595,
+        "prediction_commitment": "0x4ca8e7e1b83aafe153154cb98da8320b5d1c7482932023c57cf4c25ccac6ce2f",
+        "reveal_salt_hash": "0x8d66b3d44edbf4eac4fc9e426d04699f79bed94d2c76adc0ee7ded6053f7076a",
+        "revealed_at_ts": 1773202979,
         "score_receipt_id": null,
         "status": "revealed",
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "offchain_ezkl_verified",
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
       },
       "score": {
-        "forecast_id": "0x7d761a4a2731dfa6f5f912c3ece403d87eca73b7c5659b39d84049c9c4982b03",
+        "forecast_id": "0xefb9797426a41653ab9abdfe80d1954c8a20dd00d217f489bd97fca824149cdf",
         "metric_tiers": {
           "brier_tier": "tier_1",
           "directional_accuracy_tier": "tier_1",
@@ -3135,12 +3135,12 @@
           "mae_tier": "tier_3"
         },
         "metrics": {
-          "brier_score": 0.109259,
+          "brier_score": 0.112661,
           "directional_accuracy": 1.0,
-          "ece": 0.323533,
+          "ece": 0.329,
           "horizon_count": 3,
-          "mae_bps": 124.666667,
-          "rmse_bps": 155.003226
+          "mae_bps": 128.333333,
+          "rmse_bps": 158.620091
         },
         "model_identity": {
           "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
@@ -3151,44 +3151,44 @@
         "pair_id": "ETH/USDC",
         "per_horizon": {
           "240": {
-            "abs_error_bps": 251.0,
+            "abs_error_bps": 256.0,
             "actual_return_bps": 390,
             "actual_up": 1,
-            "brier": 0.05688225000000002,
+            "brier": 0.06007400999999999,
             "directional_hit": true,
             "horizon_min": 240,
-            "predicted_prob_up": 0.7615,
-            "predicted_return_bps": 139,
-            "squared_error_bps2": 63001.0
+            "predicted_prob_up": 0.7549,
+            "predicted_return_bps": 134,
+            "squared_error_bps2": 65536.0
           },
           "30": {
-            "abs_error_bps": 89.0,
+            "abs_error_bps": 93.0,
             "actual_return_bps": 180,
             "actual_up": 1,
-            "brier": 0.10751840999999998,
+            "brier": 0.11168964000000003,
             "directional_hit": true,
             "horizon_min": 30,
-            "predicted_prob_up": 0.6721,
-            "predicted_return_bps": 91,
-            "squared_error_bps2": 7921.0
+            "predicted_prob_up": 0.6658,
+            "predicted_return_bps": 87,
+            "squared_error_bps2": 8649.0
           },
           "5": {
-            "abs_error_bps": 34.0,
+            "abs_error_bps": 36.0,
             "actual_return_bps": 90,
             "actual_up": 1,
-            "brier": 0.16337764,
+            "brier": 0.16621928999999996,
             "directional_hit": true,
             "horizon_min": 5,
-            "predicted_prob_up": 0.5958,
-            "predicted_return_bps": 56,
-            "squared_error_bps2": 1156.0
+            "predicted_prob_up": 0.5923,
+            "predicted_return_bps": 54,
+            "squared_error_bps2": 1296.0
           }
         },
-        "score_receipt_id": "0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904",
-        "scored_at_ts": 1773204595,
+        "score_receipt_id": "0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1",
+        "scored_at_ts": 1773202979,
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "offchain_ezkl_verified",
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707"
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9"
       },
       "window": {
         "attestation": {
@@ -3200,7 +3200,7 @@
           "tx_hash": null
         },
         "cadence_id": "demo_1m",
-        "created_at_ts": 1773204594,
+        "created_at_ts": 1773202978,
         "data_source_id": "hackathon_showcase",
         "feature_schema_id": "snapshot_forecaster.v1",
         "feature_vector": {
@@ -3220,17 +3220,17 @@
         },
         "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
         "snapshot_provenance_hash": null,
-        "window_close_ts": 1773205194,
-        "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707",
-        "window_open_ts": 1773204534
+        "window_close_ts": 1773203578,
+        "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9",
+        "window_open_ts": 1773202918
       }
     },
     "reputation": {
       "avg_metrics": {
-        "brier_score": 0.184161,
-        "directional_accuracy": 0.717949,
-        "ece": 0.418613,
-        "mae_bps": 181.905983
+        "brier_score": 0.185721,
+        "directional_accuracy": 0.722222,
+        "ece": 0.42068,
+        "mae_bps": 183.148148
       },
       "metric_tiers": {
         "brier_tier": "tier_2",
@@ -3238,49 +3238,49 @@
         "ece_tier": "tier_3",
         "mae_tier": "tier_3"
       },
-      "sample_size": 39,
+      "sample_size": 36,
       "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
       "trust_score": 72
     },
     "reputation_status": 200,
     "reveal_status": 200,
     "score_metrics": {
-      "brier_score": 0.109259,
+      "brier_score": 0.112661,
       "directional_accuracy": 1.0,
-      "ece": 0.323533,
+      "ece": 0.329,
       "horizon_count": 3,
-      "mae_bps": 124.666667,
-      "rmse_bps": 155.003226
+      "mae_bps": 128.333333,
+      "rmse_bps": 158.620091
     },
-    "score_receipt_id": "0x030cba040c36fccad9ceccc0c2f768bf34b3b7e88d264d526636ad319c2f1904",
+    "score_receipt_id": "0xa2e5f266081fd32f0169e7dfe9d6787a5326f60098aaa8f9a5a29c1f5ec1b5b1",
     "score_status": 200,
     "suggest_status": 200,
     "suggested_outputs": {
-      "p240": 7615,
-      "p30": 6721,
-      "p5": 5958,
-      "r240": 139,
-      "r30": 91,
-      "r5": 56
+      "p240": 7549,
+      "p30": 6658,
+      "p5": 5923,
+      "r240": 134,
+      "r30": 87,
+      "r5": 54
     },
     "trust_mode": "offchain_ezkl_verified",
-    "window_id": "0x386df9e94f5fd7b85bfc9be2555d7e72ab6b1131fcc37217b35f208644182707",
+    "window_id": "0x3e410d86ae8813cf913a7e3171904f8e29dcf963f89684018e1c159fa764d5c9",
     "window_status": 200
   },
-  "generated_at": "2026-03-11T04:52:11.723999+00:00",
+  "generated_at": "2026-03-11T04:24:30.518573+00:00",
   "heavy_stark_showcase": {
     "circuit_name": "StarkHeavyReputation",
-    "error": null,
-    "fact_hash": "0x3c100ba580a8a56269e22e9bfbf3e7357504035b7f36dff21f086dfd5a13530",
+    "error": "Obsqra prover error: Client error '404 Not Found' for url 'https://starknet.obsqra.fi/api/v1/prove/stone'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+    "fact_hash": "0x6225bbe860c042fc29fcc4d94aa843bd9fa81a1bee241c0a56f0e73a69dffcda",
     "l3": {
       "error": "",
       "mode": "hash_only",
       "success": true,
-      "tx_hash": "0x79fa22c069ebf31bc8bf0a474605ebac6ea68856227d6aee2d7dce3921934ae",
-      "tx_url": "https://sepolia.voyager.online/tx/0x79fa22c069ebf31bc8bf0a474605ebac6ea68856227d6aee2d7dce3921934ae",
+      "tx_hash": "0x11e3c1f0a803ab11be96a90b2929d597ae146339a143c16f944561a598808b4",
+      "tx_url": "https://sepolia.voyager.online/tx/0x11e3c1f0a803ab11be96a90b2929d597ae146339a143c16f944561a598808b4",
       "verified_on_chain": false
     },
-    "proof_hash": "75536733e73ca1f23ce03226ee298733212eb6c31e17e64583b8c9926c1a870a",
+    "proof_hash": "0x541eeff506d477142e426e862c9a7aa6e8b1b78302646a3048a7e611be060072",
     "status": 200,
     "success": true
   },
@@ -3345,16 +3345,16 @@
       "transfer_in": {
         "amount_wei": "1000000000000000",
         "asset": "STRK",
-        "balance_wei": "22500000000000000",
-        "commitment_hash": "0x6851593a25be9ee999e7cd86c057d87c3103193c453aa9976c0415f46bbb2ea",
+        "balance_wei": "21000000000000000",
+        "commitment_hash": "0x24bca02a346f93157347a85acfd53e2c9193a371de8e48293aec7a4caefa42",
         "duplicate": false,
         "method": "dark_ledger",
-        "note_id": "7c12ebd0e8604e35b2df6020f9f652e0",
-        "receipt_id": "0x2060e928769ff41d28253d578a852a18e12ca1a1bc9b6e299ebcd4d91d0f6ad0",
-        "receipt_url": "/api/v1/zkdefi/mc/receipts/0x2060e928769ff41d28253d578a852a18e12ca1a1bc9b6e299ebcd4d91d0f6ad0",
-        "request_id": 710034506,
+        "note_id": "7fe8112fca9e4f40b5ac1eee8435a23d",
+        "receipt_id": "0x286654ee4fce89b97b2458ae935dc42a197e1dd3b1c48bcc792ed14890f3a140",
+        "receipt_url": "/api/v1/zkdefi/mc/receipts/0x286654ee4fce89b97b2458ae935dc42a197e1dd3b1c48bcc792ed14890f3a140",
+        "request_id": 116989969,
         "settlement_day_utc": "2026-03-11",
-        "settlement_eta": "2026-03-11T04:49:46Z",
+        "settlement_eta": "2026-03-11T04:22:54Z",
         "status": "recorded",
         "tx_hash": null,
         "tx_url": null
@@ -3363,18 +3363,18 @@
       "transfer_out": {
         "amount_wei": "500000000000000",
         "asset": "STRK",
-        "balance_wei": "22000000000000000",
-        "commitment_hash": "0x6851593a25be9ee999e7cd86c057d87c3103193c453aa9976c0415f46bbb2ea",
+        "balance_wei": "20500000000000000",
+        "commitment_hash": "0x24bca02a346f93157347a85acfd53e2c9193a371de8e48293aec7a4caefa42",
         "method": "dark_ledger",
-        "note_id": "7c12ebd0e8604e35b2df6020f9f652e0",
+        "note_id": "7fe8112fca9e4f40b5ac1eee8435a23d",
         "note_status": "withdrawn",
-        "payout_id": 49,
-        "receipt_id": "0xb7f379e0830d0d89ad3a30bd839683459f6c97094546de43b96117fd6ba43882",
-        "receipt_url": "/api/v1/zkdefi/mc/receipts/0xb7f379e0830d0d89ad3a30bd839683459f6c97094546de43b96117fd6ba43882",
+        "payout_id": 46,
+        "receipt_id": "0xc4d0cbfa4985ff78ae4a87b0adba6f86e790c4ae4d6a218b26185ec3effbb62a",
+        "receipt_url": "/api/v1/zkdefi/mc/receipts/0xc4d0cbfa4985ff78ae4a87b0adba6f86e790c4ae4d6a218b26185ec3effbb62a",
         "recipient": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
-        "request_id": 383190304,
+        "request_id": 1993852490,
         "settlement_day_utc": "2026-03-11",
-        "settlement_eta": "2026-03-11T04:49:47Z",
+        "settlement_eta": "2026-03-11T04:22:54Z",
         "status": "queued",
         "status_url": "/api/v1/zkdefi/relayer/pending/0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "tx_hash": null,
@@ -3501,39 +3501,31 @@
         "batches_flushed": 0,
         "items": [
           {
-            "fact_hash": "0x781338654b1c249922c0fafb36d06de2d8309cb4dcc1872b071b60e2e9d892",
-            "id": "batch_b2ae2935ea31",
+            "fact_hash": "0x5338c1aa14e50002f23b2089751ab66a441afdfb9955b234fecbe4fd19c91c",
+            "id": "batch_f0875b32e664",
             "proof_type": "withdraw",
             "status": "pending",
-            "submitted_at": "2026-03-11T04:40:47.508506+00:00",
+            "submitted_at": "2026-03-11T04:11:48.095928+00:00",
             "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
           },
           {
-            "fact_hash": "0x24b64fa7e6136c72ddbfdf52518e9fad459c6d7e687f092c03aa7b8ec8a4f33",
-            "id": "batch_461d9fa7c0a3",
+            "fact_hash": "0x24bca02a346f93157347a85acfd53e2c9193a371de8e48293aec7a4caefa42",
+            "id": "batch_52fbde8dbc48",
             "proof_type": "withdraw",
             "status": "pending",
-            "submitted_at": "2026-03-11T04:44:11.166179+00:00",
-            "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
-          },
-          {
-            "fact_hash": "0x6851593a25be9ee999e7cd86c057d87c3103193c453aa9976c0415f46bbb2ea",
-            "id": "batch_fc1c59ff9405",
-            "proof_type": "withdraw",
-            "status": "pending",
-            "submitted_at": "2026-03-11T04:49:47.294397+00:00",
+            "submitted_at": "2026-03-11T04:22:54.270098+00:00",
             "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
           }
         ],
         "last_flush_at": "",
-        "pending_count": 3
+        "pending_count": 2
       },
       "batch_pending_status": 200,
       "batch_submit": {
         "auto_flushed": false,
         "flush_result": null,
-        "item_id": "batch_fc1c59ff9405",
-        "queue_size": 3,
+        "item_id": "batch_52fbde8dbc48",
+        "queue_size": 2,
         "status": "ok"
       },
       "batch_submit_status": 200,
@@ -3548,7 +3540,7 @@
       },
       "config_status": 200,
       "fact_count": {
-        "count": 695
+        "count": 679
       },
       "fact_count_status": 200,
       "health": {
@@ -3557,7 +3549,7 @@
         "enabled": true,
         "error": null,
         "healthy": true,
-        "latest_block": 57920,
+        "latest_block": 57597,
         "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0"
       },
       "health_status": 200,
@@ -3566,52 +3558,52 @@
         "configured": true,
         "enabled": true,
         "fact_registry": "0x5ed322b12ddc28d27b7797d79516ca285137f9bab9fde870191119b4c68d691",
-        "last_block_seen": 57920,
+        "last_block_seen": 57597,
         "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0",
         "total_failures": 0,
-        "total_registrations": 28
+        "total_registrations": 0
       },
       "stats_status": 200,
       "verify": {
         "chain_id": "OBSQRA_PROOF_CHAIN",
         "error": "",
-        "fact_hash": "0x6851593a25be9ee999e7cd86c057d87c3103193c453aa9976c0415f46bbb2ea",
+        "fact_hash": "0x24bca02a346f93157347a85acfd53e2c9193a371de8e48293aec7a4caefa42",
         "valid": false
       },
       "verify_status": 200
     },
     "rails": [
       {
-        "claim_hash": "0x2f2f826bf06a73f2d492754894282847c16570b9e4aba12ead68263b00a8ee4e",
+        "claim_hash": "0x1a91ba75ff9b737c29f0b78900bfef6631f1b0bbde151bfc2a7894639d119133",
         "claim_status": 200,
-        "commitment": "0x6851593a25be9ee999e7cd86c057d87c3103193c453aa9976c0415f46bbb2ea",
+        "commitment": "0x24bca02a346f93157347a85acfd53e2c9193a371de8e48293aec7a4caefa42",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0x2a8d6f06c251fa4fa760e2bb3dedb8f99d45cfb8659463ee3dae75aaefbb9a0a",
+        "nullifier": "0x58034fca25ac60f1844f3fa0b7413450dcbdad7e2319a42cb3692787e20876d",
         "pool_type": 0,
         "proof_with_change_status": null,
         "register_status": 200,
         "relayer_ready": true
       },
       {
-        "claim_hash": "0x29900250ee50739aa48eaac2bde9e3411a4979f82b0e6d7aeb2b5f1d4623602c",
+        "claim_hash": "0x28b81cc2b55a76908a879651e8501bb78c0eb0d8dadfbee9c5140a40e801abc3",
         "claim_status": 200,
-        "commitment": "0x60a5001d5b530c505c4da00e02bd1aad61244f27014e1f8c0eaa3d68d46e2c4",
+        "commitment": "0xd8bff7526a5e2219a36e0962b5fd64136bf3696c86b9ebd69a62a723a83df2",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0xf5ea5958d6119ff0ed07a1d2c83a5fc832a3d7df11983b6e9d98a65a91974f2",
+        "nullifier": "0x76be05c43f11a9ca919e605debcab860647fbf4eaa9ac8d20ae4a4ae0ed48b0",
         "pool_type": 1,
         "proof_with_change_status": 200,
         "register_status": 200,
         "relayer_ready": true
       },
       {
-        "claim_hash": "0x20c379c3a0bafd971f1effa3457feee175baef1632ea646afe323dec374048dd",
+        "claim_hash": "0x40caab6922c8306d786ff2b0829a6d3be163f3be142782c2b049a7f1335cf1e",
         "claim_status": 200,
-        "commitment": "0x1befbee3387115f2f7db03afaa1a75f0e94975820bfd05c4c92c9c1fc0891e",
+        "commitment": "0xe8966bc99c7ac8b1e56ee703778c3f60f13bafde26af3cbd445c1f6bf556f7",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0xa1d1a629a2f5d4ad9770b70a6ff29c6871bba69381be4e9042a9e6303804296",
+        "nullifier": "0x4f2480bbc536c68c4d4d52dc7b9ebdb9133935b764a827e186059e4774f8ae8",
         "pool_type": 2,
         "proof_with_change_status": null,
         "register_status": 200,
@@ -3686,7 +3678,7 @@
     },
     "user_status": 200,
     "voting": {
-      "proposal_id": 49,
+      "proposal_id": 46,
       "proposal_status": 200,
       "vote_cast_error": null,
       "vote_cast_status": 200,
@@ -3777,7 +3769,7 @@
       "phase4_plan_expanded": true
     }
   },
-  "started_at": "2026-03-11T04:48:33.520618+00:00",
+  "started_at": "2026-03-11T04:21:47.462146+00:00",
   "steps": [
     {
       "details": {
@@ -3800,7 +3792,7 @@
     },
     {
       "details": {
-        "agent_id": "317a100c0fe3cf8f",
+        "agent_id": "a9aeb03f1c1ce16a",
         "create_status": 200,
         "execute_status": 200,
         "processor_results": 3,
@@ -3824,8 +3816,8 @@
     },
     {
       "details": {
-        "commitment": "0x531c20f308...38872588ee9b",
-        "nonce": "0x7deeb708636230f8",
+        "commitment": "0x23d488d55c...aed02760aa9d",
+        "nonce": "0x52dcd7d331eab8f",
         "pool_type": 1,
         "status": 200
       },
@@ -3848,7 +3840,7 @@
       "details": {
         "commit_status": 200,
         "reveal_status": 200,
-        "score_receipt": "0x030cba04...319c2f1904",
+        "score_receipt": "0xa2e5f266...1f5ec1b5b1",
         "score_status": 200,
         "trust_mode": "offchain_ezkl_verified",
         "window_status": 200
@@ -3885,7 +3877,7 @@
         "REPUTATION_REGISTRY_ADDRESS_class_hash": "0x74f7c06b...8eec60c95f",
         "VAULT_CONTROLLER_ADDRESS_class_hash": "0x126f9b9d...95b3848c40",
         "ZKML_VERIFIER_ADDRESS_class_hash": "0xf9c1bd17...b7687aa066",
-        "block_number": 7474214,
+        "block_number": 7473425,
         "resolved_contracts": 7,
         "rpc_url": "https://starknet-sepolia-rpc.publicnode.com",
         "voyager_links": 7
@@ -3895,7 +3887,7 @@
     },
     {
       "details": {
-        "count": 136,
+        "count": 127,
         "first_tx_hash": "-",
         "status": 200,
         "tx_hashes": 0
@@ -3906,7 +3898,7 @@
     {
       "details": {
         "batch_status": 200,
-        "first_proof_hash": "0x392b3ee646...aa2ec4f263d8",
+        "first_proof_hash": "0x0c61c0a803...fd1289db6e59",
         "listed_skills": 15,
         "note": "If this fails with Poseidon bridge errors while other proof paths pass, backend env likely lacks the real bridge runtime wiring.",
         "proof_hashes": 5,
@@ -3919,8 +3911,8 @@
     {
       "details": {
         "detail": null,
-        "envelope_id": "env_1773204605_0x49d36570",
-        "proof_hash": "0xc6147335c3...10ec2cc93acc",
+        "envelope_id": "env_1773202988_0x49d36570",
+        "proof_hash": "0xbfa66b4818...716d17e89a00",
         "status": 200,
         "verified": true
       },
@@ -3931,11 +3923,11 @@
       "details": {
         "bridge_backend": "groth16_modelbridge",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x361522fdec...dcd86c51433e",
+        "bridge_proof_hash": "0x7e1b9332b3...9a918cdf5c88",
         "can_execute": false,
         "failure_reason": "Strict L3 verification failed",
         "l3_mode": "hash_only",
-        "l3_tx_hash": "0x138cd8cea8...2d8c00cac779",
+        "l3_tx_hash": "0x47743ca19e...7b10b78152d8",
         "l3_verified_on_chain": false,
         "proof_mode": "EZKL_BRIDGE",
         "status": 200,
@@ -3949,11 +3941,11 @@
       "details": {
         "bridge_backend": "placeholder_fallback",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0xb0230548a9...4b77429706d3",
+        "bridge_proof_hash": "0x84075a665c...59476831c590",
         "can_execute": false,
         "failure_reason": "Strict L3 verification failed",
         "l3_mode": "hash_only",
-        "l3_tx_hash": "0x5c15ea5236...9307e4be9aef",
+        "l3_tx_hash": "0x1714b773c2...b27146b1d080",
         "l3_verified_on_chain": false,
         "proof_mode": "EZKL_BRIDGE",
         "status": 200,
@@ -3965,7 +3957,7 @@
     },
     {
       "details": {
-        "dual_attempted": false,
+        "dual_attempted": true,
         "dual_attempts": 1,
         "dual_failure_reason": "Strict L3 verification failed",
         "dual_lanes_ready": true,
@@ -4030,10 +4022,10 @@
     {
       "details": {
         "circuit": "StarkHeavyReputation",
-        "error": "",
+        "error": "Obsqra prover error: Client error '404 Not Found' for url 'https://starknet.obsqra.fi/api/v1/prove/stone'\nFor more in...",
         "l3_mode": "hash_only",
-        "l3_tx_hash": "0x79fa22c069...dce3921934ae",
-        "proof_hash": "75536733e73c...c9926c1a870a",
+        "l3_tx_hash": "0x11e3c1f0a8...561a598808b4",
+        "proof_hash": "0x541eeff506...e611be060072",
         "status": 200,
         "success": true,
         "transient_status_ok": false

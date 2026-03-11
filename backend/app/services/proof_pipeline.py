@@ -261,6 +261,17 @@ class ProofPipeline:
                 fact_hash=fact_hash,
                 chain_id=self._l2_verify_chain_id,
             )
+            verify_error = str(verify.get("error") or "")
+            if "endpoint unavailable" in verify_error.lower():
+                return {
+                    "attempted": False,
+                    "success": False,
+                    "mode": "l2_registry_unavailable",
+                    "verified_on_chain": False,
+                    "tx_hash": None,
+                    "error": "L2 verification endpoint unavailable on parent API",
+                    "block": None,
+                }
             verified = bool(verify.get("verified", False))
             return {
                 "attempted": True,

@@ -952,7 +952,7 @@ fn execute_deposit(...) {
 - `ObsqraFactRegistry.cairo`: `0x03037345a7c6d9ce835559ed2617c19d17b433958599b23b3ec34ee54859f824`
 - `ReceiptRegistry.cairo`: `0x02900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd`
 - `DAOConstraintManager.cairo`: `0x0101bd9710017c0870077dcf03bf6fe68a955d9f9b9922ed5d673afed7497fc2`
-- `VaultController.cairo`: `0x6c5b17eab7f20da1ab69e98db6f3f63cbcefa28992a17787883c76dd13498d1`
+- `VaultController.cairo`: `0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63` (v3 with cancel_proposal)
 
 ---
 

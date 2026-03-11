@@ -83,6 +83,12 @@ mod StakingAdapter {
     // ── Admin setters ───────────────────────────────────────────────────
 
     #[external(v0)]
+    fn set_vault_controller(ref self: ContractState, new_vc: ContractAddress) {
+        assert_admin(@self);
+        self.vault_controller.write(new_vc);
+    }
+
+    #[external(v0)]
     fn set_apy_bps(ref self: ContractState, new_apy_bps: u32) {
         assert_admin(@self);
         self.apy_bps.write(new_apy_bps);

@@ -3093,7 +3093,7 @@ class ShowcaseRunner:
                         if receipt_status == 200:
                             receipt_state = "indexed"
                         elif receipt_status == 404:
-                            receipt_state = "local_receipt_only"
+                            receipt_state = "index_pending"
                         else:
                             receipt_state = f"lookup_{receipt_status}"
                     run_row["skills"].append(
@@ -3132,10 +3132,16 @@ class ShowcaseRunner:
             print("== Skill Receipt Trail ==")
             for row in skill_receipt_rows[:10]:
                 receipt_path = str(row.get("receipt_path") or "-")
+                receipt_state = str(row.get("receipt_state") or "-")
+                receipt_status = row.get("receipt_status")
+                if receipt_state == "index_pending":
+                    status_label = "index_pending"
+                else:
+                    status_label = str(receipt_status)
                 print(
                     "I used skill "
                     f"{row.get('skill_id')} on {row.get('opp_id')} -> proof {_short_hex(str(row.get('proof_hash')), 10)} "
-                    f"| receipt {receipt_path} | state={row.get('receipt_state')} | status={row.get('receipt_status')}"
+                    f"| receipt {receipt_path} | state={receipt_state} | status={status_label}"
                 )
 
         self._ai_skill_engine = {
@@ -3153,7 +3159,11 @@ class ShowcaseRunner:
         skill_recommendations = sum(1 for row in circuit_runs if row.get("recommendation") == "execute")
         skill_run_ok = sum(1 for row in circuit_runs if row.get("status") == 200)
         receipt_200 = sum(1 for row in skill_receipt_rows if _safe_int(row.get("receipt_status"), 0) == 200)
-        receipt_local = sum(1 for row in skill_receipt_rows if str(row.get("receipt_state")) == "local_receipt_only")
+        receipt_local = sum(
+            1
+            for row in skill_receipt_rows
+            if str(row.get("receipt_state")) in {"index_pending", "local_receipt_only"}
+        )
 
         ok = (
             provider_status == 200
@@ -3842,8 +3852,8 @@ class ShowcaseRunner:
             receipt_state = str(row.get("receipt_state") or "-")
             if receipt_state == "indexed":
                 receipt_status_html = "<span class=\"pass\">indexed (200)</span>"
-            elif receipt_state == "local_receipt_only":
-                receipt_status_html = "<span class=\"pass\">local_receipt_only (404 index pending)</span>"
+            elif receipt_state in {"index_pending", "local_receipt_only"}:
+                receipt_status_html = "<span class=\"pass\">index_pending (receipt cache not indexed yet)</span>"
             else:
                 receipt_status_html = escape(f"{receipt_state} ({receipt_status or '-'})")
             skill_receipt_rows.append(
@@ -4530,7 +4540,7 @@ class ShowcaseRunner:
       <h3>Skill Trail (sample)</h3>
       {self._html_table(["Opp ID", "Skill", "Result", "Duration ms", "Proof", "Error"], skill_detail_rows)}
       <h3>Skill Proof Receipts</h3>
-      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `local_receipt_only` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
+      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `index_pending` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
       {self._html_table(["Opp ID", "Skill Used", "Proof Hash", "Receipt Endpoint", "Receipt State", "Receipt Status", "Statement"], skill_receipt_rows)}
     </section>
 

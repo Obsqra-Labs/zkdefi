@@ -1,6 +1,6 @@
 [package]
 name = "noir_ezkl_bridge"
-type = "binary"
+type = "bin"
 authors = ["obsqra.xyz"]
 compiler_version = ">=0.30.0"
 description = "EZKL-style bridge circuit: model hash + output bounds (Noir → Garaga HONK)"

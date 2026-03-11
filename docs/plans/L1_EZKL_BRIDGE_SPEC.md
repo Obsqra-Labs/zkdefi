@@ -25,10 +25,10 @@ Only one L1 sender address should be allowed (receiver validates `from_address`)
 
 Current Sepolia deployment (March 11, 2026):
 - EZKL verifier: `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9`
-- L1 bridge sender (`L1EzklBridgeSender.sol`): `0xc5FF20Ab185869B9247FbD15E18212Ab9831F395`
-- Starknet core L1 messaging contract (Sepolia): `0xE2Bb56ee93665bF7d7B6E0fFB92E2045d53C5aA0`
+- L1 bridge sender (`L1EzklBridgeSender.sol`): `0x2a1b030f2835cB0ADC4ea271105e96da293853ab`
+- Starknet core L1 messaging contract (Sepolia): `0xE2Bb56ee936fd6433DC0F6e7e3b8365C906AA057`
 - Receiver selector (`on_l1_message`): `0x035b18ea40fc0fe052a663bca34b1c66f25e888f6d54d0c518b9c68f451c65ea`
-- Receiver allowed sender update tx: `0x02d260a52c9a0b47d702a4ae56954c65fbe87601dd33775c1aca064f01c4eef6`
+- Receiver allowed sender update tx: `0x03cfeac61eaea7010ffbf40b5496333c3064841055b6fc3895ccb2175d8c4f65`
 
 ## 3. Receiver (Starknet)
 
