@@ -91,7 +91,20 @@ Deploy rule:
 - Run L1 deploy only when the artifact exists.
 - If artifact still cannot be produced in this environment, compile elsewhere (or use a smaller model verifier), then copy the artifact back before deploy.
 
-## 3. L1→L2 flow
+## 3. Next steps (Phase 3 after verifier is deployed)
+
+With `L1_EZKL_VERIFIER_ADDRESS` and `L1_SEPOLIA_RPC` set in the **parent backend**:
+
+1. **Wire L1 submit (Task 3.3)** — In parent repo: implement `l1_ezkl_bridge_service.submit_ezkl_proof_to_l1(proof_hex, public_inputs)` to load the L1 keystore (or use `L1_SEPOLIA_MNEMONIC`/private key), build calldata for the verifier’s `verifyProof(proof, instances)`, and send a transaction via web3 to the Sepolia verifier. Return L1 tx hash. Optional API: `POST /api/v1/aggregation/l1/verify` with proof payload; return tx hash and status.
+   - **Status (March 11, 2026): done in parent backend.** `submit_ezkl_proof_to_l1` now signs/sends `verifyProof` txs (private key or keystore), supports `proof_hex` and legacy calldata packing, and returns tx hash.
+
+2. **L1→L2 receiver (Task 3.2)** — Implement Starknet contract that receives L1→L2 messages (core messaging), validates sender, and stores/emits (model_hash, output_commitment, verified=true, nonce). Deploy on Starknet Sepolia; set `L1_BRIDGE_RECEIVER_ADDRESS`. Option A: extend EZKL verifier or add an L1 contract that, after verify, sends the bridge message. See `L1_EZKL_BRIDGE_SPEC.md`.
+
+3. **Poll L2 (Task 3.4)** — In `l1_ezkl_bridge_service`: add `poll_l2_for_verification(model_hash, nonce)` that queries the Starknet receiver contract (or indexer) and returns verified=true when the message is consumed. Expose via API (e.g. `GET /aggregation/l1/verification-status?model_hash=&nonce=`).
+
+4. **Docs and optional ProofMode (Task 3.5)** — Update implementation plan and `RECURSIVE_EZKL_ROADMAP.md` Path C status; optionally add ProofMode `L1_BRIDGE` and route certification/audit flows to L1 verify.
+
+## 4. L1→L2 flow
 
 1. Backend submits EZKL proof to L1 verifier on Sepolia.
 2. On success, L1 sends message to Starknet bridge: (model_hash, output_commitment, verified=true, nonce).
@@ -99,7 +112,7 @@ Deploy rule:
 
 See `L1_EZKL_BRIDGE_SPEC.md` for message format.
 
-## 4. References
+## 5. References
 
 - Plan: `docs/plans/2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md` Phase 3
 - Roadmap: `archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md` Path C

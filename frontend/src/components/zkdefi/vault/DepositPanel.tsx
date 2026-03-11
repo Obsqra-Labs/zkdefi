@@ -14,6 +14,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
+import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -172,6 +173,7 @@ export function DepositPanel({
   const [balanceEpoch, setBalanceEpoch] = useState(0);
   const [allocationRows, setAllocationRows] = useState(DEFAULT_ALLOCATION_ROWS);
   const [blendedApy, setBlendedApy] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
 
   useEffect(() => {
     let dead = false;
@@ -509,15 +511,20 @@ export function DepositPanel({
         txHash: result.txHash,
       });
 
-      toastSuccess(`Deposit committed: ${result.commitmentHash.slice(0, 16)}… | tx: ${result.txHash.slice(0, 12)}…`, {
-        action: {
-          label: "View tx",
-          onClick: () =>
-            window.open(sepoliaVoyagerTxUrl(result.txHash), "_blank"),
-        },
+      toastSuccess(`Deposit confirmed — ${result.txHash.slice(0, 12)}…`);
+
+      setConfirmation({
+        type: "deposit",
+        amount,
+        asset: selectedAsset,
+        txHash: result.txHash,
+        commitmentHash: result.commitmentHash,
+        privacyMethod: METHOD_LABELS[method],
+        merkleRegistered: result.leafIndex !== undefined,
+        leafIndex: result.leafIndex,
+        merkleRoot: result.merkleRoot,
       });
 
-      setAmount("");
       setTimeout(() => setBalanceEpoch((e) => e + 1), 5000);
     } catch (err: unknown) {
       const msg =
@@ -541,6 +548,21 @@ export function DepositPanel({
 
   const canSubmit = !busy && !!amount && parseFloat(amount) > 0;
   const isPoolDirect = !!fixedPoolId;
+
+  // ── Show confirmation card after successful deposit ──
+  if (confirmation) {
+    return (
+      <ConfirmationCard
+        data={confirmation}
+        accent="emerald"
+        onDismiss={() => {
+          setConfirmation(null);
+          setAmount("");
+          setDepositSteps([]);
+        }}
+      />
+    );
+  }
 
   return (
     <motion.div

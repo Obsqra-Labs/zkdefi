@@ -6,6 +6,8 @@
 
 **Phase 2 status:** ✅ Complete (Tasks 2.1–2.5). Noir circuit, HONK verifier script, pipeline, L3 routing. Run `generate_noir_ezkl_bridge_honk_verifier.sh` and L3 deploy when nargo/bb/garaga and Madara are available.
 
+**Phase 3 status:** 🟡 In progress. Task 3.3 (L1 submit in parent backend) is complete; Tasks 3.2, 3.4, 3.5 remain.
+
 **Goal:** Ship Phase 1 (one heavier Groth16 + one heavier STARK circuit on L3), then provide clear phased tasks for Path A (Noir HONK), Path C (L1 Sepolia), and Path B (Cairo KZG).
 
 **Architecture:** Phase 1 adds two new circuits and their L3 verifiers; routing by `circuit_name` in parent backend and zkdefi pipeline. Phases 2–4 add EZKL-on-chain paths per design doc.
@@ -244,6 +246,8 @@
 ---
 
 ### Task 3.3: L1 submit and bridge trigger
+
+**Status:** ✅ L1 submit implemented in parent backend (`l1_ezkl_bridge_service.submit_ezkl_proof_to_l1` + `/api/v1/aggregation/l1/verify`). Signer sources: private key, keystore+password, or mnemonic fallback.
 
 **Files:**
 - Create: parent repo `backend/app/services/l1_ezkl_bridge_service.py` — `submit_ezkl_proof_to_l1(proof_hex, public_inputs)` → call Sepolia EZKL verifier via RPC; on success, trigger or document L1→L2 message send (may be same tx or separate bridge contract call)

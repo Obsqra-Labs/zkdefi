@@ -16,6 +16,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
+import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -183,6 +184,7 @@ export function WithdrawPanel({
   const [recipientAddress, setRecipientAddress] = useState("");
   const [userTier, setUserTier] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
 
   // Auto-select commitment from prop
   useEffect(() => {
@@ -573,31 +575,29 @@ export function WithdrawPanel({
         txHash: isRelayed ? undefined : txHash,
       });
 
+      const withdrawAsset = selectedCommitment!.asset;
+      const withdrawMethod = method;
+
       if (isRelayed) {
-        toastSuccess(
-          `Withdrawal queued via relayer (request #${txHash})`,
-          {
-            action: {
-              label: "Check status",
-              onClick: () =>
-                window.open(
-                  `${API_BASE}/v1/zkdefi/relayer/request/${txHash}`,
-                  "_blank",
-                ),
-            },
-          },
-        );
+        toastSuccess(`Withdrawal queued via relayer`);
+        setConfirmation({
+          type: "withdraw",
+          amount,
+          asset: withdrawAsset,
+          privacyMethod: METHOD_LABELS[withdrawMethod],
+          relayerRequestId: txHash,
+          recipient: recipientAddress || address || "",
+        });
       } else if (txHash) {
-        toastSuccess(
-          `Withdrawn ${amount} ${selectedCommitment!.asset} | tx: ${txHash.slice(0, 12)}…`,
-          {
-            action: {
-              label: "View tx",
-              onClick: () =>
-                window.open(sepoliaVoyagerTxUrl(txHash), "_blank"),
-            },
-          },
-        );
+        toastSuccess(`Withdrawal confirmed — ${txHash.slice(0, 12)}…`);
+        setConfirmation({
+          type: "withdraw",
+          amount,
+          asset: withdrawAsset,
+          txHash,
+          privacyMethod: METHOD_LABELS[withdrawMethod],
+          recipient: recipientAddress || address || "",
+        });
       }
 
       setSelectedId(null);
@@ -632,6 +632,20 @@ export function WithdrawPanel({
     !!amount &&
     parseFloat(amount) > 0 &&
     (!useRelayer || /^0x[0-9a-fA-F]{50,64}$/.test(recipientAddress));
+
+  // ── Show confirmation card after successful withdrawal ──
+  if (confirmation) {
+    return (
+      <ConfirmationCard
+        data={confirmation}
+        accent="rose"
+        onDismiss={() => {
+          setConfirmation(null);
+          setWithdrawSteps([]);
+        }}
+      />
+    );
+  }
 
   return (
     <motion.div

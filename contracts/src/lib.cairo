@@ -17,6 +17,7 @@ pub mod erc20_interface;
 pub mod fully_shielded_pool;
 pub mod hashed_withdraw_pool;
 pub mod intent_commitment;
+pub mod l1_ezkl_bridge_receiver;
 pub mod lending_adapter;
 pub mod lending_pool;
 pub mod merkle_tree;

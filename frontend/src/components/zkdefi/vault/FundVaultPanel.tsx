@@ -33,6 +33,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useApp } from "@/lib/AppContext";
 import { addActivityEvent } from "@/components/zkdefi/ActivityLog";
+import { ConfirmationCard, type ConfirmationData } from "@/components/zkdefi/vault/ConfirmationCard";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -222,6 +223,7 @@ export function FundVaultPanel({
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(true);
+  const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
 
   const amountNum = parseFloat(amount);
   const showPreview = amountNum > 0;
@@ -465,17 +467,27 @@ export function FundVaultPanel({
         txHash,
       });
 
-      toastSuccess(
-        `Vault funded: ${commitmentHash.slice(0, 16)}… | tx: ${txHash.slice(0, 12)}…`,
-        {
-          action: {
-            label: "View tx",
-            onClick: () => window.open(sepoliaVoyagerTxUrl(txHash), "_blank"),
-          },
-        },
-      );
+      toastSuccess(`Vault funded — ${txHash.slice(0, 12)}…`);
 
-      setAmount("");
+      setConfirmation({
+        type: "fund",
+        amount,
+        asset: selectedAsset,
+        txHash,
+        commitmentHash,
+        privacyMethod: "Hashed Proof (Groth16)",
+        merkleRegistered: leafIndex !== undefined,
+        leafIndex,
+        merkleRoot,
+        allocations: recommendation?.recommended_pools.map((p) => ({
+          protocol: p.protocol,
+          pair: p.pair,
+          allocation_percent: p.allocation_percent,
+          expected_apy: p.expected_apy,
+        })),
+        expectedApy: recommendation?.expected_portfolio_apy,
+      });
+
       setTimeout(() => setBalanceEpoch((e) => e + 1), 5000);
     } catch (err: unknown) {
       const msg =
@@ -499,6 +511,21 @@ export function FundVaultPanel({
 
   const canSubmit = !busy && !!amount && parseFloat(amount) > 0;
   const confidencePct = recommendation ? Math.round(recommendation.ai_confidence * 100) : 0;
+
+  // ── Show confirmation card after successful deposit ──
+  if (confirmation) {
+    return (
+      <ConfirmationCard
+        data={confirmation}
+        accent="violet"
+        onDismiss={() => {
+          setConfirmation(null);
+          setAmount("");
+          setDepositSteps([]);
+        }}
+      />
+    );
+  }
 
   return (
     <motion.div
