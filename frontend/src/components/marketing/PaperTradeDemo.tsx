@@ -48,6 +48,7 @@ interface StrategyProposal {
   moves: ProposedMove[];
   pool_count?: number;
   protocol_count?: number;
+  portfolio_value_usd?: number;
 }
 
 interface SnapshotInfo {
@@ -78,15 +79,21 @@ interface ExecutionResult {
 interface SimulateResponse {
   portfolio: PortfolioSummary;
   proposal: StrategyProposal;
+  is_hypothetical?: boolean;
 }
 
 interface SimulateAndExecuteResponse {
   portfolio: PortfolioSummary;
   proposal: StrategyProposal;
   execution: ExecutionResult;
+  is_hypothetical?: boolean;
 }
 
-type DemoPhase = "idle" | "scanning" | "proposal" | "executing" | "executed";
+type DemoPhase = "idle" | "scanning" | "empty-portfolio" | "proposal" | "executing" | "executed";
+
+/* ─── helpers ──────────────────────────────────────────────────────── */
+
+const CAPITAL_AMOUNTS = [1_000, 5_000, 10_000, 50_000, 100_000] as const;
 
 /* ─── helpers ──────────────────────────────────────────────────────── */
 
@@ -134,21 +141,39 @@ export function PaperTradeDemo() {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [proposal, setProposal] = useState<StrategyProposal | null>(null);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
+  const [isHypothetical, setIsHypothetical] = useState(false);
 
   /* ── scan + propose ── */
-  const handleScan = useCallback(async () => {
+  const handleScan = useCallback(async (hypotheticalUsd?: number) => {
     if (!address) return;
     setPhase("scanning");
     setError(null);
     try {
+      const body: Record<string, unknown> = {
+        wallet_address: address,
+        risk_profile: riskProfile,
+      };
+      if (hypotheticalUsd) body.hypothetical_usd = hypotheticalUsd;
+
       const res = await apiFetch<SimulateResponse>("/api/v1/paper-trade/simulate", {
         method: "POST",
-        body: JSON.stringify({ wallet_address: address, risk_profile: riskProfile }),
+        body: JSON.stringify(body),
         timeoutMs: 60_000,
       });
       setPortfolio(res.portfolio);
       setProposal(res.proposal);
-      setPhase("proposal");
+      setIsHypothetical(!!res.is_hypothetical);
+
+      // If portfolio is empty and no hypothetical was used, show capital picker
+      if (
+        !hypotheticalUsd &&
+        res.portfolio.total_value_usd <= 0.01 &&
+        res.proposal.moves?.length === 0
+      ) {
+        setPhase("empty-portfolio");
+      } else {
+        setPhase("proposal");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to scan portfolio");
       setPhase("idle");
@@ -161,9 +186,18 @@ export function PaperTradeDemo() {
     setPhase("executing");
     setError(null);
     try {
+      const body: Record<string, unknown> = {
+        wallet_address: address,
+        risk_profile: riskProfile,
+      };
+      // If running in hypothetical mode, propagate the capital amount
+      if (isHypothetical && proposal?.portfolio_value_usd) {
+        body.hypothetical_usd = proposal.portfolio_value_usd;
+      }
+
       const res = await apiFetch<SimulateAndExecuteResponse>("/api/v1/paper-trade/simulate-and-execute", {
         method: "POST",
-        body: JSON.stringify({ wallet_address: address, risk_profile: riskProfile }),
+        body: JSON.stringify(body),
         timeoutMs: 60_000,
       });
       setPortfolio(res.portfolio);
@@ -174,7 +208,7 @@ export function PaperTradeDemo() {
       setError(err instanceof Error ? err.message : "Failed to execute paper trade");
       setPhase("proposal");
     }
-  }, [address, riskProfile]);
+  }, [address, riskProfile, isHypothetical, proposal]);
 
   const reset = () => {
     setPhase("idle");
@@ -182,6 +216,7 @@ export function PaperTradeDemo() {
     setProposal(null);
     setExecution(null);
     setError(null);
+    setIsHypothetical(false);
   };
 
   return (
@@ -232,7 +267,7 @@ export function PaperTradeDemo() {
         <div className="flex justify-center">
           {isConnected && address ? (
             <button
-              onClick={handleScan}
+              onClick={() => handleScan()}
               className="group inline-flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-8 py-4 text-base font-semibold text-emerald-400 transition-all hover:border-emerald-400 hover:bg-emerald-600/20 hover:shadow-lg hover:shadow-emerald-500/10"
             >
               <TrendingUp className="h-5 w-5" />
@@ -270,16 +305,58 @@ export function PaperTradeDemo() {
         </div>
       )}
 
+      {/* ── Phase: Empty Portfolio — pick hypothetical capital ── */}
+      {phase === "empty-portfolio" && (
+        <div className="mx-auto max-w-lg space-y-5 py-4">
+          <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 px-6 py-5 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+              <Wallet className="h-6 w-6 text-amber-400" />
+            </div>
+            <p className="text-sm font-medium text-zinc-200">
+              No DeFi positions detected
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Your wallet is connected but has no active lending, staking, or LP positions on Starknet.
+              Pick a hypothetical amount to see what the agent would do with it — using real live pool data.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {CAPITAL_AMOUNTS.map((amt) => (
+              <button
+                key={amt}
+                onClick={() => handleScan(amt)}
+                className="rounded-lg border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-zinc-200 transition-all hover:border-emerald-500/50 hover:bg-emerald-600/10 hover:text-emerald-400 hover:shadow-md hover:shadow-emerald-500/5"
+              >
+                {amt >= 1_000 ? `$${(amt / 1_000).toFixed(0)}k` : `$${amt}`}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-center text-[10px] text-zinc-600">
+            Real pools · Real APYs · Paper execution only — nothing leaves your wallet
+          </p>
+        </div>
+      )}
+
       {/* ── Phase: Proposal — portfolio + strategy ── */}
       {(phase === "proposal" || phase === "executing" || phase === "executed") && portfolio && proposal && (
         <div className="mx-auto max-w-4xl space-y-6">
           {/* Portfolio summary bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 px-6 py-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Your Portfolio</p>
-              <p className="mt-1 text-2xl font-bold text-zinc-100">{fmtUsd(portfolio.total_value_usd)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                {isHypothetical ? "Hypothetical Capital" : "Your Portfolio"}
+              </p>
+              <p className="mt-1 text-2xl font-bold text-zinc-100">
+                {fmtUsd(isHypothetical ? (proposal?.portfolio_value_usd ?? 0) : (portfolio?.total_value_usd ?? 0))}
+              </p>
               <p className="text-xs text-zinc-500">
-                {portfolio.position_count} positions on {portfolio.protocols_found.join(", ")}
+                {isHypothetical ? (
+                  <span className="text-amber-400/80">Simulated • real pools &amp; APYs</span>
+                ) : (
+                  <>{portfolio?.position_count ?? 0} positions on {portfolio?.protocols_found?.join(", ") ?? ""}</>
+                )}
               </p>
             </div>
             <div className="text-right">

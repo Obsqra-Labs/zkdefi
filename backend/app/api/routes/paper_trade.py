@@ -30,6 +30,7 @@ router = APIRouter(tags=["paper-trade"])
 class SimulateRequest(BaseModel):
     wallet_address: str = Field(..., description="Starknet wallet address to scan")
     risk_profile: str = Field(default="balanced", description="conservative | balanced | aggressive")
+    hypothetical_usd: Optional[float] = Field(default=None, description="If set and portfolio is empty, simulate with this hypothetical capital amount")
 
 
 class CreateSessionRequest(BaseModel):
@@ -63,8 +64,11 @@ async def simulate_strategy(req: SimulateRequest):
     snapshot = await scan_portfolio(req.wallet_address)
     snapshot_dict = snapshot.to_dict()
 
-    # 2. Simulate strategy
-    proposal = await _simulate(snapshot_dict, req.risk_profile)
+    # 2. Simulate strategy (with optional hypothetical capital)
+    proposal = await _simulate(
+        snapshot_dict, req.risk_profile,
+        hypothetical_usd=req.hypothetical_usd,
+    )
 
     return {
         "portfolio": {
@@ -75,6 +79,7 @@ async def simulate_strategy(req: SimulateRequest):
             "snapshot_hash": snapshot.snapshot_hash,
         },
         "proposal": proposal.to_dict(),
+        "is_hypothetical": req.hypothetical_usd is not None and snapshot.total_value_usd <= 0.01,
     }
 
 
@@ -93,8 +98,11 @@ async def simulate_and_execute(req: SimulateRequest):
     snapshot = await scan_portfolio(req.wallet_address)
     snapshot_dict = snapshot.to_dict()
 
-    # 2. Simulate
-    proposal = await _simulate(snapshot_dict, req.risk_profile)
+    # 2. Simulate (with optional hypothetical capital)
+    proposal = await _simulate(
+        snapshot_dict, req.risk_profile,
+        hypothetical_usd=req.hypothetical_usd,
+    )
 
     # 3. Execute on paper + settle to L3
     result = await execute_on_paper(proposal, settle_to_l3=True)

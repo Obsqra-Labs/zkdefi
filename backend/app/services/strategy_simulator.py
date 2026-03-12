@@ -181,6 +181,7 @@ def _select_best_pools(
 async def simulate_strategy(
     portfolio_snapshot: Dict[str, Any],
     risk_profile: str = "balanced",
+    hypothetical_usd: Optional[float] = None,
 ) -> StrategyProposal:
     """
     Given a real portfolio snapshot, propose what Capital OS would do.
@@ -188,6 +189,7 @@ async def simulate_strategy(
     Args:
         portfolio_snapshot: Output from position_scanner.scan_portfolio().to_dict()
         risk_profile: "conservative" | "balanced" | "aggressive"
+        hypothetical_usd: If set and portfolio is empty, use this as starting capital
 
     Returns:
         StrategyProposal with concrete moves and expected returns.
@@ -201,17 +203,28 @@ async def simulate_strategy(
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # If portfolio is empty, return minimal proposal
+    # If portfolio is empty and no hypothetical capital, return minimal proposal
+    is_hypothetical = False
     if total_value <= 0.01:
-        proposal = StrategyProposal(
-            wallet_address=wallet,
-            proposed_at=now_iso,
-            risk_profile=risk_profile,
-            portfolio_value_usd=total_value,
-            reasoning="Portfolio value too low for meaningful allocation.",
-        )
-        proposal.proposal_hash = proposal.compute_hash()
-        return proposal
+        if hypothetical_usd and hypothetical_usd > 0:
+            # Use hypothetical capital — run the full allocation logic
+            total_value = hypothetical_usd
+            is_hypothetical = True
+            logger.info(
+                "Empty portfolio, using hypothetical $%.2f for strategy simulation",
+                hypothetical_usd,
+            )
+        else:
+            proposal = StrategyProposal(
+                wallet_address=wallet,
+                proposed_at=now_iso,
+                risk_profile=risk_profile,
+                portfolio_value_usd=total_value,
+                reasoning="Portfolio value too low for meaningful allocation. "
+                          "Try entering a hypothetical capital amount to see what the agent would do.",
+            )
+            proposal.proposal_hash = proposal.compute_hash()
+            return proposal
 
     # Fetch live pool data
     live_pools = await _get_live_pools()
@@ -221,16 +234,20 @@ async def simulate_strategy(
     deployable_assets: List[Dict[str, Any]] = []
     staying_usd = 0.0
 
-    for pos in positions:
-        if pos.get("protocol") == "wallet":
-            deployable_usd += pos.get("value_usd", 0.0)
-            deployable_assets.append(pos)
-        else:
-            staying_usd += pos.get("value_usd", 0.0)
+    if is_hypothetical:
+        # All hypothetical capital is deployable
+        deployable_usd = total_value
+    else:
+        for pos in positions:
+            if pos.get("protocol") == "wallet":
+                deployable_usd += pos.get("value_usd", 0.0)
+                deployable_assets.append(pos)
+            else:
+                staying_usd += pos.get("value_usd", 0.0)
 
-    # If nothing deployable, still propose based on total value
-    if deployable_usd < 0.01:
-        deployable_usd = total_value * 0.5  # hypothetical: redeploy half
+        # If nothing deployable, still propose based on total value
+        if deployable_usd < 0.01:
+            deployable_usd = total_value * 0.5  # hypothetical: redeploy half
 
     moves: List[ProposedMove] = []
 
@@ -311,6 +328,16 @@ async def simulate_strategy(
 
     protocols_involved = sorted(set(m.protocol for m in moves if m.protocol != "wallet"))
 
+    reasoning_text = _overall_reasoning(
+        risk_profile, total_value, deployable_usd, staying_usd,
+        blended_apy, len(moves), protocols_involved,
+    )
+    if is_hypothetical:
+        reasoning_text = (
+            f"Your wallet has no detectable positions. Simulating with "
+            f"${total_value:,.0f} hypothetical capital. {reasoning_text}"
+        )
+
     proposal = StrategyProposal(
         wallet_address=wallet,
         proposed_at=now_iso,
@@ -319,10 +346,7 @@ async def simulate_strategy(
         moves=moves,
         expected_blended_apy=round(blended_apy, 6),
         expected_annual_yield_usd=round(annual_yield, 2),
-        reasoning=_overall_reasoning(
-            risk_profile, total_value, deployable_usd, staying_usd,
-            blended_apy, len(moves), protocols_involved,
-        ),
+        reasoning=reasoning_text,
         pool_count=len([m for m in moves if m.protocol != "wallet"]),
         protocol_count=len(protocols_involved),
     )
