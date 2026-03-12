@@ -18,7 +18,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 
 | Script | Purpose |
 |--------|---------|
-| **hackathon_backend_showcase.py** | Terminal-first demo runner for hackathon judging: validates proofs, agent execution, privacy commitment flow, policy controls, receipts, on-chain/RPC checks, AI advisory + badge screening flow, and writes a local HTML/JSON report with Voyager links. |
+| **hackathon_backend_showcase.py** | Terminal-first demo runner for hackathon judging: validates proofs, agent execution, privacy commitment flow, policy controls, receipts, on-chain/RPC checks, AI advisory + badge screening flow, and can emit a local HTML/JSON report with Voyager links when requested. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -41,8 +41,20 @@ Optional flags:
 - `--wallet 0x...`
 - `--skip-onchain` (useful if RPC is flaky/offline)
 - `--judge-mode` (compact terminal output for live judging)
+- `--fast` (skip heaviest proof/advisory checks for quicker routine validation)
 - `--strict-bridge` (requires strict `200` ModelBridge + dual-lane evidence; no transient pass)
+- `--emit-report` (opt-in HTML/JSON artifacts; default is skip for faster runs)
+- `--emit-report-force` (override final-stage gate and write report even if required proof lanes are not all green)
+- `--skip-report` (explicitly skip HTML/JSON artifact generation)
 - `--artifact-dir artifacts/hackathon_showcase`
+
+`--emit-report` now writes artifacts only when final-stage readiness is met (`--strict-bridge`, full claim pass, and key bridge/recursive/heavy-STARK steps green). Use `--emit-report-force` only for debugging.
+
+`--fast` also marks the two bridge-heavy core claims as `SKIP` in the claim matrix instead of failing the run score.
+
+Bridge execution is prioritized before optional proof checks so ModelBridge receipt attempts do not lose budget to other endpoints under load.
+Dual bridge validation uses `proof_mode=1` (EZKL_BRIDGE) to test chain mirroring reliability without adding execution-proof latency from `FULL_DUAL_PROVER`.
+Mirror semantics: `mirrored` = L2 mirror verified, `mirror_unavailable` = parent L2 registry endpoint unavailable, `mirror_failed` = mirror attempted but failed.
 
 Native KZG strictness defaults (backend):
 
@@ -50,9 +62,37 @@ Native KZG strictness defaults (backend):
 - `NATIVE_KZG_REQUIRE_MPCHECK=true` (block `EzklNativeKzg` execution if `ezkl_kzg_v1` payload has no `kzg_mpcheck_v1` trailer)
 - `EZKL_AUTO_SETUP_ON_DEMAND=true` (auto-discover local ONNX artifacts and attempt `setup_model(..., force=False)` before fallback)
 
+ModelBridge real-EZKL bridge toggles (backend):
+
+- `MODELBRIDGE_TRY_REAL_EZKL=true` (attempt real local EZKL proof generation for `ModelBridge` and `ModelBridgeHeavy` before synthetic fallback)
+- `MODELBRIDGE_REQUIRE_REAL_EZKL=false` (when `true`, block ModelBridge execution if no locally verified EZKL proof is available)
+- `MODELBRIDGE_REQUIRE_REAL_GROTH16=true` (default strict mode; when Groth16 bridge proof generation fails, block execution instead of sending placeholder calldata)
+
+Native KZG bundle injection hooks (Path B progression):
+
+- `EZKL_KZG_BUNDLE_FILE=/abs/path/kzg_mpcheck_bundle.json` (or multiple files split by `:`) — sidecar bundle source.
+- `EZKL_KZG_BUNDLE_DIR=/abs/path/to/model_bundle_dir` — auto-reads `kzg_mpcheck_bundle.json`, `kzg_pairing_bundle.json`, or `kzg_bundle.json`.
+- `EZKL_KZG_BUNDLE_EXTRACTOR_CMD=\"/abs/path/extractor\"` — optional command that receives env (`EZKL_RAW_PROOF_JSON_PATH`, `EZKL_PROOF_HASH`, `EZKL_MODEL_NAME`, `EZKL_MODEL_DIR`) and prints JSON bundle to stdout.
+- `EZKL_KZG_BUNDLE_AUTO_EXTRACT=true` — when no extractor command is set, auto-use `scripts/extract_ezkl_kzg_mpcheck_bundle.py` if model artifacts (`vk.key`, `settings.json`, `kzg.srs`) exist.
+- `EZKL_KZG_BUNDLE_EXTRACTOR_TIMEOUT=180` — extractor timeout seconds.
+
+When extractor injection succeeds, serializer writes/updates `<model_dir>/kzg_mpcheck_bundle.json` keyed by proof hash for faster reuse.
+
+Real extractor command (Path B, non-placeholder):
+
+- `EZKL_KZG_BUNDLE_EXTRACTOR_CMD=\"python3 /opt/obsqra.starknet/zkdefi/scripts/extract_ezkl_kzg_mpcheck_bundle.py\"`
+
+What this extractor does:
+
+- Generates an EZKL model-matched Solidity verifier from local `vk/settings/srs`
+- Compiles verifier with Foundry (stack-safe fallback)
+- Encodes EVM calldata from the real proof JSON
+- Traces `bn256Pairing` precompile input from local Anvil execution
+- Emits `kzg_mpcheck_bundle` JSON for serializer injection
+
 ### Hackathon showcase artifacts
 
-Each run writes timestamped and latest report files:
+Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REPORT=true`):
 
 - `artifacts/hackathon_showcase/showcase-YYYYMMDD-HHMMSS.html`
 - `artifacts/hackathon_showcase/showcase-YYYYMMDD-HHMMSS.json`
@@ -61,12 +101,13 @@ Each run writes timestamped and latest report files:
 
 The HTML report includes:
 
-- Tabbed + subtabbed readout for judges (`Overview`, `ModelBridge`, `AI + Badges`, `Privacy + Voting`, `Infra + On-chain`) with wrapped tables for long hashes/errors
+- Tabbed + subtabbed readout for judges (`Overview`, `ModelBridge`, `AI + Badges`, `Privacy + Voting`, `Infra + On-chain`) with a compact default **Overview -> Snapshot** view
+- Top-level executive cards to reduce initial scroll/load and highlight immediate state (`core claims`, `ModelBridge`, `Native KZG strict`, `recursive stages`)
 - Core claim matrix and step-by-step terminal evidence
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
-- Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness and next actions
+- Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness, **stage completion check-ins**, and **GitHub version gates**
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
 - AI + marketplace snapshot: opportunities, advisory calls, strategy badge screening

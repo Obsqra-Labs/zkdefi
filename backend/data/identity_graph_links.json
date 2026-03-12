@@ -238,5 +238,20 @@
       "created_at": "2026-03-10T20:10:24.492673+00:00",
       "updated_at": "2026-03-10T20:10:24.492673+00:00"
     }
+  ],
+  "test-user-1": [
+    {
+      "link_id": "link_b4754a9f36e847f0988187b65f5cfaef",
+      "subject": "test-user-1",
+      "chain": "starknet",
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "verified": false,
+      "verified_at": null,
+      "verification_method": "self_declared",
+      "verification_ref": null,
+      "confidence": 0.4,
+      "created_at": "2026-03-12T20:05:14.389352+00:00",
+      "updated_at": "2026-03-12T20:05:14.389352+00:00"
+    }
   ]
 }

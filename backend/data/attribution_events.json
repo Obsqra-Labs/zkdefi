@@ -300,5 +300,27 @@
       "subject": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
       "ts": 1773247094
     }
+  ],
+  "test-user-1": [
+    {
+      "action_type": "portfolio_import",
+      "source": "position_scanner",
+      "protocol_id": "multi_protocol",
+      "chain": "starknet",
+      "wallet_address": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "timestamp": "2026-03-12T20:05:14.389222+00:00",
+      "confidence": 1.0,
+      "metadata": {
+        "position_count": 7,
+        "protocol_count": 1,
+        "protocols_found": [
+          "vesu"
+        ],
+        "total_value_usd": 29.411356740837235,
+        "snapshot_hash": "0x5e85801b775e5404b34088befd7653bfeff5d88901e15f371c65cb3d336fb8d9"
+      },
+      "subject": "test-user-1",
+      "ts": 1773345914
+    }
   ]
 }

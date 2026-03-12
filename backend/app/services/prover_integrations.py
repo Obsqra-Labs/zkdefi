@@ -265,7 +265,13 @@ class StoneProverClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/verify/{fact_hash}?chain={chain_id}",
+                    f"{self.base_url}/verify/{fact_hash}",
+                    params={
+                        "chain": chain_id,
+                        # Explicit for compatibility endpoints that can mirror
+                        # proven L3 facts into the L2 registry on demand.
+                        "mirror_from_l3": "true",
+                    },
                 )
                 if response.status_code == 404:
                     return {
@@ -278,10 +284,11 @@ class StoneProverClient:
                 if response.status_code == 200:
                     data = response.json()
                     return {
-                        "verified": data.get("verified", False),
-                        "chain": chain_id,
-                        "block": data.get("block_number"),
-                        "error": None,
+                        "verified": bool(data.get("verified", False)),
+                        "chain": data.get("chain") or chain_id,
+                        "block": data.get("block_number", data.get("block")),
+                        "error": data.get("error"),
+                        "source": data.get("source"),
                     }
                 else:
                     return {
@@ -289,6 +296,7 @@ class StoneProverClient:
                         "chain": chain_id,
                         "block": None,
                         "error": response.text,
+                        "source": None,
                     }
         except Exception as e:
             logger.error(f"Proof verification check failed: {e}")
@@ -297,6 +305,7 @@ class StoneProverClient:
                 "chain": chain_id,
                 "block": None,
                 "error": str(e),
+                "source": None,
             }
 
 

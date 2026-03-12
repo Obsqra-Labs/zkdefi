@@ -54,7 +54,7 @@ Source: `backend/app/services/proof_pipeline.py` and `l3_proving_path_client.py`
 | ModelBridge | `bridge_circuit="ModelBridge"` | `groth16_garaga` | Live |
 | ModelBridgeHeavy | `bridge_circuit="ModelBridgeHeavy"` | `groth16_garaga` | Live lane (heavy artifacts present) |
 | Noir EZKL bridge | `bridge_circuit="NoirEzklBridge"` | `noir_honk` | Implemented; environment deploy/ops dependent |
-| Native EZKL KZG | `bridge_circuit="EzklNativeKzg"` | `native_kzg` | In progress with strict payload gating |
+| Native EZKL KZG | `bridge_circuit="EzklNativeKzg"` | `native_kzg` | In progress with strict payload gating + bundle injection hooks (`EZKL_KZG_BUNDLE_*`) |
 | STARK heavy reputation | `/risk_passport/stark-heavy-reputation` | `stark_integrity` | Live |
 
 ## 3) Recursive Settlement Paths
@@ -100,7 +100,7 @@ Core contracts:
 
 ## 6) What Still Needs To Land
 
-1. Full Path B completion: universal `kzg_mpcheck_v1` witness extraction + live strict-mode pass receipts.
+1. Full Path B completion: universal `kzg_mpcheck_v1` witness extraction + live strict-mode pass receipts (sidecar/extractor hooks are now wired, including `scripts/extract_ezkl_kzg_mpcheck_bundle.py`; remaining work is robust automatic extraction coverage across all model flows).
 2. Path A production receipts in target env (`noir_honk` tx evidence).
 3. Path 2 and Path 3 operational rollout for full recursive closure.
 

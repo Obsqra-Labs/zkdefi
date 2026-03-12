@@ -30,11 +30,11 @@
     "address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "pools": {
       "MODERATE_POOL": {
-        "deposited_amount": 18647.5,
-        "updated_at": "2026-03-12T00:34:13Z",
+        "deposited_amount": 26207.5,
+        "updated_at": "2026-03-12T22:45:16Z",
         "source": "simulated"
       }
     },
-    "updated_at": "2026-03-12T00:34:13Z"
+    "updated_at": "2026-03-12T22:45:16Z"
   }
 }

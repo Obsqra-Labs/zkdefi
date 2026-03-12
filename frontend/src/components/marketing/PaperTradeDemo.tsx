@@ -144,7 +144,7 @@ export function PaperTradeDemo() {
       const res = await apiFetch<SimulateResponse>("/api/v1/paper-trade/simulate", {
         method: "POST",
         body: JSON.stringify({ wallet_address: address, risk_profile: riskProfile }),
-        timeoutMs: 30_000,
+        timeoutMs: 60_000,
       });
       setPortfolio(res.portfolio);
       setProposal(res.proposal);
@@ -164,7 +164,7 @@ export function PaperTradeDemo() {
       const res = await apiFetch<SimulateAndExecuteResponse>("/api/v1/paper-trade/simulate-and-execute", {
         method: "POST",
         body: JSON.stringify({ wallet_address: address, risk_profile: riskProfile }),
-        timeoutMs: 30_000,
+        timeoutMs: 60_000,
       });
       setPortfolio(res.portfolio);
       setProposal(res.proposal);

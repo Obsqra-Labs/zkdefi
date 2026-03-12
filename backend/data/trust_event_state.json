@@ -175,9 +175,11 @@
       "linked_verified_count": 1
     },
     "execution.gate_state": {
-      "mode": "allow",
-      "reason_codes": [],
-      "active_sessions": 1
+      "mode": "advisory",
+      "reason_codes": [
+        "no_active_session"
+      ],
+      "active_sessions": 0
     }
   },
   "0x2b43b57d4e6a492692136c81f23230263c513f683d0048d8a47b532d": {
@@ -1777,6 +1779,23 @@
         "passport_low_confidence"
       ],
       "active_sessions": 1
+    }
+  },
+  "0x02a2ab15de083e588dbff1b266b1763c2031e27ba4f6bfa0665af035ad533a60": {
+    "governance.voting_power": 0.0,
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session"
+      ],
+      "active_sessions": 0
     }
   }
 }

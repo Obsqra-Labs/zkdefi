@@ -69,6 +69,10 @@ Current fact binding:
 
 - If `mpcheck_hint_felts` is omitted and `auto_build_hint=true`, serializer attempts local Garaga npm `mpcCalldataBuilder` (BN254, `n_fixed_g2=2`) to generate the hint.
 - Serializer also attempts structured extraction from common pairing containers (`kzg_mpcheck_bundle`, `kzg_pairing_bundle`, nested `kzg/mpcheck/proof_metadata`, and `pairings` arrays).
+- Serializer now also supports external bundle injection when raw EZKL JSON does not contain pairing witness directly:
+  - sidecar files via `EZKL_KZG_BUNDLE_FILE` / `EZKL_KZG_BUNDLE_DIR`
+  - optional extractor hook via `EZKL_KZG_BUNDLE_EXTRACTOR_CMD` (reads `EZKL_RAW_PROOF_JSON_PATH`, `EZKL_PROOF_HASH`, `EZKL_MODEL_NAME`, `EZKL_MODEL_DIR`)
+  - concrete extractor implementation: `scripts/extract_ezkl_kzg_mpcheck_bundle.py` (generates model-matched EVM verifier, traces `bn256Pairing` precompile input, emits `kzg_mpcheck_bundle`)
 - When bundle generation fails, payload still serializes as `ezkl_kzg_v1` but is marked `verification_semantics=payload_and_fact_binding_only` and L3 strict validation rejects it.
 
 ### `native_kzg_placeholder_v1` (deterministic fallback)

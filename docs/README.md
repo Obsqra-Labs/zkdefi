@@ -6,6 +6,8 @@ Focused documentation index for zkde.fi.
 
 ## Start here
 
+- **zk OS reframe (product):** [ZK_OS_REFrame.md](ZK_OS_REFrame.md) — zkRAG, zkGraph, zkSyslog; capital as one flavor; model registry + L3.
+- **Receipts as primitive:** [RECEIPTS_AS_PRIMITIVE_STRATEGY.md](RECEIPTS_AS_PRIMITIVE_STRATEGY.md) — zkSyslog = provable receipt layer; record/verify/reputation wedge.
 - Build narrative (hackathon): [HACKATHON_BUILD_NARRATIVE.md](HACKATHON_BUILD_NARRATIVE.md)
 - Recursive multichain proving core: [RECURSIVE_MULTICHAIN_PROVING_CORE.md](RECURSIVE_MULTICHAIN_PROVING_CORE.md)
 - Proof API (reputation + receipts): [REPUTATION_PROOF_API.md](REPUTATION_PROOF_API.md)
@@ -22,6 +24,35 @@ Focused documentation index for zkde.fi.
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 
 Use `/test` for the current backend + on-chain evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
+
+ModelBridge runtime defaults now attempt real local EZKL for `ModelBridge` / `ModelBridgeHeavy` before synthetic fallback:
+
+- `MODELBRIDGE_TRY_REAL_EZKL=true`
+- `MODELBRIDGE_REQUIRE_REAL_EZKL=false` (set `true` to enforce real-EZKL-only bridge runs)
+- `MODELBRIDGE_REQUIRE_REAL_GROTH16=true` (block execution when Groth16 bridge proof generation fails; set `false` only for local placeholder demos)
+
+Path B native KZG defaults now auto-attempt KZG MPCheck bundle extraction when artifacts are present:
+
+- `EZKL_KZG_BUNDLE_AUTO_EXTRACT=true`
+- Uses `scripts/extract_ezkl_kzg_mpcheck_bundle.py` automatically if no custom extractor command is set.
+
+### Recursive stage check-ins + versioning
+
+When a recursive proving stage reaches E2E, log it in the showcase first, then tag it.
+
+1. Regenerate readout:
+   - `python3 scripts/hackathon_backend_showcase.py --strict-bridge --emit-report`
+   - Report artifacts are gated to final-stage readiness; use `--emit-report-force` only for debug snapshots.
+2. Review `/test`:
+   - `Overview -> Snapshot -> Recursive Stage Check-ins`
+   - `Bridge -> Phase 2-4 Status -> Stage Completion Check-ins`
+3. If a stage is `complete` with explorer TX evidence, do a short doc check-in in the relevant plan file and create a GitHub tag/release note.
+
+Suggested tag cadence from the report:
+- `vYYYY.MM.DD-stage0-backbone`
+- `vYYYY.MM.DD-stage1-path-a-noir`
+- `vYYYY.MM.DD-stage2-path-c-l1`
+- `vYYYY.MM.DD-stage3-path-b-native-kzg`
 
 ---
 
@@ -45,6 +76,7 @@ Use `/test` for the current backend + on-chain evidence: ModelBridge lanes, AI a
 - Plans index: [`docs/plans/`](plans/)
 - L1 EZKL bridge spec: [plans/L1_EZKL_BRIDGE_SPEC.md](plans/L1_EZKL_BRIDGE_SPEC.md)
 - EZKL proof bridge spec: [plans/EZKL_TO_PROOF_BRIDGE_SPEC.md](plans/EZKL_TO_PROOF_BRIDGE_SPEC.md)
+- Cairo native KZG verifier + Path B notes: [plans/CAIRO_KZG_VERIFIER_SPEC.md](plans/CAIRO_KZG_VERIFIER_SPEC.md)
 - L1 Sepolia EZKL verifier: [plans/L1_SEPOLIA_EZKL_VERIFIER.md](plans/L1_SEPOLIA_EZKL_VERIFIER.md)
 - ModelBridge verifier deploy: [plans/MODELBRIDGE_VERIFIER_DEPLOY.md](plans/MODELBRIDGE_VERIFIER_DEPLOY.md)
 - Unified privacy pool spec: [plans/UNIFIED_PRIVACY_POOL_SPEC.md](plans/UNIFIED_PRIVACY_POOL_SPEC.md)

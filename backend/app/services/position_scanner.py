@@ -198,16 +198,24 @@ class PortfolioSnapshot:
 _BALANCE_OF_SELECTOR = hex(get_selector_from_name("balance_of"))
 
 
+# RPC error codes that are permanent (no point retrying)
+_PERMANENT_RPC_ERRORS = {20, 21}  # 20 = Contract not found, 21 = entrypoint does not exist
+
+# Cache of contract addresses known to be invalid (avoid repeated calls)
+_bad_contracts: Dict[str, float] = {}  # address -> timestamp
+_BAD_CONTRACT_TTL = 300  # 5 min
+
+
 class _RpcClient:
     """Thin starknet_call wrapper with connection reuse, timeout, and concurrency."""
 
-    def __init__(self, rpc_url: str, timeout: float = 30.0):
+    def __init__(self, rpc_url: str, timeout: float = 3.0):
         self.rpc_url = rpc_url
         self.timeout = timeout
         self._client: Optional[httpx.AsyncClient] = None
         self._call_count = 0
         # Semaphore to limit concurrent RPC calls (free RPCs rate-limit aggressively)
-        self._sem = asyncio.Semaphore(3)
+        self._sem = asyncio.Semaphore(6)
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -220,10 +228,17 @@ class _RpcClient:
             self._client = None
 
     async def balance_of(self, token_contract: str, wallet: str) -> Optional[int]:
-        """Call balance_of(wallet) -> u256 (low, high). Retries once on timeout."""
+        """Call balance_of(wallet) -> u256 (low, high). Retries once on transient errors."""
         if self._call_count >= _MAX_RPC_CALLS:
             logger.warning("RPC budget exhausted (%d/%d)", self._call_count, _MAX_RPC_CALLS)
             return None
+
+        # Skip contracts known to be invalid (negative cache)
+        now = time.time()
+        bad_ts = _bad_contracts.get(token_contract)
+        if bad_ts and now - bad_ts < _BAD_CONTRACT_TTL:
+            return None
+
         self._call_count += 1
 
         async with self._sem:
@@ -247,9 +262,14 @@ class _RpcClient:
                     data = resp.json()
                     if "result" not in data:
                         err = data.get("error", {})
-                        logger.warning("RPC error for %s: %s", token_contract[:20], err)
+                        err_code = err.get("code", 0)
+                        logger.debug("RPC error for %s: %s", token_contract[:20], err)
+                        # Don't retry permanent errors (contract not found, no entrypoint)
+                        if err_code in _PERMANENT_RPC_ERRORS:
+                            _bad_contracts[token_contract] = time.time()
+                            return None
                         if attempt == 0:
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(0.1)
                             continue
                         return None
                     result = data["result"]
@@ -258,9 +278,8 @@ class _RpcClient:
                     return low + high * (2 ** 128)
                 except Exception as exc:
                     logger.debug("balance_of(%s) attempt=%d: %s", token_contract[:20], attempt, exc)
-                    if attempt == 0:
-                        await asyncio.sleep(0.5)
-                        continue
+                    # Don't retry timeouts — they'll just timeout again
+                    _bad_contracts[token_contract] = time.time()
                     return None
 
     async def batch_balance_of(

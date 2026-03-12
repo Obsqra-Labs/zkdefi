@@ -69,6 +69,7 @@ Noir HONK proof → Garaga HONK verifier → on-chain (~178M gas)
 ## Path B: Cairo KZG Verifier (12–16 weeks)
 
 **Most trustless path — native KZG verification in Cairo.**
+**Status (2026-03):** Strict `native_kzg` lane is live in zkdefi + parent routing with real on-chain receipt on Starknet Sepolia (`0x7e1ab31bf62b58b973a0d0d977b0164ec8296ac9d97981c930195e9ebc88ba9`). Remaining Path B work is model-catalog-wide EZKL→`kzg_mpcheck_v1` extraction coverage and gas/stability benchmarking.
 
 ### Architecture
 ```
@@ -154,6 +155,7 @@ Phase 3 (Month 4): L1 Solidity Bridge (Path C) — Ethereum Sepolia
 
 Phase 4 (Month 6+): Cairo KZG Verifier (Path B)
                      Target: Native Starknet verification
+                     Status: strict native_kzg lane + live receipt confirmed; scale extraction coverage + benchmark
                      Trigger: Starknet gas cost reduction / Garaga KZG support
 ```
 
@@ -205,5 +207,5 @@ Future modes (post-Path A):
 
 ---
 
-*Last updated: 2026-03 — Phase 2 (Noir HONK) implementation complete*
+*Last updated: 2026-03 — Path B strict native_kzg receipt live; scaling extraction coverage + benchmarks*
 *Author: zkDeFi AI Agent Infrastructure*

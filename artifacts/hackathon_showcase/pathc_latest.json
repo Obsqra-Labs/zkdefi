@@ -1,0 +1,573 @@
+{
+  "tx_hash": "0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4",
+  "mode": "verify_and_bridge",
+  "model_hash": "0x61ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+  "output_commitment": "0x71bda01706622c3ec6f13382442b0b016be2e351f4e460fc06d02857c51c185",
+  "used_nonce": 0,
+  "l1_receipt": {
+    "status": 1,
+    "blockNumber": 10434986,
+    "gasUsed": 642407
+  },
+  "l2_verified": true,
+  "l2_last": {
+    "attempt": 61,
+    "status": 200,
+    "verified": true,
+    "verified_on_l2": true,
+    "error": "",
+    "output_commitment": "0x71bda01706622c3ec6f13382442b0b016be2e351f4e460fc06d02857c51c185",
+    "block_timestamp": 1773348432
+  },
+  "l2_polls": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 4,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 5,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 6,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 7,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 8,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 9,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 10,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 11,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 12,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 13,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 14,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 15,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 16,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 17,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 18,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 19,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 20,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 21,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 22,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 23,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 24,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 25,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 26,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 27,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 28,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 29,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 30,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 31,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 32,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 33,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 34,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 35,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 36,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 37,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 38,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 39,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 40,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 41,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 42,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 43,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 44,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 45,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 46,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 47,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 48,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 49,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 50,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 51,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 52,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 53,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 54,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 55,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 56,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 57,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 58,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 59,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 60,
+      "status": 200,
+      "verified": false,
+      "verified_on_l2": false,
+      "error": "",
+      "output_commitment": null,
+      "block_timestamp": null
+    },
+    {
+      "attempt": 61,
+      "status": 200,
+      "verified": true,
+      "verified_on_l2": true,
+      "error": "",
+      "output_commitment": "0x71bda01706622c3ec6f13382442b0b016be2e351f4e460fc06d02857c51c185",
+      "block_timestamp": 1773348432
+    }
+  ]
+}

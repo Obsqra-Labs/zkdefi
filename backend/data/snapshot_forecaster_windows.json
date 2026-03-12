@@ -2829,5 +2829,1349 @@
       "0x4f2ec8d445f0c455bded422b8048e23a3bc1e6f4cdb0aa1d9c2fd8365d17a162"
     ],
     "created_at_ts": 1773275653
+  },
+  "0x4af85ed1e7bef932b18c6c8abf6afbc6cef7bf3b7d70dcbf197fb91eea97d210": {
+    "window_id": "0x4af85ed1e7bef932b18c6c8abf6afbc6cef7bf3b7d70dcbf197fb91eea97d210",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773332661,
+    "window_close_ts": 1773332961,
+    "cadence_id": "5m",
+    "snapshot_hash": "0xcc426469eb3e5d489fb4dd114e574365fd914498b80904f7854037a85dd31e21",
+    "snapshot_data": {
+      "pair_id": "ETH/USDC",
+      "mid_price": 3524.18,
+      "spread_bps": 4,
+      "reserve_imbalance": -0.12,
+      "trade_count_60s": 96
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "public_ui",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "buy_sell_imbalance": 0.19,
+      "depth_ratio": 0.71,
+      "ret_15s": 5.2,
+      "ret_60s": 17.9,
+      "vol_5m": 82.4
+    },
+    "feature_vector_hash": "0xe41f832c4ae40728dcd33f036051057159d1d8e8c628ded92ff5117a66f87040",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 70,
+        "actual_up": 1,
+        "maturity_ts": 1773332961,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1773332835
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 110,
+        "actual_up": 1,
+        "maturity_ts": 1773334461,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1773332835
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 210,
+        "actual_up": 1,
+        "maturity_ts": 1773347061,
+        "source_id": "public_ui_outcome_feed",
+        "recorded_at_ts": 1773332835
+      }
+    },
+    "prediction_ids": [
+      "0x3ffeb9af2d67b5e7025d69558cfef84d4c428190ad23eaedd990eabbc529e54a",
+      "0x4707732b2d0eddfed528b93e5442c3a464bb36d98cb1135b90f2c2fd00c8f631",
+      "0x3693aad5f639991533678aeeca5fcfc2287bcf80a29ca6feffac856538787c9d"
+    ],
+    "created_at_ts": 1773332674
+  },
+  "0x8946eaedbb4bdde42514bf3c96167f267f52c0f22dbae0712301d8b4de3cd9aa": {
+    "window_id": "0x8946eaedbb4bdde42514bf3c96167f267f52c0f22dbae0712301d8b4de3cd9aa",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773333749,
+    "window_close_ts": 1773334409,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773334049,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773333810
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773335549,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773333810
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773348149,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773333810
+      }
+    },
+    "prediction_ids": [
+      "0x4916777e7e0d8da127157a08c2721106b7b9e7f4c77efb226ae0127d5871b501"
+    ],
+    "created_at_ts": 1773333809
+  },
+  "0xe90d93058a1e7857d5dca123f0484e8e455f3aa0520f36b96afa84fb4d8db564": {
+    "window_id": "0xe90d93058a1e7857d5dca123f0484e8e455f3aa0520f36b96afa84fb4d8db564",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773334661,
+    "window_close_ts": 1773335321,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773334961,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773334721
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773336461,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773334721
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773349061,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773334721
+      }
+    },
+    "prediction_ids": [
+      "0x215d579b90a258def6fc074bf4c22ab06ea54708a1cced0cfd4c069cd11dcc18"
+    ],
+    "created_at_ts": 1773334721
+  },
+  "0xc41a44ef6a3fce975de20a0f8e11b94bbfd2497a4af9c6f2a275ca5dfb8aa485": {
+    "window_id": "0xc41a44ef6a3fce975de20a0f8e11b94bbfd2497a4af9c6f2a275ca5dfb8aa485",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773335010,
+    "window_close_ts": 1773335670,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773335310,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335071
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773336810,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335071
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773349410,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335071
+      }
+    },
+    "prediction_ids": [
+      "0xa08567f6600209436854854bc46c0609f24c00c5abc1f091945a093347b4217f"
+    ],
+    "created_at_ts": 1773335070
+  },
+  "0x16c60eee92e1db76fa566b18ba207c48e395d0633487696b032ce3025c6270ee": {
+    "window_id": "0x16c60eee92e1db76fa566b18ba207c48e395d0633487696b032ce3025c6270ee",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773335900,
+    "window_close_ts": 1773336560,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773336200,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335960
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773337700,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335960
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773350300,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773335960
+      }
+    },
+    "prediction_ids": [
+      "0xe44191db7287ceb9715659199e6e399b6f813e86c9de95b21c83bec0760c0656"
+    ],
+    "created_at_ts": 1773335960
+  },
+  "0x5d38bf97e5db5f8697b586a5ba5cc1ea84c4229372c893b1813e923754a99fd8": {
+    "window_id": "0x5d38bf97e5db5f8697b586a5ba5cc1ea84c4229372c893b1813e923754a99fd8",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773335979,
+    "window_close_ts": 1773336639,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773336279,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336039
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773337779,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336039
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773350379,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336039
+      }
+    },
+    "prediction_ids": [
+      "0x0c71e6bafe9e70e4e1e1992abc1b51c171a1f22ac397484e27646c78b662a940"
+    ],
+    "created_at_ts": 1773336039
+  },
+  "0x08b35496eb3e06462f811b5b15234985d66d7e078494f73eb149bed71e636431": {
+    "window_id": "0x08b35496eb3e06462f811b5b15234985d66d7e078494f73eb149bed71e636431",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773336123,
+    "window_close_ts": 1773336783,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773336423,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336184
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773337923,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336184
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773350523,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336184
+      }
+    },
+    "prediction_ids": [
+      "0xbc2a4b1a77a630e62b3eee2253032cf814273a0ebca6ebe9f4025aea8f3d7268"
+    ],
+    "created_at_ts": 1773336183
+  },
+  "0xd1b38aab7db11b82d35013490638e8afe07122b367c49119f66b9f4808a84090": {
+    "window_id": "0xd1b38aab7db11b82d35013490638e8afe07122b367c49119f66b9f4808a84090",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773336348,
+    "window_close_ts": 1773337008,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773336648,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336409
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773338148,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336409
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773350748,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336409
+      }
+    },
+    "prediction_ids": [
+      "0xd238ec036e798a93f8a123203b33a654fce669563f423a154bbed25da22e8b17"
+    ],
+    "created_at_ts": 1773336408
+  },
+  "0x67751aa3b9508c6ea0a0bba413a91f21da10cc078721c0f9eafb24036948f21e": {
+    "window_id": "0x67751aa3b9508c6ea0a0bba413a91f21da10cc078721c0f9eafb24036948f21e",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773336651,
+    "window_close_ts": 1773337311,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773336951,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336711
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773338451,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336711
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773351051,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773336711
+      }
+    },
+    "prediction_ids": [
+      "0xad6318d0631575602fdaf05149a3eaf3354e5abae53394f479ab16962f6e9086"
+    ],
+    "created_at_ts": 1773336711
+  },
+  "0xd5138af01797451bd9d7f00e9ee3d5dc65e80e788cc8bee3582b36c52555ca52": {
+    "window_id": "0xd5138af01797451bd9d7f00e9ee3d5dc65e80e788cc8bee3582b36c52555ca52",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773338596,
+    "window_close_ts": 1773339256,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773338896,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773338657
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773340396,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773338657
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773352996,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773338657
+      }
+    },
+    "prediction_ids": [
+      "0x8e13ba74443f9418d6163e8a5e4b60bf8ec4658a15b114b46a906d8ae0d16fb2"
+    ],
+    "created_at_ts": 1773338656
+  },
+  "0x39361d4c4f6e9398ff2a582d8af76cf01557e18527ed5531355db8ce0391a36f": {
+    "window_id": "0x39361d4c4f6e9398ff2a582d8af76cf01557e18527ed5531355db8ce0391a36f",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773342378,
+    "window_close_ts": 1773343038,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773342678,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342439
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773344178,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342439
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773356778,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342439
+      }
+    },
+    "prediction_ids": [
+      "0x45eb2f0917622c41cba4bc54c4f6ed532e4d9775e38285d09f2f34c658f00e43"
+    ],
+    "created_at_ts": 1773342438
+  },
+  "0x5749e50c428040cc4b3b0c5b0ad07976e558aa2335ec90f98c68a848c7729fba": {
+    "window_id": "0x5749e50c428040cc4b3b0c5b0ad07976e558aa2335ec90f98c68a848c7729fba",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773342884,
+    "window_close_ts": 1773343544,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773343184,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342945
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773344684,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342945
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773357284,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773342945
+      }
+    },
+    "prediction_ids": [
+      "0x0ce3b95782908afb0e9e2ef9cb473b39b2e6ef99e36e9b66290dd022e5029a09"
+    ],
+    "created_at_ts": 1773342944
+  },
+  "0x9b7f1e36470809760eaf38a6159cd9f287b3e91a62c1885bb135a20ba8525295": {
+    "window_id": "0x9b7f1e36470809760eaf38a6159cd9f287b3e91a62c1885bb135a20ba8525295",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773344025,
+    "window_close_ts": 1773344685,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773344325,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773344086
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773345825,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773344086
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773358425,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773344086
+      }
+    },
+    "prediction_ids": [
+      "0xf2e8ab499d8afe1629cdcd1051bcf659aa89442a3f18f6cd1a30532a80a78342"
+    ],
+    "created_at_ts": 1773344085
+  },
+  "0x8f0363beea9a6030418c8ba2930f2388cd548177fb13ce182227fdd9f49e5d66": {
+    "window_id": "0x8f0363beea9a6030418c8ba2930f2388cd548177fb13ce182227fdd9f49e5d66",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773345691,
+    "window_close_ts": 1773346351,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773345991,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773345752
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773347491,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773345752
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773360091,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773345752
+      }
+    },
+    "prediction_ids": [
+      "0x04c821c5be043a0e14389211e485fee8646b35356d7157f495d6a7004b1c7348"
+    ],
+    "created_at_ts": 1773345751
+  },
+  "0x8fa38ec4d7de8f5f1f775f7c7e73f009f48648c9dbb17eac01e8c9746b0f3101": {
+    "window_id": "0x8fa38ec4d7de8f5f1f775f7c7e73f009f48648c9dbb17eac01e8c9746b0f3101",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773346301,
+    "window_close_ts": 1773346961,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773346601,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773346362
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773348101,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773346362
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773360701,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773346362
+      }
+    },
+    "prediction_ids": [
+      "0x1dc27e854f5e9901f8638f1db53559900f7daeaa6965c66d86f24704f2042b4a"
+    ],
+    "created_at_ts": 1773346361
+  },
+  "0x4067d0e4d4703bb28235ce997cada50c5e66bee30231c4fdb5576e81ad2ec9f9": {
+    "window_id": "0x4067d0e4d4703bb28235ce997cada50c5e66bee30231c4fdb5576e81ad2ec9f9",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773347143,
+    "window_close_ts": 1773347803,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773347443,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773347203
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773348943,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773347203
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773361543,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773347203
+      }
+    },
+    "prediction_ids": [
+      "0x02e52a1cbacd5a7d83f34346ae62bf585c9b01e3d869255ddf275056326484a5"
+    ],
+    "created_at_ts": 1773347203
+  },
+  "0xca75ac90ecc573c48409ac2a2b5e048411b1ce0cfd2c08cddea97aaba61a1a8f": {
+    "window_id": "0xca75ac90ecc573c48409ac2a2b5e048411b1ce0cfd2c08cddea97aaba61a1a8f",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773349525,
+    "window_close_ts": 1773350185,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xceef4bdbbaca480387970add38faddf03ffee8d451287110ad6ab304b9566136",
+    "snapshot_data": {
+      "price": 3200
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x5dc25a6d8738a5f3a1d7d6a37fc94b4f6fdf71f1bfad26dc0a05e1b3a081424c",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773349825,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349585
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773351325,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349585
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773363925,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349585
+      }
+    },
+    "prediction_ids": [
+      "0xe4452e4b0acd1131718b91c1ccec4e3a7bb4f79faf9df21bec7b52c6cb055750"
+    ],
+    "created_at_ts": 1773349585
+  },
+  "0xe8c07cc26d33e003a444df7e3986a05fba0da1b448964a1504317d1445e63301": {
+    "window_id": "0xe8c07cc26d33e003a444df7e3986a05fba0da1b448964a1504317d1445e63301",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773349644,
+    "window_close_ts": 1773350304,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773349944,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349705
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773351444,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349705
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773364044,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773349705
+      }
+    },
+    "prediction_ids": [
+      "0xba24a022ff9a04d3291dd75a9875c3022f47dfa1f5d11735f9124c17119d8094"
+    ],
+    "created_at_ts": 1773349704
+  },
+  "0x93ec9f131754438a3b1a04643d4e2ed29a26dd63dce862e34507373070ee6882": {
+    "window_id": "0x93ec9f131754438a3b1a04643d4e2ed29a26dd63dce862e34507373070ee6882",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773349973,
+    "window_close_ts": 1773350633,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773350273,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350034
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773351773,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350034
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773364373,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350034
+      }
+    },
+    "prediction_ids": [
+      "0x46020850428cdb19a9f35f7125556d18361db02a4358260a5f8a2c9721146443"
+    ],
+    "created_at_ts": 1773350033
+  },
+  "0x77bfbe4f3c139418b04fa71c8350d814050a220f761f4d1f3a39839cf9e7cf28": {
+    "window_id": "0x77bfbe4f3c139418b04fa71c8350d814050a220f761f4d1f3a39839cf9e7cf28",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773350374,
+    "window_close_ts": 1773351034,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773350674,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350434
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773352174,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350434
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773364774,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773350434
+      }
+    },
+    "prediction_ids": [
+      "0xfcfb5f627f7f0c8d733e80662d1113a03358027be829c3648a10cb5fad252b67"
+    ],
+    "created_at_ts": 1773350434
+  },
+  "0x64f3b3cca93a5594d3d860b3199202ae4c9bb2d60c49d04bd028ff3ab37227e3": {
+    "window_id": "0x64f3b3cca93a5594d3d860b3199202ae4c9bb2d60c49d04bd028ff3ab37227e3",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773354745,
+    "window_close_ts": 1773355405,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773355045,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773354806
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773356545,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773354806
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773369145,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773354806
+      }
+    },
+    "prediction_ids": [
+      "0xd9adb39532df9f52e5071cb0fd9a9061b9aeafe8a9b7825c1433b30b6062d65b"
+    ],
+    "created_at_ts": 1773354805
+  },
+  "0x9bf367e2e7efd96f2760a4dc4219170304221829261dc976b5a04b296af83427": {
+    "window_id": "0x9bf367e2e7efd96f2760a4dc4219170304221829261dc976b5a04b296af83427",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773355456,
+    "window_close_ts": 1773356116,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773355756,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773355516
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773357256,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773355516
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773369856,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773355516
+      }
+    },
+    "prediction_ids": [
+      "0x680760c86581a864ecf43db2ca0e4502f4235de777a1d3ccc958a4bb98815aff"
+    ],
+    "created_at_ts": 1773355516
   }
 }

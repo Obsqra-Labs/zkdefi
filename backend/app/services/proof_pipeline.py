@@ -24,6 +24,7 @@ from app.services.zkml_risk_service import get_risk_service
 
 logger = logging.getLogger(__name__)
 STARKNET_PRIME = 0x800000000000011000000000000000000000000000000000000000000000001
+FELT251_MODULUS = 2**251
 
 
 class ProofMode(IntEnum):
@@ -77,6 +78,9 @@ class ProofPipeline:
         self._native_kzg_require_mpcheck = _env_bool("NATIVE_KZG_REQUIRE_MPCHECK", True)
         self._native_kzg_require_real_ezkl = _env_bool("NATIVE_KZG_REQUIRE_REAL_EZKL", True)
         self._ezkl_auto_setup_on_demand = _env_bool("EZKL_AUTO_SETUP_ON_DEMAND", True)
+        self._modelbridge_try_real_ezkl = _env_bool("MODELBRIDGE_TRY_REAL_EZKL", True)
+        self._modelbridge_require_real_ezkl = _env_bool("MODELBRIDGE_REQUIRE_REAL_EZKL", False)
+        self._modelbridge_require_real_groth16 = _env_bool("MODELBRIDGE_REQUIRE_REAL_GROTH16", True)
         self._l2_verify_chain_id = os.getenv("PROOF_L2_VERIFY_CHAIN_ID", "starknet-sepolia").strip()
         try:
             self._mirror_retry_count = max(0, int(os.getenv("PROOF_MIRROR_RETRY_COUNT", "1")))
@@ -382,6 +386,7 @@ class ProofPipeline:
             "attempted": True,
             "success": result.success,
             "mode": result.mode,
+            "fact_hash": result.fact_hash or fact_hash,
             "verified_on_chain": result.verified_on_chain,
             "tx_hash": result.tx_hash or None,
             "latency_ms": result.latency_ms,
@@ -401,12 +406,17 @@ class ProofPipeline:
         try:
             from app.services.prover_integrations import StoneProverClient
 
+            # Parent L3 /aggregation/l3/verify clamps fact_hash to 2**251.
+            # Query mirrors with the same canonical representation.
+            felt_fact_hash = self._felt251_hex(fact_hash)
             client = StoneProverClient()
             verify = await client.verify_proof_on_chain(
-                fact_hash=fact_hash,
+                fact_hash=felt_fact_hash,
                 chain_id=self._l2_verify_chain_id,
             )
             verify_error = str(verify.get("error") or "")
+            verify_source = str(verify.get("source") or "")
+            verify_error_l = verify_error.lower()
             if "endpoint unavailable" in verify_error.lower():
                 return {
                     "attempted": False,
@@ -418,13 +428,51 @@ class ProofPipeline:
                     "block": None,
                 }
             verified = bool(verify.get("verified", False))
+            if verified:
+                verified_mode = (
+                    "starknet_l2_registry_mirrored"
+                    if verify_source == "mirrored_from_l3"
+                    else "starknet_l2_registry"
+                )
+                return {
+                    "attempted": True,
+                    "success": True,
+                    "mode": verified_mode,
+                    "verified_on_chain": True,
+                    "tx_hash": None,
+                    "error": None,
+                    "block": verify.get("block"),
+                }
+
+            if verify_error_l == "l3_registry_unavailable":
+                return {
+                    "attempted": True,
+                    "success": False,
+                    "mode": "l2_registry_unavailable",
+                    "verified_on_chain": False,
+                    "tx_hash": None,
+                    "error": "L3 registry unavailable for mirror assist",
+                    "block": verify.get("block"),
+                }
+
+            if verify_error_l.startswith("mirror_"):
+                return {
+                    "attempted": True,
+                    "success": False,
+                    "mode": "l2_mirror_failed",
+                    "verified_on_chain": False,
+                    "tx_hash": None,
+                    "error": verify_error or "L3->L2 mirror registration failed",
+                    "block": verify.get("block"),
+                }
+
             return {
                 "attempted": True,
-                "success": verified,
-                "mode": "starknet_l2_registry" if verified else "l2_unverified",
-                "verified_on_chain": verified,
+                "success": False,
+                "mode": "l2_unverified",
+                "verified_on_chain": False,
                 "tx_hash": None,
-                "error": None if verified else (verify.get("error") or "L2 fact not verified"),
+                "error": verify.get("error") or "L2 fact not verified",
                 "block": verify.get("block"),
             }
         except Exception as exc:
@@ -453,6 +501,21 @@ class ProofPipeline:
         else:
             n = int(value)
         return hex(n % STARKNET_PRIME)
+
+    @staticmethod
+    def _felt251_hex(value: int | str) -> str:
+        """
+        Normalize hashes to 2**251 clamp used by parent L3 verify route.
+        """
+        if isinstance(value, str):
+            raw = value.strip()
+            if raw.startswith(("0x", "0X")):
+                n = int(raw, 16)
+            else:
+                n = int(raw)
+        else:
+            n = int(value)
+        return hex(n % FELT251_MODULUS)
 
     def _generate_synthetic_ezkl_proof(
         self,
@@ -565,6 +628,12 @@ class ProofPipeline:
                 model_name=resolved_model_name,
                 input_data=normalized_input_data,
             )
+            # Preserve the resolved local model identity for downstream bridge serializers.
+            if not getattr(proof, "model_name", None):
+                try:
+                    setattr(proof, "model_name", resolved_model_name)
+                except Exception:
+                    pass
             verified = await ezkl.verify_proof(proof)
             if not verified:
                 logger.warning(
@@ -581,6 +650,7 @@ class ProofPipeline:
         self,
         *,
         ezkl_proof: Any,
+        model_name: str = "",
         expected_model_hash: int,
         output_lower_bound: int,
         output_upper_bound: int,
@@ -664,7 +734,24 @@ class ProofPipeline:
             try:
                 raw_proof_json = getattr(ezkl_proof, "raw_proof_json", {}) or {}
                 if raw_proof_json:
-                    calldata, payload_meta = serialize_ezkl_proof_to_kzg_calldata(ezkl_proof)
+                    requested_model_name = (
+                        str(getattr(ezkl_proof, "model_name", "") or model_name or "").strip()
+                    )
+                    model_name_effective = self._resolve_local_ezkl_model_name(requested_model_name)
+                    model_dir = None
+                    if model_name_effective:
+                        candidate = self._local_ezkl_models_root() / model_name_effective
+                        if candidate.exists():
+                            model_dir = candidate
+                    if model_dir is None and requested_model_name:
+                        candidate = self._local_ezkl_models_root() / requested_model_name
+                        if candidate.exists():
+                            model_dir = candidate
+                    calldata, payload_meta = serialize_ezkl_proof_to_kzg_calldata(
+                        ezkl_proof,
+                        model_name=model_name_effective,
+                        model_dir=model_dir,
+                    )
                     if bool(payload_meta.get("kzg_mpcheck_bundle_present")):
                         bridge_proof["bridge_backend"] = "native_kzg_ezkl_serialized_mpcheck"
                     else:
@@ -756,14 +843,22 @@ class ProofPipeline:
             bridge_proof["bridge_backend"] = "placeholder_fallback"
             bridge_proof["fallback_error"] = str(exc)
             circuit_name_for_l3 = "ModelBridge" if not use_heavy else "ModelBridgeHeavy"
-            calldata = [
-                self._to_hex_felt("model_bridge"),
-                self._felt_hex(effective_model_hash),
-                self._felt_hex(output_commitment),
-                self._felt_hex(bridge_fact_hash),
-                hex(ts),
-                self._felt_hex(ezkl_proof.proof_hash),
-            ]
+            if self._modelbridge_require_real_groth16:
+                bridge_proof["success"] = False
+                bridge_proof["is_compliant"] = False
+                bridge_proof["error"] = (
+                    f"{circuit_name_for_l3} Groth16 proof unavailable (strict mode)"
+                )
+                calldata = []
+            else:
+                calldata = [
+                    self._to_hex_felt("model_bridge"),
+                    self._felt_hex(effective_model_hash),
+                    self._felt_hex(output_commitment),
+                    self._felt_hex(bridge_fact_hash),
+                    hex(ts),
+                    self._felt_hex(ezkl_proof.proof_hash),
+                ]
 
         return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
@@ -827,7 +922,13 @@ class ProofPipeline:
 
         t0 = _time.monotonic()
 
-        use_native_kzg = (bridge_circuit or "").strip() == "EzklNativeKzg"
+        bridge_circuit_name = (bridge_circuit or "").strip() or "ModelBridge"
+        use_native_kzg = bridge_circuit_name == "EzklNativeKzg"
+        use_model_bridge_lane = bridge_circuit_name in {"ModelBridge", "ModelBridgeHeavy"}
+        should_try_real_ezkl = bool(
+            self._modelbridge_try_real_ezkl and (use_native_kzg or use_model_bridge_lane)
+        )
+        real_ezkl_requirement_error: str | None = None
         ezkl_verified = True
         trust_mode = "synthetic_dev_only"
         trust_warning = (
@@ -836,7 +937,7 @@ class ProofPipeline:
         )
 
         real_ezkl_proof, real_ezkl_verified = (None, False)
-        if use_native_kzg:
+        if should_try_real_ezkl:
             real_ezkl_proof, real_ezkl_verified = await self._try_generate_real_ezkl_proof(
                 model_name=model_name,
                 input_data=input_data,
@@ -844,11 +945,18 @@ class ProofPipeline:
         if real_ezkl_proof is not None and real_ezkl_verified:
             ezkl_proof = real_ezkl_proof
             ezkl_verified = True
-            trust_mode = "ezkl_local_verified"
-            trust_warning = (
-                "EZKL proof generated and verified locally, then serialized for native KZG path. "
-                "On-chain trust still depends on deployed Cairo KZG verifier semantics."
-            )
+            if use_native_kzg:
+                trust_mode = "ezkl_local_verified"
+                trust_warning = (
+                    "EZKL proof generated and verified locally, then serialized for native KZG path. "
+                    "On-chain trust still depends on deployed Cairo KZG verifier semantics."
+                )
+            else:
+                trust_mode = "ezkl_local_verified_bridge"
+                trust_warning = (
+                    "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. "
+                    "Execution trust depends on deployed ModelBridge verifier lanes."
+                )
         else:
             ezkl_proof = self._generate_synthetic_ezkl_proof(
                 model_name=model_name,
@@ -863,6 +971,20 @@ class ProofPipeline:
                 logger.info(
                     "EzklNativeKzg requested but real EZKL artifacts unavailable; using deterministic placeholder payload."
                 )
+            elif use_model_bridge_lane:
+                trust_mode = "synthetic_fallback_modelbridge"
+                trust_warning = (
+                    "ModelBridge requested but no locally verified EZKL proof was produced. "
+                    "Current run uses deterministic placeholder EZKL payload."
+                )
+
+        if use_model_bridge_lane and self._modelbridge_require_real_ezkl and not real_ezkl_verified:
+            ezkl_verified = False
+            trust_mode = "real_ezkl_required_unavailable"
+            trust_warning = (
+                "MODELBRIDGE_REQUIRE_REAL_EZKL is enabled, but no locally verified EZKL proof was available."
+            )
+            real_ezkl_requirement_error = trust_warning
 
         try:
             from app.services.proof_sequencer_client import get_sequencer_client
@@ -909,7 +1031,7 @@ class ProofPipeline:
                     "error": None,
                 },
                 "mirror_status": "not_requested",
-                "failure_reason": None,
+                "failure_reason": real_ezkl_requirement_error,
             },
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -918,6 +1040,7 @@ class ProofPipeline:
         if mode >= ProofMode.EZKL_BRIDGE and ezkl_verified:
             bridge_proof, bridge_fact_hash, model_bridge_calldata, bridge_circuit_used = self._build_bridge_bundle(
                 ezkl_proof=ezkl_proof,
+                model_name=model_name,
                 expected_model_hash=expected_model_hash,
                 output_lower_bound=output_lower_bound,
                 output_upper_bound=output_upper_bound,
@@ -987,10 +1110,15 @@ class ProofPipeline:
                 result["verification"]["l3"] = l3_result
 
             if execution_chain in {"l2", "dual"}:
+                l2_fact_hash = bridge_fact_hash
+                if execution_chain == "dual":
+                    l3_fact_hash = str((result["verification"]["l3"] or {}).get("fact_hash") or "").strip()
+                    if l3_fact_hash:
+                        l2_fact_hash = l3_fact_hash
                 attempts = 1 + (self._mirror_retry_count if execution_chain == "dual" else 0)
                 l2_result: dict[str, Any] | None = None
                 for _ in range(attempts):
-                    l2_result = await self._verify_l2_bridge(fact_hash=bridge_fact_hash)
+                    l2_result = await self._verify_l2_bridge(fact_hash=l2_fact_hash)
                     if self._is_cryptographically_verified(l2_result):
                         break
                 result["verification"]["l2"] = l2_result or {
@@ -1002,11 +1130,14 @@ class ProofPipeline:
                     "error": "L2 verification unavailable",
                 }
                 if execution_chain == "dual":
-                    result["verification"]["mirror_status"] = (
-                        "mirrored"
-                        if self._is_cryptographically_verified(result["verification"]["l2"])
-                        else "mirror_failed"
-                    )
+                    l2_verification = result["verification"]["l2"]
+                    l2_mode = str((l2_verification or {}).get("mode", "")).strip().lower()
+                    if self._is_cryptographically_verified(l2_verification):
+                        result["verification"]["mirror_status"] = "mirrored"
+                    elif l2_mode == "l2_registry_unavailable":
+                        result["verification"]["mirror_status"] = "mirror_unavailable"
+                    else:
+                        result["verification"]["mirror_status"] = "mirror_failed"
 
             if primary_authority == "l3" and self._strict_l3_verification:
                 if not self._is_cryptographically_verified(result["verification"]["l3"]):

@@ -568,6 +568,8 @@ class ShowcaseRunner:
                 print(f"  - HTML: {artifacts['html']}")
                 print(f"  - Latest JSON: {artifacts['latest_json']}")
                 print(f"  - Latest HTML: {artifacts['latest_html']}")
+                if artifacts.get("history"):
+                    print(f"  - History JSONL: {artifacts['history']}")
                 if self.emit_report_force and not final_ready:
                     print("Report mode: forced emit (final-stage readiness was not met).")
             else:
@@ -1639,6 +1641,7 @@ class ShowcaseRunner:
         l3 = verification.get("l3") if isinstance(verification.get("l3"), dict) else {}
         l2 = verification.get("l2") if isinstance(verification.get("l2"), dict) else {}
         bridge_proof = payload.get("bridge_proof") if isinstance(payload.get("bridge_proof"), dict) else {}
+        kzg_payload = bridge_proof.get("kzg_payload") if isinstance(bridge_proof.get("kzg_payload"), dict) else {}
         combined = payload.get("combined_calldata") if isinstance(payload.get("combined_calldata"), dict) else {}
         l3_tx = l3.get("tx_hash")
         l2_tx = l2.get("tx_hash")
@@ -1657,6 +1660,16 @@ class ShowcaseRunner:
             "bridge_compliant": bridge_proof.get("is_compliant"),
             "bridge_backend": bridge_proof.get("bridge_backend"),
             "model_bridge_calldata_words": len(combined.get("model_bridge_calldata") or []),
+            "kzg_bundle_present": kzg_payload.get("kzg_mpcheck_bundle_present"),
+            "kzg_hint_felts": kzg_payload.get("kzg_mpcheck_hint_felts"),
+            "kzg_payload_semantics": kzg_payload.get("verification_semantics"),
+            "kzg_bundle_source": (
+                kzg_payload.get("kzg_bundle_injected_source")
+                or kzg_payload.get("kzg_mpcheck_bundle_source")
+            ),
+            "kzg_extractor_attempted": kzg_payload.get("kzg_bundle_extractor_attempted"),
+            "kzg_extractor_error": kzg_payload.get("kzg_bundle_extractor_error"),
+            "kzg_bundle_cached_path": kzg_payload.get("kzg_bundle_cached_path"),
             "l3": {
                 "attempted": l3.get("attempted"),
                 "success": l3.get("success"),
@@ -2260,6 +2273,13 @@ class ShowcaseRunner:
             "bridge_compliant": native_kzg_run.get("bridge_compliant"),
             "bridge_backend": native_kzg_run.get("bridge_backend"),
             "calldata_words": native_kzg_run.get("model_bridge_calldata_words"),
+            "kzg_bundle_present": native_kzg_run.get("kzg_bundle_present"),
+            "kzg_hint_felts": native_kzg_run.get("kzg_hint_felts"),
+            "kzg_payload_semantics": native_kzg_run.get("kzg_payload_semantics"),
+            "kzg_bundle_source": native_kzg_run.get("kzg_bundle_source"),
+            "kzg_extractor_attempted": native_kzg_run.get("kzg_extractor_attempted"),
+            "kzg_extractor_error": native_kzg_run.get("kzg_extractor_error"),
+            "kzg_bundle_cached_path": native_kzg_run.get("kzg_bundle_cached_path"),
             "can_execute": native_kzg_run.get("can_execute"),
             "primary_authority": native_kzg_run.get("primary_authority"),
             "mirror_status": native_kzg_run.get("mirror_status"),
@@ -2302,6 +2322,9 @@ class ShowcaseRunner:
                 str(native_kzg_run.get("bridge_proof_hash")) if native_kzg_run.get("bridge_proof_hash") else None,
                 12,
             ),
+            kzg_bundle_present=native_kzg_run.get("kzg_bundle_present"),
+            kzg_hint_felts=native_kzg_run.get("kzg_hint_felts"),
+            kzg_extractor_attempted=native_kzg_run.get("kzg_extractor_attempted"),
             can_execute=native_kzg_run.get("can_execute"),
             failure_reason=_clip_text(native_kzg_run.get("failure_reason"), 120),
             strict_bridge=self.strict_bridge,
@@ -4227,6 +4250,13 @@ class ShowcaseRunner:
             ["Bridge backend", escape(str(native_kzg_live_receipt.get("bridge_backend") or "-"))],
             ["Bridge compliant", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
             ["KZG calldata words", escape(str(native_kzg_live_receipt.get("calldata_words") or "-"))],
+            ["KZG bundle present", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_bundle_present") else "<span class=\"fail\">false</span>"],
+            ["KZG hint felts", escape(str(native_kzg_live_receipt.get("kzg_hint_felts") or "-"))],
+            ["Payload semantics", escape(str(native_kzg_live_receipt.get("kzg_payload_semantics") or "-"))],
+            ["Bundle source", escape(_clip_text(native_kzg_live_receipt.get("kzg_bundle_source"), 160) or "-")],
+            ["Extractor attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_extractor_attempted") else "<span class=\"warn\">false</span>"],
+            ["Extractor error", escape(_clip_text(native_kzg_live_receipt.get("kzg_extractor_error"), 160) or "-")],
+            ["Cached bundle path", escape(_clip_text(native_kzg_live_receipt.get("kzg_bundle_cached_path"), 180) or "-")],
             ["L3 attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
             ["L3 success", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
             ["L3 verifier mode", escape(str(native_kzg_live_receipt.get("l3_mode") or "-"))],
@@ -5763,6 +5793,80 @@ class ShowcaseRunner:
 """
         return html
 
+    def _history_row(self, payload: dict[str, Any]) -> dict[str, Any]:
+        recursive = payload.get("recursive_ezkl_paths", {}) if isinstance(payload.get("recursive_ezkl_paths"), dict) else {}
+        path_rows = recursive.get("path_rows") if isinstance(recursive.get("path_rows"), list) else []
+        path_state: dict[str, dict[str, Any]] = {}
+        for row in path_rows:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("path") or "")
+            if not name:
+                continue
+            path_state[name] = {
+                "status": row.get("status"),
+                "lane_available": bool(row.get("runtime_lane_available")),
+                "contract": row.get("runtime_contract"),
+            }
+
+        bridge = payload.get("bridge_architecture", {}) if isinstance(payload.get("bridge_architecture"), dict) else {}
+        live = bridge.get("modelbridge_live_receipt", {}) if isinstance(bridge.get("modelbridge_live_receipt"), dict) else {}
+        heavy = bridge.get("modelbridge_heavy_live_receipt", {}) if isinstance(bridge.get("modelbridge_heavy_live_receipt"), dict) else {}
+        native = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
+
+        pathc_live = recursive.get("path_c_live", {}) if isinstance(recursive.get("path_c_live"), dict) else {}
+
+        return {
+            "generated_at": payload.get("generated_at"),
+            "core_score": (payload.get("core_score") or {}),
+            "path_status": path_state,
+            "path_c_live": {
+                "verified": bool(pathc_live.get("live_verified")),
+                "tx_hash": pathc_live.get("tx_hash"),
+                "l2_verified_on_l2": bool(pathc_live.get("l2_verified_on_l2")),
+                "nonce": pathc_live.get("used_nonce"),
+            },
+            "receipts": {
+                "modelbridge": {
+                    "mode": live.get("l3_mode"),
+                    "tx_hash": live.get("l3_tx_hash"),
+                    "verified_on_chain": bool(live.get("l3_verified_on_chain")),
+                },
+                "modelbridge_heavy": {
+                    "mode": heavy.get("l3_mode"),
+                    "tx_hash": heavy.get("l3_tx_hash"),
+                    "verified_on_chain": bool(heavy.get("l3_verified_on_chain")),
+                },
+                "native_kzg": {
+                    "mode": native.get("l3_mode"),
+                    "tx_hash": native.get("l3_tx_hash"),
+                    "verified_on_chain": bool(native.get("l3_verified_on_chain")),
+                },
+            },
+        }
+
+    def _append_history(self, payload: dict[str, Any]) -> str | None:
+        history_path = self.artifact_dir / "history.jsonl"
+        try:
+            row = self._history_row(payload)
+            row_line = json.dumps(row, sort_keys=True)
+            last_line = ""
+            if history_path.exists():
+                with history_path.open("rb") as f:
+                    try:
+                        f.seek(-2, os.SEEK_END)
+                        while f.tell() > 0 and f.read(1) != b"\n":
+                            f.seek(-2, os.SEEK_CUR)
+                    except OSError:
+                        f.seek(0)
+                    last_line = f.readline().decode("utf-8", errors="replace").strip()
+            if row_line != last_line:
+                with history_path.open("a", encoding="utf-8") as f:
+                    f.write(row_line + "\n")
+            return str(history_path.resolve())
+        except Exception:
+            return None
+
     def write_artifacts(self, started_at: float, exit_code: int) -> dict[str, str]:
         payload = self._report_payload(started_at=started_at, exit_code=exit_code)
 
@@ -5781,13 +5885,17 @@ class ShowcaseRunner:
         html_path.write_text(html_blob, encoding="utf-8")
         latest_json.write_text(json_blob, encoding="utf-8")
         latest_html.write_text(html_blob, encoding="utf-8")
+        history_path = self._append_history(payload)
 
-        return {
+        out = {
             "json": str(json_path.resolve()),
             "html": str(html_path.resolve()),
             "latest_json": str(latest_json.resolve()),
             "latest_html": str(latest_html.resolve()),
         }
+        if history_path:
+            out["history"] = history_path
+        return out
 
 
 def parse_args() -> argparse.Namespace:

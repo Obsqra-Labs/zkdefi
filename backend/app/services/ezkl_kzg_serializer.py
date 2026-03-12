@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shlex
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +23,16 @@ U96_MASK = (1 << 96) - 1
 EZKL_KZG_V1_MARKER = int.from_bytes(b"ezkl_kzg_v1", "big") % FELT252_PRIME
 NATIVE_KZG_PLACEHOLDER_MARKER = int.from_bytes(b"native_kzg_placeholder_v1", "big") % FELT252_PRIME
 KZG_MPCHECK_V1_MARKER = int.from_bytes(b"kzg_mpcheck_v1", "big") % FELT252_PRIME
+
+
+def _canonical_hex(value: str | None) -> str:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return ""
+    if not raw.startswith("0x"):
+        raw = f"0x{raw}"
+    body = raw[2:].lstrip("0")
+    return f"0x{body}" if body else "0x0"
 
 
 def _felt_from_hex_or_text(value: str) -> int:
@@ -203,6 +216,417 @@ def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
     return {}, "none"
 
 
+def _extract_bundle_from_json_obj(
+    obj: Any,
+    *,
+    proof_hash: str = "",
+) -> tuple[dict[str, Any], str]:
+    """
+    Extract a KZG MPCheck bundle from a generic JSON object.
+
+    Supports:
+      - direct bundle object
+      - wrapper with `kzg_mpcheck_bundle`
+      - map keyed by proof hash
+    """
+    if not isinstance(obj, dict):
+        return {}, "none"
+
+    # Direct wrappers.
+    if isinstance(obj.get("kzg_mpcheck_bundle"), dict):
+        return obj, "json.kzg_mpcheck_bundle"
+
+    bundle, source = _extract_kzg_bundle(obj)
+    if bundle:
+        return bundle, f"json.{source}"
+
+    # Proof-hash keyed map.
+    canon_hash = _canonical_hex(proof_hash)
+    if canon_hash:
+        for key in (canon_hash, canon_hash[2:]):
+            entry = obj.get(key)
+            if isinstance(entry, dict):
+                if isinstance(entry.get("kzg_mpcheck_bundle"), dict):
+                    return entry, "json.by_proof_hash.kzg_mpcheck_bundle"
+                nested_bundle, nested_source = _extract_kzg_bundle(entry)
+                if nested_bundle:
+                    return nested_bundle, f"json.by_proof_hash.{nested_source}"
+
+    return {}, "none"
+
+
+def _candidate_bundle_files(
+    *,
+    model_dir: Path | None,
+) -> list[Path]:
+    candidates: list[Path] = []
+
+    env_file = (os.getenv("EZKL_KZG_BUNDLE_FILE", "") or "").strip()
+    if env_file:
+        for raw in env_file.split(os.pathsep):
+            p = Path(raw.strip())
+            if p:
+                candidates.append(p)
+
+    env_dir = (os.getenv("EZKL_KZG_BUNDLE_DIR", "") or "").strip()
+    if env_dir:
+        d = Path(env_dir)
+        candidates.extend(
+            [
+                d / "kzg_mpcheck_bundle.json",
+                d / "kzg_pairing_bundle.json",
+                d / "kzg_bundle.json",
+            ]
+        )
+
+    if model_dir is not None:
+        trace_dir = model_dir / ".kzg_trace_verifier"
+        candidates.extend(
+            [
+                model_dir / "kzg_mpcheck_bundle.json",
+                model_dir / "kzg_pairing_bundle.json",
+                model_dir / "kzg_bundle.json",
+                trace_dir / "kzg_mpcheck_bundle.json",
+                trace_dir / "kzg_pairing_bundle.json",
+                trace_dir / "kzg_bundle.json",
+            ]
+        )
+
+    # De-duplicate while preserving order.
+    seen: set[str] = set()
+    uniq: list[Path] = []
+    for path in candidates:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(path)
+    return uniq
+
+
+def _scan_model_sidecars_by_proof_hash(
+    *,
+    proof_hash: str,
+    exclude_model_dir: Path | None,
+) -> tuple[dict[str, Any], str]:
+    """
+    Fallback scan: search local model sidecars for an entry keyed by proof hash.
+
+    This allows native KZG payloads to resolve bundles even when request model aliases
+    differ from the artifact folder that originally produced the EZKL proof.
+    """
+    canon_hash = _canonical_hex(proof_hash)
+    if not canon_hash:
+        return {}, "none"
+
+    enabled = (os.getenv("EZKL_KZG_BUNDLE_SCAN_MODELS", "true") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not enabled:
+        return {}, "none"
+
+    models_root = Path(__file__).resolve().parents[1] / "data" / "ezkl_models"
+    if not models_root.exists() or not models_root.is_dir():
+        return {}, "none"
+
+    needle_hex = canon_hash.lower()
+    needle_raw = canon_hash[2:].lower()
+    exclude_resolved = None
+    if exclude_model_dir is not None:
+        try:
+            exclude_resolved = exclude_model_dir.resolve()
+        except Exception:
+            exclude_resolved = exclude_model_dir
+
+    for model_entry in sorted(models_root.iterdir()):
+        if not model_entry.is_dir():
+            continue
+        try:
+            if exclude_resolved is not None and model_entry.resolve() == exclude_resolved:
+                continue
+        except Exception:
+            if exclude_model_dir is not None and model_entry == exclude_model_dir:
+                continue
+
+        candidates = [
+            model_entry / "kzg_mpcheck_bundle.json",
+            model_entry / "kzg_pairing_bundle.json",
+            model_entry / "kzg_bundle.json",
+            model_entry / ".kzg_trace_verifier" / "kzg_mpcheck_bundle.json",
+            model_entry / ".kzg_trace_verifier" / "kzg_pairing_bundle.json",
+            model_entry / ".kzg_trace_verifier" / "kzg_bundle.json",
+        ]
+        for path in candidates:
+            if not path.exists():
+                continue
+            try:
+                raw_text = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            lowered = raw_text.lower()
+            if needle_hex not in lowered and needle_raw not in lowered:
+                continue
+            try:
+                parsed = json.loads(raw_text)
+            except Exception:
+                continue
+            bundle_obj, src = _extract_bundle_from_json_obj(parsed, proof_hash=canon_hash)
+            if bundle_obj:
+                return bundle_obj, f"model_scan:{path}:{src}"
+
+    return {}, "none"
+
+
+def _default_bundle_extractor_cmd() -> str:
+    root = Path(__file__).resolve().parents[3]
+    script = root / "scripts" / "extract_ezkl_kzg_mpcheck_bundle.py"
+    if script.exists():
+        return f"python3 {script}"
+    return ""
+
+
+def _can_auto_extract_bundle(*, model_dir: Path | None) -> bool:
+    if not model_dir:
+        return False
+    required = (
+        model_dir / "vk.key",
+        model_dir / "settings.json",
+        model_dir / "kzg.srs",
+    )
+    return all(path.exists() for path in required)
+
+
+def _run_bundle_extractor(
+    *,
+    cmd: str,
+    raw_json: dict[str, Any],
+    proof_hash: str,
+    model_name: str,
+    model_dir: Path | None,
+    timeout_seconds: int = 180,
+) -> tuple[dict[str, Any], str, str | None]:
+    """
+    Optional external hook for producing KZG MPCheck bundles.
+
+    The command must print JSON to stdout containing either:
+      - `kzg_mpcheck_bundle`, or
+      - a direct bundle object, or
+      - a proof-hash keyed map.
+    """
+    args = shlex.split(cmd)
+    if not args:
+        return {}, "none", "empty_command"
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+        tmp.write(json.dumps(raw_json))
+        tmp_path = Path(tmp.name)
+
+    env = os.environ.copy()
+    env["EZKL_RAW_PROOF_JSON_PATH"] = str(tmp_path)
+    env["EZKL_PROOF_HASH"] = str(proof_hash or "")
+    env["EZKL_MODEL_NAME"] = str(model_name or "")
+    env["EZKL_MODEL_DIR"] = str(model_dir or "")
+
+    try:
+        proc = subprocess.run(
+            args,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=max(10, int(timeout_seconds)),
+            env=env,
+        )
+        out = (proc.stdout or "").strip()
+        if not out:
+            return {}, "none", "empty_stdout"
+        try:
+            parsed = json.loads(out)
+        except Exception as exc:
+            return {}, "none", f"invalid_json:{exc}"
+        bundle_obj, source = _extract_bundle_from_json_obj(parsed, proof_hash=proof_hash)
+        if not bundle_obj:
+            return {}, "none", "no_bundle_in_output"
+        return bundle_obj, source, None
+    except subprocess.TimeoutExpired:
+        return {}, "none", f"timeout_after_{max(10, int(timeout_seconds))}s"
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or exc.stdout or "").strip()
+        if len(stderr) > 400:
+            stderr = stderr[-400:]
+        msg = f"nonzero_exit:{exc.returncode}"
+        if stderr:
+            msg = f"{msg}:{stderr}"
+        return {}, "none", msg
+    except Exception as exc:
+        return {}, "none", str(exc)
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _persist_bundle_sidecar(
+    *,
+    model_dir: Path | None,
+    proof_hash: str,
+    bundle_obj: dict[str, Any],
+) -> str:
+    if model_dir is None:
+        return ""
+    try:
+        model_dir.mkdir(parents=True, exist_ok=True)
+        out_path = model_dir / "kzg_mpcheck_bundle.json"
+        canon_hash = _canonical_hex(proof_hash)
+        if not canon_hash:
+            return ""
+
+        payload: dict[str, Any] = {}
+        if out_path.exists():
+            try:
+                existing = json.loads(out_path.read_text())
+                if isinstance(existing, dict):
+                    payload = existing
+            except Exception:
+                payload = {}
+
+        entry = bundle_obj
+        if isinstance(bundle_obj.get("kzg_mpcheck_bundle"), dict):
+            entry = {"kzg_mpcheck_bundle": bundle_obj["kzg_mpcheck_bundle"]}
+        payload[canon_hash] = entry
+        out_path.write_text(json.dumps(payload, indent=2))
+        return str(out_path)
+    except Exception:
+        return ""
+
+
+def _inject_kzg_bundle_from_sources(
+    *,
+    raw_json: dict[str, Any],
+    proof_hash: str,
+    model_name: str,
+    model_dir: Path | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    Try to enrich `raw_json` with a `kzg_mpcheck_bundle` from sidecar sources.
+    """
+    enriched = dict(raw_json or {})
+    initial_bundle, initial_source = _extract_kzg_bundle(enriched)
+    if initial_bundle:
+        return enriched, {
+            "kzg_bundle_injected": False,
+            "kzg_bundle_injected_source": f"raw_json.{initial_source}",
+            "kzg_bundle_extractor_attempted": False,
+            "kzg_bundle_extractor_error": None,
+        }
+
+    # 1) Sidecar files.
+    for path in _candidate_bundle_files(model_dir=model_dir):
+        if not path.exists():
+            continue
+        try:
+            parsed = json.loads(path.read_text())
+        except Exception:
+            continue
+        bundle_obj, src = _extract_bundle_from_json_obj(parsed, proof_hash=proof_hash)
+        if not bundle_obj:
+            continue
+        if isinstance(bundle_obj.get("kzg_mpcheck_bundle"), dict):
+            enriched["kzg_mpcheck_bundle"] = bundle_obj["kzg_mpcheck_bundle"]
+        else:
+            enriched["kzg_mpcheck_bundle"] = bundle_obj
+        return enriched, {
+            "kzg_bundle_injected": True,
+            "kzg_bundle_injected_source": f"file:{path}:{src}",
+            "kzg_bundle_extractor_attempted": False,
+            "kzg_bundle_extractor_error": None,
+        }
+
+    # 2) Optional external extractor command.
+    extractor_cmd = (os.getenv("EZKL_KZG_BUNDLE_EXTRACTOR_CMD", "") or "").strip()
+    auto_extract_enabled = (os.getenv("EZKL_KZG_BUNDLE_AUTO_EXTRACT", "true") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not extractor_cmd and auto_extract_enabled and _can_auto_extract_bundle(model_dir=model_dir):
+        extractor_cmd = _default_bundle_extractor_cmd()
+    if extractor_cmd:
+        extractor_attempted = True
+        try:
+            extractor_timeout = int((os.getenv("EZKL_KZG_BUNDLE_EXTRACTOR_TIMEOUT", "180") or "180").strip())
+        except ValueError:
+            extractor_timeout = 180
+        bundle_obj, src, extractor_error = _run_bundle_extractor(
+            cmd=extractor_cmd,
+            raw_json=enriched,
+            proof_hash=proof_hash,
+            model_name=model_name,
+            model_dir=model_dir,
+            timeout_seconds=extractor_timeout,
+        )
+        if bundle_obj:
+            extractor_keys: list[str] = []
+            if isinstance(bundle_obj.get("kzg_mpcheck_bundle"), dict):
+                extractor_keys = sorted(str(k) for k in bundle_obj["kzg_mpcheck_bundle"].keys())
+            elif isinstance(bundle_obj, dict):
+                extractor_keys = sorted(str(k) for k in bundle_obj.keys())
+            if isinstance(bundle_obj.get("kzg_mpcheck_bundle"), dict):
+                enriched["kzg_mpcheck_bundle"] = bundle_obj["kzg_mpcheck_bundle"]
+            else:
+                enriched["kzg_mpcheck_bundle"] = bundle_obj
+            cached_path = _persist_bundle_sidecar(
+                model_dir=model_dir,
+                proof_hash=proof_hash,
+                bundle_obj=bundle_obj,
+            )
+            return enriched, {
+                "kzg_bundle_injected": True,
+                "kzg_bundle_injected_source": f"extractor:{src}",
+                "kzg_bundle_extractor_keys": extractor_keys,
+                "kzg_bundle_cached_path": cached_path or None,
+                "kzg_bundle_extractor_attempted": extractor_attempted,
+                "kzg_bundle_extractor_error": None,
+            }
+    else:
+        extractor_attempted = False
+        extractor_error = None
+
+    # 3) Cross-model hash scan fallback.
+    bundle_obj, src = _scan_model_sidecars_by_proof_hash(
+        proof_hash=proof_hash,
+        exclude_model_dir=model_dir,
+    )
+    if bundle_obj:
+        if isinstance(bundle_obj.get("kzg_mpcheck_bundle"), dict):
+            enriched["kzg_mpcheck_bundle"] = bundle_obj["kzg_mpcheck_bundle"]
+        else:
+            enriched["kzg_mpcheck_bundle"] = bundle_obj
+        cached_path = _persist_bundle_sidecar(
+            model_dir=model_dir,
+            proof_hash=proof_hash,
+            bundle_obj=bundle_obj,
+        )
+        return enriched, {
+            "kzg_bundle_injected": True,
+            "kzg_bundle_injected_source": src,
+            "kzg_bundle_cached_path": cached_path or None,
+            "kzg_bundle_extractor_attempted": extractor_attempted,
+            "kzg_bundle_extractor_error": extractor_error if extractor_attempted else None,
+        }
+
+    return enriched, {
+        "kzg_bundle_injected": False,
+        "kzg_bundle_injected_source": "none",
+        "kzg_bundle_extractor_attempted": extractor_attempted,
+        "kzg_bundle_extractor_error": extractor_error if extractor_attempted else None,
+    }
+
+
 def _garaga_module_path() -> Path | None:
     root = Path(__file__).resolve().parents[3]
     module = root / "circuits" / "node_modules" / "garaga" / "dist" / "index.cjs"
@@ -289,6 +713,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
         or bundle.get("hint_felts")
         or bundle.get("mpcheck_hint")
     )
+    hint_error = str(bundle.get("hint_error") or "").strip()
     hint_source = "provided"
 
     if pair0 and pair1 and not hint_felts and bool(bundle.get("auto_build_hint", True)):
@@ -301,6 +726,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
             "kzg_mpcheck_hint_felts": 0,
             "kzg_mpcheck_hint_source": "none",
             "kzg_mpcheck_bundle_source": bundle_source,
+            "kzg_mpcheck_hint_error": hint_error or None,
         }
 
     pair0_x_limbs = _u384_to_limbs(pair0[0])
@@ -313,6 +739,7 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
             "kzg_mpcheck_hint_felts": 0,
             "kzg_mpcheck_hint_source": "none",
             "kzg_mpcheck_bundle_source": bundle_source,
+            "kzg_mpcheck_hint_error": hint_error or None,
         }
 
     trailer = [KZG_MPCHECK_V1_MARKER]
@@ -334,7 +761,12 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
     }
 
 
-def serialize_ezkl_proof_to_kzg_calldata(proof: Any) -> tuple[list[str], dict[str, Any]]:
+def serialize_ezkl_proof_to_kzg_calldata(
+    proof: Any,
+    *,
+    model_name: str = "",
+    model_dir: str | Path | None = None,
+) -> tuple[list[str], dict[str, Any]]:
     """
     Serialize an EZKL proof object to deterministic felt calldata.
 
@@ -365,6 +797,18 @@ def serialize_ezkl_proof_to_kzg_calldata(proof: Any) -> tuple[list[str], dict[st
     proof_blob_felts = _bytes_to_felts(proof_bytes)
 
     raw_json = dict(getattr(proof, "raw_proof_json", {}) or {})
+    model_name_effective = str(model_name or getattr(proof, "model_name", "") or "").strip()
+    model_dir_path = Path(model_dir) if model_dir is not None else None
+    if model_dir_path is None and model_name_effective:
+        model_dir_path = Path(__file__).resolve().parents[1] / "data" / "ezkl_models" / model_name_effective
+
+    raw_json, inject_meta = _inject_kzg_bundle_from_sources(
+        raw_json=raw_json,
+        proof_hash=str(getattr(proof, "proof_hash", "") or ""),
+        model_name=model_name_effective,
+        model_dir=model_dir_path,
+    )
+
     raw_hash_bytes = hashlib.sha256(
         json.dumps(raw_json, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).digest()
@@ -400,6 +844,7 @@ def serialize_ezkl_proof_to_kzg_calldata(proof: Any) -> tuple[list[str], dict[st
             else "payload_and_fact_binding_only"
         ),
     }
+    meta.update(inject_meta)
     meta.update(trailer_meta)
     return [hex(v) for v in calldata_ints], meta
 

@@ -74478,7 +74478,24 @@
       "tx_hash": "0x8b1e31c7c3218a7f9a001341be3fb45f61782f5d284594ee55b680fb87f75a",
       "created_at": 1773277443.7391322,
       "status": "active"
+    },
+    {
+      "pair": "ETH/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -19000,
+      "upper_tick": 2000,
+      "amount0_wei": 5000000000000000,
+      "amount1_wei": 166780759830125,
+      "tx_hash": "0x21b45ae09655dd5fd20d1327560b182db320c426f6980e0b3cd10e4f27a804a",
+      "created_at": 1773278403.7061214,
+      "status": "active"
     }
   ],
-  "updated_at": 1773277443.7392135
+  "updated_at": 1773278403.7062035
 }
