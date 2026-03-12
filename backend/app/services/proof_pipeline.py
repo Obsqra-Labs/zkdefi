@@ -83,6 +83,146 @@ class ProofPipeline:
         except ValueError:
             self._mirror_retry_count = 1
 
+    @staticmethod
+    def _local_ezkl_models_root() -> Path:
+        return Path(__file__).resolve().parents[1] / "data" / "ezkl_models"
+
+    def _resolve_local_ezkl_model_name(self, model_name: str) -> str:
+        """
+        Resolve common API model aliases to local EZKL artifact directory names.
+
+        Example:
+            yield_predictor -> yield_forecast
+        """
+        requested = str(model_name or "").strip()
+        if not requested:
+            return requested
+
+        root = self._local_ezkl_models_root()
+        if not root.exists():
+            return requested
+
+        local_dirs = [p.name for p in root.iterdir() if p.is_dir()]
+        by_lower = {name.lower(): name for name in local_dirs}
+        req_lower = requested.lower()
+
+        if requested in local_dirs:
+            return requested
+        if req_lower in by_lower:
+            return by_lower[req_lower]
+
+        alias_map = {
+            "yield_predictor": "yield_forecast",
+            "yield_forecaster": "yield_forecast",
+            "yield_model": "yield_forecast",
+            "credit_predictor": "creditworthiness",
+            "credit_model": "creditworthiness",
+            "anomaly_detect": "anomaly_detector",
+            "anomaly_detection": "anomaly_detector",
+        }
+        alias_target = alias_map.get(req_lower)
+        if alias_target and alias_target.lower() in by_lower:
+            return by_lower[alias_target.lower()]
+
+        if "yield" in req_lower and "yield_forecast" in by_lower:
+            return by_lower["yield_forecast"]
+        if "credit" in req_lower and "creditworthiness" in by_lower:
+            return by_lower["creditworthiness"]
+        if "anomaly" in req_lower and "anomaly_detector" in by_lower:
+            return by_lower["anomaly_detector"]
+
+        return requested
+
+    def _normalize_ezkl_input_data(
+        self,
+        *,
+        resolved_model_name: str,
+        input_data: list[list[float]],
+    ) -> list[list[float]]:
+        """
+        Normalize request input rows to the model's expected feature width when known.
+        """
+        root = self._local_ezkl_models_root()
+        model_dir = root / resolved_model_name
+        meta_path = model_dir / "training_metadata.json"
+        expected_features: int | None = None
+
+        if meta_path.exists():
+            try:
+                import json
+                meta = json.loads(meta_path.read_text())
+                raw_n = meta.get("n_features")
+                if raw_n is not None:
+                    expected_features = int(raw_n)
+            except Exception:
+                expected_features = None
+
+        if not expected_features or expected_features <= 0:
+            return input_data
+
+        norm_params: dict[str, Any] = {}
+        norm_path = model_dir / "norm_params.json"
+        if norm_path.exists():
+            try:
+                import json
+                norm_params = json.loads(norm_path.read_text())
+            except Exception:
+                norm_params = {}
+        mins = norm_params.get("min") if isinstance(norm_params, dict) else None
+        ranges = norm_params.get("range") if isinstance(norm_params, dict) else None
+        has_norm_params = (
+            isinstance(mins, list)
+            and isinstance(ranges, list)
+            and len(mins) >= expected_features
+            and len(ranges) >= expected_features
+        )
+
+        normalized: list[list[float]] = []
+        adjusted_width = False
+        adjusted_scale = False
+        for row in input_data:
+            vals = [float(v) for v in (row or [])]
+            if len(vals) < expected_features:
+                vals = vals + [0.0] * (expected_features - len(vals))
+                adjusted_width = True
+            elif len(vals) > expected_features:
+                vals = vals[:expected_features]
+                adjusted_width = True
+
+            # If values look like raw (not model-normalized) and norm params exist,
+            # map to training normalization domain with conservative clamping.
+            if has_norm_params and any(v < -0.5 or v > 1.5 for v in vals):
+                scaled: list[float] = []
+                for i, v in enumerate(vals):
+                    r = float(ranges[i])
+                    m = float(mins[i])
+                    if abs(r) < 1e-12:
+                        scaled_val = 0.0
+                    else:
+                        scaled_val = (float(v) - m) / r
+                    if scaled_val < 0.0:
+                        scaled_val = 0.0
+                    elif scaled_val > 1.0:
+                        scaled_val = 1.0
+                    scaled.append(scaled_val)
+                vals = scaled
+                adjusted_scale = True
+
+            normalized.append(vals)
+
+        if adjusted_width:
+            logger.info(
+                "Normalized EZKL input width for '%s' to %d features",
+                resolved_model_name,
+                expected_features,
+            )
+        if adjusted_scale:
+            logger.info(
+                "Applied norm_params scaling for '%s' input rows (clamped to [0,1])",
+                resolved_model_name,
+            )
+        return normalized
+
     async def _log_proof_event(
         self,
         user_address: str,
@@ -344,11 +484,40 @@ class ProofPipeline:
         Discover a local ONNX artifact for `model_name` in backend data storage.
         """
         models_root = Path(__file__).resolve().parents[1] / "data" / "ezkl_models"
-        model_dir = models_root / model_name
-        candidates = [model_dir / f"{model_name}.onnx", *sorted(model_dir.glob("*.onnx"))]
-        for candidate in candidates:
-            if candidate.exists():
-                return candidate
+        if not models_root.exists():
+            return None
+        requested = str(model_name or "").strip()
+        lower_requested = requested.lower()
+
+        candidate_dirs: list[Path] = []
+        if requested:
+            candidate_dirs.append(models_root / requested)
+
+        for entry in models_root.iterdir():
+            if not entry.is_dir():
+                continue
+            name_lower = entry.name.lower()
+            if name_lower == lower_requested:
+                candidate_dirs.append(entry)
+            elif lower_requested and (
+                lower_requested in name_lower
+                or name_lower in lower_requested
+                or ("yield" in lower_requested and "yield" in name_lower)
+                or ("credit" in lower_requested and "credit" in name_lower)
+                or ("anomaly" in lower_requested and "anomaly" in name_lower)
+            ):
+                candidate_dirs.append(entry)
+
+        seen: set[Path] = set()
+        for model_dir in candidate_dirs:
+            if model_dir in seen:
+                continue
+            seen.add(model_dir)
+            model_stem = model_dir.name
+            candidates = [model_dir / f"{model_stem}.onnx", *sorted(model_dir.glob("*.onnx"))]
+            for candidate in candidates:
+                if candidate.exists():
+                    return candidate
         return None
 
     async def _try_generate_real_ezkl_proof(
@@ -366,27 +535,42 @@ class ProofPipeline:
         try:
             from app.services.ezkl_prover_service import get_ezkl_prover
 
+            resolved_model_name = self._resolve_local_ezkl_model_name(model_name)
+            if resolved_model_name != model_name:
+                logger.info("Resolved EZKL model alias '%s' -> '%s'", model_name, resolved_model_name)
+
             ezkl = get_ezkl_prover()
-            artifacts = ezkl.get_artifacts(model_name)
+            artifacts = ezkl.get_artifacts(resolved_model_name)
             if (not artifacts or not artifacts.is_ready()) and self._ezkl_auto_setup_on_demand:
-                onnx_path = self._discover_local_onnx_path(model_name)
+                onnx_path = self._discover_local_onnx_path(resolved_model_name)
                 if onnx_path is not None:
                     try:
-                        artifacts = await ezkl.setup_model(model_name, onnx_path, force=False)
+                        artifacts = await ezkl.setup_model(resolved_model_name, onnx_path, force=False)
                     except Exception as setup_exc:
                         logger.warning(
                             "EZKL auto-setup failed for '%s' (%s): %s",
-                            model_name,
+                            resolved_model_name,
                             onnx_path,
                             setup_exc,
                         )
             if not artifacts or not artifacts.is_ready():
                 return None, False
 
-            proof = await ezkl.prove_inference(model_name=model_name, input_data=input_data)
+            normalized_input_data = self._normalize_ezkl_input_data(
+                resolved_model_name=resolved_model_name,
+                input_data=input_data,
+            )
+
+            proof = await ezkl.prove_inference(
+                model_name=resolved_model_name,
+                input_data=normalized_input_data,
+            )
             verified = await ezkl.verify_proof(proof)
             if not verified:
-                logger.warning("Real EZKL proof generated but local verify failed for model '%s'", model_name)
+                logger.warning(
+                    "Real EZKL proof generated but local verify failed for model '%s'",
+                    resolved_model_name,
+                )
                 return None, False
             return proof, True
         except Exception as exc:

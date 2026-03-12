@@ -71,6 +71,7 @@ export default defineConfig({
         text: 'Technical Foundations',
         items: [
           { text: 'Technical Foundations', link: '/technical-foundations' },
+          { text: 'Recursive Proving Core', link: '/recursive-multichain-proving-core' },
           { text: 'Reputation System', link: '/reputation-system' },
           { text: 'Architecture Summary', link: '/architecture-summary' }
         ]

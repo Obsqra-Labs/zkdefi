@@ -7,6 +7,7 @@ Focused documentation index for zkde.fi.
 ## Start here
 
 - Build narrative (hackathon): [HACKATHON_BUILD_NARRATIVE.md](HACKATHON_BUILD_NARRATIVE.md)
+- Recursive multichain proving core: [RECURSIVE_MULTICHAIN_PROVING_CORE.md](RECURSIVE_MULTICHAIN_PROVING_CORE.md)
 - Proof API (reputation + receipts): [REPUTATION_PROOF_API.md](REPUTATION_PROOF_API.md)
 - L3 architecture (Madara): [MADARA_L3_APPCHAIN_ARCHITECTURE.md](MADARA_L3_APPCHAIN_ARCHITECTURE.md)
 - L3 proving integration: [L3_PROVING_PATHS_INTEGRATION.md](L3_PROVING_PATHS_INTEGRATION.md)

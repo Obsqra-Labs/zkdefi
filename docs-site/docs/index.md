@@ -44,4 +44,5 @@ These docs are focused on four things:
 4. [Trade Desk](/trade-desk)
 5. [How Systems Work](/how-systems-work)
 6. [Technical Foundations](/technical-foundations)
-7. [API Overview](/api-overview)
+7. [Recursive Proving Core](/recursive-multichain-proving-core)
+8. [API Overview](/api-overview)

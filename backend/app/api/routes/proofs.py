@@ -132,7 +132,7 @@ async def get_proof_stats() -> dict[str, Any]:
 @router.get("/models")
 async def list_models() -> dict[str, Any]:
     """List available provable ML models and their status."""
-    models_dir = Path(__file__).parent.parent.parent.parent / "ezkl_models"
+    models_dir = Path(__file__).resolve().parents[2] / "data" / "ezkl_models"
     result = []
     if models_dir.exists():
         for d in sorted(models_dir.iterdir()):

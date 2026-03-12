@@ -25,3 +25,4 @@ zkde.fi is a privacy-first execution stack on Starknet with two operator surface
 3. [Trade Desk](/trade-desk)
 4. [How Systems Work](/how-systems-work)
 5. [Technical Foundations](/technical-foundations)
+6. [Recursive Proving Core](/recursive-multichain-proving-core)

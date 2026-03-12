@@ -95,4 +95,4 @@ flowchart LR
 - <https://github.com/obsqra-labs/zkdefi/blob/main/docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md>
 - <https://github.com/obsqra-labs/zkdefi/blob/main/docs/CAPITAL_OS_PORTABLE_REPUTATION_V3_SPEC.md>
 
-Next: [How Systems Work](/how-systems-work) | [API Overview](/api-overview) | [Trade Desk](/trade-desk)
+Next: [Recursive Proving Core](/recursive-multichain-proving-core) | [How Systems Work](/how-systems-work) | [API Overview](/api-overview)
