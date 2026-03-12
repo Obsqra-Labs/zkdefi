@@ -319,19 +319,41 @@ export function TrustDemo({
         if (enabledSkills.length > 0 && data.recommended_pools?.[0]) {
           setBatchLoading(true);
           try {
+            const topPool = data.recommended_pools[0];
+            // Build per-skill params from the top recommended pool
+            const perSkillParams: Record<string, Record<string, unknown>> = {};
+            for (const sid of enabledSkills) {
+              perSkillParams[sid] = {
+                pool_id: topPool.pool_id,
+                position_size: 1000000,
+                entry_price: 2000,
+                current_price: 2067,
+                allocations: [5000, 3000, 2000],
+                predicted_yields: [800, 600, 400],
+              };
+            }
             const batchRes = await fetch("/api/v1/zkdefi/skills/batch", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                pool_id: data.recommended_pools[0].pool_id,
-                position_size: 1000000,
-                entry_price: 2000,
-                current_price: 2067,
+                skill_ids: enabledSkills,
+                params: perSkillParams,
               }),
               signal: AbortSignal.timeout(20000),
             });
             if (batchRes.ok) {
-              setBatchResults(await batchRes.json());
+              const raw = await batchRes.json();
+              // Map backend shape { results, total, succeeded, failed }
+              // to frontend BatchSkillResult { pool_id, results, summary }
+              setBatchResults({
+                pool_id: topPool.pool_id,
+                results: raw.results ?? [],
+                summary: {
+                  total: raw.total ?? 0,
+                  passed: raw.succeeded ?? 0,
+                  failed: raw.failed ?? 0,
+                },
+              });
             }
           } catch {
             /* non-critical */
