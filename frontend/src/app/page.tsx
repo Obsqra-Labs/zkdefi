@@ -196,10 +196,6 @@ export default function LandingPage() {
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <CapitalOSSection />
-          <p className="mt-4 text-center text-[10px] text-zinc-600">
-            Full Capital OS with portfolio management, auto-rebalancing &amp; LP orchestration →{" "}
-            <span className="text-zinc-500">Phase 5</span>
-          </p>
         </div>
       </section>
 

@@ -110,6 +110,16 @@ const PROTOCOL_COLORS: Record<string, string> = {
   vesu: "bg-emerald-500",
 };
 
+/* ── Protocol integration tab definitions ── */
+type ProtocolTab = "all" | "ekubo" | "vesu" | "more";
+
+const PROTOCOL_TABS: { key: ProtocolTab; label: string; icon: string; accent: string; desc: string }[] = [
+  { key: "all", label: "All", icon: "⚡", accent: "border-violet-500 text-violet-400", desc: "Blended multi-protocol view" },
+  { key: "ekubo", label: "Ekubo", icon: "🌊", accent: "border-cyan-500 text-cyan-400", desc: "Concentrated DEX liquidity" },
+  { key: "vesu", label: "Vesu", icon: "🏦", accent: "border-emerald-500 text-emerald-400", desc: "Lending & supply markets" },
+  { key: "more", label: "More →", icon: "✦", accent: "border-zinc-600 text-zinc-500", desc: "Integrations coming soon" },
+];
+
 /* ── EZKL Model artifacts (real hashes from trained models) ── */
 const EZKL_MODELS = [
   {
@@ -208,6 +218,7 @@ export function TrustDemo({
   const [batchLoading, setBatchLoading] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verified, setVerified] = useState<Record<string, boolean>>({});
+  const [protocolTab, setProtocolTab] = useState<ProtocolTab>("all");
   const [narration, setNarration] = useState<NarrationResult | null>(null);
   const [narrationLoading, setNarrationLoading] = useState(false);
   const [explainer, setExplainer] = useState<ExplainerState>({
@@ -537,42 +548,117 @@ export function TrustDemo({
             </div>
           </div>
 
-          {/* Allocation bar + pool list */}
+          {/* ── Protocol Integration Tabs ── */}
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
-            <div className="mb-3 flex items-center justify-between text-xs">
-              <span className="text-zinc-400">Allocation</span>
-              <span className={`font-medium ${profileColor}`}>
-                {(result.confidence_score * 100).toFixed(0)}% confidence
-              </span>
-            </div>
-            <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-zinc-800">
-              {result.recommended_pools.map((pool) => {
-                const protocol = pool.pool_id.split("_")[0];
+            {/* Tab bar */}
+            <div className="mb-4 flex items-center gap-1 rounded-lg bg-zinc-800/40 p-1">
+              {PROTOCOL_TABS.map((tab) => {
+                const isActive = protocolTab === tab.key;
+                const poolCount = tab.key === "all"
+                  ? result.recommended_pools.length
+                  : tab.key === "more" ? 0
+                  : result.recommended_pools.filter((p) => p.pool_id.startsWith(tab.key)).length;
                 return (
-                  <div
-                    key={pool.pool_id}
-                    className={`${PROTOCOL_COLORS[protocol] ?? "bg-zinc-500"} transition-all first:rounded-l-full last:rounded-r-full`}
-                    style={{ width: `${pool.allocation_mid}%` }}
-                    title={`${pool.pool_name}: ${pool.allocation_mid}%`}
-                  />
+                  <button
+                    key={tab.key}
+                    onClick={() => setProtocolTab(tab.key)}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-all flex-1 justify-center ${
+                      isActive
+                        ? `bg-zinc-900 border ${tab.accent} shadow-sm`
+                        : "text-zinc-500 hover:text-zinc-300 border border-transparent"
+                    }`}
+                  >
+                    <span className="text-xs">{tab.icon}</span>
+                    <span>{tab.label}</span>
+                    {poolCount > 0 && (
+                      <span className={`rounded-full px-1.5 py-0 text-[9px] tabular-nums ${
+                        isActive ? "bg-zinc-800 text-zinc-300" : "bg-zinc-800/50 text-zinc-600"
+                      }`}>{poolCount}</span>
+                    )}
+                  </button>
                 );
               })}
             </div>
 
-            {/* Column headers */}
-            <div className="mb-1 flex items-center gap-3 px-3 text-[9px] font-semibold uppercase tracking-wider text-zinc-600">
-              <span className="w-2" />
-              <span className="flex-1">Pool</span>
-              <span className="w-12 text-right">Alloc</span>
-              <span className="w-16 text-center">Safety</span>
-              <span className="w-14 text-right">Risk</span>
-              <span className="w-14 text-right">APY</span>
-              <span className="w-3" />
-            </div>
+            {/* "More" tab — CTA placeholder */}
+            {protocolTab === "more" ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-10">
+                <div className="flex items-center gap-2 text-lg">
+                  <span>🔗</span>
+                  <span className="font-semibold text-zinc-300">More Integrations</span>
+                </div>
+                <p className="max-w-sm text-center text-xs leading-relaxed text-zinc-500">
+                  We're adding more Starknet protocols to the AI pipeline.
+                  Yield aggregators, perps, bridges — if it has on-chain data, Capital OS can ingest it.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 pt-1">
+                  {["Nostra", "zkLend", "Haiko", "Carmine", "mySwap", "AVNU"].map((name) => (
+                    <span key={name} className="rounded-full border border-zinc-800 bg-zinc-900/50 px-2.5 py-1 text-[10px] text-zinc-600">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-1 text-[10px] text-zinc-700">Have a protocol? Let's integrate →</p>
+              </div>
+            ) : (() => {
+              /* Filter pools by protocol tab */
+              const visiblePools = protocolTab === "all"
+                ? result.recommended_pools
+                : result.recommended_pools.filter((p) => p.pool_id.startsWith(protocolTab));
 
-            {/* Pool list */}
-            <div className="space-y-1">
-              {result.recommended_pools.slice(0, 6).map((pool) => {
+              /* Per-tab stats */
+              const tabTotalAlloc = visiblePools.reduce((s, p) => s + p.allocation_mid, 0);
+              const tabAvgApy = visiblePools.length > 0
+                ? visiblePools.reduce((s, p) => s + p.apy, 0) / visiblePools.length
+                : 0;
+              const tabBestApy = visiblePools.length > 0
+                ? Math.max(...visiblePools.map((p) => p.apy))
+                : 0;
+
+              return (
+                <>
+                  {/* Tab stats strip */}
+                  <div className="mb-3 flex items-center gap-4 text-[10px] text-zinc-500">
+                    <span>{visiblePools.length} pools</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>Best APY <strong className="text-emerald-400">{(tabBestApy * 100).toFixed(1)}%</strong></span>
+                    <span className="text-zinc-700">·</span>
+                    <span>Avg APY <strong className="text-zinc-300">{(tabAvgApy * 100).toFixed(1)}%</strong></span>
+                    <span className={`ml-auto font-medium ${profileColor}`}>
+                      {(result.confidence_score * 100).toFixed(0)}% confidence
+                    </span>
+                  </div>
+
+                  {/* Allocation bar (filtered) */}
+                  <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-zinc-800">
+                    {visiblePools.map((pool) => {
+                      const protocol = pool.pool_id.split("_")[0];
+                      const widthPct = tabTotalAlloc > 0 ? (pool.allocation_mid / tabTotalAlloc) * 100 : 0;
+                      return (
+                        <div
+                          key={pool.pool_id}
+                          className={`${PROTOCOL_COLORS[protocol] ?? "bg-zinc-500"} transition-all first:rounded-l-full last:rounded-r-full`}
+                          style={{ width: `${widthPct}%` }}
+                          title={`${pool.pool_name}: ${pool.allocation_mid}%`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Column headers */}
+                  <div className="mb-1 flex items-center gap-3 px-3 text-[9px] font-semibold uppercase tracking-wider text-zinc-600">
+                    <span className="w-2" />
+                    <span className="flex-1">Pool</span>
+                    <span className="w-12 text-right">Alloc</span>
+                    <span className="w-16 text-center">Safety</span>
+                    <span className="w-14 text-right">Risk</span>
+                    <span className="w-14 text-right">APY</span>
+                    <span className="w-3" />
+                  </div>
+
+                  {/* Pool list (filtered) */}
+                  <div className="space-y-1">
+                    {visiblePools.slice(0, 8).map((pool) => {
                 const safety = SAFETY_COLORS[pool.safety_level] ?? SAFETY_COLORS.moderate;
                 const isExpanded = expandedPool === pool.pool_id;
                 const isPrimary = pool.pool_name === result.primary_pool;
@@ -808,6 +894,14 @@ export function TrustDemo({
                 );
               })}
             </div>
+            {visiblePools.length > 8 && (
+              <div className="px-3 py-1.5 text-center text-[10px] text-zinc-600">
+                +{visiblePools.length - 8} more {protocolTab === "all" ? "pools" : protocolTab} pools
+              </div>
+            )}
+          </>
+        );
+      })()}
           </div>
 
           {/* ── Batch circuit results ── */}
