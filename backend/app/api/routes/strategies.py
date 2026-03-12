@@ -666,6 +666,39 @@ async def health_check():
     }
 
 
+@router.get("/stats")
+async def live_stats():
+    """Live protocol stats for the landing page banner.
+    Returns pool counts, TVL, and protocol names from mainnet data.
+    Lightweight endpoint — cached implicitly by the collector."""
+    if not pool_collector:
+        return {"protocols": 0, "pools": 0, "tvl_usd": 0, "protocol_names": []}
+
+    try:
+        lp_pools, _ = await pool_collector.get_all_pools()
+    except Exception:
+        return {"protocols": 0, "pools": 0, "tvl_usd": 0, "protocol_names": []}
+
+    proto_data: dict[str, dict] = {}
+    for p in lp_pools:
+        if p.protocol not in proto_data:
+            proto_data[p.protocol] = {"count": 0, "tvl": 0.0}
+        proto_data[p.protocol]["count"] += 1
+        proto_data[p.protocol]["tvl"] += p.liquidity_usd
+
+    total_tvl = sum(d["tvl"] for d in proto_data.values())
+    return {
+        "protocols": len(proto_data),
+        "pools": len(lp_pools),
+        "tvl_usd": round(total_tvl),
+        "protocol_names": sorted(proto_data.keys()),
+        "per_protocol": {
+            name: {"pools": d["count"], "tvl_usd": round(d["tvl"])}
+            for name, d in sorted(proto_data.items(), key=lambda x: -x[1]["tvl"])
+        },
+    }
+
+
 # ============================================================================
 # Helper Functions
 # ============================================================================

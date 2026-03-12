@@ -29,19 +29,19 @@ export function CapitalOSSection() {
       {/* Integrations headline */}
       <div className="mx-auto max-w-2xl text-center">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-cyan-500">
-          Protocol Integrations
+          The System — Live Demo
         </p>
         <h2 className="text-2xl font-bold leading-tight text-zinc-100 sm:text-3xl">
-          AI pipeline. On-chain data.<br className="hidden sm:block" /> Your favorite protocols.
+          Proof-gated execution<br className="hidden sm:block" /> across 5 Starknet protocols.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Live data from <strong className="text-cyan-400">Ekubo</strong>,{" "}
+          Real mainnet data from{" "}
+          <strong className="text-cyan-400">Ekubo</strong>,{" "}
           <strong className="text-emerald-400">Vesu</strong>,{" "}
           <strong className="text-amber-400">Endur</strong>,{" "}
           <strong className="text-rose-400">Nostra</strong> &amp;{" "}
-          <strong className="text-indigo-400">Troves</strong> — 80+ pools, $75 M TVL.
-          Capital OS ingests it. The app gives you privacy and gated execution rails
-          to trade permissionless <em>and</em> anonymous — at the same time.
+          <strong className="text-indigo-400">Troves</strong>.
+          AI scores every pool. zkML proofs gate every action. No wallet needed — try it below.
         </p>
       </div>
 

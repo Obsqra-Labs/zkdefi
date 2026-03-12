@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   FileCheck,
   Layers,
@@ -9,6 +10,7 @@ import {
   Cpu,
   Lock,
   BarChart3,
+  X,
   Zap,
   Globe,
   GitBranch,
@@ -17,6 +19,7 @@ import {
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
+import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
 
 /* ─── data ─────────────────────────────────────────────────────────── */
 
@@ -136,9 +139,14 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
 
         <div className="relative mx-auto max-w-5xl text-center">
+          {/* Problem-first hook */}
+          <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
+            DeFi automation requires exposing too much information.
+          </p>
+
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              Private DeFi.
+              Private decisions.
             </span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
@@ -146,22 +154,18 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <div className="mx-auto mt-8 flex items-center justify-center gap-3">
-            <span className="font-mono text-2xl tracking-wide text-zinc-200 sm:text-3xl">
+          <p className="mx-auto mt-6 max-w-3xl text-lg text-zinc-300">
+            Strategy logic, model signals, and execution intent stay private.
+            Proofs — not disclosure — govern what capital is allowed to do.
+          </p>
+
+          <div className="mx-auto mt-5 flex items-center justify-center gap-3">
+            <span className="font-mono text-xl tracking-wide text-zinc-400 sm:text-2xl">
               trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
             </span>
           </div>
-          <p className="mt-1.5 text-xs text-zinc-600 italic">
-            <span className="text-amber-400">*</span>over time
-          </p>
-
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-zinc-300">
-            Run zkML inference on-chain and off-chain. Encapsulate SNARKs within STARKs for
-            heterogeneous proof composition. Settle on Ethereum L1 with earned trust — not assumed trust.
-          </p>
-
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-500">
-            Composable trustless and trusted DeFi primitives for your protocol, agent, or application.
+          <p className="mt-1 text-[10px] text-zinc-600 italic">
+            <span className="text-amber-400">*</span>earned over time, never assumed
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -172,13 +176,13 @@ export default function LandingPage() {
               Launch App
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              href="/products"
-              prefetch={false}
+            <a
+              href="#capital-os"
               className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-6 py-3 font-medium text-zinc-200 transition-colors hover:border-emerald-500/50 hover:text-white"
             >
-              Explore Products
-            </Link>
+              See the Demo
+              <ChevronDown className="h-4 w-4" />
+            </a>
             <a
               href="https://github.com/Obsqra-Labs/zkdefi"
               target="_blank"
@@ -192,8 +196,80 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ Problem → Insight Bridge ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            {/* The Problem */}
+            <div className="rounded-2xl border border-rose-500/15 bg-rose-950/5 p-7">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600/20">
+                  <Lock className="h-4 w-4 text-rose-400" />
+                </span>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-rose-400">The Problem</h3>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-300">
+                Automated strategies, AI models, and coordinated capital all require
+                <strong className="text-white"> exposing execution intent on-chain</strong>.
+                Other participants can front-run, copy, or exploit that visibility.
+              </p>
+              <div className="mt-4 space-y-2">
+                {[
+                  "Strategy logic visible → gets front-run or copied",
+                  "Off-chain infra is opaque → users must trust blindly",
+                  "Privacy tools hide balances but don't govern execution",
+                ].map((line) => (
+                  <div key={line} className="flex items-start gap-2 text-xs text-zinc-500">
+                    <X className="mt-0.5 h-3 w-3 shrink-0 text-rose-500/60" />
+                    <span>{line}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-xs italic text-zinc-600">
+                Users must choose: privacy without automation, or automation without privacy.
+              </p>
+            </div>
+
+            {/* The Insight */}
+            <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/5 p-7">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600/20">
+                  <Shield className="h-4 w-4 text-emerald-400" />
+                </span>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">The Insight</h3>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-300">
+                Privacy should not just hide information — it should
+                <strong className="text-white"> govern execution</strong>.
+                Proofs can verify that conditions are satisfied without revealing the underlying logic.
+              </p>
+              <div className="mt-4 rounded-lg border border-emerald-500/10 bg-emerald-950/20 p-3">
+                <pre className="text-[11px] leading-relaxed text-emerald-300/80">
+{`strategy / AI signal
+  ↓  proof verification
+  ↓  policy gate
+  ↓  execution
+  ↓  receipt`}
+                </pre>
+              </div>
+              <p className="mt-4 text-xs text-zinc-500">
+                Capital moves only when proofs pass. Strategy logic stays confidential.
+                Every action produces an auditable receipt.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Live Starknet Data Bar ═══ */}
+      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
+        <div className="mx-auto max-w-6xl">
+          <LiveStatsBanner />
+        </div>
+      </section>
+
       {/* ═══ Capital OS: AI Brain + Live Demo ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <CapitalOSSection />
         </div>
@@ -550,6 +626,53 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ═══ Why Starknet ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              Proof-gated private finance needs an L2 purpose-built for
+              scalable verification and complex off-chain computation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Scalable proof verification",
+                desc: "Native STARK verification at L2 cost. Garaga enables KZG pairing checks in Cairo — the same curve math that secures Ethereum's blob commitments.",
+                color: "border-cyan-500/20 bg-cyan-950/5",
+                accent: "text-cyan-400",
+              },
+              {
+                title: "Private execution logic",
+                desc: "Cairo programs can enforce arbitrary policy constraints without revealing the underlying rules. Strategy logic compiles to provable traces, not public bytecode.",
+                color: "border-emerald-500/20 bg-emerald-950/5",
+                accent: "text-emerald-400",
+              },
+              {
+                title: "Complex computation verified on-chain",
+                desc: "ML inference, risk models, and multi-step strategies run off-chain but settle on-chain through STARK proofs — the same infra that secures Starknet blocks.",
+                color: "border-violet-500/20 bg-violet-950/5",
+                accent: "text-violet-400",
+              },
+            ].map((item) => (
+              <div key={item.title} className={`rounded-xl border ${item.color} p-6`}>
+                <h4 className={`text-sm font-bold ${item.accent}`}>{item.title}</h4>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-relaxed text-zinc-600">
+            The Re&#123;define&#125; Privacy track highlights private DeFi, private voting,
+            confidential financial workflows, and private prediction markets.
+            zkde.fi demonstrates that a single architecture can support all of these simultaneously.
+          </p>
         </div>
       </section>
 
