@@ -22,7 +22,7 @@ import {
   type ExplainerType,
   type PoolExplanation,
 } from "./ExplainerModal";
-import { voyagerContractUrl, voyagerClassUrl, l3ExplorerUrl } from "@/lib/explorer";
+import { sepoliaVoyagerContractUrl, sepoliaVoyagerClassUrl, l3ExplorerUrl } from "@/lib/explorer";
 
 /* ═══════════════════ types ═══════════════════ */
 
@@ -135,7 +135,7 @@ const EZKL_MODELS = [
   },
 ];
 
-/* ── On-chain contract addresses (Starknet Mainnet) ── */
+/* ── On-chain contract addresses (Starknet Sepolia) ── */
 const CONTRACTS = {
   agent_skill_registry: "0x6a039b4e59b39fc2ab44c3c70a5ecdbe765a9afabb4b2765f9bb966dfb6ddda",
   agent_performance: "0x67f10e598223c89135cd8b6a6f58b081e658069231b5a9064d29d5204d4c450",
@@ -268,7 +268,7 @@ export function TrustDemo({
           risk_profile: p,
           user_address: "0xdemo",
         }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(25000),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json();
@@ -527,7 +527,7 @@ export function TrustDemo({
               <Fingerprint className="h-3 w-3" />
               <span>Verifier:</span>
               <a
-                href={voyagerClassUrl(CONTRACTS.ezkl_kzg_verifier_class)}
+                href={sepoliaVoyagerClassUrl(CONTRACTS.ezkl_kzg_verifier_class)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-cyan-500/70 hover:text-cyan-400 transition-colors"
@@ -725,7 +725,7 @@ export function TrustDemo({
                             </div>
                             <div className="flex flex-wrap items-center gap-2 pt-1 text-[9px]">
                               <a
-                                href={voyagerContractUrl(CONTRACTS.validation_proofs)}
+                                href={sepoliaVoyagerContractUrl(CONTRACTS.validation_proofs)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-cyan-500/70 hover:text-cyan-400 transition-colors"
@@ -733,7 +733,7 @@ export function TrustDemo({
                                 ProofRegistry <ExternalLink className="h-2.5 w-2.5" />
                               </a>
                               <a
-                                href={voyagerContractUrl(CONTRACTS.batch_verifier)}
+                                href={sepoliaVoyagerContractUrl(CONTRACTS.batch_verifier)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-cyan-500/70 hover:text-cyan-400 transition-colors"
@@ -841,8 +841,8 @@ export function TrustDemo({
           <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
             <div className="mb-2.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
               <ExternalLink className="h-3 w-3" />
-              Starknet Contracts
-              <span className="ml-auto text-[8px] font-normal text-zinc-700">Mainnet · Voyager</span>
+              Agent Contracts
+              <span className="ml-auto text-[8px] font-normal text-amber-500/70">Sepolia · Voyager</span>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               {[
@@ -855,7 +855,7 @@ export function TrustDemo({
               ].map((c) => (
                 <a
                   key={c.name}
-                  href={voyagerContractUrl(c.addr)}
+                  href={sepoliaVoyagerContractUrl(c.addr)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 rounded-lg bg-zinc-800/30 px-2.5 py-1.5 text-[9px] transition-colors hover:bg-zinc-800/50"

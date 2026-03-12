@@ -214,9 +214,12 @@ async def analyze_strategy(request: PoolAnalysisRequest):
             filtered = sorted(evaluations, key=lambda x: x.risk_score)[:3]
         
         # Rank by risk-adjusted returns
+        # Build APY map from PoolMetrics.current_apy (already populated
+        # from Ekubo fee-APY and Vesu supply-APY)
+        apy_by_pool = {p.pool_id: p.current_apy for p in lp_pools}
         ranked = pool_evaluator.rank_by_risk_adjusted_apy(
             filtered,
-            {p.pool_id: yield_rates.get(p.pool_id, 0) for p in filtered}
+            apy_by_pool,
         )
         
         # Build lookups by pool_id
