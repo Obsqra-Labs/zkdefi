@@ -35,9 +35,13 @@ export function CapitalOSSection() {
           AI pipeline. On-chain data.<br className="hidden sm:block" /> Your favorite protocols.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Our AI learns from real Starknet liquidity. Capital OS ingests it.
-          The app gives you privacy and gated execution rails to trade
-          permissionless <em>and</em> anonymous — at the same time.
+          Live data from <strong className="text-cyan-400">Ekubo</strong>,{" "}
+          <strong className="text-emerald-400">Vesu</strong>,{" "}
+          <strong className="text-amber-400">Endur</strong>,{" "}
+          <strong className="text-rose-400">Nostra</strong> &amp;{" "}
+          <strong className="text-indigo-400">Troves</strong> — 80+ pools, $75 M TVL.
+          Capital OS ingests it. The app gives you privacy and gated execution rails
+          to trade permissionless <em>and</em> anonymous — at the same time.
         </p>
       </div>
 

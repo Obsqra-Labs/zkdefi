@@ -106,17 +106,22 @@ const SAFETY_COLORS: Record<string, { bg: string; text: string; border: string }
 
 const PROTOCOL_COLORS: Record<string, string> = {
   ekubo: "bg-cyan-500",
-  jediswap: "bg-violet-500",
   vesu: "bg-emerald-500",
+  endur: "bg-amber-500",
+  nostra: "bg-rose-500",
+  troves: "bg-indigo-500",
 };
 
 /* ── Protocol integration tab definitions ── */
-type ProtocolTab = "all" | "ekubo" | "vesu" | "more";
+type ProtocolTab = "all" | "ekubo" | "vesu" | "endur" | "nostra" | "troves" | "more";
 
 const PROTOCOL_TABS: { key: ProtocolTab; label: string; icon: string; accent: string; desc: string }[] = [
   { key: "all", label: "All", icon: "⚡", accent: "border-violet-500 text-violet-400", desc: "Blended multi-protocol view" },
   { key: "ekubo", label: "Ekubo", icon: "🌊", accent: "border-cyan-500 text-cyan-400", desc: "Concentrated DEX liquidity" },
   { key: "vesu", label: "Vesu", icon: "🏦", accent: "border-emerald-500 text-emerald-400", desc: "Lending & supply markets" },
+  { key: "endur", label: "Endur", icon: "🔐", accent: "border-amber-500 text-amber-400", desc: "Liquid staking (xSTRK, xBTC)" },
+  { key: "nostra", label: "Nostra", icon: "🏛️", accent: "border-rose-500 text-rose-400", desc: "Lending, DEX & Super App" },
+  { key: "troves", label: "Troves", icon: "⚔️", accent: "border-indigo-500 text-indigo-400", desc: "DEX LP & yield vaults" },
   { key: "more", label: "More →", icon: "✦", accent: "border-zinc-600 text-zinc-500", desc: "Integrations coming soon" },
 ];
 
@@ -592,7 +597,7 @@ export function TrustDemo({
                   Yield aggregators, perps, bridges — if it has on-chain data, Capital OS can ingest it.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 pt-1">
-                  {["Nostra", "zkLend", "Haiko", "Carmine", "mySwap", "AVNU"].map((name) => (
+                  {["Haiko", "Carmine", "mySwap", "AVNU", "Nimbora", "JediSwap"].map((name) => (
                     <span key={name} className="rounded-full border border-zinc-800 bg-zinc-900/50 px-2.5 py-1 text-[10px] text-zinc-600">
                       {name}
                     </span>
