@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -14,6 +15,8 @@ from app.api.reputation import get_user_data, compute_reputation_score, compute_
 from app.services.credit_line_service import compute_credit_line
 from app.services.linked_addresses_store import get_linked
 from app.services.linked_address_verification_service import get_linked_address_verification_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["portable-identity"])
 
@@ -331,4 +334,129 @@ async def get_revocation_status(revocation_id: str) -> dict[str, Any]:
     if row is None:
         raise HTTPException(status_code=404, detail="revocation_not_found")
     return row
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Portfolio Import → Identity Seeding
+# ──────────────────────────────────────────────────────────────────────────────
+
+class PortfolioImportRequest(BaseModel):
+    """Trigger a mainnet portfolio scan and seed into the identity graph."""
+    wallet_address: str
+    chain: str = "starknet"
+    # If the user signs a message, pass the signature here
+    signature: str | None = None
+    signature_message: str | None = None
+
+
+@router.post("/identity/graph/{subject}/import-portfolio")
+async def import_portfolio_into_identity(
+    subject: str, req: PortfolioImportRequest
+) -> dict[str, Any]:
+    """
+    Scan the user's mainnet positions and seed their portable identity.
+
+    Flow:
+      1. Scan mainnet positions (Vesu, Endur, Nostra, wallet tokens)
+      2. Link the wallet address in the identity graph
+      3. Record portfolio snapshot as an attribution event
+      4. Compute initial reputation from real position data
+      5. Return snapshot + reputation seed
+
+    This is the onboarding trigger: one wallet signature → full identity.
+    """
+    service = _svc()
+    subject_key = service.normalize_subject(subject)
+
+    # 1. Scan mainnet positions
+    try:
+        from app.services.position_scanner import scan_portfolio
+        snapshot = await scan_portfolio(req.wallet_address)
+    except Exception as exc:
+        logger.warning("Portfolio scan failed for %s: %s", req.wallet_address[:20], exc)
+        raise HTTPException(status_code=502, detail=f"Portfolio scan failed: {exc}")
+
+    # 2. Link wallet in identity graph
+    link_result = service.upsert_identity_link(
+        subject=subject_key,
+        chain=req.chain,
+        address=req.wallet_address,
+        verification_method="signature_challenge" if req.signature else "self_declared",
+        verified=bool(req.signature),
+        confidence=0.9 if req.signature else 0.4,
+        verification_ref=req.signature,
+    )
+
+    # 3. Set identity commitment from snapshot hash
+    service.set_identity_commitment(subject_key, snapshot.snapshot_hash)
+
+    # 4. Record portfolio scan as attribution event
+    portfolio_attribution = {
+        "action_type": "portfolio_import",
+        "source": "position_scanner",
+        "protocol_id": "multi_protocol",
+        "chain": req.chain,
+        "wallet_address": req.wallet_address,
+        "timestamp": snapshot.scanned_at,
+        "confidence": 1.0,
+        "metadata": {
+            "position_count": snapshot.position_count,
+            "protocol_count": snapshot.protocol_count,
+            "protocols_found": snapshot.protocols_found,
+            "total_value_usd": snapshot.total_value_usd,
+            "snapshot_hash": snapshot.snapshot_hash,
+        },
+    }
+    service.persist_attributions(subject_key, [portfolio_attribution])
+
+    # 5. Compute reputation seed from real data
+    user_data = get_user_data(subject_key)
+    tier = max(1, int(user_data.get("tier", 0)))  # At least tier 1 for importers
+    tenure_days = 0
+    first_interaction = int(user_data.get("first_interaction", 0) or 0)
+    if first_interaction > 0:
+        tenure_days = int((time.time() - first_interaction) / 86400)
+
+    # Boost txn count estimate from position count (they're active DeFi users)
+    est_txns = max(int(user_data.get("successful_txns", 0) or 0), snapshot.position_count * 10)
+    collateral_eth = snapshot.total_value_usd / 2500.0  # rough ETH estimate
+    reputation_score = compute_reputation_score(tier, tenure_days, est_txns, collateral_eth)
+    gates = compute_gates(tier)
+
+    # Log trust event
+    await log_trust_event(
+        subject_key,
+        "portfolio_imported",
+        gate="identity",
+        outcome="updated",
+        metadata={
+            "wallet_address": req.wallet_address,
+            "position_count": snapshot.position_count,
+            "total_value_usd": snapshot.total_value_usd,
+            "protocols_found": snapshot.protocols_found,
+            "snapshot_hash": snapshot.snapshot_hash,
+            "reputation_score": reputation_score,
+            "signed": bool(req.signature),
+        },
+        receipt_proof_type="portfolio_imported",
+    )
+
+    return {
+        "status": "ok",
+        "subject": subject_key,
+        "portfolio": snapshot.to_dict(),
+        "identity": {
+            "identity_commitment": snapshot.snapshot_hash,
+            "link": link_result,
+            "verified": bool(req.signature),
+        },
+        "reputation_seed": {
+            "score": reputation_score,
+            "tier": tier,
+            "gates": gates,
+            "estimated_txns": est_txns,
+            "collateral_eth_estimate": round(collateral_eth, 4),
+        },
+        "version_matrix": service.get_version_matrix(),
+    }
 

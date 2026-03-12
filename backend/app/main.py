@@ -228,6 +228,7 @@ collateral_router = _optional_router("app.api.routes.collateral")
 batch_verification_router = _optional_router("app.api.routes.batch_verification")
 system_metrics_router = _optional_router("app.api.routes.system_metrics")
 landing_router = _optional_router("app.api.routes.landing")
+portfolio_router = _optional_router("app.api.routes.portfolio")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -343,6 +344,12 @@ if zkd_portfolio_router:
         zkd_portfolio_router,
         prefix="/api/v1/zkdefi/zkd",
         tags=["zkd-portfolio"],
+    )
+if portfolio_router:
+    app.include_router(
+        portfolio_router,
+        prefix="/api/v1",
+        tags=["portfolio"],
     )
 if privacy_vault_router:
     app.include_router(
