@@ -19,6 +19,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 | Script | Purpose |
 |--------|---------|
 | **hackathon_backend_showcase.py** | Terminal-first demo runner for hackathon judging: validates proofs, agent execution, privacy commitment flow, policy controls, receipts, on-chain/RPC checks, AI advisory + badge screening flow, and can emit a local HTML/JSON report with Voyager links when requested. |
+| **warm_kzg_bundle_catalog.py** | Path B utility: runs real EZKL proof + local verify per model and warms/caches `kzg_mpcheck_bundle` coverage across the local model catalog, writing a JSON coverage report. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -60,6 +61,7 @@ Native KZG strictness defaults (backend):
 
 - `NATIVE_KZG_REQUIRE_REAL_EZKL=true` (block `EzklNativeKzg` execution if only synthetic/placeholder proof is available)
 - `NATIVE_KZG_REQUIRE_MPCHECK=true` (block `EzklNativeKzg` execution if `ezkl_kzg_v1` payload has no `kzg_mpcheck_v1` trailer)
+- `NATIVE_KZG_WARM_ON_REAL_PROVE=true` (after each real EZKL proof verify, warm/cache `kzg_mpcheck_bundle` metadata for future native-kzg runs)
 - `EZKL_AUTO_SETUP_ON_DEMAND=true` (auto-discover local ONNX artifacts and attempt `setup_model(..., force=False)` before fallback)
 
 ModelBridge real-EZKL bridge toggles (backend):
@@ -89,6 +91,18 @@ What this extractor does:
 - Encodes EVM calldata from the real proof JSON
 - Traces `bn256Pairing` precompile input from local Anvil execution
 - Emits `kzg_mpcheck_bundle` JSON for serializer injection
+
+Path B catalog warm-up:
+
+```bash
+python3 scripts/warm_kzg_bundle_catalog.py
+```
+
+Optional:
+
+- `--model yield` (filter by model name substring; repeatable)
+- `--limit 2`
+- `--output artifacts/hackathon_showcase/pathb_bundle_warm.json`
 
 ### Hackathon showcase artifacts
 

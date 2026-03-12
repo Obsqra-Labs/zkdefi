@@ -16,6 +16,7 @@ import {
   Copy,
 } from "lucide-react";
 import { WalletModal } from "@/components/zkdefi/WalletModal";
+import { ReputationProfile, ReputationData } from "@/components/marketing/ReputationProfile";
 import { apiFetch } from "@/lib/api/client";
 
 /* ─── types ────────────────────────────────────────────────────────── */
@@ -142,6 +143,7 @@ export function PaperTradeDemo() {
   const [proposal, setProposal] = useState<StrategyProposal | null>(null);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
   const [isHypothetical, setIsHypothetical] = useState(false);
+  const [reputation, setReputation] = useState<ReputationData | null>(null);
 
   /* ── scan + propose ── */
   const handleScan = useCallback(async (hypotheticalUsd?: number) => {
@@ -155,14 +157,27 @@ export function PaperTradeDemo() {
       };
       if (hypotheticalUsd) body.hypothetical_usd = hypotheticalUsd;
 
-      const res = await apiFetch<SimulateResponse>("/api/v1/paper-trade/simulate", {
-        method: "POST",
-        body: JSON.stringify(body),
-        timeoutMs: 60_000,
-      });
+      // Fire portfolio scan + reputation scan in parallel
+      const [res, repData] = await Promise.all([
+        apiFetch<SimulateResponse>("/api/v1/paper-trade/simulate", {
+          method: "POST",
+          body: JSON.stringify(body),
+          timeoutMs: 60_000,
+        }),
+        apiFetch<ReputationData>("/api/v1/paper-trade/reputation-scan", {
+          method: "POST",
+          body: JSON.stringify({ wallet_address: address }),
+          timeoutMs: 60_000,
+        }).catch((err) => {
+          console.warn("Reputation scan failed (non-blocking):", err);
+          return null;
+        }),
+      ]);
+
       setPortfolio(res.portfolio);
       setProposal(res.proposal);
       setIsHypothetical(!!res.is_hypothetical);
+      if (repData) setReputation(repData);
 
       // If portfolio is empty and no hypothetical was used, show capital picker
       if (
@@ -217,6 +232,7 @@ export function PaperTradeDemo() {
     setExecution(null);
     setError(null);
     setIsHypothetical(false);
+    setReputation(null);
   };
 
   return (
@@ -295,12 +311,12 @@ export function PaperTradeDemo() {
         <div className="flex flex-col items-center gap-3 py-8">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           <p className="text-sm text-zinc-400">
-            Reading on-chain positions for{" "}
+            Reading on-chain positions &amp; behavioral signals for{" "}
             <span className="font-mono text-zinc-300">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
             …
           </p>
           <p className="text-[10px] text-zinc-600">
-            Scanning Vesu · Endur · Nostra · Ekubo · Troves + wallet tokens
+            Scanning Vesu · Endur · Nostra · Ekubo · Troves + wallet tokens + reputation signals
           </p>
         </div>
       )}
@@ -308,6 +324,13 @@ export function PaperTradeDemo() {
       {/* ── Phase: Empty Portfolio — pick hypothetical capital ── */}
       {phase === "empty-portfolio" && (
         <div className="mx-auto max-w-lg space-y-5 py-4">
+          {/* Reputation Profile (even for empty wallets, show behavioral signals) */}
+          {reputation && reputation.nonce > 0 && (
+            <div className="mx-auto max-w-lg">
+              <ReputationProfile data={reputation} />
+            </div>
+          )}
+
           <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 px-6 py-5 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
               <Wallet className="h-6 w-6 text-amber-400" />
@@ -342,6 +365,12 @@ export function PaperTradeDemo() {
       {/* ── Phase: Proposal — portfolio + strategy ── */}
       {(phase === "proposal" || phase === "executing" || phase === "executed") && portfolio && proposal && (
         <div className="mx-auto max-w-4xl space-y-6">
+
+          {/* Reputation Profile (shown if scan succeeded) */}
+          {reputation && reputation.signals.length > 0 && (
+            <ReputationProfile data={reputation} />
+          )}
+
           {/* Portfolio summary bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 px-6 py-4">
             <div>

@@ -77,6 +77,7 @@ class ProofPipeline:
         self._l3_healthcheck_enabled = _env_bool("L3_PREREQ_HEALTHCHECK", True)
         self._native_kzg_require_mpcheck = _env_bool("NATIVE_KZG_REQUIRE_MPCHECK", True)
         self._native_kzg_require_real_ezkl = _env_bool("NATIVE_KZG_REQUIRE_REAL_EZKL", True)
+        self._native_kzg_warm_on_real_prove = _env_bool("NATIVE_KZG_WARM_ON_REAL_PROVE", True)
         self._ezkl_auto_setup_on_demand = _env_bool("EZKL_AUTO_SETUP_ON_DEMAND", True)
         self._modelbridge_try_real_ezkl = _env_bool("MODELBRIDGE_TRY_REAL_EZKL", True)
         self._modelbridge_require_real_ezkl = _env_bool("MODELBRIDGE_REQUIRE_REAL_EZKL", False)
@@ -641,6 +642,33 @@ class ProofPipeline:
                     resolved_model_name,
                 )
                 return None, False
+            if self._native_kzg_warm_on_real_prove:
+                try:
+                    from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof
+
+                    model_dir = self._local_ezkl_models_root() / resolved_model_name
+                    warm_meta = warm_kzg_bundle_cache_for_proof(
+                        proof,
+                        model_name=resolved_model_name,
+                        model_dir=model_dir if model_dir.exists() else None,
+                    )
+                    try:
+                        setattr(proof, "kzg_bundle_meta", warm_meta)
+                    except Exception:
+                        pass
+                    logger.info(
+                        "Warmed KZG bundle cache for '%s': present=%s source=%s",
+                        resolved_model_name,
+                        bool(warm_meta.get("kzg_mpcheck_bundle_present")),
+                        warm_meta.get("kzg_bundle_injected_source")
+                        or warm_meta.get("kzg_mpcheck_bundle_source"),
+                    )
+                except Exception as warm_exc:
+                    logger.warning(
+                        "KZG bundle warm-up failed for '%s': %s",
+                        resolved_model_name,
+                        warm_exc,
+                    )
             return proof, True
         except Exception as exc:
             logger.warning("Real EZKL path unavailable for '%s': %s", model_name, exc)

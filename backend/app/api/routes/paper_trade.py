@@ -4,6 +4,7 @@ Paper Trade + Strategy Simulator API routes.
 Endpoints:
   POST /paper-trade/simulate                — scan portfolio, propose strategy
   POST /paper-trade/simulate-and-execute    — scan + propose + execute on paper
+  POST /paper-trade/reputation-scan         — deep behavioral reputation scan
   POST /paper-trade/sessions                — create empty session
   GET  /paper-trade/sessions/{session_id}   — get session state
   POST /paper-trade/sessions/{session_id}/mtm       — mark-to-market
@@ -292,3 +293,33 @@ async def close_session(session_id: str):
         "final_snapshot": final_snap.to_dict() if final_snap else None,
         "l3_settlement": l3_result,
     }
+
+
+# ─── Reputation scan ────────────────────────────────────────────────────────
+
+class ReputationScanRequest(BaseModel):
+    wallet_address: str = Field(..., description="Starknet wallet address to scan")
+
+
+@router.post("/reputation-scan")
+async def reputation_scan(req: ReputationScanRequest):
+    """
+    Deep behavioral reputation scan.
+
+    Goes beyond basic portfolio reading to extract:
+      - Account age & type (Argent, Braavos, custom deployer, OZ)
+      - Lifetime transaction count (nonce)
+      - Capital profile across protocols
+      - Behavioral signals: diamond hands, diversification, DeFi nativeness
+      - Rug survival / market resilience indicators
+      - Composite scores: veteran, conviction, activity, diversity, capital, resilience
+      - Recommended trust tier with reasoning
+    """
+    from app.services.reputation_scanner import scan_reputation
+
+    try:
+        profile = await scan_reputation(req.wallet_address)
+        return profile.to_dict()
+    except Exception as exc:
+        logger.exception("Reputation scan failed for %s", req.wallet_address)
+        raise HTTPException(status_code=500, detail=f"Reputation scan failed: {exc}")

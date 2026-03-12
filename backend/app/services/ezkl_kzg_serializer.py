@@ -761,6 +761,41 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
     }
 
 
+def warm_kzg_bundle_cache_for_proof(
+    proof: Any,
+    *,
+    model_name: str = "",
+    model_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """
+    Warm sidecar/extractor bundle cache for an EZKL proof without emitting calldata.
+
+    This is intended for non-native-kzg paths (e.g., ModelBridge Groth16 lane)
+    so future native-kzg requests can reuse cached `kzg_mpcheck_bundle` material.
+    """
+    raw_json = dict(getattr(proof, "raw_proof_json", {}) or {})
+    model_name_effective = str(model_name or getattr(proof, "model_name", "") or "").strip()
+    model_dir_path = Path(model_dir) if model_dir is not None else None
+    if model_dir_path is None and model_name_effective:
+        model_dir_path = Path(__file__).resolve().parents[1] / "data" / "ezkl_models" / model_name_effective
+
+    enriched_json, inject_meta = _inject_kzg_bundle_from_sources(
+        raw_json=raw_json,
+        proof_hash=str(getattr(proof, "proof_hash", "") or ""),
+        model_name=model_name_effective,
+        model_dir=model_dir_path,
+    )
+    _, trailer_meta = _build_kzg_mpcheck_trailer(enriched_json)
+    try:
+        setattr(proof, "raw_proof_json", enriched_json)
+    except Exception:
+        pass
+    out = {"kzg_warm_attempted": True}
+    out.update(inject_meta)
+    out.update(trailer_meta)
+    return out
+
+
 def serialize_ezkl_proof_to_kzg_calldata(
     proof: Any,
     *,
@@ -796,18 +831,17 @@ def serialize_ezkl_proof_to_kzg_calldata(
             pass
     proof_blob_felts = _bytes_to_felts(proof_bytes)
 
-    raw_json = dict(getattr(proof, "raw_proof_json", {}) or {})
     model_name_effective = str(model_name or getattr(proof, "model_name", "") or "").strip()
     model_dir_path = Path(model_dir) if model_dir is not None else None
     if model_dir_path is None and model_name_effective:
         model_dir_path = Path(__file__).resolve().parents[1] / "data" / "ezkl_models" / model_name_effective
 
-    raw_json, inject_meta = _inject_kzg_bundle_from_sources(
-        raw_json=raw_json,
-        proof_hash=str(getattr(proof, "proof_hash", "") or ""),
+    warm_meta = warm_kzg_bundle_cache_for_proof(
+        proof,
         model_name=model_name_effective,
         model_dir=model_dir_path,
     )
+    raw_json = dict(getattr(proof, "raw_proof_json", {}) or {})
 
     raw_hash_bytes = hashlib.sha256(
         json.dumps(raw_json, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -844,7 +878,7 @@ def serialize_ezkl_proof_to_kzg_calldata(
             else "payload_and_fact_binding_only"
         ),
     }
-    meta.update(inject_meta)
+    meta.update(warm_meta)
     meta.update(trailer_meta)
     return [hex(v) for v in calldata_ints], meta
 

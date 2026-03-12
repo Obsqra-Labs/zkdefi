@@ -597,3 +597,69 @@ async def test_dual_marks_mirror_unavailable(monkeypatch):
 
     assert result["can_execute"] is True
     assert result["verification"]["mirror_status"] == "mirror_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_try_generate_real_ezkl_proof_warms_kzg_bundle(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("NATIVE_KZG_WARM_ON_REAL_PROVE", "true")
+    pipeline = ProofPipeline()
+
+    model_root = tmp_path / "models"
+    model_dir = model_root / "yield_forecast"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(pipeline, "_local_ezkl_models_root", lambda: model_root)
+    monkeypatch.setattr(pipeline, "_resolve_local_ezkl_model_name", lambda name: "yield_forecast")
+    monkeypatch.setattr(pipeline, "_normalize_ezkl_input_data", lambda **kwargs: kwargs["input_data"])
+
+    class _Artifacts:
+        def is_ready(self):
+            return True
+
+    class _Proof:
+        model_name = ""
+        model_hash = "0x" + "11" * 32
+        proof_hash = "0x" + "22" * 32
+        raw_proof_json = {"proof": [1], "instances": [[1]]}
+        inference_output = [1.0]
+
+    class _Ezkl:
+        def get_artifacts(self, model_name):
+            return _Artifacts()
+
+        async def prove_inference(self, model_name, input_data):
+            return _Proof()
+
+        async def verify_proof(self, proof):
+            return True
+
+    monkeypatch.setattr(
+        "app.services.ezkl_prover_service.get_ezkl_prover",
+        lambda: _Ezkl(),
+    )
+
+    seen: dict[str, str] = {}
+
+    def _fake_warm(proof, *, model_name="", model_dir=None):
+        seen["model_name"] = model_name
+        seen["model_dir"] = str(model_dir)
+        return {
+            "kzg_warm_attempted": True,
+            "kzg_mpcheck_bundle_present": True,
+            "kzg_bundle_injected_source": "test",
+        }
+
+    monkeypatch.setattr(
+        "app.services.ezkl_kzg_serializer.warm_kzg_bundle_cache_for_proof",
+        _fake_warm,
+    )
+
+    proof, verified = await pipeline._try_generate_real_ezkl_proof(
+        model_name="yield_predictor",
+        input_data=[[0.1]],
+    )
+
+    assert verified is True
+    assert proof is not None
+    assert seen["model_name"] == "yield_forecast"
+    assert seen["model_dir"].endswith("/yield_forecast")
+    assert getattr(proof, "kzg_bundle_meta", {}).get("kzg_warm_attempted") is True

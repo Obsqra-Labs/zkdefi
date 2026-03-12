@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -1719,12 +1720,25 @@ class ShowcaseRunner:
         if not rpc_url:
             return {}
 
-        ok, result = _rpc_call(
-            rpc_url,
-            "starknet_getTransactionReceipt",
-            [tx],
-            self.timeout_seconds,
-        )
+        ok = False
+        result: Any = {}
+        for attempt in range(3):
+            ok, result = _rpc_call(
+                rpc_url,
+                "starknet_getTransactionReceipt",
+                [tx],
+                self.timeout_seconds,
+            )
+            if ok and isinstance(result, dict):
+                break
+            err_code = None
+            if isinstance(result, dict):
+                err_code = result.get("code")
+            # Pending indexer propagation; retry briefly.
+            if err_code == 29 and attempt < 2:
+                time.sleep(1.0)
+                continue
+            break
         if not ok or not isinstance(result, dict):
             return {
                 "l3_actual_fee_display": "-",
@@ -2607,6 +2621,18 @@ class ShowcaseRunner:
                     pathc_live_receipt_raw = parsed
             except Exception:
                 pathc_live_receipt_raw = {}
+        pathb_warm_report_file = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_warm.json"
+        pathb_warm_report: dict[str, Any] = {}
+        if pathb_warm_report_file.exists():
+            try:
+                parsed = json.loads(pathb_warm_report_file.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    pathb_warm_report = parsed
+            except Exception:
+                pathb_warm_report = {}
+        pathb_warm_models_total = _safe_int(pathb_warm_report.get("models_total"), 0)
+        pathb_warm_models_bundle = _safe_int(pathb_warm_report.get("models_with_bundle"), 0)
+        pathb_warm_models_verified = _safe_int(pathb_warm_report.get("models_verified"), 0)
 
         parent_phase3_config_keys = all(
             key in parent_config_text
@@ -2773,7 +2799,14 @@ class ShowcaseRunner:
                     else "partial"
                 ),
                 "doc_signal": (
-                    "Cairo KZG verifier package builds; parent route validates ezkl_kzg_v1 + kzg_mpcheck_v1 trailer and uses strict verify_ezkl_kzg_v1 ABI."
+                    (
+                        "Cairo KZG verifier package builds; parent route validates ezkl_kzg_v1 + kzg_mpcheck_v1 trailer and uses strict verify_ezkl_kzg_v1 ABI."
+                        + (
+                            f" Catalog warm coverage: {pathb_warm_models_bundle}/{pathb_warm_models_total} models with cached bundles."
+                            if pathb_warm_models_total > 0
+                            else ""
+                        )
+                    )
                     if parent_phase4_strict_kzg
                     else "KZG spec exists; parent backend has config + proving-path routing for native_kzg / EzklNativeKzg."
                 ),
@@ -2799,7 +2832,11 @@ class ShowcaseRunner:
             ),
             "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
             "Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.",
-            "Phase 4: add automatic EZKL -> (pair0,pair1,mpcheck_hint) extraction so ezkl_kzg_v1 always carries a valid kzg_mpcheck_v1 trailer.",
+            (
+                f"Phase 4: catalog warm report is {pathb_warm_models_bundle}/{pathb_warm_models_total} models with bundles; increase toward full model coverage."
+                if pathb_warm_models_total > 0
+                else "Phase 4: run scripts/warm_kzg_bundle_catalog.py to baseline model-catalog bundle coverage."
+            ),
         ]
 
         self._recursive_ezkl_paths = {
@@ -2815,6 +2852,10 @@ class ShowcaseRunner:
                 "parent_phase4_config_key": parent_phase4_config_key,
                 "parent_phase4_route": parent_phase4_route,
                 "parent_phase4_strict_kzg": parent_phase4_strict_kzg,
+                "path_b_warm_report_found": pathb_warm_report_file.exists(),
+                "path_b_warm_models_total": pathb_warm_models_total,
+                "path_b_warm_models_verified": pathb_warm_models_verified,
+                "path_b_warm_models_with_bundle": pathb_warm_models_bundle,
                 "path_c_live_receipt_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
@@ -2853,6 +2894,19 @@ class ShowcaseRunner:
                     "NATIVE_KZG_REQUIRE_MPCHECK",
                     True,
                 ),
+                "native_kzg_warm_on_real_prove": _env_bool_from_map(
+                    zkdefi_backend_env,
+                    "NATIVE_KZG_WARM_ON_REAL_PROVE",
+                    True,
+                ),
+            },
+            "path_b_warm_report": {
+                "artifact_path": _relative_to_project(pathb_warm_report_file),
+                "artifact_found": pathb_warm_report_file.exists(),
+                "generated_at": pathb_warm_report.get("generated_at"),
+                "models_total": pathb_warm_models_total,
+                "models_verified": pathb_warm_models_verified,
+                "models_with_bundle": pathb_warm_models_bundle,
             },
             "path_c_live": {
                 "artifact_path": _relative_to_project(PATHC_LIVE_RECEIPT_FILE),
@@ -2913,6 +2967,8 @@ class ShowcaseRunner:
             noir_lane_listed=(noir_row is not None),
             native_kzg_lane_listed=(kzg_row is not None),
             native_kzg_available=(bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False),
+            path_b_warm_report_found=pathb_warm_report_file.exists(),
+            path_b_warm_models=f"{pathb_warm_models_bundle}/{pathb_warm_models_total}",
         )
 
     def step_heavy_stark_reputation(self) -> None:
@@ -4198,6 +4254,13 @@ class ShowcaseRunner:
             ["Parent backend Phase 3 service stub", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_service_stub") else "<span class=\"fail\">no</span>"],
             ["Parent backend Phase 4 config key", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_config_key") else "<span class=\"fail\">no</span>"],
             ["Parent backend Phase 4 route (native_kzg)", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_route") else "<span class=\"fail\">no</span>"],
+            ["Path B warm report found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_warm_report_found") else "<span class=\"fail\">no</span>"],
+            [
+                "Path B warm coverage",
+                escape(
+                    f"{recursive_signals.get('path_b_warm_models_with_bundle') or 0}/{recursive_signals.get('path_b_warm_models_total') or 0}"
+                ),
+            ],
             ["Path C live receipt file found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_live_receipt_found") else "<span class=\"fail\">no</span>"],
             ["Path C L1 receipt status == 1", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l1_status_ok") else "<span class=\"fail\">no</span>"],
             ["Path C L2 confirmation", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l2_verified") else "<span class=\"fail\">no</span>"],
@@ -4216,6 +4279,20 @@ class ShowcaseRunner:
             ["MODELBRIDGE_REQUIRE_REAL_EZKL", "<span class=\"pass\">true</span>" if recursive_env.get("modelbridge_require_real_ezkl") else "<span class=\"warn\">false</span>"],
             ["NATIVE_KZG_REQUIRE_REAL_EZKL", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_require_real_ezkl") else "<span class=\"warn\">false</span>"],
             ["NATIVE_KZG_REQUIRE_MPCHECK", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_require_mpcheck") else "<span class=\"warn\">false</span>"],
+            ["NATIVE_KZG_WARM_ON_REAL_PROVE", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_warm_on_real_prove") else "<span class=\"warn\">false</span>"],
+        ]
+        path_b_warm = (
+            recursive_paths.get("path_b_warm_report")
+            if isinstance(recursive_paths.get("path_b_warm_report"), dict)
+            else {}
+        )
+        path_b_warm_rows = [
+            ["Artifact path", f"<code>{escape(str(path_b_warm.get('artifact_path') or '-'))}</code>"],
+            ["Artifact present", "<span class=\"pass\">yes</span>" if path_b_warm.get("artifact_found") else "<span class=\"fail\">no</span>"],
+            ["Generated at", escape(str(path_b_warm.get("generated_at") or "-"))],
+            ["Models total", escape(str(path_b_warm.get("models_total") or "-"))],
+            ["Models verified", escape(str(path_b_warm.get("models_verified") or "-"))],
+            ["Models with bundle", escape(str(path_b_warm.get("models_with_bundle") or "-"))],
         ]
         path_c_live = recursive_paths.get("path_c_live") if isinstance(recursive_paths.get("path_c_live"), dict) else {}
         path_c_tx_hash = str(path_c_live.get("tx_hash") or "")
@@ -5744,6 +5821,9 @@ class ShowcaseRunner:
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
+      <h3>Path B Catalog Warm Report</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run).</p>
+      {self._html_table(["Field", "Value"], path_b_warm_rows)}
       <h3>Code Wiring Signals</h3>
       {self._html_table(["Check", "Status"], recursive_signal_rows)}
       <h3>Environment Readiness (Parent Backend)</h3>

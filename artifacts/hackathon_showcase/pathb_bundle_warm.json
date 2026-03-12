@@ -1,0 +1,90 @@
+{
+  "generated_at": "2026-03-12T23:28:24.089342+00:00",
+  "duration_ms": 13545,
+  "models_total": 5,
+  "models_verified": 3,
+  "models_with_bundle": 3,
+  "rows": [
+    {
+      "model": "anomaly_detector",
+      "input_features": 8,
+      "selected_input_features": 8,
+      "attempted_feature_widths": [
+        8
+      ],
+      "ezkl_verified": true,
+      "kzg_bundle_present": true,
+      "kzg_bundle_source": "extractor:json.kzg_mpcheck_bundle",
+      "kzg_hint_felts": 1752,
+      "kzg_cached_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/anomaly_detector/kzg_mpcheck_bundle.json",
+      "kzg_extractor_attempted": true,
+      "kzg_extractor_error": null,
+      "proof_hash": "0xec731596566a0ca2411d8328f816d36c9bf2de51b21b251dad3f01099c9e464f",
+      "duration_ms": 4439
+    },
+    {
+      "model": "creditworthiness",
+      "input_features": 8,
+      "selected_input_features": 18,
+      "attempted_feature_widths": [
+        8,
+        16,
+        18
+      ],
+      "ezkl_verified": true,
+      "kzg_bundle_present": true,
+      "kzg_bundle_source": "extractor:json.kzg_mpcheck_bundle",
+      "kzg_hint_felts": 1752,
+      "kzg_cached_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/creditworthiness/kzg_mpcheck_bundle.json",
+      "kzg_extractor_attempted": true,
+      "kzg_extractor_error": null,
+      "proof_hash": "0x4c265b196646bdcaa825cd98839fa71945dcc458a91fcacdd42d8d8f3ea620e6",
+      "duration_ms": 4684
+    },
+    {
+      "model": "llm_fallback",
+      "input_features": 8,
+      "attempted_feature_widths": [
+        8,
+        16,
+        18,
+        32
+      ],
+      "ezkl_verified": false,
+      "kzg_bundle_present": false,
+      "error": "real_ezkl_unavailable_or_unverified",
+      "duration_ms": 1
+    },
+    {
+      "model": "timing_predictor",
+      "input_features": 8,
+      "attempted_feature_widths": [
+        8,
+        16,
+        18,
+        32
+      ],
+      "ezkl_verified": false,
+      "kzg_bundle_present": false,
+      "error": "real_ezkl_unavailable_or_unverified",
+      "duration_ms": 1
+    },
+    {
+      "model": "yield_forecast",
+      "input_features": 12,
+      "selected_input_features": 12,
+      "attempted_feature_widths": [
+        12
+      ],
+      "ezkl_verified": true,
+      "kzg_bundle_present": true,
+      "kzg_bundle_source": "extractor:json.kzg_mpcheck_bundle",
+      "kzg_hint_felts": 1752,
+      "kzg_cached_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/yield_forecast/kzg_mpcheck_bundle.json",
+      "kzg_extractor_attempted": true,
+      "kzg_extractor_error": null,
+      "proof_hash": "0x67c27feda52d061e0da78942d2fb2932e717f08a921a743023ccb6b5df3a9c8e",
+      "duration_ms": 4418
+    }
+  ]
+}

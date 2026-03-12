@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from app.services.ezkl_kzg_serializer import (
     build_placeholder_kzg_calldata,
     serialize_ezkl_proof_to_kzg_calldata,
+    warm_kzg_bundle_cache_for_proof,
 )
 
 
@@ -94,6 +95,37 @@ def test_real_ezkl_serialization_extracts_pairings_bundle():
     assert meta["kzg_mpcheck_bundle_present"] is True
     assert meta["kzg_mpcheck_bundle_source"] == "top_level_pairings"
     assert meta["kzg_mpcheck_hint_felts"] == 2
+
+
+def test_warm_kzg_bundle_cache_updates_proof_raw_json(tmp_path, monkeypatch):
+    bundle_file = tmp_path / "kzg_mpcheck_bundle.json"
+    bundle_file.write_text(
+        """{
+  "kzg_mpcheck_bundle": {
+    "pair0": {"x": "0x111", "y": "0x222"},
+    "pair1": {"x": "0x333", "y": "0x444"},
+    "mpcheck_hint_felts": ["0x1", "0x2"],
+    "auto_build_hint": false
+  }
+}"""
+    )
+    monkeypatch.setenv("EZKL_KZG_BUNDLE_FILE", str(bundle_file))
+
+    fake_proof = SimpleNamespace(
+        proof_hash="0x" + "aa" * 32,
+        model_name="yield_forecast",
+        raw_proof_json={"proof": [1, 2, 3], "instances": [[1]]},
+    )
+    meta = warm_kzg_bundle_cache_for_proof(
+        fake_proof,
+        model_name="yield_forecast",
+        model_dir=tmp_path / "yield_forecast",
+    )
+    assert meta["kzg_warm_attempted"] is True
+    assert meta["kzg_bundle_injected"] is True
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert isinstance(fake_proof.raw_proof_json, dict)
+    assert isinstance(fake_proof.raw_proof_json.get("kzg_mpcheck_bundle"), dict)
 
 
 def test_real_ezkl_serialization_injects_bundle_from_sidecar_file(tmp_path, monkeypatch):
