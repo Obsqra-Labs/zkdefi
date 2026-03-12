@@ -179,22 +179,69 @@ async def screen_opportunity(body: dict):
 
 
 @router.post("/batch", summary="Execute multiple skills in parallel")
-async def run_skills_batch(body: BatchSkillRequest):
-    """Execute several skills concurrently and return all results."""
+async def run_skills_batch(body: dict[str, Any]):
+    """Execute several skills concurrently and return all results.
+
+    Accepts two payload shapes:
+      1. Canonical:  { skill_ids: [...], params: {...}, user_address: "0x..." }
+      2. Legacy flat: { pool_id, position_size, entry_price, current_price, ... }
+         Auto-maps to default skill set with derived params.
+    """
     import asyncio
 
     svc = get_skill_service()
-    addr = _parse_address(body.user_address)
+
+    # ── detect legacy flat payload (no skill_ids key) ──
+    if "skill_ids" not in body:
+        _skill_ids = [
+            "il_predictor",
+            "yield_optimality",
+            "slippage_bound",
+            "strategy_integrity",
+            "execution_integrity",
+        ]
+        flat_params = {
+            "position_size": int(body.get("position_size", 1_000_000)),
+            "entry_price": int(body.get("entry_price", 2000)),
+            "current_price": int(body.get("current_price", 2067)),
+        }
+        _params: dict[str, dict[str, Any]] = {
+            "il_predictor": flat_params,
+            "yield_optimality": {
+                "allocations": [5000, 3000, 2000],
+                "predicted_yields": [800, 600, 400],
+            },
+            "slippage_bound": {
+                "expected_price": flat_params["current_price"],
+                "actual_price": flat_params["current_price"],
+                "max_slippage_bps": 100,
+            },
+            "strategy_integrity": {
+                "effective_leverage_bps": 15000,
+            },
+            "execution_integrity": {
+                "position_size": flat_params["position_size"],
+                "entry_price": flat_params["entry_price"],
+                "current_price": flat_params["current_price"],
+            },
+        }
+        _user_address = body.get("user_address", "0x0")
+    else:
+        _skill_ids = body["skill_ids"]
+        _params = body.get("params", {})
+        _user_address = body.get("user_address", "0x0")
+
+    addr = _parse_address(str(_user_address))
 
     async def _run_one(sid: str) -> dict[str, Any]:
-        skill_params = body.params.get(sid, {})
+        skill_params = _params.get(sid, {})
         return await svc.execute_skill(skill_id=sid, params=skill_params, user_address=addr)
 
-    tasks = [_run_one(sid) for sid in body.skill_ids]
+    tasks = [_run_one(sid) for sid in _skill_ids]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     output = []
-    for sid, r in zip(body.skill_ids, results):
+    for sid, r in zip(_skill_ids, results):
         if isinstance(r, Exception):
             output.append({"skill_id": sid, "success": False, "error": str(r)})
         else:
