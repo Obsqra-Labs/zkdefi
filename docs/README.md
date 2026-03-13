@@ -22,9 +22,11 @@ Focused documentation index for zkde.fi.
 - Public report (`/test`): [https://zkde.fi/test](https://zkde.fi/test)
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
+- Path A latest receipt: `artifacts/hackathon_showcase/patha_latest.json`
 
 Use `/test` for the current Obsqra Labs research evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
 The report now also includes rolling stability/gas benchmarks by lane (verified-rate + p50/p95) from `artifacts/hackathon_showcase/history.jsonl`.
+Path A now persists its latest Noir HONK receipt to `artifacts/hackathon_showcase/patha_latest.json`, and the recursive stage check-ins treat Path A as `implemented_live` only when that receipt is present and verified.
 Path B extraction cadence is tracked in `artifacts/hackathon_showcase/pathb_bundle_history.jsonl` with daily coverage deltas and exact per-model bundle regressions/additions.
 The Path B warm report can now optionally probe real `EzklNativeKzg` receipts per model, so the catalog tracks not only bundle presence but actual backend-native-KZG execution evidence.
 The daily `/test` build now precomputes native-KZG sidecars before the strict gate, which keeps the serializer on `kzg_mpcheck_v3` and avoids silently drifting back to weaker payload shapes.
@@ -66,6 +68,7 @@ When a recursive proving stage reaches E2E, log it in the showcase first, then t
 2. Review `/test`:
    - `Overview -> Snapshot -> Recursive Stage Check-ins`
    - `Bridge -> Phase 2-4 Status -> Stage Completion Check-ins`
+   - `Bridge -> Phase 2-4 Status -> Path A Live Receipt (Noir HONK)`
 3. If a stage is `complete` with explorer TX evidence, do a short doc check-in in the relevant plan file and create a GitHub tag/release note.
 4. CI gate (Path B + strict showcase):
    - `python3 scripts/ci_showcase_gate.py`

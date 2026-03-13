@@ -40,6 +40,7 @@ ENV_FILE = PROJECT_ROOT / "backend" / ".env"
 PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
 VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
+PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
 PATHB_WARM_REPORT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_bundle_warm.json"
 
@@ -908,6 +909,8 @@ class ShowcaseRunner:
                 print(f"  - HTML: {artifacts['html']}")
                 print(f"  - Latest JSON: {artifacts['latest_json']}")
                 print(f"  - Latest HTML: {artifacts['latest_html']}")
+                if artifacts.get("patha_latest"):
+                    print(f"  - Path A Latest: {artifacts['patha_latest']}")
                 if artifacts.get("history"):
                     print(f"  - History JSONL: {artifacts['history']}")
                 if self.emit_report_force and not final_ready:
@@ -3443,12 +3446,57 @@ class ShowcaseRunner:
                 + parse.urlencode({"model_hash": pathc_model_hash, "nonce": str(pathc_used_nonce)})
             )
 
+        patha_live_receipt_current = (
+            self._bridge_architecture.get("noir_live_receipt")
+            if isinstance(self._bridge_architecture, dict)
+            and isinstance(self._bridge_architecture.get("noir_live_receipt"), dict)
+            else {}
+        )
+        patha_live_receipt_raw: dict[str, Any] = {}
+        if PATHA_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHA_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    patha_live_receipt_raw = parsed
+            except Exception:
+                patha_live_receipt_raw = {}
+        patha_live_receipt = (
+            patha_live_receipt_current
+            if patha_live_receipt_current
+            else patha_live_receipt_raw
+        )
+        patha_mode = str(patha_live_receipt.get("l3_mode") or "")
+        patha_tx_hash = str(patha_live_receipt.get("l3_tx_hash") or "")
+        patha_tx_url = (
+            str(patha_live_receipt.get("l3_tx_url") or "")
+            or (_starknet_tx_url(patha_tx_hash, l3_runtime_rpc) if patha_tx_hash else "")
+        )
+        patha_l3_status = _safe_int(patha_live_receipt.get("status"), 0)
+        patha_verified_on_chain = bool(patha_live_receipt.get("l3_verified_on_chain"))
+        patha_can_execute = bool(patha_live_receipt.get("can_execute"))
+        patha_live_verified = bool(
+            patha_tx_hash
+            and patha_l3_status == 200
+            and patha_mode.strip().lower() == "noir_honk"
+            and patha_verified_on_chain
+        )
+
         path_rows = [
             {
                 "path": "Path A (Noir HONK bridge)",
-                "status": "implemented" if phase2_status_done and path_a_status_doc else "partial",
+                "status": (
+                    "implemented_live"
+                    if (phase2_status_done and path_a_status_doc and patha_live_verified)
+                    else "implemented"
+                    if phase2_status_done and path_a_status_doc
+                    else "partial"
+                ),
                 "doc_signal": (
-                    "Roadmap + implementation plan mark Path A as implemented; deploy verifier when L3 is up; gas ~178M on L2."
+                    (
+                        "Live noir_honk receipt captured; Path A is receipt-backed in the active L3 environment."
+                        if patha_live_verified
+                        else "Roadmap + implementation plan mark Path A as implemented; deploy verifier when L3 is up; gas ~178M on L2."
+                    )
                     if phase2_status_done and path_a_status_doc
                     else "Path A status markers missing or incomplete in docs."
                 ),
@@ -3536,6 +3584,11 @@ class ShowcaseRunner:
 
         next_steps = [
             (
+                f"Phase 2/Path A: recurring noir_honk receipt is live ({_short_hex(patha_tx_hash, 12)}); keep {PATHA_LIVE_RECEIPT_FILE.name} refreshed from the strict bridge gate."
+                if patha_live_verified
+                else "Phase 2/Path A: capture a live noir_honk receipt and persist it as patha_latest.json for recurring stage check-ins."
+            ),
+            (
                 f"Phase 3: Path C live receipt is captured ({_short_hex(pathc_tx_hash, 12)}); scale from single receipt to recurring monitor checks."
                 if pathc_live_verified
                 else "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status."
@@ -3556,6 +3609,9 @@ class ShowcaseRunner:
             "path_rows": path_rows,
             "signals": {
                 "path_a_status_doc": path_a_status_doc,
+                "path_a_live_receipt_found": (PATHA_LIVE_RECEIPT_FILE.exists() or bool(patha_live_receipt_current)),
+                "path_a_live_verified": patha_live_verified,
+                "path_a_l3_status_ok": (patha_l3_status == 200),
                 "phase2_status_done": phase2_status_done,
                 "phase3_plan_expanded": phase3_plan_expanded,
                 "phase4_plan_expanded": phase4_plan_expanded,
@@ -3646,6 +3702,24 @@ class ShowcaseRunner:
                 "abi_methods": pathb_verifier_runtime.get("abi_methods") or [],
                 "required_methods": pathb_verifier_runtime.get("required_methods") or [],
                 "required_methods_ok": bool(pathb_verifier_runtime.get("required_methods_ok")),
+            },
+            "path_a_live": {
+                "artifact_path": _relative_to_project(PATHA_LIVE_RECEIPT_FILE),
+                "artifact_found": PATHA_LIVE_RECEIPT_FILE.exists(),
+                "live_verified": patha_live_verified,
+                "status": (patha_l3_status if patha_l3_status > 0 else None),
+                "mode": patha_mode or None,
+                "tx_hash": patha_tx_hash or None,
+                "tx_url": patha_tx_url or None,
+                "bridge_backend": patha_live_receipt.get("bridge_backend"),
+                "proof_mode": patha_live_receipt.get("proof_mode"),
+                "bridge_proof_hash": patha_live_receipt.get("bridge_proof_hash"),
+                "calldata_words": patha_live_receipt.get("calldata_words"),
+                "can_execute": patha_can_execute,
+                "l3_actual_fee_display": patha_live_receipt.get("l3_actual_fee_display"),
+                "l3_execution_steps": patha_live_receipt.get("l3_execution_steps"),
+                "failure_reason": patha_live_receipt.get("failure_reason"),
+                "generated_at": patha_live_receipt.get("generated_at"),
             },
             "path_b_warm_report": {
                 "artifact_path": _relative_to_project(pathb_warm_report_file),
@@ -3786,6 +3860,9 @@ class ShowcaseRunner:
             ok,
             docs_present=f"{docs_present}/{len(docs_paths)}",
             path_a_status_doc=path_a_status_doc,
+            path_a_live_receipt_found=(PATHA_LIVE_RECEIPT_FILE.exists() or bool(patha_live_receipt_current)),
+            path_a_live_verified=patha_live_verified,
+            path_a_l3_status=patha_l3_status,
             phase2_status_done=phase2_status_done,
             phase3_plan_expanded=phase3_plan_expanded,
             phase4_plan_expanded=phase4_plan_expanded,
@@ -5304,6 +5381,11 @@ class ShowcaseRunner:
                 ]
             )
         recursive_signals = recursive_paths.get("signals") if isinstance(recursive_paths.get("signals"), dict) else {}
+        path_a_live = (
+            recursive_paths.get("path_a_live")
+            if isinstance(recursive_paths.get("path_a_live"), dict)
+            else {}
+        )
         path_b_runtime_verifier = (
             recursive_paths.get("path_b_runtime_verifier")
             if isinstance(recursive_paths.get("path_b_runtime_verifier"), dict)
@@ -5311,6 +5393,8 @@ class ShowcaseRunner:
         )
         recursive_signal_rows = [
             ["Path A status in roadmap", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_status_doc") else "<span class=\"fail\">no</span>"],
+            ["Path A live receipt artifact found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_receipt_found") else "<span class=\"fail\">no</span>"],
+            ["Path A live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_verified") else "<span class=\"fail\">no</span>"],
             ["Phase 2 status marked complete", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase2_status_done") else "<span class=\"fail\">no</span>"],
             ["Phase 3 tasks expanded (3.1-3.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase3_plan_expanded") else "<span class=\"fail\">no</span>"],
             ["Phase 4 tasks expanded (4.1-4.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase4_plan_expanded") else "<span class=\"fail\">no</span>"],
@@ -5397,6 +5481,30 @@ class ShowcaseRunner:
             ["ABI methods found", escape(", ".join(path_b_runtime_verifier.get("abi_methods") or []) or "-")],
             ["Strict selector readiness", "<span class=\"pass\">ready</span>" if path_b_runtime_verifier.get("required_methods_ok") else "<span class=\"fail\">missing ABI method</span>"],
             ["Public explorer", escape("not available for local Madara L3") if _is_local_rpc_url(path_b_runtime_verifier.get("rpc_url")) else escape("Voyager")],
+        ]
+        path_a_live_tx = str(path_a_live.get("tx_hash") or "")
+        path_a_live_tx_url = str(path_a_live.get("tx_url") or "")
+        path_a_live_tx_html = (
+            f"<a href=\"{escape(path_a_live_tx_url)}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(path_a_live_tx, 14))}</a>"
+            if path_a_live_tx and path_a_live_tx_url
+            else escape(_short_hex(path_a_live_tx, 14) if path_a_live_tx else "-")
+        )
+        path_a_live_rows = [
+            ["Artifact path", f"<code>{escape(str(path_a_live.get('artifact_path') or '-'))}</code>"],
+            ["Artifact present", "<span class=\"pass\">yes</span>" if path_a_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
+            ["Live verified (L3)", "<span class=\"pass\">true</span>" if path_a_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Mode", escape(str(path_a_live.get("mode") or "-"))],
+            ["Bridge backend", escape(str(path_a_live.get("bridge_backend") or "-"))],
+            ["Proof mode", escape(str(path_a_live.get("proof_mode") or "-"))],
+            ["L3 tx hash", path_a_live_tx_html],
+            ["L3 status", escape(str(path_a_live.get("status") or "-"))],
+            ["Can execute", "<span class=\"pass\">true</span>" if path_a_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Bridge proof hash", escape(_short_hex(str(path_a_live.get("bridge_proof_hash") or "-"), 14))],
+            ["Calldata words", escape(str(path_a_live.get("calldata_words") or "-"))],
+            ["L3 actual fee", escape(str(path_a_live.get("l3_actual_fee_display") or "-"))],
+            ["L3 execution steps", escape(str(path_a_live.get("l3_execution_steps") or "-"))],
+            ["Failure reason", escape(_clip_text(path_a_live.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(path_a_live.get("generated_at") or "-"))],
         ]
         recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
         recursive_env_rows = [
@@ -5954,6 +6062,34 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(native_kzg_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(native_kzg_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(native_kzg_live_receipt.get("total_duration_ms") or "-"))],
+        ]
+        bridge_lane_story_rows = [
+            [
+                "ModelBridge (Groth16/Garaga)",
+                "Wraps EZKL/KZG model context into a Groth16 verifier lane that Starknet/L3 can consume as a policy gate.",
+                (
+                    f"Live receipt {escape(_short_hex(str(live_receipt.get('l3_tx_hash') or '-'), 12))} proves the baseline bridge is operational."
+                    if live_receipt.get("l3_tx_hash")
+                    else "Awaiting fresh receipt evidence from the current run."
+                ),
+            ],
+            [
+                "Path A (Noir HONK)",
+                "Exercises an independent HONK verifier lane so the stack is not locked to Groth16 as its only SNARK closure path.",
+                (
+                    f"Live noir_honk receipt {escape(_short_hex(path_a_live_tx, 12))} shows the same proof intent can clear a second proving backend on-chain."
+                    if path_a_live.get("live_verified")
+                    else "Path A is wired, but needs a live noir_honk receipt to be treated as fully evidenced."
+                ),
+            ],
+            [
+                "Path B (Native KZG)",
+                "Keeps the KZG semantics native in Cairo instead of always wrapping them into another SNARK, which is the stricter long-term verifier path.",
+                (
+                    f"Dual native_kzg coverage is {escape(str(path_b_warm.get('native_kzg_onchain_verified_models') or 0))}/"
+                    f"{escape(str(path_b_warm.get('native_kzg_onchain_attempted_models') or 0))} mirrored models in the latest warm run."
+                ),
+            ],
         ]
 
         benchmark_receipt_rows = []
@@ -6606,6 +6742,7 @@ class ShowcaseRunner:
         path_a_ready = bool(
             str(path_a_row.get("status") or "").startswith("implemented")
             and path_a_row.get("runtime_lane_available")
+            and path_a_live.get("live_verified")
         )
         path_c_ready = bool(
             str(path_c_row.get("status") or "").startswith("implemented")
@@ -6613,6 +6750,8 @@ class ShowcaseRunner:
             and recursive_env.get("l1_ezkl_verifier_set")
             and path_c_live.get("live_verified")
         )
+        path_a_live_tx = str(path_a_live.get("tx_hash") or "")
+        path_a_live_tx_url = str(path_a_live.get("tx_url") or "")
         path_c_live_tx = str(path_c_live.get("tx_hash") or "")
         path_c_live_tx_url = str(path_c_live.get("tx_url") or "")
         path_b_e2e_tx = ""
@@ -6654,11 +6793,15 @@ class ShowcaseRunner:
             },
             {
                 "stage": "Stage 1 - Path A (Noir HONK)",
-                "goal": "Noir bridge path listed + available",
+                "goal": "Live noir_honk receipt + recurring Path A artifact",
                 "ok": path_a_ready,
-                "evidence": f"lane available={bool(path_a_row.get('runtime_lane_available'))}",
-                "tx_hash": "",
-                "tx_url": "",
+                "evidence": (
+                    f"lane available={bool(path_a_row.get('runtime_lane_available'))}, "
+                    f"verified={bool(path_a_live.get('live_verified'))}, "
+                    f"mode={path_a_live.get('mode') or '-'}"
+                ),
+                "tx_hash": path_a_live_tx,
+                "tx_url": path_a_live_tx_url,
                 "tag": f"v{release_stamp}-stage1-path-a-noir",
             },
             {
@@ -6730,9 +6873,9 @@ class ShowcaseRunner:
                 "Path A (Noir HONK)",
                 escape(_narrative_state(path_a_status, path_a_ready)),
                 escape(
-                    "Capture a public noir_honk verifier tx in the target environment and include it in stage check-ins."
+                    "Capture a public noir_honk verifier tx in the target environment and persist it into patha_latest.json for stage check-ins."
                     if not path_a_ready
-                    else "Promote Path A from lane-ready to production runbook with recurring receipt evidence."
+                    else "Path A is receipt-backed; next step is a production runbook with recurring Noir receipt evidence and benchmarking."
                 ),
             ],
             [
@@ -7341,6 +7484,8 @@ class ShowcaseRunner:
         SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
         In `dual` mode, backend attempts both and records mirror status for policy gating.
       </p>
+      <h3>Bridge Lane Narrative</h3>
+      {self._html_table(["Lane", "What It Proves", "Current Evidence"], bridge_lane_story_rows)}
       <p class="meta">
         EZKL runtime probe status: {escape(str(((bridge.get('ezkl_runtime_probe') or {}).get('status') if isinstance(bridge.get('ezkl_runtime_probe'), dict) else '-')))} |
         Real proof detected: {("<span class=\"pass\">yes</span>" if ((bridge.get("ezkl_runtime_probe") or {}).get("has_real_proof")) else "<span class=\"fail\">no</span>")}
@@ -7369,6 +7514,9 @@ class ShowcaseRunner:
       <h3>Path B Verifier RPC Evidence</h3>
       <p class="meta">This is the direct L3 verifier backing the native KZG lane. It is re-checked over the active Madara RPC, so the report shows deployment metadata instead of only env wiring.</p>
       {self._html_table(["Field", "Value"], path_b_verifier_rows)}
+      <h3>Path A Live Receipt (Noir HONK)</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/patha_latest.json</code> (captured from live `NoirEzklBridge` -> `noir_honk` verification).</p>
+      {self._html_table(["Field", "Value"], path_a_live_rows)}
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
@@ -7724,6 +7872,25 @@ class ShowcaseRunner:
         html_path.write_text(html_blob, encoding="utf-8")
         latest_json.write_text(json_blob, encoding="utf-8")
         latest_html.write_text(html_blob, encoding="utf-8")
+        patha_latest = self.artifact_dir / "patha_latest.json"
+        patha_live = (
+            (payload.get("bridge_architecture") or {}).get("noir_live_receipt")
+            if isinstance(payload.get("bridge_architecture"), dict)
+            else {}
+        )
+        if isinstance(patha_live, dict) and patha_live:
+            patha_latest.write_text(
+                json.dumps(
+                    {
+                        "generated_at": payload.get("generated_at"),
+                        "lane": "NoirEzklBridge",
+                        **patha_live,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
         history_path = self._append_history(payload)
 
         out = {
@@ -7732,6 +7899,8 @@ class ShowcaseRunner:
             "latest_json": str(latest_json.resolve()),
             "latest_html": str(latest_html.resolve()),
         }
+        if patha_latest.exists():
+            out["patha_latest"] = str(patha_latest.resolve())
         if history_path:
             out["history"] = history_path
         return out

@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = ROOT / "artifacts" / "hackathon_showcase"
 LATEST_REPORT = ARTIFACT_DIR / "latest.json"
+PATHA_LATEST = ARTIFACT_DIR / "patha_latest.json"
 
 
 def _env(name: str, default: str) -> str:
@@ -126,6 +127,23 @@ def _validate_latest_report() -> None:
             )
     if lane_errors:
         raise RuntimeError("bridge lane gate failed: " + "; ".join(lane_errors))
+
+    if noir_required:
+        if not PATHA_LATEST.exists():
+            raise RuntimeError(f"missing Path A latest artifact: {PATHA_LATEST}")
+        patha = json.loads(PATHA_LATEST.read_text())
+        if not isinstance(patha, dict):
+            raise RuntimeError("Path A latest artifact is not a JSON object")
+        patha_status = int(patha.get("status", 0) or 0)
+        patha_mode = str(patha.get("l3_mode", "") or "").strip().lower()
+        patha_verified = bool(patha.get("l3_verified_on_chain"))
+        patha_tx_hash = str(patha.get("l3_tx_hash", "") or "").strip()
+        if not (patha_status == 200 and patha_mode == "noir_honk" and patha_verified and patha_tx_hash):
+            raise RuntimeError(
+                "Path A artifact gate failed: "
+                f"status={patha_status} mode={patha_mode} "
+                f"verified_on_chain={patha_verified} tx_hash_present={bool(patha_tx_hash)}"
+            )
 
     native_receipt = (report.get("bridge_architecture") or {}).get("native_kzg_live_receipt") or {}
     if not isinstance(native_receipt, dict):
