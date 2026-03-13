@@ -17,13 +17,19 @@ Focused documentation index for zkde.fi.
 
 ---
 
-## Live proof readout
+## Obsqra Labs Live research readout
 
-- Public report: [https://zkde.fi/test](https://zkde.fi/test)
+- Public report (`/test`): [https://zkde.fi/test](https://zkde.fi/test)
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 
-Use `/test` for the current backend + on-chain evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
+Use `/test` for the current Obsqra Labs research evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
+
+Daily refresh on the same server (recommended for `/test`):
+
+- `scripts/daily_live_research_build.sh`
+- Example cron (UTC 06:15):
+  - `15 6 * * * cd /opt/obsqra.starknet/zkdefi && /opt/obsqra.starknet/zkdefi/scripts/daily_live_research_build.sh`
 
 ModelBridge runtime defaults now attempt real local EZKL for `ModelBridge` / `ModelBridgeHeavy` before synthetic fallback:
 

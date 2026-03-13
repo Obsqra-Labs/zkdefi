@@ -601,7 +601,7 @@ class ShowcaseRunner:
     def run(self) -> int:
         started_at = time.time()
 
-        print("== zkde.fi Hackathon Backend Showcase ==")
+        print("== Obsqra Labs Live Research: zkde.fi Proof + Policy Stack ==")
         print(f"base_url={self.client.base_url}")
         print(f"wallet={self.wallet}")
         print(f"strict_bridge={self.strict_bridge}")
@@ -5507,6 +5507,28 @@ class ShowcaseRunner:
                 ),
             ],
         ]
+        research_story_rows = [
+            [
+                "Research thesis",
+                "Obsqra Labs is testing whether verifiable AI can enforce trust boundaries for agentic capital operations.",
+                "Every recommendation must be explainable, proveable, and receipt-linked.",
+            ],
+            [
+                "Why zkde.fi",
+                "zkde.fi is the open-source execution surface where privacy rails, policy controls, and proof lanes are wired together.",
+                "Claims in this report are meant to be independently checkable from API output + on-chain receipts.",
+            ],
+            [
+                "How to read this page",
+                "Start with Core Claims, then Bridge Live Receipts, then Recursive Stage Check-ins.",
+                "If a section says pass, you should be able to find matching hashes, tx links, and mode flags.",
+            ],
+            [
+                "What this unlocks",
+                "Portable trust: the same intent can be screened by different proof systems without changing product semantics.",
+                "This is the foundation for multi-chain verifiable AI and trustless agentic apps in the broader Obsqra stack.",
+            ],
+        ]
         recursive_stage_rows = []
         release_rows = []
         for idx, row in enumerate(stage_rows_data, start=1):
@@ -5586,7 +5608,7 @@ class ShowcaseRunner:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>zkde.fi Hackathon Backend Showcase</title>
+  <title>Obsqra Labs Live Research: ModelBridge -> EZKL -> Groth16 -> STARK -> L1</title>
   <style>
     :root {{
       --bg: #090b12;
@@ -5899,17 +5921,18 @@ class ShowcaseRunner:
       <div class="hero">
         <div class="hero-top">
           <div>
-            <h1>zkde.fi Backend Showcase Report</h1>
+            <h1>Obsqra Labs Live Research: zkde.fi Verifiable AI Stack</h1>
             <p class="subline">
-              Terminal-first evidence that the backend can run proof-gated strategy flows, expose on-chain trust state,
-              and power UI surfaces that are currently lagging behind the full stack.
+              Research-first readout for the Obsqra Labs thesis: trustless agentic execution requires cryptographic policy gates,
+              portable proof lanes, and transparent receipts that anyone can audit without trusting hidden backend logic.
             </p>
             <p class="score">Core claims: {escape(str((payload.get('core_score') or {}).get('validated', 0)))} / {escape(str((payload.get('core_score') or {}).get('total', 0)))} validated</p>
             <div class="chips">
-              <span class="chip">Starknet backend evidence</span>
+              <span class="chip">Obsqra Labs research readout</span>
+              <span class="chip">zkde.fi open-source implementation</span>
               <span class="chip">Proof + policy + receipts</span>
-              <span class="chip">STARK + SNARK lanes</span>
-              <span class="chip novel">Novel: open-source ModelBridge (zkML to circuit proof gate)</span>
+              <span class="chip">STARK + SNARK + L1 bridge roadmap</span>
+              <span class="chip novel">Novel: open-source ModelBridge (zkML -> circuit proof gate)</span>
               <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
             </div>
           </div>
@@ -5928,10 +5951,10 @@ class ShowcaseRunner:
 
       <div class="tab-nav" data-group="main">
         <button type="button" class="tab-btn active" data-main-target="overview">Overview</button>
-        <button type="button" class="tab-btn" data-main-target="bridge">ModelBridge</button>
-        <button type="button" class="tab-btn" data-main-target="ai">AI + Badges</button>
-        <button type="button" class="tab-btn" data-main-target="privacy">Privacy + Voting</button>
-        <button type="button" class="tab-btn" data-main-target="infra">Infra + On-chain</button>
+        <button type="button" class="tab-btn" data-main-target="bridge">Research Core</button>
+        <button type="button" class="tab-btn" data-main-target="ai">Agentic Trust</button>
+        <button type="button" class="tab-btn" data-main-target="privacy">Privacy Systems</button>
+        <button type="button" class="tab-btn" data-main-target="infra">Proof Infra</button>
       </div>
     </div>
 
@@ -5965,10 +5988,12 @@ class ShowcaseRunner:
     <section class="report-section" data-main-tab="overview" data-sub-tab="snapshot">
       <h2>Executive Snapshot</h2>
       <div class="intent">
-        <strong>What this tests:</strong> Fast, judge-friendly readout of current E2E state without digging through every table first.<br/>
-        <strong>UI intent:</strong> This is the same condensed status card set the app can show in dashboard headers.<br/>
-        <strong>Unlocks:</strong> Immediate understanding of what is complete now, what is in progress, and what is ready for version/tag cut.
+        <strong>What this tests:</strong> A concise research dashboard proving which zkde.fi claims are currently receipt-backed versus still in-progress.<br/>
+        <strong>Why Obsqra Labs cares:</strong> If we cannot explain trust boundaries in plain language with evidence links, we cannot claim verifiable AI execution.<br/>
+        <strong>Unlocks:</strong> A fast, credible narrative for judges, users, and collaborators without burying the technical receipts.
       </div>
+      <h3>Research Framing</h3>
+      {self._html_table(["Lens", "Current Position", "Evidence Standard"], research_story_rows)}
       <h3>Recursive Stage Check-ins</h3>
       {self._html_table(["#", "Stage", "Status", "Goal", "Evidence", "Explorer TX"], recursive_stage_rows)}
       <h3>Versioning Checkpoints</h3>
@@ -5979,7 +6004,7 @@ class ShowcaseRunner:
       <h2>Core Claim Matrix</h2>
       <div class="intent">
         <strong>What this tests:</strong> The non-negotiable MVP claims for health, proofs, agent execution, policy controls, and on-chain visibility.<br/>
-        <strong>UI intent:</strong> Each pass maps to a UI surface that can be switched from placeholder to live data source.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Each pass maps to a UI surface that can be switched from placeholder to live data source.<br/>
         <strong>Unlocks:</strong> A judge can trust that backend capabilities are real even if frontend polish is still catching up.
       </div>
       {self._html_table(["Claim", "Status"], claim_rows)}
@@ -5989,17 +6014,17 @@ class ShowcaseRunner:
       <h2>Execution Steps</h2>
       <div class="intent">
         <strong>What this tests:</strong> Granular API and proving steps with concrete telemetry (IDs, proof hashes, counts, statuses).<br/>
-        <strong>UI intent:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
         <strong>Unlocks:</strong> Reliable observability, fast triage, and cleaner frontend integration.
       </div>
       {self._html_table(["Step", "Status", "Highlights"], step_rows)}
     </section>
 
     <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
-      <h2>ModelBridge Live L3 Verify Receipts</h2>
+      <h2>Live Research Receipts: ModelBridge + Native KZG</h2>
       <div class="intent">
         <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed to L3 for both `ModelBridge` and `ModelBridgeHeavy`, each captured as concrete receipt evidence.<br/>
-        <strong>UI intent:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
         <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
       </div>
       <h3>ModelBridge Receipt</h3>
@@ -6024,10 +6049,10 @@ class ShowcaseRunner:
     </section>
 
     <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
-      <h2>Open-source ModelBridge + Dual-Proof Architecture</h2>
+      <h2>Research Core: Open-source ModelBridge + Dual-Proof Architecture</h2>
       <div class="intent">
         <strong>What this tests:</strong> That the zkML bridge implementation is present in repo, then exercised via runtime probes that hit both single-chain and dual-chain proof paths.<br/>
-        <strong>UI intent:</strong> Lets UI show proof-lane selection (`l3`, `l2`, `dual`), verifier mode, and trust posture before execution.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Lets UI show proof-lane selection (`l3`, `l2`, `dual`), verifier mode, and trust posture before execution.<br/>
         <strong>Unlocks:</strong> <span class="chip novel">Novel</span> Proof-aware AI actions where model output is bridged into circuit-calldata semantics and chained to Starknet verification lanes.
       </div>
       <p class="meta">
@@ -6069,7 +6094,7 @@ class ShowcaseRunner:
       <h2>Recursive EZKL Paths (Phase 2 / 3 / 4)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Whether Path A (Noir HONK), Path C (L1 Sepolia bridge), and Path B (native Cairo KZG) are documented and wired in code, beyond narrative claims.<br/>
-        <strong>UI intent:</strong> Frontend can render honest state badges: `implemented`, `implemented_stub`, or `partial` per path.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Frontend can render honest state badges: `implemented`, `implemented_stub`, or `partial` per path.<br/>
         <strong>Unlocks:</strong> Clear migration story from current ModelBridge lane to full on-chain EZKL attestation options.
       </div>
       <h3>Roadmap Narrative (Ready Readout)</h3>
@@ -6100,7 +6125,7 @@ class ShowcaseRunner:
       <h2>Ecosystem Sources (Research Appendix)</h2>
       <div class="intent">
         <strong>What this tests:</strong> External source sanity-check so bridge claims are benchmarked against current open-source zkML and Starknet proof infrastructure.<br/>
-        <strong>UI intent:</strong> Feeds judge-facing technical appendix links without unsupported claims.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Feeds judge-facing technical appendix links without unsupported claims.<br/>
         <strong>Unlocks:</strong> Transparent positioning: what exists in ecosystem today, and where this bridge design goes further.
       </div>
       {self._html_table(["Project/Source", "Published Focus", "Positioning Signal", "Link"], landscape_rows)}
@@ -6110,7 +6135,7 @@ class ShowcaseRunner:
       <h2>On-chain Links (Voyager)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
-        <strong>UI intent:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
         <strong>Unlocks:</strong> External verifiability for judges, users, and auditors.
       </div>
       <p class="meta">RPC used: {escape(str((payload.get('onchain') or {}).get('rpc_url') or '-'))}</p>
@@ -6123,7 +6148,7 @@ class ShowcaseRunner:
       <h2>zkML Circuit Deep Dive</h2>
       <div class="intent">
         <strong>What this tests:</strong> Real inventory and readiness of first-party circuits, proving artifacts, and adjacent Cairo/ONNX footprint.<br/>
-        <strong>UI intent:</strong> Powers “capability explorer” and strategy badge transparency in the app.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Powers “capability explorer” and strategy badge transparency in the app.<br/>
         <strong>Unlocks:</strong> Demonstrates this is a multi-circuit platform, not a single proof demo.
       </div>
       <p class="meta">
@@ -6146,7 +6171,7 @@ class ShowcaseRunner:
       <h2>Opportunity Advisory + Badge Flow</h2>
       <div class="intent">
         <strong>What this tests:</strong> Live opportunities, LLM advisory, then ZK circuit screening before recommendation is treated as trusted.<br/>
-        <strong>UI intent:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
         <strong>Unlocks:</strong> <span class="chip novel">Novel</span> AI-guided suggestions with cryptographic gating, not opaque black-box outputs.
       </div>
       <p class="meta">Opportunity source used: {escape(opportunity_probe_source)}</p>
@@ -6164,7 +6189,7 @@ class ShowcaseRunner:
       <h2>AI Circuit Skills Engine (LLM Tooling)</h2>
       <div class="intent">
         <strong>What this tests:</strong> LLM opportunity advice is validated against a broad zkML skill bundle before being upgraded to trusted execution.<br/>
-        <strong>UI intent:</strong> Frontend can render a deterministic “tool-call audit” timeline (skill pass/fail, proof hash, rationale).<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Frontend can render a deterministic “tool-call audit” timeline (skill pass/fail, proof hash, rationale).<br/>
         <strong>Unlocks:</strong> AI recommendations become verifiable policy outputs, not opaque prompts.
       </div>
       <p class="meta">Skills in this pass: {escape(", ".join(str(x) for x in (skill_engine.get("skill_ids") or [])[:15]))}</p>
@@ -6180,7 +6205,7 @@ class ShowcaseRunner:
       <h2>Privacy Rails + Voting/Lending Backend Demo</h2>
       <div class="intent">
         <strong>What this tests:</strong> End-to-end privacy rails: shielded commitments, nullifier + claim hash proofs, relayer-style withdraw queueing, and L3 dark settlement endpoints.<br/>
-        <strong>UI intent:</strong> Enables a stepper UI with explicit states: shielded deposit, proofed withdraw, relayer queued, settlement verified.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Enables a stepper UI with explicit states: shielded deposit, proofed withdraw, relayer queued, settlement verified.<br/>
         <strong>Unlocks:</strong> Private voting and private lending backends can be surfaced even while UI is still maturing.
       </div>
       <h3>Reputation / Access Tiers</h3>
@@ -6202,7 +6227,7 @@ class ShowcaseRunner:
       <h2>Private Prediction Market Primitive (Forecaster)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Commit/reveal forecasting with scoring and explainability so private prediction workflows can run without exposing raw strategy state.<br/>
-        <strong>UI intent:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
         <strong>Unlocks:</strong> Proof-aware forecasting that can plug into private voting, risk tiers, and strategy gating.
       </div>
       {self._html_table(["Stage", "Status", "Signal"], forecaster_flow_rows)}
@@ -6217,7 +6242,7 @@ class ShowcaseRunner:
       <h2>LLM + Marketplace Config Packs</h2>
       <div class="intent">
         <strong>What this tests:</strong> Runtime-validated config packs built from active provider/model/skill registries.<br/>
-        <strong>UI intent:</strong> Direct seed data for agent-builder presets (conservative / balanced / aggressive).<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Direct seed data for agent-builder presets (conservative / balanced / aggressive).<br/>
         <strong>Unlocks:</strong> Faster onboarding into a proof-aware agent marketplace.
       </div>
       {self._html_table(["Profile", "Provider", "Model", "Temp", "Processors", "Circuit Skills"], pack_rows)}
@@ -6227,7 +6252,7 @@ class ShowcaseRunner:
       <h2>Poseidon Runtime Status</h2>
       <div class="intent">
         <strong>What this tests:</strong> Commitment hashing reliability across badge-screen and credit-eligibility proof flows.<br/>
-        <strong>UI intent:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
         <strong>Unlocks:</strong> Stable commitment generation across private strategy and trust workflows.
       </div>
       <p class="meta">Current status: {("<span class=\"pass\">PASS</span>" if poseidon_ok else "<span class=\"fail\">FAIL</span>")} ({poseidon_summary})</p>
@@ -6239,7 +6264,7 @@ class ShowcaseRunner:
       <h2>Strategy API Evidence</h2>
       <div class="intent">
         <strong>What this tests:</strong> Recommendation and analysis payloads that downstream UI widgets depend on.<br/>
-        <strong>UI intent:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
         <strong>Unlocks:</strong> Explainable strategy decisions with proof-linked context.
       </div>
       {self._html_table(["Endpoint", "Status", "Evidence ID", "Confidence", "Signal", "Failure"], strategy_summary_rows)}

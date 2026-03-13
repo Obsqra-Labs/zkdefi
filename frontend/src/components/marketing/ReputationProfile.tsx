@@ -516,12 +516,12 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
                   <p className="text-[9px] text-zinc-600">verify</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-bold text-zinc-400">{(proofResult.proof_size_bytes / 1024).toFixed(1)}KB</p>
+                  <p className="text-xs font-bold text-zinc-400">{((proofResult.proof_size_bytes ?? 0) / 1024).toFixed(1)}KB</p>
                   <p className="text-[9px] text-zinc-600">proof size</p>
                 </div>
               </div>
               <p className="font-mono text-[9px] text-zinc-600 truncate">
-                proof: {proofResult.proof_hash.slice(0, 22)}…
+                proof: {proofResult.proof_hash?.slice(0, 22)}…
               </p>
             </div>
           )}
@@ -561,7 +561,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
                 </div>
               </div>
               <p className="font-mono text-[9px] text-zinc-600 truncate">
-                integrity: {vcResult.integrity_hash.slice(0, 22)}…
+                integrity: {vcResult.integrity_hash?.slice(0, 22)}…
               </p>
               {proofResult && (
                 <p className="text-[9px] text-emerald-500/70 italic">
@@ -688,11 +688,11 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
         </p>
         {data.credit_model_hash && data.credit_model_hash !== "heuristic_fallback" && (
           <p className="text-[10px] text-zinc-600">
-            Model: <span className="font-mono text-zinc-500">{data.credit_model_hash.slice(0, 12)}…</span>
+            Model: <span className="font-mono text-zinc-500">{data.credit_model_hash?.slice(0, 12)}…</span>
           </p>
         )}
         <p className="text-[10px] text-zinc-600">
-          Scanned in {data.scan_duration_ms.toFixed(0)}ms
+          Scanned in {(data.scan_duration_ms ?? 0).toFixed(0)}ms
         </p>
       </div>
     </div>

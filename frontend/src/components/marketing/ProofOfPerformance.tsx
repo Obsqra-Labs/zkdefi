@@ -180,7 +180,7 @@ export function ProofOfPerformance({
               <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">Proof Hash</p>
               <div className="flex items-center gap-1">
                 <span className="font-mono text-[9px] text-zinc-500 break-all leading-relaxed">
-                  {receipt.proof.slice(0, 42)}…
+                  {receipt.proof?.slice(0, 42) ?? "—"}…
                 </span>
                 <button onClick={copyHash} className="text-zinc-600 hover:text-zinc-400 shrink-0">
                   {copiedHash ? <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
@@ -211,7 +211,7 @@ export function ProofOfPerformance({
             <div className="flex items-center gap-1 pt-0.5 border-t border-zinc-800/30 mt-1">
               <Fingerprint className="h-2.5 w-2.5 text-zinc-700" />
               <span className="font-mono text-[8px] text-zinc-600">
-                nullifier: {receipt.nullifier?.slice(0, 18)}…
+                nullifier: {receipt.nullifier?.slice(0, 18) ?? "—"}…
               </span>
             </div>
           </div>

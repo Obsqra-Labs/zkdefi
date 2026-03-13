@@ -259,7 +259,7 @@ export function StrategyCompare({
 
               {/* Moves summary */}
               <div className="space-y-1">
-                {strategy.moves.slice(0, 3).map((move, i) => {
+                {(strategy.moves ?? []).slice(0, 3).map((move, i) => {
                   const protocolColor = PROTOCOL_COLORS[move.protocol] ?? "text-zinc-400";
                   return (
                     <div key={i} className="flex items-center justify-between text-[10px]">

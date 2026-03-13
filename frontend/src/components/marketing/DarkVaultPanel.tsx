@@ -209,7 +209,7 @@ export function DarkVaultPanel({
                       onClick={() => setRevealHash(revealHash === v.vault_id ? null : v.vault_id)}
                       className="font-mono text-[8px] text-zinc-600 hover:text-zinc-400 transition-colors"
                     >
-                      {revealHash === v.vault_id ? v.commitment_hash : v.commitment_hash.slice(0, 14) + "…"}
+                      {revealHash === v.vault_id ? (v.commitment_hash ?? "—") : (v.commitment_hash?.slice(0, 14) ?? "—") + "…"}
                     </button>
                     {revealHash === v.vault_id && (
                       <Eye className="h-2 w-2 text-zinc-600" />

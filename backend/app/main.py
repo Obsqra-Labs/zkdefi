@@ -662,14 +662,14 @@ def root() -> dict[str, str]:
 
 @app.get("/test", response_model=None)
 def hackathon_test_report():
-    """Serve the latest hackathon backend showcase report as an HTML page."""
+    """Serve the latest Obsqra Labs live research report as an HTML page."""
     report_path = repo_root / "artifacts" / "hackathon_showcase" / "latest.html"
     if report_path.exists():
         return FileResponse(str(report_path), media_type="text/html")
     return HTMLResponse(
         content=(
             "<html><body style='font-family: sans-serif'>"
-            "<h1>Hackathon Report Not Found</h1>"
+            "<h1>Obsqra Labs Live Research Report Not Found</h1>"
             "<p>Generate it with: <code>python3 scripts/hackathon_backend_showcase.py</code></p>"
             "</body></html>"
         ),

@@ -4,13 +4,13 @@ Operational and deployment scripts for zkde.fi.
 
 ---
 
-## Live showcase
+## Live research report
 
 - Public readout: [https://zkde.fi/test](https://zkde.fi/test)
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 
-The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate backend/on-chain proof claims during demos.
+The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate Obsqra Labs research claims with backend + on-chain receipts.
 
 ---
 
@@ -21,6 +21,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 | **hackathon_backend_showcase.py** | Terminal-first demo runner for hackathon judging: validates proofs, agent execution, privacy commitment flow, policy controls, receipts, on-chain/RPC checks, AI advisory + badge screening flow, and can emit a local HTML/JSON report with Voyager links when requested. |
 | **warm_kzg_bundle_catalog.py** | Path B utility: runs real EZKL proof + local verify per model and warms/caches `kzg_mpcheck_bundle` coverage across the local model catalog, writing a JSON coverage report. |
 | **ci_showcase_gate.py** | CI gate: runs Path B warm-up with minimum coverage, then strict showcase; fails if coverage or bridge lane checks regress. |
+| **daily_live_research_build.sh** | Server-side daily runner for `/test`: executes `ci_showcase_gate.py`, refreshes `latest.html/json`, and writes timestamped logs under `artifacts/hackathon_showcase/daily_logs/`. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -134,6 +135,18 @@ Env knobs:
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
+
+Daily build for `/test` (same-server cron):
+
+```bash
+scripts/daily_live_research_build.sh
+```
+
+Example crontab (UTC 06:15 daily):
+
+```cron
+15 6 * * * cd /opt/obsqra.starknet/zkdefi && /opt/obsqra.starknet/zkdefi/scripts/daily_live_research_build.sh
+```
 
 ### Hackathon showcase artifacts
 

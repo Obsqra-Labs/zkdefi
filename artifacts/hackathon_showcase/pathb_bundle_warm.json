@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-13T02:01:09.940742+00:00",
-  "duration_ms": 22637,
+  "generated_at": "2026-03-13T04:12:52.089245+00:00",
+  "duration_ms": 14045,
   "models_total": 3,
   "models_verified": 3,
   "models_with_bundle": 3,
@@ -19,16 +19,14 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x483abbc5cc6de9460e2bbb4f46e1e66518d3ac74b5b14d9ff185febf1374b2c3",
-      "duration_ms": 6853
+      "proof_hash": "0xad70cc66509761235b448d5414dedda8158c535c883141ba1a02b226e455e1bb",
+      "duration_ms": 4752
     },
     {
       "model": "creditworthiness",
-      "input_features": 8,
+      "input_features": 18,
       "selected_input_features": 18,
       "attempted_feature_widths": [
-        8,
-        16,
         18
       ],
       "ezkl_verified": true,
@@ -38,8 +36,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x83aca211f16396bdb996bb81ca09fd391ad9d69e07ee72cd18122c37f6274a76",
-      "duration_ms": 6609
+      "proof_hash": "0x1730b9b0904f7259cedd0c23b022f7188740ae90f4cbb629cad9bb6f18c44e5b",
+      "duration_ms": 4793
     },
     {
       "model": "yield_forecast",
@@ -55,8 +53,12 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x487a5883a8e43ba43636df473fed7d00993e637a3a9ccfbfc57c869b37261c87",
-      "duration_ms": 9173
+      "proof_hash": "0x8745505b43987a2b8068f9713471d853d2ea688afe184c3c6320968cd564a761",
+      "duration_ms": 4499
     }
-  ]
+  ],
+  "models_failed": 0,
+  "failed_models": [],
+  "error_buckets": {},
+  "action_buckets": {}
 }

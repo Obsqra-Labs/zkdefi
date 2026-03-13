@@ -156,7 +156,7 @@ export function PnLTracker({
         value: data.total_value_usd,
         pnl: data.total_pnl_usd,
         pnlPct: data.total_pnl_pct,
-        positionCount: data.positions.filter((p) => !p.closed).length,
+        positionCount: (data.positions ?? []).filter((p: Position) => !p.closed).length,
       });
     } catch {
       // Silently handle — we'll try again next poll
@@ -186,7 +186,7 @@ export function PnLTracker({
     );
   }
 
-  const openPositions = session.positions.filter((p) => !p.closed);
+  const openPositions = (session.positions ?? []).filter((p) => !p.closed);
   const pnlColor = session.total_pnl_usd >= 0 ? "text-emerald-400" : "text-rose-400";
   const pnlBg = session.total_pnl_usd >= 0 ? "bg-emerald-500" : "bg-rose-500";
   const sparkColor = session.total_pnl_usd >= 0 ? "#34d399" : "#fb7185";
@@ -265,7 +265,7 @@ export function PnLTracker({
                         {pos.pnl_usd >= 0 ? "+" : ""}{fmtUsd(pos.pnl_usd)}
                       </span>
                       <span className="text-zinc-600 tabular-nums">
-                        {(pos.current_apy * 100).toFixed(1)}%
+                        {((pos.current_apy ?? 0) * 100).toFixed(1)}%
                       </span>
                     </div>
                   </div>
