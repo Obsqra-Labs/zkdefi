@@ -741,6 +741,7 @@ class ShowcaseRunner:
             required_steps = [
                 "Open-source ModelBridge + dual-proof architecture",
                 "ModelBridge live l3 verify receipt",
+                "Path B dual native KZG mirrors are demonstrable",
                 "Recursive EZKL paths (Phase 2/3/4) status",
             ]
         else:
@@ -748,6 +749,7 @@ class ShowcaseRunner:
                 "Open-source ModelBridge + dual-proof architecture",
                 "ModelBridge live l3 verify receipt",
                 "ModelBridgeHeavy live l3 verify receipt",
+                "Path B dual native KZG mirrors are demonstrable",
                 "StarkHeavyReputation STARK flow",
                 "Recursive EZKL paths (Phase 2/3/4) status",
             ]
@@ -3439,7 +3441,50 @@ class ShowcaseRunner:
             and parent_phase4_config_key
             and parent_phase4_route
         )
-        ok = ok_base and (bool(pathb_warm_gate.get("passes")) if self.strict_bridge else True)
+        pathb_execution_chain = str(pathb_warm_gate.get("native_kzg_onchain_execution_chain") or "").strip().lower()
+        pathb_attempted_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_attempted_models"), 0)
+        pathb_verified_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_verified_models"), 0)
+        pathb_l3_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l3_receipt_models"), 0)
+        pathb_l2_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l2_receipt_models"), 0)
+        pathb_mirrored_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_mirrored_models"), 0)
+        pathb_dual_gate = True
+        if self.strict_bridge and bool(pathb_warm_gate.get("native_kzg_onchain_enabled")):
+            if pathb_execution_chain == "dual":
+                pathb_dual_gate = (
+                    pathb_attempted_models > 0
+                    and pathb_verified_models >= pathb_attempted_models
+                    and pathb_l3_receipt_models >= pathb_attempted_models
+                    and pathb_l2_receipt_models >= pathb_attempted_models
+                    and pathb_mirrored_models >= pathb_attempted_models
+                )
+            else:
+                pathb_dual_gate = pathb_verified_models > 0 and pathb_l3_receipt_models > 0
+        ok = (
+            ok_base
+            and (bool(pathb_warm_gate.get("passes")) if self.strict_bridge else True)
+            and pathb_dual_gate
+        )
+        self._record(
+            "Path B dual native KZG mirrors are demonstrable",
+            pathb_dual_gate,
+            strict_bridge=self.strict_bridge,
+            native_kzg_onchain_enabled=pathb_warm_gate.get("native_kzg_onchain_enabled"),
+            execution_chain=pathb_execution_chain or "-",
+            attempted_models=pathb_attempted_models,
+            verified_models=pathb_verified_models,
+            l3_receipt_models=pathb_l3_receipt_models,
+            l2_receipt_models=pathb_l2_receipt_models,
+            mirrored_models=pathb_mirrored_models,
+            gate_reason=(
+                ""
+                if pathb_dual_gate
+                else (
+                    "dual native_kzg mirrors missing"
+                    if pathb_execution_chain == "dual"
+                    else "native_kzg onchain receipt evidence missing"
+                )
+            ),
+        )
         self._record(
             "Recursive EZKL paths (Phase 2/3/4) status",
             ok,
@@ -3470,9 +3515,13 @@ class ShowcaseRunner:
             path_b_warm_daily_new_bundles=len(pathb_warm_gate.get("daily_new_bundle_models") or []),
             path_b_warm_daily_regressions=len(pathb_warm_gate.get("daily_regressed_bundle_models") or []),
             path_b_native_kzg_onchain_enabled=pathb_warm_gate.get("native_kzg_onchain_enabled"),
+            path_b_native_kzg_execution_chain=pathb_execution_chain or "-",
             path_b_native_kzg_attempted_models=pathb_warm_gate.get("native_kzg_onchain_attempted_models"),
             path_b_native_kzg_verified_models=pathb_warm_gate.get("native_kzg_onchain_verified_models"),
             path_b_native_kzg_receipt_models=pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
+            path_b_native_kzg_l2_receipt_models=pathb_l2_receipt_models,
+            path_b_native_kzg_mirrored_models=pathb_mirrored_models,
+            path_b_native_kzg_dual_gate=pathb_dual_gate,
             path_b_native_kzg_daily_new=len(pathb_warm_gate.get("daily_new_native_kzg_models") or []),
             path_b_native_kzg_daily_regressions=len(pathb_warm_gate.get("daily_regressed_native_kzg_models") or []),
             path_b_warm_gate_reason=_clip_text(pathb_warm_gate.get("failure_reason"), 120),
@@ -4520,6 +4569,7 @@ class ShowcaseRunner:
                 ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
                 ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
                 ("ModelBridge live l3 verify emits receipt evidence", passed("ModelBridge live l3 verify receipt")),
+                ("Path B dual native-KZG mirror receipts are demonstrable", passed("Path B dual native KZG mirrors are demonstrable")),
                 ("Recursive multichain proving paths are introspectable", passed("Recursive EZKL paths (Phase 2/3/4) status")),
             ]
         else:
@@ -4533,6 +4583,10 @@ class ShowcaseRunner:
                 (
                     "ModelBridge live l3 verify emits receipt evidence",
                     None if self.fast_mode else passed("ModelBridge live l3 verify receipt"),
+                ),
+                (
+                    "Path B dual native-KZG mirror receipts are demonstrable",
+                    None if self.fast_mode else passed("Path B dual native KZG mirrors are demonstrable"),
                 ),
                 ("Agent composition + execution works", passed("Agent compose + execute")),
                 ("Proof-backed deployment planning works", passed("Deployment proof + on-chain calldata plan")),
