@@ -255,6 +255,8 @@ def main() -> int:
     warm_verify_onchain_native_kzg = _env_bool("SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG", True)
     warm_execution_chain = _env("SHOWCASE_WARM_EXECUTION_CHAIN", "dual")
     warm_request_timeout = _env("SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS", "180")
+    warm_bootstrap_known_models = _env_bool("SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS", False)
+    warm_bootstrap_force = _env_bool("SHOWCASE_WARM_BOOTSTRAP_FORCE", False)
     os.environ["SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"] = strict_attempts
 
     warm_cmd = [
@@ -277,6 +279,10 @@ def main() -> int:
                 warm_request_timeout,
             ]
         )
+    if warm_bootstrap_known_models:
+        warm_cmd.append("--bootstrap-known-models")
+    if warm_bootstrap_force:
+        warm_cmd.append("--bootstrap-force")
     _run(warm_cmd)
     _validate_warm_report(Path(warm_output))
 

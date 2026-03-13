@@ -61,6 +61,12 @@ Optional flags:
 
 `--fast` also marks the two bridge-heavy core claims as `SKIP` in the claim matrix instead of failing the run score.
 
+Path B reproducibility:
+
+- `python3 scripts/warm_kzg_bundle_catalog.py --bootstrap-known-models --verify-onchain-native-kzg --native-kzg-execution-chain dual`
+- The warm flow can now train + EZKL-setup supported first-party models (`llm_fallback`, `timing_predictor`) when their `vk.key` / `settings.json` / `kzg.srs` artifacts are missing.
+- Use `--bootstrap-force` only when you want to retrain those models instead of reusing existing ONNX/training metadata.
+
 Bridge execution is prioritized before optional proof checks so ModelBridge receipt attempts do not lose budget to other endpoints under load.
 Dual bridge validation uses `proof_mode=1` (EZKL_BRIDGE) to test chain mirroring reliability without adding execution-proof latency from `FULL_DUAL_PROVER`.
 Mirror semantics: `mirrored` = L2 mirror verified, `mirror_unavailable` = parent L2 registry endpoint unavailable, `mirror_failed` = mirror attempted but failed.

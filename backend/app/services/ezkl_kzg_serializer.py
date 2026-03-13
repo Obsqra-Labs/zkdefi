@@ -23,6 +23,10 @@ from typing import Any
 FELT252_PRIME = 3618502788666131213697322783095070105623107215331596699973092056135872020481
 FIXED_POINT_SCALE = 1_000_000
 U96_MASK = (1 << 96) - 1
+BN254_FIELD_MODULUS = int(
+    "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47",
+    16,
+)
 
 EZKL_KZG_V1_MARKER = int.from_bytes(b"ezkl_kzg_v1", "big") % FELT252_PRIME
 NATIVE_KZG_PLACEHOLDER_MARKER = int.from_bytes(b"native_kzg_placeholder_v1", "big") % FELT252_PRIME
@@ -152,6 +156,10 @@ def _parse_felt_list(values: Any) -> list[int]:
     return out
 
 
+def _negate_g1_point(point: tuple[int, int]) -> tuple[int, int]:
+    return (int(point[0]), (BN254_FIELD_MODULUS - int(point[1])) % BN254_FIELD_MODULUS)
+
+
 def _bundle_from_pairings(pairings: Any, hints: Any = None) -> dict[str, Any]:
     if not isinstance(pairings, (list, tuple)) or len(pairings) < 2:
         return {}
@@ -204,6 +212,25 @@ def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
     if not isinstance(raw_json, dict):
         return {}, "none"
 
+    def _looks_like_bundle_dict(value: Any) -> bool:
+        if not isinstance(value, dict) or not value:
+            return False
+        structural_keys = {
+            "pair0",
+            "pair1",
+            "pairings",
+            "pairs",
+            "g2_pair0",
+            "g2_pair1",
+            "mpcheck_hint_felts",
+            "hint_felts",
+            "precomputed_line_felts",
+            "mpcheck_line_felts",
+            "line_felts",
+            "auto_build_hint",
+        }
+        return any(key in value for key in structural_keys)
+
     direct_keys = (
         "kzg_mpcheck_bundle",
         "kzg_pairing_bundle",
@@ -213,7 +240,7 @@ def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
     )
     for key in direct_keys:
         value = raw_json.get(key)
-        if isinstance(value, dict) and value:
+        if _looks_like_bundle_dict(value):
             return value, key
 
     # Optional nested containers used by some proof wrappers.
@@ -289,7 +316,24 @@ def _extract_bundle_from_json_obj(
         return {}, "none"
 
     # Direct wrappers.
-    if isinstance(obj.get("kzg_mpcheck_bundle"), dict):
+    direct_bundle = obj.get("kzg_mpcheck_bundle")
+    if isinstance(direct_bundle, dict) and any(
+        key in direct_bundle
+        for key in (
+            "pair0",
+            "pair1",
+            "pairings",
+            "pairs",
+            "g2_pair0",
+            "g2_pair1",
+            "mpcheck_hint_felts",
+            "hint_felts",
+            "precomputed_line_felts",
+            "mpcheck_line_felts",
+            "line_felts",
+            "auto_build_hint",
+        )
+    ):
         return obj, "json.kzg_mpcheck_bundle"
 
     bundle, source = _extract_kzg_bundle(obj)
@@ -298,6 +342,16 @@ def _extract_bundle_from_json_obj(
 
     # Proof-hash keyed map.
     canon_hash = _canonical_hex(proof_hash)
+    if canon_hash and isinstance(direct_bundle, dict):
+        for key in (canon_hash, canon_hash[2:]):
+            entry = direct_bundle.get(key)
+            if not isinstance(entry, dict):
+                continue
+            if isinstance(entry.get("kzg_mpcheck_bundle"), dict):
+                return entry, "json.kzg_mpcheck_bundle.by_proof_hash"
+            nested_bundle, nested_source = _extract_kzg_bundle(entry)
+            if nested_bundle:
+                return nested_bundle, f"json.kzg_mpcheck_bundle.by_proof_hash.{nested_source}"
     if canon_hash:
         for key in (canon_hash, canon_hash[2:]):
             entry = obj.get(key)
@@ -572,12 +626,14 @@ def _inject_kzg_bundle_from_sources(
     enriched = dict(raw_json or {})
     initial_bundle, initial_source = _extract_kzg_bundle(enriched)
     if initial_bundle:
-        return enriched, {
-            "kzg_bundle_injected": False,
-            "kzg_bundle_injected_source": f"raw_json.{initial_source}",
-            "kzg_bundle_extractor_attempted": False,
-            "kzg_bundle_extractor_error": None,
-        }
+        _, initial_trailer_meta = _build_kzg_mpcheck_trailer(enriched)
+        if bool(initial_trailer_meta.get("kzg_mpcheck_bundle_present")):
+            return enriched, {
+                "kzg_bundle_injected": False,
+                "kzg_bundle_injected_source": f"raw_json.{initial_source}",
+                "kzg_bundle_extractor_attempted": False,
+                "kzg_bundle_extractor_error": None,
+            }
 
     # 1) Sidecar files.
     for path in _candidate_bundle_files(model_dir=model_dir):
@@ -956,23 +1012,40 @@ def _build_kzg_mpcheck_trailer(raw_json: dict[str, Any]) -> tuple[list[int], dic
     line_values = list(provided_line_felts)
 
     if pair0 and pair1 and g2_pair0 and g2_pair1:
-        rebuilt_hint_felts, rebuilt_line_values, rebuilt_error = _build_bn254_dynamic_mpcheck_artifacts(
-            pair0,
-            pair1,
-            g2_pair0,
-            g2_pair1,
-        )
-        if rebuilt_hint_felts:
-            hint_felts = rebuilt_hint_felts
-            hint_source = "garaga_dynamic_pairs_2f"
-        if rebuilt_line_values:
-            line_values = rebuilt_line_values
-            line_source = "garaga_precompute_lines_2f"
+        pair0_neg = _negate_g1_point(pair0)
+        pair1_neg = _negate_g1_point(pair1)
+        sign_variants = [
+            ("pair0_raw_pair1_neg", pair0, pair1_neg),
+            ("pair0_raw_pair1_raw", pair0, pair1),
+            ("pair0_neg_pair1_raw", pair0_neg, pair1),
+            ("pair0_neg_pair1_neg", pair0_neg, pair1_neg),
+        ]
+        chosen_variant = "pair0_raw_pair1_raw"
+        rebuilt_error = ""
+        for variant_name, variant_pair0, variant_pair1 in sign_variants:
+            rebuilt_hint_felts, rebuilt_line_values, rebuilt_error = _build_bn254_dynamic_mpcheck_artifacts(
+                variant_pair0,
+                variant_pair1,
+                g2_pair0,
+                g2_pair1,
+            )
+            if rebuilt_hint_felts:
+                pair0 = variant_pair0
+                pair1 = variant_pair1
+                chosen_variant = variant_name
+                hint_felts = rebuilt_hint_felts
+                hint_source = "garaga_dynamic_pairs_2f"
+                if rebuilt_line_values:
+                    line_values = rebuilt_line_values
+                    line_source = "garaga_precompute_lines_2f"
+                break
         if rebuilt_error:
             if not hint_error:
                 hint_error = rebuilt_error
             if not line_error:
                 line_error = rebuilt_error
+        if chosen_variant != "pair0_raw_pair1_raw":
+            bundle["selected_sign_variant"] = chosen_variant
 
     if pair0 and pair1 and not hint_felts and bool(bundle.get("auto_build_hint", True)):
         hint_felts = _build_bn254_mpcheck_hint_felts(pair0, pair1)

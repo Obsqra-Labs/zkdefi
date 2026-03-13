@@ -130,15 +130,21 @@ async def _ensure_verifier_artifact(
     sol_path = src_dir / "Halo2Verifier.sol"
     abi_path = build_dir / "Halo2Verifier.abi"
 
-    if artifact_path.exists() and not force_rebuild:
-        return artifact_path
-
     vk_path = model_dir / "vk.key"
     settings_path = model_dir / "settings.json"
     srs_path = model_dir / "kzg.srs"
     for req in (vk_path, settings_path, srs_path):
         if not req.exists():
             raise RuntimeError(f"Missing EZKL artifact required for extractor: {req}")
+
+    if artifact_path.exists() and not force_rebuild:
+        try:
+            artifact_mtime = artifact_path.stat().st_mtime
+            input_mtime = max(req.stat().st_mtime for req in (vk_path, settings_path, srs_path))
+            if artifact_mtime >= input_mtime:
+                return artifact_path
+        except Exception:
+            pass
 
     generated = await _maybe_await(
         ezkl.create_evm_verifier(

@@ -33,6 +33,7 @@ from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof  # 
 DEFAULT_HISTORY_FILE = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_history.jsonl"
 DEFAULT_NATIVE_KZG_BASE_URL = "http://127.0.0.1:8003"
 DEFAULT_NATIVE_KZG_WALLET = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
+BOOTSTRAPABLE_MODELS = {"llm_fallback", "timing_predictor"}
 
 
 def _load_feature_count(model_dir: Path) -> int:
@@ -315,6 +316,86 @@ def _missing_ezkl_artifacts(model_dir: Path) -> list[str]:
     return [name for name in required if not (model_dir / name).exists()]
 
 
+def _bootstrap_summary(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    return {
+        "status": payload.get("status"),
+        "ready": bool(payload.get("ready")),
+        "message": payload.get("message"),
+        "model_hash": payload.get("model_hash"),
+        "training_samples": payload.get("training_samples"),
+        "accuracy": payload.get("accuracy"),
+        "mae_blocks": payload.get("mae_blocks"),
+        "mae_confidence": payload.get("mae_confidence"),
+    }
+
+
+async def _bootstrap_known_model(
+    *,
+    model_name: str,
+    model_dir: Path,
+    force: bool = False,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "attempted": False,
+        "ready": False,
+        "force": bool(force),
+        "model": model_name,
+        "source": None,
+        "train_ran": False,
+        "train_status": None,
+        "setup_status": None,
+        "missing_before": _missing_ezkl_artifacts(model_dir),
+        "missing_after": [],
+        "train_result": {},
+        "setup_result": {},
+        "error": None,
+    }
+    if model_name not in BOOTSTRAPABLE_MODELS:
+        result["error"] = "unsupported_model"
+        return result
+
+    result["attempted"] = True
+    meta_path = model_dir / "training_metadata.json"
+    onnx_exists = any(model_dir.glob("*.onnx"))
+
+    try:
+        if model_name == "llm_fallback":
+            from app.ml.llm_fallback.trainer import setup_fallback_ezkl, train_fallback_model
+
+            result["source"] = "app.ml.llm_fallback.trainer"
+            if force or not meta_path.exists() or not onnx_exists:
+                train_result = await train_fallback_model(n_samples=1000, epochs=80)
+                result["train_ran"] = True
+                result["train_result"] = _bootstrap_summary(train_result)
+                result["train_status"] = train_result.get("status")
+            setup_result = await setup_fallback_ezkl(force=True)
+            result["setup_result"] = _bootstrap_summary(setup_result)
+            result["setup_status"] = setup_result.get("status")
+            result["ready"] = bool(setup_result.get("ready"))
+        elif model_name == "timing_predictor":
+            from app.ml.timing_predictor.trainer import setup_timing_ezkl, train_timing_model
+
+            result["source"] = "app.ml.timing_predictor.trainer"
+            if force or not meta_path.exists() or not onnx_exists:
+                train_result = await train_timing_model(synthetic_samples=500, epochs=50)
+                result["train_ran"] = True
+                result["train_result"] = _bootstrap_summary(train_result)
+                result["train_status"] = train_result.get("status")
+            setup_result = await setup_timing_ezkl(force=True)
+            result["setup_result"] = _bootstrap_summary(setup_result)
+            result["setup_status"] = setup_result.get("status")
+            result["ready"] = bool(setup_result.get("ready"))
+    except Exception as exc:
+        result["error"] = str(exc)
+
+    result["missing_after"] = _missing_ezkl_artifacts(model_dir)
+    if result["ready"] and not result["missing_after"]:
+        result["error"] = None
+    return result
+
+
 async def _run(args: argparse.Namespace) -> int:
     models_root = BACKEND_ROOT / "app" / "data" / "ezkl_models"
     if not models_root.exists():
@@ -324,16 +405,29 @@ async def _run(args: argparse.Namespace) -> int:
     catalog_dirs = _model_dirs(models_root, args.model)
     selected = list(catalog_dirs)
     excluded_rows: list[dict[str, Any]] = []
+    bootstrap_meta_by_model: dict[str, dict[str, Any]] = {}
     if not args.include_non_ezkl:
         proving_ready: list[Path] = []
         for model_dir in selected:
             missing = _missing_ezkl_artifacts(model_dir)
+            bootstrap_meta: dict[str, Any] | None = None
+            if args.bootstrap_known_models and model_dir.name in BOOTSTRAPABLE_MODELS and (missing or args.bootstrap_force):
+                bootstrap_meta = await _bootstrap_known_model(
+                    model_name=model_dir.name,
+                    model_dir=model_dir,
+                    force=args.bootstrap_force,
+                )
+                bootstrap_meta_by_model[model_dir.name] = bootstrap_meta
+                missing = _missing_ezkl_artifacts(model_dir)
             if missing:
                 excluded_rows.append(
                     {
                         "model": model_dir.name,
                         "reason": "missing_ezkl_artifacts",
                         "missing_artifacts": missing,
+                        "bootstrap_attempted": bool((bootstrap_meta or {}).get("attempted")),
+                        "bootstrap_ready": bool((bootstrap_meta or {}).get("ready")),
+                        "bootstrap_error": (bootstrap_meta or {}).get("error"),
                     }
                 )
                 continue
@@ -357,6 +451,14 @@ async def _run(args: argparse.Namespace) -> int:
             "model": model_name,
             "input_features": _load_feature_count(model_dir),
         }
+        bootstrap_meta = bootstrap_meta_by_model.get(model_name) or {}
+        row["bootstrap_attempted"] = bool(bootstrap_meta.get("attempted"))
+        row["bootstrap_ready"] = bool(bootstrap_meta.get("ready"))
+        row["bootstrap_train_ran"] = bool(bootstrap_meta.get("train_ran"))
+        row["bootstrap_source"] = bootstrap_meta.get("source")
+        row["bootstrap_train_status"] = bootstrap_meta.get("train_status")
+        row["bootstrap_setup_status"] = bootstrap_meta.get("setup_status")
+        row["bootstrap_error"] = bootstrap_meta.get("error")
         try:
             proof = None
             verified = False
@@ -444,10 +546,33 @@ async def _run(args: argparse.Namespace) -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "duration_ms": int((time.monotonic() - started) * 1000),
         "catalog_models_total": len(catalog_dirs),
+        "catalog_model_names": [p.name for p in catalog_dirs],
+        "selected_model_names": [p.name for p in selected],
         "proving_ready_models_catalog_total": proving_ready_catalog_total,
         "excluded_models_total": len(excluded_rows),
         "excluded_models": excluded_rows,
         "coverage_scope": "proving_ready_catalog" if not args.include_non_ezkl else "full_catalog",
+        "bootstrap_known_models_enabled": bool(args.bootstrap_known_models),
+        "bootstrap_force": bool(args.bootstrap_force),
+        "bootstrap_supported_models": sorted(BOOTSTRAPABLE_MODELS),
+        "bootstrap_rows": list(bootstrap_meta_by_model.values()),
+        "bootstrapped_models_total": sum(
+            1 for meta in bootstrap_meta_by_model.values() if bool(meta.get("attempted"))
+        ),
+        "bootstrapped_ready_models_total": sum(
+            1 for meta in bootstrap_meta_by_model.values() if bool(meta.get("ready"))
+        ),
+        "bootstrapped_models": sorted(
+            name for name, meta in bootstrap_meta_by_model.items() if bool(meta.get("attempted"))
+        ),
+        "bootstrapped_ready_models": sorted(
+            name for name, meta in bootstrap_meta_by_model.items() if bool(meta.get("ready"))
+        ),
+        "bootstrapped_failed_models": sorted(
+            name
+            for name, meta in bootstrap_meta_by_model.items()
+            if bool(meta.get("attempted")) and not bool(meta.get("ready"))
+        ),
         "models_total": len(rows),
         "models_verified": sum(1 for r in rows if r.get("ezkl_verified")),
         "models_with_bundle": sum(1 for r in rows if r.get("kzg_bundle_present")),
@@ -679,6 +804,13 @@ async def _run(args: argparse.Namespace) -> int:
         f"excluded_non_ezkl={report['excluded_models_total']} "
         f"scope={report['coverage_scope']}"
     )
+    if args.bootstrap_known_models:
+        print(
+            f"bootstrap: supported={','.join(sorted(BOOTSTRAPABLE_MODELS))} "
+            f"attempted={report['bootstrapped_models_total']} "
+            f"ready={report['bootstrapped_ready_models_total']} "
+            f"failed={len(report['bootstrapped_failed_models'])}"
+        )
     print(
         "cadence:",
         f"history={cadence.get('history_file_rel')}",
@@ -773,6 +905,16 @@ def _parse_args() -> argparse.Namespace:
         type=float,
         default=120.0,
         help="HTTP timeout in seconds for --verify-onchain-native-kzg.",
+    )
+    parser.add_argument(
+        "--bootstrap-known-models",
+        action="store_true",
+        help="Train/setup supported first-party models when Path B artifacts are missing.",
+    )
+    parser.add_argument(
+        "--bootstrap-force",
+        action="store_true",
+        help="Force retraining before EZKL setup for supported bootstrapped models.",
     )
     return parser.parse_args()
 

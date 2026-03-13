@@ -3768,10 +3768,21 @@ class ShowcaseRunner:
                 "artifact_found": pathb_warm_report_file.exists(),
                 "generated_at": pathb_warm_gate.get("generated_at"),
                 "catalog_models_total": pathb_catalog_models_total,
+                "catalog_model_names": pathb_warm_gate.get("catalog_model_names") or [],
+                "selected_model_names": pathb_warm_gate.get("selected_model_names") or [],
                 "proving_ready_models_catalog_total": pathb_proving_ready_catalog_total,
                 "excluded_models_total": pathb_excluded_models_total,
                 "excluded_models": pathb_warm_gate.get("excluded_models") or [],
                 "coverage_scope": pathb_warm_gate.get("coverage_scope"),
+                "bootstrap_known_models_enabled": pathb_warm_gate.get("bootstrap_known_models_enabled"),
+                "bootstrap_force": pathb_warm_gate.get("bootstrap_force"),
+                "bootstrap_supported_models": pathb_warm_gate.get("bootstrap_supported_models") or [],
+                "bootstrap_rows": pathb_warm_gate.get("bootstrap_rows") or [],
+                "bootstrapped_models_total": pathb_warm_gate.get("bootstrapped_models_total"),
+                "bootstrapped_ready_models_total": pathb_warm_gate.get("bootstrapped_ready_models_total"),
+                "bootstrapped_models": pathb_warm_gate.get("bootstrapped_models") or [],
+                "bootstrapped_ready_models": pathb_warm_gate.get("bootstrapped_ready_models") or [],
+                "bootstrapped_failed_models": pathb_warm_gate.get("bootstrapped_failed_models") or [],
                 "models_total": pathb_warm_models_total,
                 "models_verified": pathb_warm_models_verified,
                 "models_with_bundle": pathb_warm_models_bundle,
@@ -5575,8 +5586,23 @@ class ShowcaseRunner:
             ["Generated at", escape(str(path_b_warm.get("generated_at") or "-"))],
             ["Coverage scope", escape(str(path_b_warm.get("coverage_scope") or "-"))],
             ["Catalog models", escape(str(path_b_warm.get("catalog_models_total") or "-"))],
+            ["Catalog model names", escape(_clip_text(", ".join(path_b_warm.get("catalog_model_names") or []), 220) or "-")],
+            ["Selected model names", escape(_clip_text(", ".join(path_b_warm.get("selected_model_names") or []), 220) or "-")],
             ["Proving-ready catalog models", escape(str(path_b_warm.get("proving_ready_models_catalog_total") or "-"))],
             ["Excluded non-EZKL models", escape(str(path_b_warm.get("excluded_models_total") or "-"))],
+            ["Bootstrap known models", "<span class=\"pass\">enabled</span>" if path_b_warm.get("bootstrap_known_models_enabled") else "<span class=\"warn\">disabled</span>"],
+            ["Bootstrap supported models", escape(_clip_text(", ".join(path_b_warm.get("bootstrap_supported_models") or []), 180) or "-")],
+            [
+                "Bootstrap attempted / ready / failed",
+                escape(
+                    f"{path_b_warm.get('bootstrapped_models_total') or 0}/"
+                    f"{path_b_warm.get('bootstrapped_ready_models_total') or 0}/"
+                    f"{len(path_b_warm.get('bootstrapped_failed_models') or [])}"
+                ),
+            ],
+            ["Bootstrap attempted models", escape(_clip_text(", ".join(path_b_warm.get("bootstrapped_models") or []), 180) or "-")],
+            ["Bootstrap ready models", escape(_clip_text(", ".join(path_b_warm.get("bootstrapped_ready_models") or []), 180) or "-")],
+            ["Bootstrap failed models", escape(_clip_text(", ".join(path_b_warm.get("bootstrapped_failed_models") or []), 180) or "-")],
             ["Models total", escape(str(path_b_warm.get("models_total") or "-"))],
             ["Models verified", escape(str(path_b_warm.get("models_verified") or "-"))],
             ["Models with bundle", escape(str(path_b_warm.get("models_with_bundle") or "-"))],
@@ -5672,6 +5698,39 @@ class ShowcaseRunner:
                 ),
             ],
         ]
+        path_b_bootstrap_rows = []
+        for item in (path_b_warm.get("bootstrap_rows") or [])[:12]:
+            if not isinstance(item, dict):
+                continue
+            path_b_bootstrap_rows.append(
+                [
+                    escape(str(item.get("model") or "-")),
+                    "<span class=\"pass\">yes</span>" if item.get("attempted") else "<span class=\"warn\">no</span>",
+                    "<span class=\"pass\">yes</span>" if item.get("ready") else "<span class=\"fail\">no</span>",
+                    "<span class=\"pass\">yes</span>" if item.get("train_ran") else "<span class=\"warn\">no</span>",
+                    escape(str(item.get("train_status") or "-")),
+                    escape(str(item.get("setup_status") or "-")),
+                    escape(_clip_text(", ".join(item.get("missing_before") or []), 120) or "-"),
+                    escape(_clip_text(", ".join(item.get("missing_after") or []), 120) or "-"),
+                    escape(_clip_text(str(item.get("source") or "-"), 80) or "-"),
+                    escape(_clip_text(str(item.get("error") or "-"), 140) or "-"),
+                ]
+            )
+        if not path_b_bootstrap_rows:
+            path_b_bootstrap_rows.append(
+                [
+                    "-",
+                    "<span class=\"warn\">no</span>",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    "No bootstrap attempts were needed in this run.",
+                ]
+            )
         path_b_onchain_rows = []
         path_b_l3_rpc_url = str(path_b_runtime_verifier.get("rpc_url") or self._madara_rpc_url or "")
         path_b_l2_rpc_url = str(self._last_rpc_url or self.env_from_file.get("STARKNET_RPC_URL") or "")
@@ -7563,8 +7622,11 @@ class ShowcaseRunner:
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
       <h3>Path B Catalog Warm Report</h3>
-      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run).</p>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run). This section now separates first-party model bootstrap provenance from the actual native-KZG receipt counts, so the report does not blur training/setup readiness with cryptographic execution readiness.</p>
       {self._html_table(["Field", "Value"], path_b_warm_rows)}
+      <h3>Path B Bootstrap Provenance</h3>
+      <p class="meta">These are the first-party model provisioning attempts made by the Path B warm flow itself. They show training/setup readiness for supported models, while the receipt matrix below remains the source of truth for live native-KZG execution coverage.</p>
+      {self._html_table(["Model", "Attempted", "Ready", "Trained", "Train Status", "Setup Status", "Missing Before", "Missing After", "Source", "Error"], path_b_bootstrap_rows)}
       <h3>Path B Native KZG Receipt Matrix</h3>
       <p class="meta">Optional per-model `EzklNativeKzg` probe layered on top of the warm report so catalog coverage can be cross-checked against actual on-chain receipt generation, including dual-lane mirror evidence when the probe runs in `dual` mode.</p>
       {self._html_table(["Model", "HTTP", "Verified", "Can Execute", "Exec Chain", "Mirror", "L3 Mode", "L3 ABI", "Strict Bind", "L2 Mode", "Backend", "L3 Tx", "L2 Tx", "Failure"], path_b_onchain_rows)}
@@ -7962,6 +8024,15 @@ class ShowcaseRunner:
                         "lane": "EzklNativeKzg",
                         "live_verified": bool(recursive_signals.get("path_b_live_verified")),
                         "coverage_scope": pathb_warm.get("coverage_scope"),
+                        "catalog_model_names": pathb_warm.get("catalog_model_names") or [],
+                        "selected_model_names": pathb_warm.get("selected_model_names") or [],
+                        "bootstrap_known_models_enabled": pathb_warm.get("bootstrap_known_models_enabled"),
+                        "bootstrap_supported_models": pathb_warm.get("bootstrap_supported_models") or [],
+                        "bootstrapped_models_total": pathb_warm.get("bootstrapped_models_total"),
+                        "bootstrapped_ready_models_total": pathb_warm.get("bootstrapped_ready_models_total"),
+                        "bootstrapped_models": pathb_warm.get("bootstrapped_models") or [],
+                        "bootstrapped_ready_models": pathb_warm.get("bootstrapped_ready_models") or [],
+                        "bootstrapped_failed_models": pathb_warm.get("bootstrapped_failed_models") or [],
                         "execution_chain": pathb_warm.get("native_kzg_onchain_execution_chain"),
                         "artifact_path": pathb_warm.get("artifact_path"),
                         "artifact_found": pathb_warm.get("artifact_found"),
