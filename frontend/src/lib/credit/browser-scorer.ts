@@ -112,25 +112,31 @@ async function ensureInit(): Promise<void> {
   if (_initPromise) return _initPromise;
 
   _initPromise = (async () => {
-    // Load onnxruntime-web from CDN (avoids webpack parse errors)
-    if (!_ort) {
-      _ort = await loadOrtFromCDN();
-      _ort.env.wasm.numThreads = 1;
-    }
+    try {
+      // Load onnxruntime-web from CDN (avoids webpack parse errors)
+      if (!_ort) {
+        _ort = await loadOrtFromCDN();
+        _ort.env.wasm.numThreads = 1;
+      }
 
-    // Fetch norm params
-    if (!_normParams) {
-      const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/norm-params"));
-      if (!res.ok) throw new Error(`Failed to fetch norm params: ${res.status}`);
-      _normParams = await res.json();
-    }
+      // Fetch norm params
+      if (!_normParams) {
+        const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/norm-params"));
+        if (!res.ok) throw new Error(`Failed to fetch norm params: ${res.status}`);
+        _normParams = await res.json();
+      }
 
-    // Fetch ONNX model
-    if (!_session) {
-      const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/onnx"));
-      if (!res.ok) throw new Error(`Failed to fetch ONNX model: ${res.status}`);
-      const buffer = await res.arrayBuffer();
-      _session = await _ort.InferenceSession.create(buffer);
+      // Fetch ONNX model
+      if (!_session) {
+        const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/onnx"));
+        if (!res.ok) throw new Error(`Failed to fetch ONNX model: ${res.status}`);
+        const buffer = await res.arrayBuffer();
+        _session = await _ort.InferenceSession.create(buffer);
+      }
+    } catch (err) {
+      // Reset so next attempt can retry instead of returning the rejected promise
+      _initPromise = null;
+      throw err;
     }
   })();
 

@@ -207,6 +207,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
   // Browser scorer state
   const [browserState, setBrowserState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [browserScore, setBrowserScore] = useState<BrowserScoreResult | null>(null);
+  const [browserError, setBrowserError] = useState<string | null>(null);
 
   // Generate ZK proof
   const handleGenerateProof = useCallback(async () => {
@@ -283,6 +284,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
   const handleBrowserScore = useCallback(async () => {
     if (browserState === "loading") return;
     setBrowserState("loading");
+    setBrowserError(null);
     try {
       const { scoreCreditInBrowser } = await import("@/lib/credit/browser-scorer");
       const result = await scoreCreditInBrowser({
@@ -300,6 +302,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
       setBrowserState("done");
     } catch (err) {
       console.error("Browser scoring failed:", err);
+      setBrowserError(err instanceof Error ? err.message : String(err));
       setBrowserState("error");
     }
   }, [data, browserState]);
@@ -469,7 +472,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
               ) : (
                 <Cpu className="h-3.5 w-3.5" />
               )}
-              {browserState === "loading" ? "Scoring in browser…" : browserState === "done" ? "Re-score in Browser" : "Score in Browser"}
+              {browserState === "loading" ? "Scoring in browser…" : browserState === "done" ? "Re-score in Browser" : browserState === "error" ? "Retry Browser Score" : "Score in Browser"}
             </button>
           </div>
 
@@ -477,6 +480,13 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
           {proofState === "error" && proofError && (
             <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-2 text-[10px] text-rose-400">
               Proof error: {proofError}
+            </div>
+          )}
+
+          {/* Browser scoring error */}
+          {browserState === "error" && browserError && (
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-2 text-[10px] text-rose-400">
+              Browser scoring error: {browserError}
             </div>
           )}
 
