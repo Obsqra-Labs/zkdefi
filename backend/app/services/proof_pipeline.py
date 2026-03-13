@@ -440,7 +440,7 @@ class ProofPipeline:
                     "success": True,
                     "mode": verified_mode,
                     "verified_on_chain": True,
-                    "tx_hash": None,
+                    "tx_hash": verify.get("tx_hash"),
                     "error": None,
                     "block": verify.get("block"),
                 }
