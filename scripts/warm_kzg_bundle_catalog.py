@@ -308,15 +308,36 @@ def _is_ezkl_proving_model(model_dir: Path) -> bool:
     return all((model_dir / name).exists() for name in required)
 
 
+def _missing_ezkl_artifacts(model_dir: Path) -> list[str]:
+    required = ("vk.key", "settings.json", "kzg.srs")
+    return [name for name in required if not (model_dir / name).exists()]
+
+
 async def _run(args: argparse.Namespace) -> int:
     models_root = BACKEND_ROOT / "app" / "data" / "ezkl_models"
     if not models_root.exists():
         print(f"models root missing: {models_root}")
         return 2
 
-    selected = _model_dirs(models_root, args.model)
+    catalog_dirs = _model_dirs(models_root, args.model)
+    selected = list(catalog_dirs)
+    excluded_rows: list[dict[str, Any]] = []
     if not args.include_non_ezkl:
-        selected = [p for p in selected if _is_ezkl_proving_model(p)]
+        proving_ready: list[Path] = []
+        for model_dir in selected:
+            missing = _missing_ezkl_artifacts(model_dir)
+            if missing:
+                excluded_rows.append(
+                    {
+                        "model": model_dir.name,
+                        "reason": "missing_ezkl_artifacts",
+                        "missing_artifacts": missing,
+                    }
+                )
+                continue
+            proving_ready.append(model_dir)
+        selected = proving_ready
+    proving_ready_catalog_total = len(selected)
     if args.limit and args.limit > 0:
         selected = selected[: args.limit]
     if not selected:
@@ -416,6 +437,11 @@ async def _run(args: argparse.Namespace) -> int:
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "duration_ms": int((time.monotonic() - started) * 1000),
+        "catalog_models_total": len(catalog_dirs),
+        "proving_ready_models_catalog_total": proving_ready_catalog_total,
+        "excluded_models_total": len(excluded_rows),
+        "excluded_models": excluded_rows,
+        "coverage_scope": "proving_ready_catalog" if not args.include_non_ezkl else "full_catalog",
         "models_total": len(rows),
         "models_verified": sum(1 for r in rows if r.get("ezkl_verified")),
         "models_with_bundle": sum(1 for r in rows if r.get("kzg_bundle_present")),
@@ -579,6 +605,9 @@ async def _run(args: argparse.Namespace) -> int:
 
     snapshot = {
         "generated_at": report.get("generated_at"),
+        "catalog_models_total": report.get("catalog_models_total"),
+        "proving_ready_models_catalog_total": report.get("proving_ready_models_catalog_total"),
+        "excluded_models_total": report.get("excluded_models_total"),
         "models_total": models_total,
         "models_verified": models_verified,
         "models_with_bundle": models_with_bundle,
@@ -610,6 +639,12 @@ async def _run(args: argparse.Namespace) -> int:
         f"native_kzg_l2_receipts={len(native_kzg_l2_receipt_models)} "
         f"mirrored={len(native_kzg_mirrored_models)} "
         f"failed={report['models_failed']}"
+    )
+    print(
+        f"catalog: total={report['catalog_models_total']} "
+        f"proving_ready={report['proving_ready_models_catalog_total']} "
+        f"excluded_non_ezkl={report['excluded_models_total']} "
+        f"scope={report['coverage_scope']}"
     )
     print(
         "cadence:",

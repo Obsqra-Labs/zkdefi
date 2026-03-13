@@ -737,6 +737,11 @@ class ShowcaseRunner:
             "artifact_path": _relative_to_project(report_file),
             "artifact_found": report_file.exists(),
             "generated_at": report.get("generated_at"),
+            "catalog_models_total": _safe_int(report.get("catalog_models_total"), 0),
+            "proving_ready_models_catalog_total": _safe_int(report.get("proving_ready_models_catalog_total"), 0),
+            "excluded_models_total": _safe_int(report.get("excluded_models_total"), 0),
+            "excluded_models": report.get("excluded_models") if isinstance(report.get("excluded_models"), list) else [],
+            "coverage_scope": report.get("coverage_scope"),
             "models_total": models_total,
             "models_verified": models_verified,
             "models_with_bundle": models_with_bundle,
@@ -3212,6 +3217,9 @@ class ShowcaseRunner:
                 pathc_live_receipt_raw = {}
         pathb_warm_gate = self._read_pathb_warm_gate()
         pathb_warm_report_file = Path(str(pathb_warm_gate.get("artifact_file") or PATHB_WARM_REPORT_FILE))
+        pathb_catalog_models_total = _safe_int(pathb_warm_gate.get("catalog_models_total"), 0)
+        pathb_proving_ready_catalog_total = _safe_int(pathb_warm_gate.get("proving_ready_models_catalog_total"), 0)
+        pathb_excluded_models_total = _safe_int(pathb_warm_gate.get("excluded_models_total"), 0)
         pathb_warm_models_total = _safe_int(pathb_warm_gate.get("models_total"), 0)
         pathb_warm_models_bundle = _safe_int(pathb_warm_gate.get("models_with_bundle"), 0)
         pathb_warm_models_verified = _safe_int(pathb_warm_gate.get("models_verified"), 0)
@@ -3446,6 +3454,9 @@ class ShowcaseRunner:
                 "parent_phase4_route": parent_phase4_route,
                 "parent_phase4_strict_kzg": parent_phase4_strict_kzg,
                 "path_b_warm_report_found": pathb_warm_report_file.exists(),
+                "path_b_catalog_models_total": pathb_catalog_models_total,
+                "path_b_proving_ready_catalog_total": pathb_proving_ready_catalog_total,
+                "path_b_excluded_models_total": pathb_excluded_models_total,
                 "path_b_warm_models_total": pathb_warm_models_total,
                 "path_b_warm_models_verified": pathb_warm_models_verified,
                 "path_b_warm_models_with_bundle": pathb_warm_models_bundle,
@@ -3529,6 +3540,11 @@ class ShowcaseRunner:
                 "artifact_path": _relative_to_project(pathb_warm_report_file),
                 "artifact_found": pathb_warm_report_file.exists(),
                 "generated_at": pathb_warm_gate.get("generated_at"),
+                "catalog_models_total": pathb_catalog_models_total,
+                "proving_ready_models_catalog_total": pathb_proving_ready_catalog_total,
+                "excluded_models_total": pathb_excluded_models_total,
+                "excluded_models": pathb_warm_gate.get("excluded_models") or [],
+                "coverage_scope": pathb_warm_gate.get("coverage_scope"),
                 "models_total": pathb_warm_models_total,
                 "models_verified": pathb_warm_models_verified,
                 "models_with_bundle": pathb_warm_models_bundle,
@@ -5291,6 +5307,10 @@ class ShowcaseRunner:
             ["Artifact path", f"<code>{escape(str(path_b_warm.get('artifact_path') or '-'))}</code>"],
             ["Artifact present", "<span class=\"pass\">yes</span>" if path_b_warm.get("artifact_found") else "<span class=\"fail\">no</span>"],
             ["Generated at", escape(str(path_b_warm.get("generated_at") or "-"))],
+            ["Coverage scope", escape(str(path_b_warm.get("coverage_scope") or "-"))],
+            ["Catalog models", escape(str(path_b_warm.get("catalog_models_total") or "-"))],
+            ["Proving-ready catalog models", escape(str(path_b_warm.get("proving_ready_models_catalog_total") or "-"))],
+            ["Excluded non-EZKL models", escape(str(path_b_warm.get("excluded_models_total") or "-"))],
             ["Models total", escape(str(path_b_warm.get("models_total") or "-"))],
             ["Models verified", escape(str(path_b_warm.get("models_verified") or "-"))],
             ["Models with bundle", escape(str(path_b_warm.get("models_with_bundle") or "-"))],
@@ -5350,6 +5370,20 @@ class ShowcaseRunner:
             [
                 "Regressed native_kzg models (daily baseline)",
                 escape(_clip_text(", ".join(path_b_warm.get("daily_regressed_native_kzg_models") or []), 180) or "-"),
+            ],
+            [
+                "Excluded model details",
+                escape(
+                    _clip_text(
+                        ", ".join(
+                            f"{str(item.get('model') or '-')}: missing {','.join(item.get('missing_artifacts') or [])}"
+                            for item in (path_b_warm.get("excluded_models") or [])
+                            if isinstance(item, dict)
+                        ),
+                        220,
+                    )
+                    or "-"
+                ),
             ],
         ]
         path_b_onchain_rows = []
