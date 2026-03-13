@@ -457,12 +457,17 @@ class ProofPipeline:
                 }
 
             if verify_error_l.startswith("mirror_"):
+                mirror_mode = "l2_mirror_failed"
+                if "underfunded" in verify_error_l:
+                    mirror_mode = "l2_mirror_underfunded"
+                elif "nonce_conflict" in verify_error_l:
+                    mirror_mode = "l2_mirror_nonce_conflict"
                 return {
                     "attempted": True,
                     "success": False,
-                    "mode": "l2_mirror_failed",
+                    "mode": mirror_mode,
                     "verified_on_chain": False,
-                    "tx_hash": None,
+                    "tx_hash": verify.get("tx_hash"),
                     "error": verify_error or "L3->L2 mirror registration failed",
                     "block": verify.get("block"),
                 }
@@ -1164,6 +1169,8 @@ class ProofPipeline:
                         result["verification"]["mirror_status"] = "mirrored"
                     elif l2_mode == "l2_registry_unavailable":
                         result["verification"]["mirror_status"] = "mirror_unavailable"
+                    elif l2_mode == "l2_mirror_underfunded":
+                        result["verification"]["mirror_status"] = "mirror_underfunded"
                     else:
                         result["verification"]["mirror_status"] = "mirror_failed"
 

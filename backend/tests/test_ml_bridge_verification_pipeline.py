@@ -122,6 +122,48 @@ async def test_dual_allows_mirror_failure_when_l3_primary_succeeds(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_dual_marks_underfunded_mirror_without_blocking_l3(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "groth16_garaga",
+            "tx_hash": "0xabc",
+            "error": None,
+        }
+
+    async def fake_l2(**kwargs):
+        return {
+            "attempted": True,
+            "success": False,
+            "verified_on_chain": False,
+            "mode": "l2_mirror_underfunded",
+            "tx_hash": "0xdead",
+            "error": "mirror_register_underfunded",
+        }
+
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+    monkeypatch.setattr(pipeline, "_verify_l2_bridge", fake_l2)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="dual",
+    )
+
+    assert result["can_execute"] is True
+    assert result["verification"]["primary_authority"] == "l3"
+    assert result["verification"]["mirror_status"] == "mirror_underfunded"
+    assert result["verification"]["l2"]["tx_hash"] == "0xdead"
+
+
+@pytest.mark.asyncio
 async def test_l2_strict_blocks_when_unverified(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)

@@ -409,6 +409,7 @@ class ShowcaseRunner:
         emit_report_force: bool,
         skip_heavy_stark: bool,
         skip_ai_marketplace: bool,
+        bridge_only: bool,
     ):
         self.wallet = _normalize_address(wallet)
         self.client = HttpClient(base_url=base_url, timeout_seconds=timeout_seconds)
@@ -422,6 +423,7 @@ class ShowcaseRunner:
         self.emit_report_force = emit_report_force
         self.skip_heavy_stark = skip_heavy_stark
         self.skip_ai_marketplace = skip_ai_marketplace
+        self.bridge_only = bridge_only
         self.env_from_file = _load_env_file(ENV_FILE)
 
         self.results: list[StepResult] = []
@@ -678,17 +680,24 @@ class ShowcaseRunner:
         }
 
     def _final_stage_report_readiness(self) -> tuple[bool, list[str]]:
-        required_steps = [
-            "Open-source ModelBridge + dual-proof architecture",
-            "ModelBridge live l3 verify receipt",
-            "ModelBridgeHeavy live l3 verify receipt",
-            "StarkHeavyReputation STARK flow",
-            "Recursive EZKL paths (Phase 2/3/4) status",
-        ]
+        if self.bridge_only:
+            required_steps = [
+                "Open-source ModelBridge + dual-proof architecture",
+                "ModelBridge live l3 verify receipt",
+                "Recursive EZKL paths (Phase 2/3/4) status",
+            ]
+        else:
+            required_steps = [
+                "Open-source ModelBridge + dual-proof architecture",
+                "ModelBridge live l3 verify receipt",
+                "ModelBridgeHeavy live l3 verify receipt",
+                "StarkHeavyReputation STARK flow",
+                "Recursive EZKL paths (Phase 2/3/4) status",
+            ]
         missing = [name for name in required_steps if not self._step_ok(name)]
         ready = (
             bool(self.strict_bridge)
-            and not self.fast_mode
+            and (self.bridge_only or not self.fast_mode)
             and not missing
             and self.core_total > 0
             and self.core_score >= self.core_total
@@ -705,6 +714,7 @@ class ShowcaseRunner:
         print(f"emit_report={self.emit_report}")
         print(f"emit_report_force={self.emit_report_force}")
         print(f"fast_mode={self.fast_mode}")
+        print(f"bridge_only={self.bridge_only}")
         print(f"skip_heavy_stark={self.skip_heavy_stark}")
         print(f"skip_ai_marketplace={self.skip_ai_marketplace}")
         print(f"strict_bridge_max_attempts={_safe_int(os.getenv('SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS'), 0) or 'default'}")
@@ -712,46 +722,57 @@ class ShowcaseRunner:
 
         self.step_health()
         self.step_manifest()
-        self.step_agent_create_execute()
-        self.step_deployment_proof_and_calldata()
-        self.step_full_privacy_commitment()
-        self.step_privacy_and_governance_showcase()
-        self.step_private_prediction_market_forecaster()
-        self.step_policy_controls()
-        self.step_onchain_read_via_backend()
-        self.step_rpc_contract_presence()
-        self.step_receipts_view()
-        if self.fast_mode:
+        if self.bridge_only:
+            self.step_rpc_contract_presence()
+            self.step_receipts_view()
+            self.step_bridge_and_dual_architecture()
+            self.step_recursive_ezkl_paths_status()
             self._record(
-                "Fast mode: skipped heavy proof lanes",
+                "Bridge-only mode",
                 True,
-                skipped_steps="optional_proofs,bridge_dual_architecture,heavy_stark,ai_marketplace",
+                scope="health, manifest, rpc, receipts, bridge, recursive_paths",
             )
         else:
-            # Always prioritize bridge lanes before optional proof checks so rate limits
-            # do not consume ModelBridge budget first.
-            self.step_bridge_and_dual_architecture()
-            self.step_optional_advanced_proofs()
-        self.step_recursive_ezkl_paths_status()
-        if not self.fast_mode:
-            if self.skip_heavy_stark:
+            self.step_agent_create_execute()
+            self.step_deployment_proof_and_calldata()
+            self.step_full_privacy_commitment()
+            self.step_privacy_and_governance_showcase()
+            self.step_private_prediction_market_forecaster()
+            self.step_policy_controls()
+            self.step_onchain_read_via_backend()
+            self.step_rpc_contract_presence()
+            self.step_receipts_view()
+            if self.fast_mode:
                 self._record(
-                    "StarkHeavyReputation STARK flow",
+                    "Fast mode: skipped heavy proof lanes",
                     True,
-                    skipped="--skip-heavy-stark",
+                    skipped_steps="optional_proofs,bridge_dual_architecture,heavy_stark,ai_marketplace",
                 )
             else:
-                self.step_heavy_stark_reputation()
-        self.step_circuit_inventory_deep_dive()
-        if not self.fast_mode:
-            if self.skip_ai_marketplace:
-                self._record(
-                    "Opportunity advisory + badge flow",
-                    True,
-                    skipped="--skip-ai-marketplace",
-                )
-            else:
-                self.step_ai_marketplace_and_badges()
+                # Always prioritize bridge lanes before optional proof checks so rate limits
+                # do not consume ModelBridge budget first.
+                self.step_bridge_and_dual_architecture()
+                self.step_optional_advanced_proofs()
+            self.step_recursive_ezkl_paths_status()
+            if not self.fast_mode:
+                if self.skip_heavy_stark:
+                    self._record(
+                        "StarkHeavyReputation STARK flow",
+                        True,
+                        skipped="--skip-heavy-stark",
+                    )
+                else:
+                    self.step_heavy_stark_reputation()
+            self.step_circuit_inventory_deep_dive()
+            if not self.fast_mode:
+                if self.skip_ai_marketplace:
+                    self._record(
+                        "Opportunity advisory + badge flow",
+                        True,
+                        skipped="--skip-ai-marketplace",
+                    )
+                else:
+                    self.step_ai_marketplace_and_badges()
 
         print("")
         exit_code = self.print_claim_matrix()
@@ -2768,9 +2789,10 @@ class ShowcaseRunner:
 
         if self.strict_bridge:
             mirror_semantics_ok = (
-                dual_mirror_status in {"mirrored", "mirror_unavailable"}
+                dual_mirror_status in {"mirrored", "mirror_unavailable", "mirror_underfunded"}
                 or (dual_mirror_status == "mirror_failed" and dual_l2_mode == "l2_registry_unavailable")
                 or (dual_mirror_status == "mirror_failed" and dual_l2_mode == "l2_mirror_failed")
+                or (dual_mirror_status == "mirror_failed" and dual_l2_mode == "l2_mirror_underfunded")
             )
             runtime_ok = (
                 l3_status == 200
@@ -4354,26 +4376,37 @@ class ShowcaseRunner:
             match = next((r for r in self.results if r.name == step_name), None)
             return bool(match and match.ok)
 
-        claims: list[tuple[str, bool | None]] = [
-            ("Backend service is live", passed("Backend health")),
-            ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
-            (
-                "Open-source ModelBridge + dual-proof lanes are demonstrable",
-                None if self.fast_mode else passed("Open-source ModelBridge + dual-proof architecture"),
-            ),
-            (
-                "ModelBridge live l3 verify emits receipt evidence",
-                None if self.fast_mode else passed("ModelBridge live l3 verify receipt"),
-            ),
-            ("Agent composition + execution works", passed("Agent compose + execute")),
-            ("Proof-backed deployment planning works", passed("Deployment proof + on-chain calldata plan")),
-            ("Privacy commitment rails work", passed("Full privacy commitment generation")),
-            ("Private prediction market primitive is live", passed("Private prediction market primitive (snapshot forecaster)")),
-            ("Policy controls are API-operable", passed("Policy controls (vault constraints)")),
-            ("On-chain state is queryable", passed("On-chain read via backend")),
-            ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
-            ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
-        ]
+        if self.bridge_only:
+            claims: list[tuple[str, bool | None]] = [
+                ("Backend service is live", passed("Backend health")),
+                ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
+                ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
+                ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
+                ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
+                ("ModelBridge live l3 verify emits receipt evidence", passed("ModelBridge live l3 verify receipt")),
+                ("Recursive multichain proving paths are introspectable", passed("Recursive EZKL paths (Phase 2/3/4) status")),
+            ]
+        else:
+            claims = [
+                ("Backend service is live", passed("Backend health")),
+                ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
+                (
+                    "Open-source ModelBridge + dual-proof lanes are demonstrable",
+                    None if self.fast_mode else passed("Open-source ModelBridge + dual-proof architecture"),
+                ),
+                (
+                    "ModelBridge live l3 verify emits receipt evidence",
+                    None if self.fast_mode else passed("ModelBridge live l3 verify receipt"),
+                ),
+                ("Agent composition + execution works", passed("Agent compose + execute")),
+                ("Proof-backed deployment planning works", passed("Deployment proof + on-chain calldata plan")),
+                ("Privacy commitment rails work", passed("Full privacy commitment generation")),
+                ("Private prediction market primitive is live", passed("Private prediction market primitive (snapshot forecaster)")),
+                ("Policy controls are API-operable", passed("Policy controls (vault constraints)")),
+                ("On-chain state is queryable", passed("On-chain read via backend")),
+                ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
+                ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
+            ]
 
         self.claims = []
         score = 0
@@ -7023,6 +7056,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip opportunity advisory + badge flow checks.",
     )
+    parser.add_argument(
+        "--bridge-only",
+        action="store_true",
+        help="Run only bridge-critical showcase checks and claim matrix.",
+    )
     return parser.parse_args()
 
 
@@ -7041,6 +7079,7 @@ def main() -> int:
         emit_report_force=bool(args.emit_report_force),
         skip_heavy_stark=bool(args.skip_heavy_stark),
         skip_ai_marketplace=bool(args.skip_ai_marketplace),
+        bridge_only=bool(args.bridge_only),
     )
     return runner.run()
 

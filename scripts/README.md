@@ -46,6 +46,7 @@ Optional flags:
 - `--judge-mode` (compact terminal output for live judging)
 - `--fast` (skip heaviest proof/advisory checks for quicker routine validation)
 - `--strict-bridge` (requires strict `200` ModelBridge + dual-lane evidence; no transient pass)
+- `--bridge-only` (runs only bridge-critical checks: health, manifest, RPC presence, receipt visibility, ModelBridge lanes, recursive path status)
 - `--skip-heavy-stark` (skip heavy STARK reputation call while keeping strict bridge checks)
 - `--skip-ai-marketplace` (skip advisory + badge proof section)
 - `--emit-report` (opt-in HTML/JSON artifacts; default is skip for faster runs)
@@ -181,6 +182,7 @@ The HTML report includes:
 - Top-level executive cards to reduce initial scroll/load and highlight immediate state (`core claims`, `ModelBridge`, `Native KZG strict`, `recursive stages`)
 - Core claim matrix and step-by-step terminal evidence
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
+- Dual-lane mirror status now distinguishes `mirror_underfunded` from generic mirror failure, so low Sepolia wallet balance is reported as an infra constraint rather than a fake protocol error
 - Dedicated **Lane Health + Degradation Notes** matrix so any unstable lane (for example Noir calldata availability) is explicit in the report
 - Dedicated **Bridge Benchmark Receipts** compact table: per-lane HTTP/mode/backend/verified flag + duration + fee + gas + explorer tx
 - Dedicated **Rolling Stability + Gas Trend** table from `artifacts/hackathon_showcase/history.jsonl` (verified-rate + p50/p95 latency/fee by lane)
