@@ -186,6 +186,7 @@ Daily build env knobs:
 - `SHOWCASE_WARM_EXECUTION_CHAIN=dual` (default in daily build)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
 - `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
+- `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)
 
 ### Hackathon showcase artifacts
 
