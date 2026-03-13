@@ -774,6 +774,9 @@ class ShowcaseRunner:
             "native_kzg_onchain_l3_receipt_models": l3_receipt_models,
             "native_kzg_onchain_l2_receipt_models": l2_receipt_models,
             "native_kzg_onchain_mirrored_models": mirrored_models,
+            "native_kzg_onchain_strict_abi_models": _safe_int(onchain.get("strict_abi_models"), 0),
+            "native_kzg_onchain_legacy_abi_models": _safe_int(onchain.get("legacy_abi_models"), 0),
+            "native_kzg_onchain_strict_binding_models": _safe_int(onchain.get("strict_binding_models"), 0),
             "native_kzg_onchain_attempted_model_names": onchain.get("attempted_model_names") or [],
             "native_kzg_onchain_verified_model_names": onchain.get("verified_model_names") or [],
             "native_kzg_onchain_receipt_model_names": (
@@ -783,6 +786,9 @@ class ShowcaseRunner:
             ),
             "native_kzg_onchain_l2_receipt_model_names": onchain.get("l2_receipt_model_names") or [],
             "native_kzg_onchain_mirrored_model_names": onchain.get("mirrored_model_names") or [],
+            "native_kzg_onchain_strict_abi_model_names": onchain.get("strict_abi_model_names") or [],
+            "native_kzg_onchain_legacy_abi_model_names": onchain.get("legacy_abi_model_names") or [],
+            "native_kzg_onchain_strict_binding_model_names": onchain.get("strict_binding_model_names") or [],
             "native_kzg_onchain_rows": onchain_rows,
             "daily_new_native_kzg_models": daily_new_native_kzg,
             "daily_regressed_native_kzg_models": daily_regressed_native_kzg,
@@ -2015,6 +2021,8 @@ class ShowcaseRunner:
                 "attempted": l3.get("attempted"),
                 "success": l3.get("success"),
                 "mode": l3.get("mode"),
+                "abi_used": l3.get("abi_used"),
+                "verifier_state": l3.get("verifier_state") if isinstance(l3.get("verifier_state"), dict) else None,
                 "verified_on_chain": l3.get("verified_on_chain"),
                 "tx_hash": l3_tx,
                 "tx_url": _starknet_tx_url(str(l3_tx), self._madara_rpc_url) if l3_tx else None,
@@ -2424,7 +2432,7 @@ class ShowcaseRunner:
                 "model_name": selected_model,
                 "input_data": _seeded_probe_matrix(f"{probe_seed}:{lane}:input", 4),
                 "expected_model_hash": 0,
-                "output_lower_bound": 0,
+                "output_lower_bound": -10000,
                 "output_upper_bound": 10000,
                 "execution_chain": execution_chain,
                 "proof_mode": 1,
@@ -2769,6 +2777,10 @@ class ShowcaseRunner:
         native_kzg_tx_hash = native_kzg_l3_lane.get("tx_hash") or best_native_attempt.get("l3_tx_hash")
         native_kzg_tx_url = native_kzg_l3_lane.get("tx_url") or best_native_attempt.get("l3_tx_url")
         native_kzg_mode = native_kzg_l3_lane.get("mode") or best_native_attempt.get("l3_mode")
+        native_kzg_abi_used = native_kzg_l3_lane.get("abi_used") or best_native_attempt.get("l3_abi_used")
+        native_kzg_verifier_state = native_kzg_l3_lane.get("verifier_state")
+        if not isinstance(native_kzg_verifier_state, dict):
+            native_kzg_verifier_state = {}
         native_kzg_success = (
             native_kzg_l3_lane.get("success")
             if native_kzg_l3_lane.get("success") is not None
@@ -2807,6 +2819,8 @@ class ShowcaseRunner:
             "l3_attempted": native_kzg_l3_lane.get("attempted"),
             "l3_success": native_kzg_success,
             "l3_mode": native_kzg_mode,
+            "l3_abi_used": native_kzg_abi_used,
+            "l3_verifier_state": native_kzg_verifier_state,
             "l3_verified_on_chain": native_kzg_verified_on_chain,
             "l3_tx_hash": native_kzg_tx_hash,
             "l3_tx_url": native_kzg_tx_url,
@@ -5342,6 +5356,14 @@ class ShowcaseRunner:
                 ),
             ],
             [
+                "Native KZG strict ABI / legacy fallback / strict binding",
+                escape(
+                    f"{path_b_warm.get('native_kzg_onchain_strict_abi_models') or 0}/"
+                    f"{path_b_warm.get('native_kzg_onchain_legacy_abi_models') or 0}/"
+                    f"{path_b_warm.get('native_kzg_onchain_strict_binding_models') or 0}"
+                ),
+            ],
+            [
                 "Daily new bundles / regressions",
                 escape(
                     f"{len(path_b_warm.get('daily_new_bundle_models') or [])}/"
@@ -5370,6 +5392,18 @@ class ShowcaseRunner:
             [
                 "Regressed native_kzg models (daily baseline)",
                 escape(_clip_text(", ".join(path_b_warm.get("daily_regressed_native_kzg_models") or []), 180) or "-"),
+            ],
+            [
+                "Strict ABI models",
+                escape(_clip_text(", ".join(path_b_warm.get("native_kzg_onchain_strict_abi_model_names") or []), 180) or "-"),
+            ],
+            [
+                "Legacy fallback models",
+                escape(_clip_text(", ".join(path_b_warm.get("native_kzg_onchain_legacy_abi_model_names") or []), 180) or "-"),
+            ],
+            [
+                "Strict binding observed models",
+                escape(_clip_text(", ".join(path_b_warm.get("native_kzg_onchain_strict_binding_model_names") or []), 180) or "-"),
             ],
             [
                 "Excluded model details",
@@ -5419,6 +5453,8 @@ class ShowcaseRunner:
                     escape(str(row.get("execution_chain") or "-")),
                     escape(str(row.get("mirror_status") or "-")),
                     escape(str(row.get("l3_mode") or "-")),
+                    escape(str(row.get("l3_abi_used") or "-")),
+                    "<span class=\"pass\">true</span>" if row.get("l3_strict_binding_observed") else "<span class=\"warn\">false</span>",
                     escape(str(row.get("l2_mode") or "-")),
                     escape(str(row.get("bridge_backend") or "-")),
                     l3_tx_html,
@@ -5748,6 +5784,13 @@ class ShowcaseRunner:
             ["L3 attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
             ["L3 success", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
             ["L3 verifier mode", escape(str(native_kzg_live_receipt.get("l3_mode") or "-"))],
+            ["L3 ABI used", escape(str(native_kzg_live_receipt.get("l3_abi_used") or "-"))],
+            [
+                "L3 strict binding observed",
+                "<span class=\"pass\">true</span>"
+                if ((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("strict_binding_observed"))
+                else "<span class=\"warn\">false</span>",
+            ],
             ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
             ["L3 actual fee", escape(str(native_kzg_live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(native_kzg_live_receipt.get("l3_execution_steps") or "-"))],
@@ -5757,6 +5800,10 @@ class ShowcaseRunner:
             ["L3 tx hash", native_kzg_live_receipt_tx_html],
             ["Can execute", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
             ["Mirror status", escape(str(native_kzg_live_receipt.get("mirror_status") or "-"))],
+            ["Verifier expected fact", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("expected_fact_hash") or "-"), 14))],
+            ["Verifier proof hash", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("last_proof_hash") or "-"), 14))],
+            ["Verifier payload hash", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("last_payload_hash") or "-"), 14))],
+            ["Verifier marker", escape(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("last_marker_name") or "-"))],
             ["Trust mode", escape(str(native_kzg_live_receipt.get("trust_mode") or "-"))],
             ["Failure reason", escape(_clip_text(native_kzg_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(native_kzg_live_receipt.get("generated_at") or "-"))],
@@ -7182,7 +7229,7 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], path_b_warm_rows)}
       <h3>Path B Native KZG Receipt Matrix</h3>
       <p class="meta">Optional per-model `EzklNativeKzg` probe layered on top of the warm report so catalog coverage can be cross-checked against actual on-chain receipt generation, including dual-lane mirror evidence when the probe runs in `dual` mode.</p>
-      {self._html_table(["Model", "HTTP", "Verified", "Can Execute", "Exec Chain", "Mirror", "L3 Mode", "L2 Mode", "Backend", "L3 Tx", "L2 Tx", "Failure"], path_b_onchain_rows)}
+      {self._html_table(["Model", "HTTP", "Verified", "Can Execute", "Exec Chain", "Mirror", "L3 Mode", "L3 ABI", "Strict Bind", "L2 Mode", "Backend", "L3 Tx", "L2 Tx", "Failure"], path_b_onchain_rows)}
       <h3>Code Wiring Signals</h3>
       {self._html_table(["Check", "Status"], recursive_signal_rows)}
       <h3>Environment Readiness (Parent Backend)</h3>

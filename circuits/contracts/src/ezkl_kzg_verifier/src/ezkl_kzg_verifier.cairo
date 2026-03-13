@@ -15,12 +15,12 @@ pub trait IEzklKzgVerifier<TContractState> {
 
 #[starknet::contract]
 mod EzklKzgVerifier {
-    use core::array::SpanTrait;
+    use core::array::{ArrayTrait, SpanTrait};
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
     use core::serde::Serde;
     use garaga::apps::noir::{G2_POINT_KZG_1, G2_POINT_KZG_2};
-    use garaga::definitions::{G1G2Pair, G1Point};
+    use garaga::definitions::{G1G2Pair, G1Point, G2Line, G2Point, u288};
     use garaga::pairing_check::{MPCheckHintBN254, multi_pairing_check_bn254_2P_2F};
     use garaga_verifier_noir_ezkl_bridge::honk_verifier_constants::precomputed_lines;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
@@ -28,11 +28,16 @@ mod EzklKzgVerifier {
     const EZKL_KZG_V1_MARKER: felt252 = 0x657a6b6c5f6b7a675f7631;
     const PLACEHOLDER_MARKER: felt252 = 0x6e61746976655f6b7a675f706c616365686f6c6465725f7631;
     const KZG_MPCHECK_V1_MARKER: felt252 = 0x6b7a675f6d70636865636b5f7631;
+    const KZG_MPCHECK_V2_MARKER: felt252 = 0x6b7a675f6d70636865636b5f7632;
+    const KZG_MPCHECK_V3_MARKER: felt252 = 0x6b7a675f6d70636865636b5f7633;
     const HEADER_LEN: usize = 8;
     const TRAILER_G1_FELTS: usize = 16;
+    const TRAILER_G2_FELTS: usize = 32;
+    const TRAILER_G2_LINE_FELTS_PER_LINE: usize = 12;
     const MAX_PUBLIC_INPUTS: usize = 4096;
     const MAX_OUTPUTS: usize = 4096;
     const MAX_PROOF_BLOB_FELTS: usize = 32768;
+    const MAX_PRECOMPUTED_LINES: usize = 512;
 
     #[storage]
     struct Storage {
@@ -56,6 +61,55 @@ mod EzklKzgVerifier {
         payload_hash: felt252,
         marker: felt252,
         accepted: bool,
+    }
+
+    fn deserialize_g2_line_u288(ref serialized: Span<felt252>) -> Option<G2Line<u288>> {
+        let r0a0 = match Serde::<u288>::deserialize(ref serialized) {
+            Option::Some(v) => v,
+            Option::None => {
+                return Option::None;
+            },
+        };
+        let r0a1 = match Serde::<u288>::deserialize(ref serialized) {
+            Option::Some(v) => v,
+            Option::None => {
+                return Option::None;
+            },
+        };
+        let r1a0 = match Serde::<u288>::deserialize(ref serialized) {
+            Option::Some(v) => v,
+            Option::None => {
+                return Option::None;
+            },
+        };
+        let r1a1 = match Serde::<u288>::deserialize(ref serialized) {
+            Option::Some(v) => v,
+            Option::None => {
+                return Option::None;
+            },
+        };
+        Option::Some(G2Line { r0a0, r0a1, r1a0, r1a1 })
+    }
+
+    fn deserialize_g2_lines_u288(
+        ref serialized: Span<felt252>, line_count: usize,
+    ) -> Option<Array<G2Line<u288>>> {
+        let mut out: Array<G2Line<u288>> = array![];
+        let mut remaining = line_count;
+        loop {
+            if remaining == 0 {
+                break;
+            }
+            let line = match deserialize_g2_line_u288(ref serialized) {
+                Option::Some(v) => v,
+                Option::None => {
+                    return Option::None;
+                },
+            };
+            out.append(line);
+            remaining -= 1;
+        };
+        Option::Some(out)
     }
 
     fn validate_payload(
@@ -121,13 +175,27 @@ mod EzklKzgVerifier {
         }
 
         // Cryptographic trailer:
-        // [kzg_mpcheck_v1 marker][pair0_g1 (8 felts)][pair1_g1 (8 felts)][hint_len][hint_felts...]
+        // v1: [kzg_mpcheck_v1 marker][pair0_g1][pair1_g1][hint_len][hint_felts...]
+        // v2: [kzg_mpcheck_v2 marker][pair0_g1][pair1_g1][g2_pair0][g2_pair1][hint_len][hint_felts...]
+        // v3: [kzg_mpcheck_v3 marker][pair0_g1][pair1_g1][g2_pair0][g2_pair1]
+        //     [line_count][line_felts...][hint_len][hint_felts...]
         let mut trailer = payload.slice(base_len, payload_len - base_len);
         let trailer_marker = *trailer.pop_front().unwrap();
-        if trailer_marker != KZG_MPCHECK_V1_MARKER {
+        let uses_dynamic_g2 =
+            trailer_marker == KZG_MPCHECK_V2_MARKER || trailer_marker == KZG_MPCHECK_V3_MARKER;
+        let uses_dynamic_lines = trailer_marker == KZG_MPCHECK_V3_MARKER;
+        if trailer_marker != KZG_MPCHECK_V1_MARKER
+            && trailer_marker != KZG_MPCHECK_V2_MARKER
+            && trailer_marker != KZG_MPCHECK_V3_MARKER {
             return (false, marker, payload_hash, proof_hash);
         }
-        if trailer.len() < (TRAILER_G1_FELTS + 1) {
+        let min_trailer_felts = if uses_dynamic_g2 {
+            let line_header_felts = if uses_dynamic_lines { 1 } else { 0 };
+            TRAILER_G1_FELTS + TRAILER_G2_FELTS + line_header_felts + 1
+        } else {
+            TRAILER_G1_FELTS + 1
+        };
+        if trailer.len() < min_trailer_felts {
             return (false, marker, payload_hash, proof_hash);
         }
 
@@ -147,12 +215,59 @@ mod EzklKzgVerifier {
             return (false, marker, payload_hash, proof_hash);
         }
 
-        let hint_len: usize = match (*trailer.pop_front().unwrap()).try_into() {
-            Option::Some(v) => v,
-            Option::None => {
-                return (false, marker, payload_hash, proof_hash);
-            },
+        let (pair0_kzg, pair1_kzg) = if uses_dynamic_g2 {
+            let g2_pair0 = match Serde::<G2Point>::deserialize(ref trailer) {
+                Option::Some(v) => v,
+                Option::None => {
+                    return (false, marker, payload_hash, proof_hash);
+                },
+            };
+            let g2_pair1 = match Serde::<G2Point>::deserialize(ref trailer) {
+                Option::Some(v) => v,
+                Option::None => {
+                    return (false, marker, payload_hash, proof_hash);
+                },
+            };
+            (
+                G1G2Pair { p: pair0, q: g2_pair0 },
+                G1G2Pair { p: pair1, q: g2_pair1 },
+            )
+        } else {
+            (
+                G1G2Pair { p: pair0, q: G2_POINT_KZG_1 },
+                G1G2Pair { p: pair1, q: G2_POINT_KZG_2 },
+            )
         };
+
+        let mut dynamic_lines: Array<G2Line<u288>> = array![];
+        if uses_dynamic_lines {
+            let line_count: usize = match (*trailer.pop_front().unwrap()).try_into() {
+                Option::Some(v) => v,
+                Option::None => {
+                    return (false, marker, payload_hash, proof_hash);
+                },
+            };
+            if line_count == 0 || line_count > MAX_PRECOMPUTED_LINES {
+                return (false, marker, payload_hash, proof_hash);
+            }
+            let required_line_felts = line_count * TRAILER_G2_LINE_FELTS_PER_LINE;
+            if trailer.len() < required_line_felts + 1 {
+                return (false, marker, payload_hash, proof_hash);
+            }
+            dynamic_lines = match deserialize_g2_lines_u288(ref trailer, line_count) {
+                Option::Some(v) => v,
+                Option::None => {
+                    return (false, marker, payload_hash, proof_hash);
+                },
+            };
+        }
+
+        let hint_len: usize = match (*trailer.pop_front().unwrap()).try_into() {
+                Option::Some(v) => v,
+                Option::None => {
+                    return (false, marker, payload_hash, proof_hash);
+                },
+            };
         if hint_len == 0 || trailer.len() != hint_len {
             return (false, marker, payload_hash, proof_hash);
         }
@@ -168,9 +283,7 @@ mod EzklKzgVerifier {
             return (false, marker, payload_hash, proof_hash);
         }
 
-        let pair0_kzg = G1G2Pair { p: pair0, q: G2_POINT_KZG_1 };
-        let pair1_kzg = G1G2Pair { p: pair1, q: G2_POINT_KZG_2 };
-        let mut lines = precomputed_lines.span();
+        let mut lines = if uses_dynamic_lines { dynamic_lines.span() } else { precomputed_lines.span() };
         let kzg_ok = match multi_pairing_check_bn254_2P_2F(
             pair0_kzg, pair1_kzg, lines, mpcheck_hint,
         ) {
@@ -197,7 +310,7 @@ mod EzklKzgVerifier {
     impl EzklKzgVerifierImpl of super::IEzklKzgVerifier<ContractState> {
         fn verify_kzg(self: @ContractState, payload: Span<felt252>) -> bool {
             let (ok, _, _, _) = validate_payload(0, payload);
-            assert(ok, 'INVALID_KZG');
+            assert!(ok, "INVALID_KZG");
             true
         }
 
@@ -220,7 +333,7 @@ mod EzklKzgVerifier {
                     accepted: ok,
                 },
             );
-            assert(ok, 'INVALID_KZG');
+            assert!(ok, "INVALID_KZG");
             true
         }
 

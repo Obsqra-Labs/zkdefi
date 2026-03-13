@@ -237,7 +237,7 @@ async def _probe_native_kzg_onchain(
         "model_name": model_name,
         "input_data": _seeded_probe_matrix(f"{probe_seed}:{model_name}", width),
         "expected_model_hash": 0,
-        "output_lower_bound": 0,
+        "output_lower_bound": -10000,
         "output_upper_bound": 10000,
         "execution_chain": execution_chain,
         "proof_mode": 1,
@@ -277,6 +277,8 @@ async def _probe_native_kzg_onchain(
         "mirror_status": verification.get("mirror_status") if isinstance(verification, dict) else None,
         "l3_tx_hash": l3.get("tx_hash"),
         "l3_mode": l3.get("mode"),
+        "l3_abi_used": l3.get("abi_used"),
+        "l3_verifier_state": l3.get("verifier_state") if isinstance(l3.get("verifier_state"), dict) else None,
         "l2_tx_hash": l2.get("tx_hash"),
         "l2_mode": l2.get("mode"),
         "l2_verified_on_chain": bool(l2.get("verified_on_chain")),
@@ -413,6 +415,10 @@ async def _run(args: argparse.Namespace) -> int:
                 row["native_kzg_can_execute"] = bool(native_probe.get("can_execute"))
                 row["native_kzg_l3_tx_hash"] = native_probe.get("l3_tx_hash")
                 row["native_kzg_l3_mode"] = native_probe.get("l3_mode")
+                row["native_kzg_l3_abi_used"] = native_probe.get("l3_abi_used")
+                verifier_state = native_probe.get("l3_verifier_state") if isinstance(native_probe.get("l3_verifier_state"), dict) else {}
+                row["native_kzg_l3_strict_binding_observed"] = verifier_state.get("strict_binding_observed")
+                row["native_kzg_l3_marker_name"] = verifier_state.get("last_marker_name")
                 row["native_kzg_l2_tx_hash"] = native_probe.get("l2_tx_hash")
                 row["native_kzg_l2_mode"] = native_probe.get("l2_mode")
                 row["native_kzg_l2_verified_on_chain"] = bool(native_probe.get("l2_verified_on_chain"))
@@ -459,6 +465,21 @@ async def _run(args: argparse.Namespace) -> int:
         str(r.get("model") or "")
         for r in rows
         if str(r.get("native_kzg_mirror_status") or "").strip().lower() == "mirrored"
+    )
+    native_kzg_strict_abi_models = sorted(
+        str(r.get("model") or "")
+        for r in rows
+        if str(r.get("native_kzg_l3_abi_used") or "").strip() == "verify_ezkl_kzg_v1"
+    )
+    native_kzg_legacy_abi_models = sorted(
+        str(r.get("model") or "")
+        for r in rows
+        if str(r.get("native_kzg_l3_abi_used") or "").strip() == "verify_kzg"
+    )
+    native_kzg_strict_binding_models = sorted(
+        str(r.get("model") or "")
+        for r in rows
+        if r.get("native_kzg_l3_strict_binding_observed") is True
     )
 
     verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("ezkl_verified"))
@@ -551,11 +572,17 @@ async def _run(args: argparse.Namespace) -> int:
         "l3_receipt_models": len(native_kzg_l3_receipt_models),
         "l2_receipt_models": len(native_kzg_l2_receipt_models),
         "mirrored_models": len(native_kzg_mirrored_models),
+        "strict_abi_models": len(native_kzg_strict_abi_models),
+        "legacy_abi_models": len(native_kzg_legacy_abi_models),
+        "strict_binding_models": len(native_kzg_strict_binding_models),
         "attempted_model_names": native_kzg_attempted_models,
         "verified_model_names": native_kzg_verified_models,
         "l3_receipt_model_names": native_kzg_l3_receipt_models,
         "l2_receipt_model_names": native_kzg_l2_receipt_models,
         "mirrored_model_names": native_kzg_mirrored_models,
+        "strict_abi_model_names": native_kzg_strict_abi_models,
+        "legacy_abi_model_names": native_kzg_legacy_abi_models,
+        "strict_binding_model_names": native_kzg_strict_binding_models,
         "rows": [
             {
                 "model": str(r.get("model") or ""),
@@ -566,6 +593,9 @@ async def _run(args: argparse.Namespace) -> int:
                 "can_execute": bool(r.get("native_kzg_can_execute")),
                 "l3_tx_hash": r.get("native_kzg_l3_tx_hash"),
                 "l3_mode": r.get("native_kzg_l3_mode"),
+                "l3_abi_used": r.get("native_kzg_l3_abi_used"),
+                "l3_strict_binding_observed": r.get("native_kzg_l3_strict_binding_observed"),
+                "l3_marker_name": r.get("native_kzg_l3_marker_name"),
                 "l2_tx_hash": r.get("native_kzg_l2_tx_hash"),
                 "l2_mode": r.get("native_kzg_l2_mode"),
                 "l2_verified_on_chain": bool(r.get("native_kzg_l2_verified_on_chain")),
@@ -622,6 +652,9 @@ async def _run(args: argparse.Namespace) -> int:
         "native_kzg_l3_receipt_models": native_kzg_l3_receipt_models,
         "native_kzg_l2_receipt_models": native_kzg_l2_receipt_models,
         "native_kzg_mirrored_models": native_kzg_mirrored_models,
+        "native_kzg_strict_abi_models": native_kzg_strict_abi_models,
+        "native_kzg_legacy_abi_models": native_kzg_legacy_abi_models,
+        "native_kzg_strict_binding_models": native_kzg_strict_binding_models,
         "failed_models": sorted(str(r.get("model") or "") for r in failed_rows),
         "output_file": str(Path(args.output).resolve()),
     }
