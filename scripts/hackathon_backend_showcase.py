@@ -537,6 +537,7 @@ class ShowcaseRunner:
         self._ai_skill_engine: dict[str, Any] = {}
         self._modelbridge_live_receipt: dict[str, Any] = {}
         self._modelbridge_heavy_live_receipt: dict[str, Any] = {}
+        self._noir_live_receipt: dict[str, Any] = {}
         self._native_kzg_live_receipt: dict[str, Any] = {}
         self._heavy_stark_showcase: dict[str, Any] = {}
         self._bridge_probe_seed = hashlib.sha256(
@@ -2479,6 +2480,7 @@ class ShowcaseRunner:
         l3_probe_fingerprint = _payload_fingerprint(l3_payload)
         dual_probe_fingerprint = _payload_fingerprint(dual_payload)
         heavy_probe_fingerprint = _payload_fingerprint(heavy_payload)
+        noir_probe_fingerprint = _payload_fingerprint(noir_payload)
         native_kzg_probe_fingerprint = _payload_fingerprint(native_kzg_payload)
 
         # Keep bridge calls stable even when caller passes a low global timeout.
@@ -2960,9 +2962,95 @@ class ShowcaseRunner:
         }
 
         noir_l3_lane = noir_run.get("l3") if isinstance(noir_run.get("l3"), dict) else {}
-        noir_tx_hash = str(noir_l3_lane.get("tx_hash") or "").strip()
-        noir_tx_url = noir_l3_lane.get("tx_url") or (_starknet_tx_url(noir_tx_hash, self._madara_rpc_url) if noir_tx_hash else None)
+        best_noir_attempt = next(
+            (
+                row
+                for row in reversed(noir_attempts)
+                if isinstance(row, dict) and (row.get("l3_tx_hash") or row.get("l3_success"))
+            ),
+            {},
+        )
+        noir_tx_hash = str(noir_l3_lane.get("tx_hash") or best_noir_attempt.get("l3_tx_hash") or "").strip()
+        noir_tx_url = (
+            noir_l3_lane.get("tx_url")
+            or best_noir_attempt.get("l3_tx_url")
+            or (_starknet_tx_url(noir_tx_hash, self._madara_rpc_url) if noir_tx_hash else None)
+        )
+        noir_mode = noir_l3_lane.get("mode") or best_noir_attempt.get("l3_mode")
+        noir_success = (
+            noir_l3_lane.get("success")
+            if noir_l3_lane.get("success") is not None
+            else best_noir_attempt.get("l3_success")
+        )
+        noir_verified_on_chain = (
+            noir_l3_lane.get("verified_on_chain")
+            if noir_l3_lane.get("verified_on_chain") is not None
+            else best_noir_attempt.get("l3_verified_on_chain")
+        )
         noir_fee_meta = self._fetch_starknet_tx_metrics(noir_tx_hash or None, rpc_url=self._madara_rpc_url)
+        self._noir_live_receipt = {
+            "status": noir_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": noir_probe_fingerprint,
+            "proof_mode": noir_run.get("proof_mode"),
+            "proof_mode_level": noir_run.get("proof_mode_level"),
+            "requested_execution_chain": noir_run.get("requested_execution_chain"),
+            "bridge_proof_hash": noir_run.get("bridge_proof_hash"),
+            "bridge_compliant": noir_run.get("bridge_compliant"),
+            "bridge_backend": noir_run.get("bridge_backend"),
+            "calldata_words": noir_run.get("model_bridge_calldata_words"),
+            "can_execute": noir_run.get("can_execute"),
+            "primary_authority": noir_run.get("primary_authority"),
+            "mirror_status": noir_run.get("mirror_status"),
+            "lane_available": noir_honk_available,
+            "l3_attempted": noir_l3_lane.get("attempted"),
+            "l3_success": noir_success,
+            "l3_mode": noir_mode,
+            "l3_verified_on_chain": noir_verified_on_chain,
+            "l3_tx_hash": noir_tx_hash or None,
+            "l3_tx_url": noir_tx_url,
+            "l2_attempted": ((noir_run.get("l2") or {}).get("attempted") if isinstance(noir_run.get("l2"), dict) else None),
+            "l2_mode": ((noir_run.get("l2") or {}).get("mode") if isinstance(noir_run.get("l2"), dict) else None),
+            "trust_mode": noir_run.get("trust_mode"),
+            "trust_warning": noir_run.get("trust_warning"),
+            "failure_reason": noir_run.get("failure_reason"),
+            "generated_at": noir_run.get("generated_at"),
+            "total_duration_ms": noir_run.get("total_duration_ms"),
+            **noir_fee_meta,
+        }
+        strict_noir_receipt_ok = (
+            noir_honk_available
+            and noir_status == 200
+            and bool(noir_l3_lane.get("attempted"))
+            and bool(noir_run.get("model_bridge_calldata_words"))
+            and bool(noir_run.get("bridge_proof_hash"))
+            and str(noir_mode or "").strip().lower() == "noir_honk"
+            and bool(noir_verified_on_chain)
+        )
+        noir_receipt_ok = strict_noir_receipt_ok if self.strict_bridge else (
+            strict_noir_receipt_ok or noir_status in {429, 500, 503}
+        )
+        self._record(
+            "Noir HONK live l3 verify receipt",
+            noir_receipt_ok,
+            status=noir_status,
+            proof_mode=noir_run.get("proof_mode"),
+            bridge_backend=noir_run.get("bridge_backend"),
+            bridge_compliant=noir_run.get("bridge_compliant"),
+            lane_available=noir_honk_available,
+            l3_mode=noir_mode,
+            l3_tx_hash=_short_hex(noir_tx_hash or None, 12),
+            l3_verified_on_chain=noir_verified_on_chain,
+            l3_actual_fee=noir_fee_meta.get("l3_actual_fee_display"),
+            bridge_proof_hash=_short_hex(
+                str(noir_run.get("bridge_proof_hash")) if noir_run.get("bridge_proof_hash") else None,
+                12,
+            ),
+            can_execute=noir_run.get("can_execute"),
+            failure_reason=_clip_text(noir_run.get("failure_reason"), 120),
+            strict_bridge=self.strict_bridge,
+            transient_status_ok=(noir_status in {429, 500, 503}),
+        )
 
         benchmark_receipts: list[dict[str, Any]] = [
             {
@@ -2997,19 +3085,19 @@ class ShowcaseRunner:
             },
             {
                 "lane": "NoirEzklBridge",
-                "status": noir_status,
-                "bridge_backend": noir_run.get("bridge_backend"),
-                "l3_mode": noir_l3_lane.get("mode"),
-                "verified_on_chain": noir_l3_lane.get("verified_on_chain"),
-                "duration_ms": noir_run.get("total_duration_ms"),
+                "status": self._noir_live_receipt.get("status"),
+                "bridge_backend": self._noir_live_receipt.get("bridge_backend"),
+                "l3_mode": self._noir_live_receipt.get("l3_mode"),
+                "verified_on_chain": self._noir_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": self._noir_live_receipt.get("total_duration_ms"),
                 "actual_fee_display": noir_fee_meta.get("l3_actual_fee_display", "-"),
                 "execution_steps": noir_fee_meta.get("l3_execution_steps"),
                 "l1_gas": noir_fee_meta.get("l3_l1_gas"),
                 "l1_data_gas": noir_fee_meta.get("l3_l1_data_gas"),
                 "l2_gas": noir_fee_meta.get("l3_l2_gas"),
-                "tx_hash": noir_tx_hash or None,
-                "tx_url": noir_tx_url,
-                "lane_available": noir_honk_available,
+                "tx_hash": self._noir_live_receipt.get("l3_tx_hash"),
+                "tx_url": self._noir_live_receipt.get("l3_tx_url"),
+                "lane_available": self._noir_live_receipt.get("lane_available"),
             },
             {
                 "lane": "EzklNativeKzg",
@@ -3068,6 +3156,7 @@ class ShowcaseRunner:
             "modelbridge_live_receipt": dict(self._modelbridge_live_receipt),
             "dual_live_receipt": dict(self._dual_live_receipt),
             "modelbridge_heavy_live_receipt": dict(self._modelbridge_heavy_live_receipt),
+            "noir_live_receipt": dict(self._noir_live_receipt),
             "native_kzg_live_receipt": dict(self._native_kzg_live_receipt),
             "benchmark_receipts": benchmark_receipts,
             "ml_bridge_attempts": {
@@ -4774,6 +4863,7 @@ class ShowcaseRunner:
                 ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
                 ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
                 ("ModelBridge live l3 verify emits receipt evidence", passed("ModelBridge live l3 verify receipt")),
+                ("Noir HONK live l3 verify emits receipt evidence", passed("Noir HONK live l3 verify receipt")),
                 ("Path B dual native-KZG mirror receipts are demonstrable", passed("Path B dual native KZG mirrors are demonstrable")),
                 ("Recursive multichain proving paths are introspectable", passed("Recursive EZKL paths (Phase 2/3/4) status")),
             ]
@@ -4788,6 +4878,10 @@ class ShowcaseRunner:
                 (
                     "ModelBridge live l3 verify emits receipt evidence",
                     None if self.fast_mode else passed("ModelBridge live l3 verify receipt"),
+                ),
+                (
+                    "Noir HONK live l3 verify emits receipt evidence",
+                    None if self.fast_mode else passed("Noir HONK live l3 verify receipt"),
                 ),
                 (
                     "Path B dual native-KZG mirror receipts are demonstrable",
@@ -5756,6 +5850,47 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(heavy_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(heavy_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(heavy_live_receipt.get("total_duration_ms") or "-"))],
+        ]
+
+        noir_live_receipt = (
+            bridge.get("noir_live_receipt", {})
+            if isinstance(bridge.get("noir_live_receipt"), dict)
+            else {}
+        )
+        noir_live_receipt_tx = str(noir_live_receipt.get("l3_tx_hash") or "-")
+        noir_live_receipt_tx_url = noir_live_receipt.get("l3_tx_url")
+        noir_live_receipt_tx_html = (
+            f"<a href=\"{escape(str(noir_live_receipt_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(noir_live_receipt_tx, 14))}</a>"
+            if noir_live_receipt_tx_url and noir_live_receipt_tx != "-"
+            else escape(_short_hex(noir_live_receipt_tx, 14))
+        )
+        noir_live_receipt_rows = [
+            ["API status", escape(str(noir_live_receipt.get("status") or "-"))],
+            ["Lane available", "<span class=\"pass\">true</span>" if noir_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
+            ["Probe seed", escape(str(noir_live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(noir_live_receipt.get("probe_fingerprint") or "-"), 14))],
+            ["Proof mode", escape(str(noir_live_receipt.get("proof_mode") or "-"))],
+            ["Requested chain", escape(str(noir_live_receipt.get("requested_execution_chain") or "-"))],
+            ["Bridge proof hash", escape(_short_hex(str(noir_live_receipt.get("bridge_proof_hash") or "-"), 14))],
+            ["Bridge backend", escape(str(noir_live_receipt.get("bridge_backend") or "-"))],
+            ["Bridge compliant", "<span class=\"pass\">true</span>" if noir_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Noir calldata words", escape(str(noir_live_receipt.get("calldata_words") or "-"))],
+            ["L3 attempted", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
+            ["L3 success", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 verifier mode", escape(str(noir_live_receipt.get("l3_mode") or "-"))],
+            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 actual fee", escape(str(noir_live_receipt.get("l3_actual_fee_display") or "-"))],
+            ["L3 execution steps", escape(str(noir_live_receipt.get("l3_execution_steps") or "-"))],
+            ["L1 gas / data gas / L2 gas", escape(
+                f"{noir_live_receipt.get('l3_l1_gas') or '-'} / {noir_live_receipt.get('l3_l1_data_gas') or '-'} / {noir_live_receipt.get('l3_l2_gas') or '-'}"
+            )],
+            ["L3 tx hash", noir_live_receipt_tx_html],
+            ["Can execute", "<span class=\"pass\">true</span>" if noir_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(noir_live_receipt.get("mirror_status") or "-"))],
+            ["Trust mode", escape(str(noir_live_receipt.get("trust_mode") or "-"))],
+            ["Failure reason", escape(_clip_text(noir_live_receipt.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(noir_live_receipt.get("generated_at") or "-"))],
+            ["Duration ms", escape(str(noir_live_receipt.get("total_duration_ms") or "-"))],
         ]
 
         native_kzg_live_receipt = (
@@ -7131,9 +7266,9 @@ class ShowcaseRunner:
     </section>
 
     <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
-      <h2>Live Research Receipts: ModelBridge + Native KZG</h2>
+      <h2>Live Research Receipts: ModelBridge + Noir + Native KZG</h2>
       <div class="intent">
-        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, `NoirEzklBridge`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
         <strong>Why Obsqra Labs wanted this:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
         <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
       </div>
@@ -7143,6 +7278,8 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], dual_live_receipt_rows)}
       <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
       {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
+      <h3>Noir HONK Receipt (Path A)</h3>
+      {self._html_table(["Field", "Value"], noir_live_receipt_rows)}
       <h3>Native KZG Receipt (Path B)</h3>
       {self._html_table(["Field", "Value"], native_kzg_live_receipt_rows)}
       <h3>Lane Health + Degradation Notes</h3>
@@ -7488,6 +7625,7 @@ class ShowcaseRunner:
         bridge = payload.get("bridge_architecture", {}) if isinstance(payload.get("bridge_architecture"), dict) else {}
         live = bridge.get("modelbridge_live_receipt", {}) if isinstance(bridge.get("modelbridge_live_receipt"), dict) else {}
         heavy = bridge.get("modelbridge_heavy_live_receipt", {}) if isinstance(bridge.get("modelbridge_heavy_live_receipt"), dict) else {}
+        noir = bridge.get("noir_live_receipt", {}) if isinstance(bridge.get("noir_live_receipt"), dict) else {}
         native = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
         benchmark_rows_raw = bridge.get("benchmark_receipts") if isinstance(bridge.get("benchmark_receipts"), list) else []
         benchmark_rows: list[dict[str, Any]] = []
@@ -7529,6 +7667,11 @@ class ShowcaseRunner:
                     "mode": heavy.get("l3_mode"),
                     "tx_hash": heavy.get("l3_tx_hash"),
                     "verified_on_chain": bool(heavy.get("l3_verified_on_chain")),
+                },
+                "noir": {
+                    "mode": noir.get("l3_mode"),
+                    "tx_hash": noir.get("l3_tx_hash"),
+                    "verified_on_chain": bool(noir.get("l3_verified_on_chain")),
                 },
                 "native_kzg": {
                     "mode": native.get("l3_mode"),
