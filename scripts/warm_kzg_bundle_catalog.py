@@ -214,6 +214,7 @@ async def _probe_native_kzg_onchain(
     wallet: str,
     model_name: str,
     input_data: list[list[float]],
+    execution_chain: str,
     timeout_seconds: float,
 ) -> dict[str, Any]:
     try:
@@ -238,7 +239,7 @@ async def _probe_native_kzg_onchain(
         "expected_model_hash": 0,
         "output_lower_bound": 0,
         "output_upper_bound": 10000,
-        "execution_chain": "l3",
+        "execution_chain": execution_chain,
         "proof_mode": 1,
         "tier": 1,
         "action_type": "rebalance",
@@ -263,6 +264,7 @@ async def _probe_native_kzg_onchain(
 
     verification = body.get("verification") if isinstance(body, dict) else {}
     l3 = verification.get("l3") if isinstance(verification, dict) else {}
+    l2 = verification.get("l2") if isinstance(verification, dict) else {}
     bridge_proof = body.get("bridge_proof") if isinstance(body, dict) else {}
     return {
         "attempted": True,
@@ -271,8 +273,13 @@ async def _probe_native_kzg_onchain(
         "status": int(resp.status_code),
         "verified_on_chain": bool(l3.get("verified_on_chain")),
         "can_execute": bool(body.get("can_execute")),
-        "tx_hash": l3.get("tx_hash"),
-        "mode": l3.get("mode"),
+        "execution_chain": execution_chain,
+        "mirror_status": verification.get("mirror_status") if isinstance(verification, dict) else None,
+        "l3_tx_hash": l3.get("tx_hash"),
+        "l3_mode": l3.get("mode"),
+        "l2_tx_hash": l2.get("tx_hash"),
+        "l2_mode": l2.get("mode"),
+        "l2_verified_on_chain": bool(l2.get("verified_on_chain")),
         "bridge_backend": bridge_proof.get("bridge_backend") if isinstance(bridge_proof, dict) else None,
         "bridge_compliant": bridge_proof.get("is_compliant") if isinstance(bridge_proof, dict) else None,
         "trust_mode": body.get("trust_mode") if isinstance(body, dict) else None,
@@ -374,17 +381,25 @@ async def _run(args: argparse.Namespace) -> int:
                     wallet=args.wallet,
                     model_name=model_name,
                     input_data=selected_probe or _probe_for_width(row.get("selected_input_features") or row["input_features"]),
+                    execution_chain=args.native_kzg_execution_chain,
                     timeout_seconds=args.request_timeout,
                 )
                 row["native_kzg_attempted"] = bool(native_probe.get("attempted"))
                 row["native_kzg_status"] = native_probe.get("status")
+                row["native_kzg_execution_chain"] = native_probe.get("execution_chain")
+                row["native_kzg_mirror_status"] = native_probe.get("mirror_status")
                 row["native_kzg_verified_on_chain"] = bool(native_probe.get("verified_on_chain"))
                 row["native_kzg_can_execute"] = bool(native_probe.get("can_execute"))
-                row["native_kzg_tx_hash"] = native_probe.get("tx_hash")
-                row["native_kzg_mode"] = native_probe.get("mode")
+                row["native_kzg_l3_tx_hash"] = native_probe.get("l3_tx_hash")
+                row["native_kzg_l3_mode"] = native_probe.get("l3_mode")
+                row["native_kzg_l2_tx_hash"] = native_probe.get("l2_tx_hash")
+                row["native_kzg_l2_mode"] = native_probe.get("l2_mode")
+                row["native_kzg_l2_verified_on_chain"] = bool(native_probe.get("l2_verified_on_chain"))
                 row["native_kzg_bridge_backend"] = native_probe.get("bridge_backend")
                 row["native_kzg_bridge_compliant"] = native_probe.get("bridge_compliant")
                 row["native_kzg_trust_mode"] = native_probe.get("trust_mode")
+                row["native_kzg_probe_seed"] = native_probe.get("probe_seed")
+                row["native_kzg_payload_fingerprint"] = native_probe.get("payload_fingerprint")
                 row["native_kzg_failure_reason"] = native_probe.get("failure_reason") or native_probe.get("error")
         except Exception as exc:
             row["ezkl_verified"] = False
@@ -412,7 +427,13 @@ async def _run(args: argparse.Namespace) -> int:
     coverage_ratio = (models_with_bundle / models_total) if models_total > 0 else 0.0
     native_kzg_attempted_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_attempted"))
     native_kzg_verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_verified_on_chain"))
-    native_kzg_receipt_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_tx_hash"))
+    native_kzg_l3_receipt_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_l3_tx_hash"))
+    native_kzg_l2_receipt_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_l2_tx_hash"))
+    native_kzg_mirrored_models = sorted(
+        str(r.get("model") or "")
+        for r in rows
+        if str(r.get("native_kzg_mirror_status") or "").strip().lower() == "mirrored"
+    )
 
     verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("ezkl_verified"))
     bundle_models = sorted(str(r.get("model") or "") for r in rows if r.get("kzg_bundle_present"))
@@ -498,23 +519,35 @@ async def _run(args: argparse.Namespace) -> int:
     report["native_kzg_onchain"] = {
         "enabled": bool(args.verify_onchain_native_kzg),
         "base_url": args.base_url if args.verify_onchain_native_kzg else None,
+        "execution_chain": args.native_kzg_execution_chain if args.verify_onchain_native_kzg else None,
         "attempted_models": len(native_kzg_attempted_models),
         "verified_models": len(native_kzg_verified_models),
-        "receipt_models": len(native_kzg_receipt_models),
+        "l3_receipt_models": len(native_kzg_l3_receipt_models),
+        "l2_receipt_models": len(native_kzg_l2_receipt_models),
+        "mirrored_models": len(native_kzg_mirrored_models),
         "attempted_model_names": native_kzg_attempted_models,
         "verified_model_names": native_kzg_verified_models,
-        "receipt_model_names": native_kzg_receipt_models,
+        "l3_receipt_model_names": native_kzg_l3_receipt_models,
+        "l2_receipt_model_names": native_kzg_l2_receipt_models,
+        "mirrored_model_names": native_kzg_mirrored_models,
         "rows": [
             {
                 "model": str(r.get("model") or ""),
                 "status": r.get("native_kzg_status"),
+                "execution_chain": r.get("native_kzg_execution_chain"),
+                "mirror_status": r.get("native_kzg_mirror_status"),
                 "verified_on_chain": bool(r.get("native_kzg_verified_on_chain")),
                 "can_execute": bool(r.get("native_kzg_can_execute")),
-                "tx_hash": r.get("native_kzg_tx_hash"),
-                "mode": r.get("native_kzg_mode"),
+                "l3_tx_hash": r.get("native_kzg_l3_tx_hash"),
+                "l3_mode": r.get("native_kzg_l3_mode"),
+                "l2_tx_hash": r.get("native_kzg_l2_tx_hash"),
+                "l2_mode": r.get("native_kzg_l2_mode"),
+                "l2_verified_on_chain": bool(r.get("native_kzg_l2_verified_on_chain")),
                 "bridge_backend": r.get("native_kzg_bridge_backend"),
                 "bridge_compliant": r.get("native_kzg_bridge_compliant"),
                 "trust_mode": r.get("native_kzg_trust_mode"),
+                "probe_seed": r.get("native_kzg_probe_seed"),
+                "payload_fingerprint": r.get("native_kzg_payload_fingerprint"),
                 "failure_reason": r.get("native_kzg_failure_reason"),
             }
             for r in rows
@@ -557,7 +590,9 @@ async def _run(args: argparse.Namespace) -> int:
         "bundle_models": bundle_models,
         "native_kzg_attempted_models": native_kzg_attempted_models,
         "native_kzg_verified_models": native_kzg_verified_models,
-        "native_kzg_receipt_models": native_kzg_receipt_models,
+        "native_kzg_l3_receipt_models": native_kzg_l3_receipt_models,
+        "native_kzg_l2_receipt_models": native_kzg_l2_receipt_models,
+        "native_kzg_mirrored_models": native_kzg_mirrored_models,
         "failed_models": sorted(str(r.get("model") or "") for r in failed_rows),
         "output_file": str(Path(args.output).resolve()),
     }
@@ -571,6 +606,9 @@ async def _run(args: argparse.Namespace) -> int:
         f"summary: verified={report['models_verified']}/{report['models_total']} "
         f"bundle={report['models_with_bundle']}/{report['models_total']} "
         f"native_kzg={len(native_kzg_verified_models)}/{len(native_kzg_attempted_models) if native_kzg_attempted_models else 0} "
+        f"native_kzg_l3_receipts={len(native_kzg_l3_receipt_models)} "
+        f"native_kzg_l2_receipts={len(native_kzg_l2_receipt_models)} "
+        f"mirrored={len(native_kzg_mirrored_models)} "
         f"failed={report['models_failed']}"
     )
     print(
@@ -644,7 +682,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--verify-onchain-native-kzg",
         action="store_true",
-        help="After warming a model bundle, call backend proofs/ml-bridge with bridge_circuit=EzklNativeKzg and record live L3 receipt status.",
+        help="After warming a model bundle, call backend proofs/ml-bridge with bridge_circuit=EzklNativeKzg and record live receipt status.",
+    )
+    parser.add_argument(
+        "--native-kzg-execution-chain",
+        choices=("l3", "dual"),
+        default="l3",
+        help="Execution chain used with --verify-onchain-native-kzg (default: l3).",
     )
     parser.add_argument(
         "--base-url",

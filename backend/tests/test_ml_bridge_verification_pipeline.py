@@ -307,6 +307,87 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_native_kzg_dual_preserves_mirror_receipts(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    captured = {}
+
+    class _FakeEzklProof:
+        proof_hash = "0x1234"
+        model_hash = "0x5678"
+        verify_key_hash = "0x9abc"
+        public_inputs = [1.0]
+        inference_output = [2.0]
+        proof_hex = "0x11"
+        proof_bytes = b"\x11"
+        raw_proof_json = {
+            "kzg_mpcheck_bundle": {
+                "pair0": {"x": "1", "y": "2"},
+                "pair1": {"x": "3", "y": "4"},
+                "mpcheck_hint_felts": ["7"],
+                "auto_build_hint": False,
+            }
+        }
+
+        def to_dict(self):
+            return {
+                "proof_hash": self.proof_hash,
+                "model_hash": self.model_hash,
+            }
+
+    async def fake_l3(**kwargs):
+        captured["l3"] = dict(kwargs)
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "native_kzg",
+            "fact_hash": "0xfeed",
+            "tx_hash": "0xkzg",
+            "error": None,
+        }
+
+    async def fake_l2(**kwargs):
+        captured["l2"] = dict(kwargs)
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "starknet_l2_registry_mirrored",
+            "tx_hash": "0xbeef",
+            "error": None,
+        }
+
+    async def fake_real_ezkl(**kwargs):
+        return _FakeEzklProof(), True
+
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+    monkeypatch.setattr(pipeline, "_verify_l2_bridge", fake_l2)
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="dual",
+        bridge_circuit="EzklNativeKzg",
+    )
+
+    assert result["can_execute"] is True
+    assert result["bridge_circuit_used"] == "EzklNativeKzg"
+    assert result["bridge_proof"]["bridge_backend"] == "native_kzg_ezkl_serialized_mpcheck"
+    assert result["verification"]["l3"]["mode"] == "native_kzg"
+    assert result["verification"]["mirror_status"] == "mirrored"
+    assert result["verification"]["l2"]["tx_hash"] == "0xbeef"
+    assert captured["l3"]["proof_type"] == "native_kzg"
+    assert captured["l3"]["kzg_calldata"]
+    assert captured["l3"]["groth16_calldata"] is None
+    assert captured["l2"]["fact_hash"] == "0xfeed"
+
+
+@pytest.mark.asyncio
 async def test_native_kzg_strict_blocks_placeholder(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)
