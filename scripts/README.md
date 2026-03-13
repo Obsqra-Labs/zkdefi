@@ -22,6 +22,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 | **warm_kzg_bundle_catalog.py** | Path B utility: runs real EZKL proof + local verify per model and warms/caches `kzg_mpcheck_bundle` coverage across the local model catalog, writing a JSON coverage report. |
 | **ci_showcase_gate.py** | CI gate: runs Path B warm-up with minimum coverage, then strict showcase; fails if coverage or bridge lane checks regress. |
 | **daily_live_research_build.sh** | Server-side daily runner for `/test`: executes `ci_showcase_gate.py`, refreshes `latest.html/json`, and writes timestamped logs under `artifacts/hackathon_showcase/daily_logs/`. |
+| **precompute_kzg_mpcheck_sidecars.py** | Refreshes `mpcheck_hint_felts` + `precomputed_line_felts` sidecars for local EZKL models so native KZG can stay on `kzg_mpcheck_v3` without re-deriving lines on every request. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -151,12 +152,21 @@ Env knobs:
 - `SHOWCASE_BENCHMARK_WINDOW_RUNS` (default `40`; rolling history window used for stability/gas trend table)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
+- `SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG` (default `true`; require live Path B native-KZG receipts during gate)
+- `SHOWCASE_WARM_EXECUTION_CHAIN` (default `dual`; use `l3` only if mirror infrastructure is intentionally out of scope)
+- `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS` (default `180`)
 
 Daily build for `/test` (same-server cron):
 
 ```bash
 scripts/daily_live_research_build.sh
 ```
+
+Default daily build sequence:
+
+1. precompute native-KZG sidecars for proving-capable local EZKL models
+2. run `ci_showcase_gate.py`
+3. refresh `/test` artifacts if the gate reaches final-stage readiness
 
 Example crontab (UTC 06:15 daily):
 
@@ -166,6 +176,14 @@ Example crontab (UTC 06:15 daily):
 
 By default the daily script **always refreshes** `latest.html/json` even if strict lanes partially fail (`daily_build_status=WARN` in log).  
 Set `DAILY_BUILD_STRICT_EXIT=true` to make cron fail on strict-lane regressions.
+
+Daily build env knobs:
+
+- `PATHB_PRECOMPUTE_SIDECARS=true` (default)
+- `PATHB_PRECOMPUTE_MODELS="yield_forecast creditworthiness anomaly_detector"`
+- `SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG=true` (default in daily build)
+- `SHOWCASE_WARM_EXECUTION_CHAIN=dual` (default in daily build)
+- `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
 
 ### Hackathon showcase artifacts
 

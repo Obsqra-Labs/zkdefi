@@ -2010,6 +2010,9 @@ class ShowcaseRunner:
             "kzg_bundle_present": kzg_payload.get("kzg_mpcheck_bundle_present"),
             "kzg_hint_felts": kzg_payload.get("kzg_mpcheck_hint_felts"),
             "kzg_payload_semantics": kzg_payload.get("verification_semantics"),
+            "kzg_trailer_marker": kzg_payload.get("kzg_mpcheck_trailer_marker"),
+            "kzg_line_source": kzg_payload.get("kzg_mpcheck_line_source"),
+            "kzg_precomputed_lines": kzg_payload.get("kzg_mpcheck_precomputed_lines"),
             "kzg_bundle_source": (
                 kzg_payload.get("kzg_bundle_injected_source")
                 or kzg_payload.get("kzg_mpcheck_bundle_source")
@@ -2809,6 +2812,9 @@ class ShowcaseRunner:
             "kzg_bundle_present": native_kzg_run.get("kzg_bundle_present"),
             "kzg_hint_felts": native_kzg_run.get("kzg_hint_felts"),
             "kzg_payload_semantics": native_kzg_run.get("kzg_payload_semantics"),
+            "kzg_trailer_marker": native_kzg_run.get("kzg_trailer_marker"),
+            "kzg_line_source": native_kzg_run.get("kzg_line_source"),
+            "kzg_precomputed_lines": native_kzg_run.get("kzg_precomputed_lines"),
             "kzg_bundle_source": native_kzg_run.get("kzg_bundle_source"),
             "kzg_extractor_attempted": native_kzg_run.get("kzg_extractor_attempted"),
             "kzg_extractor_error": native_kzg_run.get("kzg_extractor_error"),
@@ -5776,6 +5782,9 @@ class ShowcaseRunner:
             ["KZG calldata words", escape(str(native_kzg_live_receipt.get("calldata_words") or "-"))],
             ["KZG bundle present", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_bundle_present") else "<span class=\"fail\">false</span>"],
             ["KZG hint felts", escape(str(native_kzg_live_receipt.get("kzg_hint_felts") or "-"))],
+            ["KZG trailer marker", escape(str(native_kzg_live_receipt.get("kzg_trailer_marker") or "-"))],
+            ["KZG line source", escape(str(native_kzg_live_receipt.get("kzg_line_source") or "-"))],
+            ["KZG precomputed lines", escape(str(native_kzg_live_receipt.get("kzg_precomputed_lines") or "-"))],
             ["Payload semantics", escape(str(native_kzg_live_receipt.get("kzg_payload_semantics") or "-"))],
             ["Bundle source", escape(_clip_text(native_kzg_live_receipt.get("kzg_bundle_source"), 160) or "-")],
             ["Extractor attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_extractor_attempted") else "<span class=\"warn\">false</span>"],

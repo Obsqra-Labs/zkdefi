@@ -179,6 +179,27 @@ def _bundle_from_pairings(pairings: Any, hints: Any = None) -> dict[str, Any]:
     return bundle
 
 
+def _extend_bundle_with_dynamic_fields(bundle: dict[str, Any], container: Any) -> dict[str, Any]:
+    if not isinstance(bundle, dict) or not bundle or not isinstance(container, dict):
+        return bundle
+
+    out = dict(bundle)
+    for key in ("g2_pair0", "g2_pair1"):
+        value = container.get(key)
+        if isinstance(value, dict) and value:
+            out[key] = value
+
+    for source_key in ("precomputed_line_felts", "mpcheck_line_felts", "line_felts"):
+        value = container.get(source_key)
+        if isinstance(value, (list, tuple)) and value:
+            out["precomputed_line_felts"] = value
+            break
+
+    if "auto_build_hint" in container:
+        out["auto_build_hint"] = container.get("auto_build_hint")
+    return out
+
+
 def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
     if not isinstance(raw_json, dict):
         return {}, "none"
@@ -217,7 +238,7 @@ def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
             or container.get("hints"),
         )
         if maybe_direct:
-            return maybe_direct, f"{name}.pairings"
+            return _extend_bundle_with_dynamic_fields(maybe_direct, container), f"{name}.pairings"
 
     # Flat top-level pairings fallback.
     maybe_top = _bundle_from_pairings(
@@ -228,13 +249,18 @@ def _extract_kzg_bundle(raw_json: dict[str, Any]) -> tuple[dict[str, Any], str]:
         or raw_json.get("hints"),
     )
     if maybe_top:
-        return maybe_top, "top_level_pairings"
+        return _extend_bundle_with_dynamic_fields(maybe_top, raw_json), "top_level_pairings"
 
     # Flat top-level pair0/pair1 fallback.
     if raw_json.get("pair0") and raw_json.get("pair1"):
         maybe = {
             "pair0": raw_json.get("pair0"),
             "pair1": raw_json.get("pair1"),
+            "g2_pair0": raw_json.get("g2_pair0"),
+            "g2_pair1": raw_json.get("g2_pair1"),
+            "precomputed_line_felts": raw_json.get("precomputed_line_felts")
+            or raw_json.get("mpcheck_line_felts")
+            or raw_json.get("line_felts"),
             "mpcheck_hint_felts": raw_json.get("mpcheck_hint_felts")
             or raw_json.get("hint_felts")
             or raw_json.get("mpcheck_hint")

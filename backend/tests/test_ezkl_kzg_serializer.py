@@ -2,10 +2,31 @@ import json
 from types import SimpleNamespace
 
 from app.services.ezkl_kzg_serializer import (
+    KZG_MPCHECK_V3_MARKER,
     build_placeholder_kzg_calldata,
     serialize_ezkl_proof_to_kzg_calldata,
     warm_kzg_bundle_cache_for_proof,
 )
+
+
+def _dynamic_bundle(
+    *,
+    pair0_x: str = "0x11",
+    pair0_y: str = "0x22",
+    pair1_x: str = "0x33",
+    pair1_y: str = "0x44",
+    hint_felts: list[str] | None = None,
+    line_felts: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "pair0": {"x": pair0_x, "y": pair0_y},
+        "pair1": {"x": pair1_x, "y": pair1_y},
+        "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+        "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+        "mpcheck_hint_felts": hint_felts or ["0x5", "0x6"],
+        "precomputed_line_felts": line_felts or ["0x1", "0x2", "0x3", "0x4"],
+        "auto_build_hint": False,
+    }
 
 
 def test_placeholder_kzg_calldata_shape():
@@ -56,12 +77,13 @@ def test_real_ezkl_serialization_accepts_explicit_mpcheck_bundle():
         proof_hex="0x" + "22" * 64,
         proof_bytes=b"",
         raw_proof_json={
-            "kzg_mpcheck_bundle": {
-                "pair0": {"x": "0x123", "y": "0x456"},
-                "pair1": {"x": "0x789", "y": "0xabc"},
-                "mpcheck_hint_felts": ["0x1", "0x2", "0x3"],
-                "auto_build_hint": False,
-            }
+            "kzg_mpcheck_bundle": _dynamic_bundle(
+                pair0_x="0x123",
+                pair0_y="0x456",
+                pair1_x="0x789",
+                pair1_y="0xabc",
+                hint_felts=["0x1", "0x2", "0x3"],
+            )
         },
     )
 
@@ -86,7 +108,10 @@ def test_real_ezkl_serialization_extracts_pairings_bundle():
                 {"p": {"x": "0x111", "y": "0x222"}},
                 {"p": {"x": "0x333", "y": "0x444"}},
             ],
+            "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+            "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
             "hint_felts": ["0x9", "0xa"],
+            "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"],
         },
     )
 
@@ -135,7 +160,10 @@ def test_real_ezkl_serialization_injects_bundle_from_sidecar_file(tmp_path, monk
   "kzg_mpcheck_bundle": {
     "pair0": {"x": "0x11", "y": "0x22"},
     "pair1": {"x": "0x33", "y": "0x44"},
-    "mpcheck_hint_felts": ["0x5", "0x6"]
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+    "mpcheck_hint_felts": ["0x5", "0x6"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
   }
 }"""
     )
@@ -176,7 +204,10 @@ def test_real_ezkl_serialization_injects_bundle_from_trace_sidecar(tmp_path, mon
   "kzg_mpcheck_bundle": {
     "pair0": {"x": "0x101", "y": "0x202"},
     "pair1": {"x": "0x303", "y": "0x404"},
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
     "mpcheck_hint_felts": ["0xa", "0xb"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"],
     "auto_build_hint": false
   }
 }"""
@@ -213,7 +244,10 @@ def test_real_ezkl_serialization_injects_bundle_from_hash_map(tmp_path, monkeypa
   "{proof_hash}": {{
     "pair0": {{"x": "0x111", "y": "0x222"}},
     "pair1": {{"x": "0x333", "y": "0x444"}},
-    "mpcheck_hint_felts": ["0x7"]
+    "g2_pair0": {{"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"}},
+    "g2_pair1": {{"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"}},
+    "mpcheck_hint_felts": ["0x7"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
   }}
 }}"""
     )
@@ -253,7 +287,10 @@ bundle = {
   "kzg_mpcheck_bundle": {
     "pair0": {"x": "0x1111", "y": "0x2222"},
     "pair1": {"x": "0x3333", "y": "0x4444"},
-    "mpcheck_hint_felts": ["0x9"]
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+    "mpcheck_hint_felts": ["0x9"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
   }
 }
 if proof.get("proof") != [9, 9]:
@@ -296,7 +333,10 @@ bundle = {
   "kzg_mpcheck_bundle": {
     "pair0": {"x": "0x1111", "y": "0x2222"},
     "pair1": {"x": "0x3333", "y": "0x4444"},
-    "mpcheck_hint_felts": ["0x9", "0xa"]
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+    "mpcheck_hint_felts": ["0x9", "0xa"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
   }
 }
 print(json.dumps(bundle))
@@ -391,17 +431,12 @@ def test_real_ezkl_serialization_cross_model_scan_recaches_bundle(tmp_path, monk
 
     monkeypatch.setattr(
         "app.services.ezkl_kzg_serializer._scan_model_sidecars_by_proof_hash",
-        lambda proof_hash, exclude_model_dir: (
-            {
-                "kzg_mpcheck_bundle": {
-                    "pair0": {"x": "0x11", "y": "0x22"},
-                    "pair1": {"x": "0x33", "y": "0x44"},
-                    "mpcheck_hint_felts": ["0x5"],
-                    "auto_build_hint": False,
-                }
-            },
-            "model_scan:mock",
-        ),
+            lambda proof_hash, exclude_model_dir: (
+                {
+                    "kzg_mpcheck_bundle": _dynamic_bundle(hint_felts=["0x5"])
+                },
+                "model_scan:mock",
+            ),
     )
 
     model_dir = tmp_path / "target_model"
@@ -431,3 +466,74 @@ def test_real_ezkl_serialization_cross_model_scan_recaches_bundle(tmp_path, monk
     assert sidecar.exists()
     sidecar_data = json.loads(sidecar.read_text())
     assert proof_hash in sidecar_data
+
+
+def test_real_ezkl_serialization_emits_v3_with_dynamic_artifacts(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.ezkl_kzg_serializer._build_bn254_dynamic_mpcheck_artifacts",
+        lambda pair0, pair1, g2_pair0, g2_pair1: ([111, 222], [1, 2, 3, 4], ""),
+    )
+
+    fake_proof = SimpleNamespace(
+        proof_hash="0x" + "12" * 32,
+        model_hash="0x" + "34" * 32,
+        verify_key_hash="0x" + "56" * 32,
+        public_inputs=[1.0],
+        inference_output=[2.0],
+        proof_hex="0x" + "78" * 64,
+        proof_bytes=b"",
+        raw_proof_json={
+            "kzg_mpcheck_bundle": {
+                "pair0": {"x": "0x11", "y": "0x22"},
+                "pair1": {"x": "0x33", "y": "0x44"},
+                "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+                "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+            }
+        },
+    )
+
+    calldata, meta = serialize_ezkl_proof_to_kzg_calldata(fake_proof)
+    assert hex(KZG_MPCHECK_V3_MARKER) in calldata
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert meta["kzg_mpcheck_trailer_marker"] == "kzg_mpcheck_v3"
+    assert meta["kzg_mpcheck_hint_source"] == "garaga_dynamic_pairs_2f"
+    assert meta["kzg_mpcheck_line_source"] == "garaga_precompute_lines_2f"
+    assert meta["kzg_mpcheck_precomputed_line_values"] == 4
+    assert meta["kzg_mpcheck_precomputed_lines"] == 1
+
+
+def test_real_ezkl_serialization_uses_provided_v3_sidecar_when_rebuild_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.ezkl_kzg_serializer._build_bn254_dynamic_mpcheck_artifacts",
+        lambda pair0, pair1, g2_pair0, g2_pair1: ([], [], "forced_dynamic_builder_failure"),
+    )
+
+    fake_proof = SimpleNamespace(
+        proof_hash="0x" + "9a" * 32,
+        model_hash="0x" + "bc" * 32,
+        verify_key_hash="0x" + "de" * 32,
+        public_inputs=[1.0],
+        inference_output=[2.0],
+        proof_hex="0x" + "f0" * 64,
+        proof_bytes=b"",
+        raw_proof_json={
+            "kzg_mpcheck_bundle": {
+                "pair0": {"x": "0x11", "y": "0x22"},
+                "pair1": {"x": "0x33", "y": "0x44"},
+                "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+                "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+                "mpcheck_hint_felts": ["0x9", "0xa"],
+                "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"],
+            }
+        },
+    )
+
+    calldata, meta = serialize_ezkl_proof_to_kzg_calldata(fake_proof)
+    assert hex(KZG_MPCHECK_V3_MARKER) in calldata
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert meta["kzg_mpcheck_trailer_marker"] == "kzg_mpcheck_v3"
+    assert meta["kzg_mpcheck_hint_source"] == "provided"
+    assert meta["kzg_mpcheck_line_source"] == "provided"
+    assert meta["kzg_mpcheck_precomputed_line_values"] == 4
+    assert meta["kzg_mpcheck_precomputed_lines"] == 1
+    assert "forced_dynamic_builder_failure" in str(meta["kzg_mpcheck_line_error"])

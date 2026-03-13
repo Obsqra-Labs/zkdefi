@@ -21,6 +21,26 @@ def _disable_event_log(monkeypatch, pipeline: ProofPipeline) -> None:
     )
 
 
+def _dynamic_bundle(
+    *,
+    pair0_x: str = "1",
+    pair0_y: str = "2",
+    pair1_x: str = "3",
+    pair1_y: str = "4",
+    hint_felts: list[str] | None = None,
+    line_felts: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "pair0": {"x": pair0_x, "y": pair0_y},
+        "pair1": {"x": pair1_x, "y": pair1_y},
+        "g2_pair0": {"x0": "1", "x1": "2", "y0": "3", "y1": "4"},
+        "g2_pair1": {"x0": "5", "x1": "6", "y0": "7", "y1": "8"},
+        "mpcheck_hint_felts": hint_felts or ["7"],
+        "precomputed_line_felts": line_felts or ["1", "2", "3", "4"],
+        "auto_build_hint": False,
+    }
+
+
 @pytest.mark.asyncio
 async def test_l3_strict_success(monkeypatch):
     pipeline = ProofPipeline()
@@ -255,18 +275,7 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
         proof_hex = "0x11"
         proof_bytes = b"\x11"
         raw_proof_json = {
-            "kzg_mpcheck_bundle": {
-                "pair0": {
-                    "x": "1",
-                    "y": "2",
-                },
-                "pair1": {
-                    "x": "3",
-                    "y": "4",
-                },
-                "mpcheck_hint_felts": ["7"],
-                "auto_build_hint": False,
-            }
+            "kzg_mpcheck_bundle": _dynamic_bundle()
         }
 
         def to_dict(self):
@@ -326,12 +335,7 @@ async def test_native_kzg_dual_preserves_mirror_receipts(monkeypatch):
         proof_hex = "0x11"
         proof_bytes = b"\x11"
         raw_proof_json = {
-            "kzg_mpcheck_bundle": {
-                "pair0": {"x": "1", "y": "2"},
-                "pair1": {"x": "3", "y": "4"},
-                "mpcheck_hint_felts": ["7"],
-                "auto_build_hint": False,
-            }
+            "kzg_mpcheck_bundle": _dynamic_bundle()
         }
 
         def to_dict(self):
@@ -439,12 +443,14 @@ async def test_native_kzg_sidecar_bundle_enables_strict_path(monkeypatch, tmp_pa
     bundle_file.write_text(
         json.dumps(
             {
-                "kzg_mpcheck_bundle": {
-                    "pair0": {"x": "0x11", "y": "0x22"},
-                    "pair1": {"x": "0x33", "y": "0x44"},
-                    "mpcheck_hint_felts": ["0x5", "0x6"],
-                    "auto_build_hint": False,
-                }
+                "kzg_mpcheck_bundle": _dynamic_bundle(
+                    pair0_x="0x11",
+                    pair0_y="0x22",
+                    pair1_x="0x33",
+                    pair1_y="0x44",
+                    hint_felts=["0x5", "0x6"],
+                    line_felts=["0x1", "0x2", "0x3", "0x4"],
+                )
             }
         )
     )
@@ -517,12 +523,14 @@ async def test_native_kzg_alias_model_resolves_trace_sidecar(monkeypatch, tmp_pa
     (trace_dir / "kzg_mpcheck_bundle.json").write_text(
         json.dumps(
             {
-                "kzg_mpcheck_bundle": {
-                    "pair0": {"x": "0x11", "y": "0x22"},
-                    "pair1": {"x": "0x33", "y": "0x44"},
-                    "mpcheck_hint_felts": ["0x5"],
-                    "auto_build_hint": False,
-                }
+                "kzg_mpcheck_bundle": _dynamic_bundle(
+                    pair0_x="0x11",
+                    pair0_y="0x22",
+                    pair1_x="0x33",
+                    pair1_y="0x44",
+                    hint_felts=["0x5"],
+                    line_felts=["0x1", "0x2", "0x3", "0x4"],
+                )
             }
         )
     )

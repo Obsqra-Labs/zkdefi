@@ -36,6 +36,40 @@ def _run(cmd: list[str], *, check: bool = True) -> int:
     return int(proc.returncode)
 
 
+def _validate_warm_report(path: Path) -> None:
+    if not path.exists():
+        raise RuntimeError(f"missing Path B warm report: {path}")
+    report = json.loads(path.read_text())
+    native = report.get("native_kzg_onchain") or {}
+    if not isinstance(native, dict) or not native.get("enabled"):
+        return
+
+    attempted = int(native.get("attempted_models", 0) or 0)
+    verified = int(native.get("verified_models", 0) or 0)
+    l3_receipts = int(native.get("l3_receipt_models", 0) or 0)
+    strict_abi = int(native.get("strict_abi_models", 0) or 0)
+    strict_binding = int(native.get("strict_binding_models", 0) or 0)
+    execution_chain = str(native.get("execution_chain") or "").strip().lower()
+
+    if attempted <= 0:
+        raise RuntimeError("Path B native_kzg_onchain enabled but attempted_models=0")
+    if not (verified == attempted == l3_receipts == strict_abi == strict_binding):
+        raise RuntimeError(
+            "Path B native KZG gate failed: "
+            f"attempted={attempted} verified={verified} "
+            f"l3_receipts={l3_receipts} strict_abi={strict_abi} strict_binding={strict_binding}"
+        )
+
+    if execution_chain == "dual":
+        l2_receipts = int(native.get("l2_receipt_models", 0) or 0)
+        mirrored = int(native.get("mirrored_models", 0) or 0)
+        if not (l2_receipts == attempted == mirrored):
+            raise RuntimeError(
+                "Path B dual native KZG mirror gate failed: "
+                f"attempted={attempted} l2_receipts={l2_receipts} mirrored={mirrored}"
+            )
+
+
 def _validate_latest_report() -> None:
     if not LATEST_REPORT.exists():
         raise RuntimeError(f"missing latest showcase report: {LATEST_REPORT}")
@@ -93,6 +127,31 @@ def _validate_latest_report() -> None:
     if lane_errors:
         raise RuntimeError("bridge lane gate failed: " + "; ".join(lane_errors))
 
+    native_receipt = (report.get("bridge_architecture") or {}).get("native_kzg_live_receipt") or {}
+    if not isinstance(native_receipt, dict):
+        native_receipt = {}
+    native_marker = str(native_receipt.get("kzg_trailer_marker") or "").strip().lower()
+    native_line_source = str(native_receipt.get("kzg_line_source") or "").strip().lower()
+    native_precomputed_lines = int(native_receipt.get("kzg_precomputed_lines", 0) or 0)
+    native_verifier_state = native_receipt.get("l3_verifier_state") or {}
+    strict_binding_observed = bool(
+        isinstance(native_verifier_state, dict)
+        and native_verifier_state.get("strict_binding_observed")
+    )
+    if not (
+        native_marker == "kzg_mpcheck_v3"
+        and native_precomputed_lines > 0
+        and native_line_source in {"provided", "garaga_precompute_lines_2f"}
+        and strict_binding_observed
+    ):
+        raise RuntimeError(
+            "native KZG strict v3 gate failed: "
+            f"marker={native_marker or '-'} "
+            f"line_source={native_line_source or '-'} "
+            f"precomputed_lines={native_precomputed_lines} "
+            f"strict_binding_observed={strict_binding_observed}"
+        )
+
     lanes_text = "/".join(expected_required.keys())
     print(
         f"showcase gate PASS: core_score={validated}/{total}, "
@@ -110,18 +169,33 @@ def main() -> int:
         str(ARTIFACT_DIR / "pathb_bundle_warm.json"),
     )
     min_coverage = _env("PATHB_WARM_MIN_COVERAGE", "1.0")
+    warm_verify_onchain_native_kzg = _env_bool("SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG", True)
+    warm_execution_chain = _env("SHOWCASE_WARM_EXECUTION_CHAIN", "dual")
+    warm_request_timeout = _env("SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS", "180")
     os.environ["SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"] = strict_attempts
 
-    _run(
-        [
-            "python3",
-            "scripts/warm_kzg_bundle_catalog.py",
-            "--output",
-            warm_output,
-            "--min-coverage",
-            min_coverage,
-        ]
-    )
+    warm_cmd = [
+        "python3",
+        "scripts/warm_kzg_bundle_catalog.py",
+        "--output",
+        warm_output,
+        "--min-coverage",
+        min_coverage,
+    ]
+    if warm_verify_onchain_native_kzg:
+        warm_cmd.extend(
+            [
+                "--verify-onchain-native-kzg",
+                "--native-kzg-execution-chain",
+                warm_execution_chain,
+                "--base-url",
+                base_url,
+                "--request-timeout",
+                warm_request_timeout,
+            ]
+        )
+    _run(warm_cmd)
+    _validate_warm_report(Path(warm_output))
 
     showcase_rc = _run(
         [

@@ -27,6 +27,7 @@ Use `/test` for the current Obsqra Labs research evidence: ModelBridge lanes, AI
 The report now also includes rolling stability/gas benchmarks by lane (verified-rate + p50/p95) from `artifacts/hackathon_showcase/history.jsonl`.
 Path B extraction cadence is tracked in `artifacts/hackathon_showcase/pathb_bundle_history.jsonl` with daily coverage deltas and exact per-model bundle regressions/additions.
 The Path B warm report can now optionally probe real `EzklNativeKzg` receipts per model, so the catalog tracks not only bundle presence but actual backend-native-KZG execution evidence.
+The daily `/test` build now precomputes native-KZG sidecars before the strict gate, which keeps the serializer on `kzg_mpcheck_v3` and avoids silently drifting back to weaker payload shapes.
 For faster `/test` health checks, `python3 scripts/hackathon_backend_showcase.py --strict-bridge --bridge-only --emit-report` runs only the bridge-critical matrix instead of the full privacy/agent demo suite.
 Dual mirror status now reports `mirror_underfunded` when the parent Sepolia wallet cannot afford the L3->L2 registry write, which keeps the failure mode honest.
 
@@ -36,6 +37,10 @@ Daily refresh on the same server (recommended for `/test`):
 - Example cron (UTC 06:15):
   - `15 6 * * * cd /opt/obsqra.starknet/zkdefi && /opt/obsqra.starknet/zkdefi/scripts/daily_live_research_build.sh`
 - Default behavior: `/test` is refreshed even if one strict lane is flaky (`daily_build_status=WARN` in log); set `DAILY_BUILD_STRICT_EXIT=true` for hard-fail cron behavior.
+- Default bridge posture in the daily build:
+  - precompute Path B sidecars for local EZKL models
+  - run Path B warm-up with live native-KZG verification
+  - use `execution_chain=dual` so `/test` reflects both L3 receipt evidence and mirror health
 
 ModelBridge runtime defaults now attempt real local EZKL for `ModelBridge` / `ModelBridgeHeavy` before synthetic fallback:
 
