@@ -76,7 +76,20 @@ get_verification(model_hash: felt252, nonce_low: u128, nonce_high: u128)
 - ✅ **POST** `/api/v1/aggregation/l1/verify` supports bridge mode:
   - if `L1_EZKL_BRIDGE_SENDER_ADDRESS` is set, backend calls `verifyAndBridge(proof, instances, model_hash, output_commitment)`;
   - request must include `model_hash` and `output_commitment`;
-  - response includes `mode: "verify_and_bridge"` or `mode: "l1_verify_only"`.
+  - response includes `mode: "verify_and_bridge"` or `mode: "l1_verify_only"`;
+  - bridge-mode responses now surface the polling token from the preflight call:
+    - `used_nonce`
+    - `message_hash`
+    - `verification_status_query = { model_hash, nonce }`
+  - optional inline L2 confirmation is supported with:
+    - `wait_for_l2=true`
+    - `l2_max_polls`
+    - `l2_poll_interval_seconds`
+  - when inline confirmation is enabled, the response also includes:
+    - `verified_on_l2`
+    - `l2_output_commitment`
+    - `l2_block_timestamp`
+    - `l2_poll_attempts`
 
 Config: `L1_EZKL_VERIFIER_ADDRESS`, `L1_EZKL_BRIDGE_SENDER_ADDRESS`, `L1_BRIDGE_RECEIVER_ADDRESS`, `STARKNET_RPC_URL` (or existing L2 RPC) for contract reads.
 

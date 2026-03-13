@@ -249,7 +249,7 @@
 
 ### Task 3.3: L1 submit and bridge trigger
 
-**Status:** ✅ L1 submit + bridge trigger implemented. Parent backend supports both direct `verifyProof` and `verifyAndBridge` via `L1_EZKL_BRIDGE_SENDER_ADDRESS`; Sepolia sender deployed and Starknet receiver `allowed_l1_sender` updated.
+**Status:** ✅ L1 submit + bridge trigger implemented. Parent backend supports both direct `verifyProof` and `verifyAndBridge` via `L1_EZKL_BRIDGE_SENDER_ADDRESS`; Sepolia sender deployed and Starknet receiver `allowed_l1_sender` updated. Runtime hardening now returns the exact bridge polling token (`used_nonce`, `message_hash`, `verification_status_query`) from `verifyAndBridge`, and can optionally wait for L2 confirmation in the same request.
 
 **Files:**
 - Create: parent repo `backend/app/services/l1_ezkl_bridge_service.py` — `submit_ezkl_proof_to_l1(proof_hex, public_inputs)` → call Sepolia EZKL verifier via RPC; on success, trigger or document L1→L2 message send (may be same tx or separate bridge contract call)
@@ -267,7 +267,7 @@
 
 ### Task 3.4: Backend — poll L2 for L1→L2 confirmation
 
-**Status:** ✅ Implemented in parent backend (`l1_ezkl_bridge_service.poll_l2_for_verification` + GET `/api/v1/aggregation/l1/verification-status` with `verified_on_l2`, `output_commitment`, `block_timestamp`).
+**Status:** ✅ Implemented in parent backend (`l1_ezkl_bridge_service.poll_l2_for_verification` + GET `/api/v1/aggregation/l1/verification-status` with `verified_on_l2`, `output_commitment`, `block_timestamp`). `POST /api/v1/aggregation/l1/verify` can now optionally inline that confirmation loop when `wait_for_l2=true`.
 
 **Files:**
 - Modify: `l1_ezkl_bridge_service.py` — `poll_l2_for_verification(model_hash, nonce)` or similar: query L2 receiver contract or indexer for message consumption; return verified=true when message received
