@@ -14,6 +14,9 @@ import httpx
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_latest.json"
 DEFAULT_PARENT_BASE_URL = "http://127.0.0.1:8002"
+DEFAULT_BRIDGE_SENDER_ARTIFACT = (
+    PROJECT_ROOT / "contracts" / "l1_ezkl" / "out" / "L1EzklBridgeSender.sol" / "L1EzklBridgeSender.json"
+)
 
 
 def _load_env_file(path: Path) -> dict[str, str]:
@@ -128,6 +131,73 @@ def _fetch_l1_receipt(rpc_url: str, tx_hash: str, timeout: float) -> dict[str, A
     return result if isinstance(result, dict) else {}
 
 
+def _decode_bridge_event(
+    *,
+    receipt: dict[str, Any],
+    sender_address: str,
+    artifact_path: Path,
+) -> dict[str, Any]:
+    if not receipt or not sender_address or not artifact_path.exists():
+        return {}
+    try:
+        from web3 import Web3
+        from web3._utils.events import get_event_data
+    except Exception:
+        return {}
+
+    try:
+        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+        abi = artifact.get("abi") if isinstance(artifact, dict) else None
+        if not isinstance(abi, list):
+            return {}
+        event_abi = next(
+            (
+                item
+                for item in abi
+                if isinstance(item, dict)
+                and item.get("type") == "event"
+                and item.get("name") == "EzklVerifiedAndBridged"
+            ),
+            None,
+        )
+        if not isinstance(event_abi, dict):
+            return {}
+
+        w3 = Web3()
+        topic0_expected = Web3.keccak(
+            text="EzklVerifiedAndBridged(address,uint256,uint256,uint256,bytes32)"
+        ).hex().lower()
+        sender_norm = sender_address.lower()
+        logs = receipt.get("logs")
+        if not isinstance(logs, list):
+            return {}
+
+        for raw_log in logs:
+            if not isinstance(raw_log, dict):
+                continue
+            if str(raw_log.get("address") or "").lower() != sender_norm:
+                continue
+            topics = raw_log.get("topics")
+            if not isinstance(topics, list) or not topics:
+                continue
+            if str(topics[0] or "").lower() != topic0_expected:
+                continue
+            decoded = get_event_data(w3.codec, event_abi, raw_log)
+            args = decoded.get("args") if isinstance(decoded, dict) else None
+            if not isinstance(args, dict):
+                continue
+            return {
+                "caller": _normalize_hex(args.get("caller")),
+                "used_nonce": int(args.get("nonce")) if args.get("nonce") is not None else None,
+                "model_hash": _normalize_hex(args.get("modelHash")),
+                "output_commitment": _normalize_hex(args.get("outputCommitment")),
+                "message_hash": _normalize_hex(args.get("messageHash")),
+            }
+    except Exception:
+        return {}
+    return {}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Capture a live Path C L1->L2 bridge receipt into pathc_latest.json.")
     parser.add_argument("--payload-json", required=True, help="JSON file with proof_hex/public_inputs/model_hash/output_commitment.")
@@ -139,6 +209,7 @@ def main() -> int:
     parser.add_argument("--l2-max-polls", type=int, default=12)
     parser.add_argument("--l2-poll-interval-seconds", type=float, default=5.0)
     parser.add_argument("--l1-rpc", default="")
+    parser.add_argument("--bridge-sender-artifact", default=str(DEFAULT_BRIDGE_SENDER_ARTIFACT))
     args = parser.parse_args()
 
     payload_path = Path(args.payload_json).expanduser().resolve()
@@ -182,6 +253,24 @@ def main() -> int:
     l1_rpc = _first_non_empty(args.l1_rpc, os.getenv("L1_SEPOLIA_RPC"), parent_env.get("L1_SEPOLIA_RPC"))
     tx_hash = _first_non_empty(verify_result.get("tx_hash"))
     l1_receipt = _fetch_l1_receipt(l1_rpc, tx_hash, args.timeout)
+    sender_address = _first_non_empty(
+        os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+        parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+    )
+    bridge_event = _decode_bridge_event(
+        receipt=l1_receipt,
+        sender_address=sender_address,
+        artifact_path=Path(args.bridge_sender_artifact).expanduser().resolve(),
+    )
+    used_nonce = verify_result.get("used_nonce")
+    if used_nonce is None:
+        used_nonce = bridge_event.get("used_nonce")
+    message_hash = _first_non_empty(verify_result.get("message_hash"), bridge_event.get("message_hash"))
+    if not isinstance(query, dict) and used_nonce is not None:
+        query = {"model_hash": payload["model_hash"], "nonce": str(used_nonce)}
+    elif isinstance(query, dict) and used_nonce is not None and not query.get("nonce"):
+        query["nonce"] = str(used_nonce)
+        query.setdefault("model_hash", payload["model_hash"])
 
     artifact = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -190,13 +279,14 @@ def main() -> int:
         "tx_hash": tx_hash,
         "model_hash": payload["model_hash"],
         "output_commitment": payload["output_commitment"],
-        "used_nonce": verify_result.get("used_nonce"),
-        "message_hash": verify_result.get("message_hash"),
+        "used_nonce": used_nonce,
+        "message_hash": message_hash,
         "l1_receipt": {
             "status": int(l1_receipt.get("status", "0x0"), 16) if l1_receipt.get("status") else None,
             "blockNumber": int(l1_receipt.get("blockNumber", "0x0"), 16) if l1_receipt.get("blockNumber") else None,
             "gasUsed": int(l1_receipt.get("gasUsed", "0x0"), 16) if l1_receipt.get("gasUsed") else None,
         },
+        "l1_bridge_event": bridge_event or None,
         "l2_verified": bool(verify_result.get("verified_on_l2") or l2_status.get("verified_on_l2")),
         "l2_last": {
             "verified": bool(l2_status.get("verified")),

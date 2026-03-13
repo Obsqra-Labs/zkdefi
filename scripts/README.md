@@ -214,6 +214,7 @@ Expected payload JSON fields:
 - `output_commitment`
 
 The script calls the parent backend `POST /api/v1/aggregation/l1/verify`, uses the returned `used_nonce` / `verification_status_query`, optionally polls L2, and writes `artifacts/hackathon_showcase/pathc_latest.json` in the shape consumed by the showcase.
+If the parent API has not been restarted with the newer Path C response fields yet, the script can still recover `used_nonce` and `message_hash` by decoding the `EzklVerifiedAndBridged` event from the L1 tx receipt.
 
 ### Hackathon showcase artifacts
 
