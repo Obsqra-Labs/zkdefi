@@ -1,8 +1,8 @@
 {
   "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": {
     "credit_eligibility": {
-      "timestamp": 1773373923,
-      "proof_hash": "0xd9ae2c15b8c0fefd3a7cf6a9d297967a0f859f4b9c60e7bbac5d2ac4099be573",
+      "timestamp": 1773375549,
+      "proof_hash": "0x8fb0f715c28f8cb6bfef1f0c9d3d61046935fa6d3667b203151380198a59c688",
       "on_chain_verified": false
     }
   }

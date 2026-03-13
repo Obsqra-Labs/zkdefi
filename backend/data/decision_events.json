@@ -545561,5 +545561,54 @@
       "action_type": "rebalance"
     },
     "created_at": "2026-03-13T04:18:13.403517+00:00"
+  },
+  {
+    "id": 21457,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "ml_inference",
+    "outcome": "success",
+    "value_eth": 2.1,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "yield_predictor",
+    "model_hash": null,
+    "execution_chain": "l3",
+    "primary_chain": "l3",
+    "verification_mode": "native_kzg",
+    "verified_on_chain": true,
+    "l3_tx_hash": "0x6c28efa75ec3aa9043d044367dab041e48e00b358e9217c9ea056dec93743cb",
+    "l2_tx_hash": null,
+    "mirror_status": "not_requested",
+    "failure_reason": null,
+    "metadata": {
+      "commitment_hash": "0x853859481cf87d1a2ff978d0ea25f754",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-13T04:18:52.583117+00:00"
+  },
+  {
+    "id": 21458,
+    "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "credit",
+    "outcome": "success",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "proof_type": "credit_eligibility",
+      "proof_hash": "0x8fb0f715c28f8cb6bfef1f0c9d3d61046935fa6d3667b203151380198a59c688",
+      "envelope_id": "env_1773375549_0x49d36570"
+    },
+    "created_at": "2026-03-13T04:19:09.607400+00:00"
   }
 ]
