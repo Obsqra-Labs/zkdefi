@@ -85,22 +85,23 @@ let _normParams: NormParams | null = null;
 let _ort: any | null = null;
 let _initPromise: Promise<void> | null = null;
 
-/* ─── CDN loader (bypasses webpack entirely) ───────────────────────── */
+/* ─── self-hosted loader (bypasses webpack, respects CSP) ──────────── */
 
-function loadOrtFromCDN(): Promise<any> {
+function loadOrtSelfHosted(): Promise<any> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const g = globalThis as any;
   if (g.ort) return Promise.resolve(g.ort);
 
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/ort.min.js";
+    // Served from public/vendor/ — same origin, no CSP issue
+    script.src = "/vendor/ort.min.js";
     script.async = true;
     script.onload = () => {
       if (g.ort) resolve(g.ort);
       else reject(new Error("onnxruntime-web loaded but ort global not found"));
     };
-    script.onerror = () => reject(new Error("Failed to load onnxruntime-web from CDN"));
+    script.onerror = () => reject(new Error("Failed to load onnxruntime-web from /vendor/ort.min.js"));
     document.head.appendChild(script);
   });
 }
@@ -113,10 +114,11 @@ async function ensureInit(): Promise<void> {
 
   _initPromise = (async () => {
     try {
-      // Load onnxruntime-web from CDN (avoids webpack parse errors)
+      // Load onnxruntime-web from self-hosted /vendor/ (avoids webpack + CSP issues)
       if (!_ort) {
-        _ort = await loadOrtFromCDN();
+        _ort = await loadOrtSelfHosted();
         _ort.env.wasm.numThreads = 1;
+        _ort.env.wasm.wasmPaths = "/vendor/";
       }
 
       // Fetch norm params
@@ -316,7 +318,7 @@ export async function scoreCreditInBrowser(
 export async function isOnnxAvailable(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   try {
-    await loadOrtFromCDN();
+    await loadOrtSelfHosted();
     return true;
   } catch {
     return false;
