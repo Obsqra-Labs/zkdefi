@@ -15,7 +15,11 @@ Endpoints:
 
 from __future__ import annotations
 
+import hashlib as _hl_sk
 import logging
+import secrets as _secrets
+import time as _time
+from collections import defaultdict as _defaultdict
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -24,6 +28,33 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["paper-trade"])
+
+# ─── Shared in-memory stores ─────────────────────────────────────────────────
+
+# Session keys
+_session_keys: Dict[str, Dict[str, Any]] = {}
+
+# Activity event streams  { wallet_address -> [events] }
+_event_streams: Dict[str, list] = _defaultdict(list)
+
+# Dark vault positions  { vault_id -> vault_data }
+_dark_vaults: Dict[str, Dict[str, Any]] = {}
+
+
+def _emit_event(wallet: str, event_type: str, detail: str, meta: Dict[str, Any] | None = None):
+    """Push an event into the activity stream for a wallet."""
+    ev = {
+        "id": f"ev_{_secrets.token_hex(4)}",
+        "type": event_type,
+        "detail": detail,
+        "meta": meta or {},
+        "ts": _time.time(),
+    }
+    _event_streams[wallet.lower()].append(ev)
+    # Keep max 200 events per wallet
+    if len(_event_streams[wallet.lower()]) > 200:
+        _event_streams[wallet.lower()] = _event_streams[wallet.lower()][-200:]
+    return ev
 
 
 # ─── Request models ──────────────────────────────────────────────────────────
@@ -661,6 +692,34 @@ async def onboard_identity(req: OnboardRequest):
     else:
         session = create_session(req.wallet_address)
 
+    # 4. Auto-issue a session key for the embedded wallet
+    import time as _t_onboard
+    import secrets as _s_onboard
+    import hashlib as _hl_onboard
+    now_onboard = _t_onboard.time()
+    sk_entropy = _s_onboard.token_hex(32)
+    sk_id = f"sk_{_s_onboard.token_hex(8)}"
+    sk_seed = f"zkdefi_sk_v1:{req.wallet_address.lower()}:{sk_entropy}"
+    sk_signing = _hl_onboard.sha256(sk_seed.encode()).hexdigest()
+    session_key_resp = {
+        "key_id": sk_id,
+        "signing_key_prefix": sk_signing[:8] + "…",
+        "permissions": ["paper_trade", "snapshot", "proof"],
+        "expires_at": now_onboard + 3600,
+        "ttl_seconds": 3600,
+        "status": "active",
+    }
+
+    # 5. Emit onboard events to the activity stream
+    _emit_event(req.wallet_address, "onboarded", "L3 identity provisioned", {
+        "l3_address": l3_address,
+        "session_id": session.session_id,
+        "fico_score": reputation.get("fico_score") if reputation else None,
+    })
+    _emit_event(req.wallet_address, "session_key_issued", f"Session key {sk_id} active for 1h", {
+        "key_id": sk_id,
+    })
+
     return {
         "status": "onboarded",
         "wallet_address": req.wallet_address,
@@ -668,4 +727,333 @@ async def onboard_identity(req: OnboardRequest):
         "session_id": session.session_id,
         "session_created_at": session.created_at,
         "reputation": reputation,
+        "session_key": session_key_resp,
+    }
+
+
+# ─── Session keys: lightweight embedded wallet ──────────────────────────────
+
+class IssueSessionKeyRequest(BaseModel):
+    wallet_address: str = Field(..., description="L2 wallet address that signs this request")
+    session_id: str = Field(..., description="Paper trading session ID")
+    ttl_seconds: int = Field(default=3600, description="Key lifetime in seconds (default 1h)")
+    permissions: list[str] = Field(
+        default=["paper_trade", "snapshot", "proof"],
+        description="Allowed actions for this session key",
+    )
+
+
+@router.post("/session-keys/issue")
+async def issue_session_key(req: IssueSessionKeyRequest):
+    """
+    Issue a short-lived session key for the embedded L3 wallet.
+    The session key allows paper trades, snapshots, and proof generation
+    without re-signing with the parent wallet each time.
+    """
+    now = _time.time()
+    key_entropy = _secrets.token_hex(32)
+    key_id = f"sk_{_secrets.token_hex(8)}"
+
+    # Derive session signing key from wallet + entropy
+    session_signing_seed = f"zkdefi_sk_v1:{req.wallet_address.lower()}:{key_entropy}"
+    session_signing_key = _hl_sk.sha256(session_signing_seed.encode()).hexdigest()
+
+    # Derive embedded L3 address for this session key
+    l3_seed = f"zkdefi_l3_v1:{req.wallet_address.strip().lower()}"
+    l3_address = "0x" + _hl_sk.sha256(l3_seed.encode()).hexdigest()[:40]
+
+    key_data = {
+        "key_id": key_id,
+        "wallet_address": req.wallet_address,
+        "session_id": req.session_id,
+        "l3_address": l3_address,
+        "signing_key_hash": _hl_sk.sha256(session_signing_key.encode()).hexdigest()[:16],
+        "permissions": req.permissions,
+        "issued_at": now,
+        "expires_at": now + req.ttl_seconds,
+        "ttl_seconds": req.ttl_seconds,
+        "status": "active",
+        "actions_signed": 0,
+    }
+    _session_keys[key_id] = key_data
+
+    return {
+        "key_id": key_id,
+        "l3_address": l3_address,
+        "session_id": req.session_id,
+        "signing_key_prefix": session_signing_key[:8] + "…",
+        "permissions": req.permissions,
+        "issued_at": key_data["issued_at"],
+        "expires_at": key_data["expires_at"],
+        "ttl_seconds": req.ttl_seconds,
+        "status": "active",
+    }
+
+
+@router.get("/session-keys/{key_id}")
+async def get_session_key(key_id: str):
+    """Check the status of a session key."""
+    if key_id not in _session_keys:
+        raise HTTPException(status_code=404, detail="Session key not found")
+    key = _session_keys[key_id]
+    now = _time.time()
+    if now > key["expires_at"]:
+        key["status"] = "expired"
+    return key
+
+
+@router.post("/session-keys/{key_id}/sign")
+async def sign_with_session_key(key_id: str, action: str = "paper_trade"):
+    """
+    Simulate signing an action with a session key.
+    Returns a signature hash if the key is valid and authorized.
+    """
+    if key_id not in _session_keys:
+        raise HTTPException(status_code=404, detail="Session key not found")
+    key = _session_keys[key_id]
+    now = _time.time()
+    if now > key["expires_at"]:
+        key["status"] = "expired"
+        raise HTTPException(status_code=403, detail="Session key expired")
+    if action not in key["permissions"]:
+        raise HTTPException(status_code=403, detail=f"Action '{action}' not permitted")
+
+    key["actions_signed"] += 1
+    sig_input = f"{key_id}:{action}:{now}:{key['signing_key_hash']}"
+    signature = _hl_sk.sha256(sig_input.encode()).hexdigest()
+
+    return {
+        "key_id": key_id,
+        "action": action,
+        "signature": f"0x{signature}",
+        "signed_at": now,
+        "actions_signed": key["actions_signed"],
+        "status": "signed",
+    }
+
+
+@router.delete("/session-keys/{key_id}")
+async def revoke_session_key(key_id: str):
+    """Revoke a session key immediately."""
+    if key_id not in _session_keys:
+        raise HTTPException(status_code=404, detail="Session key not found")
+    _session_keys[key_id]["status"] = "revoked"
+    _session_keys[key_id]["expires_at"] = _time.time()
+    return {"key_id": key_id, "status": "revoked"}
+
+
+# ─── Activity stream: event log for the Intelligent Stream ─────────────────
+
+@router.get("/stream/{wallet_address}")
+async def get_activity_stream(wallet_address: str, limit: int = 50):
+    """Get the activity stream for a wallet (most recent first)."""
+    events = _event_streams.get(wallet_address.lower(), [])
+    return {
+        "wallet_address": wallet_address,
+        "events": list(reversed(events[-limit:])),
+        "total": len(events),
+    }
+
+
+# ─── Dark Vault: privacy-preserving paper vault ────────────────────────────
+
+class VaultDepositRequest(BaseModel):
+    wallet_address: str = Field(..., description="L2 wallet address")
+    session_id: str = Field(..., description="Paper trading session ID")
+    amount_usd: float = Field(..., gt=0, description="Amount to deposit")
+    privacy_level: str = Field(default="shielded", description="Privacy level: shielded | private | transparent")
+    note: str = Field(default="", description="Optional encrypted note (client-side encrypted)")
+
+
+@router.post("/vault/deposit")
+async def vault_deposit(req: VaultDepositRequest):
+    """
+    Deposit paper capital into the Dark Vault.
+    Creates a commitment hash and shields the balance from public view.
+    """
+    vault_id = f"dv_{_secrets.token_hex(8)}"
+    now = _time.time()
+
+    # Derive commitment hash (position blinding)
+    commitment_input = f"{req.wallet_address}:{req.amount_usd}:{now}:{_secrets.token_hex(16)}"
+    commitment_hash = _hl_sk.sha256(commitment_input.encode()).hexdigest()
+
+    # Derive nullifier for future withdrawal
+    nullifier_input = f"null_v1:{vault_id}:{commitment_hash}"
+    nullifier_hash = _hl_sk.sha256(nullifier_input.encode()).hexdigest()
+
+    vault_data = {
+        "vault_id": vault_id,
+        "wallet_address": req.wallet_address,
+        "session_id": req.session_id,
+        "amount_usd": req.amount_usd,
+        "privacy_level": req.privacy_level,
+        "commitment_hash": f"0x{commitment_hash}",
+        "nullifier_hash": f"0x{nullifier_hash}",
+        "status": "shielded",
+        "deposited_at": now,
+        "withdrawn_at": None,
+        "note_encrypted": req.note if req.note else None,
+    }
+    _dark_vaults[vault_id] = vault_data
+
+    # Emit to activity stream
+    _emit_event(req.wallet_address, "vault_deposit", f"Deposited ${req.amount_usd:,.2f} into Dark Vault", {
+        "vault_id": vault_id,
+        "amount_usd": req.amount_usd,
+        "privacy_level": req.privacy_level,
+        "commitment_hash": f"0x{commitment_hash[:16]}…",
+    })
+
+    return {
+        "vault_id": vault_id,
+        "amount_usd": req.amount_usd,
+        "privacy_level": req.privacy_level,
+        "commitment_hash": f"0x{commitment_hash}",
+        "nullifier_preview": f"0x{nullifier_hash[:16]}…",
+        "status": "shielded",
+        "deposited_at": now,
+    }
+
+
+@router.get("/vault/{wallet_address}")
+async def get_vaults(wallet_address: str):
+    """List all dark vault positions for a wallet."""
+    vaults = [
+        v for v in _dark_vaults.values()
+        if v["wallet_address"].lower() == wallet_address.lower()
+    ]
+    total_shielded = sum(v["amount_usd"] for v in vaults if v["status"] == "shielded")
+    return {
+        "wallet_address": wallet_address,
+        "vaults": vaults,
+        "total_shielded_usd": total_shielded,
+        "vault_count": len(vaults),
+    }
+
+
+@router.post("/vault/{vault_id}/withdraw")
+async def vault_withdraw(vault_id: str):
+    """Withdraw from Dark Vault (reveal and unshield)."""
+    if vault_id not in _dark_vaults:
+        raise HTTPException(status_code=404, detail="Vault not found")
+    vault = _dark_vaults[vault_id]
+    if vault["status"] != "shielded":
+        raise HTTPException(status_code=400, detail="Vault already withdrawn")
+
+    vault["status"] = "withdrawn"
+    vault["withdrawn_at"] = _time.time()
+
+    _emit_event(vault["wallet_address"], "vault_withdraw", f"Withdrew ${vault['amount_usd']:,.2f} from Dark Vault", {
+        "vault_id": vault_id,
+        "amount_usd": vault["amount_usd"],
+    })
+
+    return {
+        "vault_id": vault_id,
+        "amount_usd": vault["amount_usd"],
+        "status": "withdrawn",
+        "withdrawn_at": vault["withdrawn_at"],
+    }
+
+
+# ─── Proof of Performance: ZK proof over PnL snapshot ──────────────────────
+
+class ProofOfPerformanceRequest(BaseModel):
+    wallet_address: str = Field(..., description="L2 wallet address")
+    session_id: str = Field(..., description="Paper trading session to prove")
+    prove_type: str = Field(default="pnl_positive", description="What to prove: pnl_positive | apy_above | capital_preserved")
+    threshold: Optional[float] = Field(default=None, description="Threshold for proof (e.g. min APY)")
+
+
+@router.post("/proof-of-performance")
+async def proof_of_performance(req: ProofOfPerformanceRequest):
+    """
+    Generate a ZK proof of paper trading performance.
+    Proves a claim about PnL/APY *without* revealing the strategy or exact numbers.
+    """
+    from app.services.paper_trade_engine import get_session
+
+    session = get_session(req.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    now = _time.time()
+
+    # Calculate session stats (session is a PaperTradeSession dataclass)
+    positions = [p for p in session.positions if not p.closed]
+    total_value = session.total_value_usd if session.total_value_usd > 0 else sum(p.amount_usd for p in positions)
+    starting = session.starting_value_usd or 10000
+    pnl = session.total_pnl_usd if session.total_pnl_usd != 0 else (total_value - starting)
+    pnl_pct = (pnl / starting * 100) if starting > 0 else 0
+
+    # Estimate elapsed hours from created_at ISO string
+    try:
+        from datetime import datetime, timezone
+        created = datetime.fromisoformat(session.created_at.replace("Z", "+00:00"))
+        elapsed_hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600
+    except Exception:
+        elapsed_hours = 1.0
+    annualized_apy = (pnl_pct / max(elapsed_hours, 0.01)) * 8760 if starting > 0 else 0
+
+    # Determine claim result
+    claim_valid = False
+    claim_statement = ""
+    if req.prove_type == "pnl_positive":
+        claim_valid = pnl >= 0
+        claim_statement = "Paper P&L ≥ 0"
+    elif req.prove_type == "apy_above":
+        threshold = req.threshold or 5.0
+        claim_valid = annualized_apy >= threshold
+        claim_statement = f"Annualized APY ≥ {threshold}%"
+    elif req.prove_type == "capital_preserved":
+        claim_valid = total_value >= starting * 0.95  # 5% drawdown tolerance
+        claim_statement = "Capital preserved (≤5% drawdown)"
+    else:
+        claim_statement = f"Unknown prove type: {req.prove_type}"
+
+    # Generate proof artifacts
+    proof_input = f"pop_v1:{req.session_id}:{req.prove_type}:{claim_valid}:{now}"
+    proof_hash = _hl_sk.sha256(proof_input.encode()).hexdigest()
+    nullifier = _hl_sk.sha256(f"pop_null:{proof_hash}".encode()).hexdigest()
+
+    # Build public inputs (what the verifier sees — no strategy details)
+    public_inputs = {
+        "session_id_hash": _hl_sk.sha256(req.session_id.encode()).hexdigest()[:16],
+        "claim_type": req.prove_type,
+        "claim_valid": claim_valid,
+        "timestamp": int(now),
+        "proof_hash": f"0x{proof_hash}",
+    }
+
+    # Build private inputs (hidden from verifier)
+    private_witness = {
+        "actual_pnl_usd": round(pnl, 2),
+        "actual_pnl_pct": round(pnl_pct, 4),
+        "actual_apy": round(annualized_apy, 4),
+        "position_count": len(positions),
+        "starting_value": starting,
+    }
+
+    # Emit to activity stream
+    _emit_event(req.wallet_address, "proof_generated", f"ZK Proof: {claim_statement} = {claim_valid}", {
+        "proof_hash": f"0x{proof_hash[:16]}…",
+        "prove_type": req.prove_type,
+        "claim_valid": claim_valid,
+    })
+
+    return {
+        "proof_hash": f"0x{proof_hash}",
+        "nullifier": f"0x{nullifier}",
+        "claim_statement": claim_statement,
+        "claim_valid": claim_valid,
+        "prove_type": req.prove_type,
+        "public_inputs": public_inputs,
+        "private_witness_summary": {
+            "fields_count": len(private_witness),
+            "witness_hash": _hl_sk.sha256(str(private_witness).encode()).hexdigest()[:16],
+        },
+        "generated_at": now,
+        "verified": True,  # In production, this would be verified on-chain
+        "verification_method": "EZKL + Groth16 (simulated for demo)",
     }

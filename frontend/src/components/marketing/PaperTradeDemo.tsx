@@ -17,6 +17,10 @@ import { ReputationProfile, type ReputationData } from "@/components/marketing/R
 import { CapitalOSHome, type L3Identity } from "@/components/marketing/CapitalOSHome";
 import { StrategyCompare } from "@/components/marketing/StrategyCompare";
 import { PnLTracker } from "@/components/marketing/PnLTracker";
+import { SessionWallet, type SessionKeyInfo } from "@/components/marketing/SessionWallet";
+import { IntelligentStream } from "@/components/marketing/IntelligentStream";
+import { DarkVaultPanel } from "@/components/marketing/DarkVaultPanel";
+import { ProofOfPerformance } from "@/components/marketing/ProofOfPerformance";
 import { apiFetch } from "@/lib/api/client";
 
 /* ─── types ────────────────────────────────────────────────────────── */
@@ -73,6 +77,7 @@ interface OnboardResponse {
   session_id: string;
   session_created_at: string;
   reputation: ReputationData | null;
+  session_key?: SessionKeyInfo | null;
 }
 
 /**
@@ -112,6 +117,7 @@ export function PaperTradeDemo() {
   // Identity + reputation
   const [identity, setIdentity] = useState<L3Identity | null>(null);
   const [reputation, setReputation] = useState<ReputationData | null>(null);
+  const [sessionKey, setSessionKey] = useState<SessionKeyInfo | null>(null);
 
   // Strategy selection
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
@@ -157,6 +163,7 @@ export function PaperTradeDemo() {
       };
       setIdentity(id);
       if (res.reputation) setReputation(res.reputation);
+      if (res.session_key) setSessionKey(res.session_key);
       setPhase("home");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to onboard");
@@ -228,6 +235,7 @@ export function PaperTradeDemo() {
     setHypotheticalUsd(null);
     setExecution(null);
     setError(null);
+    setSessionKey(null);
     setLiveValue(0);
     setLivePnl(0);
     setLivePnlPct(0);
@@ -326,6 +334,20 @@ export function PaperTradeDemo() {
             proofCount={0}
             snapshotCount={0}
           />
+
+          {/* Session Wallet */}
+          {identity && (
+            <SessionWallet
+              walletAddress={identity.wallet_address}
+              sessionId={identity.session_id}
+              l3Address={identity.l3_address}
+              initialKey={sessionKey}
+              onKeyIssued={setSessionKey}
+            />
+          )}
+
+          {/* Intelligent Stream */}
+          <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={10000} />
 
           {/* Reputation Profile */}
           {reputation && <ReputationProfile data={reputation} />}
@@ -472,6 +494,32 @@ export function PaperTradeDemo() {
               </div>
             </div>
           </div>
+
+          {/* Session Wallet */}
+          {identity && (
+            <SessionWallet
+              walletAddress={identity.wallet_address}
+              sessionId={identity.session_id}
+              l3Address={identity.l3_address}
+              initialKey={sessionKey}
+              onKeyIssued={setSessionKey}
+            />
+          )}
+
+          {/* Dark Vault */}
+          <DarkVaultPanel
+            walletAddress={identity.wallet_address}
+            sessionId={identity.session_id}
+          />
+
+          {/* ZK Proof of Performance */}
+          <ProofOfPerformance
+            walletAddress={identity.wallet_address}
+            sessionId={identity.session_id}
+          />
+
+          {/* Intelligent Stream */}
+          <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={8000} />
 
           {/* Reputation Profile */}
           {reputation && <ReputationProfile data={reputation} />}

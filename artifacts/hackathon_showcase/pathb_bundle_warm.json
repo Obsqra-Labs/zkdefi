@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-13T01:51:13.934282+00:00",
-  "duration_ms": 14040,
+  "generated_at": "2026-03-13T02:01:09.940742+00:00",
+  "duration_ms": 22637,
   "models_total": 3,
   "models_verified": 3,
   "models_with_bundle": 3,
@@ -19,8 +19,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x1bcfd6dbd0bb8c9d68a46a6313d4ee2b18f9b591787a512e6eaae9091c088eec",
-      "duration_ms": 4920
+      "proof_hash": "0x483abbc5cc6de9460e2bbb4f46e1e66518d3ac74b5b14d9ff185febf1374b2c3",
+      "duration_ms": 6853
     },
     {
       "model": "creditworthiness",
@@ -38,8 +38,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x52f5bd8751eac3f0aec2b696d250074781082b66bc22cecf130cf4933b547047",
-      "duration_ms": 4712
+      "proof_hash": "0x83aca211f16396bdb996bb81ca09fd391ad9d69e07ee72cd18122c37f6274a76",
+      "duration_ms": 6609
     },
     {
       "model": "yield_forecast",
@@ -55,8 +55,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x72e45c1a8b4e5823b206913fd4b7f28f74d1de992d197b2177421fcbc693ae0b",
-      "duration_ms": 4407
+      "proof_hash": "0x487a5883a8e43ba43636df473fed7d00993e637a3a9ccfbfc57c869b37261c87",
+      "duration_ms": 9173
     }
   ]
 }
