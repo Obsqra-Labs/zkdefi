@@ -1,29 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  Activity,
-  Key,
-  Lock,
-  ShieldCheck,
-  Fingerprint,
-  Loader2,
-  ArrowRight,
-} from "lucide-react";
+import { Fingerprint, Loader2, ArrowRight } from "lucide-react";
 import { CapitalBrain, DEFAULT_ENABLED, type BrainConfig } from "./CapitalBrain";
 import { TrustDemo } from "./TrustDemo";
-import { TerminalPanel } from "./TerminalPanel";
-import { SessionWallet } from "./SessionWallet";
-import { IntelligentStream } from "./IntelligentStream";
-import { DarkVaultPanel } from "./DarkVaultPanel";
-import { ProofOfPerformance } from "./ProofOfPerformance";
 import { ReputationProfile, type ReputationData } from "./ReputationProfile";
 import { apiFetch } from "@/lib/api/client";
 
-/* ── demo identifiers for walletless mode ── */
+/* ── demo identifiers ── */
 const DEMO_ADDRESS =
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d";
-const DEMO_SESSION_ID = "demo-mainnet-session-001";
 const DEMO_L3_ADDRESS = "0x0474b940f499ca60d2aebce5c6b0b0c4e8b0947e";
 
 /* ── seeded reputation for guest mode ── */
@@ -38,8 +24,15 @@ const GUEST_REPUTATION: ReputationData = {
   capital_by_protocol: { ekubo: 8200, vesu: 4100, nostra: 2520 },
   protocol_count: 3,
   position_count: 7,
-  signals: [],
-  defi_veteran_score: 0.72,
+  signals: [
+    { signal: "multi_protocol_lp", value: 0.91, label: "Multi-protocol LP", evidence: "Active across 3 DEXs", category: "diversity" },
+    { signal: "consistent_rebalancer", value: 0.85, label: "Consistent Rebalancer", evidence: "Regular position adjustments", category: "activity" },
+    { signal: "capital_efficient", value: 0.78, label: "Capital Efficient", evidence: "High utilization ratio", category: "capital" },
+    { signal: "early_adopter", value: 0.72, label: "Early Adopter", evidence: "Onboarded in first 90 days", category: "conviction" },
+    { signal: "risk_aware", value: 0.68, label: "Risk Aware", evidence: "Diversified across risk tiers", category: "resilience" },
+    { signal: "stable_farmer", value: 0.64, label: "Stable Farmer", evidence: "Consistent yield strategy", category: "activity" },
+  ],
+  defi_veteran_score: 72,
   conviction_score: 0.65,
   activity_score: 0.81,
   diversity_score: 0.58,
@@ -54,16 +47,26 @@ const GUEST_REPUTATION: ReputationData = {
   fico_tier: "Good",
   credit_class: "A",
   credit_confidence: 0.82,
+  ezkl_ready: true,
+  credit_circuit_version: "creditworthiness_v3",
+  credit_feature_hash: "0xab3f19e7c2d6",
+  credit_model_hash: "0x91cf4e20d8a1",
+  credit_features: {
+    nonce_norm: 0.42,
+    capital_norm: 0.58,
+    protocol_norm: 0.60,
+    position_norm: 0.70,
+    veteran_norm: 0.72,
+    tier_norm: 0.60,
+  },
 };
 
 /**
- * CapitalOSSection — Market Brain + Portable Reputation.
+ * CapitalOSSection — two clear sections:
  *
- * Layout:
- *  1. Headline
- *  2. AI Brain (left) + Analysis & terminal panels (right)
- *  3. Portable Reputation:
- *     — "Get Your Portable Identity" → static L3 + reputation scan + ZK proofs
+ *  1. Market Brain — AI-powered pool analysis (CapitalBrain + TrustDemo)
+ *  2. Portable Reputation — onboard → L3 address → full reputation dashboard
+ *     with FICO, credit class, ZK proof generation, VC export & behavioral signals
  */
 export function CapitalOSSection() {
   /* ── brain state ── */
@@ -75,7 +78,7 @@ export function CapitalOSSection() {
   const [triggerKey, setTriggerKey] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  /* ── portable reputation state ── */
+  /* ── reputation state ── */
   const [onboarded, setOnboarded] = useState(false);
   const [reputation, setReputation] = useState<ReputationData | null>(null);
   const [repLoading, setRepLoading] = useState(false);
@@ -93,7 +96,6 @@ export function CapitalOSSection() {
       );
       setReputation(rep);
     } catch {
-      // Seed guest reputation when API is unreachable
       setReputation(GUEST_REPUTATION);
     } finally {
       setRepLoading(false);
@@ -102,113 +104,63 @@ export function CapitalOSSection() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      {/* ═══ Headline ═══ */}
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-cyan-500">
-          The System — Live Demo
-        </p>
-        <h2 className="text-2xl font-bold leading-tight text-zinc-100 sm:text-3xl">
-          Proof-gated execution
-          <br className="hidden sm:block" /> across 5 Starknet protocols.
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Real mainnet data from{" "}
-          <strong className="text-cyan-400">Ekubo</strong>,{" "}
-          <strong className="text-emerald-400">Vesu</strong>,{" "}
-          <strong className="text-amber-400">Endur</strong>,{" "}
-          <strong className="text-rose-400">Nostra</strong> &amp;{" "}
-          <strong className="text-indigo-400">Troves</strong>. AI scores every
-          pool. zkML proofs gate every action. No wallet needed.
-        </p>
-      </div>
-
-      {/* ═══ AI Brain + Analysis + Terminal Panels ═══ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-        {/* Left: AI Brain */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
-          <CapitalBrain onAnalyze={handleAnalyze} loading={loading} />
+    <div className="space-y-12">
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ═══  SECTION 1 — Market Brain                         ═══ */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="space-y-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-cyan-500">
+            The System — Live Demo
+          </p>
+          <h2 className="text-2xl font-bold leading-tight text-zinc-100 sm:text-3xl">
+            Proof-gated execution
+            <br className="hidden sm:block" /> across 5 Starknet protocols.
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+            Real mainnet data from{" "}
+            <strong className="text-cyan-400">Ekubo</strong>,{" "}
+            <strong className="text-emerald-400">Vesu</strong>,{" "}
+            <strong className="text-amber-400">Endur</strong>,{" "}
+            <strong className="text-rose-400">Nostra</strong> &amp;{" "}
+            <strong className="text-indigo-400">Troves</strong>. AI scores every
+            pool. zkML proofs gate every action. No wallet needed.
+          </p>
         </div>
 
-        {/* Right: Analysis + session panels */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-zinc-200">Capital OS</h3>
-              <p className="mt-0.5 text-xs text-zinc-500">
-                Aggregated on-chain data · AI-scored · Verifiable execution
-              </p>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <CapitalBrain onAnalyze={handleAnalyze} loading={loading} />
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-200">Capital OS</h3>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Aggregated on-chain data · AI-scored · Verifiable execution
+                </p>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-0.5 text-[10px] text-zinc-500">
+                Walletless demo · No keys needed
+              </span>
             </div>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-0.5 text-[10px] text-zinc-500">
-              Walletless demo · No keys needed
-            </span>
-          </div>
 
-          {/* Pool intelligence & proof pipeline */}
-          <TrustDemo
-            riskTolerance={config.riskTolerance}
-            enabledSkills={config.enabledSkills}
-            protocolWeights={config.protocolWeights}
-            triggerKey={triggerKey}
-            onLoadingChange={setLoading}
-          />
-
-          {/* Session · Vault · Proofs · Feed */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <TerminalPanel
-              id="session-key"
-              title="Embedded Session Wallet"
-              accent="text-amber-400"
-              icon={<Key className="h-3 w-3 text-amber-400" />}
-            >
-              <SessionWallet
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-                l3Address={DEMO_L3_ADDRESS}
-              />
-            </TerminalPanel>
-
-            <TerminalPanel
-              id="dark-vault"
-              title="Dark Vault"
-              accent="text-violet-400"
-              icon={<Lock className="h-3 w-3 text-violet-400" />}
-            >
-              <DarkVaultPanel
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-              />
-            </TerminalPanel>
-
-            <TerminalPanel
-              id="proof"
-              title="ZK Proof of Performance"
-              accent="text-fuchsia-400"
-              icon={<ShieldCheck className="h-3 w-3 text-fuchsia-400" />}
-            >
-              <ProofOfPerformance
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-              />
-            </TerminalPanel>
-
-            <TerminalPanel
-              id="stream"
-              title="Activity Stream"
-              accent="text-cyan-400"
-              icon={<Activity className="h-3 w-3 text-cyan-400" />}
-            >
-              <IntelligentStream
-                walletAddress={DEMO_ADDRESS}
-                pollIntervalMs={10000}
-              />
-            </TerminalPanel>
+            <TrustDemo
+              riskTolerance={config.riskTolerance}
+              enabledSkills={config.enabledSkills}
+              protocolWeights={config.protocolWeights}
+              triggerKey={triggerKey}
+              onLoadingChange={setLoading}
+            />
           </div>
         </div>
       </div>
 
-      {/* ═══ Portable Reputation System ═══ */}
-      <div className="border-t border-zinc-800 pt-10">
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ═══  SECTION 2 — Portable Reputation                  ═══ */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="border-t border-zinc-800 pt-12">
         <div className="mx-auto mb-8 max-w-3xl text-center">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-fuchsia-500">
             Portable Reputation
@@ -217,19 +169,18 @@ export function CapitalOSSection() {
             Your on-chain identity, proven.
           </h3>
           <p className="mx-auto mt-2 max-w-xl text-sm text-zinc-400">
-            Onboard to receive a sovereign L3 address and portable ZK proofs of
-            your DeFi reputation — verifiable across any protocol, without
-            revealing your positions.
+            Onboard to receive a sovereign L3 address. Generate ZK proofs of your
+            DeFi reputation — FICO score, credit class, behavioral signals —
+            verifiable across any protocol, without revealing your positions.
           </p>
         </div>
 
         {!onboarded ? (
-          /* ── Onboard CTA ── */
           <div className="flex justify-center">
             <button
               onClick={handleOnboard}
               disabled={repLoading}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-violet-600 px-6 py-3 font-semibold text-white transition-all hover:from-fuchsia-500 hover:to-violet-500 disabled:opacity-50"
+              className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-7 py-3.5 font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:from-fuchsia-500 hover:to-violet-500 hover:shadow-fuchsia-500/30 disabled:opacity-50"
             >
               {repLoading ? (
                 <>
@@ -238,49 +189,30 @@ export function CapitalOSSection() {
                 </>
               ) : (
                 <>
-                  <Fingerprint className="h-4 w-4" />
+                  <Fingerprint className="h-5 w-5" />
                   Get Your Portable Identity
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
             </button>
           </div>
         ) : (
-          /* ── Portable proof dashboard ── */
-          <div className="space-y-4">
-            {/* L3 address badge */}
-            <div className="mx-auto max-w-md rounded-lg border border-emerald-500/20 bg-emerald-950/10 px-4 py-3 text-center">
-              <p className="mb-1 text-[10px] uppercase tracking-wider text-emerald-500">
-                Your L3 Address
+          <div className="space-y-6">
+            {/* L3 address */}
+            <div className="mx-auto max-w-lg rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-5 py-4 text-center">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-500">
+                Your Sovereign L3 Address
               </p>
-              <code className="break-all font-mono text-sm text-emerald-300">
+              <code className="break-all font-mono text-sm font-medium text-emerald-300">
                 {DEMO_L3_ADDRESS}
               </code>
+              <p className="mt-2 text-[10px] text-zinc-600">
+                This identity is portable across all zkDefi-compatible protocols.
+              </p>
             </div>
 
-            {/* Reputation scan + portable ZK proofs */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <TerminalPanel
-                id="reputation"
-                title="On-Chain Reputation"
-                accent="text-fuchsia-400"
-                icon={<Fingerprint className="h-3 w-3 text-fuchsia-400" />}
-              >
-                {reputation && <ReputationProfile data={reputation} />}
-              </TerminalPanel>
-
-              <TerminalPanel
-                id="portable-proof"
-                title="Portable Proofs"
-                accent="text-violet-400"
-                icon={<ShieldCheck className="h-3 w-3 text-violet-400" />}
-              >
-                <ProofOfPerformance
-                  walletAddress={DEMO_ADDRESS}
-                  sessionId={DEMO_SESSION_ID}
-                />
-              </TerminalPanel>
-            </div>
+            {/* Full reputation dashboard — no wrapper chrome, renders its own UI */}
+            {reputation && <ReputationProfile data={reputation} />}
           </div>
         )}
       </div>
