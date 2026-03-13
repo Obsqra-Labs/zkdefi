@@ -30,6 +30,7 @@ Daily refresh on the same server (recommended for `/test`):
 - `scripts/daily_live_research_build.sh`
 - Example cron (UTC 06:15):
   - `15 6 * * * cd /opt/obsqra.starknet/zkdefi && /opt/obsqra.starknet/zkdefi/scripts/daily_live_research_build.sh`
+- Default behavior: `/test` is refreshed even if one strict lane is flaky (`daily_build_status=WARN` in log); set `DAILY_BUILD_STRICT_EXIT=true` for hard-fail cron behavior.
 
 ModelBridge runtime defaults now attempt real local EZKL for `ModelBridge` / `ModelBridgeHeavy` before synthetic fallback:
 

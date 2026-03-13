@@ -148,6 +148,9 @@ Example crontab (UTC 06:15 daily):
 15 6 * * * cd /opt/obsqra.starknet/zkdefi && /opt/obsqra.starknet/zkdefi/scripts/daily_live_research_build.sh
 ```
 
+By default the daily script **always refreshes** `latest.html/json` even if strict lanes partially fail (`daily_build_status=WARN` in log).  
+Set `DAILY_BUILD_STRICT_EXIT=true` to make cron fail on strict-lane regressions.
+
 ### Hackathon showcase artifacts
 
 Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REPORT=true`):
