@@ -279,6 +279,7 @@ class StoneProverClient:
                         "chain": chain_id,
                         "block": None,
                         "error": "L2 verification endpoint unavailable on OBSQRA API",
+                        "tx_hash": None,
                     }
 
                 if response.status_code == 200:
@@ -289,6 +290,7 @@ class StoneProverClient:
                         "block": data.get("block_number", data.get("block")),
                         "error": data.get("error"),
                         "source": data.get("source"),
+                        "tx_hash": data.get("tx_hash"),
                     }
                 else:
                     return {
@@ -297,6 +299,7 @@ class StoneProverClient:
                         "block": None,
                         "error": response.text,
                         "source": None,
+                        "tx_hash": None,
                     }
         except Exception as e:
             logger.error(f"Proof verification check failed: {e}")
@@ -306,6 +309,7 @@ class StoneProverClient:
                 "block": None,
                 "error": str(e),
                 "source": None,
+                "tx_hash": None,
             }
 
 
