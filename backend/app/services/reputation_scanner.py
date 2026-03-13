@@ -159,6 +159,18 @@ class ReputationProfile:
     recommended_tier: int = 1             # 1-3 based on signals
     tier_reasoning: str = ""
 
+    # ── Credit scoring (FICO pack / circuit-ready) ────────────────────────
+    fico_score: int = 0                   # 300-850 FICO-equivalent score
+    fico_tier: str = ""                   # excellent | good | fair | poor
+    credit_class: str = ""                # AAA | AA | A | B | C
+    credit_class_index: int = -1          # 0-4 (MLP output class)
+    credit_confidence: float = 0.0        # softmax confidence of predicted class
+    credit_features: Dict[str, float] = field(default_factory=dict)  # 18 named features
+    credit_feature_hash: str = ""         # SHA256 of normalized feature vector
+    credit_model_hash: str = ""           # SHA256 of ONNX model
+    credit_circuit_version: str = ""      # e.g. "creditworthiness_mlp_v1"
+    ezkl_ready: bool = False              # True if EZKL artifacts exist for proving
+
     # Proof binding
     profile_hash: str = ""
     scan_duration_ms: float = 0.0
@@ -178,6 +190,9 @@ class ReputationProfile:
                 "account_type": self.account_type,
                 "total_capital_usd": round(self.total_capital_usd, 2),
                 "defi_veteran_score": self.defi_veteran_score,
+                "fico_score": self.fico_score,
+                "credit_class": self.credit_class,
+                "credit_feature_hash": self.credit_feature_hash,
                 "signals": [
                     {"signal": s.signal, "value": round(s.value, 4)}
                     for s in self.signals
@@ -812,6 +827,54 @@ async def scan_reputation(
         all_signals,
     )
 
+    # ── 5b. Circuit-ready credit scoring (FICO pack) ──────────────────────
+
+    fico_score = 0
+    fico_tier = ""
+    credit_class = ""
+    credit_class_index = -1
+    credit_confidence = 0.0
+    credit_features: Dict[str, float] = {}
+    credit_feature_hash = ""
+    credit_model_hash = ""
+    credit_circuit_version = ""
+    ezkl_ready = False
+
+    try:
+        from app.services.circuit_ready_scorer import score_creditworthiness
+
+        signals_dicts = [asdict(s) for s in all_signals]
+        credit_result = score_creditworthiness(
+            nonce=nonce or 0,
+            total_capital_usd=total_usd,
+            protocol_count=len(capital_by_protocol),
+            position_count=position_count,
+            capital_by_protocol=capital_by_protocol,
+            signals=signals_dicts,
+            defi_veteran_score=scores["defi_veteran_score"],
+            recommended_tier=recommended_tier,
+            account_type=account_type,
+            account_exists=account_exists,
+        )
+        fico_score = credit_result.fico_score
+        fico_tier = credit_result.fico_tier
+        credit_class = credit_result.credit_class
+        credit_class_index = credit_result.credit_class_index
+        credit_confidence = credit_result.confidence
+        credit_features = credit_result.features
+        credit_feature_hash = credit_result.feature_hash
+        credit_model_hash = credit_result.model_hash
+        credit_circuit_version = credit_result.circuit_version
+        ezkl_ready = credit_result.ezkl_ready
+
+        logger.info(
+            "Credit scoring: fico=%d tier=%s class=%s confidence=%.2f ezkl=%s",
+            fico_score, fico_tier, credit_class, credit_confidence, ezkl_ready,
+        )
+    except Exception as exc:
+        errors.append(f"credit_scoring: {exc}")
+        logger.warning("Credit scoring failed: %s", exc)
+
     # ── 6. Build profile ──────────────────────────────────────────────────
 
     duration_ms = (time.time() - t0) * 1000
@@ -836,6 +899,17 @@ async def scan_reputation(
         resilience_score=scores["resilience_score"],
         recommended_tier=recommended_tier,
         tier_reasoning=tier_reasoning,
+        # Credit scoring (FICO pack)
+        fico_score=fico_score,
+        fico_tier=fico_tier,
+        credit_class=credit_class,
+        credit_class_index=credit_class_index,
+        credit_confidence=credit_confidence,
+        credit_features=credit_features,
+        credit_feature_hash=credit_feature_hash,
+        credit_model_hash=credit_model_hash,
+        credit_circuit_version=credit_circuit_version,
+        ezkl_ready=ezkl_ready,
         scan_duration_ms=round(duration_ms, 1),
         errors=errors,
     )

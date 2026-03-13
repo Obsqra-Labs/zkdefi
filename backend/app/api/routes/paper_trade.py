@@ -314,6 +314,9 @@ async def reputation_scan(req: ReputationScanRequest):
       - Rug survival / market resilience indicators
       - Composite scores: veteran, conviction, activity, diversity, capital, resilience
       - Recommended trust tier with reasoning
+      - FICO credit score (300-850) via circuit-ready MLP
+      - Credit class (AAA/AA/A/B/C) with confidence
+      - ZK circuit readiness status
     """
     from app.services.reputation_scanner import scan_reputation
 
@@ -323,3 +326,16 @@ async def reputation_scan(req: ReputationScanRequest):
     except Exception as exc:
         logger.exception("Reputation scan failed for %s", req.wallet_address)
         raise HTTPException(status_code=500, detail=f"Reputation scan failed: {exc}")
+
+
+@router.get("/circuit-info")
+async def circuit_info():
+    """
+    Return circuit compilation path metadata.
+
+    Shows which compilation targets are available for the credit scoring
+    circuit: EZKL Halo2, ONNX WASM, Rust WASM, Noir, Cairo native.
+    """
+    from app.services.circuit_ready_scorer import get_circuit_compilation_paths
+
+    return get_circuit_compilation_paths()

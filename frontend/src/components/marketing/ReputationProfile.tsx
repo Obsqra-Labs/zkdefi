@@ -48,6 +48,17 @@ export interface ReputationData {
   profile_hash: string;
   scan_duration_ms: number;
   errors: string[];
+  // Credit scoring (FICO pack)
+  fico_score?: number;
+  fico_tier?: string;
+  credit_class?: string;
+  credit_class_index?: number;
+  credit_confidence?: number;
+  credit_features?: Record<string, number>;
+  credit_feature_hash?: string;
+  credit_model_hash?: string;
+  credit_circuit_version?: string;
+  ezkl_ready?: boolean;
 }
 
 /* ─── helpers ───────────────────────────────────────────────────────── */
@@ -145,6 +156,7 @@ function ScoreBar({ label, score }: { label: string; score: number }) {
 export function ReputationProfile({ data }: { data: ReputationData }) {
   const tier = TIER_STYLES[data.recommended_tier] ?? TIER_STYLES[1];
   const accountLabel = ACCOUNT_TYPE_LABELS[data.account_type] ?? data.account_type;
+  const hasFico = data.fico_score != null && data.fico_score > 0;
 
   // Sort signals by value descending, take top 6
   const topSignals = [...data.signals]
@@ -195,6 +207,75 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
           </p>
         </div>
       </div>
+
+      {/* ── FICO Credit Score + Circuit Status ── */}
+      {hasFico && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* FICO Score */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">FICO Score</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className={`text-3xl font-bold ${
+                (data.fico_score ?? 0) >= 750 ? "text-emerald-400" :
+                (data.fico_score ?? 0) >= 670 ? "text-cyan-400" :
+                (data.fico_score ?? 0) >= 580 ? "text-amber-400" : "text-red-400"
+              }`}>
+                {data.fico_score}
+              </span>
+              <span className="text-xs text-zinc-500">/ 850</span>
+            </div>
+            <p className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${
+              data.fico_tier === "excellent" ? "text-emerald-400" :
+              data.fico_tier === "good" ? "text-cyan-400" :
+              data.fico_tier === "fair" ? "text-amber-400" : "text-red-400"
+            }`}>
+              {data.fico_tier}
+            </p>
+          </div>
+
+          {/* Credit Class */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Credit Class</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className={`text-3xl font-bold ${
+                data.credit_class === "AAA" ? "text-emerald-400" :
+                data.credit_class === "AA" ? "text-cyan-400" :
+                data.credit_class === "A" ? "text-blue-400" :
+                data.credit_class === "B" ? "text-amber-400" : "text-red-400"
+              }`}>
+                {data.credit_class}
+              </span>
+              <span className="text-xs text-zinc-500">
+                {((data.credit_confidence ?? 0) * 100).toFixed(0)}% conf
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-zinc-600">
+              MLP {data.credit_circuit_version?.replace("creditworthiness_", "")}
+            </p>
+          </div>
+
+          {/* Circuit Status */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">ZK Circuit</p>
+            <div className="mt-1 flex items-center gap-2">
+              <div className={`h-2.5 w-2.5 rounded-full ${data.ezkl_ready ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span className={`text-sm font-bold ${data.ezkl_ready ? "text-emerald-400" : "text-amber-400"}`}>
+                {data.ezkl_ready ? "Proof Ready" : "Inference Only"}
+              </span>
+            </div>
+            <p className="mt-2 text-[10px] text-zinc-600">
+              {data.ezkl_ready
+                ? "EZKL Halo2 circuit compiled — can generate ZK proofs"
+                : "MLP inference active — EZKL artifacts pending"}
+            </p>
+            {data.credit_feature_hash && (
+              <p className="mt-1 font-mono text-[9px] text-zinc-700 truncate">
+                feat: {data.credit_feature_hash.slice(0, 14)}…
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Score bars ── */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-6 py-4 sm:grid-cols-5">
@@ -263,10 +344,15 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
       )}
 
       {/* ── Profile hash (proof binding) ── */}
-      <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2">
         <p className="text-[10px] text-zinc-600">
           Profile hash: <span className="font-mono text-zinc-500">{data.profile_hash?.slice(0, 18)}…</span>
         </p>
+        {data.credit_model_hash && data.credit_model_hash !== "heuristic_fallback" && (
+          <p className="text-[10px] text-zinc-600">
+            Model: <span className="font-mono text-zinc-500">{data.credit_model_hash.slice(0, 12)}…</span>
+          </p>
+        )}
         <p className="text-[10px] text-zinc-600">
           Scanned in {data.scan_duration_ms.toFixed(0)}ms
         </p>
