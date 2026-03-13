@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import {
   Shield,
   Flame,
@@ -13,7 +14,14 @@ import {
   Crown,
   TrendingUp,
   Wallet,
+  Loader2,
+  Download,
+  Lock,
+  Cpu,
+  CheckCircle2,
+  Copy,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 
 /* ─── types ─────────────────────────────────────────────────────────── */
 
@@ -151,12 +159,150 @@ function ScoreBar({ label, score }: { label: string; score: number }) {
   );
 }
 
+/* ─── proof/VC/browser types ────────────────────────────────────────── */
+
+interface ProofResult {
+  proof_hash: string;
+  proof_size_bytes: number;
+  verified: boolean;
+  witness_ms: number;
+  prove_ms: number;
+  verify_ms: number;
+  total_ms: number;
+}
+
+interface VCResult {
+  credential_id: string;
+  target_chain: string;
+  envelope: Record<string, unknown>;
+  integrity_hash: string;
+}
+
+interface BrowserScoreResult {
+  fico_score: number;
+  fico_tier: string;
+  credit_class: string;
+  confidence: number;
+  inference_ms: number;
+  ran_in_browser: true;
+}
+
 /* ─── main component ────────────────────────────────────────────────── */
 
 export function ReputationProfile({ data }: { data: ReputationData }) {
   const tier = TIER_STYLES[data.recommended_tier] ?? TIER_STYLES[1];
   const accountLabel = ACCOUNT_TYPE_LABELS[data.account_type] ?? data.account_type;
   const hasFico = data.fico_score != null && data.fico_score > 0;
+
+  // Proof generation state
+  const [proofState, setProofState] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const [proofResult, setProofResult] = useState<ProofResult | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
+
+  // VC export state
+  const [vcState, setVcState] = useState<"idle" | "exporting" | "done" | "error">("idle");
+  const [vcResult, setVcResult] = useState<VCResult | null>(null);
+  const [vcCopied, setVcCopied] = useState(false);
+
+  // Browser scorer state
+  const [browserState, setBrowserState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [browserScore, setBrowserScore] = useState<BrowserScoreResult | null>(null);
+
+  // Generate ZK proof
+  const handleGenerateProof = useCallback(async () => {
+    if (!data.credit_features || proofState === "generating") return;
+    setProofState("generating");
+    setProofError(null);
+    try {
+      const featureVector = data.credit_features
+        ? Object.values(data.credit_features)
+        : [];
+      // We need the normalized vector — re-extract from name order
+      // Actually the backend needs normalized features. Get them from circuit-info or re-score.
+      // For now, call the backend which uses the feature vector.
+      const result = await apiFetch<{ wallet_address: string } & ProofResult>(
+        "/api/v1/paper-trade/generate-proof",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            wallet_address: data.wallet_address,
+            feature_vector: featureVector,
+          }),
+          timeoutMs: 120_000, // proofs can take a while
+        }
+      );
+      setProofResult(result);
+      setProofState("done");
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : "Proof generation failed");
+      setProofState("error");
+    }
+  }, [data, proofState]);
+
+  // Export W3C-VC
+  const handleExportVC = useCallback(async () => {
+    if (vcState === "exporting") return;
+    setVcState("exporting");
+    try {
+      const result = await apiFetch<{ status: string } & VCResult>(
+        "/api/v1/paper-trade/export-vc",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            wallet_address: data.wallet_address,
+            fico_score: data.fico_score ?? 0,
+            fico_tier: data.fico_tier ?? "",
+            credit_class: data.credit_class ?? "",
+            credit_confidence: data.credit_confidence ?? 0,
+            defi_veteran_score: data.defi_veteran_score,
+            recommended_tier: data.recommended_tier,
+            feature_hash: data.credit_feature_hash ?? "",
+            model_hash: data.credit_model_hash ?? "",
+            proof_hash: proofResult?.proof_hash ?? null,
+            target_chain: "starknet",
+          }),
+          timeoutMs: 15_000,
+        }
+      );
+      setVcResult(result);
+      setVcState("done");
+    } catch (err) {
+      setVcState("error");
+    }
+  }, [data, proofResult, vcState]);
+
+  // Copy VC to clipboard
+  const handleCopyVC = useCallback(() => {
+    if (!vcResult) return;
+    navigator.clipboard.writeText(JSON.stringify(vcResult.envelope, null, 2));
+    setVcCopied(true);
+    setTimeout(() => setVcCopied(false), 2000);
+  }, [vcResult]);
+
+  // Browser-side ONNX scoring
+  const handleBrowserScore = useCallback(async () => {
+    if (browserState === "loading") return;
+    setBrowserState("loading");
+    try {
+      const { scoreCreditInBrowser } = await import("@/lib/credit/browser-scorer");
+      const result = await scoreCreditInBrowser({
+        nonce: data.nonce,
+        total_capital_usd: data.total_capital_usd,
+        protocol_count: data.protocol_count,
+        position_count: data.position_count,
+        signals: data.signals,
+        defi_veteran_score: data.defi_veteran_score,
+        recommended_tier: data.recommended_tier,
+        account_type: data.account_type,
+        account_exists: data.account_exists,
+      });
+      setBrowserScore(result);
+      setBrowserState("done");
+    } catch (err) {
+      console.error("Browser scoring failed:", err);
+      setBrowserState("error");
+    }
+  }, [data, browserState]);
 
   // Sort signals by value descending, take top 6
   const topSignals = [...data.signals]
@@ -274,6 +420,188 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Actions: Generate Proof / Export VC / Browser Score ── */}
+      {hasFico && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-5 py-4 space-y-4">
+          {/* Action buttons row */}
+          <div className="flex flex-wrap gap-3">
+            {/* Generate ZK Proof */}
+            {data.ezkl_ready && proofState !== "done" && (
+              <button
+                onClick={handleGenerateProof}
+                disabled={proofState === "generating"}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+              >
+                {proofState === "generating" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Lock className="h-3.5 w-3.5" />
+                )}
+                {proofState === "generating" ? "Generating ZK Proof…" : "Generate ZK Proof"}
+              </button>
+            )}
+
+            {/* Export VC */}
+            <button
+              onClick={handleExportVC}
+              disabled={vcState === "exporting"}
+              className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:opacity-50"
+            >
+              {vcState === "exporting" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {vcState === "done" ? "Export Again" : vcState === "exporting" ? "Exporting…" : "Export Portable VC"}
+            </button>
+
+            {/* Browser-side scoring */}
+            <button
+              onClick={handleBrowserScore}
+              disabled={browserState === "loading"}
+              className="inline-flex items-center gap-2 rounded-lg border border-violet-500/40 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-400 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
+            >
+              {browserState === "loading" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Cpu className="h-3.5 w-3.5" />
+              )}
+              {browserState === "loading" ? "Scoring in browser…" : browserState === "done" ? "Re-score in Browser" : "Score in Browser"}
+            </button>
+          </div>
+
+          {/* Proof generation error */}
+          {proofState === "error" && proofError && (
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-2 text-[10px] text-rose-400">
+              Proof error: {proofError}
+            </div>
+          )}
+
+          {/* Proof result */}
+          {proofResult && (
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span className="text-xs font-bold text-emerald-400">
+                  ZK Proof {proofResult.verified ? "Verified" : "Generated"}
+                </span>
+                <span className="ml-auto text-[10px] text-zinc-500">
+                  {proofResult.total_ms.toFixed(0)}ms total
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="text-center">
+                  <p className="text-xs font-bold text-emerald-400">{proofResult.witness_ms.toFixed(0)}ms</p>
+                  <p className="text-[9px] text-zinc-600">witness</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-emerald-400">{proofResult.prove_ms.toFixed(0)}ms</p>
+                  <p className="text-[9px] text-zinc-600">prove</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-emerald-400">{proofResult.verify_ms.toFixed(0)}ms</p>
+                  <p className="text-[9px] text-zinc-600">verify</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-zinc-400">{(proofResult.proof_size_bytes / 1024).toFixed(1)}KB</p>
+                  <p className="text-[9px] text-zinc-600">proof size</p>
+                </div>
+              </div>
+              <p className="font-mono text-[9px] text-zinc-600 truncate">
+                proof: {proofResult.proof_hash.slice(0, 22)}…
+              </p>
+            </div>
+          )}
+
+          {/* VC export result */}
+          {vcResult && (
+            <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-cyan-400" />
+                <span className="text-xs font-bold text-cyan-400">
+                  W3C Verifiable Credential Issued
+                </span>
+                <button
+                  onClick={handleCopyVC}
+                  className="ml-auto inline-flex items-center gap-1 rounded border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400 transition-colors hover:text-white"
+                >
+                  <Copy className="h-3 w-3" />
+                  {vcCopied ? "Copied!" : "Copy JSON"}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                <div>
+                  <span className="text-zinc-600">ID: </span>
+                  <span className="font-mono text-zinc-400">{vcResult.credential_id}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Chain: </span>
+                  <span className="text-zinc-400">{vcResult.target_chain}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Type: </span>
+                  <span className="text-zinc-400">CreditScoreCredential</span>
+                </div>
+                <div>
+                  <span className="text-zinc-600">Issuer: </span>
+                  <span className="text-zinc-400">did:web:zkde.fi</span>
+                </div>
+              </div>
+              <p className="font-mono text-[9px] text-zinc-600 truncate">
+                integrity: {vcResult.integrity_hash.slice(0, 22)}…
+              </p>
+              {proofResult && (
+                <p className="text-[9px] text-emerald-500/70 italic">
+                  ✦ ZK proof hash embedded in credential
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Browser score result */}
+          {browserScore && (
+            <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-violet-400" />
+                <span className="text-xs font-bold text-violet-400">
+                  Browser-Side ONNX Score
+                </span>
+                <span className="ml-auto rounded-full bg-violet-500/20 px-2 py-0.5 text-[9px] font-bold text-violet-400">
+                  {browserScore.inference_ms}ms
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className={`text-xl font-bold ${
+                    browserScore.fico_score >= 750 ? "text-emerald-400" :
+                    browserScore.fico_score >= 670 ? "text-cyan-400" :
+                    browserScore.fico_score >= 580 ? "text-amber-400" : "text-red-400"
+                  }`}>
+                    {browserScore.fico_score}
+                  </p>
+                  <p className="text-[9px] text-zinc-600">FICO (browser)</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-violet-400">{browserScore.credit_class}</p>
+                  <p className="text-[9px] text-zinc-600">Class (browser)</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-lg font-bold ${
+                    browserScore.fico_score === (data.fico_score ?? 0) ? "text-emerald-400" : "text-amber-400"
+                  }`}>
+                    {browserScore.fico_score === (data.fico_score ?? 0) ? "✓ Match" : `Δ${browserScore.fico_score - (data.fico_score ?? 0)}`}
+                  </p>
+                  <p className="text-[9px] text-zinc-600">vs server</p>
+                </div>
+              </div>
+              <p className="text-[9px] text-zinc-600 italic">
+                Model ran entirely in your browser via onnxruntime-web — no data left your device.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

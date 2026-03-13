@@ -323,12 +323,10 @@ export function PaperTradeDemo() {
 
       {/* ── Phase: Empty Portfolio — pick hypothetical capital ── */}
       {phase === "empty-portfolio" && (
-        <div className="mx-auto max-w-lg space-y-5 py-4">
-          {/* Reputation Profile (even for empty wallets, show behavioral signals) */}
-          {reputation && reputation.nonce > 0 && (
-            <div className="mx-auto max-w-lg">
-              <ReputationProfile data={reputation} />
-            </div>
+        <div className="mx-auto max-w-4xl space-y-5 py-4">
+          {/* Reputation Profile (always show — FICO + credit class + behavioral signals) */}
+          {reputation && (
+            <ReputationProfile data={reputation} />
           )}
 
           <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 px-6 py-5 text-center">
@@ -366,8 +364,8 @@ export function PaperTradeDemo() {
       {(phase === "proposal" || phase === "executing" || phase === "executed") && portfolio && proposal && (
         <div className="mx-auto max-w-4xl space-y-6">
 
-          {/* Reputation Profile (shown if scan succeeded) */}
-          {reputation && reputation.signals.length > 0 && (
+          {/* Reputation Profile (always shown — FICO, credit class, behavioral signals) */}
+          {reputation && (
             <ReputationProfile data={reputation} />
           )}
 
