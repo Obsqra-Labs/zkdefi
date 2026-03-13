@@ -1,6 +1,30 @@
 {
-  "generated_at": "2026-03-13T16:53:11.037109+00:00",
-  "duration_ms": 21364,
+  "generated_at": "2026-03-13T16:57:12.994015+00:00",
+  "duration_ms": 91358,
+  "catalog_models_total": 5,
+  "proving_ready_models_catalog_total": 3,
+  "excluded_models_total": 2,
+  "excluded_models": [
+    {
+      "model": "llm_fallback",
+      "reason": "missing_ezkl_artifacts",
+      "missing_artifacts": [
+        "vk.key",
+        "settings.json",
+        "kzg.srs"
+      ]
+    },
+    {
+      "model": "timing_predictor",
+      "reason": "missing_ezkl_artifacts",
+      "missing_artifacts": [
+        "vk.key",
+        "settings.json",
+        "kzg.srs"
+      ]
+    }
+  ],
+  "coverage_scope": "proving_ready_catalog",
   "models_total": 3,
   "models_verified": 3,
   "models_with_bundle": 3,
@@ -19,8 +43,25 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x74fa9d935c62df002acd0b31842b67c38e92cbd4b3626bb70bab596f3beff151",
-      "duration_ms": 7267
+      "proof_hash": "0x5168aad0df6f1e14af2d34c4ade749d9735274f8e8bcf683658be8f258a815f6",
+      "native_kzg_attempted": true,
+      "native_kzg_status": 200,
+      "native_kzg_execution_chain": "dual",
+      "native_kzg_mirror_status": "mirrored",
+      "native_kzg_verified_on_chain": true,
+      "native_kzg_can_execute": true,
+      "native_kzg_l3_tx_hash": "0x1d418cc025446b653fb4f25e0a26fe9cfb6cfeb7c6fdc58047e2cc1f73bdf2a",
+      "native_kzg_l3_mode": "native_kzg",
+      "native_kzg_l2_tx_hash": "0x59be22c40fa7e2e563782f8c2809a3e49b0df0dfe1af54325ea1242174dcc07",
+      "native_kzg_l2_mode": "starknet_l2_registry_mirrored",
+      "native_kzg_l2_verified_on_chain": true,
+      "native_kzg_bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+      "native_kzg_bridge_compliant": true,
+      "native_kzg_trust_mode": "ezkl_local_verified",
+      "native_kzg_probe_seed": "1640e1ab7b6e136a",
+      "native_kzg_payload_fingerprint": "42918f97f1dbc05129cabf84f396651b6fd6238e14e3d14ea9f0529d3dff656e",
+      "native_kzg_failure_reason": null,
+      "duration_ms": 32045
     },
     {
       "model": "creditworthiness",
@@ -36,8 +77,25 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x28000872c201f383525936e12008cac4f38c404a91ec33bad3c2cb3a179625f3",
-      "duration_ms": 6942
+      "proof_hash": "0x48c332a91b07955b03112f62704d363df94cdba4bbfbc79669ba0ed235a20f43",
+      "native_kzg_attempted": true,
+      "native_kzg_status": 200,
+      "native_kzg_execution_chain": "dual",
+      "native_kzg_mirror_status": "mirrored",
+      "native_kzg_verified_on_chain": true,
+      "native_kzg_can_execute": true,
+      "native_kzg_l3_tx_hash": "0x4a078bdd0346abf7b3b6eb9fbfdbc3b19fb2bde70255488def05b6d52ce86d7",
+      "native_kzg_l3_mode": "native_kzg",
+      "native_kzg_l2_tx_hash": "0x559a3136449c325616ba827def7a0c2701d8de53213418334ea5c4cf5657716",
+      "native_kzg_l2_mode": "starknet_l2_registry_mirrored",
+      "native_kzg_l2_verified_on_chain": true,
+      "native_kzg_bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+      "native_kzg_bridge_compliant": true,
+      "native_kzg_trust_mode": "ezkl_local_verified",
+      "native_kzg_probe_seed": "18d42537c8e902d3",
+      "native_kzg_payload_fingerprint": "217b25de304f1f38f6375613b0e0272faa4f1e296667305401db6139c2bf4dc1",
+      "native_kzg_failure_reason": null,
+      "duration_ms": 27569
     },
     {
       "model": "yield_forecast",
@@ -53,17 +111,34 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x79f4f4a8489d9d33899c344210cea96c079f786925c8abaefc5706a3bb3694b5",
-      "duration_ms": 7155
+      "proof_hash": "0x13ad47da9ee2fb511eab018e2549f12d19652d81912d96f15e5ad2ca14047909",
+      "native_kzg_attempted": true,
+      "native_kzg_status": 200,
+      "native_kzg_execution_chain": "dual",
+      "native_kzg_mirror_status": "mirrored",
+      "native_kzg_verified_on_chain": true,
+      "native_kzg_can_execute": true,
+      "native_kzg_l3_tx_hash": "0x7ca59d31710b36411534d9c42ccba35997fae8398c6511aebc60f23888867b",
+      "native_kzg_l3_mode": "native_kzg",
+      "native_kzg_l2_tx_hash": "0x19165bc7999e8e01c569467edd9e88120df57843f5b42c45fdb4e922b373827",
+      "native_kzg_l2_mode": "starknet_l2_registry_mirrored",
+      "native_kzg_l2_verified_on_chain": true,
+      "native_kzg_bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+      "native_kzg_bridge_compliant": true,
+      "native_kzg_trust_mode": "ezkl_local_verified",
+      "native_kzg_probe_seed": "b3cdeb836c0c3686",
+      "native_kzg_payload_fingerprint": "5e2039f922a37bd5e56b52631e4afd6ec8c088ef5dcd8ae8301dac5c0e6295bf",
+      "native_kzg_failure_reason": null,
+      "duration_ms": 31743
     }
   ],
   "cadence": {
     "history_file": "/opt/obsqra.starknet/zkdefi/artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
     "history_file_rel": "artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
-    "history_entries_before_append": 4,
+    "history_entries_before_append": 5,
     "daily_delta_window_hours": 24,
     "coverage_ratio": 1.0,
-    "previous_run_generated_at": "2026-03-13T16:15:28.118331+00:00",
+    "previous_run_generated_at": "2026-03-13T16:53:11.037109+00:00",
     "previous_run_coverage_ratio": 1.0,
     "previous_run_delta_pct_points": 0.0,
     "daily_baseline_generated_at": null,
@@ -77,30 +152,108 @@
     "regressed_bundled_models_since_daily_baseline": [],
     "newly_verified_models_since_daily_baseline": [],
     "regressed_verified_models_since_daily_baseline": [],
-    "newly_native_kzg_verified_models_since_previous_run": [],
-    "regressed_native_kzg_verified_models_since_previous_run": [
+    "newly_native_kzg_verified_models_since_previous_run": [
       "anomaly_detector",
       "creditworthiness",
       "yield_forecast"
     ],
+    "regressed_native_kzg_verified_models_since_previous_run": [],
     "newly_native_kzg_verified_models_since_daily_baseline": [],
     "regressed_native_kzg_verified_models_since_daily_baseline": []
   },
   "native_kzg_onchain": {
-    "enabled": false,
-    "base_url": null,
-    "execution_chain": null,
-    "attempted_models": 0,
-    "verified_models": 0,
-    "l3_receipt_models": 0,
-    "l2_receipt_models": 0,
-    "mirrored_models": 0,
-    "attempted_model_names": [],
-    "verified_model_names": [],
-    "l3_receipt_model_names": [],
-    "l2_receipt_model_names": [],
-    "mirrored_model_names": [],
-    "rows": []
+    "enabled": true,
+    "base_url": "http://127.0.0.1:8003",
+    "execution_chain": "dual",
+    "attempted_models": 3,
+    "verified_models": 3,
+    "l3_receipt_models": 3,
+    "l2_receipt_models": 3,
+    "mirrored_models": 3,
+    "attempted_model_names": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "verified_model_names": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "l3_receipt_model_names": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "l2_receipt_model_names": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "mirrored_model_names": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "rows": [
+      {
+        "model": "anomaly_detector",
+        "status": 200,
+        "execution_chain": "dual",
+        "mirror_status": "mirrored",
+        "verified_on_chain": true,
+        "can_execute": true,
+        "l3_tx_hash": "0x1d418cc025446b653fb4f25e0a26fe9cfb6cfeb7c6fdc58047e2cc1f73bdf2a",
+        "l3_mode": "native_kzg",
+        "l2_tx_hash": "0x59be22c40fa7e2e563782f8c2809a3e49b0df0dfe1af54325ea1242174dcc07",
+        "l2_mode": "starknet_l2_registry_mirrored",
+        "l2_verified_on_chain": true,
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "bridge_compliant": true,
+        "trust_mode": "ezkl_local_verified",
+        "probe_seed": "1640e1ab7b6e136a",
+        "payload_fingerprint": "42918f97f1dbc05129cabf84f396651b6fd6238e14e3d14ea9f0529d3dff656e",
+        "failure_reason": null
+      },
+      {
+        "model": "creditworthiness",
+        "status": 200,
+        "execution_chain": "dual",
+        "mirror_status": "mirrored",
+        "verified_on_chain": true,
+        "can_execute": true,
+        "l3_tx_hash": "0x4a078bdd0346abf7b3b6eb9fbfdbc3b19fb2bde70255488def05b6d52ce86d7",
+        "l3_mode": "native_kzg",
+        "l2_tx_hash": "0x559a3136449c325616ba827def7a0c2701d8de53213418334ea5c4cf5657716",
+        "l2_mode": "starknet_l2_registry_mirrored",
+        "l2_verified_on_chain": true,
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "bridge_compliant": true,
+        "trust_mode": "ezkl_local_verified",
+        "probe_seed": "18d42537c8e902d3",
+        "payload_fingerprint": "217b25de304f1f38f6375613b0e0272faa4f1e296667305401db6139c2bf4dc1",
+        "failure_reason": null
+      },
+      {
+        "model": "yield_forecast",
+        "status": 200,
+        "execution_chain": "dual",
+        "mirror_status": "mirrored",
+        "verified_on_chain": true,
+        "can_execute": true,
+        "l3_tx_hash": "0x7ca59d31710b36411534d9c42ccba35997fae8398c6511aebc60f23888867b",
+        "l3_mode": "native_kzg",
+        "l2_tx_hash": "0x19165bc7999e8e01c569467edd9e88120df57843f5b42c45fdb4e922b373827",
+        "l2_mode": "starknet_l2_registry_mirrored",
+        "l2_verified_on_chain": true,
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "bridge_compliant": true,
+        "trust_mode": "ezkl_local_verified",
+        "probe_seed": "b3cdeb836c0c3686",
+        "payload_fingerprint": "5e2039f922a37bd5e56b52631e4afd6ec8c088ef5dcd8ae8301dac5c0e6295bf",
+        "failure_reason": null
+      }
+    ]
   },
   "models_failed": 0,
   "failed_models": [],

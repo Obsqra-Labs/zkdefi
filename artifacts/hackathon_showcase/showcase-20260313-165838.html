@@ -428,16 +428,16 @@
         <strong>Why Obsqra Labs wanted this:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
         <strong>Unlocks:</strong> Reliable observability, fast triage, and cleaner frontend integration.
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>admin_configured=False, service=zkdefi-backend, status=200</td></tr>
-<tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>circuits=6, circuits_with_wasm_and_zkey=6, pack_id=zkfico_pack_v1, status=200</td></tr>
-<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061, MODEL_BRIDGE_VERIFIER_ADDRESS_class_hash=0x4745a6bc...b5574257f8, RECEIPT_REGISTRY_ADDRESS_class_hash=0x8b52ef13...5dff494959, REPUTATION_REGISTRY_ADDRESS_class_hash=0x74f7c06b...8eec60c95f, VAULT_CONTROLLER_ADDRESS_class_hash=0x64c7e534...77af39a88a</td></tr>
-<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>count=303, first_tx_hash=-, status=200, tx_hashes=0</td></tr>
-<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>bridge_backend=groth16_modelbridge, bridge_compliant=True, bridge_proof_hash=0xf681be63dd...854f02c0835a, can_execute=True, failure_reason=, l3_actual_fee=16020312489504 FRI</td></tr>
-<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>bridge_backend=groth16_modelbridge_heavy, bridge_compliant=True, bridge_proof_hash=0x0e83564d8e...b66fe74792b9, can_execute=True, failure_reason=, l3_actual_fee=13138769809184 FRI</td></tr>
-<tr><td>Native KZG live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>bridge_backend=native_kzg_ezkl_serialized_mpcheck, bridge_compliant=True, bridge_proof_hash=0x466ff16a75...f85167f0b70a, can_execute=True, failure_reason=, kzg_bundle_present=True</td></tr>
-<tr><td>Open-source ModelBridge + dual-proof architecture</td><td><span class="pass">PASS</span></td><td>bridge_timeout_seconds=25.0, dual_attempted=True, dual_attempts=1, dual_bridge_timeout_seconds=45.0, dual_failure_reason=, dual_l2_mode=starknet_l2_registry_mirrored</td></tr>
-<tr><td>Path B dual native KZG mirrors are demonstrable</td><td><span class="pass">PASS</span></td><td>attempted_models=3, execution_chain=dual, gate_reason=, l2_receipt_models=3, l3_receipt_models=3, mirrored_models=3</td></tr>
-<tr><td>Recursive EZKL paths (Phase 2/3/4) status</td><td><span class="pass">PASS</span></td><td>docs_present=5/5, native_kzg_available=True, native_kzg_lane_listed=True, noir_lane_listed=True, parent_phase3_config_keys=True, parent_phase3_service_stub=True</td></tr>
+      <div class="table-wrap"><table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>status=200, service=zkdefi-backend, admin_configured=False</td></tr>
+<tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>status=200, pack_id=zkfico_pack_v1, circuits=6, circuits_with_wasm_and_zkey=6</td></tr>
+<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7578975, resolved_contracts=7, voyager_links=7, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061</td></tr>
+<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=303, tx_hashes=0, first_tx_hash=-</td></tr>
+<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge, bridge_compliant=True, l3_mode=groth16_garaga, l3_tx_hash=0x310c90af66...deb1b5f72e30</td></tr>
+<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge_heavy, bridge_compliant=True, l3_mode=groth16_garaga, l3_tx_hash=0x3c45bb7813...8b4d47a37a68</td></tr>
+<tr><td>Native KZG live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=native_kzg_ezkl_serialized_mpcheck, bridge_compliant=True, l3_mode=native_kzg, l3_tx_hash=0xdad1c09305...a5d622977bdf</td></tr>
+<tr><td>Open-source ModelBridge + dual-proof architecture</td><td><span class="pass">PASS</span></td><td>modelbridge_artifacts=23/23, proving_paths_status=200, snark_lane_available=True, stark_lane_available=True, hash_fallback_available=True, dual_lanes_ready=True</td></tr>
+<tr><td>Path B dual native KZG mirrors are demonstrable</td><td><span class="pass">PASS</span></td><td>strict_bridge=True, native_kzg_onchain_enabled=True, execution_chain=dual, attempted_models=3, verified_models=3, l3_receipt_models=3</td></tr>
+<tr><td>Recursive EZKL paths (Phase 2/3/4) status</td><td><span class="pass">PASS</span></td><td>docs_present=5/5, path_a_status_doc=True, phase2_status_done=True, phase3_plan_expanded=True, phase4_plan_expanded=True, parent_phase3_config_keys=True</td></tr>
 <tr><td>Bridge-only mode</td><td><span class="pass">PASS</span></td><td>scope=health, manifest, rpc, receipts, bridge, recursive_paths</td></tr></tbody></table></div>
     </section>
 
@@ -754,10 +754,10 @@
       <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Artifact path</td><td><code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code></td></tr>
 <tr><td>Artifact present</td><td><span class="pass">yes</span></td></tr>
 <tr><td>Generated at</td><td>2026-03-13T16:57:12.994015+00:00</td></tr>
-<tr><td>Coverage scope</td><td>proving_ready_catalog</td></tr>
-<tr><td>Catalog models</td><td>5</td></tr>
-<tr><td>Proving-ready catalog models</td><td>3</td></tr>
-<tr><td>Excluded non-EZKL models</td><td>2</td></tr>
+<tr><td>Coverage scope</td><td>-</td></tr>
+<tr><td>Catalog models</td><td>-</td></tr>
+<tr><td>Proving-ready catalog models</td><td>-</td></tr>
+<tr><td>Excluded non-EZKL models</td><td>-</td></tr>
 <tr><td>Models total</td><td>3</td></tr>
 <tr><td>Models verified</td><td>3</td></tr>
 <tr><td>Models with bundle</td><td>3</td></tr>
@@ -781,7 +781,7 @@
 <tr><td>Regressions (daily baseline)</td><td>-</td></tr>
 <tr><td>New native_kzg verified models (daily baseline)</td><td>-</td></tr>
 <tr><td>Regressed native_kzg models (daily baseline)</td><td>-</td></tr>
-<tr><td>Excluded model details</td><td>llm_fallback: missing vk.key,settings.json,kzg.srs, timing_predictor: missing vk.key,settings.json,kzg.srs</td></tr></tbody></table></div>
+<tr><td>Excluded model details</td><td>-</td></tr></tbody></table></div>
       <h3>Path B Native KZG Receipt Matrix</h3>
       <p class="meta">Optional per-model `EzklNativeKzg` probe layered on top of the warm report so catalog coverage can be cross-checked against actual on-chain receipt generation, including dual-lane mirror evidence when the probe runs in `dual` mode.</p>
       <div class="table-wrap"><table><thead><tr><th>Model</th><th>HTTP</th><th>Verified</th><th>Can Execute</th><th>Exec Chain</th><th>Mirror</th><th>L3 Mode</th><th>L2 Mode</th><th>Backend</th><th>L3 Tx</th><th>L2 Tx</th><th>Failure</th></tr></thead><tbody><tr><td>anomaly_detector</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x1d418cc02544...7e2cc1f73bdf2a<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x59be22c40fa7e2e563782f8c2809a3e49b0df0dfe1af54325ea1242174dcc07" target="_blank" rel="noreferrer">0x59be22c40fa7...ea1242174dcc07</a></td><td>-</td></tr>

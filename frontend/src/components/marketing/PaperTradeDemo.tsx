@@ -11,10 +11,7 @@ import {
   Loader2,
   AlertTriangle,
   Fingerprint,
-  Activity,
-  Lock,
   ShieldCheck,
-  Key,
   TrendingUp,
   Star,
   Brain,
@@ -26,10 +23,7 @@ import { ReputationProfile, type ReputationData } from "@/components/marketing/R
 import { CapitalOSHome, type L3Identity } from "@/components/marketing/CapitalOSHome";
 import { StrategyCompare } from "@/components/marketing/StrategyCompare";
 import { PnLTracker } from "@/components/marketing/PnLTracker";
-import { SessionWallet, type SessionKeyInfo } from "@/components/marketing/SessionWallet";
-import { IntelligentStream } from "@/components/marketing/IntelligentStream";
-import { DarkVaultPanel } from "@/components/marketing/DarkVaultPanel";
-import { ProofOfPerformance } from "@/components/marketing/ProofOfPerformance";
+import { type SessionKeyInfo } from "@/components/marketing/SessionWallet";
 import { MultiPanelLayout, type PanelDef } from "@/components/marketing/MultiPanelLayout";
 import { apiFetch } from "@/lib/api/client";
 
@@ -674,31 +668,6 @@ export function PaperTradeDemo() {
                 </div>
               ),
             },
-            {
-              id: "session-key",
-              title: "Session Key",
-              accent: "text-amber-400",
-              icon: <Key className="h-3 w-3 text-amber-400" />,
-              content: (
-                <SessionWallet
-                  walletAddress={identity.wallet_address}
-                  sessionId={identity.session_id}
-                  l3Address={identity.l3_address}
-                  initialKey={sessionKey}
-                  onKeyIssued={setSessionKey}
-                />
-              ),
-            },
-            {
-              id: "stream",
-              title: "Activity",
-              accent: "text-cyan-400",
-              icon: <Activity className="h-3 w-3 text-cyan-400" />,
-              defaultCollapsed: true,
-              content: (
-                <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={10000} />
-              ),
-            },
             ...(reputation
               ? [{
                   id: "reputation",
@@ -835,54 +804,6 @@ export function PaperTradeDemo() {
                     </div>
                   </div>
                 </div>
-              ),
-            },
-            {
-              id: "session-key",
-              title: "Session Key",
-              accent: "text-amber-400",
-              icon: <Key className="h-3 w-3 text-amber-400" />,
-              content: (
-                <SessionWallet
-                  walletAddress={identity.wallet_address}
-                  sessionId={identity.session_id}
-                  l3Address={identity.l3_address}
-                  initialKey={sessionKey}
-                  onKeyIssued={setSessionKey}
-                />
-              ),
-            },
-            {
-              id: "dark-vault",
-              title: "Dark Vault",
-              accent: "text-violet-400",
-              icon: <Lock className="h-3 w-3 text-violet-400" />,
-              content: (
-                <DarkVaultPanel
-                  walletAddress={identity.wallet_address}
-                  sessionId={identity.session_id}
-                />
-              ),
-            },
-            {
-              id: "proof",
-              title: "ZK Proof",
-              accent: "text-fuchsia-400",
-              icon: <ShieldCheck className="h-3 w-3 text-fuchsia-400" />,
-              content: (
-                <ProofOfPerformance
-                  walletAddress={identity.wallet_address}
-                  sessionId={identity.session_id}
-                />
-              ),
-            },
-            {
-              id: "stream",
-              title: "Activity Stream",
-              accent: "text-cyan-400",
-              icon: <Activity className="h-3 w-3 text-cyan-400" />,
-              content: (
-                <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={8000} />
               ),
             },
             ...(reputation

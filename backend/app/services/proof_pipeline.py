@@ -391,6 +391,8 @@ class ProofPipeline:
             "verified_on_chain": result.verified_on_chain,
             "tx_hash": result.tx_hash or None,
             "latency_ms": result.latency_ms,
+            "abi_used": result.abi_used or None,
+            "verifier_state": result.verifier_state or None,
             "error": result.error or None,
         }
 

@@ -35,6 +35,8 @@ class L3VerificationResult:
     verified_on_chain: bool = False
     latency_ms: float = 0.0
     error: str = ""
+    abi_used: str = ""
+    verifier_state: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -193,6 +195,8 @@ class L3ProvingPathClient:
         fact_hash = str(data.get("fact_hash", fallback_fact_hash) or fallback_fact_hash)
         latency_ms = float(data.get("latency_ms", 0.0) or 0.0)
         error = str(data.get("error", "") or "")
+        abi_used = str(data.get("abi_used", "") or "")
+        verifier_state = data.get("verifier_state") if isinstance(data.get("verifier_state"), dict) else {}
 
         # Deterministic error semantics for strict enforcement callers.
         if success and mode == "hash_only" and verified_on_chain:
@@ -213,6 +217,8 @@ class L3ProvingPathClient:
             verified_on_chain=verified_on_chain,
             latency_ms=latency_ms,
             error=error,
+            abi_used=abi_used,
+            verifier_state=verifier_state,
         )
 
     # ── Stats ──────────────────────────────────────────────────────────

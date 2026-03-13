@@ -192,6 +192,8 @@ async def l3_verify_proof(request: L3VerifyProofRequest):
         "tx_hash": result.tx_hash,
         "verified_on_chain": result.verified_on_chain,
         "latency_ms": result.latency_ms,
+        "abi_used": result.abi_used or None,
+        "verifier_state": result.verifier_state or None,
         "execution_chain": request.execution_chain,
         "error": result.error or None,
     }

@@ -33,6 +33,8 @@ async def test_l3_strict_success(monkeypatch):
             "verified_on_chain": True,
             "mode": "groth16_garaga",
             "tx_hash": "0xabc",
+            "abi_used": "verify_ezkl_kzg_v1",
+            "verifier_state": {"rpc_ok": True, "strict_binding_observed": True},
             "error": None,
         }
 
@@ -49,6 +51,8 @@ async def test_l3_strict_success(monkeypatch):
     assert result["can_execute"] is True
     assert result["verification"]["primary_authority"] == "l3"
     assert result["verification"]["l3"]["verified_on_chain"] is True
+    assert result["verification"]["l3"]["abi_used"] == "verify_ezkl_kzg_v1"
+    assert result["verification"]["l3"]["verifier_state"]["strict_binding_observed"] is True
 
 
 @pytest.mark.asyncio

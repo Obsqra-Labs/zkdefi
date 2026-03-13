@@ -16,6 +16,8 @@ class _StubL3Client:
             verified_on_chain=True,
             latency_ms=12.3,
             error="",
+            abi_used="verify_ezkl_kzg_v1",
+            verifier_state={"rpc_ok": True, "strict_binding_observed": True},
         )
 
 
@@ -38,6 +40,8 @@ async def test_l3_verify_typed_body(monkeypatch):
     assert payload["success"] is True
     assert payload["execution_chain"] == "dual"
     assert payload["verified_on_chain"] is True
+    assert payload["abi_used"] == "verify_ezkl_kzg_v1"
+    assert payload["verifier_state"]["strict_binding_observed"] is True
 
 
 def test_l3_verify_rejects_invalid_execution_chain():
