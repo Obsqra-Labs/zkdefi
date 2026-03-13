@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import sys
 import time
@@ -87,6 +88,38 @@ def _probe_inputs(model_dir: Path) -> list[list[list[float]]]:
 def _probe_for_width(width: int) -> list[list[float]]:
     n = max(1, int(width))
     return [[0.1 for _ in range(n)]]
+
+
+def _seeded_probe_value(
+    seed: str,
+    index: int,
+    *,
+    floor: float = 0.0,
+    span: float = 1.0,
+    precision: int = 6,
+) -> float:
+    digest = hashlib.sha256(f"{seed}:{index}".encode("utf-8")).digest()
+    numerator = int.from_bytes(digest[:8], "big")
+    denominator = float((1 << 64) - 1)
+    value = float(floor) + (float(span) * (numerator / denominator if denominator else 0.0))
+    return round(value, precision)
+
+
+def _seeded_probe_matrix(
+    seed: str,
+    width: int,
+    *,
+    floor: float = 0.75,
+    span: float = 4.25,
+    precision: int = 6,
+) -> list[list[float]]:
+    count = max(1, int(width))
+    return [[_seeded_probe_value(seed, idx, floor=floor, span=span, precision=precision) for idx in range(count)]]
+
+
+def _payload_fingerprint(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _failure_action_hint(row: dict[str, Any]) -> str:
@@ -194,10 +227,14 @@ async def _probe_native_kzg_onchain(
             "error": f"httpx unavailable: {exc}",
         }
 
+    width = 4
+    if input_data and isinstance(input_data, list) and isinstance(input_data[0], list):
+        width = max(1, len(input_data[0]))
+    probe_seed = hashlib.sha256(f"{model_name}:{time.time_ns()}".encode("utf-8")).hexdigest()[:16]
     payload = {
         "user_address": wallet,
         "model_name": model_name,
-        "input_data": input_data,
+        "input_data": _seeded_probe_matrix(f"{probe_seed}:{model_name}", width),
         "expected_model_hash": 0,
         "output_lower_bound": 0,
         "output_upper_bound": 10000,
@@ -205,9 +242,10 @@ async def _probe_native_kzg_onchain(
         "proof_mode": 1,
         "tier": 1,
         "action_type": "rebalance",
-        "value_eth": 2.1,
+        "value_eth": _seeded_probe_value(f"{probe_seed}:{model_name}:value", 0, floor=2.1, span=0.375),
         "bridge_circuit": "EzklNativeKzg",
     }
+    payload_fingerprint = _payload_fingerprint(payload)
     url = f"{base_url.rstrip('/')}/api/v1/zkdefi/proofs/ml-bridge"
 
     async with httpx.AsyncClient(timeout=timeout_seconds) as client:
@@ -228,6 +266,8 @@ async def _probe_native_kzg_onchain(
     bridge_proof = body.get("bridge_proof") if isinstance(body, dict) else {}
     return {
         "attempted": True,
+        "probe_seed": probe_seed,
+        "payload_fingerprint": payload_fingerprint,
         "status": int(resp.status_code),
         "verified_on_chain": bool(l3.get("verified_on_chain")),
         "can_execute": bool(body.get("can_execute")),

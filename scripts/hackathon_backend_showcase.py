@@ -234,6 +234,38 @@ def _clip_text(raw: Any, limit: int = 160) -> str:
     return value[: max(0, limit - 3)] + "..."
 
 
+def _seeded_probe_value(
+    seed: str,
+    index: int,
+    *,
+    floor: float = 0.0,
+    span: float = 1.0,
+    precision: int = 6,
+) -> float:
+    digest = hashlib.sha256(f"{seed}:{index}".encode("utf-8")).digest()
+    numerator = int.from_bytes(digest[:8], "big")
+    denominator = float((1 << 64) - 1)
+    value = float(floor) + (float(span) * (numerator / denominator if denominator else 0.0))
+    return round(value, precision)
+
+
+def _seeded_probe_matrix(
+    seed: str,
+    width: int,
+    *,
+    floor: float = 0.75,
+    span: float = 4.25,
+    precision: int = 6,
+) -> list[list[float]]:
+    count = max(1, int(width))
+    return [[_seeded_probe_value(seed, idx, floor=floor, span=span, precision=precision) for idx in range(count)]]
+
+
+def _payload_fingerprint(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def _parse_fee_display_int(raw: Any) -> int | None:
     if raw is None:
         return None
@@ -458,6 +490,10 @@ class ShowcaseRunner:
         self._modelbridge_heavy_live_receipt: dict[str, Any] = {}
         self._native_kzg_live_receipt: dict[str, Any] = {}
         self._heavy_stark_showcase: dict[str, Any] = {}
+        self._bridge_probe_seed = hashlib.sha256(
+            f"{time.time_ns()}:{os.getpid()}:{self.wallet}".encode("utf-8")
+        ).hexdigest()[:16]
+        self._dual_live_receipt: dict[str, Any] = {}
         self._recursive_ezkl_paths: dict[str, Any] = {}
 
     def _record(self, name: str, ok: bool, **details: Any) -> StepResult:
@@ -514,6 +550,11 @@ class ShowcaseRunner:
                     "l3_verified_on_chain": (run.get("l3") or {}).get("verified_on_chain"),
                     "l3_tx_hash": (run.get("l3") or {}).get("tx_hash"),
                     "l3_tx_url": (run.get("l3") or {}).get("tx_url"),
+                    "l2_mode": (run.get("l2") or {}).get("mode"),
+                    "l2_success": (run.get("l2") or {}).get("success"),
+                    "l2_verified_on_chain": (run.get("l2") or {}).get("verified_on_chain"),
+                    "l2_tx_hash": (run.get("l2") or {}).get("tx_hash"),
+                    "l2_tx_url": (run.get("l2") or {}).get("tx_url"),
                     "calldata_words": run.get("model_bridge_calldata_words"),
                 }
             )
@@ -2208,71 +2249,65 @@ class ShowcaseRunner:
                 ezkl_probe_proof = ezkl_probe_body["ezkl_proof"].get("proof_hash")
         ezkl_probe_ready = ezkl_probe_status == 200 and bool(ezkl_probe_proof)
 
-        base_payload = {
-            "user_address": self.wallet,
-            "model_name": selected_model,
-            "input_data": [[1.0, 2.0, 3.0, 4.0]],
-            "expected_model_hash": 0,
-            "output_lower_bound": 0,
-            "output_upper_bound": 10000,
-        }
+        probe_seed = f"{self._bridge_probe_seed}:{selected_model}"
 
-        l3_payload = dict(base_payload)
-        l3_payload.update(
-            {
-                "execution_chain": "l3",
+        def _bridge_payload(
+            *,
+            lane: str,
+            execution_chain: str,
+            value_eth_floor: float,
+            bridge_circuit: str | None = None,
+        ) -> dict[str, Any]:
+            payload = {
+                "user_address": self.wallet,
+                "model_name": selected_model,
+                "input_data": _seeded_probe_matrix(f"{probe_seed}:{lane}:input", 4),
+                "expected_model_hash": 0,
+                "output_lower_bound": 0,
+                "output_upper_bound": 10000,
+                "execution_chain": execution_chain,
                 "proof_mode": 1,
                 "tier": 1,
                 "action_type": "rebalance",
-                "value_eth": 2.0,
+                "value_eth": _seeded_probe_value(
+                    f"{probe_seed}:{lane}:value",
+                    0,
+                    floor=value_eth_floor,
+                    span=0.375,
+                    precision=6,
+                ),
             }
+            if bridge_circuit:
+                payload["bridge_circuit"] = bridge_circuit
+            return payload
+
+        l3_payload = _bridge_payload(lane="l3", execution_chain="l3", value_eth_floor=2.0)
+        dual_payload = _bridge_payload(lane="dual", execution_chain="dual", value_eth_floor=2.0)
+        # Keep the dual lane focused on bridge mirroring reliability.
+        # FULL_DUAL_PROVER can trigger extra execution-proof generation and
+        # introduce non-bridge latency/timeouts during showcase runs.
+        heavy_payload = _bridge_payload(
+            lane="heavy",
+            execution_chain="l3",
+            value_eth_floor=2.5,
+            bridge_circuit="ModelBridgeHeavy",
         )
-        dual_payload = dict(base_payload)
-        dual_payload.update(
-            {
-                "execution_chain": "dual",
-                # Keep the dual lane focused on bridge mirroring reliability.
-                # FULL_DUAL_PROVER can trigger extra execution-proof generation and
-                # introduce non-bridge latency/timeouts during showcase runs.
-                "proof_mode": 1,
-                "tier": 1,
-                "action_type": "rebalance",
-                "value_eth": 2.0,
-            }
+        noir_payload = _bridge_payload(
+            lane="noir",
+            execution_chain="l3",
+            value_eth_floor=2.2,
+            bridge_circuit="NoirEzklBridge",
         )
-        heavy_payload = dict(base_payload)
-        heavy_payload.update(
-            {
-                "execution_chain": "l3",
-                "proof_mode": 1,
-                "tier": 1,
-                "action_type": "rebalance",
-                "value_eth": 2.5,
-                "bridge_circuit": "ModelBridgeHeavy",
-            }
+        native_kzg_payload = _bridge_payload(
+            lane="native_kzg",
+            execution_chain="l3",
+            value_eth_floor=2.1,
+            bridge_circuit="EzklNativeKzg",
         )
-        noir_payload = dict(base_payload)
-        noir_payload.update(
-            {
-                "execution_chain": "l3",
-                "proof_mode": 1,
-                "tier": 1,
-                "action_type": "rebalance",
-                "value_eth": 2.2,
-                "bridge_circuit": "NoirEzklBridge",
-            }
-        )
-        native_kzg_payload = dict(base_payload)
-        native_kzg_payload.update(
-            {
-                "execution_chain": "l3",
-                "proof_mode": 1,
-                "tier": 1,
-                "action_type": "rebalance",
-                "value_eth": 2.1,
-                "bridge_circuit": "EzklNativeKzg",
-            }
-        )
+        l3_probe_fingerprint = _payload_fingerprint(l3_payload)
+        dual_probe_fingerprint = _payload_fingerprint(dual_payload)
+        heavy_probe_fingerprint = _payload_fingerprint(heavy_payload)
+        native_kzg_probe_fingerprint = _payload_fingerprint(native_kzg_payload)
 
         # Keep bridge calls stable even when caller passes a low global timeout.
         # Honor CLI timeout tuning even in strict mode; avoid forcing 240s hangs
@@ -2409,11 +2444,14 @@ class ShowcaseRunner:
         live_fee_meta = self._fetch_starknet_tx_metrics(str(l3_tx_hash) if l3_tx_hash else None)
         self._modelbridge_live_receipt = {
             "status": l3_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": l3_probe_fingerprint,
             "proof_mode": l3_run.get("proof_mode"),
             "proof_mode_level": l3_run.get("proof_mode_level"),
             "requested_execution_chain": l3_run.get("requested_execution_chain"),
             "bridge_proof_hash": l3_run.get("bridge_proof_hash"),
             "bridge_compliant": l3_run.get("bridge_compliant"),
+            "bridge_backend": l3_run.get("bridge_backend"),
             "calldata_words": l3_run.get("model_bridge_calldata_words"),
             "can_execute": l3_run.get("can_execute"),
             "primary_authority": l3_run.get("primary_authority"),
@@ -2486,6 +2524,8 @@ class ShowcaseRunner:
         heavy_fee_meta = self._fetch_starknet_tx_metrics(str(heavy_tx_hash) if heavy_tx_hash else None)
         self._modelbridge_heavy_live_receipt = {
             "status": heavy_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": heavy_probe_fingerprint,
             "proof_mode": heavy_run.get("proof_mode"),
             "proof_mode_level": heavy_run.get("proof_mode_level"),
             "requested_execution_chain": heavy_run.get("requested_execution_chain"),
@@ -2577,6 +2617,8 @@ class ShowcaseRunner:
         )
         self._native_kzg_live_receipt = {
             "status": native_kzg_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": native_kzg_probe_fingerprint,
             "proof_mode": native_kzg_run.get("proof_mode"),
             "proof_mode_level": native_kzg_run.get("proof_mode_level"),
             "requested_execution_chain": native_kzg_run.get("requested_execution_chain"),
@@ -2659,6 +2701,75 @@ class ShowcaseRunner:
             strict_bridge=self.strict_bridge,
             transient_status_ok=(native_kzg_status in {429, 500, 503}),
         )
+
+        dual_l3_lane = dual_run.get("l3") if isinstance(dual_run.get("l3"), dict) else {}
+        dual_l2_lane = dual_run.get("l2") if isinstance(dual_run.get("l2"), dict) else {}
+        best_dual_attempt = next(
+            (
+                row
+                for row in reversed(dual_attempts)
+                if isinstance(row, dict)
+                and (
+                    row.get("l3_tx_hash")
+                    or row.get("l2_tx_hash")
+                    or row.get("l3_success")
+                    or row.get("l2_success")
+                )
+            ),
+            {},
+        )
+        dual_l3_tx_hash = dual_l3_lane.get("tx_hash") or best_dual_attempt.get("l3_tx_hash")
+        dual_l3_tx_url = dual_l3_lane.get("tx_url") or best_dual_attempt.get("l3_tx_url")
+        dual_l2_tx_hash = dual_l2_lane.get("tx_hash") or best_dual_attempt.get("l2_tx_hash")
+        dual_l2_tx_url = dual_l2_lane.get("tx_url") or best_dual_attempt.get("l2_tx_url")
+        self._dual_live_receipt = {
+            "status": dual_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": dual_probe_fingerprint,
+            "proof_mode": dual_run.get("proof_mode"),
+            "proof_mode_level": dual_run.get("proof_mode_level"),
+            "requested_execution_chain": dual_run.get("requested_execution_chain"),
+            "bridge_proof_hash": dual_run.get("bridge_proof_hash"),
+            "bridge_compliant": dual_run.get("bridge_compliant"),
+            "bridge_backend": dual_run.get("bridge_backend"),
+            "calldata_words": dual_run.get("model_bridge_calldata_words"),
+            "can_execute": dual_run.get("can_execute"),
+            "primary_authority": dual_run.get("primary_authority"),
+            "mirror_status": dual_run.get("mirror_status"),
+            "l3_attempted": dual_l3_lane.get("attempted"),
+            "l3_success": (
+                dual_l3_lane.get("success")
+                if dual_l3_lane.get("success") is not None
+                else best_dual_attempt.get("l3_success")
+            ),
+            "l3_mode": dual_l3_lane.get("mode") or best_dual_attempt.get("l3_mode"),
+            "l3_verified_on_chain": (
+                dual_l3_lane.get("verified_on_chain")
+                if dual_l3_lane.get("verified_on_chain") is not None
+                else best_dual_attempt.get("l3_verified_on_chain")
+            ),
+            "l3_tx_hash": dual_l3_tx_hash,
+            "l3_tx_url": dual_l3_tx_url,
+            "l2_attempted": dual_l2_lane.get("attempted"),
+            "l2_success": (
+                dual_l2_lane.get("success")
+                if dual_l2_lane.get("success") is not None
+                else best_dual_attempt.get("l2_success")
+            ),
+            "l2_mode": dual_l2_lane.get("mode") or best_dual_attempt.get("l2_mode"),
+            "l2_verified_on_chain": (
+                dual_l2_lane.get("verified_on_chain")
+                if dual_l2_lane.get("verified_on_chain") is not None
+                else best_dual_attempt.get("l2_verified_on_chain")
+            ),
+            "l2_tx_hash": dual_l2_tx_hash,
+            "l2_tx_url": dual_l2_tx_url,
+            "trust_mode": dual_run.get("trust_mode"),
+            "trust_warning": dual_run.get("trust_warning"),
+            "failure_reason": dual_run.get("failure_reason"),
+            "generated_at": dual_run.get("generated_at"),
+            "total_duration_ms": dual_run.get("total_duration_ms"),
+        }
 
         noir_l3_lane = noir_run.get("l3") if isinstance(noir_run.get("l3"), dict) else {}
         noir_tx_hash = str(noir_l3_lane.get("tx_hash") or "").strip()
@@ -2767,6 +2878,7 @@ class ShowcaseRunner:
                 "dual": dual_run,
             },
             "modelbridge_live_receipt": dict(self._modelbridge_live_receipt),
+            "dual_live_receipt": dict(self._dual_live_receipt),
             "modelbridge_heavy_live_receipt": dict(self._modelbridge_heavy_live_receipt),
             "native_kzg_live_receipt": dict(self._native_kzg_live_receipt),
             "benchmark_receipts": benchmark_receipts,
@@ -2840,6 +2952,8 @@ class ShowcaseRunner:
             ml_bridge_dual_status=dual_status,
             dual_mirror_status=dual_run.get("mirror_status"),
             dual_l2_mode=((dual_run.get("l2") or {}).get("mode")),
+            dual_l3_tx_hash=_short_hex(str(self._dual_live_receipt.get("l3_tx_hash") or ""), 12),
+            dual_l2_tx_hash=_short_hex(str(self._dual_live_receipt.get("l2_tx_hash") or ""), 12),
             dual_failure_reason=_clip_text(dual_run.get("failure_reason"), 120),
             dual_attempted=dual_attempted,
             dual_attempts=len(dual_attempts),
@@ -5095,12 +5209,19 @@ class ShowcaseRunner:
             for attempt in attempts:
                 if not isinstance(attempt, dict):
                     continue
-                tx_hash = str(attempt.get("l3_tx_hash") or "-")
-                tx_url = attempt.get("l3_tx_url")
-                tx_html = (
-                    f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 12))}</a>"
-                    if tx_url and tx_hash != "-"
-                    else escape(_short_hex(tx_hash, 12))
+                l3_tx_hash = str(attempt.get("l3_tx_hash") or "-")
+                l3_tx_url = attempt.get("l3_tx_url")
+                l3_tx_html = (
+                    f"<a href=\"{escape(str(l3_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(l3_tx_hash, 12))}</a>"
+                    if l3_tx_url and l3_tx_hash != "-"
+                    else escape(_short_hex(l3_tx_hash, 12))
+                )
+                l2_tx_hash = str(attempt.get("l2_tx_hash") or "-")
+                l2_tx_url = attempt.get("l2_tx_url")
+                l2_tx_html = (
+                    f"<a href=\"{escape(str(l2_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(l2_tx_hash, 12))}</a>"
+                    if l2_tx_url and l2_tx_hash != "-"
+                    else escape(_short_hex(l2_tx_hash, 12))
                 )
                 bridge_attempt_rows.append(
                     [
@@ -5110,7 +5231,8 @@ class ShowcaseRunner:
                         escape(str(attempt.get("mirror_status") or "-")),
                         escape(str(attempt.get("l3_mode") or "-")),
                         escape(str(attempt.get("bridge_backend") or "-")),
-                        tx_html,
+                        l3_tx_html,
+                        l2_tx_html,
                         "<span class=\"pass\">true</span>" if attempt.get("can_execute") else "<span class=\"fail\">false</span>",
                         escape(_clip_text(attempt.get("failure_text"), 160) or "-"),
                     ]
@@ -5131,6 +5253,8 @@ class ShowcaseRunner:
         live_receipt_bridge_hash = escape(_short_hex(str(live_receipt.get("bridge_proof_hash") or "-"), 14))
         live_receipt_rows = [
             ["API status", escape(str(live_receipt.get("status") or "-"))],
+            ["Probe seed", escape(str(live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(live_receipt.get("probe_fingerprint") or "-"), 14))],
             ["Proof mode", escape(str(live_receipt.get("proof_mode") or "-"))],
             ["Requested chain", escape(str(live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", live_receipt_bridge_hash],
@@ -5155,6 +5279,52 @@ class ShowcaseRunner:
             ["Duration ms", escape(str(live_receipt.get("total_duration_ms") or "-"))],
         ]
 
+        dual_live_receipt = (
+            bridge.get("dual_live_receipt", {})
+            if isinstance(bridge.get("dual_live_receipt"), dict)
+            else {}
+        )
+        dual_l3_tx = str(dual_live_receipt.get("l3_tx_hash") or "-")
+        dual_l3_tx_url = dual_live_receipt.get("l3_tx_url")
+        dual_l3_tx_html = (
+            f"<a href=\"{escape(str(dual_l3_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(dual_l3_tx, 14))}</a>"
+            if dual_l3_tx_url and dual_l3_tx != "-"
+            else escape(_short_hex(dual_l3_tx, 14))
+        )
+        dual_l2_tx = str(dual_live_receipt.get("l2_tx_hash") or "-")
+        dual_l2_tx_url = dual_live_receipt.get("l2_tx_url")
+        dual_l2_tx_html = (
+            f"<a href=\"{escape(str(dual_l2_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(dual_l2_tx, 14))}</a>"
+            if dual_l2_tx_url and dual_l2_tx != "-"
+            else escape(_short_hex(dual_l2_tx, 14))
+        )
+        dual_live_receipt_rows = [
+            ["API status", escape(str(dual_live_receipt.get("status") or "-"))],
+            ["Probe seed", escape(str(dual_live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(dual_live_receipt.get("probe_fingerprint") or "-"), 14))],
+            ["Proof mode", escape(str(dual_live_receipt.get("proof_mode") or "-"))],
+            ["Requested chain", escape(str(dual_live_receipt.get("requested_execution_chain") or "-"))],
+            ["Bridge proof hash", escape(_short_hex(str(dual_live_receipt.get("bridge_proof_hash") or "-"), 14))],
+            ["Bridge backend", escape(str(dual_live_receipt.get("bridge_backend") or "-"))],
+            ["Bridge compliant", "<span class=\"pass\">true</span>" if dual_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Can execute", "<span class=\"pass\">true</span>" if dual_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(dual_live_receipt.get("mirror_status") or "-"))],
+            ["L3 attempted / success / verified", escape(
+                f"{dual_live_receipt.get('l3_attempted') or False} / {dual_live_receipt.get('l3_success') or False} / {dual_live_receipt.get('l3_verified_on_chain') or False}"
+            )],
+            ["L3 mode", escape(str(dual_live_receipt.get("l3_mode") or "-"))],
+            ["L3 tx hash", dual_l3_tx_html],
+            ["L2 attempted / success / verified", escape(
+                f"{dual_live_receipt.get('l2_attempted') or False} / {dual_live_receipt.get('l2_success') or False} / {dual_live_receipt.get('l2_verified_on_chain') or False}"
+            )],
+            ["L2 mode", escape(str(dual_live_receipt.get("l2_mode") or "-"))],
+            ["L2 tx hash", dual_l2_tx_html],
+            ["Trust mode", escape(str(dual_live_receipt.get("trust_mode") or "-"))],
+            ["Failure reason", escape(_clip_text(dual_live_receipt.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(dual_live_receipt.get("generated_at") or "-"))],
+            ["Duration ms", escape(str(dual_live_receipt.get("total_duration_ms") or "-"))],
+        ]
+
         heavy_live_receipt = (
             bridge.get("modelbridge_heavy_live_receipt", {})
             if isinstance(bridge.get("modelbridge_heavy_live_receipt"), dict)
@@ -5169,6 +5339,8 @@ class ShowcaseRunner:
         )
         heavy_live_receipt_rows = [
             ["API status", escape(str(heavy_live_receipt.get("status") or "-"))],
+            ["Probe seed", escape(str(heavy_live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(heavy_live_receipt.get("probe_fingerprint") or "-"), 14))],
             ["Proof mode", escape(str(heavy_live_receipt.get("proof_mode") or "-"))],
             ["Requested chain", escape(str(heavy_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(heavy_live_receipt.get("bridge_proof_hash") or "-"), 14))],
@@ -5207,6 +5379,8 @@ class ShowcaseRunner:
         )
         native_kzg_live_receipt_rows = [
             ["API status", escape(str(native_kzg_live_receipt.get("status") or "-"))],
+            ["Probe seed", escape(str(native_kzg_live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(native_kzg_live_receipt.get("probe_fingerprint") or "-"), 14))],
             ["Proof mode", escape(str(native_kzg_live_receipt.get("proof_mode") or "-"))],
             ["Requested chain", escape(str(native_kzg_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(native_kzg_live_receipt.get("bridge_proof_hash") or "-"), 14))],
@@ -6551,12 +6725,14 @@ class ShowcaseRunner:
     <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
       <h2>Live Research Receipts: ModelBridge + Native KZG</h2>
       <div class="intent">
-        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed to L3 for both `ModelBridge` and `ModelBridgeHeavy`, each captured as concrete receipt evidence.<br/>
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
         <strong>Why Obsqra Labs wanted this:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
         <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
       </div>
       <h3>ModelBridge Receipt</h3>
       {self._html_table(["Field", "Value"], live_receipt_rows)}
+      <h3>ModelBridge Dual Receipt (L3 primary + Starknet mirror)</h3>
+      {self._html_table(["Field", "Value"], dual_live_receipt_rows)}
       <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
       {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
       <h3>Native KZG Receipt (Path B)</h3>
@@ -6585,7 +6761,7 @@ class ShowcaseRunner:
       </p>
       {self._html_table(["Field", "Value"], heavy_stark_rows)}
       <h3>Retry/Attempt Timeline</h3>
-      {self._html_table(["Run", "Attempt", "HTTP", "Mirror", "L3 Mode", "Bridge Backend", "Tx", "Can Execute", "Failure Text"], bridge_attempt_rows)}
+      {self._html_table(["Run", "Attempt", "HTTP", "Mirror", "L3 Mode", "Bridge Backend", "L3 Tx", "L2 Tx", "Can Execute", "Failure Text"], bridge_attempt_rows)}
     </section>
 
     <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
