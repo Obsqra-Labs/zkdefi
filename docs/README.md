@@ -36,6 +36,7 @@ The daily `/test` build now precomputes native-KZG sidecars before the strict ga
 The daily `/test` build now also passes `SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS=true` by default, so supported first-party Path B models can be provisioned on-demand instead of failing the catalog purely because their local EZKL artifacts were never generated on that machine.
 For faster `/test` health checks, `python3 scripts/hackathon_backend_showcase.py --strict-bridge --bridge-only --emit-report` runs only the bridge-critical matrix instead of the full privacy/agent demo suite.
 Dual mirror status now reports `mirror_underfunded` when the parent Sepolia wallet cannot afford the L3->L2 registry write, which keeps the failure mode honest.
+Path C now has a dedicated capture helper in `scripts/capture_pathc_live_receipt.py`, so once a real L1 bridge payload is available the server can pin `pathc_latest.json` using the bridge polling token (`used_nonce`, `message_hash`) instead of relying on manual ad hoc notes.
 
 Daily refresh on the same server (recommended for `/test`):
 

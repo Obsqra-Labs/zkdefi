@@ -25,6 +25,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 | **ci_showcase_gate.py** | CI gate: runs Path B warm-up with minimum coverage, then strict showcase; fails if coverage or bridge lane checks regress. |
 | **daily_live_research_build.sh** | Server-side daily runner for `/test`: executes `ci_showcase_gate.py`, refreshes `latest.html/json`, and writes timestamped logs under `artifacts/hackathon_showcase/daily_logs/`. |
 | **precompute_kzg_mpcheck_sidecars.py** | Refreshes `mpcheck_hint_felts` + `precomputed_line_felts` sidecars for local EZKL models so native KZG can stay on `kzg_mpcheck_v3` without re-deriving lines on every request. |
+| **capture_pathc_live_receipt.py** | Operational Path C helper: submit a real `verifyAndBridge` call to the parent backend, optionally wait for L2 confirmation, and write `artifacts/hackathon_showcase/pathc_latest.json` for the report. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -197,6 +198,22 @@ Daily build env knobs:
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
 - `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
 - `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)
+
+Path C live receipt capture:
+
+```bash
+python3 scripts/capture_pathc_live_receipt.py \
+  --payload-json /abs/path/to/pathc_payload.json
+```
+
+Expected payload JSON fields:
+
+- `proof_hex`
+- `public_inputs`
+- `model_hash`
+- `output_commitment`
+
+The script calls the parent backend `POST /api/v1/aggregation/l1/verify`, uses the returned `used_nonce` / `verification_status_query`, optionally polls L2, and writes `artifacts/hackathon_showcase/pathc_latest.json` in the shape consumed by the showcase.
 
 ### Hackathon showcase artifacts
 
