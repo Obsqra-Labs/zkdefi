@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = ROOT / "artifacts" / "hackathon_showcase"
 LATEST_REPORT = ARTIFACT_DIR / "latest.json"
 PATHA_LATEST = ARTIFACT_DIR / "patha_latest.json"
+PATHB_LATEST = ARTIFACT_DIR / "pathb_latest.json"
 
 
 def _env(name: str, default: str) -> str:
@@ -168,6 +169,69 @@ def _validate_latest_report() -> None:
             f"line_source={native_line_source or '-'} "
             f"precomputed_lines={native_precomputed_lines} "
             f"strict_binding_observed={strict_binding_observed}"
+        )
+
+    recursive = report.get("recursive_ezkl_paths") or {}
+    if not isinstance(recursive, dict):
+        recursive = {}
+    recursive_signals = recursive.get("signals") or {}
+    if not isinstance(recursive_signals, dict) or not bool(recursive_signals.get("path_b_live_verified")):
+        raise RuntimeError("Path B recursive stage gate failed: path_b_live_verified=false")
+    path_rows = recursive.get("path_rows") or []
+    if not isinstance(path_rows, list):
+        path_rows = []
+    pathb_row = next(
+        (
+            row for row in path_rows
+            if isinstance(row, dict) and str(row.get("path", "")).strip().lower().startswith("path b")
+        ),
+        {},
+    )
+    pathb_status = str(pathb_row.get("status", "") or "").strip().lower()
+    if pathb_status != "implemented_live":
+        raise RuntimeError(f"Path B recursive stage gate failed: status={pathb_status or '-'}")
+    if not PATHB_LATEST.exists():
+        raise RuntimeError(f"missing Path B latest artifact: {PATHB_LATEST}")
+    pathb = json.loads(PATHB_LATEST.read_text())
+    if not isinstance(pathb, dict):
+        raise RuntimeError("Path B latest artifact is not a JSON object")
+    pathb_live_verified = bool(pathb.get("live_verified"))
+    pathb_execution_chain = str(pathb.get("execution_chain", "") or "").strip().lower()
+    pathb_attempted = int(pathb.get("attempted_models", 0) or 0)
+    pathb_verified = int(pathb.get("verified_models", 0) or 0)
+    pathb_l3_receipts = int(pathb.get("l3_receipt_models", 0) or 0)
+    pathb_l2_receipts = int(pathb.get("l2_receipt_models", 0) or 0)
+    pathb_mirrored = int(pathb.get("mirrored_models", 0) or 0)
+    pathb_strict_abi = int(pathb.get("strict_abi_models", 0) or 0)
+    pathb_strict_binding = int(pathb.get("strict_binding_models", 0) or 0)
+    verifier_runtime = pathb.get("verifier_runtime") or {}
+    if not isinstance(verifier_runtime, dict):
+        verifier_runtime = {}
+    if not (
+        pathb_live_verified
+        and pathb_attempted > 0
+        and pathb_verified == pathb_attempted
+        and pathb_l3_receipts == pathb_attempted
+        and pathb_strict_abi == pathb_attempted
+        and pathb_strict_binding == pathb_attempted
+        and bool(verifier_runtime.get("required_methods_ok"))
+        and str(verifier_runtime.get("address", "") or "").strip()
+    ):
+        raise RuntimeError(
+            "Path B artifact gate failed: "
+            f"live_verified={pathb_live_verified} "
+            f"attempted={pathb_attempted} verified={pathb_verified} "
+            f"l3_receipts={pathb_l3_receipts} strict_abi={pathb_strict_abi} "
+            f"strict_binding={pathb_strict_binding} "
+            f"verifier_ready={bool(verifier_runtime.get('required_methods_ok'))} "
+            f"address_present={bool(str(verifier_runtime.get('address', '') or '').strip())}"
+        )
+    if pathb_execution_chain == "dual" and not (
+        pathb_l2_receipts == pathb_attempted and pathb_mirrored == pathb_attempted
+    ):
+        raise RuntimeError(
+            "Path B dual artifact gate failed: "
+            f"attempted={pathb_attempted} l2_receipts={pathb_l2_receipts} mirrored={pathb_mirrored}"
         )
 
     lanes_text = "/".join(expected_required.keys())

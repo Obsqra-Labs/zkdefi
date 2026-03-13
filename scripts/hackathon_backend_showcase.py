@@ -42,6 +42,7 @@ VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
 PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
+PATHB_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_latest.json"
 PATHB_WARM_REPORT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_bundle_warm.json"
 
 # Public landscape references used in the HTML report to position the bridge
@@ -911,6 +912,8 @@ class ShowcaseRunner:
                 print(f"  - Latest HTML: {artifacts['latest_html']}")
                 if artifacts.get("patha_latest"):
                     print(f"  - Path A Latest: {artifacts['patha_latest']}")
+                if artifacts.get("pathb_latest"):
+                    print(f"  - Path B Latest: {artifacts['pathb_latest']}")
                 if artifacts.get("history"):
                     print(f"  - History JSONL: {artifacts['history']}")
                 if self.emit_report_force and not final_ready:
@@ -3337,6 +3340,12 @@ class ShowcaseRunner:
         pathb_warm_models_total = _safe_int(pathb_warm_gate.get("models_total"), 0)
         pathb_warm_models_bundle = _safe_int(pathb_warm_gate.get("models_with_bundle"), 0)
         pathb_warm_models_verified = _safe_int(pathb_warm_gate.get("models_verified"), 0)
+        pathb_execution_chain = str(pathb_warm_gate.get("native_kzg_onchain_execution_chain") or "").strip().lower()
+        pathb_attempted_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_attempted_models"), 0)
+        pathb_verified_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_verified_models"), 0)
+        pathb_l3_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l3_receipt_models"), 0)
+        pathb_l2_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l2_receipt_models"), 0)
+        pathb_mirrored_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_mirrored_models"), 0)
 
         parent_phase3_config_keys = all(
             key in parent_config_text
@@ -3394,6 +3403,22 @@ class ShowcaseRunner:
             pathb_runtime_contract,
             required_methods=pathb_required_methods,
         )
+        pathb_live_ready = False
+        if bool(pathb_warm_gate.get("native_kzg_onchain_enabled")):
+            if pathb_execution_chain == "dual":
+                pathb_live_ready = (
+                    pathb_attempted_models > 0
+                    and pathb_verified_models >= pathb_attempted_models
+                    and pathb_l3_receipt_models >= pathb_attempted_models
+                    and pathb_l2_receipt_models >= pathb_attempted_models
+                    and pathb_mirrored_models >= pathb_attempted_models
+                )
+            else:
+                pathb_live_ready = (
+                    pathb_attempted_models > 0
+                    and pathb_verified_models >= pathb_attempted_models
+                    and pathb_l3_receipt_models >= pathb_attempted_models
+                )
 
         path_c_wiring_ready = bool(
             l1_sepolia_doc.exists()
@@ -3540,7 +3565,19 @@ class ShowcaseRunner:
             {
                 "path": "Path B (native Cairo KZG)",
                 "status": (
-                    "implemented"
+                    "implemented_live"
+                    if (
+                        cairo_kzg_spec_doc.exists()
+                        and cairo_kzg_sierra.exists()
+                        and cairo_kzg_casm.exists()
+                        and parent_phase4_config_key
+                        and parent_phase4_route
+                        and bool(parent_env.get("L3_KZG_VERIFIER_ADDRESS"))
+                        and (bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False)
+                        and parent_phase4_strict_kzg
+                        and pathb_live_ready
+                    )
+                    else "implemented"
                     if (
                         cairo_kzg_spec_doc.exists()
                         and cairo_kzg_sierra.exists()
@@ -3562,7 +3599,11 @@ class ShowcaseRunner:
                 ),
                 "doc_signal": (
                     (
-                        "Cairo KZG verifier package builds; parent route validates ezkl_kzg_v1 + kzg_mpcheck_v1 trailer and uses strict verify_ezkl_kzg_v1 ABI."
+                        (
+                            "Cairo KZG verifier package builds; strict native KZG route is live with receipt-backed coverage across the current proving-ready catalog."
+                            if pathb_live_ready
+                            else "Cairo KZG verifier package builds; parent route validates ezkl_kzg_v1 + kzg_mpcheck_v1 trailer and uses strict verify_ezkl_kzg_v1 ABI."
+                        )
                         + (
                             f" Catalog warm coverage: {pathb_warm_models_bundle}/{pathb_warm_models_total} models with cached bundles."
                             if pathb_warm_models_total > 0
@@ -3644,6 +3685,7 @@ class ShowcaseRunner:
                 "path_b_native_kzg_receipt_models": pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
                 "path_b_native_kzg_daily_new_count": len(pathb_warm_gate.get("daily_new_native_kzg_models") or []),
                 "path_b_native_kzg_daily_regressed_count": len(pathb_warm_gate.get("daily_regressed_native_kzg_models") or []),
+                "path_b_live_verified": pathb_live_ready,
                 "path_b_verifier_rpc_verified": bool(pathb_verifier_runtime.get("rpc_verified")),
                 "path_b_verifier_has_strict_selector": bool(pathb_verifier_runtime.get("required_methods_ok")),
                 "path_b_verifier_method_count": len(pathb_verifier_runtime.get("abi_methods") or []),
@@ -3759,11 +3801,17 @@ class ShowcaseRunner:
                 "native_kzg_onchain_l3_receipt_models": pathb_warm_gate.get("native_kzg_onchain_l3_receipt_models"),
                 "native_kzg_onchain_l2_receipt_models": pathb_warm_gate.get("native_kzg_onchain_l2_receipt_models"),
                 "native_kzg_onchain_mirrored_models": pathb_warm_gate.get("native_kzg_onchain_mirrored_models"),
+                "native_kzg_onchain_strict_abi_models": pathb_warm_gate.get("native_kzg_onchain_strict_abi_models"),
+                "native_kzg_onchain_legacy_abi_models": pathb_warm_gate.get("native_kzg_onchain_legacy_abi_models"),
+                "native_kzg_onchain_strict_binding_models": pathb_warm_gate.get("native_kzg_onchain_strict_binding_models"),
                 "native_kzg_onchain_attempted_model_names": pathb_warm_gate.get("native_kzg_onchain_attempted_model_names") or [],
                 "native_kzg_onchain_verified_model_names": pathb_warm_gate.get("native_kzg_onchain_verified_model_names") or [],
                 "native_kzg_onchain_receipt_model_names": pathb_warm_gate.get("native_kzg_onchain_receipt_model_names") or [],
                 "native_kzg_onchain_l2_receipt_model_names": pathb_warm_gate.get("native_kzg_onchain_l2_receipt_model_names") or [],
                 "native_kzg_onchain_mirrored_model_names": pathb_warm_gate.get("native_kzg_onchain_mirrored_model_names") or [],
+                "native_kzg_onchain_strict_abi_model_names": pathb_warm_gate.get("native_kzg_onchain_strict_abi_model_names") or [],
+                "native_kzg_onchain_legacy_abi_model_names": pathb_warm_gate.get("native_kzg_onchain_legacy_abi_model_names") or [],
+                "native_kzg_onchain_strict_binding_model_names": pathb_warm_gate.get("native_kzg_onchain_strict_binding_model_names") or [],
                 "native_kzg_onchain_rows": pathb_warm_gate.get("native_kzg_onchain_rows") or [],
                 "daily_new_native_kzg_models": pathb_warm_gate.get("daily_new_native_kzg_models") or [],
                 "daily_regressed_native_kzg_models": pathb_warm_gate.get("daily_regressed_native_kzg_models") or [],
@@ -3811,12 +3859,6 @@ class ShowcaseRunner:
             and parent_phase4_config_key
             and parent_phase4_route
         )
-        pathb_execution_chain = str(pathb_warm_gate.get("native_kzg_onchain_execution_chain") or "").strip().lower()
-        pathb_attempted_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_attempted_models"), 0)
-        pathb_verified_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_verified_models"), 0)
-        pathb_l3_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l3_receipt_models"), 0)
-        pathb_l2_receipt_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_l2_receipt_models"), 0)
-        pathb_mirrored_models = _safe_int(pathb_warm_gate.get("native_kzg_onchain_mirrored_models"), 0)
         pathb_dual_gate = True
         if self.strict_bridge and bool(pathb_warm_gate.get("native_kzg_onchain_enabled")):
             if pathb_execution_chain == "dual":
@@ -7873,6 +7915,7 @@ class ShowcaseRunner:
         latest_json.write_text(json_blob, encoding="utf-8")
         latest_html.write_text(html_blob, encoding="utf-8")
         patha_latest = self.artifact_dir / "patha_latest.json"
+        pathb_latest = self.artifact_dir / "pathb_latest.json"
         patha_live = (
             (payload.get("bridge_architecture") or {}).get("noir_live_receipt")
             if isinstance(payload.get("bridge_architecture"), dict)
@@ -7891,6 +7934,58 @@ class ShowcaseRunner:
                 ),
                 encoding="utf-8",
             )
+        recursive_paths = (
+            payload.get("recursive_ezkl_paths")
+            if isinstance(payload.get("recursive_ezkl_paths"), dict)
+            else {}
+        )
+        pathb_warm = (
+            recursive_paths.get("path_b_warm_report")
+            if isinstance(recursive_paths.get("path_b_warm_report"), dict)
+            else {}
+        )
+        pathb_runtime = (
+            recursive_paths.get("path_b_runtime_verifier")
+            if isinstance(recursive_paths.get("path_b_runtime_verifier"), dict)
+            else {}
+        )
+        recursive_signals = (
+            recursive_paths.get("signals")
+            if isinstance(recursive_paths.get("signals"), dict)
+            else {}
+        )
+        if isinstance(pathb_warm, dict) and pathb_warm:
+            pathb_latest.write_text(
+                json.dumps(
+                    {
+                        "generated_at": payload.get("generated_at"),
+                        "lane": "EzklNativeKzg",
+                        "live_verified": bool(recursive_signals.get("path_b_live_verified")),
+                        "coverage_scope": pathb_warm.get("coverage_scope"),
+                        "execution_chain": pathb_warm.get("native_kzg_onchain_execution_chain"),
+                        "artifact_path": pathb_warm.get("artifact_path"),
+                        "artifact_found": pathb_warm.get("artifact_found"),
+                        "catalog_models_total": pathb_warm.get("catalog_models_total"),
+                        "proving_ready_models_catalog_total": pathb_warm.get("proving_ready_models_catalog_total"),
+                        "excluded_models_total": pathb_warm.get("excluded_models_total"),
+                        "attempted_models": pathb_warm.get("native_kzg_onchain_attempted_models"),
+                        "verified_models": pathb_warm.get("native_kzg_onchain_verified_models"),
+                        "l3_receipt_models": pathb_warm.get("native_kzg_onchain_receipt_models"),
+                        "l2_receipt_models": pathb_warm.get("native_kzg_onchain_l2_receipt_models"),
+                        "mirrored_models": pathb_warm.get("native_kzg_onchain_mirrored_models"),
+                        "strict_abi_models": pathb_warm.get("native_kzg_onchain_strict_abi_models"),
+                        "legacy_abi_models": pathb_warm.get("native_kzg_onchain_legacy_abi_models"),
+                        "strict_binding_models": pathb_warm.get("native_kzg_onchain_strict_binding_models"),
+                        "daily_delta_pct_points": pathb_warm.get("daily_delta_pct_points"),
+                        "daily_new_bundle_models": pathb_warm.get("daily_new_bundle_models") or [],
+                        "daily_regressed_bundle_models": pathb_warm.get("daily_regressed_bundle_models") or [],
+                        "verifier_runtime": pathb_runtime,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
         history_path = self._append_history(payload)
 
         out = {
@@ -7901,6 +7996,8 @@ class ShowcaseRunner:
         }
         if patha_latest.exists():
             out["patha_latest"] = str(patha_latest.resolve())
+        if pathb_latest.exists():
+            out["pathb_latest"] = str(pathb_latest.resolve())
         if history_path:
             out["history"] = history_path
         return out

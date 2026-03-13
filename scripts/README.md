@@ -10,6 +10,7 @@ Operational and deployment scripts for zkde.fi.
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 - Path A latest receipt: `artifacts/hackathon_showcase/patha_latest.json`
+- Path B latest receipt: `artifacts/hackathon_showcase/pathb_latest.json`
 
 The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate Obsqra Labs research claims with backend + on-chain receipts.
 
@@ -198,6 +199,7 @@ Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REP
 - `artifacts/hackathon_showcase/latest.html`
 - `artifacts/hackathon_showcase/latest.json`
 - `artifacts/hackathon_showcase/patha_latest.json` (latest Path A `NoirEzklBridge` / `noir_honk` receipt artifact used by recursive stage check-ins and strict Noir gate)
+- `artifacts/hackathon_showcase/pathb_latest.json` (latest Path B `EzklNativeKzg` runtime/verifier coverage artifact used by recursive stage check-ins and strict bridge gate)
 
 The HTML report includes:
 
@@ -213,6 +215,7 @@ The HTML report includes:
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness, **stage completion check-ins**, and **GitHub version gates**
 - Dedicated **Path A Live Receipt** table sourced from `patha_latest.json`, so Path A is tracked as a receipt-backed stage instead of just a listed lane
+- Dedicated Path B live artifact sourced from `pathb_latest.json`, so Path B stage readiness is pinned to live catalog receipts plus verifier ABI/runtime checks instead of only the in-memory warm report
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
 - AI + marketplace snapshot: opportunities, advisory calls, strategy badge screening
