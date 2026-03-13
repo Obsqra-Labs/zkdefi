@@ -5820,5 +5820,66 @@
       "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89"
     ],
     "created_at_ts": 1773378082
+  },
+  "0x949f6de532fe39e9b58a75059f66e01d2b2c67ef10438a77d8cc0bf94a9ed470": {
+    "window_id": "0x949f6de532fe39e9b58a75059f66e01d2b2c67ef10438a77d8cc0bf94a9ed470",
+    "pair_id": "ETH/USDC",
+    "network_id": "starknet_sepolia",
+    "window_open_ts": 1773378763,
+    "window_close_ts": 1773379423,
+    "cadence_id": "demo_1m",
+    "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
+    "snapshot_data": {
+      "price": 3200.0,
+      "volatility": 0.22,
+      "liquidity": 1000000
+    },
+    "snapshot_provenance_hash": null,
+    "data_source_id": "hackathon_showcase",
+    "feature_schema_id": "snapshot_forecaster.v1",
+    "feature_vector": {
+      "momentum": 0.1,
+      "spread": 0.02,
+      "volatility": 0.22
+    },
+    "feature_vector_hash": "0x52bf11e139e2637dfffe4cadc40809f28e416615fee46427cc3accafbddb95e2",
+    "attestation": {
+      "attempted": false,
+      "registered_on_chain": false,
+      "tx_hash": null,
+      "fact_hash": null,
+      "timestamp": null,
+      "error": null
+    },
+    "outcomes": {
+      "5": {
+        "horizon_min": 5,
+        "actual_return_bps": 90,
+        "actual_up": 1,
+        "maturity_ts": 1773379063,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773378823
+      },
+      "30": {
+        "horizon_min": 30,
+        "actual_return_bps": 180,
+        "actual_up": 1,
+        "maturity_ts": 1773380563,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773378823
+      },
+      "240": {
+        "horizon_min": 240,
+        "actual_return_bps": 390,
+        "actual_up": 1,
+        "maturity_ts": 1773393163,
+        "source_id": "hackathon_showcase",
+        "recorded_at_ts": 1773378823
+      }
+    },
+    "prediction_ids": [
+      "0xb6dfec2172b1cd4b647538299a46d42e1ef2f6cad5079be8b3952148ba2a23e6"
+    ],
+    "created_at_ts": 1773378823
   }
 }

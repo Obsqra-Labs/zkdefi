@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
+import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
 import { PaperTradeDemo } from "@/components/marketing/PaperTradeDemo";
 import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
 
@@ -275,8 +276,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Capital OS: Unified Demo — Discover → Identity → Execute → Live ═══ */}
+      {/* ═══ Capital OS: Proof-Attested Pool Intelligence (main layer) ═══ */}
       <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <CapitalOSSection />
+        </div>
+      </section>
+
+      {/* ═══ Capital OS: Unified Demo — Identity → Strategy → Execute → Live ═══ */}
+      <section id="demo" className="scroll-mt-8 border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <PaperTradeDemo />
         </div>

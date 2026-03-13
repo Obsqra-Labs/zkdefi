@@ -6142,5 +6142,69 @@
       }
     },
     "scored_at_ts": 1773378082
+  },
+  "0x0c26ca9a5d8536828ba3561445147abc1676d344483632d5dbe86ef26bd841d5": {
+    "score_receipt_id": "0x0c26ca9a5d8536828ba3561445147abc1676d344483632d5dbe86ef26bd841d5",
+    "forecast_id": "0xb6dfec2172b1cd4b647538299a46d42e1ef2f6cad5079be8b3952148ba2a23e6",
+    "window_id": "0x949f6de532fe39e9b58a75059f66e01d2b2c67ef10438a77d8cc0bf94a9ed470",
+    "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "pair_id": "ETH/USDC",
+    "model_identity": {
+      "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "snapshot_forecaster.v1",
+      "settings_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "vk_hash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "trust_mode": "offchain_ezkl_verified",
+    "metrics": {
+      "horizon_count": 3,
+      "mae_bps": 213.0,
+      "rmse_bps": 246.119889,
+      "directional_accuracy": 1.0,
+      "brier_score": 0.220474,
+      "ece": 0.469
+    },
+    "metric_tiers": {
+      "directional_accuracy_tier": "tier_1",
+      "mae_tier": "tier_3",
+      "brier_tier": "tier_3",
+      "ece_tier": "tier_3"
+    },
+    "per_horizon": {
+      "5": {
+        "horizon_min": 5,
+        "predicted_return_bps": 4,
+        "actual_return_bps": 90,
+        "predicted_prob_up": 0.5041,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 86.0,
+        "squared_error_bps2": 7396.0,
+        "brier": 0.24591681
+      },
+      "30": {
+        "horizon_min": 30,
+        "predicted_return_bps": 7,
+        "actual_return_bps": 180,
+        "predicted_prob_up": 0.5294,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 173.0,
+        "squared_error_bps2": 29929.0,
+        "brier": 0.22146436000000003
+      },
+      "240": {
+        "horizon_min": 240,
+        "predicted_return_bps": 10,
+        "actual_return_bps": 390,
+        "predicted_prob_up": 0.5595,
+        "actual_up": 1,
+        "directional_hit": true,
+        "abs_error_bps": 380.0,
+        "squared_error_bps2": 144400.0,
+        "brier": 0.19404025
+      }
+    },
+    "scored_at_ts": 1773378823
   }
 }
