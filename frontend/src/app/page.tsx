@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
-import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
 import { PaperTradeDemo } from "@/components/marketing/PaperTradeDemo";
 import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
 
@@ -178,10 +177,10 @@ export default function LandingPage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
-              href="#paper-trade"
+              href="#capital-os"
               className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-6 py-3 font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
             >
-              Try with Your Wallet
+              Try the Demo
               <ChevronDown className="h-4 w-4" />
             </a>
             <a
@@ -276,15 +275,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Capital OS: AI Brain + Live Demo ═══ */}
+      {/* ═══ Capital OS: Unified Demo — Discover → Identity → Execute → Live ═══ */}
       <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
-        </div>
-      </section>
-
-      {/* ═══ Paper Trade Demo: Connect & Import ═══ */}
-      <section id="paper-trade" className="scroll-mt-8 border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <PaperTradeDemo />
         </div>

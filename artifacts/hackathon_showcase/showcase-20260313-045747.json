@@ -184,13 +184,13 @@
   "base_url": "http://127.0.0.1:8003",
   "benchmark_rollup": {
     "artifact_path": "artifacts/hackathon_showcase/history.jsonl",
-    "history_entries_total": 19,
-    "history_entries_used": 19,
+    "history_entries_total": 18,
+    "history_entries_used": 18,
     "history_found": true,
     "rows": [
       {
         "dominant_mode": "groth16_garaga",
-        "duration_p50_ms": 10368,
+        "duration_p50_ms": 15621,
         "duration_p95_ms": 15621,
         "fee_p50": null,
         "fee_p95": null,
@@ -198,15 +198,15 @@
         "lane_key": "modelbridge",
         "latest_mode": "groth16_garaga",
         "latest_status": 200,
-        "latest_tx_hash": "0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+        "latest_tx_hash": "0x7ab5753d7ba36c81b08080b16b08f322984342347e0395bdd4d0cdcfaef35dd",
         "latest_verified": true,
-        "samples": 19,
+        "samples": 18,
         "verified_rate_pct": 100.0,
-        "verified_samples": 19
+        "verified_samples": 18
       },
       {
         "dominant_mode": "groth16_garaga",
-        "duration_p50_ms": 23181,
+        "duration_p50_ms": 23915,
         "duration_p95_ms": 23915,
         "fee_p50": null,
         "fee_p95": null,
@@ -214,31 +214,31 @@
         "lane_key": "modelbridge_heavy",
         "latest_mode": "groth16_garaga",
         "latest_status": 200,
-        "latest_tx_hash": "0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
+        "latest_tx_hash": "0x56f0f414cd776e5549ef712925015f7e263657bb1468b010e640ed86d2caa8b",
         "latest_verified": true,
-        "samples": 19,
-        "verified_rate_pct": 94.74,
-        "verified_samples": 18
+        "samples": 18,
+        "verified_rate_pct": 94.44,
+        "verified_samples": 17
       },
       {
         "dominant_mode": "noir_honk",
         "duration_p50_ms": 15122,
-        "duration_p95_ms": 15559,
+        "duration_p95_ms": 15122,
         "fee_p50": null,
         "fee_p95": null,
         "lane": "NoirEzklBridge",
         "lane_key": "noir",
         "latest_mode": "noir_honk",
         "latest_status": 200,
-        "latest_tx_hash": "0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
+        "latest_tx_hash": "0x5cf864dddd87919ddd980c704c11b01a4d004b16e816dda0bbc1abcdca029d5",
         "latest_verified": true,
-        "samples": 2,
+        "samples": 1,
         "verified_rate_pct": 100.0,
-        "verified_samples": 2
+        "verified_samples": 1
       },
       {
         "dominant_mode": "native_kzg",
-        "duration_p50_ms": 13983,
+        "duration_p50_ms": 17060,
         "duration_p95_ms": 17060,
         "fee_p50": null,
         "fee_p95": null,
@@ -246,11 +246,11 @@
         "lane_key": "native_kzg",
         "latest_mode": "native_kzg",
         "latest_status": 200,
-        "latest_tx_hash": "0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
+        "latest_tx_hash": "0x4a123322e4172daa81a1fc8328fd17317b2ee22a6e3bbc9e3f3b8bfe16205fa",
         "latest_verified": true,
-        "samples": 19,
+        "samples": 18,
         "verified_rate_pct": 100.0,
-        "verified_samples": 19
+        "verified_samples": 18
       }
     ],
     "window_runs_requested": 40
@@ -258,9 +258,9 @@
   "bridge_architecture": {
     "benchmark_receipts": [
       {
-        "actual_fee_display": null,
+        "actual_fee_display": "-",
         "bridge_backend": null,
-        "duration_ms": 8929,
+        "duration_ms": 10368,
         "execution_steps": null,
         "l1_data_gas": null,
         "l1_gas": null,
@@ -268,14 +268,14 @@
         "l3_mode": "groth16_garaga",
         "lane": "ModelBridge",
         "status": 200,
-        "tx_hash": null,
-        "tx_url": null,
-        "verified_on_chain": false
+        "tx_hash": "0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+        "tx_url": "https://sepolia.voyager.online/tx/0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+        "verified_on_chain": true
       },
       {
         "actual_fee_display": "-",
         "bridge_backend": "groth16_modelbridge_heavy",
-        "duration_ms": 9710,
+        "duration_ms": 23181,
         "execution_steps": null,
         "l1_data_gas": null,
         "l1_gas": null,
@@ -283,14 +283,14 @@
         "l3_mode": "groth16_garaga",
         "lane": "ModelBridgeHeavy",
         "status": 200,
-        "tx_hash": "0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
-        "tx_url": "https://sepolia.voyager.online/tx/0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
+        "tx_hash": "0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
+        "tx_url": "https://sepolia.voyager.online/tx/0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
         "verified_on_chain": true
       },
       {
         "actual_fee_display": "-",
         "bridge_backend": "noir_honk",
-        "duration_ms": 10993,
+        "duration_ms": 15559,
         "execution_steps": null,
         "l1_data_gas": null,
         "l1_gas": null,
@@ -299,14 +299,14 @@
         "lane": "NoirEzklBridge",
         "lane_available": true,
         "status": 200,
-        "tx_hash": "0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
-        "tx_url": "https://sepolia.voyager.online/tx/0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
+        "tx_hash": "0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
+        "tx_url": "https://sepolia.voyager.online/tx/0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
         "verified_on_chain": true
       },
       {
         "actual_fee_display": "-",
         "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
-        "duration_ms": 14523,
+        "duration_ms": 13983,
         "execution_steps": null,
         "l1_data_gas": null,
         "l1_gas": null,
@@ -314,8 +314,8 @@
         "l3_mode": "native_kzg",
         "lane": "EzklNativeKzg",
         "status": 200,
-        "tx_hash": "0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
-        "tx_url": "https://sepolia.voyager.online/tx/0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
+        "tx_hash": "0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
+        "tx_url": "https://sepolia.voyager.online/tx/0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
         "verified_on_chain": true
       }
     ],
@@ -416,20 +416,20 @@
       "dual": [
         {
           "attempt": 1,
-          "bridge_backend": "groth16_modelbridge",
-          "bridge_compliant": true,
-          "bridge_proof_hash": "0xccea4d8fd7df562fd3a2ee7401e7a551023b21604198ffd1b8f394f548b1bf26",
-          "calldata_words": 2005,
-          "can_execute": true,
-          "failure_text": "mirror_register_failed",
-          "l3_mode": "groth16_garaga",
-          "l3_success": true,
-          "l3_tx_hash": "0x343e7daba508bc5abb82b4b3b8ea4aae60785c388a55136f7f6f7293768e616",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x343e7daba508bc5abb82b4b3b8ea4aae60785c388a55136f7f6f7293768e616",
-          "l3_verified_on_chain": true,
-          "mirror_status": "mirror_failed",
-          "proof_mode": "EZKL_BRIDGE",
-          "status": 200
+          "bridge_backend": null,
+          "bridge_compliant": null,
+          "bridge_proof_hash": null,
+          "calldata_words": 0,
+          "can_execute": false,
+          "failure_text": "timed out   timed out",
+          "l3_mode": null,
+          "l3_success": null,
+          "l3_tx_hash": null,
+          "l3_tx_url": null,
+          "l3_verified_on_chain": null,
+          "mirror_status": null,
+          "proof_mode": null,
+          "status": 0
         }
       ],
       "l3": [
@@ -437,15 +437,15 @@
           "attempt": 1,
           "bridge_backend": "groth16_modelbridge",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0x43de0aa4177591132c1034de5e4bc9467a56c935e4df045f2f9c91241a9ef563",
+          "bridge_proof_hash": "0x07194855546c2296de74448f403f00db9a54cfd5caeb44651213818101391d9d",
           "calldata_words": 2005,
-          "can_execute": false,
-          "failure_text": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0xb42 Client failed with code 52. Message: Invalid transaction nonce. Data: No...",
+          "can_execute": true,
+          "failure_text": "",
           "l3_mode": "groth16_garaga",
-          "l3_success": false,
-          "l3_tx_hash": null,
-          "l3_tx_url": null,
-          "l3_verified_on_chain": false,
+          "l3_success": true,
+          "l3_tx_hash": "0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+          "l3_verified_on_chain": true,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
           "status": 200
@@ -456,14 +456,14 @@
           "attempt": 1,
           "bridge_backend": "groth16_modelbridge_heavy",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0xbaa3d2e2186e7d0e189dead8736269b85d1a84a563d944723ed6fdbbe9ba5996",
+          "bridge_proof_hash": "0x74a8d6c4b9e4860664477492df0b0d4efe57090f35bbb442af62c387de0b3a95",
           "calldata_words": 2005,
           "can_execute": true,
           "failure_text": "",
           "l3_mode": "groth16_garaga",
           "l3_success": true,
-          "l3_tx_hash": "0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
+          "l3_tx_hash": "0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
           "l3_verified_on_chain": true,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
@@ -475,14 +475,14 @@
           "attempt": 1,
           "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0x4ecd2482ccc68dab5b68c509078b06c9cebc462d32b41b09e3028005109afa8",
+          "bridge_proof_hash": "0x15b5b0f7f2f0a51a419b8c01d7f4a658b065f2875c6a82b46db2c7d5a8b6502",
           "calldata_words": 1898,
           "can_execute": true,
           "failure_text": "",
           "l3_mode": "native_kzg",
           "l3_success": true,
-          "l3_tx_hash": "0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
+          "l3_tx_hash": "0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
           "l3_verified_on_chain": true,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
@@ -494,14 +494,14 @@
           "attempt": 1,
           "bridge_backend": "noir_honk",
           "bridge_compliant": true,
-          "bridge_proof_hash": "0xb3d2c17e98863fd2795d0ba23a3c26178524976b2ddadd9de5f504a93690f39b",
+          "bridge_proof_hash": "0x5b63810b12015f883a649292c404a9124633557daca5b596d0b5d92494756b71",
           "calldata_words": 2874,
           "can_execute": true,
           "failure_text": "",
           "l3_mode": "noir_honk",
           "l3_success": true,
-          "l3_tx_hash": "0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
-          "l3_tx_url": "https://sepolia.voyager.online/tx/0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
+          "l3_tx_hash": "0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
+          "l3_tx_url": "https://sepolia.voyager.online/tx/0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
           "l3_verified_on_chain": true,
           "mirror_status": "not_requested",
           "proof_mode": "EZKL_BRIDGE",
@@ -511,13 +511,13 @@
     },
     "ml_bridge_runs": {
       "dual": {
-        "api_error": null,
-        "bridge_backend": "groth16_modelbridge",
-        "bridge_compliant": true,
-        "bridge_proof_hash": "0xccea4d8fd7df562fd3a2ee7401e7a551023b21604198ffd1b8f394f548b1bf26",
-        "can_execute": true,
-        "failure_reason": null,
-        "generated_at": "2026-03-13T05:01:40.916437+00:00",
+        "api_error": "timed out",
+        "bridge_backend": null,
+        "bridge_compliant": null,
+        "bridge_proof_hash": null,
+        "can_execute": null,
+        "failure_reason": "timed out",
+        "generated_at": null,
         "kzg_bundle_cached_path": null,
         "kzg_bundle_present": null,
         "kzg_bundle_source": null,
@@ -526,42 +526,42 @@
         "kzg_hint_felts": null,
         "kzg_payload_semantics": null,
         "l2": {
-          "attempted": true,
-          "error": "mirror_register_failed",
-          "mode": "l2_mirror_failed",
-          "success": false,
+          "attempted": null,
+          "error": null,
+          "mode": null,
+          "success": null,
           "tx_hash": null,
           "tx_url": null,
-          "verified_on_chain": false
+          "verified_on_chain": null
         },
         "l3": {
-          "attempted": true,
+          "attempted": null,
           "error": null,
-          "mode": "groth16_garaga",
-          "success": true,
-          "tx_hash": "0x343e7daba508bc5abb82b4b3b8ea4aae60785c388a55136f7f6f7293768e616",
-          "tx_url": "https://sepolia.voyager.online/tx/0x343e7daba508bc5abb82b4b3b8ea4aae60785c388a55136f7f6f7293768e616",
-          "verified_on_chain": true
+          "mode": null,
+          "success": null,
+          "tx_hash": null,
+          "tx_url": null,
+          "verified_on_chain": null
         },
-        "mirror_status": "mirror_failed",
-        "model_bridge_calldata_words": 2005,
-        "primary_authority": "l3",
-        "proof_mode": "EZKL_BRIDGE",
-        "proof_mode_level": 1,
-        "requested_execution_chain": "dual",
-        "status": 200,
-        "total_duration_ms": 30076,
-        "trust_mode": "ezkl_local_verified_bridge",
-        "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+        "mirror_status": null,
+        "model_bridge_calldata_words": 0,
+        "primary_authority": null,
+        "proof_mode": null,
+        "proof_mode_level": null,
+        "requested_execution_chain": null,
+        "status": 0,
+        "total_duration_ms": null,
+        "trust_mode": null,
+        "trust_warning": null
       },
       "l3": {
         "api_error": null,
         "bridge_backend": "groth16_modelbridge",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x43de0aa4177591132c1034de5e4bc9467a56c935e4df045f2f9c91241a9ef563",
-        "can_execute": false,
-        "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0xb42",
-        "generated_at": "2026-03-13T05:01:31.715026+00:00",
+        "bridge_proof_hash": "0x07194855546c2296de74448f403f00db9a54cfd5caeb44651213818101391d9d",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T04:56:04.066605+00:00",
         "kzg_bundle_cached_path": null,
         "kzg_bundle_present": null,
         "kzg_bundle_source": null,
@@ -580,12 +580,12 @@
         },
         "l3": {
           "attempted": true,
-          "error": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0xb42",
+          "error": null,
           "mode": "groth16_garaga",
-          "success": false,
-          "tx_hash": null,
-          "tx_url": null,
-          "verified_on_chain": false
+          "success": true,
+          "tx_hash": "0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+          "tx_url": "https://sepolia.voyager.online/tx/0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+          "verified_on_chain": true
         },
         "mirror_status": "not_requested",
         "model_bridge_calldata_words": 2005,
@@ -594,7 +594,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 8929,
+        "total_duration_ms": 10368,
         "trust_mode": "ezkl_local_verified_bridge",
         "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
       },
@@ -602,10 +602,10 @@
         "api_error": null,
         "bridge_backend": "groth16_modelbridge_heavy",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0xbaa3d2e2186e7d0e189dead8736269b85d1a84a563d944723ed6fdbbe9ba5996",
+        "bridge_proof_hash": "0x74a8d6c4b9e4860664477492df0b0d4efe57090f35bbb442af62c387de0b3a95",
         "can_execute": true,
         "failure_reason": null,
-        "generated_at": "2026-03-13T05:02:11.004735+00:00",
+        "generated_at": "2026-03-13T04:56:44.922652+00:00",
         "kzg_bundle_cached_path": null,
         "kzg_bundle_present": null,
         "kzg_bundle_source": null,
@@ -627,8 +627,8 @@
           "error": null,
           "mode": "groth16_garaga",
           "success": true,
-          "tx_hash": "0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
-          "tx_url": "https://sepolia.voyager.online/tx/0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
+          "tx_hash": "0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
+          "tx_url": "https://sepolia.voyager.online/tx/0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
           "verified_on_chain": true
         },
         "mirror_status": "not_requested",
@@ -638,7 +638,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 9710,
+        "total_duration_ms": 23181,
         "trust_mode": "ezkl_local_verified_bridge",
         "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
       },
@@ -646,10 +646,10 @@
         "api_error": null,
         "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x4ecd2482ccc68dab5b68c509078b06c9cebc462d32b41b09e3028005109afa8",
+        "bridge_proof_hash": "0x15b5b0f7f2f0a51a419b8c01d7f4a658b065f2875c6a82b46db2c7d5a8b6502",
         "can_execute": true,
         "failure_reason": null,
-        "generated_at": "2026-03-13T05:02:38.000595+00:00",
+        "generated_at": "2026-03-13T04:57:23.791673+00:00",
         "kzg_bundle_cached_path": null,
         "kzg_bundle_present": true,
         "kzg_bundle_source": "raw_json.kzg_mpcheck_bundle",
@@ -671,8 +671,8 @@
           "error": null,
           "mode": "native_kzg",
           "success": true,
-          "tx_hash": "0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
-          "tx_url": "https://sepolia.voyager.online/tx/0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
+          "tx_hash": "0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
+          "tx_url": "https://sepolia.voyager.online/tx/0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
           "verified_on_chain": true
         },
         "mirror_status": "not_requested",
@@ -682,7 +682,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 14523,
+        "total_duration_ms": 13983,
         "trust_mode": "ezkl_local_verified",
         "trust_warning": "EZKL proof generated and verified locally, then serialized for native KZG path. On-chain trust still depends on deployed Cairo KZG verifier semantics."
       },
@@ -690,10 +690,10 @@
         "api_error": null,
         "bridge_backend": "noir_honk",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0xb3d2c17e98863fd2795d0ba23a3c26178524976b2ddadd9de5f504a93690f39b",
+        "bridge_proof_hash": "0x5b63810b12015f883a649292c404a9124633557daca5b596d0b5d92494756b71",
         "can_execute": true,
         "failure_reason": null,
-        "generated_at": "2026-03-13T05:02:16.233621+00:00",
+        "generated_at": "2026-03-13T04:56:58.199611+00:00",
         "kzg_bundle_cached_path": null,
         "kzg_bundle_present": null,
         "kzg_bundle_source": null,
@@ -715,8 +715,8 @@
           "error": null,
           "mode": "noir_honk",
           "success": true,
-          "tx_hash": "0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
-          "tx_url": "https://sepolia.voyager.online/tx/0x195666654f61378e1257a7f105703f7d4586cae5d853484b72f2dd9e3a62a5c",
+          "tx_hash": "0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
+          "tx_url": "https://sepolia.voyager.online/tx/0x51dc31a70714fc2a8ff6efd23a0ec9b826be716d057b9bf048d24c4c7a4be91",
           "verified_on_chain": true
         },
         "mirror_status": "not_requested",
@@ -726,7 +726,7 @@
         "proof_mode_level": 1,
         "requested_execution_chain": "l3",
         "status": 200,
-        "total_duration_ms": 10993,
+        "total_duration_ms": 15559,
         "trust_mode": "synthetic_dev_only",
         "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
       }
@@ -762,11 +762,11 @@
     "modelbridge_heavy_live_receipt": {
       "bridge_backend": "groth16_modelbridge_heavy",
       "bridge_compliant": true,
-      "bridge_proof_hash": "0xbaa3d2e2186e7d0e189dead8736269b85d1a84a563d944723ed6fdbbe9ba5996",
+      "bridge_proof_hash": "0x74a8d6c4b9e4860664477492df0b0d4efe57090f35bbb442af62c387de0b3a95",
       "calldata_words": 2005,
       "can_execute": true,
       "failure_reason": null,
-      "generated_at": "2026-03-13T05:02:11.004735+00:00",
+      "generated_at": "2026-03-13T04:56:44.922652+00:00",
       "l2_attempted": false,
       "l2_mode": null,
       "l3_actual_fee_display": "-",
@@ -775,8 +775,8 @@
       "l3_mode": "groth16_garaga",
       "l3_receipt_probe_error": "{'code': 29, 'message': 'Transaction hash not found'}",
       "l3_success": true,
-      "l3_tx_hash": "0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
-      "l3_tx_url": "https://sepolia.voyager.online/tx/0x748031953f64942bee11b7ce76766942fdf539a8f572067e157e8cb19cd534b",
+      "l3_tx_hash": "0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
+      "l3_tx_url": "https://sepolia.voyager.online/tx/0x347807b85ca5d35cf8638ae3e2a9c8ddf0ee9629e387b6b9b22883ac9bb17b0",
       "l3_verified_on_chain": true,
       "mirror_status": "not_requested",
       "primary_authority": "l3",
@@ -784,43 +784,46 @@
       "proof_mode_level": 1,
       "requested_execution_chain": "l3",
       "status": 200,
-      "total_duration_ms": 9710,
+      "total_duration_ms": 23181,
       "trust_mode": "ezkl_local_verified_bridge",
       "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
     },
     "modelbridge_live_receipt": {
       "bridge_compliant": true,
-      "bridge_proof_hash": "0x43de0aa4177591132c1034de5e4bc9467a56c935e4df045f2f9c91241a9ef563",
+      "bridge_proof_hash": "0x07194855546c2296de74448f403f00db9a54cfd5caeb44651213818101391d9d",
       "calldata_words": 2005,
-      "can_execute": false,
-      "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonce 0xb42",
-      "generated_at": "2026-03-13T05:01:31.715026+00:00",
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T04:56:04.066605+00:00",
       "l2_attempted": false,
       "l2_mode": null,
+      "l3_actual_fee_display": "-",
       "l3_attempted": true,
+      "l3_execution_steps": null,
       "l3_mode": "groth16_garaga",
-      "l3_success": false,
-      "l3_tx_hash": null,
-      "l3_tx_url": null,
-      "l3_verified_on_chain": false,
+      "l3_receipt_probe_error": "{'code': 29, 'message': 'Transaction hash not found'}",
+      "l3_success": true,
+      "l3_tx_hash": "0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+      "l3_tx_url": "https://sepolia.voyager.online/tx/0x1efbb7e9d92d2e127c58b1479fc8eff21ad620e43c1ccc34976ca52a58e244",
+      "l3_verified_on_chain": true,
       "mirror_status": "not_requested",
       "primary_authority": "l3",
       "proof_mode": "EZKL_BRIDGE",
       "proof_mode_level": 1,
       "requested_execution_chain": "l3",
       "status": 200,
-      "total_duration_ms": 8929,
+      "total_duration_ms": 10368,
       "trust_mode": "ezkl_local_verified_bridge",
       "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
     },
     "native_kzg_live_receipt": {
       "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
       "bridge_compliant": true,
-      "bridge_proof_hash": "0x4ecd2482ccc68dab5b68c509078b06c9cebc462d32b41b09e3028005109afa8",
+      "bridge_proof_hash": "0x15b5b0f7f2f0a51a419b8c01d7f4a658b065f2875c6a82b46db2c7d5a8b6502",
       "calldata_words": 1898,
       "can_execute": true,
       "failure_reason": null,
-      "generated_at": "2026-03-13T05:02:38.000595+00:00",
+      "generated_at": "2026-03-13T04:57:23.791673+00:00",
       "kzg_bundle_cached_path": null,
       "kzg_bundle_present": true,
       "kzg_bundle_source": "raw_json.kzg_mpcheck_bundle",
@@ -836,8 +839,8 @@
       "l3_mode": "native_kzg",
       "l3_receipt_probe_error": "{'code': 29, 'message': 'Transaction hash not found'}",
       "l3_success": true,
-      "l3_tx_hash": "0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
-      "l3_tx_url": "https://sepolia.voyager.online/tx/0x7ab829262db1f91e0e98772acc680e4c7ed1d595391c9fee45f04150b777798",
+      "l3_tx_hash": "0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
+      "l3_tx_url": "https://sepolia.voyager.online/tx/0x2971e4547012a264a7aa84540f5b30c3df2e59816f3f4f07906bde1d05886e9",
       "l3_verified_on_chain": true,
       "mirror_status": "not_requested",
       "path_b_warm_coverage_display": "3/3 (100.00%)",
@@ -851,7 +854,7 @@
       "proof_mode_level": 1,
       "requested_execution_chain": "l3",
       "status": 200,
-      "total_duration_ms": 14523,
+      "total_duration_ms": 13983,
       "trust_mode": "ezkl_local_verified",
       "trust_warning": "EZKL proof generated and verified locally, then serialized for native KZG path. On-chain trust still depends on deployed Cairo KZG verifier semantics."
     },
@@ -1397,7 +1400,7 @@
     },
     {
       "label": "Open-source ModelBridge + dual-proof lanes are demonstrable",
-      "ok": true
+      "ok": false
     },
     {
       "label": "ModelBridge live l3 verify emits receipt evidence",
@@ -1438,7 +1441,7 @@
   ],
   "core_score": {
     "total": 12,
-    "validated": 12
+    "validated": 11
   },
   "deployment": {
     "allocation_proof": "0x3176091d49498d058d93f1986e25367d4f50737552392d12d4e0e76daa95f93d",
@@ -1520,19 +1523,19 @@
       "why_it_matters": "Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable."
     }
   ],
-  "exit_code": 0,
+  "exit_code": 1,
   "forecaster_showcase": {
     "commit_status": 200,
-    "explain_narration": "The model predicted returns of 0.66% for 5 minutes, 1.07% for 30 minutes, and 1.64% for 4 hours, with probabilities of price increases at 61.3%, 69.7%, and 79.2%, respectively. After scoring, the actual returns were higher at 0.90%, 1.80%, and 3.90%, showing perfect directional accuracy. Keep in mind that while the model performed well, past performance does not guarantee future results.",
+    "explain_narration": "The model predicted slight negative returns for ETH/USDC over 5 minutes, 30 minutes, and 4 hours, estimating losses of 0.02%, 0.04%, and 0.06% respectively. However, the actual returns were significantly positive, with gains of 0.90%, 1.80%, and 3.90%, indicating the model's predictions were off. Be cautious that while the model provides insights, its accuracy can vary greatly, as shown by a directional accuracy of 0%.",
     "explain_status": 200,
-    "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
+    "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
     "outcomes_status": 200,
     "records": {
       "commit": {
-        "created_at_ts": 1773378082,
+        "created_at_ts": 1773377755,
         "ezkl_receipt": null,
-        "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
-        "guess_ts": 1773378082,
+        "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
+        "guess_ts": 1773377754,
         "horizons_min": [
           5,
           30,
@@ -1555,13 +1558,13 @@
           "return_min_bps": -5000
         },
         "outputs_scaled": null,
-        "prediction_commitment": "0x783f06f4eb6288105e00300194d2827fe877c58d46d74351660e3771a893e161",
+        "prediction_commitment": "0xa5525f6c73843f7aac4ac038f66bb37ebd443c9ad72ba133b29cb04fb234052a",
         "revealed_at_ts": null,
         "score_receipt_id": null,
         "status": "committed",
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "commit_reveal_only",
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
       },
       "explain": {
         "context": {
@@ -1571,36 +1574,36 @@
           "a30_pct": 1.8,
           "a5_bps": 90,
           "a5_pct": 0.9,
-          "brier": 0.094984,
-          "directional_pct": 100.0,
-          "ece": 0.299333,
-          "mae_bps": 107.666667,
-          "mae_pct": 1.07666667,
-          "p240_pct": 79.24,
-          "p30_pct": 69.68,
-          "p5_pct": 61.28,
+          "brier": 0.238904,
+          "directional_pct": 0.0,
+          "ece": 0.488533,
+          "mae_bps": 224.0,
+          "mae_pct": 2.24,
+          "p240_pct": 53.12,
+          "p30_pct": 50.98,
+          "p5_pct": 49.34,
           "pair_id": "ETH/USDC",
-          "r240_bps": 164,
-          "r240_pct": 1.64,
-          "r30_bps": 107,
-          "r30_pct": 1.07,
-          "r5_bps": 66,
-          "r5_pct": 0.66,
+          "r240_bps": -6,
+          "r240_pct": -0.06,
+          "r30_bps": -4,
+          "r30_pct": -0.04,
+          "r5_bps": -2,
+          "r5_pct": -0.02,
           "status": "scored",
           "trust_mode": "offchain_ezkl_verified"
         },
         "context_type": "snapshot_forecast_explain",
         "fallback_reason": null,
-        "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
+        "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
         "highlights": [
-          "Predicted returns: 5m 0.66% (66 bps), 30m 1.07% (107 bps), 4h 1.64% (164 bps)",
-          "Predicted up probability: 5m 61.3%, 30m 69.7%, 4h 79.2%",
-          "Scored metrics: directional 100.0%, MAE 1.08% (107.7 bps), Brier 0.0950, ECE 0.2993"
+          "Predicted returns: 5m -0.02% (-2 bps), 30m -0.04% (-4 bps), 4h -0.06% (-6 bps)",
+          "Predicted up probability: 5m 49.3%, 30m 51.0%, 4h 53.1%",
+          "Scored metrics: directional 0.0%, MAE 2.24% (224.0 bps), Brier 0.2389, ECE 0.4885"
         ],
-        "narration": "The model predicted returns of 0.66% for 5 minutes, 1.07% for 30 minutes, and 1.64% for 4 hours, with probabilities of price increases at 61.3%, 69.7%, and 79.2%, respectively. After scoring, the actual returns were higher at 0.90%, 1.80%, and 3.90%, showing perfect directional accuracy. Keep in mind that while the model performed well, past performance does not guarantee future results.",
+        "narration": "The model predicted slight negative returns for ETH/USDC over 5 minutes, 30 minutes, and 4 hours, estimating losses of 0.02%, 0.04%, and 0.06% respectively. However, the actual returns were significantly positive, with gains of 0.90%, 1.80%, and 3.90%, indicating the model's predictions were off. Be cautious that while the model provides insights, its accuracy can vary greatly, as shown by a directional accuracy of 0%.",
         "records": {
           "prediction": {
-            "created_at_ts": 1773378082,
+            "created_at_ts": 1773377755,
             "ezkl_receipt": {
               "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
               "proof_system": "halo2_kzg",
@@ -1609,8 +1612,8 @@
               "verified_on_chain": false,
               "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444"
             },
-            "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
-            "guess_ts": 1773378082,
+            "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
+            "guess_ts": 1773377754,
             "horizons_min": [
               5,
               30,
@@ -1633,38 +1636,38 @@
               "return_min_bps": -5000
             },
             "outputs_scaled": {
-              "p240": 7924,
-              "p30": 6968,
-              "p5": 6128,
-              "r240": 164,
-              "r30": 107,
-              "r5": 66
+              "p240": 5312,
+              "p30": 5098,
+              "p5": 4934,
+              "r240": -6,
+              "r30": -4,
+              "r5": -2
             },
-            "prediction_commitment": "0x783f06f4eb6288105e00300194d2827fe877c58d46d74351660e3771a893e161",
-            "reveal_salt_hash": "0x65f0df7a1ef22f73ac2ccacf6b27e8edf2165904b8bb623e67bf1e9ca822d237",
-            "revealed_at_ts": 1773378082,
-            "score_receipt_id": "0xa1ba558f69ab8626ef8543cccef3ac367a9ad83ac4bb872de9e315d4b3b29bc7",
-            "scored_at_ts": 1773378082,
+            "prediction_commitment": "0xa5525f6c73843f7aac4ac038f66bb37ebd443c9ad72ba133b29cb04fb234052a",
+            "reveal_salt_hash": "0x6fe79c0c3a6745e621954ff16f46a374b0b2c3e4918954789d8354233cb00424",
+            "revealed_at_ts": 1773377755,
+            "score_receipt_id": "0x0672d483b137c31b1f24e24740be4c02a4ce70f6523805c0ed1dc330715eab20",
+            "scored_at_ts": 1773377755,
             "status": "scored",
             "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "trust_mode": "offchain_ezkl_verified",
-            "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+            "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
           },
           "score": {
-            "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
+            "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
             "metric_tiers": {
-              "brier_tier": "tier_1",
-              "directional_accuracy_tier": "tier_1",
+              "brier_tier": "tier_3",
+              "directional_accuracy_tier": "tier_3",
               "ece_tier": "tier_3",
               "mae_tier": "tier_3"
             },
             "metrics": {
-              "brier_score": 0.094984,
-              "directional_accuracy": 1.0,
-              "ece": 0.299333,
+              "brier_score": 0.238904,
+              "directional_accuracy": 0.0,
+              "ece": 0.488533,
               "horizon_count": 3,
-              "mae_bps": 107.666667,
-              "rmse_bps": 137.817512
+              "mae_bps": 224.0,
+              "rmse_bps": 257.640577
             },
             "model_identity": {
               "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
@@ -1675,44 +1678,44 @@
             "pair_id": "ETH/USDC",
             "per_horizon": {
               "240": {
-                "abs_error_bps": 226.0,
+                "abs_error_bps": 396.0,
                 "actual_return_bps": 390,
                 "actual_up": 1,
-                "brier": 0.043097760000000006,
-                "directional_hit": true,
+                "brier": 0.21977344,
+                "directional_hit": false,
                 "horizon_min": 240,
-                "predicted_prob_up": 0.7924,
-                "predicted_return_bps": 164,
-                "squared_error_bps2": 51076.0
+                "predicted_prob_up": 0.5312,
+                "predicted_return_bps": -6,
+                "squared_error_bps2": 156816.0
               },
               "30": {
-                "abs_error_bps": 73.0,
+                "abs_error_bps": 184.0,
                 "actual_return_bps": 180,
                 "actual_up": 1,
-                "brier": 0.09193024000000001,
-                "directional_hit": true,
+                "brier": 0.24029603999999996,
+                "directional_hit": false,
                 "horizon_min": 30,
-                "predicted_prob_up": 0.6968,
-                "predicted_return_bps": 107,
-                "squared_error_bps2": 5329.0
+                "predicted_prob_up": 0.5098,
+                "predicted_return_bps": -4,
+                "squared_error_bps2": 33856.0
               },
               "5": {
-                "abs_error_bps": 24.0,
+                "abs_error_bps": 92.0,
                 "actual_return_bps": 90,
                 "actual_up": 1,
-                "brier": 0.14992384,
-                "directional_hit": true,
+                "brier": 0.25664355999999994,
+                "directional_hit": false,
                 "horizon_min": 5,
-                "predicted_prob_up": 0.6128,
-                "predicted_return_bps": 66,
-                "squared_error_bps2": 576.0
+                "predicted_prob_up": 0.4934,
+                "predicted_return_bps": -2,
+                "squared_error_bps2": 8464.0
               }
             },
-            "score_receipt_id": "0xa1ba558f69ab8626ef8543cccef3ac367a9ad83ac4bb872de9e315d4b3b29bc7",
-            "scored_at_ts": 1773378082,
+            "score_receipt_id": "0x0672d483b137c31b1f24e24740be4c02a4ce70f6523805c0ed1dc330715eab20",
+            "scored_at_ts": 1773377755,
             "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "trust_mode": "offchain_ezkl_verified",
-            "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+            "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
           },
           "window": {
             "attestation": {
@@ -1724,7 +1727,7 @@
               "tx_hash": null
             },
             "cadence_id": "demo_1m",
-            "created_at_ts": 1773378082,
+            "created_at_ts": 1773377754,
             "data_source_id": "hackathon_showcase",
             "feature_schema_id": "snapshot_forecaster.v1",
             "feature_vector": {
@@ -1739,30 +1742,30 @@
                 "actual_return_bps": 390,
                 "actual_up": 1,
                 "horizon_min": 240,
-                "maturity_ts": 1773392422,
-                "recorded_at_ts": 1773378082,
+                "maturity_ts": 1773392094,
+                "recorded_at_ts": 1773377755,
                 "source_id": "hackathon_showcase"
               },
               "30": {
                 "actual_return_bps": 180,
                 "actual_up": 1,
                 "horizon_min": 30,
-                "maturity_ts": 1773379822,
-                "recorded_at_ts": 1773378082,
+                "maturity_ts": 1773379494,
+                "recorded_at_ts": 1773377755,
                 "source_id": "hackathon_showcase"
               },
               "5": {
                 "actual_return_bps": 90,
                 "actual_up": 1,
                 "horizon_min": 5,
-                "maturity_ts": 1773378322,
-                "recorded_at_ts": 1773378082,
+                "maturity_ts": 1773377994,
+                "recorded_at_ts": 1773377755,
                 "source_id": "hackathon_showcase"
               }
             },
             "pair_id": "ETH/USDC",
             "prediction_ids": [
-              "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89"
+              "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a"
             ],
             "snapshot_data": {
               "liquidity": 1000000,
@@ -1771,14 +1774,14 @@
             },
             "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
             "snapshot_provenance_hash": null,
-            "window_close_ts": 1773378682,
-            "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0",
-            "window_open_ts": 1773378022
+            "window_close_ts": 1773378354,
+            "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9",
+            "window_open_ts": 1773377694
           }
         },
-        "score_receipt_id": "0xa1ba558f69ab8626ef8543cccef3ac367a9ad83ac4bb872de9e315d4b3b29bc7",
+        "score_receipt_id": "0x0672d483b137c31b1f24e24740be4c02a4ce70f6523805c0ed1dc330715eab20",
         "source": "llm",
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
       },
       "outcomes": {
         "attestation": {
@@ -1790,7 +1793,7 @@
           "tx_hash": null
         },
         "cadence_id": "demo_1m",
-        "created_at_ts": 1773378082,
+        "created_at_ts": 1773377754,
         "data_source_id": "hackathon_showcase",
         "feature_schema_id": "snapshot_forecaster.v1",
         "feature_vector": {
@@ -1805,30 +1808,30 @@
             "actual_return_bps": 390,
             "actual_up": 1,
             "horizon_min": 240,
-            "maturity_ts": 1773392422,
-            "recorded_at_ts": 1773378082,
+            "maturity_ts": 1773392094,
+            "recorded_at_ts": 1773377755,
             "source_id": "hackathon_showcase"
           },
           "30": {
             "actual_return_bps": 180,
             "actual_up": 1,
             "horizon_min": 30,
-            "maturity_ts": 1773379822,
-            "recorded_at_ts": 1773378082,
+            "maturity_ts": 1773379494,
+            "recorded_at_ts": 1773377755,
             "source_id": "hackathon_showcase"
           },
           "5": {
             "actual_return_bps": 90,
             "actual_up": 1,
             "horizon_min": 5,
-            "maturity_ts": 1773378322,
-            "recorded_at_ts": 1773378082,
+            "maturity_ts": 1773377994,
+            "recorded_at_ts": 1773377755,
             "source_id": "hackathon_showcase"
           }
         },
         "pair_id": "ETH/USDC",
         "prediction_ids": [
-          "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89"
+          "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a"
         ],
         "snapshot_data": {
           "liquidity": 1000000,
@@ -1837,12 +1840,12 @@
         },
         "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
         "snapshot_provenance_hash": null,
-        "window_close_ts": 1773378682,
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0",
-        "window_open_ts": 1773378022
+        "window_close_ts": 1773378354,
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9",
+        "window_open_ts": 1773377694
       },
       "reveal": {
-        "created_at_ts": 1773378082,
+        "created_at_ts": 1773377755,
         "ezkl_receipt": {
           "proof_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
           "proof_system": "halo2_kzg",
@@ -1851,8 +1854,8 @@
           "verified_on_chain": false,
           "verify_key_hash": "0x4444444444444444444444444444444444444444444444444444444444444444"
         },
-        "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
-        "guess_ts": 1773378082,
+        "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
+        "guess_ts": 1773377754,
         "horizons_min": [
           5,
           30,
@@ -1875,37 +1878,37 @@
           "return_min_bps": -5000
         },
         "outputs_scaled": {
-          "p240": 7924,
-          "p30": 6968,
-          "p5": 6128,
-          "r240": 164,
-          "r30": 107,
-          "r5": 66
+          "p240": 5312,
+          "p30": 5098,
+          "p5": 4934,
+          "r240": -6,
+          "r30": -4,
+          "r5": -2
         },
-        "prediction_commitment": "0x783f06f4eb6288105e00300194d2827fe877c58d46d74351660e3771a893e161",
-        "reveal_salt_hash": "0x65f0df7a1ef22f73ac2ccacf6b27e8edf2165904b8bb623e67bf1e9ca822d237",
-        "revealed_at_ts": 1773378082,
+        "prediction_commitment": "0xa5525f6c73843f7aac4ac038f66bb37ebd443c9ad72ba133b29cb04fb234052a",
+        "reveal_salt_hash": "0x6fe79c0c3a6745e621954ff16f46a374b0b2c3e4918954789d8354233cb00424",
+        "revealed_at_ts": 1773377755,
         "score_receipt_id": null,
         "status": "revealed",
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "offchain_ezkl_verified",
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
       },
       "score": {
-        "forecast_id": "0x4d29e012108e8edac15ac10cb11194f80551f4465acb0d7eaa0ffbd0d8508a89",
+        "forecast_id": "0x1276ca56c408f3fbaf2cb09fd3d85ad53546ee0ad8f7b0a61046d1a3c107290a",
         "metric_tiers": {
-          "brier_tier": "tier_1",
-          "directional_accuracy_tier": "tier_1",
+          "brier_tier": "tier_3",
+          "directional_accuracy_tier": "tier_3",
           "ece_tier": "tier_3",
           "mae_tier": "tier_3"
         },
         "metrics": {
-          "brier_score": 0.094984,
-          "directional_accuracy": 1.0,
-          "ece": 0.299333,
+          "brier_score": 0.238904,
+          "directional_accuracy": 0.0,
+          "ece": 0.488533,
           "horizon_count": 3,
-          "mae_bps": 107.666667,
-          "rmse_bps": 137.817512
+          "mae_bps": 224.0,
+          "rmse_bps": 257.640577
         },
         "model_identity": {
           "model_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
@@ -1916,44 +1919,44 @@
         "pair_id": "ETH/USDC",
         "per_horizon": {
           "240": {
-            "abs_error_bps": 226.0,
+            "abs_error_bps": 396.0,
             "actual_return_bps": 390,
             "actual_up": 1,
-            "brier": 0.043097760000000006,
-            "directional_hit": true,
+            "brier": 0.21977344,
+            "directional_hit": false,
             "horizon_min": 240,
-            "predicted_prob_up": 0.7924,
-            "predicted_return_bps": 164,
-            "squared_error_bps2": 51076.0
+            "predicted_prob_up": 0.5312,
+            "predicted_return_bps": -6,
+            "squared_error_bps2": 156816.0
           },
           "30": {
-            "abs_error_bps": 73.0,
+            "abs_error_bps": 184.0,
             "actual_return_bps": 180,
             "actual_up": 1,
-            "brier": 0.09193024000000001,
-            "directional_hit": true,
+            "brier": 0.24029603999999996,
+            "directional_hit": false,
             "horizon_min": 30,
-            "predicted_prob_up": 0.6968,
-            "predicted_return_bps": 107,
-            "squared_error_bps2": 5329.0
+            "predicted_prob_up": 0.5098,
+            "predicted_return_bps": -4,
+            "squared_error_bps2": 33856.0
           },
           "5": {
-            "abs_error_bps": 24.0,
+            "abs_error_bps": 92.0,
             "actual_return_bps": 90,
             "actual_up": 1,
-            "brier": 0.14992384,
-            "directional_hit": true,
+            "brier": 0.25664355999999994,
+            "directional_hit": false,
             "horizon_min": 5,
-            "predicted_prob_up": 0.6128,
-            "predicted_return_bps": 66,
-            "squared_error_bps2": 576.0
+            "predicted_prob_up": 0.4934,
+            "predicted_return_bps": -2,
+            "squared_error_bps2": 8464.0
           }
         },
-        "score_receipt_id": "0xa1ba558f69ab8626ef8543cccef3ac367a9ad83ac4bb872de9e315d4b3b29bc7",
-        "scored_at_ts": 1773378082,
+        "score_receipt_id": "0x0672d483b137c31b1f24e24740be4c02a4ce70f6523805c0ed1dc330715eab20",
+        "scored_at_ts": 1773377755,
         "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "trust_mode": "offchain_ezkl_verified",
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0"
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9"
       },
       "window": {
         "attestation": {
@@ -1965,7 +1968,7 @@
           "tx_hash": null
         },
         "cadence_id": "demo_1m",
-        "created_at_ts": 1773378082,
+        "created_at_ts": 1773377754,
         "data_source_id": "hackathon_showcase",
         "feature_schema_id": "snapshot_forecaster.v1",
         "feature_vector": {
@@ -1985,17 +1988,17 @@
         },
         "snapshot_hash": "0xe8b0a4b62e5912c81695e6ba883a9270f4534d78689ac3e5f0e2e7766323df78",
         "snapshot_provenance_hash": null,
-        "window_close_ts": 1773378682,
-        "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0",
-        "window_open_ts": 1773378022
+        "window_close_ts": 1773378354,
+        "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9",
+        "window_open_ts": 1773377694
       }
     },
     "reputation": {
       "avg_metrics": {
-        "brier_score": 0.17885,
-        "directional_accuracy": 0.784946,
-        "ece": 0.409586,
-        "mae_bps": 178.09319
+        "brier_score": 0.179761,
+        "directional_accuracy": 0.782609,
+        "ece": 0.410785,
+        "mae_bps": 178.858696
       },
       "metric_tiers": {
         "brier_tier": "tier_2",
@@ -2003,36 +2006,36 @@
         "ece_tier": "tier_3",
         "mae_tier": "tier_3"
       },
-      "sample_size": 93,
+      "sample_size": 92,
       "subject_id": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
       "trust_score": 75
     },
     "reputation_status": 200,
     "reveal_status": 200,
     "score_metrics": {
-      "brier_score": 0.094984,
-      "directional_accuracy": 1.0,
-      "ece": 0.299333,
+      "brier_score": 0.238904,
+      "directional_accuracy": 0.0,
+      "ece": 0.488533,
       "horizon_count": 3,
-      "mae_bps": 107.666667,
-      "rmse_bps": 137.817512
+      "mae_bps": 224.0,
+      "rmse_bps": 257.640577
     },
-    "score_receipt_id": "0xa1ba558f69ab8626ef8543cccef3ac367a9ad83ac4bb872de9e315d4b3b29bc7",
+    "score_receipt_id": "0x0672d483b137c31b1f24e24740be4c02a4ce70f6523805c0ed1dc330715eab20",
     "score_status": 200,
     "suggest_status": 200,
     "suggested_outputs": {
-      "p240": 7924,
-      "p30": 6968,
-      "p5": 6128,
-      "r240": 164,
-      "r30": 107,
-      "r5": 66
+      "p240": 5312,
+      "p30": 5098,
+      "p5": 4934,
+      "r240": -6,
+      "r30": -4,
+      "r5": -2
     },
     "trust_mode": "offchain_ezkl_verified",
-    "window_id": "0x151729ab2651efdb3dacedf145ef5cd4c98d6aec1ec4fc8cba3e8cfeeaeec1e0",
+    "window_id": "0x38c9c1f1c4d980c94a4db1a33311fa7d9438358fec82fbd2635578d4505c2de9",
     "window_status": 200
   },
-  "generated_at": "2026-03-13T05:02:57.602421+00:00",
+  "generated_at": "2026-03-13T04:57:47.513511+00:00",
   "heavy_stark_showcase": {},
   "onchain": {
     "contracts": [
@@ -2095,16 +2098,16 @@
       "transfer_in": {
         "amount_wei": "1000000000000000",
         "asset": "STRK",
-        "balance_wei": "49500000000000000",
-        "commitment_hash": "0x1b735ee098b3e2dfe9331bfc37523cc05ae99f9bb0cd72c487418657ccbcb0e",
+        "balance_wei": "49000000000000000",
+        "commitment_hash": "0x71cd27b2579a5a33cad864fb199c79c8ac617b8ec62661690e3484ec68e3390",
         "duplicate": false,
         "method": "dark_ledger",
-        "note_id": "f1740cfa7c6b4f51b68c077f91523481",
-        "receipt_id": "0x9f4103c7ffd402651361f1f88d69b85629013bf1b6ca66407fdfffc3f4ff4f30",
-        "receipt_url": "/api/v1/zkdefi/mc/receipts/0x9f4103c7ffd402651361f1f88d69b85629013bf1b6ca66407fdfffc3f4ff4f30",
-        "request_id": 1225693237,
+        "note_id": "255ede53fd1a41669040a82a4eb8048d",
+        "receipt_id": "0x99f3e1fa173b16c762f093e9318290220a291dc4adaa143cc6db32d2368f37a3",
+        "receipt_url": "/api/v1/zkdefi/mc/receipts/0x99f3e1fa173b16c762f093e9318290220a291dc4adaa143cc6db32d2368f37a3",
+        "request_id": 1997958963,
         "settlement_day_utc": "2026-03-13",
-        "settlement_eta": "2026-03-13T05:01:17Z",
+        "settlement_eta": "2026-03-13T04:55:49Z",
         "status": "recorded",
         "tx_hash": null,
         "tx_url": null
@@ -2113,18 +2116,18 @@
       "transfer_out": {
         "amount_wei": "500000000000000",
         "asset": "STRK",
-        "balance_wei": "49000000000000000",
-        "commitment_hash": "0x1b735ee098b3e2dfe9331bfc37523cc05ae99f9bb0cd72c487418657ccbcb0e",
+        "balance_wei": "48500000000000000",
+        "commitment_hash": "0x71cd27b2579a5a33cad864fb199c79c8ac617b8ec62661690e3484ec68e3390",
         "method": "dark_ledger",
-        "note_id": "f1740cfa7c6b4f51b68c077f91523481",
+        "note_id": "255ede53fd1a41669040a82a4eb8048d",
         "note_status": "withdrawn",
-        "payout_id": 103,
-        "receipt_id": "0xc5acc087e0c31b87d92efe4bb045cfd8a72c6b669baac0bde5989c8dd8e2e5b7",
-        "receipt_url": "/api/v1/zkdefi/mc/receipts/0xc5acc087e0c31b87d92efe4bb045cfd8a72c6b669baac0bde5989c8dd8e2e5b7",
+        "payout_id": 102,
+        "receipt_id": "0xee942b893ee4ec306ff5736c131635514fc538e659578869c458cbacb6ed91d5",
+        "receipt_url": "/api/v1/zkdefi/mc/receipts/0xee942b893ee4ec306ff5736c131635514fc538e659578869c458cbacb6ed91d5",
         "recipient": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
-        "request_id": 873459397,
+        "request_id": 1114824631,
         "settlement_day_utc": "2026-03-13",
-        "settlement_eta": "2026-03-13T05:01:17Z",
+        "settlement_eta": "2026-03-13T04:55:49Z",
         "status": "queued",
         "status_url": "/api/v1/zkdefi/relayer/pending/0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
         "tx_hash": null,
@@ -2305,25 +2308,17 @@
             "status": "pending",
             "submitted_at": "2026-03-13T04:55:50.041187+00:00",
             "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
-          },
-          {
-            "fact_hash": "0x1b735ee098b3e2dfe9331bfc37523cc05ae99f9bb0cd72c487418657ccbcb0e",
-            "id": "batch_9b93792cb128",
-            "proof_type": "withdraw",
-            "status": "pending",
-            "submitted_at": "2026-03-13T05:01:17.354193+00:00",
-            "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
           }
         ],
         "last_flush_at": "2026-03-13T03:59:43.108034+00:00",
-        "pending_count": 8
+        "pending_count": 7
       },
       "batch_pending_status": 200,
       "batch_submit": {
         "auto_flushed": false,
         "flush_result": null,
-        "item_id": "batch_9b93792cb128",
-        "queue_size": 8,
+        "item_id": "batch_49eb7f74ff42",
+        "queue_size": 7,
         "status": "ok"
       },
       "batch_submit_status": 200,
@@ -2338,7 +2333,7 @@
       },
       "config_status": 200,
       "fact_count": {
-        "count": 1751
+        "count": 1743
       },
       "fact_count_status": 200,
       "health": {
@@ -2347,7 +2342,7 @@
         "enabled": true,
         "error": null,
         "healthy": true,
-        "latest_block": 92601,
+        "latest_block": 92536,
         "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0"
       },
       "health_status": 200,
@@ -2356,52 +2351,52 @@
         "configured": true,
         "enabled": true,
         "fact_registry": "0x5ed322b12ddc28d27b7797d79516ca285137f9bab9fde870191119b4c68d691",
-        "last_block_seen": 92601,
+        "last_block_seen": 92536,
         "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0",
         "total_failures": 9,
-        "total_registrations": 187
+        "total_registrations": 184
       },
       "stats_status": 200,
       "verify": {
         "chain_id": "OBSQRA_PROOF_CHAIN",
         "error": "",
-        "fact_hash": "0x1b735ee098b3e2dfe9331bfc37523cc05ae99f9bb0cd72c487418657ccbcb0e",
+        "fact_hash": "0x71cd27b2579a5a33cad864fb199c79c8ac617b8ec62661690e3484ec68e3390",
         "valid": false
       },
       "verify_status": 200
     },
     "rails": [
       {
-        "claim_hash": "0xdb194d5c413115a9dbe5093d7d85e25af44c69f3558d094b3196295248fd8ad",
+        "claim_hash": "0xb7302ef497a6fc0781fa5c955ad9633e2c11852f05f9c43df4e4e71697d94f8",
         "claim_status": 200,
-        "commitment": "0x1b735ee098b3e2dfe9331bfc37523cc05ae99f9bb0cd72c487418657ccbcb0e",
+        "commitment": "0x71cd27b2579a5a33cad864fb199c79c8ac617b8ec62661690e3484ec68e3390",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0xf6f4072810e0fabdb954cdbec7a4ce82bb05a5cbc8f8d456b3bfa9c15041c89",
+        "nullifier": "0x1d919b363d881d05aab058eb23b8f2e238f3247d17fb308f8c1a8b7d51ad19e2",
         "pool_type": 0,
         "proof_with_change_status": null,
         "register_status": 0,
         "relayer_ready": true
       },
       {
-        "claim_hash": "0x2fbf3a68409f1c8db7f98a9977f9caf452b2a5a690b7962aa1005445055b9fb5",
+        "claim_hash": "0x2c861171f57e84b001229b01fcce2e89710fedd7858b251a18a2939d33d107d0",
         "claim_status": 200,
-        "commitment": "0x7143b9b39a6c9375adcd9a7fe65974ce38070028c529a4a3fc612066c8b9bd7",
+        "commitment": "0x39876a6f05ff8b699d37eebf563a1fd4c7b8d82c4e497c1347c572e8b527d6a",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0x2c9a60b01f2c345ba28a346fca4f50259465b56380d17f35491133c7ed7ff2f7",
+        "nullifier": "0x11b659151858596167c22fc80ce6eddf3be4901c87ebadb0e9415f9fc6441574",
         "pool_type": 1,
         "proof_with_change_status": null,
         "register_status": 0,
         "relayer_ready": true
       },
       {
-        "claim_hash": "0x192f708577c83e437b8c7243d4082d22137a18326dcbf5cb744472bd11e484c9",
+        "claim_hash": "0x17b10d4cf4a6d2899576ccc6c243c10fd9ae8c3d78c7141d40660f968df61d60",
         "claim_status": 200,
-        "commitment": "0x182b3f3781bf5ebedf797eddc87f63ee8c07c9d98de0822460cedd8d6f0c68c",
+        "commitment": "0x3e152b229a57df1428390e99c8f1edd3d560282a5320e552dd9082b496f17e",
         "error": null,
         "generate_status": 200,
-        "nullifier": "0xfc57e3df05af4c44ebaa7d10b1ababc435d5ef147a591f4bb1c8c3c03f8183",
+        "nullifier": "0x2b81f0eff755f82766217bd7733096470b1fe9213a1567be08e7abe70062b4e3",
         "pool_type": 2,
         "proof_with_change_status": null,
         "register_status": 0,
@@ -2476,7 +2471,7 @@
     },
     "user_status": 200,
     "voting": {
-      "proposal_id": 103,
+      "proposal_id": 102,
       "proposal_status": 200,
       "vote_cast_error": null,
       "vote_cast_status": 200,
@@ -2648,7 +2643,7 @@
       "phase4_plan_expanded": true
     }
   },
-  "started_at": "2026-03-13T04:59:45.137739+00:00",
+  "started_at": "2026-03-13T04:54:22.113253+00:00",
   "steps": [
     {
       "details": {
@@ -2671,7 +2666,7 @@
     },
     {
       "details": {
-        "agent_id": "f89edfdd0213aab5",
+        "agent_id": "d6d8c07101aabf15",
         "create_status": 200,
         "execute_status": 200,
         "processor_results": 3,
@@ -2695,8 +2690,8 @@
     },
     {
       "details": {
-        "commitment": "0x6a4cd42f52...3a8171e39527",
-        "nonce": "0xfce4eeacd35ff104",
+        "commitment": "0x7be16b6577...9011d8270ef2",
+        "nonce": "0x842e3f944b0b3684",
         "pool_type": 1,
         "status": 200
       },
@@ -2719,7 +2714,7 @@
       "details": {
         "commit_status": 200,
         "reveal_status": 200,
-        "score_receipt": "0xa1ba558f...d4b3b29bc7",
+        "score_receipt": "0x0672d483...30715eab20",
         "score_status": 200,
         "trust_mode": "offchain_ezkl_verified",
         "window_status": 200
@@ -2756,7 +2751,7 @@
         "REPUTATION_REGISTRY_ADDRESS_class_hash": "0x74f7c06b...8eec60c95f",
         "VAULT_CONTROLLER_ADDRESS_class_hash": "0x64c7e534...77af39a88a",
         "ZKML_VERIFIER_ADDRESS_class_hash": "0xf9c1bd17...b7687aa066",
-        "block_number": 7558030,
+        "block_number": 7557869,
         "resolved_contracts": 7,
         "rpc_url": "https://starknet-sepolia-rpc.publicnode.com",
         "voyager_links": 7
@@ -2766,7 +2761,7 @@
     },
     {
       "details": {
-        "count": 291,
+        "count": 288,
         "first_tx_hash": "-",
         "status": 200,
         "tx_hashes": 0
@@ -2778,13 +2773,13 @@
       "details": {
         "bridge_backend": "groth16_modelbridge",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x43de0aa417...91241a9ef563",
-        "can_execute": false,
-        "failure_reason": "Client failed with code 52. Message: Invalid transaction nonce. Data: Nonce needs to be greater than the account nonc...",
-        "l3_actual_fee": null,
+        "bridge_proof_hash": "0x0719485554...818101391d9d",
+        "can_execute": true,
+        "failure_reason": "",
+        "l3_actual_fee": "-",
         "l3_mode": "groth16_garaga",
-        "l3_tx_hash": "-",
-        "l3_verified_on_chain": false,
+        "l3_tx_hash": "0x1efbb7e9d9...6ca52a58e244",
+        "l3_verified_on_chain": true,
         "proof_mode": "EZKL_BRIDGE",
         "status": 200,
         "strict_bridge": true,
@@ -2797,12 +2792,12 @@
       "details": {
         "bridge_backend": "groth16_modelbridge_heavy",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0xbaa3d2e218...fdbbe9ba5996",
+        "bridge_proof_hash": "0x74a8d6c4b9...c387de0b3a95",
         "can_execute": true,
         "failure_reason": "",
         "l3_actual_fee": "-",
         "l3_mode": "groth16_garaga",
-        "l3_tx_hash": "0x748031953f...e8cb19cd534b",
+        "l3_tx_hash": "0x347807b85c...883ac9bb17b0",
         "l3_verified_on_chain": true,
         "proof_mode": "EZKL_BRIDGE",
         "status": 200,
@@ -2816,7 +2811,7 @@
       "details": {
         "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
         "bridge_compliant": true,
-        "bridge_proof_hash": "0x4ecd2482cc...28005109afa8",
+        "bridge_proof_hash": "0x15b5b0f7f2...2c7d5a8b6502",
         "can_execute": true,
         "failure_reason": "",
         "kzg_bundle_present": true,
@@ -2824,7 +2819,7 @@
         "kzg_hint_felts": 1752,
         "l3_actual_fee": "-",
         "l3_mode": "native_kzg",
-        "l3_tx_hash": "0x7ab829262d...04150b777798",
+        "l3_tx_hash": "0x2971e45470...bde1d05886e9",
         "l3_verified_on_chain": true,
         "path_b_warm_coverage": "3/3 (100.00%)",
         "path_b_warm_gate_pass": true,
@@ -2840,14 +2835,12 @@
     },
     {
       "details": {
-        "bridge_timeout_seconds": 25.0,
-        "dual_attempted": true,
+        "dual_attempted": false,
         "dual_attempts": 1,
-        "dual_bridge_timeout_seconds": 45.0,
-        "dual_failure_reason": "",
-        "dual_l2_mode": "l2_mirror_failed",
+        "dual_failure_reason": "timed out",
+        "dual_l2_mode": null,
         "dual_lanes_ready": true,
-        "dual_mirror_status": "mirror_failed",
+        "dual_mirror_status": null,
         "ezkl_probe_status": 0,
         "ezkl_real_probe": false,
         "hash_fallback_available": true,
@@ -2859,7 +2852,7 @@
         "l3_attempts": 1,
         "landscape_projects": "EZKL,Garaga,Starknet verify-proofs docs,SNOS / SHARP model",
         "landscape_sources": 6,
-        "ml_bridge_dual_status": 200,
+        "ml_bridge_dual_status": 0,
         "ml_bridge_heavy_mode": "groth16_garaga",
         "ml_bridge_heavy_status": 200,
         "ml_bridge_l3_mode": "groth16_garaga",
@@ -2876,7 +2869,7 @@
         "noir_honk_available": true,
         "proving_paths_status": 200,
         "runtime_mode": "bridge_runtime_non_synthetic",
-        "runtime_probe_ok": true,
+        "runtime_probe_ok": false,
         "snark_contract": "0x36f5c2fd4b...17a14e78bd00",
         "snark_lane_available": true,
         "stark_contract": "0x2c036366dc...e35ae0271e69",
@@ -2886,12 +2879,12 @@
         "zkml_verifier_marker_found": true
       },
       "name": "Open-source ModelBridge + dual-proof architecture",
-      "ok": true
+      "ok": false
     },
     {
       "details": {
         "batch_status": 200,
-        "first_proof_hash": "0x5f4f2a0694...e203d64df2ae",
+        "first_proof_hash": "0xf045a50fc0...bd53dd973d8d",
         "listed_skills": 15,
         "note": "If this fails with Poseidon bridge errors while other proof paths pass, backend env likely lacks the real bridge runtime wiring.",
         "proof_hashes": 5,
@@ -2904,8 +2897,8 @@
     {
       "details": {
         "detail": null,
-        "envelope_id": "env_1773378175_0x49d36570",
-        "proof_hash": "0xbaeb848231...4f46e5f61537",
+        "envelope_id": "env_1773377864_0x49d36570",
+        "proof_hash": "0x2f566d341d...64d64563ba15",
         "status": 200,
         "verified": true
       },

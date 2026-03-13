@@ -17,6 +17,9 @@ import {
   Key,
   TrendingUp,
   Star,
+  Brain,
+  Eye,
+  Cpu,
 } from "lucide-react";
 import { WalletModal } from "@/components/zkdefi/WalletModal";
 import { ReputationProfile, type ReputationData } from "@/components/marketing/ReputationProfile";
@@ -28,6 +31,8 @@ import { IntelligentStream } from "@/components/marketing/IntelligentStream";
 import { DarkVaultPanel } from "@/components/marketing/DarkVaultPanel";
 import { ProofOfPerformance } from "@/components/marketing/ProofOfPerformance";
 import { MultiPanelLayout, type PanelDef } from "@/components/marketing/MultiPanelLayout";
+import { CapitalBrain, DEFAULT_ENABLED, type BrainConfig } from "@/components/marketing/CapitalBrain";
+import { TrustDemo } from "@/components/marketing/TrustDemo";
 import { apiFetch } from "@/lib/api/client";
 
 /* ─── types ────────────────────────────────────────────────────────── */
@@ -88,14 +93,103 @@ interface OnboardResponse {
 }
 
 /**
- * Demo phases — Capital OS unified flow:
- *  idle        → wallet not connected or not started
+ * Unified demo phases:
+ *  discover    → walletless AI Brain + pool analysis
  *  onboarding  → calling /onboard (reputation + L3 address + session)
- *  home        → identity home + strategy comparison + capital picker
+ *  home        → multi-panel identity + strategy selection
  *  executing   → paper executing the selected strategy
- *  live        → running — PnL tracker + identity home + reputation
+ *  live        → full Capital OS terminal panels
  */
-type DemoPhase = "idle" | "onboarding" | "home" | "executing" | "live";
+type DemoPhase = "discover" | "onboarding" | "home" | "executing" | "live";
+
+/* ─── guest mode seeded data ───────────────────────────────────────── */
+
+const GUEST_ADDRESS =
+  "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d";
+
+const GUEST_IDENTITY: L3Identity = {
+  wallet_address: GUEST_ADDRESS,
+  l3_address: "0x0474b940f499ca60d2aebce5c6b0b0c4e8b0947e",
+  session_id: "guest-session-demo-001",
+  session_created_at: new Date().toISOString(),
+  fico_score: 720,
+  fico_tier: "Good",
+  credit_class: "A",
+  credit_confidence: 0.87,
+  defi_veteran_score: 68,
+  recommended_tier: 3,
+  tier_reasoning:
+    "Active multi-protocol user with strong repayment history and diverse LP positions",
+  profile_hash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+  ezkl_ready: true,
+};
+
+const GUEST_REPUTATION: ReputationData = {
+  wallet_address: GUEST_ADDRESS,
+  scanned_at: new Date().toISOString(),
+  account_type: "contract",
+  nonce: 47,
+  account_exists: true,
+  is_contract_deployer: false,
+  total_capital_usd: 12_450,
+  capital_by_protocol: { ekubo: 5200, vesu: 3800, nostra: 2100, endur: 1350 },
+  protocol_count: 4,
+  position_count: 7,
+  signals: [
+    { signal: "active_user", value: 0.92, label: "Active User", evidence: "47 on-chain transactions in 90 days", category: "activity" },
+    { signal: "diversified", value: 0.85, label: "Diversified", evidence: "Capital across 4 protocols", category: "diversity" },
+    { signal: "liquidity_provider", value: 0.88, label: "LP Provider", evidence: "3 active LP positions on Ekubo", category: "capital" },
+    { signal: "diamond_hands", value: 0.78, label: "Diamond Hands", evidence: "Positions held through 2 drawdowns", category: "resilience" },
+    { signal: "defi_experienced", value: 0.90, label: "DeFi Veteran", evidence: "Multi-protocol DeFi veteran", category: "activity" },
+  ] as ReputationData["signals"],
+  defi_veteran_score: 68,
+  conviction_score: 72,
+  activity_score: 85,
+  diversity_score: 78,
+  capital_score: 62,
+  resilience_score: 70,
+  recommended_tier: 3,
+  tier_reasoning:
+    "Active multi-protocol user with strong repayment history and diverse LP positions",
+  profile_hash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+  scan_duration_ms: 0,
+  errors: [],
+  fico_score: 720,
+  fico_tier: "Good",
+  credit_class: "A",
+  credit_confidence: 0.87,
+  ezkl_ready: true,
+};
+
+const GUEST_SESSION_KEY: SessionKeyInfo = {
+  key_id: "sk_guest_demo_001",
+  signing_key_prefix: "0x04ab…c3f8",
+  permissions: ["paper_trade", "view_portfolio", "generate_proofs", "deposit_vault"],
+  expires_at: Math.floor(Date.now() / 1000) + 7200,
+  ttl_seconds: 7200,
+  status: "active",
+};
+
+const GUEST_EXECUTION: ExecutionResult = {
+  session_id: "guest-session-demo-001",
+  positions_opened: 4,
+  position_ids: ["pos_demo_1", "pos_demo_2", "pos_demo_3", "pos_demo_4"],
+  snapshot: {
+    snapshot_id: "snap_demo_001",
+    session_id: "guest-session-demo-001",
+    total_value_usd: 10_000,
+    total_pnl_usd: 0,
+    position_count: 4,
+    snapshot_hash: "0x7f3ab9e2d4c1a5f8e0b3d6c9a2f5e8b1d4c7a0f3e6b9d2c5a8f1e4b7d0c3a6f9",
+  },
+  l3_settlement: {
+    fact_hash: "0xa3b7c1d5e9f24e8a2c6f0d4b8e2a6c0f4d8b2e6a0c4f8d2b6e0a4c8f2d6b0b4",
+    batch_item_id: "batch_demo_001",
+    status: "settled",
+    snapshot_hash: "0x7f3ab9e2d4c1a5f8e0b3d6c9a2f5e8b1d4c7a0f3e6b9d2c5a8f1e4b7d0c3a6f9",
+  },
+  proposal_hash: "0xdemo_proposal_hash_001",
+};
 
 /* ─── helpers ──────────────────────────────────────────────────────── */
 
@@ -113,13 +207,87 @@ function truncHash(h: string, chars = 8): string {
   return `${clean.slice(0, chars + 2)}…${clean.slice(-chars)}`;
 }
 
+/* ─── phase stepper ────────────────────────────────────────────────── */
+
+const PHASE_STEPS: { key: DemoPhase; label: string; icon: typeof Brain }[] = [
+  { key: "discover", label: "Discover", icon: Brain },
+  { key: "home", label: "Identity", icon: Fingerprint },
+  { key: "executing", label: "Execute", icon: Zap },
+  { key: "live", label: "Capital OS", icon: Layers },
+];
+
+function phaseIndex(p: DemoPhase): number {
+  if (p === "onboarding") return 0;
+  return PHASE_STEPS.findIndex((s) => s.key === p);
+}
+
+function PhaseStepper({ current }: { current: DemoPhase }) {
+  const idx = phaseIndex(current);
+  return (
+    <div className="mx-auto flex max-w-xl items-center justify-center gap-1">
+      {PHASE_STEPS.map((step, i) => {
+        const Icon = step.icon;
+        const done = i < idx;
+        const active = i === idx;
+        return (
+          <div key={step.key} className="flex items-center gap-1">
+            {i > 0 && (
+              <div
+                className={`h-px w-6 sm:w-10 transition-colors duration-500 ${
+                  done ? "bg-emerald-500" : "bg-zinc-800"
+                }`}
+              />
+            )}
+            <div
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-all duration-500 ${
+                active
+                  ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/10"
+                  : done
+                  ? "text-emerald-500"
+                  : "text-zinc-600"
+              }`}
+            >
+              {done ? (
+                <CheckCircle2 className="h-3 w-3" />
+              ) : (
+                <Icon className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">{step.label}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
 /* ─── component ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════ */
 
 export function PaperTradeDemo() {
-  const { address, isConnected } = useAccount();
+  const { address: walletAddress, isConnected } = useAccount();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [phase, setPhase] = useState<DemoPhase>("idle");
+  const [phase, setPhase] = useState<DemoPhase>("discover");
   const [error, setError] = useState<string | null>(null);
+  const [guestMode, setGuestMode] = useState(false);
+
+  const isGuest = guestMode && !isConnected;
+  const address = isGuest ? GUEST_ADDRESS : walletAddress;
+
+  // AI Brain config (discover phase)
+  const [brainConfig, setBrainConfig] = useState<BrainConfig>({
+    riskTolerance: 50,
+    enabledSkills: DEFAULT_ENABLED,
+    protocolWeights: { ekubo: 50, vesu: 30, lending: 20 },
+  });
+  const [brainTrigger, setBrainTrigger] = useState(0);
+  const [brainLoading, setBrainLoading] = useState(false);
+
+  const handleBrainAnalyze = useCallback((cfg: BrainConfig) => {
+    setBrainConfig(cfg);
+    setBrainTrigger((k) => k + 1);
+  }, []);
 
   // Identity + reputation
   const [identity, setIdentity] = useState<L3Identity | null>(null);
@@ -141,15 +309,35 @@ export function PaperTradeDemo() {
   const [proofCount] = useState(0);
   const [snapshotCount, setSnapshotCount] = useState(0);
 
-  /* ── onboard: reputation + L3 address + session ── */
+  // Transition animation
+  const [transitioning, setTransitioning] = useState(false);
+
+  const smoothTransition = useCallback((to: DemoPhase) => {
+    setTransitioning(true);
+    setTimeout(() => {
+      setPhase(to);
+      setTransitioning(false);
+    }, 300);
+  }, []);
+
+  /* ── guest onboard — instant with seeded data ── */
+  const handleGuestOnboard = useCallback(() => {
+    setGuestMode(true);
+    setIdentity(GUEST_IDENTITY);
+    setReputation(GUEST_REPUTATION);
+    setSessionKey(GUEST_SESSION_KEY);
+    smoothTransition("home");
+  }, [smoothTransition]);
+
+  /* ── real onboard: reputation + L3 address + session ── */
   const handleOnboard = useCallback(async () => {
-    if (!address) return;
+    if (!walletAddress) return;
     setPhase("onboarding");
     setError(null);
     try {
       const res = await apiFetch<OnboardResponse>("/api/v1/paper-trade/onboard", {
         method: "POST",
-        body: JSON.stringify({ wallet_address: address }),
+        body: JSON.stringify({ wallet_address: walletAddress }),
         timeoutMs: 60_000,
       });
 
@@ -171,18 +359,32 @@ export function PaperTradeDemo() {
       setIdentity(id);
       if (res.reputation) setReputation(res.reputation);
       if (res.session_key) setSessionKey(res.session_key);
-      setPhase("home");
+      smoothTransition("home");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to onboard");
-      setPhase("idle");
+      setPhase("discover");
     }
-  }, [address]);
+  }, [walletAddress, smoothTransition]);
 
   /* ── execute selected strategy on paper ── */
   const handleExecute = useCallback(async () => {
     if (!address || !selectedProfile) return;
     setPhase("executing");
     setError(null);
+
+    // Guest mode: simulate instantly
+    if (isGuest) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const exec = { ...GUEST_EXECUTION, snapshot: { ...GUEST_EXECUTION.snapshot } };
+      exec.snapshot.total_value_usd = hypotheticalUsd ?? 10_000;
+      setExecution(exec);
+      setLiveValue(exec.snapshot.total_value_usd);
+      setLivePositions(exec.positions_opened);
+      setSnapshotCount(1);
+      smoothTransition("live");
+      return;
+    }
+
     try {
       const body: Record<string, unknown> = {
         wallet_address: address,
@@ -203,12 +405,12 @@ export function PaperTradeDemo() {
       setLiveValue(res.execution.snapshot.total_value_usd);
       setLivePositions(res.execution.positions_opened);
       setSnapshotCount(1);
-      setPhase("live");
+      smoothTransition("live");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to execute paper trade");
       setPhase("home");
     }
-  }, [address, selectedProfile, hypotheticalUsd]);
+  }, [address, selectedProfile, hypotheticalUsd, isGuest, smoothTransition]);
 
   /* ── strategy selected callback ── */
   const handleStrategySelected = useCallback(
@@ -235,7 +437,7 @@ export function PaperTradeDemo() {
   );
 
   const reset = () => {
-    setPhase("idle");
+    setPhase("discover");
     setIdentity(null);
     setReputation(null);
     setSelectedProfile(null);
@@ -243,12 +445,17 @@ export function PaperTradeDemo() {
     setExecution(null);
     setError(null);
     setSessionKey(null);
+    setGuestMode(false);
     setLiveValue(0);
     setLivePnl(0);
     setLivePnlPct(0);
     setLivePositions(0);
     setSnapshotCount(0);
   };
+
+  /* ═══════════════════════════════════════════════════════════════════ */
+  /* ─── render ─────────────────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════════ */
 
   return (
     <div className="space-y-6">
@@ -262,11 +469,40 @@ export function PaperTradeDemo() {
           <br className="hidden sm:block" /> Reputation. Strategy. Proofs.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Connect your wallet → get an L3 identity → compare strategies →
-          execute on paper → track P&amp;L → shield capital in Dark Vault →
-          generate ZK proofs of performance. All from one unified demo.
+          Explore AI-scored pools → get an L3 identity → compare strategies →
+          execute on paper → track P&amp;L → shield capital → generate ZK proofs.
+          {!isConnected && !isGuest && (
+            <span className="ml-1 text-cyan-400">No wallet needed to start.</span>
+          )}
         </p>
       </div>
+
+      {/* ── Progress stepper ── */}
+      <PhaseStepper current={phase} />
+
+      {/* ── Guest banner ── */}
+      {isGuest && (
+        <div className="mx-auto flex max-w-lg items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2">
+          <div className="flex items-center gap-2 text-xs text-amber-300">
+            <Eye className="h-3.5 w-3.5" />
+            <span>Guest preview — seeded demo data</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-[10px] text-amber-400 hover:text-amber-200 underline"
+            >
+              Connect wallet
+            </button>
+            <button
+              onClick={reset}
+              className="text-[10px] text-zinc-500 hover:text-zinc-300"
+            >
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Error banner ── */}
       {error && (
@@ -276,315 +512,446 @@ export function PaperTradeDemo() {
         </div>
       )}
 
-      {/* ═══════ Phase: IDLE — Connect / Onboard ═══════ */}
-      {phase === "idle" && (
-        <div className="flex flex-col items-center gap-4">
-          {isConnected && address ? (
-            <button
-              onClick={handleOnboard}
-              className="group inline-flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-8 py-4 text-base font-semibold text-emerald-400 transition-all hover:border-emerald-400 hover:bg-emerald-600/20 hover:shadow-lg hover:shadow-emerald-500/10"
-            >
-              <Fingerprint className="h-5 w-5" />
-              Onboard to Capital OS
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="group inline-flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-8 py-4 text-base font-semibold text-emerald-400 transition-all hover:border-emerald-400 hover:bg-emerald-600/20 hover:shadow-lg hover:shadow-emerald-500/10"
-              >
-                <Wallet className="h-5 w-5" />
-                Connect Wallet to Try
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-              <WalletModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-              />
-            </>
-          )}
-          <p className="text-[10px] text-zinc-600">
-            Scans reputation · Assigns L3 address · Issues session key ·
-            Creates paper trading session · No tx required
-          </p>
-        </div>
-      )}
+      {/* ── Phase wrapper with fade transition ── */}
+      <div
+        className={`transition-all duration-300 ${
+          transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+        }`}
+      >
+        {/* ═══════ Phase: DISCOVER — AI Brain + Pool Analysis ═══════ */}
+        {phase === "discover" && (
+          <div className="space-y-6">
+            {/* AI Brain + TrustDemo in a responsive 2-column */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+              {/* Left: AI Brain control panel */}
+              <div className="lg:sticky lg:top-4 lg:self-start">
+                <CapitalBrain onAnalyze={handleBrainAnalyze} loading={brainLoading} />
+              </div>
 
-      {/* ═══════ Phase: ONBOARDING — loading ═══════ */}
-      {phase === "onboarding" && (
-        <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p className="text-sm text-zinc-400">
-            Scanning reputation &amp; provisioning L3 identity for{" "}
-            <span className="font-mono text-zinc-300">
-              {address?.slice(0, 6)}…{address?.slice(-4)}
-            </span>
-          </p>
-          <p className="text-[10px] text-zinc-600">
-            Behavioral signals · FICO scoring · L3 address derivation · Session
-            creation
-          </p>
-        </div>
-      )}
+              {/* Right: Analysis results */}
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-200">Pool Intelligence</h3>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      Aggregated on-chain data · AI-scored · Verifiable execution
+                    </p>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-0.5 text-[10px] text-zinc-500">
+                    Walletless · No keys needed
+                  </span>
+                </div>
+                <TrustDemo
+                  riskTolerance={brainConfig.riskTolerance}
+                  enabledSkills={brainConfig.enabledSkills}
+                  protocolWeights={brainConfig.protocolWeights}
+                  triggerKey={brainTrigger}
+                  onLoadingChange={setBrainLoading}
+                />
+              </div>
+            </div>
 
-      {/* ═══════ Phase: HOME — identity + strategy compare + capital picker ═══════ */}
-      {phase === "home" && identity && (
-        <div className="mx-auto max-w-4xl space-y-5">
-          {/* Dark Ledger: Identity Home */}
-          <CapitalOSHome
-            identity={identity}
-            sessionValue={0}
-            sessionPnl={0}
-            sessionPnlPct={0}
-            positionCount={0}
-            proofCount={0}
-            snapshotCount={0}
-          />
+            {/* ── CTA: Connect wallet or try as guest ── */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-zinc-800" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-zinc-950 px-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                  Ready to go deeper?
+                </span>
+              </div>
+            </div>
 
-          {/* Session Wallet */}
-          {identity && (
-            <SessionWallet
-              walletAddress={identity.wallet_address}
-              sessionId={identity.session_id}
-              l3Address={identity.l3_address}
-              initialKey={sessionKey}
-              onKeyIssued={setSessionKey}
-            />
-          )}
+            <div className="flex flex-col items-center gap-3">
+              {isConnected && walletAddress ? (
+                <button
+                  onClick={handleOnboard}
+                  className="group inline-flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-8 py-4 text-base font-semibold text-emerald-400 transition-all hover:border-emerald-400 hover:bg-emerald-600/20 hover:shadow-lg hover:shadow-emerald-500/10"
+                >
+                  <Fingerprint className="h-5 w-5" />
+                  Onboard to Capital OS
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="group inline-flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-8 py-4 text-base font-semibold text-emerald-400 transition-all hover:border-emerald-400 hover:bg-emerald-600/20 hover:shadow-lg hover:shadow-emerald-500/10"
+                  >
+                    <Wallet className="h-5 w-5" />
+                    Connect Wallet for Full Experience
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                  <button
+                    onClick={handleGuestOnboard}
+                    className="group inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/50 px-5 py-2.5 text-sm text-zinc-400 transition-all hover:border-zinc-500 hover:text-zinc-200"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Try as Guest — No Wallet Needed
+                  </button>
+                </>
+              )}
+              <p className="text-[10px] text-zinc-600">
+                Scans reputation · Assigns L3 address · Issues session key ·
+                Creates paper trading session
+              </p>
+            </div>
+          </div>
+        )}
 
-          {/* Intelligent Stream */}
-          <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={10000} />
-
-          {/* Reputation Profile */}
-          {reputation && <ReputationProfile data={reputation} />}
-
-          {/* Capital picker for wallets with no positions */}
-          <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/20 px-5 py-4">
-            <p className="text-xs font-semibold text-zinc-400">
-              Select hypothetical capital
-              <span className="ml-2 text-[10px] font-normal text-zinc-600">
-                (or skip to use your real portfolio)
+        {/* ═══════ Phase: ONBOARDING — loading ═══════ */}
+        {phase === "onboarding" && (
+          <div className="flex flex-col items-center gap-3 py-12">
+            <div className="relative">
+              <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
+              <Fingerprint className="absolute inset-0 m-auto h-5 w-5 text-emerald-400/50" />
+            </div>
+            <p className="text-sm text-zinc-400">
+              Scanning reputation &amp; provisioning L3 identity for{" "}
+              <span className="font-mono text-zinc-300">
+                {walletAddress?.slice(0, 6)}…{walletAddress?.slice(-4)}
               </span>
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {CAPITAL_AMOUNTS.map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setHypotheticalUsd(amt)}
-                  className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-all ${
-                    hypotheticalUsd === amt
-                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-400"
-                      : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-emerald-500/50 hover:text-emerald-400"
-                  }`}
-                >
-                  {amt >= 1_000
-                    ? `$${(amt / 1_000).toFixed(0)}k`
-                    : `$${amt}`}
-                </button>
-              ))}
+            <div className="flex flex-wrap justify-center gap-2 text-[10px] text-zinc-600">
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">Behavioral signals</span>
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">FICO scoring</span>
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">L3 address derivation</span>
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">Session creation</span>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════ Phase: HOME — multi-panel identity + strategy ═══════ */}
+        {phase === "home" && identity && (() => {
+          const homePanels: PanelDef[] = [
+            {
+              id: "identity",
+              title: "Identity",
+              accent: "text-amber-400",
+              icon: <Fingerprint className="h-3 w-3 text-amber-400" />,
+              pinned: true,
+              content: (
+                <CapitalOSHome
+                  identity={identity}
+                  sessionValue={0}
+                  sessionPnl={0}
+                  sessionPnlPct={0}
+                  positionCount={0}
+                  proofCount={0}
+                  snapshotCount={0}
+                />
+              ),
+            },
+            {
+              id: "strategy",
+              title: "Strategy Lab",
+              accent: "text-cyan-400",
+              icon: <Cpu className="h-3 w-3 text-cyan-400" />,
+              pinned: true,
+              content: (
+                <div className="space-y-4 p-4">
+                  {/* Capital picker */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      Select hypothetical capital
+                      <span className="ml-2 text-[10px] font-normal text-zinc-600">
+                        (or skip to use real portfolio)
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {CAPITAL_AMOUNTS.map((amt) => (
+                        <button
+                          key={amt}
+                          onClick={() => setHypotheticalUsd(amt)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+                            hypotheticalUsd === amt
+                              ? "border-emerald-500 bg-emerald-500/15 text-emerald-400"
+                              : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-emerald-500/50 hover:text-emerald-400"
+                          }`}
+                        >
+                          {amt >= 1_000
+                            ? `$${(amt / 1_000).toFixed(0)}k`
+                            : `$${amt}`}
+                        </button>
+                      ))}
+                      {hypotheticalUsd && (
+                        <button
+                          onClick={() => setHypotheticalUsd(null)}
+                          className="rounded-lg border border-zinc-700 px-2 py-1.5 text-[10px] text-zinc-500 hover:text-zinc-300"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3-way Strategy Comparison */}
+                  <StrategyCompare
+                    walletAddress={identity.wallet_address}
+                    hypotheticalUsd={hypotheticalUsd ?? undefined}
+                    onSelectStrategy={handleStrategySelected}
+                  />
+
+                  {/* Execute CTA */}
+                  {selectedProfile && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={handleExecute}
+                        className="group inline-flex items-center gap-3 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Execute {selectedProfile} on Paper
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              id: "session-key",
+              title: "Session Key",
+              accent: "text-amber-400",
+              icon: <Key className="h-3 w-3 text-amber-400" />,
+              content: (
+                <SessionWallet
+                  walletAddress={identity.wallet_address}
+                  sessionId={identity.session_id}
+                  l3Address={identity.l3_address}
+                  initialKey={sessionKey}
+                  onKeyIssued={setSessionKey}
+                />
+              ),
+            },
+            {
+              id: "stream",
+              title: "Activity",
+              accent: "text-cyan-400",
+              icon: <Activity className="h-3 w-3 text-cyan-400" />,
+              defaultCollapsed: true,
+              content: (
+                <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={10000} />
+              ),
+            },
+            ...(reputation
+              ? [{
+                  id: "reputation",
+                  title: "Reputation",
+                  accent: "text-emerald-400",
+                  icon: <Star className="h-3 w-3 text-emerald-400" />,
+                  defaultCollapsed: true,
+                  content: <ReputationProfile data={reputation} />,
+                }]
+              : []),
+          ];
+
+          return (
+            <div className="mx-auto max-w-6xl space-y-4">
+              <MultiPanelLayout panels={homePanels} defaultLayout="grid" />
+            </div>
+          );
+        })()}
+
+        {/* ═══════ Phase: EXECUTING — loading ═══════ */}
+        {phase === "executing" && (
+          <div className="flex flex-col items-center gap-3 py-12">
+            <div className="relative">
+              <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
+              <Zap className="absolute inset-0 m-auto h-5 w-5 text-emerald-400/50" />
+            </div>
+            <p className="text-sm text-zinc-400">
+              Opening paper positions &amp; settling snapshot to L3…
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 text-[10px] text-zinc-600">
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">{selectedProfile} strategy</span>
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">Live pool APYs</span>
+              <span className="rounded-full border border-zinc-800 px-2 py-0.5">Privacy-preserving fact hash</span>
               {hypotheticalUsd && (
-                <button
-                  onClick={() => setHypotheticalUsd(null)}
-                  className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-500 hover:text-zinc-300"
-                >
-                  Clear
-                </button>
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-emerald-400">
+                  {fmtUsd(hypotheticalUsd)} hypothetical
+                </span>
               )}
             </div>
           </div>
+        )}
 
-          {/* 3-way Strategy Comparison */}
-          <StrategyCompare
-            walletAddress={identity.wallet_address}
-            hypotheticalUsd={hypotheticalUsd ?? undefined}
-            onSelectStrategy={handleStrategySelected}
-          />
-
-          {/* Execute CTA */}
-          {selectedProfile && (
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={handleExecute}
-                className="group inline-flex items-center gap-3 rounded-xl bg-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30"
-              >
-                <Zap className="h-5 w-5" />
-                Execute {selectedProfile} on Paper + Settle to L3
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ═══════ Phase: EXECUTING — loading ═══════ */}
-      {phase === "executing" && (
-        <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p className="text-sm text-zinc-400">
-            Opening paper positions &amp; settling snapshot to L3…
-          </p>
-          <p className="text-[10px] text-zinc-600">
-            {selectedProfile} strategy · Live pool APYs · Privacy-preserving
-            fact hash
-          </p>
-        </div>
-      )}
-
-      {/* ═══════ Phase: LIVE — multi-panel terminal layout ═══════ */}
-      {phase === "live" && identity && execution && (() => {
-        const livePanels: PanelDef[] = [
-          {
-            id: "identity",
-            title: "Identity",
-            accent: "text-amber-400",
-            icon: <Fingerprint className="h-3 w-3 text-amber-400" />,
-            pinned: true,
-            content: (
-              <CapitalOSHome
-                identity={identity}
-                sessionValue={liveValue}
-                sessionPnl={livePnl}
-                sessionPnlPct={livePnlPct}
-                positionCount={livePositions}
-                proofCount={proofCount}
-                snapshotCount={snapshotCount}
-              />
-            ),
-          },
-          {
-            id: "pnl",
-            title: "P&L Tracker",
-            accent: "text-emerald-400",
-            icon: <TrendingUp className="h-3 w-3 text-emerald-400" />,
-            pinned: true,
-            content: (
-              <PnLTracker
-                sessionId={execution.session_id}
-                onUpdate={handlePnLUpdate}
-                pollInterval={30_000}
-              />
-            ),
-          },
-          {
-            id: "settlement",
-            title: "Settlement",
-            accent: "text-cyan-400",
-            icon: <Layers className="h-3 w-3 text-cyan-400" />,
-            pinned: true,
-            content: (
-              <div className="space-y-4 p-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    Paper Trade Executed
-                  </span>
-                  <span className="ml-auto text-[10px] text-zinc-500">
-                    {execution.positions_opened} positions · {selectedProfile}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-2">
-                    <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600">Snapshot Hash</p>
-                    <p className="mt-0.5 break-all font-mono text-[10px] text-zinc-400">
-                      {execution.snapshot?.snapshot_hash ?? "—"}
-                    </p>
+        {/* ═══════ Phase: LIVE — full Capital OS terminal panels ═══════ */}
+        {phase === "live" && identity && execution && (() => {
+          const livePanels: PanelDef[] = [
+            {
+              id: "identity",
+              title: "Identity",
+              accent: "text-amber-400",
+              icon: <Fingerprint className="h-3 w-3 text-amber-400" />,
+              pinned: true,
+              content: (
+                <CapitalOSHome
+                  identity={identity}
+                  sessionValue={liveValue}
+                  sessionPnl={livePnl}
+                  sessionPnlPct={livePnlPct}
+                  positionCount={livePositions}
+                  proofCount={proofCount}
+                  snapshotCount={snapshotCount}
+                />
+              ),
+            },
+            {
+              id: "pnl",
+              title: "P&L Tracker",
+              accent: "text-emerald-400",
+              icon: <TrendingUp className="h-3 w-3 text-emerald-400" />,
+              pinned: true,
+              content: isGuest ? (
+                <div className="space-y-3 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500">Total Value</span>
+                    <span className="font-mono text-sm font-bold text-zinc-100">{fmtUsd(liveValue)}</span>
                   </div>
-                  <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/10 px-4 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <Layers className="h-3 w-3 text-cyan-400" />
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-cyan-400">L3 Settlement</p>
-                      <span className="ml-auto rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400">
-                        {execution.l3_settlement?.status ?? "pending"}
-                      </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500">Unrealized P&L</span>
+                    <span className="font-mono text-sm text-emerald-400">+$0.00 (0.00%)</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500">Positions</span>
+                    <span className="font-mono text-sm text-zinc-300">{livePositions}</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-600 text-center pt-2 border-t border-zinc-800">
+                    Guest mode — connect wallet for live P&amp;L tracking
+                  </p>
+                </div>
+              ) : (
+                <PnLTracker
+                  sessionId={execution.session_id}
+                  onUpdate={handlePnLUpdate}
+                  pollInterval={30_000}
+                />
+              ),
+            },
+            {
+              id: "settlement",
+              title: "Settlement",
+              accent: "text-cyan-400",
+              icon: <Layers className="h-3 w-3 text-cyan-400" />,
+              pinned: true,
+              content: (
+                <div className="space-y-4 p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                      Paper Trade Executed
+                    </span>
+                    <span className="ml-auto text-[10px] text-zinc-500">
+                      {execution.positions_opened} positions · {selectedProfile}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-2">
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600">Snapshot Hash</p>
+                      <p className="mt-0.5 break-all font-mono text-[10px] text-zinc-400">
+                        {execution.snapshot?.snapshot_hash ?? "—"}
+                      </p>
                     </div>
-                    <p className="mt-1 text-[10px] text-zinc-500">
-                      Fact: <span className="font-mono text-zinc-400">{truncHash(execution.l3_settlement?.fact_hash ?? "", 10)}</span>
-                    </p>
-                    <p className="text-[10px] text-zinc-500">
-                      Batch: <span className="font-mono text-zinc-400">{execution.l3_settlement?.batch_item_id ?? "—"}</span>
-                    </p>
+                    <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/10 px-4 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <Layers className="h-3 w-3 text-cyan-400" />
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-cyan-400">L3 Settlement</p>
+                        <span className="ml-auto rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400">
+                          {execution.l3_settlement?.status ?? "pending"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-zinc-500">
+                        Fact: <span className="font-mono text-zinc-400">{truncHash(execution.l3_settlement?.fact_hash ?? "", 10)}</span>
+                      </p>
+                      <p className="text-[10px] text-zinc-500">
+                        Batch: <span className="font-mono text-zinc-400">{execution.l3_settlement?.batch_item_id ?? "—"}</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
+              ),
+            },
+            {
+              id: "session-key",
+              title: "Session Key",
+              accent: "text-amber-400",
+              icon: <Key className="h-3 w-3 text-amber-400" />,
+              content: (
+                <SessionWallet
+                  walletAddress={identity.wallet_address}
+                  sessionId={identity.session_id}
+                  l3Address={identity.l3_address}
+                  initialKey={sessionKey}
+                  onKeyIssued={setSessionKey}
+                />
+              ),
+            },
+            {
+              id: "dark-vault",
+              title: "Dark Vault",
+              accent: "text-violet-400",
+              icon: <Lock className="h-3 w-3 text-violet-400" />,
+              content: (
+                <DarkVaultPanel
+                  walletAddress={identity.wallet_address}
+                  sessionId={identity.session_id}
+                />
+              ),
+            },
+            {
+              id: "proof",
+              title: "ZK Proof",
+              accent: "text-fuchsia-400",
+              icon: <ShieldCheck className="h-3 w-3 text-fuchsia-400" />,
+              content: (
+                <ProofOfPerformance
+                  walletAddress={identity.wallet_address}
+                  sessionId={identity.session_id}
+                />
+              ),
+            },
+            {
+              id: "stream",
+              title: "Activity Stream",
+              accent: "text-cyan-400",
+              icon: <Activity className="h-3 w-3 text-cyan-400" />,
+              content: (
+                <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={8000} />
+              ),
+            },
+            ...(reputation
+              ? [{
+                  id: "reputation",
+                  title: "Reputation",
+                  accent: "text-emerald-400",
+                  icon: <Star className="h-3 w-3 text-emerald-400" />,
+                  defaultCollapsed: true,
+                  content: <ReputationProfile data={reputation} />,
+                }]
+              : []),
+          ];
+
+          return (
+            <div className="mx-auto max-w-6xl space-y-4">
+              <MultiPanelLayout panels={livePanels} defaultLayout="grid" />
+
+              {/* Reset */}
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={reset}
+                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-300"
+                >
+                  ← Start over
+                </button>
               </div>
-            ),
-          },
-          {
-            id: "session-key",
-            title: "Session Key",
-            accent: "text-amber-400",
-            icon: <Key className="h-3 w-3 text-amber-400" />,
-            content: (
-              <SessionWallet
-                walletAddress={identity.wallet_address}
-                sessionId={identity.session_id}
-                l3Address={identity.l3_address}
-                initialKey={sessionKey}
-                onKeyIssued={setSessionKey}
-              />
-            ),
-          },
-          {
-            id: "dark-vault",
-            title: "Dark Vault",
-            accent: "text-violet-400",
-            icon: <Lock className="h-3 w-3 text-violet-400" />,
-            content: (
-              <DarkVaultPanel
-                walletAddress={identity.wallet_address}
-                sessionId={identity.session_id}
-              />
-            ),
-          },
-          {
-            id: "proof",
-            title: "ZK Proof",
-            accent: "text-fuchsia-400",
-            icon: <ShieldCheck className="h-3 w-3 text-fuchsia-400" />,
-            content: (
-              <ProofOfPerformance
-                walletAddress={identity.wallet_address}
-                sessionId={identity.session_id}
-              />
-            ),
-          },
-          {
-            id: "stream",
-            title: "Activity Stream",
-            accent: "text-cyan-400",
-            icon: <Activity className="h-3 w-3 text-cyan-400" />,
-            content: (
-              <IntelligentStream walletAddress={identity.wallet_address} pollIntervalMs={8000} />
-            ),
-          },
-          ...(reputation
-            ? [{
-                id: "reputation",
-                title: "Reputation",
-                accent: "text-emerald-400",
-                icon: <Star className="h-3 w-3 text-emerald-400" />,
-                defaultCollapsed: true,
-                content: <ReputationProfile data={reputation} />,
-              }]
-            : []),
-        ];
-
-        return (
-          <div className="mx-auto max-w-6xl space-y-4">
-            <MultiPanelLayout panels={livePanels} defaultLayout="grid" />
-
-            {/* Reset */}
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={reset}
-                className="text-sm text-zinc-500 transition-colors hover:text-zinc-300"
-              >
-                ← Start over with another wallet
-              </button>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
+      </div>
+
+      {/* ── Wallet modal ── */}
+      <WalletModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
