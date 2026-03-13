@@ -4593,6 +4593,49 @@ class ShowcaseRunner:
                 ]
             )
 
+        lane_expected_modes = {
+            "l3": "groth16_garaga",
+            "l3_heavy_request": "groth16_garaga",
+            "l3_noir_request": "noir_honk",
+            "l3_native_kzg_request": "native_kzg",
+        }
+        lane_health_rows = []
+        for run_name in ["l3", "l3_heavy_request", "l3_noir_request", "l3_native_kzg_request"]:
+            run = ml_runs.get(run_name) if isinstance(ml_runs.get(run_name), dict) else {}
+            l3 = run.get("l3") if isinstance(run.get("l3"), dict) else {}
+            status = _safe_int(run.get("status"), 0)
+            mode = str(l3.get("mode") or "-")
+            verified = bool(l3.get("verified_on_chain"))
+            expected_mode = lane_expected_modes.get(run_name, "-")
+            failure_reason = _clip_text(run.get("failure_reason"), 140) or "-"
+            verdict_html = "<span class=\"fail\">degraded</span>"
+            note = "investigate runtime logs"
+            mode_l = mode.strip().lower()
+            expected_l = str(expected_mode).strip().lower()
+            if status == 200 and mode_l == expected_l and verified:
+                verdict_html = "<span class=\"pass\">healthy</span>"
+                note = "lane is receipt-backed"
+            elif run_name == "l3_noir_request" and mode_l == "missing_calldata":
+                verdict_html = "<span class=\"warn\">degraded (tracked)</span>"
+                note = "Noir calldata generation flaky; tracked for follow-up while core lanes continue"
+            elif status == 0:
+                note = "timeout or transport issue; retry/run gate again"
+            elif status == 200 and not verified:
+                note = "accepted response but no on-chain verification receipt"
+
+            lane_health_rows.append(
+                [
+                    escape(run_labels.get(run_name, run_name.upper())),
+                    escape(str(status)),
+                    escape(mode),
+                    escape(str(expected_mode)),
+                    "<span class=\"pass\">true</span>" if verified else "<span class=\"fail\">false</span>",
+                    verdict_html,
+                    escape(str(failure_reason)),
+                    escape(note),
+                ]
+            )
+
         bridge_attempt_rows = []
         ml_attempts = bridge.get("ml_bridge_attempts", {}) if isinstance(bridge.get("ml_bridge_attempts"), dict) else {}
         for run_name in run_order:
@@ -6033,6 +6076,11 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
       <h3>Native KZG Receipt (Path B)</h3>
       {self._html_table(["Field", "Value"], native_kzg_live_receipt_rows)}
+      <h3>Lane Health + Degradation Notes</h3>
+      <p class="meta">
+        Quick health matrix for the four bridge lanes. This makes degraded states explicit and explainable in the research readout.
+      </p>
+      {self._html_table(["Lane", "HTTP", "Observed Mode", "Expected Mode", "Verified", "Verdict", "Failure", "Note"], lane_health_rows)}
       <h3>Bridge Benchmark Receipts (Compact)</h3>
       <p class="meta">
         Per-lane benchmark snapshot for demos and judge review: HTTP status, verifier mode, backend route, on-chain verification flag, duration, fee, gas, and explorer tx.

@@ -133,6 +133,7 @@ Env knobs:
 - `SHOWCASE_BASE_URL` (default `http://127.0.0.1:8003`)
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
+- `SHOWCASE_REQUIRE_NOIR_LANE` (default `false`; when `true`, CI gate hard-requires Noir lane `noir_honk` + on-chain verify)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
 
@@ -166,6 +167,7 @@ The HTML report includes:
 - Top-level executive cards to reduce initial scroll/load and highlight immediate state (`core claims`, `ModelBridge`, `Native KZG strict`, `recursive stages`)
 - Core claim matrix and step-by-step terminal evidence
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
+- Dedicated **Lane Health + Degradation Notes** matrix so any unstable lane (for example Noir calldata availability) is explicit in the report
 - Dedicated **Bridge Benchmark Receipts** compact table: per-lane HTTP/mode/backend/verified flag + duration + fee + gas + explorer tx
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison

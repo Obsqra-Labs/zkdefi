@@ -58,6 +58,7 @@ When a recursive proving stage reaches E2E, log it in the showcase first, then t
 4. CI gate (Path B + strict showcase):
    - `python3 scripts/ci_showcase_gate.py`
    - Fails on Path B coverage regression (`PATHB_WARM_MIN_COVERAGE`) or strict bridge lane regressions.
+   - Noir lane enforcement is configurable: set `SHOWCASE_REQUIRE_NOIR_LANE=true` to hard-require Noir in gate.
 
 Suggested tag cadence from the report:
 - `vYYYY.MM.DD-stage0-backbone`

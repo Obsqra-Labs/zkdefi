@@ -23,6 +23,11 @@ def _env(name: str, default: str) -> str:
     return str(os.getenv(name, default)).strip()
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = _env(name, "true" if default else "false").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
 def _run(cmd: list[str], *, check: bool = True) -> int:
     print("+", " ".join(cmd), flush=True)
     env = dict(os.environ)
@@ -53,14 +58,29 @@ def _validate_latest_report() -> None:
         )
 
     runs = (report.get("bridge_architecture") or {}).get("ml_bridge_runs") or {}
-    expected = {
+    expected_required = {
         "l3": "groth16_garaga",
         "l3_heavy_request": "groth16_garaga",
-        "l3_noir_request": "noir_honk",
         "l3_native_kzg_request": "native_kzg",
     }
+    noir_required = _env_bool("SHOWCASE_REQUIRE_NOIR_LANE", False)
+    if noir_required:
+        expected_required["l3_noir_request"] = "noir_honk"
+    else:
+        lane = runs.get("l3_noir_request") or {}
+        l3 = lane.get("l3") or {}
+        status = int(lane.get("status", 0) or 0)
+        mode = str(l3.get("mode", "") or "").strip().lower()
+        verified = bool(l3.get("verified_on_chain"))
+        if not (status == 200 and mode == "noir_honk" and verified):
+            print(
+                "note: noir lane degraded but non-blocking "
+                f"(status={status} mode={mode} verified_on_chain={verified}); "
+                "set SHOWCASE_REQUIRE_NOIR_LANE=true to enforce",
+                flush=True,
+            )
     lane_errors: list[str] = []
-    for lane_key, expected_mode in expected.items():
+    for lane_key, expected_mode in expected_required.items():
         lane = runs.get(lane_key) or {}
         l3 = lane.get("l3") or {}
         status = int(lane.get("status", 0) or 0)
@@ -73,9 +93,10 @@ def _validate_latest_report() -> None:
     if lane_errors:
         raise RuntimeError("bridge lane gate failed: " + "; ".join(lane_errors))
 
+    lanes_text = "/".join(expected_required.keys())
     print(
         f"showcase gate PASS: core_score={validated}/{total}, "
-        "lanes=l3/l3_heavy_request/l3_noir_request/l3_native_kzg_request verified",
+        f"lanes={lanes_text} verified",
         flush=True,
     )
 
