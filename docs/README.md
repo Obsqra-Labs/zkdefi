@@ -35,6 +35,7 @@ Path B native KZG defaults now auto-attempt KZG MPCheck bundle extraction when a
 
 - `EZKL_KZG_BUNDLE_AUTO_EXTRACT=true`
 - Uses `scripts/extract_ezkl_kzg_mpcheck_bundle.py` automatically if no custom extractor command is set.
+- `EZKL_PROVER_WARM_KZG_ON_PROVE=true` (default) warms/caches `kzg_mpcheck_bundle` metadata after each successful real EZKL proof generation.
 
 ### Recursive stage check-ins + versioning
 
@@ -47,6 +48,9 @@ When a recursive proving stage reaches E2E, log it in the showcase first, then t
    - `Overview -> Snapshot -> Recursive Stage Check-ins`
    - `Bridge -> Phase 2-4 Status -> Stage Completion Check-ins`
 3. If a stage is `complete` with explorer TX evidence, do a short doc check-in in the relevant plan file and create a GitHub tag/release note.
+4. CI gate (Path B + strict showcase):
+   - `python3 scripts/ci_showcase_gate.py`
+   - Fails on Path B coverage regression (`PATHB_WARM_MIN_COVERAGE`) or strict bridge lane regressions.
 
 Suggested tag cadence from the report:
 - `vYYYY.MM.DD-stage0-backbone`

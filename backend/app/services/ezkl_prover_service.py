@@ -31,6 +31,14 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 EZKL_BIN = os.getenv("EZKL_BIN", "ezkl")
 EZKL_TIMEOUT = int(os.getenv("EZKL_TIMEOUT", "300"))  # 5min default
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Try importing ezkl Python bindings (preferred over CLI subprocess)
 try:
     import ezkl as _ezkl_lib
@@ -105,6 +113,7 @@ class EZKLProverService:
     def __init__(self) -> None:
         self._models: dict[str, EZKLModelArtifacts] = {}
         self._lock = asyncio.Lock()
+        self._warm_kzg_on_prove = _env_bool("EZKL_PROVER_WARM_KZG_ON_PROVE", True)
         self._check_ezkl_available()
 
     # ── Model lifecycle ─────────────────────────────────────────────────
@@ -204,8 +213,37 @@ class EZKLProverService:
         artifacts = self._get_artifacts(model_name)
 
         if self._use_python_api:
-            return await self._prove_inference_python(artifacts, input_data)
-        return await self._prove_inference_cli(artifacts, input_data)
+            proof = await self._prove_inference_python(artifacts, input_data)
+        else:
+            proof = await self._prove_inference_cli(artifacts, input_data)
+
+        if self._warm_kzg_on_prove:
+            try:
+                from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof
+
+                warm_meta = warm_kzg_bundle_cache_for_proof(
+                    proof,
+                    model_name=artifacts.model_name,
+                    model_dir=artifacts.vk_path.parent,
+                )
+                try:
+                    setattr(proof, "kzg_bundle_meta", warm_meta)
+                except Exception:
+                    pass
+                logger.info(
+                    "EZKL prove warmup for '%s': bundle_present=%s source=%s",
+                    artifacts.model_name,
+                    bool(warm_meta.get("kzg_mpcheck_bundle_present")),
+                    warm_meta.get("kzg_bundle_injected_source")
+                    or warm_meta.get("kzg_mpcheck_bundle_source"),
+                )
+            except Exception as warm_exc:
+                logger.warning(
+                    "EZKL prove warmup failed for '%s': %s",
+                    artifacts.model_name,
+                    warm_exc,
+                )
+        return proof
 
     # ── Proof verification ──────────────────────────────────────────────
 

@@ -35,7 +35,7 @@ BACKEND_IGNORE_FAILING := \
 	--ignore=tests/test_v6_modules.py \
 	--ignore=tests/test_vault_execute_live.py
 
-.PHONY: help venv test-backend test-backend-all test-e2e build-frontend lint ci clean
+.PHONY: help venv test-backend test-backend-all test-e2e build-frontend lint ci showcase-gate clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -78,6 +78,11 @@ ci: test-backend build-frontend ## Run all CI checks (backend tests + frontend b
 	@echo ""
 	@echo "✓ All CI checks passed"
 	@echo ""
+
+# ── Showcase Gate ───────────────────────────────────────────────────────
+
+showcase-gate: ## Run Path B warm coverage + strict showcase gate (requires running backend on :8003)
+	$(PYTHON) scripts/ci_showcase_gate.py
 
 # ── Housekeeping ─────────────────────────────────────────────────────────
 

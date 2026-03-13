@@ -1,6 +1,6 @@
 # Recursive Multichain Proving Core
 
-_Last updated: 2026-03-12 (UTC)_
+_Last updated: 2026-03-13 (UTC)_
 
 This page defines zkde.fi's proving core as a layered multichain system:
 
@@ -28,7 +28,7 @@ Source of truth: `backend/app/services/proof_pipeline.py` (`bridge_circuit` rout
 |---|---|---|---|
 | `ModelBridge` | Groth16 calldata | Baseline EZKL -> Groth16 bridge on Starknet | Live |
 | `ModelBridgeHeavy` | Groth16 calldata | Heavier bridge constraints for stronger policy gating | Live lane + local heavy verifier artifacts |
-| `NoirEzklBridge` | HONK calldata (`proof_type=noir_honk`) | Path A high-assurance Noir/HONK lane | Implemented, deploy/ops gating per environment |
+| `NoirEzklBridge` | HONK calldata (`proof_type=noir_honk`) | Path A high-assurance Noir/HONK lane | Live lane with on-chain receipt evidence |
 | `EzklNativeKzg` | `ezkl_kzg_v1` payload (`proof_type=native_kzg`) | Path B native KZG semantics in Cairo | In progress (strict non-placeholder gating active) |
 
 ## 3) Verifier Modes Returned by L3
@@ -63,7 +63,7 @@ Source of truth: `archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md`
 
 | Roadmap path | Objective | Stage |
 |---|---|---|
-| **Path A** | Noir HONK bridge (`NoirEzklBridge`) | Implemented; environment deployment and live receipts are next ops step |
+| **Path A** | Noir HONK bridge (`NoirEzklBridge`) | Implemented and live (receipt evidence captured); next is stability benchmarking/runbook |
 | **Path C** | L1 Solidity verifier + L1->L2 bridge | Implemented in code and contracts; production operations are live-bridge hardening |
 | **Path B** | Native Cairo KZG verification | In progress; strict payload and trailer validation active, final end-to-end pass coverage remains |
 
@@ -92,6 +92,12 @@ Source of truth: `archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md`
 - Heavy STARK reputation (`stark_integrity`, `verified_on_chain=true`):
   - `0x7249f4a0dc41f12dd5249f4e7284c0f4d392ec69740396d1de4e0f83126739d`
   - <https://sepolia.voyager.online/tx/0x7249f4a0dc41f12dd5249f4e7284c0f4d392ec69740396d1de4e0f83126739d>
+- Noir HONK lane (`noir_honk`, `verified_on_chain=true`):
+  - `0x55f1d6cf06ed5e2deaf90c86479c2f03b27ed631478447d14af808f33963475`
+  - <https://sepolia.voyager.online/tx/0x55f1d6cf06ed5e2deaf90c86479c2f03b27ed631478447d14af808f33963475>
+- Native KZG strict lane (`native_kzg`, `verified_on_chain=true`):
+  - `0x5c9e21abd2119600421872f0baad9988ea7082eec54bacea8657649a8cf5f42`
+  - <https://sepolia.voyager.online/tx/0x5c9e21abd2119600421872f0baad9988ea7082eec54bacea8657649a8cf5f42>
 
 ### L1 Sepolia bridge evidence
 
@@ -114,8 +120,8 @@ Source of truth: `archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md`
 
 ## 7) Remaining Work for Full Recursive Coverage
 
-1. **Path B completion:** universal extraction/build of `kzg_mpcheck_v1` witness bundle in all live EZKL model flows and end-to-end on-chain pass receipts in strict mode.
-2. **Path A production receipts:** ensure HONK verifier deployment is live in target environment and capture public `noir_honk` verification tx receipts.
+1. **Path B completion:** universal extraction/build of `kzg_mpcheck_v1` witness bundle in all live EZKL model flows and end-to-end strict-mode coverage benchmarks.
+2. **Path A hardening:** collect recurring HONK receipt cadence + gas/latency benchmarks and lock into runbook automation.
 3. **Path 2/3 progression:** run SNOS proving pipeline and move aggregation-critical logic into L3 contracts for full recursive closure.
 
 ## 8) Related Docs

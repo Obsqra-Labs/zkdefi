@@ -53,7 +53,7 @@ Source: `backend/app/services/proof_pipeline.py` and `l3_proving_path_client.py`
 |---|---|---|---|
 | ModelBridge | `bridge_circuit="ModelBridge"` | `groth16_garaga` | Live |
 | ModelBridgeHeavy | `bridge_circuit="ModelBridgeHeavy"` | `groth16_garaga` | Live lane (heavy artifacts present) |
-| Noir EZKL bridge | `bridge_circuit="NoirEzklBridge"` | `noir_honk` | Implemented; environment deploy/ops dependent |
+| Noir EZKL bridge | `bridge_circuit="NoirEzklBridge"` | `noir_honk` | Live lane with on-chain receipt evidence |
 | Native EZKL KZG | `bridge_circuit="EzklNativeKzg"` | `native_kzg` | In progress with strict payload gating + bundle injection hooks (`EZKL_KZG_BUNDLE_*`) |
 | STARK heavy reputation | `/risk_passport/stark-heavy-reputation` | `stark_integrity` | Live |
 
@@ -85,6 +85,10 @@ From latest backend showcase/readout (`/test`) and local report artifacts.
   - <https://sepolia.voyager.online/tx/0x49226ffb495953f1a981020ebb61e8ac462410b750ac672dd21d3f0a8f5b59c>
 - Heavy STARK reputation (`stark_integrity`, `verified_on_chain=true`):
   - <https://sepolia.voyager.online/tx/0x7249f4a0dc41f12dd5249f4e7284c0f4d392ec69740396d1de4e0f83126739d>
+- Noir HONK lane (`noir_honk`, `verified_on_chain=true`):
+  - <https://sepolia.voyager.online/tx/0x55f1d6cf06ed5e2deaf90c86479c2f03b27ed631478447d14af808f33963475>
+- Native KZG strict lane (`native_kzg`, `verified_on_chain=true`):
+  - <https://sepolia.voyager.online/tx/0x5c9e21abd2119600421872f0baad9988ea7082eec54bacea8657649a8cf5f42>
 
 Core contracts:
 
@@ -101,7 +105,7 @@ Core contracts:
 ## 6) What Still Needs To Land
 
 1. Full Path B completion: universal `kzg_mpcheck_v1` witness extraction + live strict-mode pass receipts (sidecar/extractor hooks are now wired, including `scripts/extract_ezkl_kzg_mpcheck_bundle.py`; remaining work is robust automatic extraction coverage across all model flows).
-2. Path A production receipts in target env (`noir_honk` tx evidence).
+2. Path A hardening: recurring HONK receipts plus gas/latency benchmark cadence.
 3. Path 2 and Path 3 operational rollout for full recursive closure.
 
 Next: [Technical Foundations](/technical-foundations) | [How Systems Work](/how-systems-work) | [Contracts](/contracts)

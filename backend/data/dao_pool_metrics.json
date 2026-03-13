@@ -13,15 +13,15 @@
   },
   "MODERATE_POOL": {
     "pool": "MODERATE_POOL",
-    "totalDeposited": 1970117.5,
+    "totalDeposited": 1974653.5,
     "currentYield": 12.6,
     "borrowersActive": 26,
     "avgBorrowingRate": 5.4,
-    "idleCapital": 689530.525,
+    "idleCapital": 691118.125,
     "utilizationRate": 0.650005,
     "daoApr": 2.4,
     "source": "simulated",
-    "updated_at": "2026-03-12T23:35:09Z"
+    "updated_at": "2026-03-13T01:54:03Z"
   },
   "AGGRESSIVE_POOL": {
     "pool": "AGGRESSIVE_POOL",

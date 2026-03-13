@@ -117,13 +117,13 @@ Judge summary line:
 
 This is the direct "full roadmap" readout for judges:
 
-- **Path A (Noir HONK):** Implemented in code and wired in proving-path routing. The remaining ops milestone is collecting stable live `noir_honk` receipts in the target environment and promoting that to a repeatable runbook.
+- **Path A (Noir HONK):** Implemented in code, verifier deployed, and live `noir_honk` receipt captured. Current work is stability cadence (recurring receipts + gas/latency benchmark runbook).
 - **Path C (L1 verifier + L1->L2 bridge):** Implemented end-to-end in code (L1 verifier lane, sender/receiver flow, and polling API). Current work is operational hardening and recurring live bridge confirmations.
 - **Path B (Native Cairo KZG):** Strict lane is active (non-placeholder gating + `kzg_mpcheck_v1` trailer checks + on-chain path routing). Remaining work is broadening real MPCheck extraction coverage across all live model flows and expanding receipt evidence.
 
 Roadmap phase framing:
 
-- **Phase 2:** Delivered (Noir bridge stack in place).
+- **Phase 2:** Delivered and live (Noir bridge stack in place with on-chain receipts).
 - **Phase 3:** Implemented and now being operationalized with live bridge confirmations.
 - **Phase 4:** In progress with strict semantics active; focused on coverage and production-grade reliability.
 

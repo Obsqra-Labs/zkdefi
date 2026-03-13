@@ -549,3 +549,123 @@ async def get_norm_params():
 
     import json
     return json.loads(norm_path.read_text())
+
+
+# ─── Strategy comparison (all 3 risk profiles in parallel) ───────────────────
+
+class CompareRequest(BaseModel):
+    wallet_address: str = Field(..., description="Starknet wallet address")
+    hypothetical_usd: Optional[float] = Field(default=None)
+
+
+@router.post("/compare-strategies")
+async def compare_strategies(req: CompareRequest):
+    """
+    Run all 3 risk profiles (conservative / balanced / aggressive) against the
+    same portfolio snapshot and return them side-by-side.
+    """
+    import asyncio
+    from app.services.position_scanner import scan_portfolio
+    from app.services.strategy_simulator import simulate_strategy as _simulate
+
+    snapshot = await scan_portfolio(req.wallet_address)
+    snapshot_dict = snapshot.to_dict()
+
+    is_hypothetical = (
+        req.hypothetical_usd is not None and snapshot.total_value_usd <= 0.01
+    )
+
+    async def _run(profile: str):
+        proposal = await _simulate(
+            snapshot_dict, profile, hypothetical_usd=req.hypothetical_usd,
+        )
+        return {
+            "risk_profile": profile,
+            "expected_blended_apy": proposal.expected_blended_apy,
+            "expected_annual_yield_usd": proposal.expected_annual_yield_usd,
+            "reasoning": proposal.reasoning,
+            "proposal_hash": proposal.proposal_hash,
+            "moves_count": len(proposal.moves),
+            "portfolio_value_usd": proposal.portfolio_value_usd,
+            "moves": [
+                {
+                    "action": m.action,
+                    "protocol": m.protocol,
+                    "pool_name": m.pool_name,
+                    "asset_symbol": m.asset_symbol,
+                    "amount_usd": m.amount_usd,
+                    "expected_apy": m.expected_apy,
+                    "risk_score": m.risk_score,
+                    "reasoning": m.reasoning,
+                }
+                for m in proposal.moves
+            ],
+        }
+
+    conservative, balanced, aggressive = await asyncio.gather(
+        _run("conservative"), _run("balanced"), _run("aggressive"),
+    )
+
+    return {
+        "portfolio": {
+            "wallet_address": snapshot.wallet_address,
+            "total_value_usd": snapshot.total_value_usd,
+            "position_count": snapshot.position_count,
+            "protocols_found": snapshot.protocols_found,
+        },
+        "is_hypothetical": is_hypothetical,
+        "strategies": {
+            "conservative": conservative,
+            "balanced": balanced,
+            "aggressive": aggressive,
+        },
+    }
+
+
+# ─── Onboard: assign L3 identity after reputation scan ──────────────────────
+
+class OnboardRequest(BaseModel):
+    wallet_address: str = Field(..., description="Starknet L1/L2 wallet address")
+
+
+@router.post("/onboard")
+async def onboard_identity(req: OnboardRequest):
+    """
+    Onboard a wallet into the Capital OS demo:
+      1. Run reputation scan
+      2. Derive a deterministic L3 address from wallet + salt
+      3. Create a paper trading session
+      4. Return unified identity (L3 addr, session_id, reputation, credit score)
+    """
+    import hashlib as _hl
+    from app.services.paper_trade_engine import create_session, get_sessions_for_wallet
+
+    # 1. Reputation scan (same as /reputation-scan endpoint)
+    try:
+        from app.services.reputation_scanner import scan_reputation
+        profile = await scan_reputation(req.wallet_address)
+        reputation = profile.to_dict()
+    except Exception as exc:
+        logger.warning("Reputation scan in onboard failed: %s", exc)
+        reputation = None
+
+    # 2. Derive deterministic L3 address
+    l3_seed = f"zkdefi_l3_v1:{req.wallet_address.strip().lower()}"
+    l3_hash = _hl.sha256(l3_seed.encode()).hexdigest()
+    l3_address = "0x" + l3_hash[:40]  # 20-byte address
+
+    # 3. Get or create paper trading session
+    existing = get_sessions_for_wallet(req.wallet_address)
+    if existing:
+        session = existing[0]
+    else:
+        session = create_session(req.wallet_address)
+
+    return {
+        "status": "onboarded",
+        "wallet_address": req.wallet_address,
+        "l3_address": l3_address,
+        "session_id": session.session_id,
+        "session_created_at": session.created_at,
+        "reputation": reputation,
+    }

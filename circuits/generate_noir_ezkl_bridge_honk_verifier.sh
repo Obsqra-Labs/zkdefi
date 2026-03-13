@@ -6,7 +6,7 @@
 # Steps:
 #   1. nargo compile in circuits/noir_ezkl_bridge → target/<name>.json
 #   2. bb write_vk -s ultra_honk --oracle_hash keccak -b target/<name>.json -o target/vk
-#   3. garaga gen --system ultra_keccak_zk_honk --vk target/vk
+#   3. garaga gen --system ultra_keccak_zk_honk --vk target/vk/vk
 #   4. scarb build in generated project
 #
 # For Starknet-native transcript (~178M gas): if Garaga supports ultra_starknet_honk,
@@ -48,6 +48,11 @@ fi
 
 echo "=== Writing HONK verification key ==="
 bb write_vk -s ultra_honk --oracle_hash keccak -b "$COMPILED_JSON" -o "${TARGET}/vk"
+VK_BIN="${TARGET}/vk/vk"
+if [ ! -f "$VK_BIN" ]; then
+  echo "Missing HONK vk binary at $VK_BIN after bb write_vk" >&2
+  exit 1
+fi
 
 if ! command -v garaga >/dev/null 2>&1; then
   echo "garaga CLI not found. Install: pip install garaga==1.0.1" >&2
@@ -57,7 +62,7 @@ fi
 echo "=== Generating Garaga HONK verifier contract ==="
 rm -rf "${CONTRACTS_SRC}/${OUT_PROJECT_NAME}"
 # Generate into contracts/src so we have same layout as other verifiers
-(cd "$CONTRACTS_SRC" && garaga gen --system ultra_keccak_zk_honk --vk "${TARGET}/vk" --project-name "$OUT_PROJECT_NAME")
+(cd "$CONTRACTS_SRC" && garaga gen --system ultra_keccak_zk_honk --vk "$VK_BIN" --project-name "$OUT_PROJECT_NAME")
 
 VERIFIER_DIR="${CONTRACTS_SRC}/${OUT_PROJECT_NAME}"
 if [ -d "$VERIFIER_DIR" ]; then

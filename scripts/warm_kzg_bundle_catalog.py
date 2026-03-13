@@ -75,6 +75,11 @@ def _model_dirs(root: Path, patterns: list[str]) -> list[Path]:
     return out
 
 
+def _is_ezkl_proving_model(model_dir: Path) -> bool:
+    required = ("vk.key", "settings.json", "kzg.srs")
+    return all((model_dir / name).exists() for name in required)
+
+
 async def _run(args: argparse.Namespace) -> int:
     models_root = BACKEND_ROOT / "app" / "data" / "ezkl_models"
     if not models_root.exists():
@@ -82,6 +87,8 @@ async def _run(args: argparse.Namespace) -> int:
         return 2
 
     selected = _model_dirs(models_root, args.model)
+    if not args.include_non_ezkl:
+        selected = [p for p in selected if _is_ezkl_proving_model(p)]
     if args.limit and args.limit > 0:
         selected = selected[: args.limit]
     if not selected:
@@ -187,12 +194,60 @@ def _parse_args() -> argparse.Namespace:
         default=str(PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_warm.json"),
         help="Output JSON report path.",
     )
+    parser.add_argument(
+        "--include-non-ezkl",
+        action="store_true",
+        help="Include model folders without vk/settings/srs (off by default).",
+    )
+    parser.add_argument(
+        "--min-coverage",
+        type=float,
+        default=None,
+        help=(
+            "Optional minimum bundle coverage ratio [0,1]. "
+            "When set, script exits non-zero if models_with_bundle/models_total is below threshold."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
-    return asyncio.run(_run(args))
+    rc = asyncio.run(_run(args))
+    if rc != 0:
+        return rc
+
+    if args.min_coverage is None:
+        return 0
+
+    try:
+        target = float(args.min_coverage)
+    except Exception:
+        print(f"invalid --min-coverage: {args.min_coverage}")
+        return 2
+    if target < 0.0 or target > 1.0:
+        print(f"--min-coverage must be within [0,1], got {target}")
+        return 2
+
+    out_path = Path(args.output).resolve()
+    try:
+        report = json.loads(out_path.read_text())
+    except Exception as exc:
+        print(f"failed to read report for coverage gate: {out_path} ({exc})")
+        return 2
+
+    total = int(report.get("models_total", 0) or 0)
+    bundled = int(report.get("models_with_bundle", 0) or 0)
+    coverage = (bundled / total) if total > 0 else 0.0
+    passes = (total > 0) and (coverage >= target)
+    print(
+        "coverage gate:",
+        f"target={target:.2%}",
+        f"actual={coverage:.2%}",
+        f"models={bundled}/{total}",
+        "PASS" if passes else "FAIL",
+    )
+    return 0 if passes else 1
 
 
 if __name__ == "__main__":
