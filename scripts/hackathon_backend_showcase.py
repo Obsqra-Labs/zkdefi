@@ -802,6 +802,7 @@ class ShowcaseRunner:
             required_steps = [
                 "Open-source ModelBridge + dual-proof architecture",
                 "ModelBridge live l3 verify receipt",
+                "Noir HONK live l3 verify receipt",
                 "Path B dual native KZG mirrors are demonstrable",
                 "Recursive EZKL paths (Phase 2/3/4) status",
             ]
@@ -810,6 +811,7 @@ class ShowcaseRunner:
                 "Open-source ModelBridge + dual-proof architecture",
                 "ModelBridge live l3 verify receipt",
                 "ModelBridgeHeavy live l3 verify receipt",
+                "Noir HONK live l3 verify receipt",
                 "Path B dual native KZG mirrors are demonstrable",
                 "StarkHeavyReputation STARK flow",
                 "Recursive EZKL paths (Phase 2/3/4) status",
