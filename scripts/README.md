@@ -134,6 +134,7 @@ Env knobs:
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `SHOWCASE_REQUIRE_NOIR_LANE` (default `false`; when `true`, CI gate hard-requires Noir lane `noir_honk` + on-chain verify)
+- `SHOWCASE_BENCHMARK_WINDOW_RUNS` (default `40`; rolling history window used for stability/gas trend table)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
 
@@ -169,6 +170,7 @@ The HTML report includes:
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
 - Dedicated **Lane Health + Degradation Notes** matrix so any unstable lane (for example Noir calldata availability) is explicit in the report
 - Dedicated **Bridge Benchmark Receipts** compact table: per-lane HTTP/mode/backend/verified flag + duration + fee + gas + explorer tx
+- Dedicated **Rolling Stability + Gas Trend** table from `artifacts/hackathon_showcase/history.jsonl` (verified-rate + p50/p95 latency/fee by lane)
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness, **stage completion check-ins**, and **GitHub version gates**

@@ -24,6 +24,7 @@ Focused documentation index for zkde.fi.
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 
 Use `/test` for the current Obsqra Labs research evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
+The report now also includes rolling stability/gas benchmarks by lane (verified-rate + p50/p95) from `artifacts/hackathon_showcase/history.jsonl`.
 
 Daily refresh on the same server (recommended for `/test`):
 

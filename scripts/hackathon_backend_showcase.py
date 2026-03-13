@@ -234,6 +234,34 @@ def _clip_text(raw: Any, limit: int = 160) -> str:
     return value[: max(0, limit - 3)] + "..."
 
 
+def _parse_fee_display_int(raw: Any) -> int | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text or text == "-":
+        return None
+    m = re.search(r"([0-9]{1,40})", text)
+    if not m:
+        return None
+    try:
+        value = int(m.group(1))
+    except Exception:
+        return None
+    return value if value >= 0 else None
+
+
+def _percentile_int(values: list[int], pct: float) -> int | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    p = max(0.0, min(100.0, float(pct)))
+    idx = int(round((p / 100.0) * (len(ordered) - 1)))
+    idx = max(0, min(len(ordered) - 1, idx))
+    return ordered[idx]
+
+
 def _voyager_contract_url(address: str | None) -> str | None:
     if not address:
         return None
@@ -4238,7 +4266,176 @@ class ShowcaseRunner:
         print(f"Score: {score}/{total} claims validated")
         return 0 if score == total else 1
 
+    def _benchmark_rollup_from_history(self, window_runs: int = 40) -> dict[str, Any]:
+        history_path = self.artifact_dir / "history.jsonl"
+        if not history_path.exists():
+            return {
+                "history_found": False,
+                "artifact_path": _relative_to_project(history_path),
+                "window_runs_requested": window_runs,
+                "history_entries_total": 0,
+                "history_entries_used": 0,
+                "rows": [],
+            }
+
+        entries: list[dict[str, Any]] = []
+        try:
+            for line in history_path.read_text(encoding="utf-8").splitlines():
+                raw = line.strip()
+                if not raw:
+                    continue
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    entries.append(parsed)
+        except Exception:
+            return {
+                "history_found": True,
+                "artifact_path": _relative_to_project(history_path),
+                "window_runs_requested": window_runs,
+                "history_entries_total": 0,
+                "history_entries_used": 0,
+                "rows": [],
+                "error": "failed_to_parse_history",
+            }
+
+        lane_order = ["modelbridge", "modelbridge_heavy", "noir", "native_kzg"]
+        lane_labels = {
+            "modelbridge": "ModelBridge",
+            "modelbridge_heavy": "ModelBridgeHeavy",
+            "noir": "NoirEzklBridge",
+            "native_kzg": "EzklNativeKzg",
+        }
+        lane_aliases = {
+            "modelbridge": "modelbridge",
+            "modelbridgeheavy": "modelbridge_heavy",
+            "noirezklbridge": "noir",
+            "ezklnativekzg": "native_kzg",
+        }
+
+        stats: dict[str, dict[str, Any]] = {
+            key: {
+                "samples": 0,
+                "verified": 0,
+                "durations": [],
+                "fees": [],
+                "modes": {},
+                "latest_tx_hash": None,
+                "latest_mode": None,
+                "latest_verified": None,
+                "latest_status": None,
+            }
+            for key in lane_order
+        }
+
+        used_rows = entries[-max(1, int(window_runs)) :]
+        for row in used_rows:
+            benchmark_rows = row.get("benchmark_receipts") if isinstance(row.get("benchmark_receipts"), list) else []
+            if benchmark_rows:
+                for item in benchmark_rows:
+                    if not isinstance(item, dict):
+                        continue
+                    lane_raw = str(item.get("lane") or "").strip().lower()
+                    lane_key = lane_aliases.get(re.sub(r"[^a-z0-9_]+", "", lane_raw))
+                    if not lane_key or lane_key not in stats:
+                        continue
+                    bucket = stats[lane_key]
+                    bucket["samples"] += 1
+                    verified = bool(item.get("verified_on_chain"))
+                    if verified:
+                        bucket["verified"] += 1
+                    duration_ms = _safe_int(item.get("duration_ms"), 0)
+                    if duration_ms > 0:
+                        bucket["durations"].append(duration_ms)
+                    fee_amount = _safe_int(item.get("actual_fee_amount"), 0)
+                    if fee_amount <= 0:
+                        parsed_fee = _parse_fee_display_int(item.get("actual_fee_display"))
+                        fee_amount = int(parsed_fee or 0)
+                    if fee_amount > 0:
+                        bucket["fees"].append(fee_amount)
+                    mode = str(item.get("mode") or "-")
+                    mode_key = mode.strip().lower()
+                    if mode_key:
+                        mode_counts = bucket["modes"]
+                        mode_counts[mode_key] = _safe_int(mode_counts.get(mode_key), 0) + 1
+                    tx_hash = str(item.get("tx_hash") or "").strip()
+                    if tx_hash:
+                        bucket["latest_tx_hash"] = tx_hash
+                    bucket["latest_mode"] = mode
+                    bucket["latest_verified"] = verified
+                    bucket["latest_status"] = _safe_int(item.get("status"), 0)
+                continue
+
+            # Backward-compatible fallback for older history rows without benchmark_receipts.
+            receipts = row.get("receipts") if isinstance(row.get("receipts"), dict) else {}
+            fallback_map = {
+                "modelbridge": "modelbridge",
+                "modelbridge_heavy": "modelbridge_heavy",
+                "native_kzg": "native_kzg",
+            }
+            for old_key, lane_key in fallback_map.items():
+                item = receipts.get(old_key) if isinstance(receipts.get(old_key), dict) else {}
+                if not item:
+                    continue
+                bucket = stats[lane_key]
+                bucket["samples"] += 1
+                verified = bool(item.get("verified_on_chain"))
+                if verified:
+                    bucket["verified"] += 1
+                mode = str(item.get("mode") or "-")
+                mode_key = mode.strip().lower()
+                if mode_key:
+                    mode_counts = bucket["modes"]
+                    mode_counts[mode_key] = _safe_int(mode_counts.get(mode_key), 0) + 1
+                tx_hash = str(item.get("tx_hash") or "").strip()
+                if tx_hash:
+                    bucket["latest_tx_hash"] = tx_hash
+                bucket["latest_mode"] = mode
+                bucket["latest_verified"] = verified
+
+        rows: list[dict[str, Any]] = []
+        for lane_key in lane_order:
+            bucket = stats.get(lane_key, {})
+            samples = _safe_int(bucket.get("samples"), 0)
+            verified = _safe_int(bucket.get("verified"), 0)
+            verified_rate = (float(verified) / float(samples) * 100.0) if samples > 0 else 0.0
+            durations = bucket.get("durations") if isinstance(bucket.get("durations"), list) else []
+            fees = bucket.get("fees") if isinstance(bucket.get("fees"), list) else []
+            modes = bucket.get("modes") if isinstance(bucket.get("modes"), dict) else {}
+            dominant_mode = "-"
+            if modes:
+                dominant_mode = max(modes.items(), key=lambda item: (_safe_int(item[1], 0), str(item[0])))[0]
+            rows.append(
+                {
+                    "lane": lane_labels.get(lane_key, lane_key),
+                    "lane_key": lane_key,
+                    "samples": samples,
+                    "verified_samples": verified,
+                    "verified_rate_pct": round(verified_rate, 2),
+                    "dominant_mode": dominant_mode,
+                    "duration_p50_ms": _percentile_int([_safe_int(v, 0) for v in durations if _safe_int(v, 0) > 0], 50.0),
+                    "duration_p95_ms": _percentile_int([_safe_int(v, 0) for v in durations if _safe_int(v, 0) > 0], 95.0),
+                    "fee_p50": _percentile_int([_safe_int(v, 0) for v in fees if _safe_int(v, 0) > 0], 50.0),
+                    "fee_p95": _percentile_int([_safe_int(v, 0) for v in fees if _safe_int(v, 0) > 0], 95.0),
+                    "latest_tx_hash": bucket.get("latest_tx_hash"),
+                    "latest_mode": bucket.get("latest_mode"),
+                    "latest_verified": bucket.get("latest_verified"),
+                    "latest_status": bucket.get("latest_status"),
+                }
+            )
+
+        return {
+            "history_found": True,
+            "artifact_path": _relative_to_project(history_path),
+            "window_runs_requested": max(1, int(window_runs)),
+            "history_entries_total": len(entries),
+            "history_entries_used": len(used_rows),
+            "rows": rows,
+        }
+
     def _report_payload(self, started_at: float, exit_code: int) -> dict[str, Any]:
+        benchmark_rollup = self._benchmark_rollup_from_history(
+            window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40)
+        )
         return {
             "generated_at": _to_iso_utc(),
             "started_at": _to_iso_utc(started_at),
@@ -4266,6 +4463,7 @@ class ShowcaseRunner:
             "deployment": self._deployment_output,
             "circuit_inventory": self._circuit_inventory,
             "bridge_architecture": self._bridge_architecture,
+            "benchmark_rollup": benchmark_rollup,
             "recursive_ezkl_paths": self._recursive_ezkl_paths,
             "heavy_stark_showcase": self._heavy_stark_showcase,
             "ecosystem_landscape": self._ecosystem_landscape,
@@ -4822,6 +5020,41 @@ class ShowcaseRunner:
                     escape(
                         f"{row.get('l1_gas') or '-'} / {row.get('l1_data_gas') or '-'} / {row.get('l2_gas') or '-'}"
                     ),
+                    tx_html,
+                ]
+            )
+
+        benchmark_rollup = payload.get("benchmark_rollup") if isinstance(payload.get("benchmark_rollup"), dict) else {}
+        benchmark_trend_rows = []
+        for row in (benchmark_rollup.get("rows") or []):
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("latest_tx_hash") or "-")
+            tx_url = _voyager_tx_url(tx_hash) if tx_hash and tx_hash != "-" else None
+            tx_html = (
+                f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
+                if tx_url
+                else escape(_short_hex(tx_hash, 14))
+            )
+            latest_verified = row.get("latest_verified")
+            if latest_verified is True:
+                latest_verified_html = "<span class=\"pass\">true</span>"
+            elif latest_verified is False:
+                latest_verified_html = "<span class=\"fail\">false</span>"
+            else:
+                latest_verified_html = "<span class=\"warn\">n/a</span>"
+            benchmark_trend_rows.append(
+                [
+                    escape(str(row.get("lane") or "-")),
+                    escape(str(row.get("samples") or 0)),
+                    escape(f"{_safe_float(row.get('verified_rate_pct'), 0.0):.2f}%"),
+                    escape(str(row.get("dominant_mode") or "-")),
+                    escape(str(row.get("duration_p50_ms") or "-")),
+                    escape(str(row.get("duration_p95_ms") or "-")),
+                    escape(str(row.get("fee_p50") or "-")),
+                    escape(str(row.get("fee_p95") or "-")),
+                    escape(str(row.get("latest_mode") or "-")),
+                    latest_verified_html,
                     tx_html,
                 ]
             )
@@ -6086,6 +6319,13 @@ class ShowcaseRunner:
         Per-lane benchmark snapshot for demos and judge review: HTTP status, verifier mode, backend route, on-chain verification flag, duration, fee, gas, and explorer tx.
       </p>
       {self._html_table(["Lane", "HTTP", "Mode", "Backend", "Verified", "Duration ms", "Actual Fee", "Steps", "L1 / L1Data / L2 gas", "Tx"], benchmark_receipt_rows)}
+      <h3>Rolling Stability + Gas Trend (History)</h3>
+      <p class="meta">
+        Window: last {escape(str(benchmark_rollup.get('history_entries_used') or 0))} of {escape(str(benchmark_rollup.get('history_entries_total') or 0))} recorded runs
+        (requested window={escape(str(benchmark_rollup.get('window_runs_requested') or 0))}).
+        Source: <code>{escape(str(benchmark_rollup.get('artifact_path') or 'artifacts/hackathon_showcase/history.jsonl'))}</code>
+      </p>
+      {self._html_table(["Lane", "Samples", "Verified Rate", "Dominant Mode", "p50 ms", "p95 ms", "p50 Fee", "p95 Fee", "Latest Mode", "Latest Verified", "Latest Tx"], benchmark_trend_rows)}
       <h3>StarkHeavyReputation (Stone -> L3)</h3>
       <p class="meta">
         Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
@@ -6407,6 +6647,23 @@ class ShowcaseRunner:
         live = bridge.get("modelbridge_live_receipt", {}) if isinstance(bridge.get("modelbridge_live_receipt"), dict) else {}
         heavy = bridge.get("modelbridge_heavy_live_receipt", {}) if isinstance(bridge.get("modelbridge_heavy_live_receipt"), dict) else {}
         native = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
+        benchmark_rows_raw = bridge.get("benchmark_receipts") if isinstance(bridge.get("benchmark_receipts"), list) else []
+        benchmark_rows: list[dict[str, Any]] = []
+        for row in benchmark_rows_raw:
+            if not isinstance(row, dict):
+                continue
+            benchmark_rows.append(
+                {
+                    "lane": row.get("lane"),
+                    "status": row.get("status"),
+                    "mode": row.get("l3_mode"),
+                    "verified_on_chain": bool(row.get("verified_on_chain")),
+                    "duration_ms": row.get("duration_ms"),
+                    "actual_fee_display": row.get("actual_fee_display"),
+                    "actual_fee_amount": _parse_fee_display_int(row.get("actual_fee_display")),
+                    "tx_hash": row.get("tx_hash"),
+                }
+            )
 
         pathc_live = recursive.get("path_c_live", {}) if isinstance(recursive.get("path_c_live"), dict) else {}
 
@@ -6437,6 +6694,7 @@ class ShowcaseRunner:
                     "verified_on_chain": bool(native.get("l3_verified_on_chain")),
                 },
             },
+            "benchmark_receipts": benchmark_rows,
         }
 
     def _append_history(self, payload: dict[str, Any]) -> str | None:
