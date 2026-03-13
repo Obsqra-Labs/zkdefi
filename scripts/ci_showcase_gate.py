@@ -76,11 +76,13 @@ def _validate_latest_report() -> None:
 def main() -> int:
     base_url = _env("SHOWCASE_BASE_URL", "http://127.0.0.1:8003")
     timeout_seconds = _env("SHOWCASE_TIMEOUT_SECONDS", "50")
+    strict_attempts = _env("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS", "2")
     warm_output = _env(
         "SHOWCASE_WARM_OUTPUT",
         str(ARTIFACT_DIR / "pathb_bundle_warm.json"),
     )
     min_coverage = _env("PATHB_WARM_MIN_COVERAGE", "1.0")
+    os.environ["SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"] = strict_attempts
 
     _run(
         [

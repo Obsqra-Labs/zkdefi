@@ -45,6 +45,8 @@ Optional flags:
 - `--judge-mode` (compact terminal output for live judging)
 - `--fast` (skip heaviest proof/advisory checks for quicker routine validation)
 - `--strict-bridge` (requires strict `200` ModelBridge + dual-lane evidence; no transient pass)
+- `--skip-heavy-stark` (skip heavy STARK reputation call while keeping strict bridge checks)
+- `--skip-ai-marketplace` (skip advisory + badge proof section)
 - `--emit-report` (opt-in HTML/JSON artifacts; default is skip for faster runs)
 - `--emit-report-force` (override final-stage gate and write report even if required proof lanes are not all green)
 - `--skip-report` (explicitly skip HTML/JSON artifact generation)
@@ -122,6 +124,7 @@ Env knobs:
 
 - `SHOWCASE_BASE_URL` (default `http://127.0.0.1:8003`)
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
+- `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
 

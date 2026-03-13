@@ -610,6 +610,7 @@ class ShowcaseRunner:
         print(f"fast_mode={self.fast_mode}")
         print(f"skip_heavy_stark={self.skip_heavy_stark}")
         print(f"skip_ai_marketplace={self.skip_ai_marketplace}")
+        print(f"strict_bridge_max_attempts={_safe_int(os.getenv('SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS'), 0) or 'default'}")
         print("")
 
         self.step_health()
@@ -2159,20 +2160,28 @@ class ShowcaseRunner:
         # Honor CLI timeout tuning even in strict mode; avoid forcing 240s hangs
         # when a bridge lane is unhealthy. Keep a sane floor for normal slow proofs.
         bridge_timeout = max(self.timeout_seconds, 25.0)
+        strict_attempts_override = _safe_int(os.getenv("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"), 0)
+
+        def _bridge_attempts(strict_default: int, relaxed_default: int) -> int:
+            if not self.strict_bridge:
+                return relaxed_default
+            if strict_attempts_override > 0:
+                return max(1, strict_attempts_override)
+            return strict_default
 
         l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(
             l3_payload,
-            max_attempts=(5 if self.strict_bridge else 5),
+            max_attempts=_bridge_attempts(5, 5),
             timeout_seconds=bridge_timeout,
         )
         dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(
             dual_payload,
-            max_attempts=(6 if self.strict_bridge else 5),
+            max_attempts=_bridge_attempts(6, 5),
             timeout_seconds=bridge_timeout,
         )
         heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
             heavy_payload,
-            max_attempts=(5 if self.strict_bridge else 5),
+            max_attempts=_bridge_attempts(5, 5),
             timeout_seconds=bridge_timeout,
         )
         noir_status = 0
@@ -2181,12 +2190,12 @@ class ShowcaseRunner:
         if noir_honk_available:
             noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
                 noir_payload,
-                max_attempts=(5 if self.strict_bridge else 5),
+                max_attempts=_bridge_attempts(5, 5),
                 timeout_seconds=bridge_timeout,
             )
         native_kzg_status, native_kzg_body, native_kzg_attempts = self._call_ml_bridge_with_retry(
             native_kzg_payload,
-            max_attempts=(4 if self.strict_bridge else 3),
+            max_attempts=_bridge_attempts(4, 3),
             timeout_seconds=bridge_timeout,
         )
 

@@ -16,6 +16,7 @@ import json
 import sys
 import time
 from datetime import datetime, timezone
+from math import prod
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,25 @@ from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof  # 
 
 
 def _load_feature_count(model_dir: Path) -> int:
+    settings_path = model_dir / "settings.json"
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text())
+            shapes = settings.get("model_instance_shapes")
+            if isinstance(shapes, list) and shapes:
+                first_shape = shapes[0]
+                if isinstance(first_shape, list) and first_shape:
+                    dims = [int(x) for x in first_shape if int(x) > 0]
+                    if dims:
+                        if len(dims) > 1 and dims[0] == 1:
+                            n = prod(dims[1:])
+                        else:
+                            n = prod(dims)
+                        if n > 0:
+                            return int(n)
+        except Exception:
+            pass
+
     meta_path = model_dir / "training_metadata.json"
     if meta_path.exists():
         try:
