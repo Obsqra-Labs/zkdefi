@@ -2541,33 +2541,33 @@ class ShowcaseRunner:
         benchmark_receipts: list[dict[str, Any]] = [
             {
                 "lane": "ModelBridge",
-                "status": live_receipt.get("status"),
-                "bridge_backend": live_receipt.get("bridge_backend"),
-                "l3_mode": live_receipt.get("l3_mode"),
-                "verified_on_chain": live_receipt.get("l3_verified_on_chain"),
-                "duration_ms": live_receipt.get("total_duration_ms"),
-                "actual_fee_display": live_receipt.get("l3_actual_fee_display"),
-                "execution_steps": live_receipt.get("l3_execution_steps"),
-                "l1_gas": live_receipt.get("l3_l1_gas"),
-                "l1_data_gas": live_receipt.get("l3_l1_data_gas"),
-                "l2_gas": live_receipt.get("l3_l2_gas"),
-                "tx_hash": live_receipt.get("l3_tx_hash"),
-                "tx_url": live_receipt.get("l3_tx_url"),
+                "status": self._modelbridge_live_receipt.get("status"),
+                "bridge_backend": self._modelbridge_live_receipt.get("bridge_backend"),
+                "l3_mode": self._modelbridge_live_receipt.get("l3_mode"),
+                "verified_on_chain": self._modelbridge_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": self._modelbridge_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": self._modelbridge_live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": self._modelbridge_live_receipt.get("l3_execution_steps"),
+                "l1_gas": self._modelbridge_live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": self._modelbridge_live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": self._modelbridge_live_receipt.get("l3_l2_gas"),
+                "tx_hash": self._modelbridge_live_receipt.get("l3_tx_hash"),
+                "tx_url": self._modelbridge_live_receipt.get("l3_tx_url"),
             },
             {
                 "lane": "ModelBridgeHeavy",
-                "status": heavy_live_receipt.get("status"),
-                "bridge_backend": heavy_live_receipt.get("bridge_backend"),
-                "l3_mode": heavy_live_receipt.get("l3_mode"),
-                "verified_on_chain": heavy_live_receipt.get("l3_verified_on_chain"),
-                "duration_ms": heavy_live_receipt.get("total_duration_ms"),
-                "actual_fee_display": heavy_live_receipt.get("l3_actual_fee_display"),
-                "execution_steps": heavy_live_receipt.get("l3_execution_steps"),
-                "l1_gas": heavy_live_receipt.get("l3_l1_gas"),
-                "l1_data_gas": heavy_live_receipt.get("l3_l1_data_gas"),
-                "l2_gas": heavy_live_receipt.get("l3_l2_gas"),
-                "tx_hash": heavy_live_receipt.get("l3_tx_hash"),
-                "tx_url": heavy_live_receipt.get("l3_tx_url"),
+                "status": self._modelbridge_heavy_live_receipt.get("status"),
+                "bridge_backend": self._modelbridge_heavy_live_receipt.get("bridge_backend"),
+                "l3_mode": self._modelbridge_heavy_live_receipt.get("l3_mode"),
+                "verified_on_chain": self._modelbridge_heavy_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": self._modelbridge_heavy_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": self._modelbridge_heavy_live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": self._modelbridge_heavy_live_receipt.get("l3_execution_steps"),
+                "l1_gas": self._modelbridge_heavy_live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": self._modelbridge_heavy_live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": self._modelbridge_heavy_live_receipt.get("l3_l2_gas"),
+                "tx_hash": self._modelbridge_heavy_live_receipt.get("l3_tx_hash"),
+                "tx_url": self._modelbridge_heavy_live_receipt.get("l3_tx_url"),
             },
             {
                 "lane": "NoirEzklBridge",
@@ -2587,18 +2587,18 @@ class ShowcaseRunner:
             },
             {
                 "lane": "EzklNativeKzg",
-                "status": native_kzg_live_receipt.get("status"),
-                "bridge_backend": native_kzg_live_receipt.get("bridge_backend"),
-                "l3_mode": native_kzg_live_receipt.get("l3_mode"),
-                "verified_on_chain": native_kzg_live_receipt.get("l3_verified_on_chain"),
-                "duration_ms": native_kzg_live_receipt.get("total_duration_ms"),
-                "actual_fee_display": native_kzg_live_receipt.get("l3_actual_fee_display"),
-                "execution_steps": native_kzg_live_receipt.get("l3_execution_steps"),
-                "l1_gas": native_kzg_live_receipt.get("l3_l1_gas"),
-                "l1_data_gas": native_kzg_live_receipt.get("l3_l1_data_gas"),
-                "l2_gas": native_kzg_live_receipt.get("l3_l2_gas"),
-                "tx_hash": native_kzg_live_receipt.get("l3_tx_hash"),
-                "tx_url": native_kzg_live_receipt.get("l3_tx_url"),
+                "status": self._native_kzg_live_receipt.get("status"),
+                "bridge_backend": self._native_kzg_live_receipt.get("bridge_backend"),
+                "l3_mode": self._native_kzg_live_receipt.get("l3_mode"),
+                "verified_on_chain": self._native_kzg_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": self._native_kzg_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": self._native_kzg_live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": self._native_kzg_live_receipt.get("l3_execution_steps"),
+                "l1_gas": self._native_kzg_live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": self._native_kzg_live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": self._native_kzg_live_receipt.get("l3_l2_gas"),
+                "tx_hash": self._native_kzg_live_receipt.get("l3_tx_hash"),
+                "tx_url": self._native_kzg_live_receipt.get("l3_tx_url"),
             },
         ]
 
@@ -4745,6 +4745,44 @@ class ShowcaseRunner:
             ["Duration ms", escape(str(native_kzg_live_receipt.get("total_duration_ms") or "-"))],
         ]
 
+        benchmark_receipt_rows = []
+        for row in (bridge.get("benchmark_receipts") or []):
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("tx_hash") or "-")
+            tx_url = row.get("tx_url")
+            tx_html = (
+                f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
+                if tx_url and tx_hash != "-"
+                else escape(_short_hex(tx_hash, 14))
+            )
+            verified = row.get("verified_on_chain")
+            if verified is True:
+                verified_html = "<span class=\"pass\">true</span>"
+            elif verified is False:
+                verified_html = "<span class=\"fail\">false</span>"
+            else:
+                verified_html = "<span class=\"warn\">n/a</span>"
+            lane_label = str(row.get("lane") or "-")
+            if row.get("lane_available") is False:
+                lane_label = f"{lane_label} (not enabled)"
+            benchmark_receipt_rows.append(
+                [
+                    escape(lane_label),
+                    escape(str(row.get("status") or "-")),
+                    escape(str(row.get("l3_mode") or "-")),
+                    escape(str(row.get("bridge_backend") or "-")),
+                    verified_html,
+                    escape(str(row.get("duration_ms") or "-")),
+                    escape(str(row.get("actual_fee_display") or "-")),
+                    escape(str(row.get("execution_steps") or "-")),
+                    escape(
+                        f"{row.get('l1_gas') or '-'} / {row.get('l1_data_gas') or '-'} / {row.get('l2_gas') or '-'}"
+                    ),
+                    tx_html,
+                ]
+            )
+
         heavy_stark = payload.get("heavy_stark_showcase", {}) if isinstance(payload.get("heavy_stark_showcase"), dict) else {}
         heavy_stark_l3 = heavy_stark.get("l3") if isinstance(heavy_stark.get("l3"), dict) else {}
         heavy_stark_tx_hash = str(heavy_stark_l3.get("tx_hash") or "-")
@@ -5970,6 +6008,11 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
       <h3>Native KZG Receipt (Path B)</h3>
       {self._html_table(["Field", "Value"], native_kzg_live_receipt_rows)}
+      <h3>Bridge Benchmark Receipts (Compact)</h3>
+      <p class="meta">
+        Per-lane benchmark snapshot for demos and judge review: HTTP status, verifier mode, backend route, on-chain verification flag, duration, fee, gas, and explorer tx.
+      </p>
+      {self._html_table(["Lane", "HTTP", "Mode", "Backend", "Verified", "Duration ms", "Actual Fee", "Steps", "L1 / L1Data / L2 gas", "Tx"], benchmark_receipt_rows)}
       <h3>StarkHeavyReputation (Stone -> L3)</h3>
       <p class="meta">
         Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /

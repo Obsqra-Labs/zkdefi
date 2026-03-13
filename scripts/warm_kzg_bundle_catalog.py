@@ -80,6 +80,20 @@ def _probe_inputs(model_dir: Path) -> list[list[list[float]]]:
     return rows
 
 
+def _failure_action_hint(row: dict[str, Any]) -> str:
+    err = str(row.get("error") or "").lower()
+    extractor_err = str(row.get("kzg_extractor_error") or "").lower()
+    if "dimensionality error" in err or "cannot reshape tensor" in err:
+        return "check model_instance_shapes/training metadata and regenerate model artifacts for the expected input width"
+    if "kzg.srs" in err or "vk.key" in err or "settings.json" in err:
+        return "generate missing EZKL artifacts (vk.key, settings.json, kzg.srs) for this model"
+    if "real_ezkl_unavailable_or_unverified" in err:
+        return "run a model-specific real prove+verify once, then rerun warm-up to seed kzg_mpcheck_bundle"
+    if extractor_err:
+        return "fix KZG extractor wiring (bundle extractor cmd/artifacts) and rerun warm-up"
+    return "inspect backend proof logs for this model and rerun warm-up"
+
+
 def _model_dirs(root: Path, patterns: list[str]) -> list[Path]:
     rows = [p for p in sorted(root.iterdir()) if p.is_dir()]
     if not patterns:
@@ -183,9 +197,12 @@ async def _run(args: argparse.Namespace) -> int:
     }
     failed_rows = [r for r in rows if not r.get("kzg_bundle_present")]
     error_buckets: dict[str, int] = {}
+    action_buckets: dict[str, int] = {}
     for r in failed_rows:
         key = str(r.get("error") or "unknown_error")
         error_buckets[key] = error_buckets.get(key, 0) + 1
+        action = _failure_action_hint(r)
+        action_buckets[action] = action_buckets.get(action, 0) + 1
     report["models_failed"] = len(failed_rows)
     report["failed_models"] = [
         {
@@ -193,10 +210,12 @@ async def _run(args: argparse.Namespace) -> int:
             "error": str(r.get("error") or "unknown_error"),
             "attempted_feature_widths": r.get("attempted_feature_widths") or [],
             "selected_input_features": r.get("selected_input_features"),
+            "recommended_action": _failure_action_hint(r),
         }
         for r in failed_rows
     ]
     report["error_buckets"] = error_buckets
+    report["action_buckets"] = action_buckets
 
     out_path = Path(args.output).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -210,7 +229,10 @@ async def _run(args: argparse.Namespace) -> int:
     if failed_rows:
         print("failed models:")
         for r in failed_rows[:10]:
-            print(f"  - {r.get('model')}: {r.get('error')}")
+            print(
+                f"  - {r.get('model')}: {r.get('error')} | "
+                f"action={_failure_action_hint(r)}"
+            )
         if len(failed_rows) > 10:
             print(f"  - ... {len(failed_rows) - 10} more")
     return 0

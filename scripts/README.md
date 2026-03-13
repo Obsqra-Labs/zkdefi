@@ -113,8 +113,9 @@ Optional:
 Warm report now includes triage helpers:
 
 - `models_failed`
-- `failed_models[]` (model + error + attempted widths)
+- `failed_models[]` (model + error + attempted widths + `recommended_action`)
 - `error_buckets` (grouped failure reasons)
+- `action_buckets` (grouped remediation hints)
 
 Strict gate:
 
@@ -149,6 +150,7 @@ The HTML report includes:
 - Top-level executive cards to reduce initial scroll/load and highlight immediate state (`core claims`, `ModelBridge`, `Native KZG strict`, `recursive stages`)
 - Core claim matrix and step-by-step terminal evidence
 - Dedicated **ModelBridge + ModelBridgeHeavy live L3 receipt** sections: proof hash, calldata size, lane mode, tx link (if emitted), and retry timeline
+- Dedicated **Bridge Benchmark Receipts** compact table: per-lane HTTP/mode/backend/verified flag + duration + fee + gas + explorer tx
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness, **stage completion check-ins**, and **GitHub version gates**
