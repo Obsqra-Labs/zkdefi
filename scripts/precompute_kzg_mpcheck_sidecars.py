@@ -26,6 +26,34 @@ def _entry_bundle(entry: Any) -> dict[str, Any] | None:
     return None
 
 
+def _has_complete_dynamic_artifacts(bundle: dict[str, Any]) -> bool:
+    hint_felts = bundle.get("mpcheck_hint_felts") or bundle.get("hint_felts") or []
+    line_felts = (
+        bundle.get("precomputed_line_felts")
+        or bundle.get("mpcheck_line_felts")
+        or bundle.get("line_felts")
+        or []
+    )
+    if not isinstance(hint_felts, (list, tuple)) or not hint_felts:
+        return False
+    if not isinstance(line_felts, (list, tuple)) or not line_felts:
+        return False
+    if len(line_felts) % 4 != 0:
+        return False
+    declared_count = bundle.get("line_count")
+    if declared_count not in (None, "", 0, "0"):
+        try:
+            if int(declared_count) != len(line_felts) // 4:
+                return False
+        except Exception:
+            return False
+    if str(bundle.get("hint_error") or "").strip():
+        return False
+    if str(bundle.get("line_error") or "").strip():
+        return False
+    return True
+
+
 def _update_bundle(bundle: dict[str, Any]) -> tuple[bool, str]:
     pair0 = _parse_g1_point(bundle.get("pair0") or bundle.get("p1"))
     pair1 = _parse_g1_point(bundle.get("pair1") or bundle.get("p2"))
@@ -47,9 +75,10 @@ def _update_bundle(bundle: dict[str, Any]) -> tuple[bool, str]:
     return True, ""
 
 
-def _process_file(path: Path) -> tuple[int, int]:
+def _process_file(path: Path, *, force: bool = False) -> tuple[int, int, int]:
     obj = json.loads(path.read_text())
     updated = 0
+    skipped = 0
     total = 0
 
     if isinstance(obj, dict):
@@ -58,12 +87,15 @@ def _process_file(path: Path) -> tuple[int, int]:
             if bundle is None:
                 continue
             total += 1
+            if not force and _has_complete_dynamic_artifacts(bundle):
+                skipped += 1
+                continue
             ok, _ = _update_bundle(bundle)
             if ok:
                 updated += 1
 
     path.write_text(json.dumps(obj, indent=2) + "\n")
-    return updated, total
+    return updated, skipped, total
 
 
 def main() -> int:
@@ -74,22 +106,29 @@ def main() -> int:
         default=["yield_forecast", "creditworthiness", "anomaly_detector"],
         help="Model directories under backend/app/data/ezkl_models",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Recompute artifacts even when sidecars already contain complete hint + line data.",
+    )
     args = parser.parse_args()
 
     models_root = BACKEND_ROOT / "app" / "data" / "ezkl_models"
     grand_total = 0
     grand_updated = 0
+    grand_skipped = 0
     for model in args.models:
         path = models_root / model / "kzg_mpcheck_bundle.json"
         if not path.exists():
             print(f"{model}: missing {path}")
             continue
-        updated, total = _process_file(path)
+        updated, skipped, total = _process_file(path, force=bool(args.force))
         grand_total += total
         grand_updated += updated
-        print(f"{model}: updated {updated}/{total} entries")
+        grand_skipped += skipped
+        print(f"{model}: updated {updated}/{total} entries (skipped {skipped})")
 
-    print(f"done: updated {grand_updated}/{grand_total} entries")
+    print(f"done: updated {grand_updated}/{grand_total} entries (skipped {grand_skipped})")
     return 0
 
 

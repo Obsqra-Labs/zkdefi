@@ -549887,5 +549887,29 @@
       "action_type": "rebalance"
     },
     "created_at": "2026-03-13T19:19:47.972019+00:00"
+  },
+  {
+    "id": 21637,
+    "user_address": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "event_type": "proof_generated",
+    "gate": "ml_inference",
+    "outcome": "success",
+    "value_eth": 2.133002,
+    "proof_mode": "EZKL_BRIDGE",
+    "model_name": "anomaly_detector",
+    "model_hash": null,
+    "execution_chain": "dual",
+    "primary_chain": "l3",
+    "verification_mode": "native_kzg",
+    "verified_on_chain": true,
+    "l3_tx_hash": "0x4564866678a76cc1573377c641d78418a9f32e952bd45e847bdee832695e0bf",
+    "l2_tx_hash": "0x441b4c54dcef5bd76d67312bfb49aeb420931919ba91ecb440905d37ba86db",
+    "mirror_status": "mirrored",
+    "failure_reason": null,
+    "metadata": {
+      "commitment_hash": "0xc4b862ca74979ef8f8ea881d223aa3b4",
+      "action_type": "rebalance"
+    },
+    "created_at": "2026-03-13T19:41:52.129783+00:00"
   }
 ]
