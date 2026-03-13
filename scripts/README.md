@@ -110,6 +110,12 @@ Optional:
 - `--include-non-ezkl` (also include model folders without `vk.key/settings.json/kzg.srs`; default is proving-capable EZKL models only)
 - `--min-coverage 1.0` (optional hard gate; exits non-zero if `models_with_bundle/models_total` is below threshold)
 
+Warm report now includes triage helpers:
+
+- `models_failed`
+- `failed_models[]` (model + error + attempted widths)
+- `error_buckets` (grouped failure reasons)
+
 Strict gate:
 
 - `PATHB_WARM_MIN_COVERAGE=1.0` (default) enforces minimum `models_with_bundle/models_total` for strict showcase pass on Native KZG + Recursive Path B status.

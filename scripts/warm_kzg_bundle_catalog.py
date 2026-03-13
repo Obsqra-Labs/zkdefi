@@ -181,6 +181,22 @@ async def _run(args: argparse.Namespace) -> int:
         "models_with_bundle": sum(1 for r in rows if r.get("kzg_bundle_present")),
         "rows": rows,
     }
+    failed_rows = [r for r in rows if not r.get("kzg_bundle_present")]
+    error_buckets: dict[str, int] = {}
+    for r in failed_rows:
+        key = str(r.get("error") or "unknown_error")
+        error_buckets[key] = error_buckets.get(key, 0) + 1
+    report["models_failed"] = len(failed_rows)
+    report["failed_models"] = [
+        {
+            "model": str(r.get("model") or ""),
+            "error": str(r.get("error") or "unknown_error"),
+            "attempted_feature_widths": r.get("attempted_feature_widths") or [],
+            "selected_input_features": r.get("selected_input_features"),
+        }
+        for r in failed_rows
+    ]
+    report["error_buckets"] = error_buckets
 
     out_path = Path(args.output).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,8 +204,15 @@ async def _run(args: argparse.Namespace) -> int:
     print(f"\nreport: {out_path}")
     print(
         f"summary: verified={report['models_verified']}/{report['models_total']} "
-        f"bundle={report['models_with_bundle']}/{report['models_total']}"
+        f"bundle={report['models_with_bundle']}/{report['models_total']} "
+        f"failed={report['models_failed']}"
     )
+    if failed_rows:
+        print("failed models:")
+        for r in failed_rows[:10]:
+            print(f"  - {r.get('model')}: {r.get('error')}")
+        if len(failed_rows) > 10:
+            print(f"  - ... {len(failed_rows) - 10} more")
     return 0
 
 
