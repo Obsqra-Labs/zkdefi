@@ -324,6 +324,47 @@ def _etherscan_tx_url(tx_hash: str | None) -> str | None:
     return f"{ETHERSCAN_SEPOLIA_BASE}/tx/{tx_hash}"
 
 
+def _is_local_rpc_url(rpc_url: str | None) -> bool:
+    text = str(rpc_url or "").strip().lower()
+    if not text:
+        return False
+    return (
+        "127.0.0.1" in text
+        or "localhost" in text
+        or ":9944" in text
+        or "madara" in text
+    )
+
+
+def _rpc_network_label(rpc_url: str | None) -> str:
+    text = str(rpc_url or "").strip().lower()
+    if not text:
+        return "unknown"
+    if _is_local_rpc_url(text):
+        return "Madara L3 (local RPC)"
+    if "sepolia" in text:
+        return "Starknet Sepolia"
+    if "mainnet" in text:
+        return "Starknet Mainnet"
+    return "Starknet RPC"
+
+
+def _starknet_contract_url(address: str | None, rpc_url: str | None) -> str | None:
+    if not address:
+        return None
+    if _is_local_rpc_url(rpc_url):
+        return None
+    return _voyager_contract_url(address)
+
+
+def _starknet_tx_url(tx_hash: str | None, rpc_url: str | None) -> str | None:
+    if not tx_hash:
+        return None
+    if _is_local_rpc_url(rpc_url):
+        return None
+    return _voyager_tx_url(tx_hash)
+
+
 def _to_iso_utc(ts: float | None = None) -> str:
     if ts is None:
         ts = time.time()
@@ -457,6 +498,14 @@ class ShowcaseRunner:
         self.skip_ai_marketplace = skip_ai_marketplace
         self.bridge_only = bridge_only
         self.env_from_file = _load_env_file(ENV_FILE)
+        self.parent_env_from_file = _load_env_file(PARENT_BACKEND_ENV_FILE)
+        self._madara_rpc_url = (
+            os.getenv("MADARA_APPCHAIN_RPC")
+            or os.getenv("MADARA_RPC")
+            or self.parent_env_from_file.get("MADARA_APPCHAIN_RPC")
+            or self.parent_env_from_file.get("MADARA_RPC")
+            or ""
+        )
 
         self.results: list[StepResult] = []
         self.claims: list[dict[str, Any]] = []
@@ -1850,6 +1899,12 @@ class ShowcaseRunner:
         if not isinstance(raw, dict):
             return rows, snos
 
+        local_l3_contracts = {
+            _normalize_address(str(v))
+            for k, v in self.parent_env_from_file.items()
+            if k.startswith("L3_") and k.endswith("_ADDRESS") and str(v).strip()
+        }
+
         direct_paths = raw.get("paths")
         if isinstance(direct_paths, list):
             for item in direct_paths:
@@ -1867,7 +1922,9 @@ class ShowcaseRunner:
                     "applicable_to": item.get("applicable_to"),
                 }
                 if row["contract"]:
-                    row["voyager_contract"] = _voyager_contract_url(str(row["contract"]))
+                    contract_rpc = self._madara_rpc_url if str(row["contract"]) in local_l3_contracts else (self._last_rpc_url or self.env_from_file.get("STARKNET_RPC_URL"))
+                    row["contract_url"] = _starknet_contract_url(str(row["contract"]), contract_rpc)
+                    row["contract_network"] = _rpc_network_label(contract_rpc)
                 rows.append(row)
             snos = raw.get("snos_proving") if isinstance(raw.get("snos_proving"), dict) else {}
             return rows, snos
@@ -1898,7 +1955,9 @@ class ShowcaseRunner:
                     "applicable_to": value.get("applicable_to"),
                 }
                 if row["contract"]:
-                    row["voyager_contract"] = _voyager_contract_url(str(row["contract"]))
+                    contract_rpc = self._madara_rpc_url if str(row["contract"]) in local_l3_contracts else (self._last_rpc_url or self.env_from_file.get("STARKNET_RPC_URL"))
+                    row["contract_url"] = _starknet_contract_url(str(row["contract"]), contract_rpc)
+                    row["contract_network"] = _rpc_network_label(contract_rpc)
                 rows.append(row)
         snos = raw.get("path_2_snos_proving") if isinstance(raw.get("path_2_snos_proving"), dict) else {}
         return rows, snos
@@ -1911,8 +1970,7 @@ class ShowcaseRunner:
                 return True
         return False
 
-    @staticmethod
-    def _bridge_run_summary(status: int, body: Any) -> dict[str, Any]:
+    def _bridge_run_summary(self, status: int, body: Any) -> dict[str, Any]:
         payload = body if isinstance(body, dict) else {}
         verification = payload.get("verification") if isinstance(payload.get("verification"), dict) else {}
         l3 = verification.get("l3") if isinstance(verification.get("l3"), dict) else {}
@@ -1922,6 +1980,7 @@ class ShowcaseRunner:
         combined = payload.get("combined_calldata") if isinstance(payload.get("combined_calldata"), dict) else {}
         l3_tx = l3.get("tx_hash")
         l2_tx = l2.get("tx_hash")
+        l2_rpc_url = self._last_rpc_url or self.env_from_file.get("STARKNET_RPC_URL")
         api_error = payload.get("detail") or payload.get("error") or payload.get("raw")
         failure_reason = verification.get("failure_reason")
         if not failure_reason and api_error:
@@ -1953,7 +2012,7 @@ class ShowcaseRunner:
                 "mode": l3.get("mode"),
                 "verified_on_chain": l3.get("verified_on_chain"),
                 "tx_hash": l3_tx,
-                "tx_url": _voyager_tx_url(str(l3_tx)) if l3_tx else None,
+                "tx_url": _starknet_tx_url(str(l3_tx), self._madara_rpc_url) if l3_tx else None,
                 "error": l3.get("error"),
             },
             "l2": {
@@ -1962,7 +2021,7 @@ class ShowcaseRunner:
                 "mode": l2.get("mode"),
                 "verified_on_chain": l2.get("verified_on_chain"),
                 "tx_hash": l2_tx,
-                "tx_url": _voyager_tx_url(str(l2_tx)) if l2_tx else None,
+                "tx_url": _starknet_tx_url(str(l2_tx), l2_rpc_url) if l2_tx else None,
                 "error": l2.get("error"),
             },
             "mirror_status": verification.get("mirror_status"),
@@ -1974,19 +2033,98 @@ class ShowcaseRunner:
             "total_duration_ms": payload.get("total_duration_ms"),
         }
 
-    def _fetch_starknet_tx_metrics(self, tx_hash: str | None) -> dict[str, Any]:
+    def _inspect_contract_on_rpc(
+        self,
+        rpc_url: str | None,
+        address: str | None,
+        *,
+        required_methods: list[str] | None = None,
+    ) -> dict[str, Any]:
+        rpc = str(rpc_url or "").strip()
+        addr = _normalize_address(address)
+        out: dict[str, Any] = {
+            "rpc_url": rpc or None,
+            "network_label": _rpc_network_label(rpc),
+            "address": addr or None,
+            "address_url": _starknet_contract_url(addr, rpc) if addr else None,
+            "rpc_verified": False,
+            "class_hash": None,
+            "class_hash_url": None,
+            "abi_methods": [],
+            "required_methods": required_methods or [],
+            "required_methods_ok": False,
+        }
+        if not rpc or not addr:
+            return out
+
+        ok_hash, hash_result = _rpc_call(
+            rpc,
+            "starknet_getClassHashAt",
+            ["latest", addr],
+            self.timeout_seconds,
+        )
+        if not (ok_hash and isinstance(hash_result, str) and hash_result.startswith("0x")):
+            out["error"] = hash_result
+            return out
+
+        out["rpc_verified"] = True
+        out["class_hash"] = hash_result
+        out["class_hash_url"] = _voyager_class_url(hash_result) if not _is_local_rpc_url(rpc) else None
+
+        ok_class, class_result = _rpc_call(
+            rpc,
+            "starknet_getClass",
+            ["latest", hash_result],
+            self.timeout_seconds,
+        )
+        if not (ok_class and isinstance(class_result, dict)):
+            out["error"] = class_result
+            return out
+
+        abi_raw = class_result.get("abi")
+        abi_items: list[dict[str, Any]] = []
+        if isinstance(abi_raw, str):
+            try:
+                parsed = json.loads(abi_raw)
+                if isinstance(parsed, list):
+                    abi_items = [item for item in parsed if isinstance(item, dict)]
+            except Exception:
+                abi_items = []
+        elif isinstance(abi_raw, list):
+            abi_items = [item for item in abi_raw if isinstance(item, dict)]
+
+        method_names: list[str] = []
+        for item in abi_items:
+            item_type = str(item.get("type") or "")
+            if item_type == "interface":
+                for sub in item.get("items") or []:
+                    if isinstance(sub, dict) and str(sub.get("type") or "") == "function":
+                        name = str(sub.get("name") or "").strip()
+                        if name:
+                            method_names.append(name)
+            elif item_type == "function":
+                name = str(item.get("name") or "").strip()
+                if name:
+                    method_names.append(name)
+        deduped_methods = sorted({name for name in method_names if name})
+        out["abi_methods"] = deduped_methods
+        if required_methods:
+            out["required_methods_ok"] = all(name in deduped_methods for name in required_methods)
+        return out
+
+    def _fetch_starknet_tx_metrics(self, tx_hash: str | None, rpc_url: str | None = None) -> dict[str, Any]:
         tx = str(tx_hash or "").strip()
         if not tx:
             return {}
-        rpc_url = str(self._last_rpc_url or "").strip()
-        if not rpc_url:
+        rpc = str(rpc_url or self._last_rpc_url or "").strip()
+        if not rpc:
             return {}
 
         ok = False
         result: Any = {}
         for attempt in range(3):
             ok, result = _rpc_call(
-                rpc_url,
+                rpc,
                 "starknet_getTransactionReceipt",
                 [tx],
                 self.timeout_seconds,
@@ -2459,7 +2597,10 @@ class ShowcaseRunner:
             if l3_lane.get("verified_on_chain") is not None
             else best_l3_attempt.get("l3_verified_on_chain")
         )
-        live_fee_meta = self._fetch_starknet_tx_metrics(str(l3_tx_hash) if l3_tx_hash else None)
+        live_fee_meta = self._fetch_starknet_tx_metrics(
+            str(l3_tx_hash) if l3_tx_hash else None,
+            rpc_url=self._madara_rpc_url,
+        )
         self._modelbridge_live_receipt = {
             "status": l3_status,
             "probe_seed": self._bridge_probe_seed,
@@ -2539,7 +2680,10 @@ class ShowcaseRunner:
             if heavy_l3_lane.get("verified_on_chain") is not None
             else best_heavy_attempt.get("l3_verified_on_chain")
         )
-        heavy_fee_meta = self._fetch_starknet_tx_metrics(str(heavy_tx_hash) if heavy_tx_hash else None)
+        heavy_fee_meta = self._fetch_starknet_tx_metrics(
+            str(heavy_tx_hash) if heavy_tx_hash else None,
+            rpc_url=self._madara_rpc_url,
+        )
         self._modelbridge_heavy_live_receipt = {
             "status": heavy_status,
             "probe_seed": self._bridge_probe_seed,
@@ -2631,7 +2775,8 @@ class ShowcaseRunner:
             else best_native_attempt.get("l3_verified_on_chain")
         )
         native_fee_meta = self._fetch_starknet_tx_metrics(
-            str(native_kzg_tx_hash) if native_kzg_tx_hash else None
+            str(native_kzg_tx_hash) if native_kzg_tx_hash else None,
+            rpc_url=self._madara_rpc_url,
         )
         self._native_kzg_live_receipt = {
             "status": native_kzg_status,
@@ -2791,8 +2936,8 @@ class ShowcaseRunner:
 
         noir_l3_lane = noir_run.get("l3") if isinstance(noir_run.get("l3"), dict) else {}
         noir_tx_hash = str(noir_l3_lane.get("tx_hash") or "").strip()
-        noir_tx_url = noir_l3_lane.get("tx_url") or (_voyager_tx_url(noir_tx_hash) if noir_tx_hash else None)
-        noir_fee_meta = self._fetch_starknet_tx_metrics(noir_tx_hash or None)
+        noir_tx_url = noir_l3_lane.get("tx_url") or (_starknet_tx_url(noir_tx_hash, self._madara_rpc_url) if noir_tx_hash else None)
+        noir_fee_meta = self._fetch_starknet_tx_metrics(noir_tx_hash or None, rpc_url=self._madara_rpc_url)
 
         benchmark_receipts: list[dict[str, Any]] = [
             {
@@ -3115,6 +3260,18 @@ class ShowcaseRunner:
             (row for row in proving_rows if isinstance(row, dict) and str(row.get("id") or "").strip().lower() == "native_kzg"),
             None,
         )
+        l3_runtime_rpc = self._madara_rpc_url
+        pathb_runtime_contract = (
+            str((kzg_row or {}).get("contract") or "").strip()
+            if isinstance(kzg_row, dict)
+            else ""
+        ) or str(parent_env.get("L3_KZG_VERIFIER_ADDRESS") or "").strip()
+        pathb_required_methods = ["verify_kzg", "verify_ezkl_kzg_v1", "get_last_verification"]
+        pathb_verifier_runtime = self._inspect_contract_on_rpc(
+            l3_runtime_rpc,
+            pathb_runtime_contract,
+            required_methods=pathb_required_methods,
+        )
 
         path_c_wiring_ready = bool(
             l1_sepolia_doc.exists()
@@ -3181,10 +3338,11 @@ class ShowcaseRunner:
                 "runtime_lane_available": bool((noir_row or {}).get("available")) if isinstance(noir_row, dict) else False,
                 "runtime_contract": (noir_row or {}).get("contract") if isinstance(noir_row, dict) else None,
                 "runtime_contract_url": (
-                    _voyager_contract_url(str((noir_row or {}).get("contract") or ""))
+                    _starknet_contract_url(str((noir_row or {}).get("contract") or ""), l3_runtime_rpc)
                     if isinstance(noir_row, dict) and (noir_row or {}).get("contract")
                     else None
                 ),
+                "runtime_network_label": _rpc_network_label(l3_runtime_rpc) if (noir_row or {}).get("contract") else None,
             },
             {
                 "path": "Path C (L1 Sepolia bridge)",
@@ -3250,14 +3408,10 @@ class ShowcaseRunner:
                 "runtime_lane_id": "native_kzg",
                 "runtime_lane_listed": kzg_row is not None,
                 "runtime_lane_available": bool((kzg_row or {}).get("available")) if isinstance(kzg_row, dict) else False,
-                "runtime_contract": (kzg_row or {}).get("contract") if isinstance(kzg_row, dict) else parent_env.get("L3_KZG_VERIFIER_ADDRESS"),
-                "runtime_contract_url": (
-                    _voyager_contract_url(str((kzg_row or {}).get("contract") or ""))
-                    if isinstance(kzg_row, dict) and (kzg_row or {}).get("contract")
-                    else _voyager_contract_url(parent_env.get("L3_KZG_VERIFIER_ADDRESS"))
-                    if parent_env.get("L3_KZG_VERIFIER_ADDRESS")
-                    else None
-                ),
+                "runtime_contract": pathb_runtime_contract or None,
+                "runtime_contract_url": pathb_verifier_runtime.get("address_url"),
+                "runtime_network_label": pathb_verifier_runtime.get("network_label"),
+                "runtime_class_hash": pathb_verifier_runtime.get("class_hash"),
             },
         ]
 
@@ -3312,6 +3466,9 @@ class ShowcaseRunner:
                 "path_b_native_kzg_receipt_models": pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
                 "path_b_native_kzg_daily_new_count": len(pathb_warm_gate.get("daily_new_native_kzg_models") or []),
                 "path_b_native_kzg_daily_regressed_count": len(pathb_warm_gate.get("daily_regressed_native_kzg_models") or []),
+                "path_b_verifier_rpc_verified": bool(pathb_verifier_runtime.get("rpc_verified")),
+                "path_b_verifier_has_strict_selector": bool(pathb_verifier_runtime.get("required_methods_ok")),
+                "path_b_verifier_method_count": len(pathb_verifier_runtime.get("abi_methods") or []),
                 "path_c_live_receipt_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
@@ -3355,6 +3512,18 @@ class ShowcaseRunner:
                     "NATIVE_KZG_WARM_ON_REAL_PROVE",
                     True,
                 ),
+            },
+            "path_b_runtime_verifier": {
+                "rpc_url": pathb_verifier_runtime.get("rpc_url"),
+                "network_label": pathb_verifier_runtime.get("network_label"),
+                "address": pathb_verifier_runtime.get("address"),
+                "address_url": pathb_verifier_runtime.get("address_url"),
+                "class_hash": pathb_verifier_runtime.get("class_hash"),
+                "class_hash_url": pathb_verifier_runtime.get("class_hash_url"),
+                "rpc_verified": bool(pathb_verifier_runtime.get("rpc_verified")),
+                "abi_methods": pathb_verifier_runtime.get("abi_methods") or [],
+                "required_methods": pathb_verifier_runtime.get("required_methods") or [],
+                "required_methods_ok": bool(pathb_verifier_runtime.get("required_methods_ok")),
             },
             "path_b_warm_report": {
                 "artifact_path": _relative_to_project(pathb_warm_report_file),
@@ -4933,12 +5102,15 @@ class ShowcaseRunner:
             if not isinstance(row, dict):
                 continue
             contract = str(row.get("contract") or "-")
-            contract_link = row.get("voyager_contract")
+            contract_link = row.get("contract_url") or row.get("voyager_contract")
             contract_html = (
                 f"<a href=\"{escape(str(contract_link))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(contract, 14))}</a>"
                 if contract_link and contract != "-"
                 else escape(_short_hex(contract, 14))
             )
+            contract_network = str(row.get("contract_network") or "").strip()
+            if contract_network and contract != "-":
+                contract_html = f"{contract_html}<div class=\"meta\">{escape(contract_network)}</div>"
             proving_rows.append(
                 [
                     escape(str(row.get("id") or "-")),
@@ -4976,6 +5148,12 @@ class ShowcaseRunner:
                 if runtime_contract_url and runtime_contract != "-"
                 else escape(_short_hex(runtime_contract, 14))
             )
+            runtime_network_label = str(row.get("runtime_network_label") or "").strip()
+            runtime_class_hash = str(row.get("runtime_class_hash") or "").strip()
+            if runtime_network_label and runtime_contract != "-":
+                runtime_contract_html = f"{runtime_contract_html}<div class=\"meta\">{escape(runtime_network_label)}</div>"
+            if runtime_class_hash:
+                runtime_contract_html = f"{runtime_contract_html}<div class=\"meta\">class {escape(_short_hex(runtime_class_hash, 14))}</div>"
             status_raw = str(row.get("status") or "partial")
             status_html = (
                 f"<span class=\"pass\">{escape(status_raw)}</span>"
@@ -4994,6 +5172,11 @@ class ShowcaseRunner:
                 ]
             )
         recursive_signals = recursive_paths.get("signals") if isinstance(recursive_paths.get("signals"), dict) else {}
+        path_b_runtime_verifier = (
+            recursive_paths.get("path_b_runtime_verifier")
+            if isinstance(recursive_paths.get("path_b_runtime_verifier"), dict)
+            else {}
+        )
         recursive_signal_rows = [
             ["Path A status in roadmap", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_status_doc") else "<span class=\"fail\">no</span>"],
             ["Phase 2 status marked complete", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase2_status_done") else "<span class=\"fail\">no</span>"],
@@ -5003,6 +5186,8 @@ class ShowcaseRunner:
             ["Parent backend Phase 3 service stub", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_service_stub") else "<span class=\"fail\">no</span>"],
             ["Parent backend Phase 4 config key", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_config_key") else "<span class=\"fail\">no</span>"],
             ["Parent backend Phase 4 route (native_kzg)", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_route") else "<span class=\"fail\">no</span>"],
+            ["Path B verifier re-verified on L3 RPC", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_verifier_rpc_verified") else "<span class=\"fail\">no</span>"],
+            ["Path B strict ABI selector present", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_verifier_has_strict_selector") else "<span class=\"fail\">no</span>"],
             ["Path B warm report found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_warm_report_found") else "<span class=\"fail\">no</span>"],
             [
                 "Path B warm coverage",
@@ -5055,6 +5240,31 @@ class ShowcaseRunner:
             ["Path C live receipt file found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_live_receipt_found") else "<span class=\"fail\">no</span>"],
             ["Path C L1 receipt status == 1", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l1_status_ok") else "<span class=\"fail\">no</span>"],
             ["Path C L2 confirmation", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l2_verified") else "<span class=\"fail\">no</span>"],
+        ]
+        path_b_verifier_address = str(path_b_runtime_verifier.get("address") or "-")
+        path_b_verifier_address_url = path_b_runtime_verifier.get("address_url")
+        path_b_verifier_address_html = (
+            f"<a href=\"{escape(str(path_b_verifier_address_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(path_b_verifier_address, 14))}</a>"
+            if path_b_verifier_address_url and path_b_verifier_address != "-"
+            else escape(_short_hex(path_b_verifier_address, 14))
+        )
+        path_b_verifier_class_hash = str(path_b_runtime_verifier.get("class_hash") or "-")
+        path_b_verifier_class_hash_url = path_b_runtime_verifier.get("class_hash_url")
+        path_b_verifier_class_hash_html = (
+            f"<a href=\"{escape(str(path_b_verifier_class_hash_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(path_b_verifier_class_hash, 14))}</a>"
+            if path_b_verifier_class_hash_url and path_b_verifier_class_hash != "-"
+            else escape(_short_hex(path_b_verifier_class_hash, 14))
+        )
+        path_b_verifier_rows = [
+            ["Network", escape(str(path_b_runtime_verifier.get("network_label") or "-"))],
+            ["RPC URL", f"<code>{escape(str(path_b_runtime_verifier.get('rpc_url') or '-'))}</code>"],
+            ["Address", path_b_verifier_address_html],
+            ["RPC deployment check", "<span class=\"pass\">present</span>" if path_b_runtime_verifier.get("rpc_verified") else "<span class=\"fail\">missing</span>"],
+            ["Class hash", path_b_verifier_class_hash_html],
+            ["Required ABI methods", escape(", ".join(path_b_runtime_verifier.get("required_methods") or []) or "-")],
+            ["ABI methods found", escape(", ".join(path_b_runtime_verifier.get("abi_methods") or []) or "-")],
+            ["Strict selector readiness", "<span class=\"pass\">ready</span>" if path_b_runtime_verifier.get("required_methods_ok") else "<span class=\"fail\">missing ABI method</span>"],
+            ["Public explorer", escape("not available for local Madara L3") if _is_local_rpc_url(path_b_runtime_verifier.get("rpc_url")) else escape("Voyager")],
         ]
         recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
         recursive_env_rows = [
@@ -5143,17 +5353,23 @@ class ShowcaseRunner:
             ],
         ]
         path_b_onchain_rows = []
+        path_b_l3_rpc_url = str(path_b_runtime_verifier.get("rpc_url") or self._madara_rpc_url or "")
+        path_b_l2_rpc_url = str(self._last_rpc_url or self.env_from_file.get("STARKNET_RPC_URL") or "")
         for row in (path_b_warm.get("native_kzg_onchain_rows") or [])[:12]:
             if not isinstance(row, dict):
                 continue
             l3_tx_hash = str(row.get("l3_tx_hash") or "-")
             l2_tx_hash = str(row.get("l2_tx_hash") or "-")
-            l3_tx_url = _voyager_tx_url(l3_tx_hash) if l3_tx_hash != "-" else None
-            l2_tx_url = _voyager_tx_url(l2_tx_hash) if l2_tx_hash != "-" else None
+            l3_tx_url = _starknet_tx_url(l3_tx_hash, path_b_l3_rpc_url) if l3_tx_hash != "-" else None
+            l2_tx_url = _starknet_tx_url(l2_tx_hash, path_b_l2_rpc_url) if l2_tx_hash != "-" else None
             l3_tx_html = (
                 f"<a href=\"{escape(str(l3_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(l3_tx_hash, 14))}</a>"
                 if l3_tx_url
-                else escape(_short_hex(l3_tx_hash, 14) if l3_tx_hash != "-" else "-")
+                else (
+                    f"{escape(_short_hex(l3_tx_hash, 14))}<div class=\"meta\">Madara L3 tx hash</div>"
+                    if l3_tx_hash != "-"
+                    else "-"
+                )
             )
             l2_tx_html = (
                 f"<a href=\"{escape(str(l2_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(l2_tx_hash, 14))}</a>"
@@ -6196,6 +6412,7 @@ class ShowcaseRunner:
             and recursive_signals.get("parent_phase4_strict_kzg")
             and path_b_e2e_tx
         )
+        path_b_e2e_tx_url = _starknet_tx_url(path_b_e2e_tx, path_b_runtime_verifier.get("rpc_url") or self._madara_rpc_url)
 
         release_stamp = datetime.now(timezone.utc).strftime("%Y.%m.%d")
         stage_rows_data = [
@@ -6241,7 +6458,7 @@ class ShowcaseRunner:
                     f"tx={_short_hex(path_b_e2e_tx, 10) if path_b_e2e_tx else 'none'}"
                 ),
                 "tx_hash": path_b_e2e_tx,
-                "tx_url": _voyager_tx_url(path_b_e2e_tx),
+                "tx_url": path_b_e2e_tx_url,
                 "tag": f"v{release_stamp}-stage3-path-b-native-kzg",
             },
         ]
@@ -6920,6 +7137,9 @@ class ShowcaseRunner:
       {self._html_table(["Artifact", "Path", "Status"], recursive_doc_rows)}
       <h3>Path Status Matrix</h3>
       {self._html_table(["Path", "Status", "Lane ID", "Lane Listed", "Lane Available", "Contract", "Evidence"], recursive_path_rows)}
+      <h3>Path B Verifier RPC Evidence</h3>
+      <p class="meta">This is the direct L3 verifier backing the native KZG lane. It is re-checked over the active Madara RPC, so the report shows deployment metadata instead of only env wiring.</p>
+      {self._html_table(["Field", "Value"], path_b_verifier_rows)}
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
