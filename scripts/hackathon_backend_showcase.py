@@ -590,6 +590,27 @@ class ShowcaseRunner:
             failure_reason = (
                 f"coverage below target ({models_with_bundle}/{models_total} < {target_ratio * 100:.2f}%)"
             )
+        cadence = report.get("cadence") if isinstance(report.get("cadence"), dict) else {}
+        daily_new_bundles = (
+            cadence.get("newly_bundled_models_since_daily_baseline")
+            if isinstance(cadence.get("newly_bundled_models_since_daily_baseline"), list)
+            else []
+        )
+        daily_regressions = (
+            cadence.get("regressed_bundled_models_since_daily_baseline")
+            if isinstance(cadence.get("regressed_bundled_models_since_daily_baseline"), list)
+            else []
+        )
+        prev_new_bundles = (
+            cadence.get("newly_bundled_models_since_previous_run")
+            if isinstance(cadence.get("newly_bundled_models_since_previous_run"), list)
+            else []
+        )
+        prev_regressions = (
+            cadence.get("regressed_bundled_models_since_previous_run")
+            if isinstance(cadence.get("regressed_bundled_models_since_previous_run"), list)
+            else []
+        )
 
         return {
             "artifact_file": str(report_file),
@@ -606,6 +627,19 @@ class ShowcaseRunner:
             "coverage_display": f"{models_with_bundle}/{models_total} ({coverage_ratio * 100:.2f}%)",
             "passes": passes,
             "failure_reason": failure_reason,
+            "history_file": cadence.get("history_file_rel") or cadence.get("history_file"),
+            "history_entries_before_append": _safe_int(cadence.get("history_entries_before_append"), 0),
+            "daily_delta_window_hours": _safe_int(cadence.get("daily_delta_window_hours"), 24),
+            "previous_run_generated_at": cadence.get("previous_run_generated_at"),
+            "previous_run_coverage_ratio": cadence.get("previous_run_coverage_ratio"),
+            "previous_run_delta_pct_points": cadence.get("previous_run_delta_pct_points"),
+            "daily_baseline_generated_at": cadence.get("daily_baseline_generated_at"),
+            "daily_baseline_coverage_ratio": cadence.get("daily_baseline_coverage_ratio"),
+            "daily_delta_pct_points": cadence.get("daily_delta_pct_points"),
+            "daily_new_bundle_models": daily_new_bundles,
+            "daily_regressed_bundle_models": daily_regressions,
+            "prev_new_bundle_models": prev_new_bundles,
+            "prev_regressed_bundle_models": prev_regressions,
         }
 
     def _final_stage_report_readiness(self) -> tuple[bool, list[str]]:
@@ -3036,7 +3070,9 @@ class ShowcaseRunner:
             "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
             "Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.",
             (
-                f"Phase 4: catalog warm report is {pathb_warm_models_bundle}/{pathb_warm_models_total} models with bundles; increase toward full model coverage."
+                f"Phase 4: catalog warm report is {pathb_warm_models_bundle}/{pathb_warm_models_total} models with bundles; "
+                f"daily delta={pathb_warm_gate.get('daily_delta_pct_points') if pathb_warm_gate.get('daily_delta_pct_points') is not None else 'n/a'} pct points; "
+                "increase toward full model coverage."
                 if pathb_warm_models_total > 0
                 else "Phase 4: run scripts/warm_kzg_bundle_catalog.py to baseline model-catalog bundle coverage."
             ),
@@ -3063,6 +3099,13 @@ class ShowcaseRunner:
                 "path_b_warm_min_coverage": pathb_warm_gate.get("target_ratio"),
                 "path_b_warm_gate_pass": pathb_warm_gate.get("passes"),
                 "path_b_warm_gate_reason": pathb_warm_gate.get("failure_reason"),
+                "path_b_warm_history_file": pathb_warm_gate.get("history_file"),
+                "path_b_warm_history_entries": pathb_warm_gate.get("history_entries_before_append"),
+                "path_b_warm_daily_window_hours": pathb_warm_gate.get("daily_delta_window_hours"),
+                "path_b_warm_previous_delta_pct_points": pathb_warm_gate.get("previous_run_delta_pct_points"),
+                "path_b_warm_daily_delta_pct_points": pathb_warm_gate.get("daily_delta_pct_points"),
+                "path_b_warm_daily_new_bundle_count": len(pathb_warm_gate.get("daily_new_bundle_models") or []),
+                "path_b_warm_daily_regressed_bundle_count": len(pathb_warm_gate.get("daily_regressed_bundle_models") or []),
                 "path_c_live_receipt_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
@@ -3120,6 +3163,17 @@ class ShowcaseRunner:
                 "target_percent": pathb_warm_gate.get("target_percent"),
                 "gate_pass": pathb_warm_gate.get("passes"),
                 "gate_reason": pathb_warm_gate.get("failure_reason"),
+                "history_file": pathb_warm_gate.get("history_file"),
+                "history_entries": pathb_warm_gate.get("history_entries_before_append"),
+                "daily_delta_window_hours": pathb_warm_gate.get("daily_delta_window_hours"),
+                "previous_run_generated_at": pathb_warm_gate.get("previous_run_generated_at"),
+                "previous_run_delta_pct_points": pathb_warm_gate.get("previous_run_delta_pct_points"),
+                "daily_baseline_generated_at": pathb_warm_gate.get("daily_baseline_generated_at"),
+                "daily_delta_pct_points": pathb_warm_gate.get("daily_delta_pct_points"),
+                "daily_new_bundle_models": pathb_warm_gate.get("daily_new_bundle_models") or [],
+                "daily_regressed_bundle_models": pathb_warm_gate.get("daily_regressed_bundle_models") or [],
+                "prev_new_bundle_models": pathb_warm_gate.get("prev_new_bundle_models") or [],
+                "prev_regressed_bundle_models": pathb_warm_gate.get("prev_regressed_bundle_models") or [],
             },
             "path_c_live": {
                 "artifact_path": _relative_to_project(PATHC_LIVE_RECEIPT_FILE),
@@ -3186,6 +3240,12 @@ class ShowcaseRunner:
             path_b_warm_gate_pass=pathb_warm_gate.get("passes"),
             path_b_warm_target_pct=pathb_warm_gate.get("target_percent"),
             path_b_warm_coverage_pct=pathb_warm_gate.get("coverage_percent"),
+            path_b_warm_history_entries=pathb_warm_gate.get("history_entries_before_append"),
+            path_b_warm_daily_window_hours=pathb_warm_gate.get("daily_delta_window_hours"),
+            path_b_warm_previous_delta_pp=pathb_warm_gate.get("previous_run_delta_pct_points"),
+            path_b_warm_daily_delta_pp=pathb_warm_gate.get("daily_delta_pct_points"),
+            path_b_warm_daily_new_bundles=len(pathb_warm_gate.get("daily_new_bundle_models") or []),
+            path_b_warm_daily_regressions=len(pathb_warm_gate.get("daily_regressed_bundle_models") or []),
             path_b_warm_gate_reason=_clip_text(pathb_warm_gate.get("failure_reason"), 120),
             strict_bridge=self.strict_bridge,
         )
@@ -4672,6 +4732,17 @@ class ShowcaseRunner:
                     f"{_safe_float(recursive_signals.get('path_b_warm_coverage_ratio'), 0.0) * 100.0:.2f}%"
                 ),
             ],
+            ["Path B history snapshots", escape(str(recursive_signals.get("path_b_warm_history_entries") or "-"))],
+            ["Path B daily delta window (hours)", escape(str(recursive_signals.get("path_b_warm_daily_window_hours") or "-"))],
+            ["Path B previous-run delta (pct points)", escape(str(recursive_signals.get("path_b_warm_previous_delta_pct_points") or "-"))],
+            ["Path B daily delta (pct points)", escape(str(recursive_signals.get("path_b_warm_daily_delta_pct_points") or "-"))],
+            [
+                "Path B daily new bundles / regressions",
+                escape(
+                    f"{recursive_signals.get('path_b_warm_daily_new_bundle_count') or 0}/"
+                    f"{recursive_signals.get('path_b_warm_daily_regressed_bundle_count') or 0}"
+                ),
+            ],
             ["Path C live receipt file found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_live_receipt_found") else "<span class=\"fail\">no</span>"],
             ["Path C L1 receipt status == 1", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l1_status_ok") else "<span class=\"fail\">no</span>"],
             ["Path C L2 confirmation", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l2_verified") else "<span class=\"fail\">no</span>"],
@@ -4708,6 +4779,26 @@ class ShowcaseRunner:
             ["Strict target", escape(f"{_safe_float(path_b_warm.get('target_ratio'), 0.0) * 100.0:.2f}%")],
             ["Gate result", "<span class=\"pass\">pass</span>" if path_b_warm.get("gate_pass") else "<span class=\"fail\">fail</span>"],
             ["Gate reason", escape(str(path_b_warm.get("gate_reason") or "-"))],
+            ["History file", f"<code>{escape(str(path_b_warm.get('history_file') or '-'))}</code>"],
+            ["History entries", escape(str(path_b_warm.get("history_entries") or "-"))],
+            ["Daily delta window (hours)", escape(str(path_b_warm.get("daily_delta_window_hours") or "-"))],
+            ["Previous-run delta (pct points)", escape(str(path_b_warm.get("previous_run_delta_pct_points") or "-"))],
+            ["Daily delta (pct points)", escape(str(path_b_warm.get("daily_delta_pct_points") or "-"))],
+            [
+                "Daily new bundles / regressions",
+                escape(
+                    f"{len(path_b_warm.get('daily_new_bundle_models') or [])}/"
+                    f"{len(path_b_warm.get('daily_regressed_bundle_models') or [])}"
+                ),
+            ],
+            [
+                "New bundles (daily baseline)",
+                escape(_clip_text(", ".join(path_b_warm.get("daily_new_bundle_models") or []), 180) or "-"),
+            ],
+            [
+                "Regressions (daily baseline)",
+                escape(_clip_text(", ".join(path_b_warm.get("daily_regressed_bundle_models") or []), 180) or "-"),
+            ],
         ]
         path_c_live = recursive_paths.get("path_c_live") if isinstance(recursive_paths.get("path_c_live"), dict) else {}
         path_c_tx_hash = str(path_c_live.get("tx_hash") or "")

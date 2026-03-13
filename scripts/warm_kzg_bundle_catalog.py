@@ -15,7 +15,7 @@ import asyncio
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import prod
 from pathlib import Path
 from typing import Any
@@ -28,6 +28,8 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from app.services.proof_pipeline import ProofPipeline  # noqa: E402
 from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof  # noqa: E402
+
+DEFAULT_HISTORY_FILE = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_history.jsonl"
 
 
 def _load_feature_count(model_dir: Path) -> int:
@@ -92,6 +94,78 @@ def _failure_action_hint(row: dict[str, Any]) -> str:
     if extractor_err:
         return "fix KZG extractor wiring (bundle extractor cmd/artifacts) and rerun warm-up"
     return "inspect backend proof logs for this model and rerun warm-up"
+
+
+def _parse_iso_utc(raw: Any) -> datetime | None:
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _read_history_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    out: list[dict[str, Any]] = []
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            raw = line.strip()
+            if not raw:
+                continue
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                out.append(parsed)
+    except Exception:
+        return []
+    return out
+
+
+def _entry_coverage_ratio(entry: dict[str, Any]) -> float:
+    ratio = entry.get("coverage_ratio")
+    if ratio is not None:
+        try:
+            return float(ratio)
+        except Exception:
+            pass
+    total = int(entry.get("models_total", 0) or 0)
+    bundled = int(entry.get("models_with_bundle", 0) or 0)
+    return (bundled / total) if total > 0 else 0.0
+
+
+def _entry_model_set(entry: dict[str, Any], key: str) -> set[str]:
+    rows = entry.get(key)
+    if isinstance(rows, list):
+        return {str(v).strip() for v in rows if str(v).strip()}
+    return set()
+
+
+def _append_history_snapshot(history_path: Path, snapshot: dict[str, Any]) -> None:
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    row_line = json.dumps(snapshot, sort_keys=True)
+    last_line = ""
+    if history_path.exists():
+        try:
+            with history_path.open("rb") as f:
+                try:
+                    f.seek(-2, 2)
+                    while f.tell() > 0 and f.read(1) != b"\n":
+                        f.seek(-2, 1)
+                except OSError:
+                    f.seek(0)
+                last_line = f.readline().decode("utf-8", errors="replace").strip()
+        except Exception:
+            last_line = ""
+    if row_line != last_line:
+        with history_path.open("a", encoding="utf-8") as f:
+            f.write(row_line + "\n")
 
 
 def _model_dirs(root: Path, patterns: list[str]) -> list[Path]:
@@ -195,6 +269,82 @@ async def _run(args: argparse.Namespace) -> int:
         "models_with_bundle": sum(1 for r in rows if r.get("kzg_bundle_present")),
         "rows": rows,
     }
+    models_total = int(report["models_total"])
+    models_verified = int(report["models_verified"])
+    models_with_bundle = int(report["models_with_bundle"])
+    coverage_ratio = (models_with_bundle / models_total) if models_total > 0 else 0.0
+
+    verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("ezkl_verified"))
+    bundle_models = sorted(str(r.get("model") or "") for r in rows if r.get("kzg_bundle_present"))
+    selected_models = sorted(str(p.name) for p in selected)
+
+    history_path = Path(args.history_file).resolve()
+    history_entries = _read_history_rows(history_path)
+    previous_entry = history_entries[-1] if history_entries else None
+    generated_at_dt = _parse_iso_utc(report.get("generated_at")) or datetime.now(timezone.utc)
+    cutoff_dt = generated_at_dt - timedelta(hours=max(1, int(args.daily_delta_hours)))
+    daily_baseline_entry = None
+    for item in reversed(history_entries):
+        item_dt = _parse_iso_utc(item.get("generated_at"))
+        if item_dt and item_dt <= cutoff_dt:
+            daily_baseline_entry = item
+            break
+    if daily_baseline_entry is None:
+        current_date = generated_at_dt.date()
+        for item in reversed(history_entries):
+            item_dt = _parse_iso_utc(item.get("generated_at"))
+            if item_dt and item_dt.date() < current_date:
+                daily_baseline_entry = item
+                break
+
+    previous_cov = _entry_coverage_ratio(previous_entry) if isinstance(previous_entry, dict) else None
+    daily_cov = _entry_coverage_ratio(daily_baseline_entry) if isinstance(daily_baseline_entry, dict) else None
+
+    current_bundle_set = set(bundle_models)
+    prev_bundle_set = _entry_model_set(previous_entry, "bundle_models") if isinstance(previous_entry, dict) else set()
+    daily_bundle_set = _entry_model_set(daily_baseline_entry, "bundle_models") if isinstance(daily_baseline_entry, dict) else set()
+    current_verified_set = set(verified_models)
+    prev_verified_set = _entry_model_set(previous_entry, "verified_models") if isinstance(previous_entry, dict) else set()
+    daily_verified_set = _entry_model_set(daily_baseline_entry, "verified_models") if isinstance(daily_baseline_entry, dict) else set()
+
+    if daily_baseline_entry is None:
+        daily_new_bundles = []
+        daily_regressed_bundles = []
+        daily_new_verified = []
+        daily_regressed_verified = []
+    else:
+        daily_new_bundles = sorted(current_bundle_set - daily_bundle_set)
+        daily_regressed_bundles = sorted(daily_bundle_set - current_bundle_set)
+        daily_new_verified = sorted(current_verified_set - daily_verified_set)
+        daily_regressed_verified = sorted(daily_verified_set - current_verified_set)
+
+    cadence = {
+        "history_file": str(history_path),
+        "history_file_rel": str(history_path.relative_to(PROJECT_ROOT)) if history_path.is_relative_to(PROJECT_ROOT) else str(history_path),
+        "history_entries_before_append": len(history_entries),
+        "daily_delta_window_hours": max(1, int(args.daily_delta_hours)),
+        "coverage_ratio": round(coverage_ratio, 8),
+        "previous_run_generated_at": (previous_entry or {}).get("generated_at") if isinstance(previous_entry, dict) else None,
+        "previous_run_coverage_ratio": (round(previous_cov, 8) if previous_cov is not None else None),
+        "previous_run_delta_pct_points": (
+            round((coverage_ratio - previous_cov) * 100.0, 2) if previous_cov is not None else None
+        ),
+        "daily_baseline_generated_at": (daily_baseline_entry or {}).get("generated_at") if isinstance(daily_baseline_entry, dict) else None,
+        "daily_baseline_coverage_ratio": (round(daily_cov, 8) if daily_cov is not None else None),
+        "daily_delta_pct_points": (
+            round((coverage_ratio - daily_cov) * 100.0, 2) if daily_cov is not None else None
+        ),
+        "newly_bundled_models_since_previous_run": sorted(current_bundle_set - prev_bundle_set),
+        "regressed_bundled_models_since_previous_run": sorted(prev_bundle_set - current_bundle_set),
+        "newly_verified_models_since_previous_run": sorted(current_verified_set - prev_verified_set),
+        "regressed_verified_models_since_previous_run": sorted(prev_verified_set - current_verified_set),
+        "newly_bundled_models_since_daily_baseline": daily_new_bundles,
+        "regressed_bundled_models_since_daily_baseline": daily_regressed_bundles,
+        "newly_verified_models_since_daily_baseline": daily_new_verified,
+        "regressed_verified_models_since_daily_baseline": daily_regressed_verified,
+    }
+    report["cadence"] = cadence
+
     failed_rows = [r for r in rows if not r.get("kzg_bundle_present")]
     error_buckets: dict[str, int] = {}
     action_buckets: dict[str, int] = {}
@@ -217,6 +367,22 @@ async def _run(args: argparse.Namespace) -> int:
     report["error_buckets"] = error_buckets
     report["action_buckets"] = action_buckets
 
+    snapshot = {
+        "generated_at": report.get("generated_at"),
+        "models_total": models_total,
+        "models_verified": models_verified,
+        "models_with_bundle": models_with_bundle,
+        "coverage_ratio": round(coverage_ratio, 8),
+        "include_non_ezkl": bool(args.include_non_ezkl),
+        "model_filters": [str(m) for m in (args.model or []) if str(m).strip()],
+        "selected_models": selected_models,
+        "verified_models": verified_models,
+        "bundle_models": bundle_models,
+        "failed_models": sorted(str(r.get("model") or "") for r in failed_rows),
+        "output_file": str(Path(args.output).resolve()),
+    }
+    _append_history_snapshot(history_path, snapshot)
+
     out_path = Path(args.output).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, indent=2))
@@ -225,6 +391,15 @@ async def _run(args: argparse.Namespace) -> int:
         f"summary: verified={report['models_verified']}/{report['models_total']} "
         f"bundle={report['models_with_bundle']}/{report['models_total']} "
         f"failed={report['models_failed']}"
+    )
+    print(
+        "cadence:",
+        f"history={cadence.get('history_file_rel')}",
+        f"entries_before={cadence.get('history_entries_before_append')}",
+        f"daily_window_h={cadence.get('daily_delta_window_hours')}",
+        f"daily_delta_pp={cadence.get('daily_delta_pct_points') if cadence.get('daily_delta_pct_points') is not None else 'n/a'}",
+        f"new_bundles_24h={len(cadence.get('newly_bundled_models_since_daily_baseline') or [])}",
+        f"regressions_24h={len(cadence.get('regressed_bundled_models_since_daily_baseline') or [])}",
     )
     if failed_rows:
         print("failed models:")
@@ -258,6 +433,17 @@ def _parse_args() -> argparse.Namespace:
         "--output",
         default=str(PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_warm.json"),
         help="Output JSON report path.",
+    )
+    parser.add_argument(
+        "--history-file",
+        default=str(DEFAULT_HISTORY_FILE),
+        help="JSONL history path for per-run Path B coverage snapshots.",
+    )
+    parser.add_argument(
+        "--daily-delta-hours",
+        type=int,
+        default=24,
+        help="Window size in hours for daily coverage delta calculations (default: 24).",
     )
     parser.add_argument(
         "--include-non-ezkl",

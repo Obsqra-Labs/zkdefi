@@ -108,6 +108,8 @@ Optional:
 - `--model yield` (filter by model name substring; repeatable)
 - `--limit 2`
 - `--output artifacts/hackathon_showcase/pathb_bundle_warm.json`
+- `--history-file artifacts/hackathon_showcase/pathb_bundle_history.jsonl`
+- `--daily-delta-hours 24` (window used for day-over-day coverage deltas)
 - `--include-non-ezkl` (also include model folders without `vk.key/settings.json/kzg.srs`; default is proving-capable EZKL models only)
 - `--min-coverage 1.0` (optional hard gate; exits non-zero if `models_with_bundle/models_total` is below threshold)
 
@@ -117,6 +119,11 @@ Warm report now includes triage helpers:
 - `failed_models[]` (model + error + attempted widths + `recommended_action`)
 - `error_buckets` (grouped failure reasons)
 - `action_buckets` (grouped remediation hints)
+- `cadence` (previous-run and daily delta percentage points, plus exact new/regressed bundle model lists)
+
+Path B cadence history file:
+
+- `artifacts/hackathon_showcase/pathb_bundle_history.jsonl` (one snapshot per warm run)
 
 Strict gate:
 
