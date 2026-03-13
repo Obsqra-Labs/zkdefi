@@ -129,7 +129,10 @@ def test_warm_kzg_bundle_cache_updates_proof_raw_json(tmp_path, monkeypatch):
   "kzg_mpcheck_bundle": {
     "pair0": {"x": "0x111", "y": "0x222"},
     "pair1": {"x": "0x333", "y": "0x444"},
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
     "mpcheck_hint_felts": ["0x1", "0x2"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"],
     "auto_build_hint": false
   }
 }"""
@@ -273,6 +276,50 @@ def test_real_ezkl_serialization_injects_bundle_from_hash_map(tmp_path, monkeypa
     assert meta["kzg_bundle_injected"] is True
     assert meta["kzg_mpcheck_bundle_present"] is True
     assert meta["kzg_mpcheck_hint_felts"] == 1
+
+
+def test_real_ezkl_serialization_reads_hash_map_nested_under_kzg_mpcheck_bundle(tmp_path, monkeypatch):
+    proof_hash = "0x" + "13" * 32
+    bundle_file = tmp_path / "kzg_bundle.json"
+    bundle_file.write_text(
+        f"""{{
+  "kzg_mpcheck_bundle": {{
+    "{proof_hash}": {{
+      "kzg_mpcheck_bundle": {{
+        "pair0": {{"x": "0x11", "y": "0x22"}},
+        "pair1": {{"x": "0x33", "y": "0x44"}},
+        "g2_pair0": {{"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"}},
+        "g2_pair1": {{"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"}},
+        "mpcheck_hint_felts": ["0x7", "0x8"],
+        "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
+      }}
+    }}
+  }}
+}}"""
+    )
+    monkeypatch.setenv("EZKL_KZG_BUNDLE_FILE", str(bundle_file))
+
+    fake_proof = SimpleNamespace(
+        proof_hash=proof_hash,
+        model_hash="0x" + "24" * 32,
+        verify_key_hash="0x" + "35" * 32,
+        public_inputs=[1.0],
+        inference_output=[2.0],
+        proof_hex="0x" + "46" * 64,
+        proof_bytes=b"",
+        raw_proof_json={"proof": [1, 2, 3], "instances": [[1]]},
+    )
+
+    calldata, meta = serialize_ezkl_proof_to_kzg_calldata(
+        fake_proof,
+        model_name="tmp_model_no_sidecar",
+        model_dir=tmp_path / "no_sidecar_model",
+    )
+    assert len(calldata) > 20
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert meta["kzg_mpcheck_hint_felts"] == 2
+    assert meta["kzg_bundle_injected"] is True
+    assert str(meta["kzg_bundle_injected_source"]).endswith(":json.kzg_mpcheck_bundle.by_proof_hash")
 
 
 def test_real_ezkl_serialization_injects_bundle_from_extractor_cmd(tmp_path, monkeypatch):
@@ -500,6 +547,56 @@ def test_real_ezkl_serialization_emits_v3_with_dynamic_artifacts(monkeypatch):
     assert meta["kzg_mpcheck_line_source"] == "garaga_precompute_lines_2f"
     assert meta["kzg_mpcheck_precomputed_line_values"] == 4
     assert meta["kzg_mpcheck_precomputed_lines"] == 1
+
+
+def test_real_ezkl_serialization_falls_through_when_direct_bundle_is_not_buildable(tmp_path, monkeypatch):
+    bundle_file = tmp_path / "kzg_mpcheck_bundle.json"
+    bundle_file.write_text(
+        """{
+  "kzg_mpcheck_bundle": {
+    "pair0": {"x": "0x11", "y": "0x22"},
+    "pair1": {"x": "0x33", "y": "0x44"},
+    "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+    "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+    "mpcheck_hint_felts": ["0x5", "0x6"],
+    "precomputed_line_felts": ["0x1", "0x2", "0x3", "0x4"]
+  }
+}"""
+    )
+    monkeypatch.setenv("EZKL_KZG_BUNDLE_FILE", str(bundle_file))
+    monkeypatch.setattr(
+        "app.services.ezkl_kzg_serializer._build_bn254_dynamic_mpcheck_artifacts",
+        lambda pair0, pair1, g2_pair0, g2_pair1: ([], [], "forced_dynamic_builder_failure"),
+    )
+
+    fake_proof = SimpleNamespace(
+        proof_hash="0x" + "57" * 32,
+        model_hash="0x" + "68" * 32,
+        verify_key_hash="0x" + "79" * 32,
+        public_inputs=[1.0],
+        inference_output=[2.0],
+        proof_hex="0x" + "8a" * 64,
+        proof_bytes=b"",
+        raw_proof_json={
+            "kzg_mpcheck_bundle": {
+                "pair0": {"x": "0x11", "y": "0x22"},
+                "pair1": {"x": "0x33", "y": "0x44"},
+                "g2_pair0": {"x0": "0x1", "x1": "0x2", "y0": "0x3", "y1": "0x4"},
+                "g2_pair1": {"x0": "0x5", "x1": "0x6", "y0": "0x7", "y1": "0x8"},
+            }
+        },
+    )
+
+    calldata, meta = serialize_ezkl_proof_to_kzg_calldata(
+        fake_proof,
+        model_name="tmp_model_no_sidecar",
+        model_dir=tmp_path / "no_sidecar_model",
+    )
+    assert len(calldata) > 20
+    assert meta["kzg_bundle_injected"] is True
+    assert "file:" in str(meta["kzg_bundle_injected_source"])
+    assert meta["kzg_mpcheck_bundle_present"] is True
+    assert meta["kzg_mpcheck_hint_felts"] == 2
 
 
 def test_real_ezkl_serialization_uses_provided_v3_sidecar_when_rebuild_unavailable(monkeypatch):

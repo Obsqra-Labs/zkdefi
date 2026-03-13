@@ -189,9 +189,11 @@ Set `DAILY_BUILD_STRICT_EXIT=true` to make cron fail on strict-lane regressions.
 Daily build env knobs:
 
 - `PATHB_PRECOMPUTE_SIDECARS=true` (default)
-- `PATHB_PRECOMPUTE_MODELS="yield_forecast creditworthiness anomaly_detector"`
+- `PATHB_PRECOMPUTE_MODELS="yield_forecast creditworthiness anomaly_detector llm_fallback timing_predictor"` (default)
 - `SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG=true` (default in daily build)
 - `SHOWCASE_WARM_EXECUTION_CHAIN=dual` (default in daily build)
+- `SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS=true` (default in daily build; provision supported first-party models if their EZKL artifacts are missing)
+- `SHOWCASE_WARM_BOOTSTRAP_FORCE=false` (default in daily build; set `true` only when you explicitly want retraining)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
 - `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
 - `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)

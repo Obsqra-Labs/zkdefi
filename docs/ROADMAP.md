@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last updated:** 2026-03-10
+**Last updated:** 2026-03-13
 
 ## Vision
 
@@ -8,17 +8,19 @@ Private capital and verifiable trust together: identity and intent protected, pr
 
 ## Current state
 
-- Pragmatic EZKL bridge (ModelBridge to Garaga); 25 circuits in CIRCUIT_REGISTRY; Starknet Sepolia live.
+- Pragmatic EZKL bridge (ModelBridge to Garaga) live; `ModelBridge`, `ModelBridgeHeavy`, Noir HONK, and native KZG lanes all emit receipt-backed proofs through the current bridge stack.
 - L1 Sepolia EZKL verifier and L2 receiver (L1EzklBridgeReceiver); parent backend L1 submit and L2 poll; signer opt-in.
 - Rebalance mode, pools, Trade Desk v2, Mission Control, reputation proofs, full-privacy rails.
+- Path B native KZG is now strict-gated and receipt-backed across the current proving-ready catalog, with bootstrap support for first-party models when local EZKL artifacts are missing.
 
 ## Next
 
-- L3/Madara when up; Noir HONK verifier deploy; L1 to L2 E2E; Capital OS polish (intent, pool UX, oracle visibility).
+- Broaden Path B beyond the current proving-ready catalog and keep tightening bridge/runtime benchmarks.
+- L1 to L2 E2E polish; Capital OS polish (intent, pool UX, oracle visibility).
 
 ## Later
 
-- Cairo KZG verifier (Path B); portable trust; policy compiler.
+- Portable trust; policy compiler; deeper recursive closure of the STARK/SNARK lanes.
 
 ## ProofMode table
 
@@ -27,9 +29,9 @@ Private capital and verifiable trust together: identity and intent protected, pr
 | 0 | EZKL_ONLY | Off-chain EZKL | Backend trust |
 | 1 | EZKL_BRIDGE | ModelBridge to Garaga ~34M | Shipped |
 | 2 | FULL_DUAL_PROVER | ModelBridge plus STARK ~70M | Shipped |
-| 3 | NOIR_HONK | Noir to HONK ~178M | Implemented; deploy on L3 |
+| 3 | NOIR_HONK | Noir to HONK ~178M | Live on current bridge gate |
 | 4 | L1_BRIDGE | L1 KZG to L1-L2 msg | L1+L2 shipped; E2E in progress |
-| 5 | NATIVE_KZG | Cairo KZG ~300M | Planned |
+| 5 | NATIVE_KZG | Cairo KZG ~300M | Live on L3; catalog expansion ongoing |
 
 Reference: proof_mode.py; RECURSIVE_EZKL_ROADMAP.md in archive/ideas/docs.
 
