@@ -26,6 +26,7 @@ Focused documentation index for zkde.fi.
 Use `/test` for the current Obsqra Labs research evidence: ModelBridge lanes, AI advisory + badge screening, privacy tier probes, and explorer-linked receipts.
 The report now also includes rolling stability/gas benchmarks by lane (verified-rate + p50/p95) from `artifacts/hackathon_showcase/history.jsonl`.
 Path B extraction cadence is tracked in `artifacts/hackathon_showcase/pathb_bundle_history.jsonl` with daily coverage deltas and exact per-model bundle regressions/additions.
+The Path B warm report can now optionally probe real `EzklNativeKzg` receipts per model, so the catalog tracks not only bundle presence but actual backend-native-KZG execution evidence.
 
 Daily refresh on the same server (recommended for `/test`):
 

@@ -110,6 +110,10 @@ Optional:
 - `--output artifacts/hackathon_showcase/pathb_bundle_warm.json`
 - `--history-file artifacts/hackathon_showcase/pathb_bundle_history.jsonl`
 - `--daily-delta-hours 24` (window used for day-over-day coverage deltas)
+- `--verify-onchain-native-kzg` (after warming each model, call backend `proofs/ml-bridge` with `bridge_circuit=EzklNativeKzg` and record live receipt status)
+- `--base-url http://127.0.0.1:8003` (backend base URL for `--verify-onchain-native-kzg`)
+- `--wallet 0x...` (wallet used for `--verify-onchain-native-kzg`)
+- `--request-timeout 120`
 - `--include-non-ezkl` (also include model folders without `vk.key/settings.json/kzg.srs`; default is proving-capable EZKL models only)
 - `--min-coverage 1.0` (optional hard gate; exits non-zero if `models_with_bundle/models_total` is below threshold)
 
@@ -120,6 +124,7 @@ Warm report now includes triage helpers:
 - `error_buckets` (grouped failure reasons)
 - `action_buckets` (grouped remediation hints)
 - `cadence` (previous-run and daily delta percentage points, plus exact new/regressed bundle model lists)
+- `native_kzg_onchain` (optional per-model native-KZG receipt matrix: attempted / verified / tx-backed)
 
 Path B cadence history file:
 

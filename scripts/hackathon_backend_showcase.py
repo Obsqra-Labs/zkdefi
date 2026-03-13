@@ -611,6 +611,28 @@ class ShowcaseRunner:
             if isinstance(cadence.get("regressed_bundled_models_since_previous_run"), list)
             else []
         )
+        daily_new_native_kzg = (
+            cadence.get("newly_native_kzg_verified_models_since_daily_baseline")
+            if isinstance(cadence.get("newly_native_kzg_verified_models_since_daily_baseline"), list)
+            else []
+        )
+        daily_regressed_native_kzg = (
+            cadence.get("regressed_native_kzg_verified_models_since_daily_baseline")
+            if isinstance(cadence.get("regressed_native_kzg_verified_models_since_daily_baseline"), list)
+            else []
+        )
+        prev_new_native_kzg = (
+            cadence.get("newly_native_kzg_verified_models_since_previous_run")
+            if isinstance(cadence.get("newly_native_kzg_verified_models_since_previous_run"), list)
+            else []
+        )
+        prev_regressed_native_kzg = (
+            cadence.get("regressed_native_kzg_verified_models_since_previous_run")
+            if isinstance(cadence.get("regressed_native_kzg_verified_models_since_previous_run"), list)
+            else []
+        )
+        onchain = report.get("native_kzg_onchain") if isinstance(report.get("native_kzg_onchain"), dict) else {}
+        onchain_rows = onchain.get("rows") if isinstance(onchain.get("rows"), list) else []
 
         return {
             "artifact_file": str(report_file),
@@ -640,6 +662,19 @@ class ShowcaseRunner:
             "daily_regressed_bundle_models": daily_regressions,
             "prev_new_bundle_models": prev_new_bundles,
             "prev_regressed_bundle_models": prev_regressions,
+            "native_kzg_onchain_enabled": bool(onchain.get("enabled")),
+            "native_kzg_onchain_base_url": onchain.get("base_url"),
+            "native_kzg_onchain_attempted_models": _safe_int(onchain.get("attempted_models"), 0),
+            "native_kzg_onchain_verified_models": _safe_int(onchain.get("verified_models"), 0),
+            "native_kzg_onchain_receipt_models": _safe_int(onchain.get("receipt_models"), 0),
+            "native_kzg_onchain_attempted_model_names": onchain.get("attempted_model_names") or [],
+            "native_kzg_onchain_verified_model_names": onchain.get("verified_model_names") or [],
+            "native_kzg_onchain_receipt_model_names": onchain.get("receipt_model_names") or [],
+            "native_kzg_onchain_rows": onchain_rows,
+            "daily_new_native_kzg_models": daily_new_native_kzg,
+            "daily_regressed_native_kzg_models": daily_regressed_native_kzg,
+            "prev_new_native_kzg_models": prev_new_native_kzg,
+            "prev_regressed_native_kzg_models": prev_regressed_native_kzg,
         }
 
     def _final_stage_report_readiness(self) -> tuple[bool, list[str]]:
@@ -3117,6 +3152,12 @@ class ShowcaseRunner:
                 "path_b_warm_daily_delta_pct_points": pathb_warm_gate.get("daily_delta_pct_points"),
                 "path_b_warm_daily_new_bundle_count": len(pathb_warm_gate.get("daily_new_bundle_models") or []),
                 "path_b_warm_daily_regressed_bundle_count": len(pathb_warm_gate.get("daily_regressed_bundle_models") or []),
+                "path_b_native_kzg_onchain_enabled": pathb_warm_gate.get("native_kzg_onchain_enabled"),
+                "path_b_native_kzg_attempted_models": pathb_warm_gate.get("native_kzg_onchain_attempted_models"),
+                "path_b_native_kzg_verified_models": pathb_warm_gate.get("native_kzg_onchain_verified_models"),
+                "path_b_native_kzg_receipt_models": pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
+                "path_b_native_kzg_daily_new_count": len(pathb_warm_gate.get("daily_new_native_kzg_models") or []),
+                "path_b_native_kzg_daily_regressed_count": len(pathb_warm_gate.get("daily_regressed_native_kzg_models") or []),
                 "path_c_live_receipt_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
@@ -3185,6 +3226,19 @@ class ShowcaseRunner:
                 "daily_regressed_bundle_models": pathb_warm_gate.get("daily_regressed_bundle_models") or [],
                 "prev_new_bundle_models": pathb_warm_gate.get("prev_new_bundle_models") or [],
                 "prev_regressed_bundle_models": pathb_warm_gate.get("prev_regressed_bundle_models") or [],
+                "native_kzg_onchain_enabled": pathb_warm_gate.get("native_kzg_onchain_enabled"),
+                "native_kzg_onchain_base_url": pathb_warm_gate.get("native_kzg_onchain_base_url"),
+                "native_kzg_onchain_attempted_models": pathb_warm_gate.get("native_kzg_onchain_attempted_models"),
+                "native_kzg_onchain_verified_models": pathb_warm_gate.get("native_kzg_onchain_verified_models"),
+                "native_kzg_onchain_receipt_models": pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
+                "native_kzg_onchain_attempted_model_names": pathb_warm_gate.get("native_kzg_onchain_attempted_model_names") or [],
+                "native_kzg_onchain_verified_model_names": pathb_warm_gate.get("native_kzg_onchain_verified_model_names") or [],
+                "native_kzg_onchain_receipt_model_names": pathb_warm_gate.get("native_kzg_onchain_receipt_model_names") or [],
+                "native_kzg_onchain_rows": pathb_warm_gate.get("native_kzg_onchain_rows") or [],
+                "daily_new_native_kzg_models": pathb_warm_gate.get("daily_new_native_kzg_models") or [],
+                "daily_regressed_native_kzg_models": pathb_warm_gate.get("daily_regressed_native_kzg_models") or [],
+                "prev_new_native_kzg_models": pathb_warm_gate.get("prev_new_native_kzg_models") or [],
+                "prev_regressed_native_kzg_models": pathb_warm_gate.get("prev_regressed_native_kzg_models") or [],
             },
             "path_c_live": {
                 "artifact_path": _relative_to_project(PATHC_LIVE_RECEIPT_FILE),
@@ -3257,6 +3311,12 @@ class ShowcaseRunner:
             path_b_warm_daily_delta_pp=pathb_warm_gate.get("daily_delta_pct_points"),
             path_b_warm_daily_new_bundles=len(pathb_warm_gate.get("daily_new_bundle_models") or []),
             path_b_warm_daily_regressions=len(pathb_warm_gate.get("daily_regressed_bundle_models") or []),
+            path_b_native_kzg_onchain_enabled=pathb_warm_gate.get("native_kzg_onchain_enabled"),
+            path_b_native_kzg_attempted_models=pathb_warm_gate.get("native_kzg_onchain_attempted_models"),
+            path_b_native_kzg_verified_models=pathb_warm_gate.get("native_kzg_onchain_verified_models"),
+            path_b_native_kzg_receipt_models=pathb_warm_gate.get("native_kzg_onchain_receipt_models"),
+            path_b_native_kzg_daily_new=len(pathb_warm_gate.get("daily_new_native_kzg_models") or []),
+            path_b_native_kzg_daily_regressions=len(pathb_warm_gate.get("daily_regressed_native_kzg_models") or []),
             path_b_warm_gate_reason=_clip_text(pathb_warm_gate.get("failure_reason"), 120),
             strict_bridge=self.strict_bridge,
         )
@@ -4754,6 +4814,21 @@ class ShowcaseRunner:
                     f"{recursive_signals.get('path_b_warm_daily_regressed_bundle_count') or 0}"
                 ),
             ],
+            [
+                "Path B native_kzg attempted / verified / receipts",
+                escape(
+                    f"{recursive_signals.get('path_b_native_kzg_attempted_models') or 0}/"
+                    f"{recursive_signals.get('path_b_native_kzg_verified_models') or 0}/"
+                    f"{recursive_signals.get('path_b_native_kzg_receipt_models') or 0}"
+                ),
+            ],
+            [
+                "Path B native_kzg daily new / regressions",
+                escape(
+                    f"{recursive_signals.get('path_b_native_kzg_daily_new_count') or 0}/"
+                    f"{recursive_signals.get('path_b_native_kzg_daily_regressed_count') or 0}"
+                ),
+            ],
             ["Path C live receipt file found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_live_receipt_found") else "<span class=\"fail\">no</span>"],
             ["Path C L1 receipt status == 1", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l1_status_ok") else "<span class=\"fail\">no</span>"],
             ["Path C L2 confirmation", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l2_verified") else "<span class=\"fail\">no</span>"],
@@ -4795,11 +4870,28 @@ class ShowcaseRunner:
             ["Daily delta window (hours)", escape(str(path_b_warm.get("daily_delta_window_hours") or "-"))],
             ["Previous-run delta (pct points)", escape(str(path_b_warm.get("previous_run_delta_pct_points") or "-"))],
             ["Daily delta (pct points)", escape(str(path_b_warm.get("daily_delta_pct_points") or "-"))],
+            ["Native KZG onchain probe enabled", "<span class=\"pass\">yes</span>" if path_b_warm.get("native_kzg_onchain_enabled") else "<span class=\"warn\">no</span>"],
+            ["Native KZG base URL", escape(str(path_b_warm.get("native_kzg_onchain_base_url") or "-"))],
+            [
+                "Native KZG attempted / verified / receipts",
+                escape(
+                    f"{path_b_warm.get('native_kzg_onchain_attempted_models') or 0}/"
+                    f"{path_b_warm.get('native_kzg_onchain_verified_models') or 0}/"
+                    f"{path_b_warm.get('native_kzg_onchain_receipt_models') or 0}"
+                ),
+            ],
             [
                 "Daily new bundles / regressions",
                 escape(
                     f"{len(path_b_warm.get('daily_new_bundle_models') or [])}/"
                     f"{len(path_b_warm.get('daily_regressed_bundle_models') or [])}"
+                ),
+            ],
+            [
+                "Daily native_kzg verified / regressions",
+                escape(
+                    f"{len(path_b_warm.get('daily_new_native_kzg_models') or [])}/"
+                    f"{len(path_b_warm.get('daily_regressed_native_kzg_models') or [])}"
                 ),
             ],
             [
@@ -4810,7 +4902,32 @@ class ShowcaseRunner:
                 "Regressions (daily baseline)",
                 escape(_clip_text(", ".join(path_b_warm.get("daily_regressed_bundle_models") or []), 180) or "-"),
             ],
+            [
+                "New native_kzg verified models (daily baseline)",
+                escape(_clip_text(", ".join(path_b_warm.get("daily_new_native_kzg_models") or []), 180) or "-"),
+            ],
+            [
+                "Regressed native_kzg models (daily baseline)",
+                escape(_clip_text(", ".join(path_b_warm.get("daily_regressed_native_kzg_models") or []), 180) or "-"),
+            ],
         ]
+        path_b_onchain_rows = []
+        for row in (path_b_warm.get("native_kzg_onchain_rows") or [])[:12]:
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("tx_hash") or "-")
+            path_b_onchain_rows.append(
+                [
+                    escape(str(row.get("model") or "-")),
+                    escape(str(row.get("status") or "-")),
+                    "<span class=\"pass\">true</span>" if row.get("verified_on_chain") else "<span class=\"fail\">false</span>",
+                    "<span class=\"pass\">true</span>" if row.get("can_execute") else "<span class=\"fail\">false</span>",
+                    escape(str(row.get("mode") or "-")),
+                    escape(str(row.get("bridge_backend") or "-")),
+                    escape(_short_hex(tx_hash, 14) if tx_hash != "-" else "-"),
+                    escape(_clip_text(row.get("failure_reason"), 120) or "-"),
+                ]
+            )
         path_c_live = recursive_paths.get("path_c_live") if isinstance(recursive_paths.get("path_c_live"), dict) else {}
         path_c_tx_hash = str(path_c_live.get("tx_hash") or "")
         path_c_tx_url = path_c_live.get("tx_url")
@@ -6499,6 +6616,9 @@ class ShowcaseRunner:
       <h3>Path B Catalog Warm Report</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run).</p>
       {self._html_table(["Field", "Value"], path_b_warm_rows)}
+      <h3>Path B Native KZG Receipt Matrix</h3>
+      <p class="meta">Optional per-model `EzklNativeKzg` probe layered on top of the warm report so catalog coverage can be cross-checked against actual on-chain receipt generation.</p>
+      {self._html_table(["Model", "HTTP", "Verified", "Can Execute", "Mode", "Backend", "Tx", "Failure"], path_b_onchain_rows)}
       <h3>Code Wiring Signals</h3>
       {self._html_table(["Check", "Status"], recursive_signal_rows)}
       <h3>Environment Readiness (Parent Backend)</h3>

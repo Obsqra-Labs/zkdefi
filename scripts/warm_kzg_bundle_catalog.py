@@ -30,6 +30,8 @@ from app.services.proof_pipeline import ProofPipeline  # noqa: E402
 from app.services.ezkl_kzg_serializer import warm_kzg_bundle_cache_for_proof  # noqa: E402
 
 DEFAULT_HISTORY_FILE = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathb_bundle_history.jsonl"
+DEFAULT_NATIVE_KZG_BASE_URL = "http://127.0.0.1:8003"
+DEFAULT_NATIVE_KZG_WALLET = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
 
 
 def _load_feature_count(model_dir: Path) -> int:
@@ -80,6 +82,11 @@ def _probe_inputs(model_dir: Path) -> list[list[list[float]]]:
         seen.add(n)
         rows.append([[0.1 for _ in range(n)]])
     return rows
+
+
+def _probe_for_width(width: int) -> list[list[float]]:
+    n = max(1, int(width))
+    return [[0.1 for _ in range(n)]]
 
 
 def _failure_action_hint(row: dict[str, Any]) -> str:
@@ -168,6 +175,72 @@ def _append_history_snapshot(history_path: Path, snapshot: dict[str, Any]) -> No
             f.write(row_line + "\n")
 
 
+async def _probe_native_kzg_onchain(
+    *,
+    base_url: str,
+    wallet: str,
+    model_name: str,
+    input_data: list[list[float]],
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    try:
+        import httpx
+    except Exception as exc:  # pragma: no cover
+        return {
+            "attempted": True,
+            "status": 0,
+            "verified_on_chain": False,
+            "can_execute": False,
+            "error": f"httpx unavailable: {exc}",
+        }
+
+    payload = {
+        "user_address": wallet,
+        "model_name": model_name,
+        "input_data": input_data,
+        "expected_model_hash": 0,
+        "output_lower_bound": 0,
+        "output_upper_bound": 10000,
+        "execution_chain": "l3",
+        "proof_mode": 1,
+        "tier": 1,
+        "action_type": "rebalance",
+        "value_eth": 2.1,
+        "bridge_circuit": "EzklNativeKzg",
+    }
+    url = f"{base_url.rstrip('/')}/api/v1/zkdefi/proofs/ml-bridge"
+
+    async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+        try:
+            resp = await client.post(url, json=payload)
+            body = resp.json() if resp.content else {}
+        except Exception as exc:
+            return {
+                "attempted": True,
+                "status": 0,
+                "verified_on_chain": False,
+                "can_execute": False,
+                "error": str(exc),
+            }
+
+    verification = body.get("verification") if isinstance(body, dict) else {}
+    l3 = verification.get("l3") if isinstance(verification, dict) else {}
+    bridge_proof = body.get("bridge_proof") if isinstance(body, dict) else {}
+    return {
+        "attempted": True,
+        "status": int(resp.status_code),
+        "verified_on_chain": bool(l3.get("verified_on_chain")),
+        "can_execute": bool(body.get("can_execute")),
+        "tx_hash": l3.get("tx_hash"),
+        "mode": l3.get("mode"),
+        "bridge_backend": bridge_proof.get("bridge_backend") if isinstance(bridge_proof, dict) else None,
+        "bridge_compliant": bridge_proof.get("is_compliant") if isinstance(bridge_proof, dict) else None,
+        "trust_mode": body.get("trust_mode") if isinstance(body, dict) else None,
+        "failure_reason": verification.get("failure_reason") if isinstance(verification, dict) else None,
+        "error": (body.get("detail") or body.get("error")) if isinstance(body, dict) else None,
+    }
+
+
 def _model_dirs(root: Path, patterns: list[str]) -> list[Path]:
     rows = [p for p in sorted(root.iterdir()) if p.is_dir()]
     if not patterns:
@@ -217,6 +290,7 @@ async def _run(args: argparse.Namespace) -> int:
         try:
             proof = None
             verified = False
+            selected_probe: list[list[float]] | None = None
             attempted_feature_widths: list[int] = []
             for probe in _probe_inputs(model_dir):
                 attempted_feature_widths.append(len(probe[0]))
@@ -225,6 +299,7 @@ async def _run(args: argparse.Namespace) -> int:
                     input_data=probe,
                 )
                 if proof is not None and verified:
+                    selected_probe = probe
                     row["selected_input_features"] = len(probe[0])
                     break
             row["attempted_feature_widths"] = attempted_feature_widths
@@ -249,6 +324,28 @@ async def _run(args: argparse.Namespace) -> int:
             else:
                 row["kzg_bundle_present"] = False
                 row["error"] = "real_ezkl_unavailable_or_unverified"
+            if (
+                args.verify_onchain_native_kzg
+                and row.get("ezkl_verified")
+                and row.get("kzg_bundle_present")
+            ):
+                native_probe = await _probe_native_kzg_onchain(
+                    base_url=args.base_url,
+                    wallet=args.wallet,
+                    model_name=model_name,
+                    input_data=selected_probe or _probe_for_width(row.get("selected_input_features") or row["input_features"]),
+                    timeout_seconds=args.request_timeout,
+                )
+                row["native_kzg_attempted"] = bool(native_probe.get("attempted"))
+                row["native_kzg_status"] = native_probe.get("status")
+                row["native_kzg_verified_on_chain"] = bool(native_probe.get("verified_on_chain"))
+                row["native_kzg_can_execute"] = bool(native_probe.get("can_execute"))
+                row["native_kzg_tx_hash"] = native_probe.get("tx_hash")
+                row["native_kzg_mode"] = native_probe.get("mode")
+                row["native_kzg_bridge_backend"] = native_probe.get("bridge_backend")
+                row["native_kzg_bridge_compliant"] = native_probe.get("bridge_compliant")
+                row["native_kzg_trust_mode"] = native_probe.get("trust_mode")
+                row["native_kzg_failure_reason"] = native_probe.get("failure_reason") or native_probe.get("error")
         except Exception as exc:
             row["ezkl_verified"] = False
             row["kzg_bundle_present"] = False
@@ -273,6 +370,9 @@ async def _run(args: argparse.Namespace) -> int:
     models_verified = int(report["models_verified"])
     models_with_bundle = int(report["models_with_bundle"])
     coverage_ratio = (models_with_bundle / models_total) if models_total > 0 else 0.0
+    native_kzg_attempted_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_attempted"))
+    native_kzg_verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_verified_on_chain"))
+    native_kzg_receipt_models = sorted(str(r.get("model") or "") for r in rows if r.get("native_kzg_tx_hash"))
 
     verified_models = sorted(str(r.get("model") or "") for r in rows if r.get("ezkl_verified"))
     bundle_models = sorted(str(r.get("model") or "") for r in rows if r.get("kzg_bundle_present"))
@@ -306,6 +406,9 @@ async def _run(args: argparse.Namespace) -> int:
     current_verified_set = set(verified_models)
     prev_verified_set = _entry_model_set(previous_entry, "verified_models") if isinstance(previous_entry, dict) else set()
     daily_verified_set = _entry_model_set(daily_baseline_entry, "verified_models") if isinstance(daily_baseline_entry, dict) else set()
+    current_native_kzg_verified_set = set(native_kzg_verified_models)
+    prev_native_kzg_verified_set = _entry_model_set(previous_entry, "native_kzg_verified_models") if isinstance(previous_entry, dict) else set()
+    daily_native_kzg_verified_set = _entry_model_set(daily_baseline_entry, "native_kzg_verified_models") if isinstance(daily_baseline_entry, dict) else set()
 
     if daily_baseline_entry is None:
         daily_new_bundles = []
@@ -342,8 +445,42 @@ async def _run(args: argparse.Namespace) -> int:
         "regressed_bundled_models_since_daily_baseline": daily_regressed_bundles,
         "newly_verified_models_since_daily_baseline": daily_new_verified,
         "regressed_verified_models_since_daily_baseline": daily_regressed_verified,
+        "newly_native_kzg_verified_models_since_previous_run": sorted(current_native_kzg_verified_set - prev_native_kzg_verified_set),
+        "regressed_native_kzg_verified_models_since_previous_run": sorted(prev_native_kzg_verified_set - current_native_kzg_verified_set),
+        "newly_native_kzg_verified_models_since_daily_baseline": (
+            [] if daily_baseline_entry is None else sorted(current_native_kzg_verified_set - daily_native_kzg_verified_set)
+        ),
+        "regressed_native_kzg_verified_models_since_daily_baseline": (
+            [] if daily_baseline_entry is None else sorted(daily_native_kzg_verified_set - current_native_kzg_verified_set)
+        ),
     }
     report["cadence"] = cadence
+    report["native_kzg_onchain"] = {
+        "enabled": bool(args.verify_onchain_native_kzg),
+        "base_url": args.base_url if args.verify_onchain_native_kzg else None,
+        "attempted_models": len(native_kzg_attempted_models),
+        "verified_models": len(native_kzg_verified_models),
+        "receipt_models": len(native_kzg_receipt_models),
+        "attempted_model_names": native_kzg_attempted_models,
+        "verified_model_names": native_kzg_verified_models,
+        "receipt_model_names": native_kzg_receipt_models,
+        "rows": [
+            {
+                "model": str(r.get("model") or ""),
+                "status": r.get("native_kzg_status"),
+                "verified_on_chain": bool(r.get("native_kzg_verified_on_chain")),
+                "can_execute": bool(r.get("native_kzg_can_execute")),
+                "tx_hash": r.get("native_kzg_tx_hash"),
+                "mode": r.get("native_kzg_mode"),
+                "bridge_backend": r.get("native_kzg_bridge_backend"),
+                "bridge_compliant": r.get("native_kzg_bridge_compliant"),
+                "trust_mode": r.get("native_kzg_trust_mode"),
+                "failure_reason": r.get("native_kzg_failure_reason"),
+            }
+            for r in rows
+            if r.get("native_kzg_attempted")
+        ],
+    }
 
     failed_rows = [r for r in rows if not r.get("kzg_bundle_present")]
     error_buckets: dict[str, int] = {}
@@ -378,6 +515,9 @@ async def _run(args: argparse.Namespace) -> int:
         "selected_models": selected_models,
         "verified_models": verified_models,
         "bundle_models": bundle_models,
+        "native_kzg_attempted_models": native_kzg_attempted_models,
+        "native_kzg_verified_models": native_kzg_verified_models,
+        "native_kzg_receipt_models": native_kzg_receipt_models,
         "failed_models": sorted(str(r.get("model") or "") for r in failed_rows),
         "output_file": str(Path(args.output).resolve()),
     }
@@ -390,6 +530,7 @@ async def _run(args: argparse.Namespace) -> int:
     print(
         f"summary: verified={report['models_verified']}/{report['models_total']} "
         f"bundle={report['models_with_bundle']}/{report['models_total']} "
+        f"native_kzg={len(native_kzg_verified_models)}/{len(native_kzg_attempted_models) if native_kzg_attempted_models else 0} "
         f"failed={report['models_failed']}"
     )
     print(
@@ -400,6 +541,7 @@ async def _run(args: argparse.Namespace) -> int:
         f"daily_delta_pp={cadence.get('daily_delta_pct_points') if cadence.get('daily_delta_pct_points') is not None else 'n/a'}",
         f"new_bundles_24h={len(cadence.get('newly_bundled_models_since_daily_baseline') or [])}",
         f"regressions_24h={len(cadence.get('regressed_bundled_models_since_daily_baseline') or [])}",
+        f"new_native_kzg_24h={len(cadence.get('newly_native_kzg_verified_models_since_daily_baseline') or [])}",
     )
     if failed_rows:
         print("failed models:")
@@ -458,6 +600,27 @@ def _parse_args() -> argparse.Namespace:
             "Optional minimum bundle coverage ratio [0,1]. "
             "When set, script exits non-zero if models_with_bundle/models_total is below threshold."
         ),
+    )
+    parser.add_argument(
+        "--verify-onchain-native-kzg",
+        action="store_true",
+        help="After warming a model bundle, call backend proofs/ml-bridge with bridge_circuit=EzklNativeKzg and record live L3 receipt status.",
+    )
+    parser.add_argument(
+        "--base-url",
+        default=DEFAULT_NATIVE_KZG_BASE_URL,
+        help="Backend base URL used with --verify-onchain-native-kzg.",
+    )
+    parser.add_argument(
+        "--wallet",
+        default=DEFAULT_NATIVE_KZG_WALLET,
+        help="Wallet address used with --verify-onchain-native-kzg.",
+    )
+    parser.add_argument(
+        "--request-timeout",
+        type=float,
+        default=120.0,
+        help="HTTP timeout in seconds for --verify-onchain-native-kzg.",
     )
     return parser.parse_args()
 
