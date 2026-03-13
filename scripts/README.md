@@ -139,6 +139,7 @@ Env knobs:
 
 - `SHOWCASE_BASE_URL` (default `http://127.0.0.1:8003`)
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
+- `SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for `execution_chain=dual`, useful when strict mode times out under load)
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `SHOWCASE_REQUIRE_NOIR_LANE` (default `false`; when `true`, CI gate hard-requires Noir lane `noir_honk` + on-chain verify)
 - `SHOWCASE_BENCHMARK_WINDOW_RUNS` (default `40`; rolling history window used for stability/gas trend table)

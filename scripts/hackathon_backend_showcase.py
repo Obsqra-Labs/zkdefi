@@ -2222,6 +2222,15 @@ class ShowcaseRunner:
         # Honor CLI timeout tuning even in strict mode; avoid forcing 240s hangs
         # when a bridge lane is unhealthy. Keep a sane floor for normal slow proofs.
         bridge_timeout = max(self.timeout_seconds, 25.0)
+        dual_timeout_override = _safe_float(os.getenv("SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS"), 0.0)
+        if dual_timeout_override > 0:
+            dual_bridge_timeout = dual_timeout_override
+        elif self.strict_bridge:
+            # Dual executes L3 + mirror semantics; give it extra room to avoid
+            # false negatives caused only by request timeout pressure.
+            dual_bridge_timeout = max(bridge_timeout, 45.0)
+        else:
+            dual_bridge_timeout = bridge_timeout
         strict_attempts_override = _safe_int(os.getenv("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"), 0)
 
         def _bridge_attempts(strict_default: int, relaxed_default: int) -> int:
@@ -2239,7 +2248,7 @@ class ShowcaseRunner:
         dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(
             dual_payload,
             max_attempts=_bridge_attempts(6, 5),
-            timeout_seconds=bridge_timeout,
+            timeout_seconds=dual_bridge_timeout,
         )
         heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
             heavy_payload,
@@ -2780,6 +2789,8 @@ class ShowcaseRunner:
             l3_attempts=len(l3_attempts),
             heavy_attempts=len(heavy_attempts),
             noir_attempts=len(noir_attempts),
+            bridge_timeout_seconds=bridge_timeout,
+            dual_bridge_timeout_seconds=dual_bridge_timeout,
             runtime_probe_ok=runtime_ok,
             heavy_runtime_ok=heavy_runtime_ok,
             strict_bridge=self.strict_bridge,
