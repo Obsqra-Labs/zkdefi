@@ -1,4 +1,4 @@
 expected_model_hash = "2452790689651608980172786626972437024887877327003605040382473347431959341059"
 output_lower_bound = "0"
 output_upper_bound = "10000"
-model_output = "1"
+model_output = "0"
