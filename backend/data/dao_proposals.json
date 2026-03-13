@@ -1662,5 +1662,53 @@
     "passed": false,
     "status": "voting",
     "description": "Private voting + dark settlement backend showcase"
+  },
+  "105": {
+    "id": 105,
+    "proposer": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "proposal_type": "privacy_param_update",
+    "target": "0x1",
+    "new_value": 42,
+    "votes_for": 1,
+    "votes_against": 0,
+    "total_votes": 1,
+    "created_at": 1773403405,
+    "voting_ends_at": 1773407005,
+    "executed": false,
+    "passed": false,
+    "status": "voting",
+    "description": "Private voting + dark settlement backend showcase"
+  },
+  "106": {
+    "id": 106,
+    "proposer": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "proposal_type": "privacy_param_update",
+    "target": "0x1",
+    "new_value": 42,
+    "votes_for": 1,
+    "votes_against": 0,
+    "total_votes": 1,
+    "created_at": 1773405077,
+    "voting_ends_at": 1773408677,
+    "executed": false,
+    "passed": false,
+    "status": "voting",
+    "description": "Private voting + dark settlement backend showcase"
+  },
+  "107": {
+    "id": 107,
+    "proposer": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "proposal_type": "privacy_param_update",
+    "target": "0x1",
+    "new_value": 42,
+    "votes_for": 1,
+    "votes_against": 0,
+    "total_votes": 1,
+    "created_at": 1773405341,
+    "voting_ends_at": 1773408941,
+    "executed": false,
+    "passed": false,
+    "status": "voting",
+    "description": "Private voting + dark settlement backend showcase"
   }
 }

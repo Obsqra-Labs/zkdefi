@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-13T04:12:52.089245+00:00",
-  "duration_ms": 14045,
+  "generated_at": "2026-03-13T16:53:11.037109+00:00",
+  "duration_ms": 21364,
   "models_total": 3,
   "models_verified": 3,
   "models_with_bundle": 3,
@@ -19,8 +19,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0xad70cc66509761235b448d5414dedda8158c535c883141ba1a02b226e455e1bb",
-      "duration_ms": 4752
+      "proof_hash": "0x74fa9d935c62df002acd0b31842b67c38e92cbd4b3626bb70bab596f3beff151",
+      "duration_ms": 7267
     },
     {
       "model": "creditworthiness",
@@ -36,8 +36,8 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x1730b9b0904f7259cedd0c23b022f7188740ae90f4cbb629cad9bb6f18c44e5b",
-      "duration_ms": 4793
+      "proof_hash": "0x28000872c201f383525936e12008cac4f38c404a91ec33bad3c2cb3a179625f3",
+      "duration_ms": 6942
     },
     {
       "model": "yield_forecast",
@@ -53,10 +53,55 @@
       "kzg_cached_path": null,
       "kzg_extractor_attempted": false,
       "kzg_extractor_error": null,
-      "proof_hash": "0x8745505b43987a2b8068f9713471d853d2ea688afe184c3c6320968cd564a761",
-      "duration_ms": 4499
+      "proof_hash": "0x79f4f4a8489d9d33899c344210cea96c079f786925c8abaefc5706a3bb3694b5",
+      "duration_ms": 7155
     }
   ],
+  "cadence": {
+    "history_file": "/opt/obsqra.starknet/zkdefi/artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
+    "history_file_rel": "artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
+    "history_entries_before_append": 4,
+    "daily_delta_window_hours": 24,
+    "coverage_ratio": 1.0,
+    "previous_run_generated_at": "2026-03-13T16:15:28.118331+00:00",
+    "previous_run_coverage_ratio": 1.0,
+    "previous_run_delta_pct_points": 0.0,
+    "daily_baseline_generated_at": null,
+    "daily_baseline_coverage_ratio": null,
+    "daily_delta_pct_points": null,
+    "newly_bundled_models_since_previous_run": [],
+    "regressed_bundled_models_since_previous_run": [],
+    "newly_verified_models_since_previous_run": [],
+    "regressed_verified_models_since_previous_run": [],
+    "newly_bundled_models_since_daily_baseline": [],
+    "regressed_bundled_models_since_daily_baseline": [],
+    "newly_verified_models_since_daily_baseline": [],
+    "regressed_verified_models_since_daily_baseline": [],
+    "newly_native_kzg_verified_models_since_previous_run": [],
+    "regressed_native_kzg_verified_models_since_previous_run": [
+      "anomaly_detector",
+      "creditworthiness",
+      "yield_forecast"
+    ],
+    "newly_native_kzg_verified_models_since_daily_baseline": [],
+    "regressed_native_kzg_verified_models_since_daily_baseline": []
+  },
+  "native_kzg_onchain": {
+    "enabled": false,
+    "base_url": null,
+    "execution_chain": null,
+    "attempted_models": 0,
+    "verified_models": 0,
+    "l3_receipt_models": 0,
+    "l2_receipt_models": 0,
+    "mirrored_models": 0,
+    "attempted_model_names": [],
+    "verified_model_names": [],
+    "l3_receipt_model_names": [],
+    "l2_receipt_model_names": [],
+    "mirrored_model_names": [],
+    "rows": []
+  },
   "models_failed": 0,
   "failed_models": [],
   "error_buckets": {},
