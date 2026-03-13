@@ -41,6 +41,7 @@ Daily refresh on the same server (recommended for `/test`):
   - precompute Path B sidecars for local EZKL models
   - run Path B warm-up with live native-KZG verification
   - use `execution_chain=dual` so `/test` reflects both L3 receipt evidence and mirror health
+  - render bridge-only showcase by default; run the full privacy/agent suite manually when you need the broader readout
 
 ModelBridge runtime defaults now attempt real local EZKL for `ModelBridge` / `ModelBridgeHeavy` before synthetic fallback:
 

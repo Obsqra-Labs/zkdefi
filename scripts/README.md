@@ -155,6 +155,7 @@ Env knobs:
 - `SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG` (default `true`; require live Path B native-KZG receipts during gate)
 - `SHOWCASE_WARM_EXECUTION_CHAIN` (default `dual`; use `l3` only if mirror infrastructure is intentionally out of scope)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS` (default `180`)
+- `SHOWCASE_GATE_BRIDGE_ONLY` (default `false` in raw gate; run only bridge-critical showcase sections)
 
 Daily build for `/test` (same-server cron):
 
@@ -184,6 +185,7 @@ Daily build env knobs:
 - `SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG=true` (default in daily build)
 - `SHOWCASE_WARM_EXECUTION_CHAIN=dual` (default in daily build)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
+- `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
 
 ### Hackathon showcase artifacts
 

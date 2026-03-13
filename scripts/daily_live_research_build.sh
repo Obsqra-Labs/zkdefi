@@ -15,6 +15,7 @@ MIN_COVERAGE="${PATHB_WARM_MIN_COVERAGE:-1.0}"
 MAX_ATTEMPTS="${SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS:-2}"
 PRECOMPUTE_SIDECARS="${PATHB_PRECOMPUTE_SIDECARS:-true}"
 PRECOMPUTE_MODELS="${PATHB_PRECOMPUTE_MODELS:-yield_forecast creditworthiness anomaly_detector}"
+GATE_BRIDGE_ONLY="${SHOWCASE_GATE_BRIDGE_ONLY:-true}"
 STRICT_EXIT="${DAILY_BUILD_STRICT_EXIT:-false}"
 BUILD_RC=0
 
@@ -27,6 +28,7 @@ BUILD_RC=0
   echo "strict_bridge_max_attempts=$MAX_ATTEMPTS"
   echo "pathb_precompute_sidecars=$PRECOMPUTE_SIDECARS"
   echo "pathb_precompute_models=$PRECOMPUTE_MODELS"
+  echo "showcase_gate_bridge_only=$GATE_BRIDGE_ONLY"
 
   cd "$ROOT_DIR"
   if [[ "$PRECOMPUTE_SIDECARS" == "true" ]]; then
@@ -46,6 +48,7 @@ BUILD_RC=0
     SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS="$MAX_ATTEMPTS" \
     SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG="${SHOWCASE_WARM_VERIFY_ONCHAIN_NATIVE_KZG:-true}" \
     SHOWCASE_WARM_EXECUTION_CHAIN="${SHOWCASE_WARM_EXECUTION_CHAIN:-dual}" \
+    SHOWCASE_GATE_BRIDGE_ONLY="$GATE_BRIDGE_ONLY" \
     python3 scripts/ci_showcase_gate.py; then
     BUILD_RC=0
     echo "daily_build_status=PASS"

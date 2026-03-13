@@ -164,6 +164,7 @@ def main() -> int:
     base_url = _env("SHOWCASE_BASE_URL", "http://127.0.0.1:8003")
     timeout_seconds = _env("SHOWCASE_TIMEOUT_SECONDS", "50")
     strict_attempts = _env("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS", "2")
+    bridge_only = _env_bool("SHOWCASE_GATE_BRIDGE_ONLY", False)
     warm_output = _env(
         "SHOWCASE_WARM_OUTPUT",
         str(ARTIFACT_DIR / "pathb_bundle_warm.json"),
@@ -210,7 +211,8 @@ def main() -> int:
             "--emit-report-force",
             "--timeout-seconds",
             timeout_seconds,
-        ],
+        ]
+        + (["--bridge-only"] if bridge_only else []),
         check=False,
     )
     if showcase_rc != 0:
