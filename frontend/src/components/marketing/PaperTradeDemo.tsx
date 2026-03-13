@@ -255,9 +255,9 @@ export function PaperTradeDemo() {
           <br className="hidden sm:block" /> Reputation. Strategy. Proofs.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Connect your wallet → get an L3 identity → compare strategies against
-          live pools → execute on paper → track P&amp;L → generate ZK proofs.
-          All from one unified demo.
+          Connect your wallet → get an L3 identity → compare strategies →
+          execute on paper → track P&amp;L → shield capital in Dark Vault →
+          generate ZK proofs of performance. All from one unified demo.
         </p>
       </div>
 
@@ -298,8 +298,8 @@ export function PaperTradeDemo() {
             </>
           )}
           <p className="text-[10px] text-zinc-600">
-            Scans reputation · Assigns L3 address · Creates paper trading
-            session · No tx required
+            Scans reputation · Assigns L3 address · Issues session key ·
+            Creates paper trading session · No tx required
           </p>
         </div>
       )}

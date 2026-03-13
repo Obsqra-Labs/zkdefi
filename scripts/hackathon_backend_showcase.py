@@ -2533,6 +2533,75 @@ class ShowcaseRunner:
             transient_status_ok=(native_kzg_status in {429, 500, 503}),
         )
 
+        noir_l3_lane = noir_run.get("l3") if isinstance(noir_run.get("l3"), dict) else {}
+        noir_tx_hash = str(noir_l3_lane.get("tx_hash") or "").strip()
+        noir_tx_url = noir_l3_lane.get("tx_url") or (_voyager_tx_url(noir_tx_hash) if noir_tx_hash else None)
+        noir_fee_meta = self._fetch_starknet_tx_metrics(noir_tx_hash or None)
+
+        benchmark_receipts: list[dict[str, Any]] = [
+            {
+                "lane": "ModelBridge",
+                "status": live_receipt.get("status"),
+                "bridge_backend": live_receipt.get("bridge_backend"),
+                "l3_mode": live_receipt.get("l3_mode"),
+                "verified_on_chain": live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": live_receipt.get("total_duration_ms"),
+                "actual_fee_display": live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": live_receipt.get("l3_execution_steps"),
+                "l1_gas": live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": live_receipt.get("l3_l2_gas"),
+                "tx_hash": live_receipt.get("l3_tx_hash"),
+                "tx_url": live_receipt.get("l3_tx_url"),
+            },
+            {
+                "lane": "ModelBridgeHeavy",
+                "status": heavy_live_receipt.get("status"),
+                "bridge_backend": heavy_live_receipt.get("bridge_backend"),
+                "l3_mode": heavy_live_receipt.get("l3_mode"),
+                "verified_on_chain": heavy_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": heavy_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": heavy_live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": heavy_live_receipt.get("l3_execution_steps"),
+                "l1_gas": heavy_live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": heavy_live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": heavy_live_receipt.get("l3_l2_gas"),
+                "tx_hash": heavy_live_receipt.get("l3_tx_hash"),
+                "tx_url": heavy_live_receipt.get("l3_tx_url"),
+            },
+            {
+                "lane": "NoirEzklBridge",
+                "status": noir_status,
+                "bridge_backend": noir_run.get("bridge_backend"),
+                "l3_mode": noir_l3_lane.get("mode"),
+                "verified_on_chain": noir_l3_lane.get("verified_on_chain"),
+                "duration_ms": noir_run.get("total_duration_ms"),
+                "actual_fee_display": noir_fee_meta.get("l3_actual_fee_display", "-"),
+                "execution_steps": noir_fee_meta.get("l3_execution_steps"),
+                "l1_gas": noir_fee_meta.get("l3_l1_gas"),
+                "l1_data_gas": noir_fee_meta.get("l3_l1_data_gas"),
+                "l2_gas": noir_fee_meta.get("l3_l2_gas"),
+                "tx_hash": noir_tx_hash or None,
+                "tx_url": noir_tx_url,
+                "lane_available": noir_honk_available,
+            },
+            {
+                "lane": "EzklNativeKzg",
+                "status": native_kzg_live_receipt.get("status"),
+                "bridge_backend": native_kzg_live_receipt.get("bridge_backend"),
+                "l3_mode": native_kzg_live_receipt.get("l3_mode"),
+                "verified_on_chain": native_kzg_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": native_kzg_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": native_kzg_live_receipt.get("l3_actual_fee_display"),
+                "execution_steps": native_kzg_live_receipt.get("l3_execution_steps"),
+                "l1_gas": native_kzg_live_receipt.get("l3_l1_gas"),
+                "l1_data_gas": native_kzg_live_receipt.get("l3_l1_data_gas"),
+                "l2_gas": native_kzg_live_receipt.get("l3_l2_gas"),
+                "tx_hash": native_kzg_live_receipt.get("l3_tx_hash"),
+                "tx_url": native_kzg_live_receipt.get("l3_tx_url"),
+            },
+        ]
+
         dual_mirror_status = str(dual_run.get("mirror_status") or "").strip().lower()
         dual_l2_mode = str(((dual_run.get("l2") or {}).get("mode") or "")).strip().lower()
         dual_attempted = bool(
@@ -2573,6 +2642,7 @@ class ShowcaseRunner:
             "modelbridge_live_receipt": dict(self._modelbridge_live_receipt),
             "modelbridge_heavy_live_receipt": dict(self._modelbridge_heavy_live_receipt),
             "native_kzg_live_receipt": dict(self._native_kzg_live_receipt),
+            "benchmark_receipts": benchmark_receipts,
             "ml_bridge_attempts": {
                 "l3": l3_attempts,
                 "l3_heavy_request": heavy_attempts,
