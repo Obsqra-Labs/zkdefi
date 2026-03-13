@@ -32,11 +32,12 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: https:",
           "font-src 'self' data:",
           "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io https://api.coingecko.com https://prod-api.ekubo.org wss://*.starknet.io",
+          "worker-src 'self' blob:",
           "frame-ancestors 'none'",
         ].join('; '),
       },
