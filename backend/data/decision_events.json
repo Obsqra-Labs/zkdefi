@@ -554124,5 +554124,83 @@
       ]
     },
     "created_at": "2026-03-14T04:22:23.795197+00:00"
+  },
+  {
+    "id": 21811,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T20:48:21.128741+00:00"
+  },
+  {
+    "id": 21812,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T20:48:21.927624+00:00"
+  },
+  {
+    "id": 21813,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-14T20:48:22.491483+00:00"
   }
 ]

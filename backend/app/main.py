@@ -230,6 +230,7 @@ system_metrics_router = _optional_router("app.api.routes.system_metrics")
 landing_router = _optional_router("app.api.routes.landing")
 portfolio_router = _optional_router("app.api.routes.portfolio")
 paper_trade_router = _optional_router("app.api.routes.paper_trade")
+forge_router = _optional_router("app.api.routes.forge")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -357,6 +358,12 @@ if paper_trade_router:
         paper_trade_router,
         prefix="/api/v1/paper-trade",
         tags=["paper-trade"],
+    )
+if forge_router:
+    app.include_router(
+        forge_router,
+        prefix="/api/v1/zkdefi",
+        tags=["forge"],
     )
 if privacy_vault_router:
     app.include_router(

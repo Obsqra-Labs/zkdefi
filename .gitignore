@@ -61,3 +61,10 @@ backend/.l1-sepolia-keystore.json
 .worktrees/
 __pycache__/
 *.pyc
+
+# Agent spam / backups (never track)
+archive/
+frontend.backup*/
+frontend.preview*/
+*.bak
+deploy_*_results.json

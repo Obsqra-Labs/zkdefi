@@ -1,3 +1,12 @@
-# Market-maker simulation
+# Market Maker Simulation
 
-Simulated market-maker and LP data for testing (e.g. limit orders, LP positions). Data under `data/` (e.g. `bot_limit_orders.json`, `bot_lp_positions.json`). Used by backend or tests when a simulated market is required.
+Simulated market-maker and LP position data for testing and demos.
+
+## Data
+
+| File | Description |
+|---|---|
+| `data/bot_limit_orders.json` | Simulated limit order book |
+| `data/bot_lp_positions.json` | Simulated LP positions across pools |
+
+Used by backend tests and the paper trade desk when live DEX data is unavailable.

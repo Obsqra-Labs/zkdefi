@@ -1,1 +1,0 @@
-import{_ as t,o,c as a,ag as i}from"./chunks/framework.wGDfT7ie.js";const u=JSON.parse('{"title":"Key concepts","description":"","frontmatter":{},"headers":[],"relativePath":"concepts.md","filePath":"concepts.md"}'),r={name:"concepts.md"};function n(s,e,l,c,d,h){return o(),a("div",null,[...e[0]||(e[0]=[i("",22)])])}const g=t(r,[["render",n]]);export{u as __pageData,g as default};

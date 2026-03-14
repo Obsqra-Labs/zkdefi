@@ -103,12 +103,12 @@ const ROADMAP = [
   },
   {
     phase: "Phase 4 — Fully Recursive",
-    status: "upcoming" as const,
+    status: "active" as const,
     items: [
       "SNARK-in-STARK recursive proof composition",
       "Batch N zkML proofs → single Starknet verification",
       "Cross-chain portable risk profiles via BridgeRelay",
-      "Noir HONK bridge + native Cairo KZG lanes",
+      "Noir HONK bridge + native Cairo KZG lanes ✓",
       "Recursive trust receipts with composable attestations",
     ],
   },
