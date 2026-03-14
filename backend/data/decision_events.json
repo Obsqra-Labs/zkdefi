@@ -554012,5 +554012,117 @@
       ]
     },
     "created_at": "2026-03-14T01:18:32.830624+00:00"
+  },
+  {
+    "id": 21807,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "credit_model_updated",
+    "gate": "credit",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+      "state_key": "credit.model_state",
+      "previous": null,
+      "current": {
+        "grade": "AAA",
+        "rate_bps": 300,
+        "credit_line_eth": 0.0,
+        "model_name": "creditworthiness_mlp",
+        "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+      }
+    },
+    "created_at": "2026-03-14T04:22:22.192617+00:00"
+  },
+  {
+    "id": 21808,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard"
+      ]
+    },
+    "created_at": "2026-03-14T04:22:22.871649+00:00"
+  },
+  {
+    "id": 21809,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-14T04:22:23.365320+00:00"
+  },
+  {
+    "id": 21810,
+    "user_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-14T04:22:23.795197+00:00"
   }
 ]

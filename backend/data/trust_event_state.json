@@ -1596,6 +1596,13 @@
         "no_active_session"
       ],
       "active_sessions": 0
+    },
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     }
   },
   "0x48aa4191716a4fb58b7a247c9a33be7b16863147c87c44ada34dab88": {

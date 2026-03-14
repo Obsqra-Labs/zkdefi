@@ -1,12 +1,352 @@
-# Forge Dashboard Consolidation Implementation Plan
+# zkSyslog Explorer Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Turn `/forge` into the primary consolidated dashboard for existing proving-path, model-registry, prover, receipt/fact, and L3→L2→L1 settlement evidence, while keeping all changes localized to Forge.
+**Goal:** Turn the current Forge surface into `zkSyslog`, the first StarkForge explorer layer: a search-first proof-aware explorer with a default feed of latest proof-backed receipts/events, shared detail pages, verification timelines, and constrained relationship views.
 
-**Architecture:** Keep the existing Forge route as the single implementation surface and evolve it from a monolithic status page into a tabbed dashboard. Reuse current Forge chain/RPC data and adapt existing `/test`-style evidence into tab-specific payloads and HTML sections, without changing unrelated app or docs surfaces.
+**Architecture:** Keep the initial implementation centered in `/opt/obsqra.starknet/backend/app/api/routes/forge.py` and `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py` so the current production surface can evolve in place before a later route migration to `/zksyslog`. Build the explorer in layers: search-first homepage shell, unified resolver, shared detail layout, proof-native object pages, then constrained relationships backed by indexer and `zkRAG` sources. Style the surface closer to `starknet.obsqra.fi` and future `starkforge.xyz`, while preserving honest `on-chain`, `rpc`, `runtime`, and `indexed` labeling everywhere.
 
-**Tech Stack:** FastAPI route HTML + JSON responses in `backend/app/api/routes/forge.py`, existing Madara RPC helpers, existing Forge APIs, existing showcase/evidence artifacts consumed as read-only inputs when needed.
+**Tech Stack:** FastAPI HTML + JSON responses, existing Madara RPC-backed explorer routes, current proof job database records, model registry service, integrity/registry verification services, settlement bridge state, indexer routes, and `zkRAG`-backed indexed references.
+
+---
+
+### Task 1: Reframe the current Forge route into the zkSyslog shell
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+- Reference: `/opt/obsqra.starknet/zkdefi/docs/plans/2026-03-13-forge-dashboard-consolidation-design.md`
+
+**Step 1: Write the failing test**
+
+Add a test asserting the rendered homepage:
+- no longer leads with Forge dashboard language
+- includes `StarkForge` and `zkSyslog`
+- contains a primary search bar and receipt/event feed framing
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k zksyslog_shell -v`
+
+Expected: FAIL because the page still renders the old Forge-first shell.
+
+**Step 3: Write minimal implementation**
+
+Update the route HTML and top-level labels in `/opt/obsqra.starknet/backend/app/api/routes/forge.py` so the surface is framed as:
+- `StarkForge / zkSyslog`
+- search-first
+- proof-backed receipts/events first
+
+Keep existing runtime/data helpers intact for now; only reshape the shell and naming.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k zksyslog_shell -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): reframe forge shell as StarkForge explorer"
+```
+
+---
+
+### Task 2: Replace the homepage with a search-first explorer layout
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+
+**Step 1: Write the failing test**
+
+Add a test asserting the homepage contains:
+- a prominent search bar
+- scope chips for `All`, `Receipts`, `Txs`, `Facts`, `Proof Jobs`, `Contracts`, `Models`, `Entities`
+- a default feed section for latest proof-backed receipts/events
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k search_first_homepage -v`
+
+Expected: FAIL because the page still opens as a dashboard with tabs/cards.
+
+**Step 3: Write minimal implementation**
+
+Refactor the homepage HTML/CSS/inline JS so the top of the page becomes:
+- sticky or dominant search header
+- resolver scope chips
+- latest proof-backed receipts/events list
+- compact secondary modules for recent blocks and status
+
+Do not add new data sources yet beyond existing live composition already available in the route.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k search_first_homepage -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): make homepage search-first with receipt feed"
+```
+
+---
+
+### Task 3: Add a unified resolver API for chain and proof objects
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+- Reference: existing routes and services already used from the same file and backend services
+
+**Step 1: Write the failing test**
+
+Add API tests for a new resolver endpoint that can distinguish and group:
+- block numbers
+- tx hashes
+- contract addresses
+- fact hashes
+- proof job ids
+- model hashes / versions
+- indexed entities / events
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k resolver -v`
+
+Expected: FAIL because no unified resolver endpoint exists yet.
+
+**Step 3: Write minimal implementation**
+
+Add a resolver endpoint and helper functions in `/opt/obsqra.starknet/backend/app/api/routes/forge.py` that:
+- route exact identifiers directly
+- return grouped results for ambiguous text
+- label every result with its source type
+
+Use only existing live sources. Do not invent placeholder entity matches.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k resolver -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): add unified explorer resolver"
+```
+
+---
+
+### Task 4: Build shared detail pages for chain-native objects
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+
+**Step 1: Write the failing test**
+
+Add tests asserting block, tx, and contract detail views render the shared 3-pane explorer structure:
+- `Summary`
+- `Verification Timeline`
+- `Relationships`
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k detail_layout -v`
+
+Expected: FAIL because current detail views are bespoke and do not expose the shared pane model.
+
+**Step 3: Write minimal implementation**
+
+Refactor the detail-page renderer(s) in `/opt/obsqra.starknet/backend/app/api/routes/forge.py` to use shared layout helpers for:
+- summary data
+- placeholder-but-honest verification timeline stages where chain-native objects have partial lineage
+- constrained relationships lists
+
+Missing stages must render as `pending`, `not present`, or `not configured`, never as implied settlement.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k detail_layout -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): add shared explorer detail layout"
+```
+
+---
+
+### Task 5: Add proof job, fact, and model detail pages with verification timelines
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+- Reference: `/opt/obsqra.starknet/backend/app/models.py`
+- Reference: `/opt/obsqra.starknet/backend/app/services/model_registry_service.py`
+- Reference: `/opt/obsqra.starknet/backend/app/services/integrity_service.py`
+
+**Step 1: Write the failing test**
+
+Add tests asserting proof job, fact, and model detail pages expose:
+- raw summary data
+- verification timeline stages
+- explicit source labels (`on-chain`, `rpc`, `runtime`, `indexed`)
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k proof_native_details -v`
+
+Expected: FAIL because these pages do not exist in the shared explorer model yet.
+
+**Step 3: Write minimal implementation**
+
+Implement detail handlers/helpers in `/opt/obsqra.starknet/backend/app/api/routes/forge.py` for:
+- proof jobs
+- facts
+- models
+
+Use live data only:
+- proof jobs from DB
+- fact verification from existing registry/integrity services
+- models from model registry service
+
+Timeline stages must remain honest where data is missing.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k proof_native_details -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): add proof job fact and model explorer pages"
+```
+
+---
+
+### Task 6: Add constrained relationships using indexer and zkRAG-backed references
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+- Reference: `/opt/obsqra.starknet/backend/app/api/routes/index.py`
+- Reference: `/opt/obsqra.starknet/backend/app/api/routes/zkrag.py`
+
+**Step 1: Write the failing test**
+
+Add tests asserting the `Relationships` pane can show linked objects such as:
+- proof jobs
+- facts
+- txs
+- blocks
+- contracts
+- models
+- indexed entities/events
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k relationships -v`
+
+Expected: FAIL because the current explorer does not yet render constrained graph relationships.
+
+**Step 3: Write minimal implementation**
+
+In `/opt/obsqra.starknet/backend/app/api/routes/forge.py`, add helper logic that:
+- fetches only a constrained set of useful references
+- renders relationship lists first
+- uses a small, honest graph-like representation only if the linked data exists
+
+Do not attempt a full graph product in this phase.
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k relationships -v`
+
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): add constrained evidence relationships"
+```
+
+---
+
+### Task 7: Add legacy route migration and final validation
+
+**Files:**
+- Modify: `/opt/obsqra.starknet/backend/app/api/routes/forge.py`
+- Test: `/opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+- Reference: `/opt/obsqra.starknet/zkdefi/docs/plans/2026-03-13-forge-dashboard-consolidation-design.md`
+
+**Step 1: Write the failing test**
+
+Add tests verifying:
+- the explorer can be reached via the new `zkSyslog` route once introduced
+- legacy `/forge` still resolves safely during migration
+- public labels prefer `zkSyslog` over `Forge`
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -k route_migration -v`
+
+Expected: FAIL because the legacy-first route model is still in place.
+
+**Step 3: Write minimal implementation**
+
+Add or alias the new route(s) inside `/opt/obsqra.starknet/backend/app/api/routes/forge.py`, keeping legacy compatibility during rollout.
+
+Also do the final style cleanup so the page feels aligned with `starknet.obsqra.fi`:
+- cleaner header
+- fewer dashboard-style cards
+- stronger explorer lists/tables
+- subtler badge palette
+
+**Step 4: Run the focused tests**
+
+Run: `pytest /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py -v`
+
+Expected: PASS.
+
+**Step 5: Run syntax and lint validation**
+
+Run: `python3 -m py_compile /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py`
+
+Expected: PASS.
+
+Run: use editor diagnostics or project linting for the touched files.
+
+Expected: no new errors introduced.
+
+**Step 6: Commit**
+
+```bash
+git add /opt/obsqra.starknet/backend/app/api/routes/forge.py /opt/obsqra.starknet/backend/tests/test_forge_dashboard.py
+git commit -m "feat(zksyslog): migrate forge explorer toward StarkForge naming"
+```
+
+---
+
+## Deprecated legacy plan
+
+The remainder of this file contains the earlier Forge dashboard consolidation plan and is superseded by the `zkSyslog` explorer direction above. Do not execute the legacy sections below for new work.
 
 ---
 
