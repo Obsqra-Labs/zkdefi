@@ -1776,9 +1776,17 @@
     "execution.gate_state": {
       "mode": "advisory",
       "reason_codes": [
+        "no_active_session",
         "passport_low_confidence"
       ],
-      "active_sessions": 1
+      "active_sessions": 0
+    },
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     }
   },
   "0x02a2ab15de083e588dbff1b266b1763c2031e27ba4f6bfa0665af035ad533a60": {

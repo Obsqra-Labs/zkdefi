@@ -553776,5 +553776,241 @@
       "action_type": "rebalance"
     },
     "created_at": "2026-03-13T22:34:17.371389+00:00"
+  },
+  {
+    "id": 21799,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "credit_model_updated",
+    "gate": "credit",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+      "state_key": "credit.model_state",
+      "previous": null,
+      "current": {
+        "grade": "AAA",
+        "rate_bps": 300,
+        "credit_line_eth": 0.0,
+        "model_name": "creditworthiness_mlp",
+        "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+      }
+    },
+    "created_at": "2026-03-14T01:17:58.723921+00:00"
+  },
+  {
+    "id": 21800,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "execution_gate_updated",
+    "gate": "execution",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "mode": "advisory",
+      "reason_codes": [
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0,
+      "state_key": "execution.gate_state",
+      "previous": {
+        "mode": "advisory",
+        "reason_codes": [
+          "passport_low_confidence"
+        ],
+        "active_sessions": 1
+      },
+      "current": {
+        "mode": "advisory",
+        "reason_codes": [
+          "no_active_session",
+          "passport_low_confidence"
+        ],
+        "active_sessions": 0
+      }
+    },
+    "created_at": "2026-03-14T01:17:59.176708+00:00"
+  },
+  {
+    "id": 21801,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T01:17:59.541798+00:00"
+  },
+  {
+    "id": 21802,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T01:17:59.916188+00:00"
+  },
+  {
+    "id": 21803,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-14T01:18:00.317151+00:00"
+  },
+  {
+    "id": 21804,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "relayer",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "tier_below_standard",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T01:18:32.006871+00:00"
+  },
+  {
+    "id": 21805,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session",
+        "passport_low_confidence"
+      ]
+    },
+    "created_at": "2026-03-14T01:18:32.458918+00:00"
+  },
+  {
+    "id": 21806,
+    "user_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
+    "event_type": "gate_advisory",
+    "gate": "lending",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "passport_letter_below_c",
+        "no_credit_line"
+      ]
+    },
+    "created_at": "2026-03-14T01:18:32.830624+00:00"
   }
 ]
