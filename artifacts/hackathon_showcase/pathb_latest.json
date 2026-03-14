@@ -1,0 +1,52 @@
+{
+  "artifact_found": true,
+  "artifact_path": "artifacts/hackathon_showcase/pathb_bundle_warm.json",
+  "attempted_models": 5,
+  "bootstrap_known_models_enabled": null,
+  "bootstrap_supported_models": [],
+  "bootstrapped_failed_models": [],
+  "bootstrapped_models": [],
+  "bootstrapped_models_total": null,
+  "bootstrapped_ready_models": [],
+  "bootstrapped_ready_models_total": null,
+  "catalog_model_names": [],
+  "catalog_models_total": 5,
+  "coverage_scope": "proving_ready_catalog",
+  "daily_delta_pct_points": null,
+  "daily_new_bundle_models": [],
+  "daily_regressed_bundle_models": [],
+  "excluded_models_total": 0,
+  "execution_chain": "dual",
+  "generated_at": "2026-03-13T22:34:18.227933+00:00",
+  "l2_receipt_models": 5,
+  "l3_receipt_models": 5,
+  "lane": "EzklNativeKzg",
+  "legacy_abi_models": 0,
+  "live_verified": true,
+  "mirrored_models": 5,
+  "proving_ready_models_catalog_total": 5,
+  "selected_model_names": [],
+  "strict_abi_models": 5,
+  "strict_binding_models": 5,
+  "verified_models": 5,
+  "verifier_runtime": {
+    "abi_methods": [
+      "get_last_verification",
+      "verify_ezkl_kzg_v1",
+      "verify_kzg"
+    ],
+    "address": "0x6e77e138143163f89bf282056551da3dfff5fc96a41e683b25b9caab414a6c8",
+    "address_url": null,
+    "class_hash": "0xd73f1b91e9cec0bc9a90f351e4830fbbcba502b4233d649c0cf8f499fb1f09",
+    "class_hash_url": null,
+    "network_label": "Madara L3 (local RPC)",
+    "required_methods": [
+      "verify_kzg",
+      "verify_ezkl_kzg_v1",
+      "get_last_verification"
+    ],
+    "required_methods_ok": true,
+    "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0",
+    "rpc_verified": true
+  }
+}

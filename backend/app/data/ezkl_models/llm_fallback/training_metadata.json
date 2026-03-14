@@ -1,0 +1,34 @@
+{
+  "model_hash": "91e5def63456522315370f69d709d2a9b376e17bc3dc7f74aabfd54d67472dd2",
+  "onnx_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/llm_fallback/llm_fallback.onnx",
+  "weights_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/llm_fallback/llm_fallback_mlp.pt",
+  "norm_params_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/llm_fallback/norm_params.json",
+  "training_samples": 1000,
+  "epochs": 80,
+  "final_loss": 0.9628571271896362,
+  "accuracy": 0.518,
+  "class_distribution": {
+    "execute": 215,
+    "reject": 267,
+    "defer_to_human": 518
+  },
+  "feature_names": [
+    "risk_score",
+    "anomaly_score",
+    "correlation",
+    "il_bps",
+    "slippage_bps",
+    "health_factor",
+    "price_deviation_bps",
+    "optimality_gap_bps",
+    "value_eth",
+    "skill_type"
+  ],
+  "decisions": [
+    "execute",
+    "reject",
+    "defer_to_human"
+  ],
+  "architecture": "10\u219232\u219216\u21923",
+  "trained_at": "2026-03-13T21:11:23.395376"
+}

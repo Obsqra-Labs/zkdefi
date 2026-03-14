@@ -74631,7 +74631,58 @@
       "tx_hash": "0x11f6fa98388772167cf8aec6ddf45aef82a0a13b0e630e6f3690ecace9eb64",
       "created_at": 1773412738.5914729,
       "status": "active"
+    },
+    {
+      "pair": "zkdAI/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 70000,
+      "upper_tick": 91000,
+      "amount0_wei": 5000000000000000,
+      "amount1_wei": 5000000000000000,
+      "tx_hash": "0x2bfdbe65c7997f169a262a4761bb29350f1cba810b994ee73e9a7e93f569dbc",
+      "created_at": 1773446854.7819207,
+      "status": "active"
+    },
+    {
+      "pair": "ETH/zkdETH",
+      "pool_key": {
+        "token0": "0x009b786d710b96cd8f065c7b7244484379c37ebc5bc92d9710512bbe773e8121",
+        "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 5000000000000000,
+      "amount1_wei": 60636973973976,
+      "tx_hash": "0x7827a2f5c8a60a00fa5d71095817c9da583bf90855961834ed2f1f898961145",
+      "created_at": 1773447760.6617808,
+      "status": "active"
+    },
+    {
+      "pair": "zkdAI/ETH",
+      "pool_key": {
+        "token0": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+        "token1": "0x050974f6d6f5868146fe81b5d61258450142cd239cc4f59b0f0dd168c4beb637",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": 88712000,
+      "upper_tick": 88722883,
+      "amount0_wei": 60491445236438,
+      "amount1_wei": 5000000000000000,
+      "tx_hash": "0x28e58e2293990647b332e45c8ca2a03f3a303f22b40e781c2bd22f5a6e513",
+      "created_at": 1773448783.140199,
+      "status": "active"
     }
   ],
-  "updated_at": 1773412738.591563
+  "updated_at": 1773448783.1402628
 }

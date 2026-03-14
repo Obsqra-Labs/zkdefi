@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Obsqra Labs Live Research: ModelBridge -> EZKL -> Groth16 -> STARK -> L1</title>
+  <style>
+    :root {
+      --bg: #090b12;
+      --panel: #0f131d;
+      --panel-alt: #121826;
+      --line: #2a3040;
+      --text: #f4f7ff;
+      --muted: #98a2b5;
+      --good: #34d399;
+      --bad: #fb923c;
+      --link: #67e8f9;
+      --emerald: #10b981;
+      --cyan: #22d3ee;
+    }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.18), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, 0.14), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 56px;
+    }
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 10px;
+      font-family: "Sora", "Segoe UI", sans-serif;
+      letter-spacing: 0.15px;
+    }
+    h1 {
+      font-size: 34px;
+      background: linear-gradient(90deg, #ffffff 0%, #a7f3d0 48%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h2 { font-size: 22px; margin-top: 2px; }
+    h3 { font-size: 16px; margin-top: 14px; color: #d2d8e5; }
+    p { margin: 8px 0; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #2a3142;
+      border-radius: 16px;
+      background:
+        linear-gradient(155deg, rgba(16, 185, 129, 0.16), rgba(34, 211, 238, 0.06) 38%, rgba(10, 14, 22, 0.96) 78%),
+        #0b1019;
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+    }
+    .hero-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .subline {
+      margin-top: 8px;
+      color: #b7c2d7;
+      max-width: 930px;
+    }
+    .hero-meta-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hero-meta-item {
+      border: 1px solid #2f3a50;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(12, 18, 30, 0.72);
+      min-height: 56px;
+    }
+    .hero-meta-item .k {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #97a7c3;
+      margin-bottom: 3px;
+    }
+    .hero-meta-item .v {
+      display: block;
+      font-size: 13px;
+      color: #dce6fa;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .score {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 7px 12px;
+      border: 1px solid #2f3a50;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 700;
+    }
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .chip {
+      border: 1px solid #30435a;
+      color: #b8d4ef;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      background: rgba(22, 33, 49, 0.56);
+    }
+    .chip.novel {
+      border-color: rgba(16, 185, 129, 0.55);
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .tab-nav, .subtab-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      padding: 10px;
+      border: 1px solid #2a3242;
+      border-radius: 12px;
+      background: rgba(16, 22, 35, 0.72);
+    }
+    .subtab-nav {
+      margin-top: 10px;
+      background: rgba(12, 18, 29, 0.72);
+      border-color: #263045;
+    }
+    .subtab-nav[hidden] {
+      display: none;
+    }
+    .tab-btn {
+      border: 1px solid #33435c;
+      color: #c3d5ee;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(22, 33, 49, 0.68);
+      cursor: pointer;
+      transition: all .12s ease-in-out;
+    }
+    .tab-btn:hover {
+      border-color: #496183;
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      border-color: rgba(16, 185, 129, 0.75);
+      color: #d9fff0;
+      background: rgba(16, 185, 129, 0.16);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2) inset;
+    }
+    .tab-btn.sub.active {
+      border-color: rgba(34, 211, 238, 0.75);
+      background: rgba(34, 211, 238, 0.14);
+      color: #d9fbff;
+      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18) inset;
+    }
+    .executive {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .exec-card {
+      border: 1px solid #2f3b54;
+      border-radius: 12px;
+      background: rgba(12, 18, 29, 0.8);
+      padding: 11px;
+      min-height: 108px;
+      position: relative;
+    }
+    .exec-label {
+      margin: 0;
+      color: #99aac7;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+    .exec-value {
+      margin: 6px 0 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #ecf5ff;
+    }
+    .exec-detail {
+      margin: 4px 0 0;
+      color: #b4c2da;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .exec-state {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid #344861;
+      color: #c8d8ef;
+      background: rgba(26, 38, 57, 0.8);
+    }
+    .exec-state.ok {
+      border-color: rgba(16, 185, 129, 0.62);
+      color: #b8ffe2;
+      background: rgba(16, 185, 129, 0.14);
+    }
+    .exec-state.warn {
+      border-color: rgba(251, 146, 60, 0.62);
+      color: #ffd8b3;
+      background: rgba(251, 146, 60, 0.14);
+    }
+    .report-section {
+      display: none;
+      animation: fadeIn .16s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    section {
+      margin-top: 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-alt));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
+    }
+    .intent {
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px dashed #3a4b64;
+      border-radius: 10px;
+      background: rgba(22, 30, 46, 0.48);
+      color: #c7d2e8;
+      font-size: 13px;
+    }
+    .intent strong {
+      color: #ecf3ff;
+    }
+    .table-wrap {
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: auto;
+      background: rgba(8, 12, 20, 0.55);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-top: 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pass { color: var(--good); font-weight: 700; }
+    .fail { color: var(--bad); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+    .muted { color: var(--muted); }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      background: #0a0f1a;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    details { margin-top: 8px; }
+    summary { cursor: pointer; color: var(--link); }
+    @media (max-width: 700px) {
+      h1 { font-size: 26px; }
+      h2 { font-size: 18px; }
+      .hero-top { grid-template-columns: 1fr; }
+      .hero-meta-grid { grid-template-columns: 1fr; }
+      .executive { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      th, td { font-size: 12px; padding: 7px 6px; }
+    }
+    @media (max-width: 520px) {
+      .executive { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="stack">
+      <div class="hero">
+        <div class="hero-top">
+          <div>
+            <h1>Obsqra Labs Live Research: zkde.fi Verifiable AI Stack</h1>
+            <p class="subline">
+              Research-first readout for the Obsqra Labs thesis: trustless agentic execution requires cryptographic policy gates,
+              portable proof lanes, and transparent receipts that anyone can audit without trusting hidden backend logic.
+            </p>
+            <p class="score">Core claims: 9 / 9 validated</p>
+            <div class="chips">
+              <span class="chip">Obsqra Labs research readout</span>
+              <span class="chip">zkde.fi open-source implementation</span>
+              <span class="chip">Proof + policy + receipts</span>
+              <span class="chip">STARK + SNARK + L1 bridge roadmap</span>
+              <span class="chip novel">Novel: open-source ModelBridge (zkML -> circuit proof gate)</span>
+              <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
+            </div>
+          </div>
+          <div class="hero-meta-grid">
+            <div class="hero-meta-item"><span class="k">Generated</span><span class="v">2026-03-13T22:13:33.095235+00:00 UTC</span></div>
+            <div class="hero-meta-item"><span class="k">Base URL</span><span class="v">http://127.0.0.1:8003</span></div>
+            <div class="hero-meta-item"><span class="k">Wallet</span><span class="v">0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7</span></div>
+            <div class="hero-meta-item"><span class="k">Latest On-chain TX</span><span class="v">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="executive">
+        <article class="exec-card"><p class="exec-label">Core Claims</p><p class="exec-value">9/9</p><p class="exec-detail">Backend claim matrix</p><span class="exec-state ok">ready</span></article><article class="exec-card"><p class="exec-label">ModelBridge L3</p><p class="exec-value">verified</p><p class="exec-detail">mode=groth16_garaga</p><span class="exec-state ok">ready</span></article><article class="exec-card"><p class="exec-label">Native KZG Strict</p><p class="exec-value">e2e tx</p><p class="exec-detail">0x17d747c2...23b08009c3</p><span class="exec-state ok">ready</span></article><article class="exec-card"><p class="exec-label">Recursive Stages</p><p class="exec-value">4/4</p><p class="exec-detail">Stage check-ins complete</p><span class="exec-state ok">ready</span></article>
+      </div>
+
+      <div class="tab-nav" data-group="main">
+        <button type="button" class="tab-btn active" data-main-target="overview">Overview</button>
+        <button type="button" class="tab-btn" data-main-target="bridge">Research Core</button>
+        <button type="button" class="tab-btn" data-main-target="ai">Agentic Trust</button>
+        <button type="button" class="tab-btn" data-main-target="privacy">Privacy Systems</button>
+        <button type="button" class="tab-btn" data-main-target="infra">Proof Infra</button>
+      </div>
+    </div>
+
+    <div class="subtab-nav" data-main="overview">
+      <button type="button" class="tab-btn sub active" data-sub-target="snapshot">Snapshot</button>
+      <button type="button" class="tab-btn sub" data-sub-target="claims">Claim Matrix</button>
+      <button type="button" class="tab-btn sub" data-sub-target="steps">Execution Steps</button>
+    </div>
+    <div class="subtab-nav" data-main="bridge" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="live">Live Verify Receipt</button>
+      <button type="button" class="tab-btn sub" data-sub-target="architecture">Architecture</button>
+      <button type="button" class="tab-btn sub" data-sub-target="phases">Phase 2-4 Status</button>
+      <button type="button" class="tab-btn sub" data-sub-target="ecosystem">Ecosystem Positioning</button>
+    </div>
+    <div class="subtab-nav" data-main="ai" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="advisory">Opportunity Flow</button>
+      <button type="button" class="tab-btn sub" data-sub-target="skills">Skill Receipts</button>
+      <button type="button" class="tab-btn sub" data-sub-target="config">Config Packs</button>
+      <button type="button" class="tab-btn sub" data-sub-target="strategy">Strategy Evidence</button>
+    </div>
+    <div class="subtab-nav" data-main="privacy" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="rails">Privacy Rails</button>
+      <button type="button" class="tab-btn sub" data-sub-target="forecaster">Forecaster Primitive</button>
+    </div>
+    <div class="subtab-nav" data-main="infra" hidden>
+      <button type="button" class="tab-btn sub active" data-sub-target="contracts">On-chain Links</button>
+      <button type="button" class="tab-btn sub" data-sub-target="circuits">Circuit Inventory</button>
+      <button type="button" class="tab-btn sub" data-sub-target="poseidon">Poseidon Runtime</button>
+    </div>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="snapshot">
+      <h2>Executive Snapshot</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> A concise research dashboard proving which zkde.fi claims are currently receipt-backed versus still in-progress.<br/>
+        <strong>Why Obsqra Labs cares:</strong> If we cannot explain trust boundaries in plain language with evidence links, we cannot claim verifiable AI execution.<br/>
+        <strong>Unlocks:</strong> A fast, credible narrative for judges, users, and collaborators without burying the technical receipts.
+      </div>
+      <h3>Research Framing</h3>
+      <div class="table-wrap"><table><thead><tr><th>Lens</th><th>Current Position</th><th>Evidence Standard</th></tr></thead><tbody><tr><td>Research thesis</td><td>Obsqra Labs is testing whether verifiable AI can enforce trust boundaries for agentic capital operations.</td><td>Every recommendation must be explainable, proveable, and receipt-linked.</td></tr>
+<tr><td>Why zkde.fi</td><td>zkde.fi is the open-source execution surface where privacy rails, policy controls, and proof lanes are wired together.</td><td>Claims in this report are meant to be independently checkable from API output + on-chain receipts.</td></tr>
+<tr><td>How to read this page</td><td>Start with Core Claims, then Bridge Live Receipts, then Recursive Stage Check-ins.</td><td>If a section says pass, you should be able to find matching hashes, tx links, and mode flags.</td></tr>
+<tr><td>What this unlocks</td><td>Portable trust: the same intent can be screened by different proof systems without changing product semantics.</td><td>This is the foundation for multi-chain verifiable AI and trustless agentic apps in the broader Obsqra stack.</td></tr></tbody></table></div>
+      <h3>Recursive Stage Check-ins</h3>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Stage</th><th>Status</th><th>Goal</th><th>Evidence</th><th>Explorer TX</th></tr></thead><tbody><tr><td>1</td><td>Stage 0 - Backbone</td><td><span class="pass">complete</span></td><td>Core backend + proof rails stable</td><td>core claims 9/9</td><td>-</td></tr>
+<tr><td>2</td><td>Stage 1 - Path A (Noir HONK)</td><td><span class="pass">complete</span></td><td>Live noir_honk receipt + recurring Path A artifact</td><td>lane available=True, verified=True, mode=noir_honk</td><td>0x1b3faf7203...465b2f8408ae</td></tr>
+<tr><td>3</td><td>Stage 2 - Path C (L1 bridge)</td><td><span class="pass">complete</span></td><td>Live verifyAndBridge receipt + L2 receiver confirmation</td><td>live_verified=True, l1_status=1, l2_verified_on_l2=True, polls=61</td><td><a href="https://sepolia.etherscan.io/tx/0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4" target="_blank" rel="noreferrer">0x6dbcc1a665...915b85876db4</a></td></tr>
+<tr><td>4</td><td>Stage 3 - Path B (Native KZG strict)</td><td><span class="pass">complete</span></td><td>Strict `kzg_mpcheck_v1` + on-chain native_kzg receipt</td><td>strict_route=True, lane_available=True, tx=0x17d747c2...23b08009c3</td><td>0x17d747c2de...4823b08009c3</td></tr></tbody></table></div>
+      <h3>Versioning Checkpoints</h3>
+      <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Status</th><th>Suggested Tag</th><th>Check-in Rule</th></tr></thead><tbody><tr><td>Stage 0 - Backbone</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage0-backbone</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 1 - Path A (Noir HONK)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage1-path-a-noir</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 2 - Path C (L1 bridge)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage2-path-c-l1</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 3 - Path B (Native KZG strict)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage3-path-b-native-kzg</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="claims">
+      <h2>Core Claim Matrix</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> The non-negotiable MVP claims for health, proofs, agent execution, policy controls, and on-chain visibility.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Each pass maps to a UI surface that can be switched from placeholder to live data source.<br/>
+        <strong>Unlocks:</strong> A judge can trust that backend capabilities are real even if frontend polish is still catching up.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Claim</th><th>Status</th></tr></thead><tbody><tr><td>Backend service is live</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Proof pack is present and introspectable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Contracts are verifiably deployed on RPC</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Receipt visibility pipeline is live</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Open-source ModelBridge + dual-proof lanes are demonstrable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>ModelBridge live l3 verify emits receipt evidence</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Noir HONK live l3 verify emits receipt evidence</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Path B dual native-KZG mirror receipts are demonstrable</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>Recursive multichain proving paths are introspectable</td><td><span class="pass">PASS</span></td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="overview" data-sub-tab="steps">
+      <h2>Execution Steps</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Granular API and proving steps with concrete telemetry (IDs, proof hashes, counts, statuses).<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> This is the exact backend contract the interface should call for progress states and debug panels.<br/>
+        <strong>Unlocks:</strong> Reliable observability, fast triage, and cleaner frontend integration.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Step</th><th>Status</th><th>Highlights</th></tr></thead><tbody><tr><td>Backend health</td><td><span class="pass">PASS</span></td><td>status=200, service=zkdefi-backend, admin_configured=False</td></tr>
+<tr><td>Reputation pack manifest</td><td><span class="pass">PASS</span></td><td>status=200, pack_id=zkfico_pack_v1, circuits=6, circuits_with_wasm_and_zkey=6</td></tr>
+<tr><td>Raw RPC contract presence</td><td><span class="pass">PASS</span></td><td>rpc_url=https://starknet-sepolia-rpc.publicnode.com, block_number=7588175, resolved_contracts=7, voyager_links=7, FULL_PRIVACY_POOL_V2_ADDRESS_class_hash=0xce55e551...b62eb1f117, GARAGA_VERIFIER_ADDRESS_class_hash=0x4e7a5bbc...bce3b39061</td></tr>
+<tr><td>Receipt stream visibility</td><td><span class="pass">PASS</span></td><td>status=200, count=306, tx_hashes=0, first_tx_hash=-</td></tr>
+<tr><td>ModelBridge live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge, bridge_compliant=True, l3_mode=groth16_garaga, l3_tx_hash=0x5852d7c130...71786e8e2f7c</td></tr>
+<tr><td>ModelBridgeHeavy live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=groth16_modelbridge_heavy, bridge_compliant=True, l3_mode=groth16_garaga, l3_tx_hash=0x53024a1ff8...5e0a481904aa</td></tr>
+<tr><td>Native KZG live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=native_kzg_ezkl_serialized_mpcheck, bridge_compliant=True, l3_mode=native_kzg, l3_tx_hash=0x17d747c2de...4823b08009c3</td></tr>
+<tr><td>Noir HONK live l3 verify receipt</td><td><span class="pass">PASS</span></td><td>status=200, proof_mode=EZKL_BRIDGE, bridge_backend=noir_honk, bridge_compliant=True, lane_available=True, l3_mode=noir_honk</td></tr>
+<tr><td>Open-source ModelBridge + dual-proof architecture</td><td><span class="pass">PASS</span></td><td>modelbridge_artifacts=23/23, proving_paths_status=200, snark_lane_available=True, stark_lane_available=True, hash_fallback_available=True, dual_lanes_ready=True</td></tr>
+<tr><td>Path B dual native KZG mirrors are demonstrable</td><td><span class="pass">PASS</span></td><td>strict_bridge=True, native_kzg_onchain_enabled=True, execution_chain=dual, attempted_models=5, verified_models=5, l3_receipt_models=5</td></tr>
+<tr><td>Recursive EZKL paths (Phase 2/3/4) status</td><td><span class="pass">PASS</span></td><td>docs_present=5/5, path_a_status_doc=True, path_a_live_receipt_found=True, path_a_live_verified=True, path_a_l3_status=200, phase2_status_done=True</td></tr>
+<tr><td>Bridge-only mode</td><td><span class="pass">PASS</span></td><td>scope=health, manifest, rpc, receipts, bridge, recursive_paths</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
+      <h2>Live Research Receipts: ModelBridge + Noir + Native KZG</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, `NoirEzklBridge`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
+        <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
+      </div>
+      <h3>ModelBridge Receipt</h3>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Probe seed</td><td>984ec1ae6a857e0a</td></tr>
+<tr><td>Probe fingerprint</td><td>3ea16f9e24661b...2d466407eb59ef</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x09e589a8b1ca...26c0cc0e4d18d6</td></tr>
+<tr><td>Bridge backend</td><td>groth16_modelbridge</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>ModelBridge calldata words</td><td>2005</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>groth16_garaga</td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 actual fee</td><td>14203507609184 FRI</td></tr>
+<tr><td>L3 execution steps</td><td>-</td></tr>
+<tr><td>L1 gas / data gas / L2 gas</td><td>- / - / -</td></tr>
+<tr><td>L3 tx hash</td><td>0x5852d7c13062...d471786e8e2f7c</td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Trust mode</td><td>ezkl_local_verified_bridge</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:11:42.098041+00:00</td></tr>
+<tr><td>Duration ms</td><td>19282</td></tr></tbody></table></div>
+      <h3>ModelBridge Dual Receipt (L3 primary + Starknet mirror)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Probe seed</td><td>984ec1ae6a857e0a</td></tr>
+<tr><td>Probe fingerprint</td><td>b24d55f9827e23...e716581e1e3a68</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>dual</td></tr>
+<tr><td>Bridge proof hash</td><td>0xb2667557274e...c4068180bf84eb</td></tr>
+<tr><td>Bridge backend</td><td>groth16_modelbridge</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>mirrored</td></tr>
+<tr><td>L3 attempted / success / verified</td><td>True / True / True</td></tr>
+<tr><td>L3 mode</td><td>groth16_garaga</td></tr>
+<tr><td>L3 tx hash</td><td>0xc92bf8b265d4...c5b3bcdd4a28b9</td></tr>
+<tr><td>L2 attempted / success / verified</td><td>True / True / True</td></tr>
+<tr><td>L2 mode</td><td>starknet_l2_registry_mirrored</td></tr>
+<tr><td>L2 tx hash</td><td><a href="https://sepolia.voyager.online/tx/0x2f210c7f0f2747325994b1adbd131e3c98eaf0315b4ab1dfc4dd3b344f5618" target="_blank" rel="noreferrer">0x2f210c7f0f27...c4dd3b344f5618</a></td></tr>
+<tr><td>Trust mode</td><td>ezkl_local_verified_bridge</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:12:05.794359+00:00</td></tr>
+<tr><td>Duration ms</td><td>37465</td></tr></tbody></table></div>
+      <h3>ModelBridgeHeavy Receipt (requested lane)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Probe seed</td><td>984ec1ae6a857e0a</td></tr>
+<tr><td>Probe fingerprint</td><td>a507cabc12b06c...5e96bd8b7015e5</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x2dcea9f94fba...41ce0fe2a56e42</td></tr>
+<tr><td>Bridge backend</td><td>groth16_modelbridge_heavy</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>ModelBridgeHeavy calldata words</td><td>2005</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>groth16_garaga</td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 actual fee</td><td>14183226889184 FRI</td></tr>
+<tr><td>L3 execution steps</td><td>-</td></tr>
+<tr><td>L1 gas / data gas / L2 gas</td><td>- / - / -</td></tr>
+<tr><td>L3 tx hash</td><td>0x53024a1ff8c8...0a5e0a481904aa</td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Trust mode</td><td>ezkl_local_verified_bridge</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:12:43.356080+00:00</td></tr>
+<tr><td>Duration ms</td><td>25467</td></tr></tbody></table></div>
+      <h3>Noir HONK Receipt (Path A)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Lane available</td><td><span class="pass">true</span></td></tr>
+<tr><td>Probe seed</td><td>984ec1ae6a857e0a</td></tr>
+<tr><td>Probe fingerprint</td><td>bca41394ea79d8...ca2fd1b22281d3</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x4396cfd7fe64...bffc0e5a6873e8</td></tr>
+<tr><td>Bridge backend</td><td>noir_honk</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>Noir calldata words</td><td>2874</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>noir_honk</td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 actual fee</td><td>62968850381664 FRI</td></tr>
+<tr><td>L3 execution steps</td><td>-</td></tr>
+<tr><td>L1 gas / data gas / L2 gas</td><td>- / - / -</td></tr>
+<tr><td>L3 tx hash</td><td>0x1b3faf720310...4e465b2f8408ae</td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Trust mode</td><td>synthetic_dev_only</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:12:52.318322+00:00</td></tr>
+<tr><td>Duration ms</td><td>17523</td></tr></tbody></table></div>
+      <h3>Native KZG Receipt (Path B)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>200</td></tr>
+<tr><td>Probe seed</td><td>984ec1ae6a857e0a</td></tr>
+<tr><td>Probe fingerprint</td><td>801c4bab3f5639...da3ffd990dc435</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>Requested chain</td><td>l3</td></tr>
+<tr><td>Bridge proof hash</td><td>0x65cedd5e0b24...7fd66366fc6c1e</td></tr>
+<tr><td>Bridge backend</td><td>native_kzg_ezkl_serialized_mpcheck</td></tr>
+<tr><td>Bridge compliant</td><td><span class="pass">true</span></td></tr>
+<tr><td>KZG calldata words</td><td>4043</td></tr>
+<tr><td>KZG bundle present</td><td><span class="pass">true</span></td></tr>
+<tr><td>KZG hint felts</td><td>1752</td></tr>
+<tr><td>KZG trailer marker</td><td>kzg_mpcheck_v3</td></tr>
+<tr><td>KZG line source</td><td>garaga_precompute_lines_2f</td></tr>
+<tr><td>KZG precomputed lines</td><td>176</td></tr>
+<tr><td>Payload semantics</td><td>cryptographic_pairing</td></tr>
+<tr><td>Bundle source</td><td>raw_json.kzg_mpcheck_bundle</td></tr>
+<tr><td>Extractor attempted</td><td><span class="warn">false</span></td></tr>
+<tr><td>Extractor error</td><td>-</td></tr>
+<tr><td>Cached bundle path</td><td>-</td></tr>
+<tr><td>L3 attempted</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 success</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verifier mode</td><td>native_kzg</td></tr>
+<tr><td>L3 ABI used</td><td>verify_ezkl_kzg_v1</td></tr>
+<tr><td>L3 strict binding observed</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="pass">true</span></td></tr>
+<tr><td>L3 actual fee</td><td>103853892173600 FRI</td></tr>
+<tr><td>L3 execution steps</td><td>-</td></tr>
+<tr><td>L1 gas / data gas / L2 gas</td><td>- / - / -</td></tr>
+<tr><td>L3 tx hash</td><td>0x17d747c2de07...724823b08009c3</td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mirror status</td><td>not_requested</td></tr>
+<tr><td>Verifier expected fact</td><td>0x65cedd5e0b24...7fd66366fc6c1e</td></tr>
+<tr><td>Verifier proof hash</td><td>0x65cedd5e0b24...7fd66366fc6c1e</td></tr>
+<tr><td>Verifier payload hash</td><td>0x4a48b26c6945...d1aec0ea8c8c0f</td></tr>
+<tr><td>Verifier marker</td><td>ezkl_kzg_v1</td></tr>
+<tr><td>Trust mode</td><td>ezkl_local_verified</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:13:25.423879+00:00</td></tr>
+<tr><td>Duration ms</td><td>23181</td></tr></tbody></table></div>
+      <h3>Lane Health + Degradation Notes</h3>
+      <p class="meta">
+        Quick health matrix for the four bridge lanes. This makes degraded states explicit and explainable in the research readout.
+      </p>
+      <div class="table-wrap"><table><thead><tr><th>Lane</th><th>HTTP</th><th>Observed Mode</th><th>Expected Mode</th><th>Verified</th><th>Verdict</th><th>Failure</th><th>Note</th></tr></thead><tbody><tr><td>L3</td><td>200</td><td>groth16_garaga</td><td>groth16_garaga</td><td><span class="pass">true</span></td><td><span class="pass">healthy</span></td><td>-</td><td>lane is receipt-backed</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>200</td><td>groth16_garaga</td><td>groth16_garaga</td><td><span class="pass">true</span></td><td><span class="pass">healthy</span></td><td>-</td><td>lane is receipt-backed</td></tr>
+<tr><td>L3_NOIR_REQUEST</td><td>200</td><td>noir_honk</td><td>noir_honk</td><td><span class="pass">true</span></td><td><span class="pass">healthy</span></td><td>-</td><td>lane is receipt-backed</td></tr>
+<tr><td>L3_NATIVE_KZG_REQUEST</td><td>200</td><td>native_kzg</td><td>native_kzg</td><td><span class="pass">true</span></td><td><span class="pass">healthy</span></td><td>-</td><td>lane is receipt-backed</td></tr></tbody></table></div>
+      <h3>Bridge Benchmark Receipts (Compact)</h3>
+      <p class="meta">
+        Per-lane benchmark snapshot for demos and judge review: HTTP status, verifier mode, backend route, on-chain verification flag, duration, fee, gas, and explorer tx.
+      </p>
+      <div class="table-wrap"><table><thead><tr><th>Lane</th><th>HTTP</th><th>Mode</th><th>Backend</th><th>Verified</th><th>Duration ms</th><th>Actual Fee</th><th>Steps</th><th>L1 / L1Data / L2 gas</th><th>Tx</th></tr></thead><tbody><tr><td>ModelBridge</td><td>200</td><td>groth16_garaga</td><td>groth16_modelbridge</td><td><span class="pass">true</span></td><td>19282</td><td>14203507609184 FRI</td><td>-</td><td>- / - / -</td><td>0x5852d7c13062...d471786e8e2f7c</td></tr>
+<tr><td>ModelBridgeHeavy</td><td>200</td><td>groth16_garaga</td><td>groth16_modelbridge_heavy</td><td><span class="pass">true</span></td><td>25467</td><td>14183226889184 FRI</td><td>-</td><td>- / - / -</td><td>0x53024a1ff8c8...0a5e0a481904aa</td></tr>
+<tr><td>NoirEzklBridge</td><td>200</td><td>noir_honk</td><td>noir_honk</td><td><span class="pass">true</span></td><td>17523</td><td>62968850381664 FRI</td><td>-</td><td>- / - / -</td><td>0x1b3faf720310...4e465b2f8408ae</td></tr>
+<tr><td>EzklNativeKzg</td><td>200</td><td>native_kzg</td><td>native_kzg_ezkl_serialized_mpcheck</td><td><span class="pass">true</span></td><td>23181</td><td>103853892173600 FRI</td><td>-</td><td>- / - / -</td><td>0x17d747c2de07...724823b08009c3</td></tr></tbody></table></div>
+      <h3>Rolling Stability + Gas Trend (History)</h3>
+      <p class="meta">
+        Window: last 40 of 43 recorded runs
+        (requested window=40).
+        Source: <code>artifacts/hackathon_showcase/history.jsonl</code>
+      </p>
+      <div class="table-wrap"><table><thead><tr><th>Lane</th><th>Samples</th><th>Verified Rate</th><th>Dominant Mode</th><th>p50 ms</th><th>p95 ms</th><th>p50 Fee</th><th>p95 Fee</th><th>Latest Mode</th><th>Latest Verified</th><th>Latest Tx</th></tr></thead><tbody><tr><td>ModelBridge</td><td>40</td><td>97.50%</td><td>groth16_garaga</td><td>16682</td><td>35149</td><td>14203507609184</td><td>17332278729504</td><td>groth16_garaga</td><td><span class="pass">true</span></td><td><a href="https://sepolia.voyager.online/tx/0x28b21afa62bc7c00ac08d197d9365cd2cf491ac904b4c8bd87d96f3dc276b65" target="_blank" rel="noreferrer">0x28b21afa62bc...7d96f3dc276b65</a></td></tr>
+<tr><td>ModelBridgeHeavy</td><td>40</td><td>95.00%</td><td>groth16_garaga</td><td>21562</td><td>34793</td><td>14196747369184</td><td>236943140314144</td><td>groth16_garaga</td><td><span class="pass">true</span></td><td><a href="https://sepolia.voyager.online/tx/0x45f60689a3961615b3c172fdc63727ec61574e625ee96bc4e7dac9a28c002cb" target="_blank" rel="noreferrer">0x45f60689a396...7dac9a28c002cb</a></td></tr>
+<tr><td>NoirEzklBridge</td><td>26</td><td>84.62%</td><td>noir_honk</td><td>14243</td><td>21192</td><td>76672363240224</td><td>2307087124804064</td><td>noir_honk</td><td><span class="pass">true</span></td><td><a href="https://sepolia.voyager.online/tx/0x11f3e254b908acface884086d3f8f65cd56cb0240382ad0022b1839929f8d25" target="_blank" rel="noreferrer">0x11f3e254b908...2b1839929f8d25</a></td></tr>
+<tr><td>EzklNativeKzg</td><td>40</td><td>100.00%</td><td>native_kzg</td><td>16106</td><td>36233</td><td>6229425956000</td><td>7603463213600</td><td>native_kzg</td><td><span class="pass">true</span></td><td><a href="https://sepolia.voyager.online/tx/0x1a4d9cdfe9d0eed5e91d4dbb9cb1d445feb7f9ad64b03c576354e8eeaafaadc" target="_blank" rel="noreferrer">0x1a4d9cdfe9d0...354e8eeaafaadc</a></td></tr></tbody></table></div>
+      <h3>StarkHeavyReputation (Stone -> L3)</h3>
+      <p class="meta">
+        Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
+        `StarkHeavyReputation`) with optional L3 submission.
+      </p>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>API status</td><td>-</td></tr>
+<tr><td>Circuit name</td><td>-</td></tr>
+<tr><td>Proof success</td><td><span class="fail">false</span></td></tr>
+<tr><td>Proof hash</td><td>-</td></tr>
+<tr><td>Fact hash</td><td>-</td></tr>
+<tr><td>L3 mode</td><td>-</td></tr>
+<tr><td>L3 success</td><td><span class="fail">false</span></td></tr>
+<tr><td>L3 verified_on_chain</td><td><span class="fail">false</span></td></tr>
+<tr><td>L3 tx hash</td><td>-</td></tr>
+<tr><td>L3 error</td><td>-</td></tr>
+<tr><td>Error</td><td>-</td></tr></tbody></table></div>
+      <h3>Retry/Attempt Timeline</h3>
+      <div class="table-wrap"><table><thead><tr><th>Run</th><th>Attempt</th><th>HTTP</th><th>Mirror</th><th>L3 Mode</th><th>Bridge Backend</th><th>L3 Tx</th><th>L2 Tx</th><th>Can Execute</th><th>Failure Text</th></tr></thead><tbody><tr><td>L3</td><td>1</td><td>200</td><td>not_requested</td><td>groth16_garaga</td><td>groth16_modelbridge</td><td>0x5852d7c130...71786e8e2f7c</td><td>-</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>groth16_garaga</td><td>groth16_modelbridge_heavy</td><td>0x53024a1ff8...5e0a481904aa</td><td>-</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_NOIR_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>noir_honk</td><td>noir_honk</td><td>0x1b3faf7203...465b2f8408ae</td><td>-</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_NATIVE_KZG_REQUEST</td><td>1</td><td>200</td><td>not_requested</td><td>native_kzg</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x17d747c2de...4823b08009c3</td><td>-</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>DUAL</td><td>1</td><td>200</td><td>mirrored</td><td>groth16_garaga</td><td>groth16_modelbridge</td><td>0xc92bf8b265...b3bcdd4a28b9</td><td><a href="https://sepolia.voyager.online/tx/0x2f210c7f0f2747325994b1adbd131e3c98eaf0315b4ab1dfc4dd3b344f5618" target="_blank" rel="noreferrer">0x2f210c7f0f...dd3b344f5618</a></td><td><span class="pass">true</span></td><td>-</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="architecture">
+      <h2>Research Core: Open-source ModelBridge + Dual-Proof Architecture</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> That the zkML bridge implementation is present in repo, then exercised via runtime probes that hit both single-chain and dual-chain proof paths.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Lets UI show proof-lane selection (`l3`, `l2`, `dual`), verifier mode, and trust posture before execution.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> Proof-aware AI actions where model output is bridged into circuit-calldata semantics and chained to Starknet verification lanes.
+      </div>
+      <p class="meta">
+        Selected model for runtime probe: yield_predictor |
+        Proof-model registry status: - |
+        Registered models: 0 |
+        Ready models: 0 |
+        Runtime mode: bridge_runtime_non_synthetic
+      </p>
+      <h3>Bridge Artifacts in Repository</h3>
+      <div class="table-wrap"><table><thead><tr><th>Artifact</th><th>Path</th><th>Status</th></tr></thead><tbody><tr><td>ModelBridge circuit</td><td><code>circuits/ModelBridge.circom</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build zkey</td><td><code>circuits/build/ModelBridge_final.zkey</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build wasm</td><td><code>circuits/build/ModelBridge_js/ModelBridge.wasm</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build verification key</td><td><code>circuits/build/ModelBridge_verification_key.json</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy circuit</td><td><code>circuits/ModelBridgeHeavy.circom</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy build zkey</td><td><code>circuits/build/ModelBridgeHeavy_final.zkey</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy build wasm</td><td><code>circuits/build/ModelBridgeHeavy_js/ModelBridgeHeavy.wasm</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy build verification key</td><td><code>circuits/build/ModelBridgeHeavy_verification_key.json</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge root zkey</td><td><code>circuits/ModelBridge_final.zkey</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge root wasm</td><td><code>circuits/ModelBridge_js/ModelBridge.wasm</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge build script</td><td><code>circuits/build_model_bridge.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy build script</td><td><code>circuits/build_model_bridge_heavy.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge verifier generation script</td><td><code>circuits/generate_model_bridge_verifier.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridgeHeavy verifier generation script</td><td><code>circuits/generate_model_bridge_heavy_verifier.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge verifier deploy script</td><td><code>scripts/deploy_model_bridge_verifier.sh</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ModelBridge verifier deploy plan</td><td><code>docs/plans/MODELBRIDGE_VERIFIER_DEPLOY.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ZkmlVerifier Cairo contract</td><td><code>contracts/src/zkml_verifier.cairo</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Generated ModelBridge verifier project</td><td><code>circuits/contracts/src/garaga_verifier_model_bridge/Scarb.toml</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Generated ModelBridgeHeavy verifier project</td><td><code>circuits/contracts/src/garaga_verifier_model_bridge_heavy/Scarb.toml</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>ML bridge API route</td><td><code>backend/app/api/routes/proofs.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Groth16 bridge prover service</td><td><code>backend/app/services/groth16_prover.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Proof pipeline</td><td><code>backend/app/services/proof_pipeline.py</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Proof mode resolver</td><td><code>backend/app/services/proof_mode.py</code></td><td><span class="pass">present</span></td></tr></tbody></table></div>
+      <h3>Live Proving Lanes (STARK vs SNARK)</h3>
+      <p class="meta">
+        Proving-path endpoint status: 200 |
+        Dual lanes ready: <span class="pass">yes</span> |
+        ModelBridgeHeavy lane available: <span class="pass">yes</span> |
+        SNOS proving: not available (planned)
+      </p>
+      <div class="table-wrap"><table><thead><tr><th>Lane ID</th><th>Lane Name</th><th>Available</th><th>Contract</th><th>Trust Model</th></tr></thead><tbody><tr><td>groth16_garaga</td><td>Groth16 On-Chain Verification (Garaga)</td><td><span class="pass">yes</span></td><td>0x36f5c2fd4b27...1c17a14e78bd00<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 contract verifies the proof</td></tr>
+<tr><td>groth16_model_bridge</td><td>ModelBridge Groth16 On-Chain Verification</td><td><span class="pass">yes</span></td><td>0x2e1b19e60c9a...af9a607f470bbf<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 ModelBridge verifier verifies the proof</td></tr>
+<tr><td>groth16_model_bridge_heavy</td><td>ModelBridgeHeavy Groth16 On-Chain Verification</td><td><span class="pass">yes</span></td><td>0x7e3d6d99e8b9...5c580f60026ca0<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 ModelBridgeHeavy verifier verifies the proof</td></tr>
+<tr><td>noir_honk</td><td>Noir EZKL-Bridge HONK On-Chain Verification</td><td><span class="pass">yes</span></td><td>0x213e38a87b0e...a366cac6648f9f<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 Garaga HONK verifier verifies the proof</td></tr>
+<tr><td>native_kzg</td><td>Native KZG On-Chain Verification (Phase 4)</td><td><span class="pass">yes</span></td><td>0x6e77e1381431...5b9caab414a6c8<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 Cairo KZG verifier verifies the proof</td></tr>
+<tr><td>stark_integrity</td><td>STARK On-Chain Verification (Integrity)</td><td><span class="pass">yes</span></td><td>0x2c036366dcf9...14e35ae0271e69<div class="meta">Madara L3 (local RPC)</div></td><td>cryptographic — L3 contract verifies the STARK proof</td></tr>
+<tr><td>hash_only</td><td>Hash Registration (Fallback)</td><td><span class="pass">yes</span></td><td>0x5ed322b12ddc...91119b4c68d691<div class="meta">Madara L3 (local RPC)</div></td><td>trust-the-operator — obsqra backend verified off-chain</td></tr></tbody></table></div>
+      <h3>Runtime Bridge Probes (`/api/v1/zkdefi/proofs/ml-bridge`)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Run</th><th>Proof Mode</th><th>Requested Chain</th><th>L3 Mode</th><th>L2 Mode</th><th>Bridge Backend</th><th>Mirror</th><th>Can Execute</th><th>Failure Reason</th></tr></thead><tbody><tr><td>L3</td><td>EZKL_BRIDGE</td><td>l3</td><td>groth16_garaga</td><td>-</td><td>groth16_modelbridge</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_HEAVY_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>groth16_garaga</td><td>-</td><td>groth16_modelbridge_heavy</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_NOIR_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>noir_honk</td><td>-</td><td>noir_honk</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>L3_NATIVE_KZG_REQUEST</td><td>EZKL_BRIDGE</td><td>l3</td><td>native_kzg</td><td>-</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>not_requested</td><td><span class="pass">true</span></td><td>-</td></tr>
+<tr><td>DUAL</td><td>EZKL_BRIDGE</td><td>dual</td><td>groth16_garaga</td><td>starknet_l2_registry_mirrored</td><td>groth16_modelbridge</td><td>mirrored</td><td><span class="pass">true</span></td><td>-</td></tr></tbody></table></div>
+      <p class="meta">
+        SNARK lane in this stack is the Groth16/Garaga path; STARK lane is Integrity/Stone verification.
+        In `dual` mode, backend attempts both and records mirror status for policy gating.
+      </p>
+      <h3>Bridge Lane Narrative</h3>
+      <div class="table-wrap"><table><thead><tr><th>Lane</th><th>What It Proves</th><th>Current Evidence</th></tr></thead><tbody><tr><td>ModelBridge (Groth16/Garaga)</td><td>Wraps EZKL/KZG model context into a Groth16 verifier lane that Starknet/L3 can consume as a policy gate.</td><td>Live receipt 0x5852d7c130...71786e8e2f7c proves the baseline bridge is operational.</td></tr>
+<tr><td>Path A (Noir HONK)</td><td>Exercises an independent HONK verifier lane so the stack is not locked to Groth16 as its only SNARK closure path.</td><td>Live noir_honk receipt 0x1b3faf7203...465b2f8408ae shows the same proof intent can clear a second proving backend on-chain.</td></tr>
+<tr><td>Path B (Native KZG)</td><td>Keeps the KZG semantics native in Cairo instead of always wrapping them into another SNARK, which is the stricter long-term verifier path.</td><td>Dual native_kzg coverage is 5/5 mirrored models in the latest warm run.</td></tr></tbody></table></div>
+      <p class="meta">
+        EZKL runtime probe status: 0 |
+        Real proof detected: <span class="fail">no</span>
+      </p>
+      <h3>Why This Bridge Is An Unlock</h3>
+      <div class="table-wrap"><table><thead><tr><th>Unlock</th><th>Design Signal</th><th>Why It Matters</th></tr></thead><tbody><tr><td>Model output -&gt; policy gate, not just model output -&gt; score</td><td>ModelBridge binds model_output + proof/model hashes + bounds + timestamp into a Groth16 public-signal commitment that policy lanes can enforce.</td><td>Lets AI recommendations become cryptographically gateable execution intents.</td></tr>
+<tr><td>Portable zkML semantics across stacks</td><td>Bridge lane can consume zkML-style artifacts, format calldata for Garaga, then target Starknet verification paths.</td><td>De-risks lock-in to a single proving stack while keeping one policy interface.</td></tr>
+<tr><td>Dual STARK/SNARK trust posture</td><td>The same intent can flow through SNARK (Groth16/Garaga) and STARK (integrity/SNOS-style) lanes with mirror status tracking.</td><td>Allows product-level trust modes instead of one hardcoded proof lane.</td></tr>
+<tr><td>Privacy-first execution controls</td><td>Bridge proofs feed strategy gating while shielded/nullifier/relayer rails preserve user privacy and selective disclosure.</td><td>Supports private capital ops without losing verifiable safety checks.</td></tr></tbody></table></div>
+      <h3>Who Does Adjacent Pieces vs This Full Composition</h3>
+      <div class="table-wrap"><table><thead><tr><th>Stack</th><th>Published Signal</th><th>Bridge-to-Privacy-Gate Signal</th><th>Reference</th></tr></thead><tbody><tr><td>EZKL</td><td>Open-source zkML proving from ONNX models to proofs.</td><td>No direct Starknet privacy-policy bridge wiring documented in cited source.</td><td><a href="https://github.com/zkonduit/ezkl" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Garaga</td><td>Starknet-oriented SNARK verifier/calldata tooling (Groth16/Plonk lanes).</td><td>Verifier primitives, but not end-to-end zkML recommendation gating product flow.</td><td><a href="https://github.com/keep-starknet-strange/garaga" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Giza on Starknet</td><td>Verifiable ML context in Starknet ecosystem.</td><td>Public material does not describe the same privacy-tier + relayer gating composition.</td><td><a href="https://www.starknet.io/blog/onchain-ai-with-giza/" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>zkde.fi (this repo)</td><td>ModelBridge circuit + Groth16 prover + proof pipeline + proving-path routing + privacy rails + strategy badges.</td><td>Bridge-to-policy-gate wiring is implemented as first-class backend flow.</td><td><code>circuits/ModelBridge.circom</code>, <code>backend/app/services/groth16_prover.py</code>, <code>backend/app/services/proof_pipeline.py</code></td></tr></tbody></table></div>
+      <h3>ModelBridge Verifier On-chain Readiness (Starknet + L3)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Check</th><th>Status</th></tr></thead><tbody><tr><td>ZkmlVerifier has model_bridge_verifier storage</td><td><span class="pass">yes</span></td></tr>
+<tr><td>ZkmlVerifier constructor accepts 3 args</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Getter/setter for model bridge verifier</td><td><span class="pass">yes</span></td></tr>
+<tr><td>verify_model_bridge_proof entrypoint</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Fallback logic (dedicated verifier else garaga)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated ModelBridge verifier project present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated contract classes</td><td>1</td></tr>
+<tr><td>Generated ModelBridgeHeavy verifier project present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated ModelBridgeHeavy contract classes</td><td>1</td></tr>
+<tr><td>Deployment marker (.model_bridge_verifier.deployed)</td><td><span class="pass">found</span></td></tr>
+<tr><td>Deployment marker (.model_bridge_heavy_verifier.deployed)</td><td><span class="pass">found</span></td></tr>
+<tr><td>Deployment marker (.zkml_verifier_model_bridge.deployed)</td><td><span class="pass">found</span></td></tr>
+<tr><td>Deployed ModelBridge verifier address</td><td>0x037c42e8...786fa4626f</td></tr>
+<tr><td>Deployed ModelBridge verifier class hash</td><td>0x04745a6b...b5574257f8</td></tr>
+<tr><td>Deployed ModelBridgeHeavy verifier address</td><td>0x07e3d6d9...0f60026ca0</td></tr>
+<tr><td>Deployed ModelBridgeHeavy verifier class hash</td><td>0x1b0946ab...560a056652</td></tr>
+<tr><td>Deployed ZkmlVerifier (ModelBridge-capable)</td><td>0x068abd64...a5aad08923</td></tr>
+<tr><td>Deployed ZkmlVerifier class hash</td><td>0x00f9c1bd...b7687aa066</td></tr>
+<tr><td>ZkmlVerifier constructor Garaga verifier</td><td>0x06d0cb7a...2fe3aa6d37</td></tr>
+<tr><td>ZkmlVerifier constructor ModelBridge verifier</td><td>0x037c42e8...786fa4626f</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="phases">
+      <h2>Recursive EZKL Paths (Phase 2 / 3 / 4)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Whether Path A (Noir HONK), Path C (L1 Sepolia bridge), and Path B (native Cairo KZG) are documented and wired in code, beyond narrative claims.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Frontend can render honest state badges: `implemented`, `implemented_stub`, or `partial` per path.<br/>
+        <strong>Unlocks:</strong> Clear migration story from current ModelBridge lane to full on-chain EZKL attestation options.
+      </div>
+      <h3>Roadmap Narrative (Ready Readout)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Roadmap Lens</th><th>Where We Are</th><th>What Unlocks Next</th></tr></thead><tbody><tr><td>Overall bridge roadmap</td><td>4/4 stage gates complete; Phase 2 delivered, Phase 3 operationalizing, Phase 4 strict-native hardening.</td><td>All listed roadmap gates in this matrix are complete; next step is scale/perf hardening across more models.</td></tr>
+<tr><td>Path A (Noir HONK)</td><td>live and receipt-backed</td><td>Path A is receipt-backed; next step is a production runbook with recurring Noir receipt evidence and benchmarking.</td></tr>
+<tr><td>Path C (L1 bridge)</td><td>live and receipt-backed</td><td>Expand from single flow to repeatable bridge monitoring and incident runbooks.</td></tr>
+<tr><td>Path B (native Cairo KZG)</td><td>live and receipt-backed</td><td>Scale strict native KZG lane to broader model catalog with stability/gas benchmarks.</td></tr></tbody></table></div>
+      <h3>Documentation Presence</h3>
+      <div class="table-wrap"><table><thead><tr><th>Artifact</th><th>Path</th><th>Status</th></tr></thead><tbody><tr><td>Recursive EZKL roadmap</td><td><code>archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Advanced L3 + EZKL implementation plan</td><td><code>docs/plans/2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>L1 Sepolia EZKL verifier doc</td><td><code>docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>L1-&gt;L2 EZKL bridge spec</td><td><code>docs/plans/L1_EZKL_BRIDGE_SPEC.md</code></td><td><span class="pass">present</span></td></tr>
+<tr><td>Cairo native KZG verifier spec</td><td><code>docs/plans/CAIRO_KZG_VERIFIER_SPEC.md</code></td><td><span class="pass">present</span></td></tr></tbody></table></div>
+      <h3>Path Status Matrix</h3>
+      <div class="table-wrap"><table><thead><tr><th>Path</th><th>Status</th><th>Lane ID</th><th>Lane Listed</th><th>Lane Available</th><th>Contract</th><th>Evidence</th></tr></thead><tbody><tr><td>Path A (Noir HONK bridge)</td><td><span class="pass">implemented_live</span></td><td>noir_honk</td><td><span class="pass">yes</span></td><td><span class="pass">yes</span></td><td>0x213e38a87b0e...a366cac6648f9f<div class="meta">Madara L3 (local RPC)</div></td><td>Live noir_honk receipt captured; Path A is receipt-backed in the active L3 environment.</td></tr>
+<tr><td>Path C (L1 Sepolia bridge)</td><td><span class="pass">implemented_live</span></td><td>l1_bridge</td><td><span class="pass">yes</span></td><td><span class="pass">yes</span></td><td><a href="https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab" target="_blank" rel="noreferrer">0x2a1b030f2835...5e96da293853ab</a></td><td>Live verifyAndBridge receipt captured and L2 receiver confirmed for Path C.</td></tr>
+<tr><td>Path B (native Cairo KZG)</td><td><span class="pass">implemented_live</span></td><td>native_kzg</td><td><span class="pass">yes</span></td><td><span class="pass">yes</span></td><td>0x6e77e1381431...5b9caab414a6c8<div class="meta">Madara L3 (local RPC)</div><div class="meta">class 0xd73f1b91e9ce...0cf8f499fb1f09</div></td><td>Cairo KZG verifier package builds; strict native KZG route is live with receipt-backed coverage across the current proving-ready catalog....</td></tr></tbody></table></div>
+      <h3>Path B Verifier RPC Evidence</h3>
+      <p class="meta">This is the direct L3 verifier backing the native KZG lane. It is re-checked over the active Madara RPC, so the report shows deployment metadata instead of only env wiring.</p>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Network</td><td>Madara L3 (local RPC)</td></tr>
+<tr><td>RPC URL</td><td><code>http://127.0.0.1:9944/rpc/v0.10.0</code></td></tr>
+<tr><td>Address</td><td>0x6e77e1381431...5b9caab414a6c8</td></tr>
+<tr><td>RPC deployment check</td><td><span class="pass">present</span></td></tr>
+<tr><td>Class hash</td><td>0xd73f1b91e9ce...0cf8f499fb1f09</td></tr>
+<tr><td>Required ABI methods</td><td>verify_kzg, verify_ezkl_kzg_v1, get_last_verification</td></tr>
+<tr><td>ABI methods found</td><td>get_last_verification, verify_ezkl_kzg_v1, verify_kzg</td></tr>
+<tr><td>Strict selector readiness</td><td><span class="pass">ready</span></td></tr>
+<tr><td>Public explorer</td><td>not available for local Madara L3</td></tr></tbody></table></div>
+      <h3>Path A Live Receipt (Noir HONK)</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/patha_latest.json</code> (captured from live `NoirEzklBridge` -> `noir_honk` verification).</p>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Artifact path</td><td><code>artifacts/hackathon_showcase/patha_latest.json</code></td></tr>
+<tr><td>Artifact present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Live verified (L3)</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mode</td><td>noir_honk</td></tr>
+<tr><td>Bridge backend</td><td>noir_honk</td></tr>
+<tr><td>Proof mode</td><td>EZKL_BRIDGE</td></tr>
+<tr><td>L3 tx hash</td><td>0x1b3faf720310...4e465b2f8408ae</td></tr>
+<tr><td>L3 status</td><td>200</td></tr>
+<tr><td>Can execute</td><td><span class="pass">true</span></td></tr>
+<tr><td>Bridge proof hash</td><td>0x4396cfd7fe64...bffc0e5a6873e8</td></tr>
+<tr><td>Calldata words</td><td>2874</td></tr>
+<tr><td>L3 actual fee</td><td>62968850381664 FRI</td></tr>
+<tr><td>L3 execution steps</td><td>-</td></tr>
+<tr><td>Failure reason</td><td>-</td></tr>
+<tr><td>Generated at</td><td>2026-03-13T22:12:52.318322+00:00</td></tr></tbody></table></div>
+      <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Artifact path</td><td><code>artifacts/hackathon_showcase/pathc_latest.json</code></td></tr>
+<tr><td>Artifact present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Live verified (L1 + L2)</td><td><span class="pass">true</span></td></tr>
+<tr><td>Mode</td><td>verify_and_bridge</td></tr>
+<tr><td>L1 tx hash</td><td><a href="https://sepolia.etherscan.io/tx/0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4" target="_blank" rel="noreferrer">0x6dbcc1a66535...10915b85876db4</a></td></tr>
+<tr><td>L1 status</td><td>1</td></tr>
+<tr><td>L1 block</td><td>10434986</td></tr>
+<tr><td>L1 gas used</td><td>642407</td></tr>
+<tr><td>L1 sender</td><td><a href="https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab" target="_blank" rel="noreferrer">0x2a1b030f2835...5e96da293853ab</a></td></tr>
+<tr><td>L1 verifier</td><td><a href="https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9" target="_blank" rel="noreferrer">0xF7b555ca4E54...7341575a852Ab9</a></td></tr>
+<tr><td>Model hash</td><td>0x61ad11ff8bf6...5b748620cc2812</td></tr>
+<tr><td>Nonce used</td><td>0</td></tr>
+<tr><td>L2 verified_on_l2</td><td><span class="pass">true</span></td></tr>
+<tr><td>L2 output commitment</td><td>0x71bda0170662...6d02857c51c185</td></tr>
+<tr><td>L2 block timestamp (UTC)</td><td>2026-03-12T20:47:12+00:00</td></tr>
+<tr><td>Poll attempts until confirm</td><td>61</td></tr>
+<tr><td>Verification status URL</td><td><a href="http://127.0.0.1:8002/api/v1/aggregation/l1/verification-status?model_hash=0x61ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812&amp;nonce=0" target="_blank" rel="noreferrer">verification-status query</a></td></tr></tbody></table></div>
+      <h3>Path B Catalog Warm Report</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run). This section now separates first-party model bootstrap provenance from the actual native-KZG receipt counts, so the report does not blur training/setup readiness with cryptographic execution readiness.</p>
+      <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Artifact path</td><td><code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code></td></tr>
+<tr><td>Artifact present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Generated at</td><td>2026-03-13T21:34:16.550462+00:00</td></tr>
+<tr><td>Coverage scope</td><td>proving_ready_catalog</td></tr>
+<tr><td>Catalog models</td><td>5</td></tr>
+<tr><td>Catalog model names</td><td>-</td></tr>
+<tr><td>Selected model names</td><td>-</td></tr>
+<tr><td>Proving-ready catalog models</td><td>5</td></tr>
+<tr><td>Excluded non-EZKL models</td><td>-</td></tr>
+<tr><td>Bootstrap known models</td><td><span class="warn">disabled</span></td></tr>
+<tr><td>Bootstrap supported models</td><td>-</td></tr>
+<tr><td>Bootstrap attempted / ready / failed</td><td>0/0/0</td></tr>
+<tr><td>Bootstrap attempted models</td><td>-</td></tr>
+<tr><td>Bootstrap ready models</td><td>-</td></tr>
+<tr><td>Bootstrap failed models</td><td>-</td></tr>
+<tr><td>Models total</td><td>5</td></tr>
+<tr><td>Models verified</td><td>5</td></tr>
+<tr><td>Models with bundle</td><td>5</td></tr>
+<tr><td>Coverage</td><td>100.00%</td></tr>
+<tr><td>Strict target</td><td>100.00%</td></tr>
+<tr><td>Gate result</td><td><span class="pass">pass</span></td></tr>
+<tr><td>Gate reason</td><td>-</td></tr>
+<tr><td>History file</td><td><code>artifacts/hackathon_showcase/pathb_bundle_history.jsonl</code></td></tr>
+<tr><td>History entries</td><td>21</td></tr>
+<tr><td>Daily delta window (hours)</td><td>24</td></tr>
+<tr><td>Previous-run delta (pct points)</td><td>-</td></tr>
+<tr><td>Daily delta (pct points)</td><td>-</td></tr>
+<tr><td>Native KZG onchain probe enabled</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Native KZG base URL</td><td>http://127.0.0.1:8003</td></tr>
+<tr><td>Native KZG execution chain</td><td>dual</td></tr>
+<tr><td>Native KZG attempted / verified / L3 receipts</td><td>5/5/5</td></tr>
+<tr><td>Native KZG L2 receipts / mirrored</td><td>5/5</td></tr>
+<tr><td>Native KZG strict ABI / legacy fallback / strict binding</td><td>5/0/5</td></tr>
+<tr><td>Daily new bundles / regressions</td><td>0/0</td></tr>
+<tr><td>Daily native_kzg verified / regressions</td><td>0/0</td></tr>
+<tr><td>New bundles (daily baseline)</td><td>-</td></tr>
+<tr><td>Regressions (daily baseline)</td><td>-</td></tr>
+<tr><td>New native_kzg verified models (daily baseline)</td><td>-</td></tr>
+<tr><td>Regressed native_kzg models (daily baseline)</td><td>-</td></tr>
+<tr><td>Strict ABI models</td><td>anomaly_detector, creditworthiness, llm_fallback, timing_predictor, yield_forecast</td></tr>
+<tr><td>Legacy fallback models</td><td>-</td></tr>
+<tr><td>Strict binding observed models</td><td>anomaly_detector, creditworthiness, llm_fallback, timing_predictor, yield_forecast</td></tr>
+<tr><td>Excluded model details</td><td>-</td></tr></tbody></table></div>
+      <h3>Path B Bootstrap Provenance</h3>
+      <p class="meta">These are the first-party model provisioning attempts made by the Path B warm flow itself. They show training/setup readiness for supported models, while the receipt matrix below remains the source of truth for live native-KZG execution coverage.</p>
+      <div class="table-wrap"><table><thead><tr><th>Model</th><th>Attempted</th><th>Ready</th><th>Trained</th><th>Train Status</th><th>Setup Status</th><th>Missing Before</th><th>Missing After</th><th>Source</th><th>Error</th></tr></thead><tbody><tr><td>-</td><td><span class="warn">no</span></td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>No bootstrap attempts were needed in this run.</td></tr></tbody></table></div>
+      <h3>Path B Native KZG Receipt Matrix</h3>
+      <p class="meta">Optional per-model `EzklNativeKzg` probe layered on top of the warm report so catalog coverage can be cross-checked against actual on-chain receipt generation, including dual-lane mirror evidence when the probe runs in `dual` mode.</p>
+      <div class="table-wrap"><table><thead><tr><th>Model</th><th>HTTP</th><th>Verified</th><th>Can Execute</th><th>Exec Chain</th><th>Mirror</th><th>L3 Mode</th><th>L3 ABI</th><th>Strict Bind</th><th>L2 Mode</th><th>Backend</th><th>L3 Tx</th><th>L2 Tx</th><th>Failure</th></tr></thead><tbody><tr><td>anomaly_detector</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>verify_ezkl_kzg_v1</td><td><span class="pass">true</span></td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x6b6f13e6f1fc...2f9508eb558218<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x736e762dd0146f7d803f83bfe81a8d5c4f1bea46480a314b4bbec277c53c1a8" target="_blank" rel="noreferrer">0x736e762dd014...bbec277c53c1a8</a></td><td>-</td></tr>
+<tr><td>creditworthiness</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>verify_ezkl_kzg_v1</td><td><span class="pass">true</span></td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x205dbcd02ff7...3d3f233537442c<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x41396b981d59a4a391a54aab8da80063b01020b3f426a058eb812d7b07136f1" target="_blank" rel="noreferrer">0x41396b981d59...b812d7b07136f1</a></td><td>-</td></tr>
+<tr><td>llm_fallback</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>verify_ezkl_kzg_v1</td><td><span class="pass">true</span></td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x57d201de4a8c...96627266d9523b<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x69180cf1cc45b2fcfd5184ecf57fe060f8f48318beae4a7650b439d1a2321ee" target="_blank" rel="noreferrer">0x69180cf1cc45...0b439d1a2321ee</a></td><td>-</td></tr>
+<tr><td>timing_predictor</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>verify_ezkl_kzg_v1</td><td><span class="pass">true</span></td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x193eff1f8827...80125cbcc84a5e<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x6a67c4dd3cb4b6108436d48870fca2c636b72956ec905621bdb0427bbbfceaf" target="_blank" rel="noreferrer">0x6a67c4dd3cb4...db0427bbbfceaf</a></td><td>-</td></tr>
+<tr><td>yield_forecast</td><td>200</td><td><span class="pass">true</span></td><td><span class="pass">true</span></td><td>dual</td><td>mirrored</td><td>native_kzg</td><td>verify_ezkl_kzg_v1</td><td><span class="pass">true</span></td><td>starknet_l2_registry_mirrored</td><td>native_kzg_ezkl_serialized_mpcheck</td><td>0x2a15a16fc3b6...82e3d50255ad23<div class="meta">Madara L3 tx hash</div></td><td><a href="https://sepolia.voyager.online/tx/0x5cd19b73065bbabd150aad2095f724a7bd7c1c22a4763ae489ef3628021543e" target="_blank" rel="noreferrer">0x5cd19b73065b...9ef3628021543e</a></td><td>-</td></tr></tbody></table></div>
+      <h3>Code Wiring Signals</h3>
+      <div class="table-wrap"><table><thead><tr><th>Check</th><th>Status</th></tr></thead><tbody><tr><td>Path A status in roadmap</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path A live receipt artifact found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path A live receipt verified</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 2 status marked complete</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 3 tasks expanded (3.1-3.5)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Phase 4 tasks expanded (4.1-4.5)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 3 config keys</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 3 service stub</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 4 config key</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Parent backend Phase 4 route (native_kzg)</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path B verifier re-verified on L3 RPC</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path B strict ABI selector present</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path B warm report found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path B warm coverage</td><td>5/5</td></tr>
+<tr><td>Path B warm gate (strict)</td><td><span class="pass">pass</span></td></tr>
+<tr><td>Path B min coverage target</td><td>100.00%</td></tr>
+<tr><td>Path B actual coverage</td><td>100.00%</td></tr>
+<tr><td>Path B history snapshots</td><td>21</td></tr>
+<tr><td>Path B daily delta window (hours)</td><td>24</td></tr>
+<tr><td>Path B previous-run delta (pct points)</td><td>-</td></tr>
+<tr><td>Path B daily delta (pct points)</td><td>-</td></tr>
+<tr><td>Path B daily new bundles / regressions</td><td>0/0</td></tr>
+<tr><td>Path B native_kzg attempted / verified / receipts</td><td>5/5/5</td></tr>
+<tr><td>Path B native_kzg daily new / regressions</td><td>0/0</td></tr>
+<tr><td>Path C live receipt file found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path C L1 receipt status == 1</td><td><span class="pass">yes</span></td></tr>
+<tr><td>Path C L2 confirmation</td><td><span class="pass">yes</span></td></tr></tbody></table></div>
+      <h3>Environment Readiness (Parent Backend)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Config</th><th>Status</th></tr></thead><tbody><tr><td>Parent backend .env found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_SEPOLIA_RPC set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_EZKL_VERIFIER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_EZKL_BRIDGE_SENDER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1_BRIDGE_RECEIVER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L1 signer configured</td><td><span class="pass">yes</span></td></tr>
+<tr><td>L3_KZG_VERIFIER_ADDRESS set</td><td><span class="pass">yes</span></td></tr>
+<tr><td>zkdefi backend .env found</td><td><span class="pass">yes</span></td></tr>
+<tr><td>MODELBRIDGE_REQUIRE_REAL_GROTH16</td><td><span class="pass">true</span></td></tr>
+<tr><td>MODELBRIDGE_REQUIRE_REAL_EZKL</td><td><span class="warn">false</span></td></tr>
+<tr><td>NATIVE_KZG_REQUIRE_REAL_EZKL</td><td><span class="pass">true</span></td></tr>
+<tr><td>NATIVE_KZG_REQUIRE_MPCHECK</td><td><span class="pass">true</span></td></tr>
+<tr><td>NATIVE_KZG_WARM_ON_REAL_PROVE</td><td><span class="pass">true</span></td></tr></tbody></table></div>
+      <h3>Stage Completion Check-ins</h3>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Stage</th><th>Status</th><th>Goal</th><th>Evidence</th><th>Explorer TX</th></tr></thead><tbody><tr><td>1</td><td>Stage 0 - Backbone</td><td><span class="pass">complete</span></td><td>Core backend + proof rails stable</td><td>core claims 9/9</td><td>-</td></tr>
+<tr><td>2</td><td>Stage 1 - Path A (Noir HONK)</td><td><span class="pass">complete</span></td><td>Live noir_honk receipt + recurring Path A artifact</td><td>lane available=True, verified=True, mode=noir_honk</td><td>0x1b3faf7203...465b2f8408ae</td></tr>
+<tr><td>3</td><td>Stage 2 - Path C (L1 bridge)</td><td><span class="pass">complete</span></td><td>Live verifyAndBridge receipt + L2 receiver confirmation</td><td>live_verified=True, l1_status=1, l2_verified_on_l2=True, polls=61</td><td><a href="https://sepolia.etherscan.io/tx/0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4" target="_blank" rel="noreferrer">0x6dbcc1a665...915b85876db4</a></td></tr>
+<tr><td>4</td><td>Stage 3 - Path B (Native KZG strict)</td><td><span class="pass">complete</span></td><td>Strict `kzg_mpcheck_v1` + on-chain native_kzg receipt</td><td>strict_route=True, lane_available=True, tx=0x17d747c2...23b08009c3</td><td>0x17d747c2de...4823b08009c3</td></tr></tbody></table></div>
+      <h3>GitHub Version Gates</h3>
+      <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Status</th><th>Suggested Tag</th><th>Check-in Rule</th></tr></thead><tbody><tr><td>Stage 0 - Backbone</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage0-backbone</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 1 - Path A (Noir HONK)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage1-path-a-noir</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 2 - Path C (L1 bridge)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage2-path-c-l1</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr>
+<tr><td>Stage 3 - Path B (Native KZG strict)</td><td><span class="pass">complete</span></td><td>v2026.03.13-stage3-path-b-native-kzg</td><td>Document E2E receipt + promote tag in GitHub release notes.</td></tr></tbody></table></div>
+      <h3>Next Steps</h3>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Phase 2/Path A: recurring noir_honk receipt is live (0x1b3faf7203...465b2f8408ae); keep patha_latest.json refreshed from the strict bridge gate.</td></tr>
+<tr><td>2</td><td>Phase 3: Path C live receipt is captured (0x6dbcc1a665...915b85876db4); scale from single receipt to recurring monitor checks.</td></tr>
+<tr><td>3</td><td>Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.</td></tr>
+<tr><td>4</td><td>Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.</td></tr>
+<tr><td>5</td><td>Phase 4: catalog warm report is 5/5 models with bundles; daily delta=n/a pct points; increase toward full model coverage.</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="bridge" data-sub-tab="ecosystem">
+      <h2>Ecosystem Sources (Research Appendix)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> External source sanity-check so bridge claims are benchmarked against current open-source zkML and Starknet proof infrastructure.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Feeds judge-facing technical appendix links without unsupported claims.<br/>
+        <strong>Unlocks:</strong> Transparent positioning: what exists in ecosystem today, and where this bridge design goes further.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Project/Source</th><th>Published Focus</th><th>Positioning Signal</th><th>Link</th></tr></thead><tbody><tr><td>EZKL</td><td>Open-source zkML proving stack (ONNX to ZK proof flow).</td><td>Shows mature zkML proving tooling; zkde.fi extends this with a circuit bridge and Starknet proving lanes.</td><td><a href="https://github.com/zkonduit/ezkl" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Garaga</td><td>SNARK verifier stack for Starknet (Groth16/Plonk tooling and calldata).</td><td>Confirms active Starknet SNARK verification primitives that the ModelBridge lane can target.</td><td><a href="https://github.com/keep-starknet-strange/garaga" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Starknet verify-proofs docs</td><td>Production guide for verifying zk proofs on Starknet.</td><td>Anchors on-chain verifier patterns and expected integration shape on Starknet.</td><td><a href="https://docs.starknet.io/build/starknet-by-example/advanced/verify-proofs" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>SNOS / SHARP model</td><td>STARK validity proving model used by Starknet (execution trace to proof).</td><td>Frames the STARK side of dual architecture and integrity-style proof semantics.</td><td><a href="https://docs.starknet.io/learn/protocol/snos" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>Giza on Starknet</td><td>Verifiable ML effort built on Starknet tooling.</td><td>Provides ecosystem context: zkML on Starknet exists, but bridge-to-circuit proof gating remains a distinct design choice.</td><td><a href="https://www.starknet.io/blog/onchain-ai-with-giza/" target="_blank" rel="noreferrer">source</a></td></tr>
+<tr><td>SN Stack open-source launch</td><td>Open-source Starknet stack announced by StarkWare.</td><td>Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable.</td><td><a href="https://www.starknet.io/blog/introducing-sn-stack-open-source-zk-powered-scaling/" target="_blank" rel="noreferrer">source</a></td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="contracts">
+      <h2>On-chain Links (Voyager)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
+        <strong>Unlocks:</strong> External verifiability for judges, users, and auditors.
+      </div>
+      <p class="meta">RPC used: https://starknet-sepolia-rpc.publicnode.com</p>
+      <div class="table-wrap"><table><thead><tr><th>Contract</th><th>Address</th><th>Class Hash</th></tr></thead><tbody><tr><td>REPUTATION_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022" target="_blank" rel="noreferrer">0x10d00b33b568...b5246312b7e022</a></td><td><a href="https://sepolia.voyager.online/class/0x74f7c06bfa0ba09af8e172467a7be78fa2077b7f4fb1fad8dbeda8eec60c95f" target="_blank" rel="noreferrer">0x74f7c06bfa0b...beda8eec60c95f</a></td></tr>
+<tr><td>FULL_PRIVACY_POOL_V2_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x3dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559" target="_blank" rel="noreferrer">0x3dde5617d362...eeb6237c811559</a></td><td><a href="https://sepolia.voyager.online/class/0xce55e551395c337e7dfc978962aff488e30cf8c1e5ffde1df34b62eb1f117" target="_blank" rel="noreferrer">0xce55e551395c...df34b62eb1f117</a></td></tr>
+<tr><td>RECEIPT_REGISTRY_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x2900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd" target="_blank" rel="noreferrer">0x2900291a932a...71ec6daecd83cd</a></td><td><a href="https://sepolia.voyager.online/class/0x8b52ef1327886e6e1f035042fd7612bda7e54619785b384d4b0e5dff494959" target="_blank" rel="noreferrer">0x8b52ef132788...4b0e5dff494959</a></td></tr>
+<tr><td>VAULT_CONTROLLER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63" target="_blank" rel="noreferrer">0x2f29b985bc96...186a81d0853b63</a></td><td><a href="https://sepolia.voyager.online/class/0x64c7e534cd0143ef62c57a570283e40e4509bf0fb5c14116b0e2177af39a88a" target="_blank" rel="noreferrer">0x64c7e534cd01...0e2177af39a88a</a></td></tr>
+<tr><td>GARAGA_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x6d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37" target="_blank" rel="noreferrer">0x6d0cb7a48b48...38502fe3aa6d37</a></td><td><a href="https://sepolia.voyager.online/class/0x4e7a5bbcefcb9e1d7fb2229375df104003f270bd09ec7c44aceb1bce3b39061" target="_blank" rel="noreferrer">0x4e7a5bbcefcb...ceb1bce3b39061</a></td></tr>
+<tr><td>MODEL_BRIDGE_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x37c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f" target="_blank" rel="noreferrer">0x37c42e873427...bbb8786fa4626f</a></td><td><a href="https://sepolia.voyager.online/class/0x4745a6bcd5a3306d7ed2eac2a5f5a53f66cfd7afee4c7a7d1d18cb5574257f8" target="_blank" rel="noreferrer">0x4745a6bcd5a3...d18cb5574257f8</a></td></tr>
+<tr><td>ZKML_VERIFIER_ADDRESS</td><td><a href="https://sepolia.voyager.online/contract/0x68abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923" target="_blank" rel="noreferrer">0x68abd64a4a78...b72da5aad08923</a></td><td><a href="https://sepolia.voyager.online/class/0xf9c1bd17a2c6bc58ca76a146399151fdf677514e7c6630eb8694b7687aa066" target="_blank" rel="noreferrer">0xf9c1bd17a2c6...8694b7687aa066</a></td></tr></tbody></table></div>
+      <h3>Receipts / Tx Links</h3>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="circuits">
+      <h2>zkML Circuit Deep Dive</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Real inventory and readiness of first-party circuits, proving artifacts, and adjacent Cairo/ONNX footprint.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Powers “capability explorer” and strategy badge transparency in the app.<br/>
+        <strong>Unlocks:</strong> Demonstrates this is a multi-circuit platform, not a single proof demo.
+      </div>
+      <p class="meta">
+        Circom sources: 0 |
+        wasm ready: 0 |
+        zkey ready: 0 |
+        dual-ready: 0
+      </p>
+      <p class="meta">
+        Cairo contract sources: 0 |
+        Groth16 final zkeys (repo-wide): 0 |
+        ONNX models: 0
+      </p>
+      <p class="muted">No rows.</p>
+      <h3>Circuit Inventory (first 40)</h3>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="advisory">
+      <h2>Opportunity Advisory + Badge Flow</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Live opportunities, LLM advisory, then ZK circuit screening before recommendation is treated as trusted.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> The stream can show “advisory”, “proving”, and “proved/flagged” states deterministically.<br/>
+        <strong>Unlocks:</strong> <span class="chip novel">Novel</span> AI-guided suggestions with cryptographic gating, not opaque black-box outputs.
+      </div>
+      <p class="meta">Opportunity source used: none</p>
+      <h3>Opportunity Source Probe</h3>
+      <p class="muted">No rows.</p>
+      <h3>Selected Opportunities</h3>
+      <p class="muted">No rows.</p>
+      <h3>AI Advisory Snapshot</h3>
+      <p class="muted">No rows.</p>
+      <h3>Badge Circuit Screening Snapshot</h3>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="skills">
+      <h2>AI Circuit Skills Engine (LLM Tooling)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> LLM opportunity advice is validated against a broad zkML skill bundle before being upgraded to trusted execution.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Frontend can render a deterministic “tool-call audit” timeline (skill pass/fail, proof hash, rationale).<br/>
+        <strong>Unlocks:</strong> AI recommendations become verifiable policy outputs, not opaque prompts.
+      </div>
+      <p class="meta">Skills in this pass: </p>
+      <p class="muted">No rows.</p>
+      <h3>Skill Trail (sample)</h3>
+      <p class="muted">No rows.</p>
+      <h3>Skill Proof Receipts</h3>
+      <p class="meta">Literal backend trail: "I used skill X" -> proof hash -> receipt lookup endpoint. `index_pending` means proof exists from skill runtime but is not indexed in the bridge-proof cache route yet.</p>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="rails">
+      <h2>Privacy Rails + Voting/Lending Backend Demo</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> End-to-end privacy rails: shielded commitments, nullifier + claim hash proofs, relayer-style withdraw queueing, and L3 dark settlement endpoints.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Enables a stepper UI with explicit states: shielded deposit, proofed withdraw, relayer queued, settlement verified.<br/>
+        <strong>Unlocks:</strong> Private voting and private lending backends can be surfaced even while UI is still maturing.
+      </div>
+      <h3>Reputation / Access Tiers</h3>
+      <p class="muted">No rows.</p>
+      <h3>Shielded -> Nullifier -> Claim Hash Rails</h3>
+      <p class="muted">No rows.</p>
+      <h3>Ledger + Relayer Withdraw</h3>
+      <div class="table-wrap"><table><thead><tr><th>Flow</th><th>Status</th><th>Reference</th><th>Status URL</th><th>Settlement ETA</th></tr></thead><tbody><tr><td>shielded transfer_in</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td>relayer withdraw transfer_out</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <h3>L3 Dark Settlement (Madara)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Endpoint</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>health</td><td>-</td><td>-</td></tr>
+<tr><td>config</td><td>-</td><td>-</td></tr>
+<tr><td>verify</td><td>-</td><td>-</td></tr>
+<tr><td>batch submit</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <h3>Private Voting</h3>
+      <div class="table-wrap"><table><thead><tr><th>Proposal ID</th><th>Create</th><th>Proof</th><th>Cast</th><th>Error</th></tr></thead><tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <h3>Private Lending + Pool Privacy Modes</h3>
+      <div class="table-wrap"><table><thead><tr><th>Lending Pool</th><th>Supply</th><th>Borrow</th><th>Health</th><th>DAO Policy</th><th>Active Loans</th></tr></thead><tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="privacy" data-sub-tab="forecaster">
+      <h2>Private Prediction Market Primitive (Forecaster)</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commit/reveal forecasting with scoring and explainability so private prediction workflows can run without exposing raw strategy state.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Enables a timeline UI: window open -> commit -> reveal -> score receipt -> reputation update.<br/>
+        <strong>Unlocks:</strong> Proof-aware forecasting that can plug into private voting, risk tiers, and strategy gating.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Status</th><th>Signal</th></tr></thead><tbody><tr><td>create_window</td><td>-</td><td>-</td></tr>
+<tr><td>suggest_outputs</td><td>-</td><td>-</td></tr>
+<tr><td>commit</td><td>-</td><td>-</td></tr>
+<tr><td>reveal</td><td>-</td><td>-</td></tr>
+<tr><td>outcomes</td><td>-</td><td>-</td></tr>
+<tr><td>score</td><td>-</td><td>-</td></tr>
+<tr><td>explain</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <h3>Suggested Outputs (scaled)</h3>
+      <p class="muted">No rows.</p>
+      <h3>Score Metrics</h3>
+      <p class="muted">No rows.</p>
+      <p class="meta">Explainability: No explanation text returned.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="config">
+      <h2>LLM + Marketplace Config Packs</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Runtime-validated config packs built from active provider/model/skill registries.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Direct seed data for agent-builder presets (conservative / balanced / aggressive).<br/>
+        <strong>Unlocks:</strong> Faster onboarding into a proof-aware agent marketplace.
+      </div>
+      <p class="muted">No rows.</p>
+    </section>
+
+    <section class="report-section" data-main-tab="infra" data-sub-tab="poseidon">
+      <h2>Poseidon Runtime Status</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Commitment hashing reliability across badge-screen and credit-eligibility proof flows.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
+        <strong>Unlocks:</strong> Stable commitment generation across private strategy and trust workflows.
+      </div>
+      <p class="meta">Current status: <span class="fail">FAIL</span> (FAIL)</p>
+      <p class="meta">Poseidon runtime is not fully healthy; check optional proof step errors.</p>
+      <div class="table-wrap"><table><thead><tr><th>Step</th><th>Status</th><th>API Status</th><th>Signal</th></tr></thead><tbody><tr><td>Optional: batch skill proof runtime</td><td><span class="fail">FAIL</span></td><td>-</td><td>-</td></tr>
+<tr><td>Optional: credit eligibility proof</td><td><span class="fail">FAIL</span></td><td>-</td><td>-</td></tr></tbody></table></div>
+    </section>
+
+    <section class="report-section" data-main-tab="ai" data-sub-tab="strategy">
+      <h2>Strategy API Evidence</h2>
+      <div class="intent">
+        <strong>What this tests:</strong> Recommendation and analysis payloads that downstream UI widgets depend on.<br/>
+        <strong>Why Obsqra Labs wanted this:</strong> Plugs directly into allocation cards, rationale panels, and audit drawers.<br/>
+        <strong>Unlocks:</strong> Explainable strategy decisions with proof-linked context.
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Endpoint</th><th>Status</th><th>Evidence ID</th><th>Confidence</th><th>Signal</th><th>Failure</th></tr></thead><tbody><tr><td>recommend</td><td>-</td><td>-</td><td>0.00</td><td>0.00%</td><td>-</td></tr>
+<tr><td>analyze</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table></div>
+      <h3>Allocation Rows</h3>
+      <p class="muted">No rows.</p>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const mainButtons = Array.from(document.querySelectorAll("[data-main-target]"));
+      const subNavs = Array.from(document.querySelectorAll(".subtab-nav[data-main]"));
+      const sections = Array.from(document.querySelectorAll(".report-section[data-main-tab][data-sub-tab]"));
+
+      const activateMain = (main) => {
+        mainButtons.forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.mainTarget === main);
+        });
+        subNavs.forEach((nav) => {
+          const visible = nav.dataset.main === main;
+          nav.hidden = !visible;
+          const buttons = Array.from(nav.querySelectorAll("[data-sub-target]"));
+          if (!buttons.length) {
+            return;
+          }
+          let active = buttons.find((btn) => btn.classList.contains("active"));
+          if (!active || active.disabled) {
+            active = buttons[0];
+          }
+          const targetSub = active.dataset.subTarget;
+          buttons.forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.subTarget === targetSub);
+          });
+        });
+        const activeSubNav = subNavs.find((nav) => nav.dataset.main === main);
+        const activeSubButton = activeSubNav?.querySelector("[data-sub-target].active") || activeSubNav?.querySelector("[data-sub-target]");
+        activateSub(main, activeSubButton ? activeSubButton.dataset.subTarget : null);
+      };
+
+      const activateSub = (main, sub) => {
+        subNavs.forEach((nav) => {
+          if (nav.dataset.main !== main) {
+            return;
+          }
+          Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.subTarget === sub);
+          });
+        });
+        sections.forEach((section) => {
+          const show = section.dataset.mainTab === main && section.dataset.subTab === sub;
+          section.style.display = show ? "block" : "none";
+        });
+      };
+
+      mainButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activateMain(btn.dataset.mainTarget);
+        });
+      });
+      subNavs.forEach((nav) => {
+        Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activateSub(nav.dataset.main || "overview", btn.dataset.subTarget || "claims");
+          });
+        });
+      });
+
+      activateMain("overview");
+    })();
+  </script>
+</body>
+</html>

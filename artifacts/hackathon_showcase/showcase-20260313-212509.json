@@ -1,0 +1,1915 @@
+{
+  "ai_showcase": {
+    "advisories": [],
+    "agent_models": [],
+    "badge_screening": [],
+    "llm_config_packs": [],
+    "marketplace_models": [],
+    "opportunities": [],
+    "opportunity_probe": {},
+    "providers": [],
+    "skill_engine": {},
+    "skills_catalog_count": 0,
+    "strategies": {}
+  },
+  "base_url": "http://127.0.0.1:8003",
+  "benchmark_rollup": {
+    "artifact_path": "artifacts/hackathon_showcase/history.jsonl",
+    "history_entries_total": 40,
+    "history_entries_used": 40,
+    "history_found": true,
+    "rows": [
+      {
+        "dominant_mode": "groth16_garaga",
+        "duration_p50_ms": 15621,
+        "duration_p95_ms": 35149,
+        "fee_p50": 14200127489184,
+        "fee_p95": 17332278729504,
+        "lane": "ModelBridge",
+        "lane_key": "modelbridge",
+        "latest_mode": "groth16_garaga",
+        "latest_status": 200,
+        "latest_tx_hash": "0x4bd69cffc42e5da0d95cd6e00a89dd4f4d85fe194388754ababcab48e0a54b",
+        "latest_verified": true,
+        "samples": 40,
+        "verified_rate_pct": 97.5,
+        "verified_samples": 39
+      },
+      {
+        "dominant_mode": "groth16_garaga",
+        "duration_p50_ms": 21439,
+        "duration_p95_ms": 34793,
+        "fee_p50": 14203507609184,
+        "fee_p95": 236943140314144,
+        "lane": "ModelBridgeHeavy",
+        "lane_key": "modelbridge_heavy",
+        "latest_mode": "groth16_garaga",
+        "latest_status": 200,
+        "latest_tx_hash": "0x21a08b374483e58406302120e8e50adacd678b1d5fbe8761409cb6cdacb40f4",
+        "latest_verified": true,
+        "samples": 40,
+        "verified_rate_pct": 95.0,
+        "verified_samples": 38
+      },
+      {
+        "dominant_mode": "noir_honk",
+        "duration_p50_ms": 14243,
+        "duration_p95_ms": 21192,
+        "fee_p50": 62945189541664,
+        "fee_p95": 2307087124804064,
+        "lane": "NoirEzklBridge",
+        "lane_key": "noir",
+        "latest_mode": "noir_honk",
+        "latest_status": 200,
+        "latest_tx_hash": "0x6e12b93eefdeb14449e70111a3cce0ed269b108da22402c937d1478f2c78a3d",
+        "latest_verified": true,
+        "samples": 23,
+        "verified_rate_pct": 82.61,
+        "verified_samples": 19
+      },
+      {
+        "dominant_mode": "native_kzg",
+        "duration_p50_ms": 16106,
+        "duration_p95_ms": 36233,
+        "fee_p50": 6229425956000,
+        "fee_p95": 7603463213600,
+        "lane": "EzklNativeKzg",
+        "lane_key": "native_kzg",
+        "latest_mode": "native_kzg",
+        "latest_status": 200,
+        "latest_tx_hash": "0x1bf405beb1498de5978351da5a4dce6eb6d89ea64141e0de0b2ffd0bb033354",
+        "latest_verified": true,
+        "samples": 40,
+        "verified_rate_pct": 100.0,
+        "verified_samples": 40
+      }
+    ],
+    "window_runs_requested": 40
+  },
+  "bridge_architecture": {
+    "benchmark_receipts": [
+      {
+        "actual_fee_display": "14210267849184 FRI",
+        "bridge_backend": "groth16_modelbridge",
+        "duration_ms": 18830,
+        "execution_steps": null,
+        "l1_data_gas": null,
+        "l1_gas": null,
+        "l2_gas": null,
+        "l3_mode": "groth16_garaga",
+        "lane": "ModelBridge",
+        "status": 200,
+        "tx_hash": "0x4a03f13bd00c3e922f855c270330c3ca62ac9c57791d7dd15c1b0bd13656859",
+        "tx_url": null,
+        "verified_on_chain": true
+      },
+      {
+        "actual_fee_display": "14186607009184 FRI",
+        "bridge_backend": "groth16_modelbridge_heavy",
+        "duration_ms": 11372,
+        "execution_steps": null,
+        "l1_data_gas": null,
+        "l1_gas": null,
+        "l2_gas": null,
+        "l3_mode": "groth16_garaga",
+        "lane": "ModelBridgeHeavy",
+        "status": 200,
+        "tx_hash": "0x211e5457a85978ae597195ac8f84ee67d7531ea9f88316bee221bff6cb81fdb",
+        "tx_url": null,
+        "verified_on_chain": true
+      },
+      {
+        "actual_fee_display": "2310562321828384 FRI",
+        "bridge_backend": "noir_honk",
+        "duration_ms": 7498,
+        "execution_steps": null,
+        "l1_data_gas": null,
+        "l1_gas": null,
+        "l2_gas": null,
+        "l3_mode": "noir_honk",
+        "lane": "NoirEzklBridge",
+        "lane_available": true,
+        "status": 200,
+        "tx_hash": "0x2c020793f1227925dd473108f7f05be487945495e2ba867122274738f21f3ae",
+        "tx_url": null,
+        "verified_on_chain": true
+      },
+      {
+        "actual_fee_display": "6229425956000 FRI",
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "duration_ms": 15685,
+        "execution_steps": null,
+        "l1_data_gas": null,
+        "l1_gas": null,
+        "l2_gas": null,
+        "l3_mode": "native_kzg",
+        "lane": "EzklNativeKzg",
+        "status": 200,
+        "tx_hash": "0x2cd4ec813ffc657dff97bf9a4ccc15ef818dd9fdec7afe586aa28a45855e281",
+        "tx_url": null,
+        "verified_on_chain": true
+      }
+    ],
+    "bridge_comparison": [
+      {
+        "bridge_gap": "No direct Starknet privacy-policy bridge wiring documented in cited source.",
+        "signal": "Open-source zkML proving from ONNX models to proofs.",
+        "source": "https://github.com/zkonduit/ezkl",
+        "stack": "EZKL"
+      },
+      {
+        "bridge_gap": "Verifier primitives, but not end-to-end zkML recommendation gating product flow.",
+        "signal": "Starknet-oriented SNARK verifier/calldata tooling (Groth16/Plonk lanes).",
+        "source": "https://github.com/keep-starknet-strange/garaga",
+        "stack": "Garaga"
+      },
+      {
+        "bridge_gap": "Public material does not describe the same privacy-tier + relayer gating composition.",
+        "signal": "Verifiable ML context in Starknet ecosystem.",
+        "source": "https://www.starknet.io/blog/onchain-ai-with-giza/",
+        "stack": "Giza on Starknet"
+      },
+      {
+        "bridge_gap": "Bridge-to-policy-gate wiring is implemented as first-class backend flow.",
+        "signal": "ModelBridge circuit + Groth16 prover + proof pipeline + proving-path routing + privacy rails + strategy badges.",
+        "source": "local_repo_evidence",
+        "stack": "zkde.fi (this repo)"
+      }
+    ],
+    "bridge_unlocks": [
+      {
+        "design_signal": "ModelBridge binds model_output + proof/model hashes + bounds + timestamp into a Groth16 public-signal commitment that policy lanes can enforce.",
+        "unlock": "Model output -> policy gate, not just model output -> score",
+        "why_it_matters": "Lets AI recommendations become cryptographically gateable execution intents."
+      },
+      {
+        "design_signal": "Bridge lane can consume zkML-style artifacts, format calldata for Garaga, then target Starknet verification paths.",
+        "unlock": "Portable zkML semantics across stacks",
+        "why_it_matters": "De-risks lock-in to a single proving stack while keeping one policy interface."
+      },
+      {
+        "design_signal": "The same intent can flow through SNARK (Groth16/Garaga) and STARK (integrity/SNOS-style) lanes with mirror status tracking.",
+        "unlock": "Dual STARK/SNARK trust posture",
+        "why_it_matters": "Allows product-level trust modes instead of one hardcoded proof lane."
+      },
+      {
+        "design_signal": "Bridge proofs feed strategy gating while shielded/nullifier/relayer rails preserve user privacy and selective disclosure.",
+        "unlock": "Privacy-first execution controls",
+        "why_it_matters": "Supports private capital ops without losing verifiable safety checks."
+      }
+    ],
+    "dual_lanes_ready": true,
+    "dual_live_receipt": {
+      "bridge_backend": "groth16_modelbridge",
+      "bridge_compliant": true,
+      "bridge_proof_hash": "0x4cd55bbad796446d14fab0f268bfcdbe52229ce214cc3ec6f8991661a26d2a89",
+      "calldata_words": 2005,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:24:19.440334+00:00",
+      "l2_attempted": true,
+      "l2_mode": "starknet_l2_registry_mirrored",
+      "l2_success": true,
+      "l2_tx_hash": "0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+      "l2_tx_url": "https://sepolia.voyager.online/tx/0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+      "l2_verified_on_chain": true,
+      "l3_attempted": true,
+      "l3_mode": "groth16_garaga",
+      "l3_success": true,
+      "l3_tx_hash": "0x5934fc3b90ed4ef3e27f49a6c99a6c62ecc2a603f555ca4b4ae97e513ef0541",
+      "l3_tx_url": null,
+      "l3_verified_on_chain": true,
+      "mirror_status": "mirrored",
+      "primary_authority": "l3",
+      "probe_fingerprint": "d71862b0392f7a4cba4791eace6ba2127f67d12d0d0cdf58fb2a1e6435fc6272",
+      "probe_seed": "0ab7192e51161e9b",
+      "proof_mode": "EZKL_BRIDGE",
+      "proof_mode_level": 1,
+      "requested_execution_chain": "dual",
+      "status": 200,
+      "total_duration_ms": 21726,
+      "trust_mode": "ezkl_local_verified_bridge",
+      "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+    },
+    "ezkl_runtime_probe": {
+      "detail": "skipped_in_strict_bridge_mode",
+      "has_real_proof": false,
+      "proof_hash": null,
+      "status": 0
+    },
+    "landscape": [
+      {
+        "focus": "Open-source zkML proving stack (ONNX to ZK proof flow).",
+        "project": "EZKL",
+        "source": "https://github.com/zkonduit/ezkl",
+        "why_it_matters": "Shows mature zkML proving tooling; zkde.fi extends this with a circuit bridge and Starknet proving lanes."
+      },
+      {
+        "focus": "SNARK verifier stack for Starknet (Groth16/Plonk tooling and calldata).",
+        "project": "Garaga",
+        "source": "https://github.com/keep-starknet-strange/garaga",
+        "why_it_matters": "Confirms active Starknet SNARK verification primitives that the ModelBridge lane can target."
+      },
+      {
+        "focus": "Production guide for verifying zk proofs on Starknet.",
+        "project": "Starknet verify-proofs docs",
+        "source": "https://docs.starknet.io/build/starknet-by-example/advanced/verify-proofs",
+        "why_it_matters": "Anchors on-chain verifier patterns and expected integration shape on Starknet."
+      },
+      {
+        "focus": "STARK validity proving model used by Starknet (execution trace to proof).",
+        "project": "SNOS / SHARP model",
+        "source": "https://docs.starknet.io/learn/protocol/snos",
+        "why_it_matters": "Frames the STARK side of dual architecture and integrity-style proof semantics."
+      },
+      {
+        "focus": "Verifiable ML effort built on Starknet tooling.",
+        "project": "Giza on Starknet",
+        "source": "https://www.starknet.io/blog/onchain-ai-with-giza/",
+        "why_it_matters": "Provides ecosystem context: zkML on Starknet exists, but bridge-to-circuit proof gating remains a distinct design choice."
+      },
+      {
+        "focus": "Open-source Starknet stack announced by StarkWare.",
+        "project": "SN Stack open-source launch",
+        "source": "https://www.starknet.io/blog/introducing-sn-stack-open-source-zk-powered-scaling/",
+        "why_it_matters": "Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable."
+      }
+    ],
+    "ml_bridge_attempts": {
+      "dual": [
+        {
+          "attempt": 1,
+          "bridge_backend": "groth16_modelbridge",
+          "bridge_compliant": true,
+          "bridge_proof_hash": "0x4cd55bbad796446d14fab0f268bfcdbe52229ce214cc3ec6f8991661a26d2a89",
+          "calldata_words": 2005,
+          "can_execute": true,
+          "failure_text": "",
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_success": true,
+          "l2_tx_hash": "0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+          "l2_tx_url": "https://sepolia.voyager.online/tx/0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+          "l2_verified_on_chain": true,
+          "l3_mode": "groth16_garaga",
+          "l3_success": true,
+          "l3_tx_hash": "0x5934fc3b90ed4ef3e27f49a6c99a6c62ecc2a603f555ca4b4ae97e513ef0541",
+          "l3_tx_url": null,
+          "l3_verified_on_chain": true,
+          "mirror_status": "mirrored",
+          "proof_mode": "EZKL_BRIDGE",
+          "status": 200
+        }
+      ],
+      "l3": [
+        {
+          "attempt": 1,
+          "bridge_backend": "groth16_modelbridge",
+          "bridge_compliant": true,
+          "bridge_proof_hash": "0x25c32617693c447c68a403d76524ab264fc5720768f9e1cb218238a058ead570",
+          "calldata_words": 2005,
+          "can_execute": true,
+          "failure_text": "",
+          "l2_mode": null,
+          "l2_success": false,
+          "l2_tx_hash": null,
+          "l2_tx_url": null,
+          "l2_verified_on_chain": false,
+          "l3_mode": "groth16_garaga",
+          "l3_success": true,
+          "l3_tx_hash": "0x4a03f13bd00c3e922f855c270330c3ca62ac9c57791d7dd15c1b0bd13656859",
+          "l3_tx_url": null,
+          "l3_verified_on_chain": true,
+          "mirror_status": "not_requested",
+          "proof_mode": "EZKL_BRIDGE",
+          "status": 200
+        }
+      ],
+      "l3_heavy_request": [
+        {
+          "attempt": 1,
+          "bridge_backend": "groth16_modelbridge_heavy",
+          "bridge_compliant": true,
+          "bridge_proof_hash": "0x83c243e212a1fd3f636c5d7e9c38370e8be72ecc7b0d538ecd9888c26df3baa3",
+          "calldata_words": 2005,
+          "can_execute": true,
+          "failure_text": "",
+          "l2_mode": null,
+          "l2_success": false,
+          "l2_tx_hash": null,
+          "l2_tx_url": null,
+          "l2_verified_on_chain": false,
+          "l3_mode": "groth16_garaga",
+          "l3_success": true,
+          "l3_tx_hash": "0x211e5457a85978ae597195ac8f84ee67d7531ea9f88316bee221bff6cb81fdb",
+          "l3_tx_url": null,
+          "l3_verified_on_chain": true,
+          "mirror_status": "not_requested",
+          "proof_mode": "EZKL_BRIDGE",
+          "status": 200
+        }
+      ],
+      "l3_native_kzg_request": [
+        {
+          "attempt": 1,
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "bridge_proof_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+          "calldata_words": 4043,
+          "can_execute": true,
+          "failure_text": "",
+          "l2_mode": null,
+          "l2_success": false,
+          "l2_tx_hash": null,
+          "l2_tx_url": null,
+          "l2_verified_on_chain": false,
+          "l3_mode": "native_kzg",
+          "l3_success": true,
+          "l3_tx_hash": "0x2cd4ec813ffc657dff97bf9a4ccc15ef818dd9fdec7afe586aa28a45855e281",
+          "l3_tx_url": null,
+          "l3_verified_on_chain": true,
+          "mirror_status": "not_requested",
+          "proof_mode": "EZKL_BRIDGE",
+          "status": 200
+        }
+      ],
+      "l3_noir_request": [
+        {
+          "attempt": 1,
+          "bridge_backend": "noir_honk",
+          "bridge_compliant": true,
+          "bridge_proof_hash": "0xbde5045dfbc2a41fc3fddef8b6ba15d6a0869521ab9572e01d705b71593f7efd",
+          "calldata_words": 2874,
+          "can_execute": true,
+          "failure_text": "",
+          "l2_mode": null,
+          "l2_success": false,
+          "l2_tx_hash": null,
+          "l2_tx_url": null,
+          "l2_verified_on_chain": false,
+          "l3_mode": "noir_honk",
+          "l3_success": true,
+          "l3_tx_hash": "0x2c020793f1227925dd473108f7f05be487945495e2ba867122274738f21f3ae",
+          "l3_tx_url": null,
+          "l3_verified_on_chain": true,
+          "mirror_status": "not_requested",
+          "proof_mode": "EZKL_BRIDGE",
+          "status": 200
+        }
+      ]
+    },
+    "ml_bridge_runs": {
+      "dual": {
+        "api_error": null,
+        "bridge_backend": "groth16_modelbridge",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x4cd55bbad796446d14fab0f268bfcdbe52229ce214cc3ec6f8991661a26d2a89",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T21:24:19.440334+00:00",
+        "kzg_bundle_cached_path": null,
+        "kzg_bundle_present": null,
+        "kzg_bundle_source": null,
+        "kzg_extractor_attempted": null,
+        "kzg_extractor_error": null,
+        "kzg_hint_felts": null,
+        "kzg_line_source": null,
+        "kzg_payload_semantics": null,
+        "kzg_precomputed_lines": null,
+        "kzg_trailer_marker": null,
+        "l2": {
+          "attempted": true,
+          "error": null,
+          "mode": "starknet_l2_registry_mirrored",
+          "success": true,
+          "tx_hash": "0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+          "tx_url": "https://sepolia.voyager.online/tx/0x64390320c57229e2025ebcaaee0f0d4c5d55a97483541cff2daea6b021713ef",
+          "verified_on_chain": true
+        },
+        "l3": {
+          "abi_used": null,
+          "attempted": true,
+          "error": null,
+          "mode": "groth16_garaga",
+          "success": true,
+          "tx_hash": "0x5934fc3b90ed4ef3e27f49a6c99a6c62ecc2a603f555ca4b4ae97e513ef0541",
+          "tx_url": null,
+          "verified_on_chain": true,
+          "verifier_state": null
+        },
+        "mirror_status": "mirrored",
+        "model_bridge_calldata_words": 2005,
+        "primary_authority": "l3",
+        "proof_mode": "EZKL_BRIDGE",
+        "proof_mode_level": 1,
+        "requested_execution_chain": "dual",
+        "status": 200,
+        "total_duration_ms": 21726,
+        "trust_mode": "ezkl_local_verified_bridge",
+        "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+      },
+      "l3": {
+        "api_error": null,
+        "bridge_backend": "groth16_modelbridge",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x25c32617693c447c68a403d76524ab264fc5720768f9e1cb218238a058ead570",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T21:24:06.741777+00:00",
+        "kzg_bundle_cached_path": null,
+        "kzg_bundle_present": null,
+        "kzg_bundle_source": null,
+        "kzg_extractor_attempted": null,
+        "kzg_extractor_error": null,
+        "kzg_hint_felts": null,
+        "kzg_line_source": null,
+        "kzg_payload_semantics": null,
+        "kzg_precomputed_lines": null,
+        "kzg_trailer_marker": null,
+        "l2": {
+          "attempted": false,
+          "error": null,
+          "mode": null,
+          "success": false,
+          "tx_hash": null,
+          "tx_url": null,
+          "verified_on_chain": false
+        },
+        "l3": {
+          "abi_used": null,
+          "attempted": true,
+          "error": null,
+          "mode": "groth16_garaga",
+          "success": true,
+          "tx_hash": "0x4a03f13bd00c3e922f855c270330c3ca62ac9c57791d7dd15c1b0bd13656859",
+          "tx_url": null,
+          "verified_on_chain": true,
+          "verifier_state": null
+        },
+        "mirror_status": "not_requested",
+        "model_bridge_calldata_words": 2005,
+        "primary_authority": "l3",
+        "proof_mode": "EZKL_BRIDGE",
+        "proof_mode_level": 1,
+        "requested_execution_chain": "l3",
+        "status": 200,
+        "total_duration_ms": 18830,
+        "trust_mode": "ezkl_local_verified_bridge",
+        "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+      },
+      "l3_heavy_request": {
+        "api_error": null,
+        "bridge_backend": "groth16_modelbridge_heavy",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x83c243e212a1fd3f636c5d7e9c38370e8be72ecc7b0d538ecd9888c26df3baa3",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T21:24:41.063373+00:00",
+        "kzg_bundle_cached_path": null,
+        "kzg_bundle_present": null,
+        "kzg_bundle_source": null,
+        "kzg_extractor_attempted": null,
+        "kzg_extractor_error": null,
+        "kzg_hint_felts": null,
+        "kzg_line_source": null,
+        "kzg_payload_semantics": null,
+        "kzg_precomputed_lines": null,
+        "kzg_trailer_marker": null,
+        "l2": {
+          "attempted": false,
+          "error": null,
+          "mode": null,
+          "success": false,
+          "tx_hash": null,
+          "tx_url": null,
+          "verified_on_chain": false
+        },
+        "l3": {
+          "abi_used": null,
+          "attempted": true,
+          "error": null,
+          "mode": "groth16_garaga",
+          "success": true,
+          "tx_hash": "0x211e5457a85978ae597195ac8f84ee67d7531ea9f88316bee221bff6cb81fdb",
+          "tx_url": null,
+          "verified_on_chain": true,
+          "verifier_state": null
+        },
+        "mirror_status": "not_requested",
+        "model_bridge_calldata_words": 2005,
+        "primary_authority": "l3",
+        "proof_mode": "EZKL_BRIDGE",
+        "proof_mode_level": 1,
+        "requested_execution_chain": "l3",
+        "status": 200,
+        "total_duration_ms": 11372,
+        "trust_mode": "ezkl_local_verified_bridge",
+        "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+      },
+      "l3_native_kzg_request": {
+        "api_error": null,
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T21:25:03.953998+00:00",
+        "kzg_bundle_cached_path": null,
+        "kzg_bundle_present": true,
+        "kzg_bundle_source": "raw_json.kzg_mpcheck_bundle",
+        "kzg_extractor_attempted": false,
+        "kzg_extractor_error": null,
+        "kzg_hint_felts": 1752,
+        "kzg_line_source": "garaga_precompute_lines_2f",
+        "kzg_payload_semantics": "cryptographic_pairing",
+        "kzg_precomputed_lines": 176,
+        "kzg_trailer_marker": "kzg_mpcheck_v3",
+        "l2": {
+          "attempted": false,
+          "error": null,
+          "mode": null,
+          "success": false,
+          "tx_hash": null,
+          "tx_url": null,
+          "verified_on_chain": false
+        },
+        "l3": {
+          "abi_used": "verify_ezkl_kzg_v1",
+          "attempted": true,
+          "error": null,
+          "mode": "native_kzg",
+          "success": true,
+          "tx_hash": "0x2cd4ec813ffc657dff97bf9a4ccc15ef818dd9fdec7afe586aa28a45855e281",
+          "tx_url": null,
+          "verified_on_chain": true,
+          "verifier_state": {
+            "abi_used": "verify_ezkl_kzg_v1",
+            "available": true,
+            "expected_fact_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+            "expected_fact_hash_matches": true,
+            "last_expected_fact_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+            "last_marker": "0x657a6b6c5f6b7a675f7631",
+            "last_marker_name": "ezkl_kzg_v1",
+            "last_ok": true,
+            "last_payload_hash": "0x31c4bd4c7fc80711f973265a4aef5df50f8ed64d9d2bc078d4d03722f8fc341",
+            "last_proof_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+            "payload_hash_matches_expected": false,
+            "proof_hash_matches_expected": true,
+            "proof_or_payload_matches_expected": true,
+            "rpc_ok": true,
+            "strict_binding_observed": true,
+            "strict_call": true
+          }
+        },
+        "mirror_status": "not_requested",
+        "model_bridge_calldata_words": 4043,
+        "primary_authority": "l3",
+        "proof_mode": "EZKL_BRIDGE",
+        "proof_mode_level": 1,
+        "requested_execution_chain": "l3",
+        "status": 200,
+        "total_duration_ms": 15685,
+        "trust_mode": "ezkl_local_verified",
+        "trust_warning": "EZKL proof generated and verified locally, then serialized for native KZG path. On-chain trust still depends on deployed Cairo KZG verifier semantics."
+      },
+      "l3_noir_request": {
+        "api_error": null,
+        "bridge_backend": "noir_honk",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0xbde5045dfbc2a41fc3fddef8b6ba15d6a0869521ab9572e01d705b71593f7efd",
+        "can_execute": true,
+        "failure_reason": null,
+        "generated_at": "2026-03-13T21:24:45.822653+00:00",
+        "kzg_bundle_cached_path": null,
+        "kzg_bundle_present": null,
+        "kzg_bundle_source": null,
+        "kzg_extractor_attempted": null,
+        "kzg_extractor_error": null,
+        "kzg_hint_felts": null,
+        "kzg_line_source": null,
+        "kzg_payload_semantics": null,
+        "kzg_precomputed_lines": null,
+        "kzg_trailer_marker": null,
+        "l2": {
+          "attempted": false,
+          "error": null,
+          "mode": null,
+          "success": false,
+          "tx_hash": null,
+          "tx_url": null,
+          "verified_on_chain": false
+        },
+        "l3": {
+          "abi_used": null,
+          "attempted": true,
+          "error": null,
+          "mode": "noir_honk",
+          "success": true,
+          "tx_hash": "0x2c020793f1227925dd473108f7f05be487945495e2ba867122274738f21f3ae",
+          "tx_url": null,
+          "verified_on_chain": true,
+          "verifier_state": null
+        },
+        "mirror_status": "not_requested",
+        "model_bridge_calldata_words": 2874,
+        "primary_authority": "l3",
+        "proof_mode": "EZKL_BRIDGE",
+        "proof_mode_level": 1,
+        "requested_execution_chain": "l3",
+        "status": 200,
+        "total_duration_ms": 7498,
+        "trust_mode": "synthetic_dev_only",
+        "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
+      }
+    },
+    "model_bridge_heavy_lane_available": true,
+    "model_bridge_verifier_support": {
+      "contract_class_preview": "circuits/contracts/src/garaga_verifier_model_bridge/target/dev/garaga_verifier_model_bridge_Groth16VerifierBN254.contract_class.json",
+      "contract_classes_count": 1,
+      "deployed_address": "0x037c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f",
+      "deployed_class_hash": "0x04745a6bcd5a3306d7ed2eac2a5f5a53f66cfd7afee4c7a7d1d18cb5574257f8",
+      "deployed_marker_found": true,
+      "has_constructor_3arg": true,
+      "has_getter": true,
+      "has_setter": true,
+      "has_storage_slot": true,
+      "has_verify_entrypoint": true,
+      "heavy_contract_class_preview": "circuits/contracts/src/garaga_verifier_model_bridge_heavy/target/dev/garaga_verifier_model_bridge_heavy_Groth16VerifierBN254.contract_class.json",
+      "heavy_contract_classes_count": 1,
+      "heavy_deployed_address": "0x07e3d6d99e8b9427a7d377de95b1f7ff02d2d6b1f89f6f47675c580f60026ca0",
+      "heavy_deployed_class_hash": "0x1b0946ab9751de59b0111e6c6e34b055316325881911f8773df65560a056652",
+      "heavy_deployed_marker_found": true,
+      "heavy_support_ready": true,
+      "heavy_verifier_project_exists": true,
+      "uses_fallback_logic": true,
+      "verifier_project_exists": true,
+      "zkml_marker_found": true,
+      "zkml_verifier_address": "0x068abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923",
+      "zkml_verifier_class_hash": "0x00f9c1bd17a2c6bc58ca76a146399151fdf677514e7c6630eb8694b7687aa066",
+      "zkml_verifier_garaga": "0x06d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37",
+      "zkml_verifier_model_bridge": "0x037c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f"
+    },
+    "model_bridge_verifier_support_ready": true,
+    "modelbridge_heavy_live_receipt": {
+      "bridge_backend": "groth16_modelbridge_heavy",
+      "bridge_compliant": true,
+      "bridge_proof_hash": "0x83c243e212a1fd3f636c5d7e9c38370e8be72ecc7b0d538ecd9888c26df3baa3",
+      "calldata_words": 2005,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:24:41.063373+00:00",
+      "l2_attempted": false,
+      "l2_mode": null,
+      "l3_actual_fee_amount": 14186607009184,
+      "l3_actual_fee_display": "14186607009184 FRI",
+      "l3_actual_fee_unit": "FRI",
+      "l3_attempted": true,
+      "l3_execution_steps": null,
+      "l3_l1_data_gas": null,
+      "l3_l1_gas": null,
+      "l3_l2_gas": null,
+      "l3_mode": "groth16_garaga",
+      "l3_success": true,
+      "l3_tx_hash": "0x211e5457a85978ae597195ac8f84ee67d7531ea9f88316bee221bff6cb81fdb",
+      "l3_tx_url": null,
+      "l3_verified_on_chain": true,
+      "mirror_status": "not_requested",
+      "primary_authority": "l3",
+      "probe_fingerprint": "a18db9bba186137abd339ca419a873721a11e820e77726568513592e049ebf10",
+      "probe_seed": "0ab7192e51161e9b",
+      "proof_mode": "EZKL_BRIDGE",
+      "proof_mode_level": 1,
+      "requested_execution_chain": "l3",
+      "status": 200,
+      "total_duration_ms": 11372,
+      "trust_mode": "ezkl_local_verified_bridge",
+      "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+    },
+    "modelbridge_live_receipt": {
+      "bridge_backend": "groth16_modelbridge",
+      "bridge_compliant": true,
+      "bridge_proof_hash": "0x25c32617693c447c68a403d76524ab264fc5720768f9e1cb218238a058ead570",
+      "calldata_words": 2005,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:24:06.741777+00:00",
+      "l2_attempted": false,
+      "l2_mode": null,
+      "l3_actual_fee_amount": 14210267849184,
+      "l3_actual_fee_display": "14210267849184 FRI",
+      "l3_actual_fee_unit": "FRI",
+      "l3_attempted": true,
+      "l3_execution_steps": null,
+      "l3_l1_data_gas": null,
+      "l3_l1_gas": null,
+      "l3_l2_gas": null,
+      "l3_mode": "groth16_garaga",
+      "l3_success": true,
+      "l3_tx_hash": "0x4a03f13bd00c3e922f855c270330c3ca62ac9c57791d7dd15c1b0bd13656859",
+      "l3_tx_url": null,
+      "l3_verified_on_chain": true,
+      "mirror_status": "not_requested",
+      "primary_authority": "l3",
+      "probe_fingerprint": "98035c5e4d1067acf6e6d3dbc4297c222cc4a33efb41e854b690b33975cdf33f",
+      "probe_seed": "0ab7192e51161e9b",
+      "proof_mode": "EZKL_BRIDGE",
+      "proof_mode_level": 1,
+      "requested_execution_chain": "l3",
+      "status": 200,
+      "total_duration_ms": 18830,
+      "trust_mode": "ezkl_local_verified_bridge",
+      "trust_warning": "EZKL proof generated and verified locally, then bound into ModelBridge Groth16 policy gates. Execution trust depends on deployed ModelBridge verifier lanes."
+    },
+    "native_kzg_live_receipt": {
+      "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+      "bridge_compliant": true,
+      "bridge_proof_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+      "calldata_words": 4043,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:25:03.953998+00:00",
+      "kzg_bundle_cached_path": null,
+      "kzg_bundle_present": true,
+      "kzg_bundle_source": "raw_json.kzg_mpcheck_bundle",
+      "kzg_extractor_attempted": false,
+      "kzg_extractor_error": null,
+      "kzg_hint_felts": 1752,
+      "kzg_line_source": "garaga_precompute_lines_2f",
+      "kzg_payload_semantics": "cryptographic_pairing",
+      "kzg_precomputed_lines": 176,
+      "kzg_trailer_marker": "kzg_mpcheck_v3",
+      "l2_attempted": false,
+      "l2_mode": null,
+      "l3_abi_used": "verify_ezkl_kzg_v1",
+      "l3_actual_fee_amount": 6229425956000,
+      "l3_actual_fee_display": "6229425956000 FRI",
+      "l3_actual_fee_unit": "FRI",
+      "l3_attempted": true,
+      "l3_execution_steps": null,
+      "l3_l1_data_gas": null,
+      "l3_l1_gas": null,
+      "l3_l2_gas": null,
+      "l3_mode": "native_kzg",
+      "l3_success": true,
+      "l3_tx_hash": "0x2cd4ec813ffc657dff97bf9a4ccc15ef818dd9fdec7afe586aa28a45855e281",
+      "l3_tx_url": null,
+      "l3_verified_on_chain": true,
+      "l3_verifier_state": {
+        "abi_used": "verify_ezkl_kzg_v1",
+        "available": true,
+        "expected_fact_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+        "expected_fact_hash_matches": true,
+        "last_expected_fact_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+        "last_marker": "0x657a6b6c5f6b7a675f7631",
+        "last_marker_name": "ezkl_kzg_v1",
+        "last_ok": true,
+        "last_payload_hash": "0x31c4bd4c7fc80711f973265a4aef5df50f8ed64d9d2bc078d4d03722f8fc341",
+        "last_proof_hash": "0x675018cebfc1b969e3ac89c58acabd5c6df8e3de5be7acaa7fd605693cc1159",
+        "payload_hash_matches_expected": false,
+        "proof_hash_matches_expected": true,
+        "proof_or_payload_matches_expected": true,
+        "rpc_ok": true,
+        "strict_binding_observed": true,
+        "strict_call": true
+      },
+      "mirror_status": "not_requested",
+      "path_b_warm_coverage_display": "5/5 (100.00%)",
+      "path_b_warm_coverage_ratio": 1.0,
+      "path_b_warm_gate_pass": true,
+      "path_b_warm_gate_reason": "",
+      "path_b_warm_report_path": "artifacts/hackathon_showcase/pathb_bundle_warm.json",
+      "path_b_warm_target_ratio": 1.0,
+      "primary_authority": "l3",
+      "probe_fingerprint": "a9e17fb888dcd0b818953afca5ab1b9ba1052de615ad7e5aeb994b04dc2be27d",
+      "probe_seed": "0ab7192e51161e9b",
+      "proof_mode": "EZKL_BRIDGE",
+      "proof_mode_level": 1,
+      "requested_execution_chain": "l3",
+      "status": 200,
+      "total_duration_ms": 15685,
+      "trust_mode": "ezkl_local_verified",
+      "trust_warning": "EZKL proof generated and verified locally, then serialized for native KZG path. On-chain trust still depends on deployed Cairo KZG verifier semantics."
+    },
+    "noir_honk_lane_available": true,
+    "noir_live_receipt": {
+      "bridge_backend": "noir_honk",
+      "bridge_compliant": true,
+      "bridge_proof_hash": "0xbde5045dfbc2a41fc3fddef8b6ba15d6a0869521ab9572e01d705b71593f7efd",
+      "calldata_words": 2874,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:24:45.822653+00:00",
+      "l2_attempted": false,
+      "l2_mode": null,
+      "l3_actual_fee_amount": 2310562321828384,
+      "l3_actual_fee_display": "2310562321828384 FRI",
+      "l3_actual_fee_unit": "FRI",
+      "l3_attempted": true,
+      "l3_execution_steps": null,
+      "l3_l1_data_gas": null,
+      "l3_l1_gas": null,
+      "l3_l2_gas": null,
+      "l3_mode": "noir_honk",
+      "l3_success": true,
+      "l3_tx_hash": "0x2c020793f1227925dd473108f7f05be487945495e2ba867122274738f21f3ae",
+      "l3_tx_url": null,
+      "l3_verified_on_chain": true,
+      "lane_available": true,
+      "mirror_status": "not_requested",
+      "primary_authority": "l3",
+      "probe_fingerprint": "6dd03d7c6dddebaf8f7343d80de126edc143108c5fe6d7dc885707dc36d26dfc",
+      "probe_seed": "0ab7192e51161e9b",
+      "proof_mode": "EZKL_BRIDGE",
+      "proof_mode_level": 1,
+      "requested_execution_chain": "l3",
+      "status": 200,
+      "total_duration_ms": 7498,
+      "trust_mode": "synthetic_dev_only",
+      "trust_warning": "This ml-bridge path currently uses synthetic EZKL placeholders. Do not treat as trustless inference verification."
+    },
+    "open_source_artifacts": [
+      {
+        "exists": true,
+        "label": "ModelBridge circuit",
+        "path": "circuits/ModelBridge.circom"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge build zkey",
+        "path": "circuits/build/ModelBridge_final.zkey"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge build wasm",
+        "path": "circuits/build/ModelBridge_js/ModelBridge.wasm"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge build verification key",
+        "path": "circuits/build/ModelBridge_verification_key.json"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy circuit",
+        "path": "circuits/ModelBridgeHeavy.circom"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy build zkey",
+        "path": "circuits/build/ModelBridgeHeavy_final.zkey"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy build wasm",
+        "path": "circuits/build/ModelBridgeHeavy_js/ModelBridgeHeavy.wasm"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy build verification key",
+        "path": "circuits/build/ModelBridgeHeavy_verification_key.json"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge root zkey",
+        "path": "circuits/ModelBridge_final.zkey"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge root wasm",
+        "path": "circuits/ModelBridge_js/ModelBridge.wasm"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge build script",
+        "path": "circuits/build_model_bridge.sh"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy build script",
+        "path": "circuits/build_model_bridge_heavy.sh"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge verifier generation script",
+        "path": "circuits/generate_model_bridge_verifier.sh"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridgeHeavy verifier generation script",
+        "path": "circuits/generate_model_bridge_heavy_verifier.sh"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge verifier deploy script",
+        "path": "scripts/deploy_model_bridge_verifier.sh"
+      },
+      {
+        "exists": true,
+        "label": "ModelBridge verifier deploy plan",
+        "path": "docs/plans/MODELBRIDGE_VERIFIER_DEPLOY.md"
+      },
+      {
+        "exists": true,
+        "label": "ZkmlVerifier Cairo contract",
+        "path": "contracts/src/zkml_verifier.cairo"
+      },
+      {
+        "exists": true,
+        "label": "Generated ModelBridge verifier project",
+        "path": "circuits/contracts/src/garaga_verifier_model_bridge/Scarb.toml"
+      },
+      {
+        "exists": true,
+        "label": "Generated ModelBridgeHeavy verifier project",
+        "path": "circuits/contracts/src/garaga_verifier_model_bridge_heavy/Scarb.toml"
+      },
+      {
+        "exists": true,
+        "label": "ML bridge API route",
+        "path": "backend/app/api/routes/proofs.py"
+      },
+      {
+        "exists": true,
+        "label": "Groth16 bridge prover service",
+        "path": "backend/app/services/groth16_prover.py"
+      },
+      {
+        "exists": true,
+        "label": "Proof pipeline",
+        "path": "backend/app/services/proof_pipeline.py"
+      },
+      {
+        "exists": true,
+        "label": "Proof mode resolver",
+        "path": "backend/app/services/proof_mode.py"
+      }
+    ],
+    "proof_models_count": 0,
+    "proof_models_ready_count": 0,
+    "proof_models_ready_names": [],
+    "proof_models_status": 0,
+    "proving_paths": [
+      {
+        "applicable_to": [
+          "RiskScoreAllocation",
+          "AnomalyDetector",
+          "PrivateDeposit",
+          "PrivateWithdraw",
+          "ReputationMint",
+          "StrategyConstraint"
+        ],
+        "available": true,
+        "contract": "0x36f5c2fd4b271b2d25ca455e927e22a4a2a9a460b68bc4ff91c17a14e78bd00",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "Full Groth16 BN254 proof verification on L3 at zero gas cost",
+        "gas_cost_l3": 0,
+        "id": "groth16_garaga",
+        "latency_estimate_ms": 5000,
+        "name": "Groth16 On-Chain Verification (Garaga)",
+        "trust_model": "cryptographic \u2014 L3 contract verifies the proof"
+      },
+      {
+        "applicable_to": [
+          "ModelBridge"
+        ],
+        "available": true,
+        "contract": "0x2e1b19e60c9aa3d104e4352c693fb1027d7d39621c9f02ed5af9a607f470bbf",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "EZKL\u2192Groth16 bridge proof verification on L3 (ModelBridge circuit)",
+        "gas_cost_l3": 0,
+        "id": "groth16_model_bridge",
+        "latency_estimate_ms": 5000,
+        "name": "ModelBridge Groth16 On-Chain Verification",
+        "trust_model": "cryptographic \u2014 L3 ModelBridge verifier verifies the proof"
+      },
+      {
+        "applicable_to": [
+          "ModelBridgeHeavy"
+        ],
+        "available": true,
+        "contract": "0x7e3d6d99e8b9427a7d377de95b1f7ff02d2d6b1f89f6f47675c580f60026ca0",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "Heavier EZKL\u2192Groth16 bridge (16 outputs) verification on L3",
+        "gas_cost_l3": 0,
+        "id": "groth16_model_bridge_heavy",
+        "latency_estimate_ms": 5000,
+        "name": "ModelBridgeHeavy Groth16 On-Chain Verification",
+        "trust_model": "cryptographic \u2014 L3 ModelBridgeHeavy verifier verifies the proof"
+      },
+      {
+        "applicable_to": [
+          "NoirEzklBridge"
+        ],
+        "available": true,
+        "contract": "0x213e38a87b0e075d8cb4baf8a5278210a06383e89797fa7a2a366cac6648f9f",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "Noir HONK proof verification on L3 (EZKL-style bridge; ~178M gas on L2)",
+        "gas_cost_l3": 0,
+        "id": "noir_honk",
+        "latency_estimate_ms": 10000,
+        "name": "Noir EZKL-Bridge HONK On-Chain Verification",
+        "trust_model": "cryptographic \u2014 L3 Garaga HONK verifier verifies the proof"
+      },
+      {
+        "applicable_to": [
+          "EzklNativeKzg"
+        ],
+        "available": true,
+        "contract": "0x6e77e138143163f89bf282056551da3dfff5fc96a41e683b25b9caab414a6c8",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "EZKL/Halo2 KZG proof verified natively in Cairo on L3 (~200-400M on L2)",
+        "gas_cost_l3": 0,
+        "id": "native_kzg",
+        "latency_estimate_ms": 15000,
+        "name": "Native KZG On-Chain Verification (Phase 4)",
+        "trust_model": "cryptographic \u2014 L3 Cairo KZG verifier verifies the proof"
+      },
+      {
+        "applicable_to": [
+          "risk_small_minimal",
+          "risk_small",
+          "risk_cairo0",
+          "reputation_passport",
+          "constraint_check",
+          "StarkHeavyReputation",
+          "stark_heavy_reputation"
+        ],
+        "available": true,
+        "contract": "0x2c036366dcf933dab91ea4a059292e351a40352ce9374776114e35ae0271e69",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "Stone STARK proof verification on L3 via Integrity verifier",
+        "gas_cost_l3": 0,
+        "id": "stark_integrity",
+        "latency_estimate_ms": 8000,
+        "name": "STARK On-Chain Verification (Integrity)",
+        "trust_model": "cryptographic \u2014 L3 contract verifies the STARK proof"
+      },
+      {
+        "applicable_to": [
+          "all"
+        ],
+        "available": true,
+        "contract": "0x5ed322b12ddc28d27b7797d79516ca285137f9bab9fde870191119b4c68d691",
+        "contract_network": "Madara L3 (local RPC)",
+        "contract_url": null,
+        "description": "Register fact hash on L3 without on-chain verification",
+        "gas_cost_l3": 0,
+        "id": "hash_only",
+        "latency_estimate_ms": 2000,
+        "name": "Hash Registration (Fallback)",
+        "trust_model": "trust-the-operator \u2014 obsqra backend verified off-chain"
+      }
+    ],
+    "proving_paths_status": 200,
+    "runtime_mode": "bridge_runtime_non_synthetic",
+    "selected_model": "yield_predictor",
+    "snos_proving": {
+      "available": false,
+      "description": "Starknet OS proves L3 block state transitions \u2192 validity-proven L2 settlement",
+      "name": "SNOS Block Proving (L3 \u2192 L2)",
+      "prerequisites": [
+        "Madara binary running",
+        "SNOS compiled for OBSQRA_PROOF_CHAIN",
+        "Stone/STWO prover configured for SNOS traces",
+        "L2 settlement contract accepting SNOS proofs"
+      ],
+      "status": "planned",
+      "trust_model": "validity proof \u2014 SNOS STARK proves entire L3 block was executed correctly"
+    }
+  },
+  "circuit_inventory": {},
+  "core_claims": [
+    {
+      "label": "Backend service is live",
+      "ok": true
+    },
+    {
+      "label": "Proof pack is present and introspectable",
+      "ok": true
+    },
+    {
+      "label": "Contracts are verifiably deployed on RPC",
+      "ok": true
+    },
+    {
+      "label": "Receipt visibility pipeline is live",
+      "ok": true
+    },
+    {
+      "label": "Open-source ModelBridge + dual-proof lanes are demonstrable",
+      "ok": true
+    },
+    {
+      "label": "ModelBridge live l3 verify emits receipt evidence",
+      "ok": true
+    },
+    {
+      "label": "Noir HONK live l3 verify emits receipt evidence",
+      "ok": true
+    },
+    {
+      "label": "Path B dual native-KZG mirror receipts are demonstrable",
+      "ok": true
+    },
+    {
+      "label": "Recursive multichain proving paths are introspectable",
+      "ok": true
+    }
+  ],
+  "core_score": {
+    "total": 9,
+    "validated": 9
+  },
+  "deployment": {},
+  "ecosystem_landscape": [
+    {
+      "focus": "Open-source zkML proving stack (ONNX to ZK proof flow).",
+      "project": "EZKL",
+      "source": "https://github.com/zkonduit/ezkl",
+      "why_it_matters": "Shows mature zkML proving tooling; zkde.fi extends this with a circuit bridge and Starknet proving lanes."
+    },
+    {
+      "focus": "SNARK verifier stack for Starknet (Groth16/Plonk tooling and calldata).",
+      "project": "Garaga",
+      "source": "https://github.com/keep-starknet-strange/garaga",
+      "why_it_matters": "Confirms active Starknet SNARK verification primitives that the ModelBridge lane can target."
+    },
+    {
+      "focus": "Production guide for verifying zk proofs on Starknet.",
+      "project": "Starknet verify-proofs docs",
+      "source": "https://docs.starknet.io/build/starknet-by-example/advanced/verify-proofs",
+      "why_it_matters": "Anchors on-chain verifier patterns and expected integration shape on Starknet."
+    },
+    {
+      "focus": "STARK validity proving model used by Starknet (execution trace to proof).",
+      "project": "SNOS / SHARP model",
+      "source": "https://docs.starknet.io/learn/protocol/snos",
+      "why_it_matters": "Frames the STARK side of dual architecture and integrity-style proof semantics."
+    },
+    {
+      "focus": "Verifiable ML effort built on Starknet tooling.",
+      "project": "Giza on Starknet",
+      "source": "https://www.starknet.io/blog/onchain-ai-with-giza/",
+      "why_it_matters": "Provides ecosystem context: zkML on Starknet exists, but bridge-to-circuit proof gating remains a distinct design choice."
+    },
+    {
+      "focus": "Open-source Starknet stack announced by StarkWare.",
+      "project": "SN Stack open-source launch",
+      "source": "https://www.starknet.io/blog/introducing-sn-stack-open-source-zk-powered-scaling/",
+      "why_it_matters": "Signals broader open infrastructure momentum that makes privacy-preserving appchain/prover designs more composable."
+    }
+  ],
+  "exit_code": 0,
+  "forecaster_showcase": {},
+  "generated_at": "2026-03-13T21:25:09.053483+00:00",
+  "heavy_stark_showcase": {},
+  "onchain": {
+    "contracts": [
+      {
+        "address": "0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022",
+        "class_hash": "0x74f7c06bfa0ba09af8e172467a7be78fa2077b7f4fb1fad8dbeda8eec60c95f",
+        "name": "REPUTATION_REGISTRY_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0x74f7c06bfa0ba09af8e172467a7be78fa2077b7f4fb1fad8dbeda8eec60c95f",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022"
+      },
+      {
+        "address": "0x3dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559",
+        "class_hash": "0xce55e551395c337e7dfc978962aff488e30cf8c1e5ffde1df34b62eb1f117",
+        "name": "FULL_PRIVACY_POOL_V2_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0xce55e551395c337e7dfc978962aff488e30cf8c1e5ffde1df34b62eb1f117",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x3dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559"
+      },
+      {
+        "address": "0x2900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd",
+        "class_hash": "0x8b52ef1327886e6e1f035042fd7612bda7e54619785b384d4b0e5dff494959",
+        "name": "RECEIPT_REGISTRY_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0x8b52ef1327886e6e1f035042fd7612bda7e54619785b384d4b0e5dff494959",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x2900291a932aa63f6510b9320e13fc25cf2dd7c2274ebe3a671ec6daecd83cd"
+      },
+      {
+        "address": "0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63",
+        "class_hash": "0x64c7e534cd0143ef62c57a570283e40e4509bf0fb5c14116b0e2177af39a88a",
+        "name": "VAULT_CONTROLLER_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0x64c7e534cd0143ef62c57a570283e40e4509bf0fb5c14116b0e2177af39a88a",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63"
+      },
+      {
+        "address": "0x6d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37",
+        "class_hash": "0x4e7a5bbcefcb9e1d7fb2229375df104003f270bd09ec7c44aceb1bce3b39061",
+        "name": "GARAGA_VERIFIER_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0x4e7a5bbcefcb9e1d7fb2229375df104003f270bd09ec7c44aceb1bce3b39061",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x6d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37"
+      },
+      {
+        "address": "0x37c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f",
+        "class_hash": "0x4745a6bcd5a3306d7ed2eac2a5f5a53f66cfd7afee4c7a7d1d18cb5574257f8",
+        "name": "MODEL_BRIDGE_VERIFIER_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0x4745a6bcd5a3306d7ed2eac2a5f5a53f66cfd7afee4c7a7d1d18cb5574257f8",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x37c42e8734271aca0c3c1bdf1746d9ccc098ddfd5ee211c94bbb8786fa4626f"
+      },
+      {
+        "address": "0x68abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923",
+        "class_hash": "0xf9c1bd17a2c6bc58ca76a146399151fdf677514e7c6630eb8694b7687aa066",
+        "name": "ZKML_VERIFIER_ADDRESS",
+        "voyager_class": "https://sepolia.voyager.online/class/0xf9c1bd17a2c6bc58ca76a146399151fdf677514e7c6630eb8694b7687aa066",
+        "voyager_contract": "https://sepolia.voyager.online/contract/0x68abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923"
+      }
+    ],
+    "receipts": [],
+    "rpc_url": "https://starknet-sepolia-rpc.publicnode.com"
+  },
+  "privacy_showcase": {},
+  "recursive_ezkl_paths": {
+    "docs": [
+      {
+        "exists": true,
+        "label": "Recursive EZKL roadmap",
+        "path": "archive/ideas/docs/RECURSIVE_EZKL_ROADMAP.md"
+      },
+      {
+        "exists": true,
+        "label": "Advanced L3 + EZKL implementation plan",
+        "path": "docs/plans/2026-03-10-advanced-l3-and-ezkl-onchain-implementation.md"
+      },
+      {
+        "exists": true,
+        "label": "L1 Sepolia EZKL verifier doc",
+        "path": "docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md"
+      },
+      {
+        "exists": true,
+        "label": "L1->L2 EZKL bridge spec",
+        "path": "docs/plans/L1_EZKL_BRIDGE_SPEC.md"
+      },
+      {
+        "exists": true,
+        "label": "Cairo native KZG verifier spec",
+        "path": "docs/plans/CAIRO_KZG_VERIFIER_SPEC.md"
+      }
+    ],
+    "env_snapshot": {
+      "l1_bridge_receiver_set": true,
+      "l1_bridge_sender_set": true,
+      "l1_ezkl_verifier_set": true,
+      "l1_sepolia_rpc_set": true,
+      "l1_signer_set": true,
+      "l3_kzg_verifier_set": true,
+      "modelbridge_require_real_ezkl": false,
+      "modelbridge_require_real_groth16": true,
+      "native_kzg_require_mpcheck": true,
+      "native_kzg_require_real_ezkl": true,
+      "native_kzg_warm_on_real_prove": true,
+      "parent_env_found": true,
+      "zkdefi_backend_env_found": true
+    },
+    "next_steps": [
+      "Phase 2/Path A: recurring noir_honk receipt is live (0x2c020793f1...74738f21f3ae); keep patha_latest.json refreshed from the strict bridge gate.",
+      "Phase 3: Path C live receipt is captured (0x6dbcc1a665...915b85876db4); scale from single receipt to recurring monitor checks.",
+      "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
+      "Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.",
+      "Phase 4: catalog warm report is 5/5 models with bundles; daily delta=n/a pct points; increase toward full model coverage."
+    ],
+    "path_a_live": {
+      "artifact_found": true,
+      "artifact_path": "artifacts/hackathon_showcase/patha_latest.json",
+      "bridge_backend": "noir_honk",
+      "bridge_proof_hash": "0xbde5045dfbc2a41fc3fddef8b6ba15d6a0869521ab9572e01d705b71593f7efd",
+      "calldata_words": 2874,
+      "can_execute": true,
+      "failure_reason": null,
+      "generated_at": "2026-03-13T21:24:45.822653+00:00",
+      "l3_actual_fee_display": "2310562321828384 FRI",
+      "l3_execution_steps": null,
+      "live_verified": true,
+      "mode": "noir_honk",
+      "proof_mode": "EZKL_BRIDGE",
+      "status": 200,
+      "tx_hash": "0x2c020793f1227925dd473108f7f05be487945495e2ba867122274738f21f3ae",
+      "tx_url": null
+    },
+    "path_b_runtime_verifier": {
+      "abi_methods": [
+        "get_last_verification",
+        "verify_ezkl_kzg_v1",
+        "verify_kzg"
+      ],
+      "address": "0x6e77e138143163f89bf282056551da3dfff5fc96a41e683b25b9caab414a6c8",
+      "address_url": null,
+      "class_hash": "0xd73f1b91e9cec0bc9a90f351e4830fbbcba502b4233d649c0cf8f499fb1f09",
+      "class_hash_url": null,
+      "network_label": "Madara L3 (local RPC)",
+      "required_methods": [
+        "verify_kzg",
+        "verify_ezkl_kzg_v1",
+        "get_last_verification"
+      ],
+      "required_methods_ok": true,
+      "rpc_url": "http://127.0.0.1:9944/rpc/v0.10.0",
+      "rpc_verified": true
+    },
+    "path_b_warm_report": {
+      "artifact_found": true,
+      "artifact_path": "artifacts/hackathon_showcase/pathb_bundle_warm.json",
+      "catalog_models_total": 5,
+      "coverage_percent": 100.0,
+      "coverage_ratio": 1.0,
+      "coverage_scope": "proving_ready_catalog",
+      "daily_baseline_generated_at": null,
+      "daily_delta_pct_points": null,
+      "daily_delta_window_hours": 24,
+      "daily_new_bundle_models": [],
+      "daily_new_native_kzg_models": [],
+      "daily_regressed_bundle_models": [],
+      "daily_regressed_native_kzg_models": [],
+      "excluded_models": [],
+      "excluded_models_total": 0,
+      "gate_pass": true,
+      "gate_reason": "",
+      "generated_at": "2026-03-13T21:15:33.810758+00:00",
+      "history_entries": 19,
+      "history_file": "artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
+      "models_total": 5,
+      "models_verified": 5,
+      "models_with_bundle": 5,
+      "native_kzg_onchain_attempted_model_names": [
+        "anomaly_detector",
+        "creditworthiness",
+        "llm_fallback",
+        "timing_predictor",
+        "yield_forecast"
+      ],
+      "native_kzg_onchain_attempted_models": 5,
+      "native_kzg_onchain_base_url": "http://127.0.0.1:8003",
+      "native_kzg_onchain_enabled": true,
+      "native_kzg_onchain_execution_chain": "dual",
+      "native_kzg_onchain_l2_receipt_model_names": [
+        "anomaly_detector",
+        "creditworthiness",
+        "llm_fallback",
+        "timing_predictor",
+        "yield_forecast"
+      ],
+      "native_kzg_onchain_l2_receipt_models": 5,
+      "native_kzg_onchain_l3_receipt_models": 5,
+      "native_kzg_onchain_mirrored_model_names": [
+        "anomaly_detector",
+        "creditworthiness",
+        "llm_fallback",
+        "timing_predictor",
+        "yield_forecast"
+      ],
+      "native_kzg_onchain_mirrored_models": 5,
+      "native_kzg_onchain_receipt_model_names": [
+        "anomaly_detector",
+        "creditworthiness",
+        "llm_fallback",
+        "timing_predictor",
+        "yield_forecast"
+      ],
+      "native_kzg_onchain_receipt_models": 5,
+      "native_kzg_onchain_rows": [
+        {
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "can_execute": true,
+          "execution_chain": "dual",
+          "failure_reason": null,
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_tx_hash": "0x113fe571fc3abf00304243bd63e833f7e81fdd4ceb5cbe22ad60da0f2c41a67",
+          "l2_verified_on_chain": true,
+          "l3_abi_used": "verify_ezkl_kzg_v1",
+          "l3_marker_name": "ezkl_kzg_v1",
+          "l3_mode": "native_kzg",
+          "l3_strict_binding_observed": true,
+          "l3_tx_hash": "0x15b8e2b324da45a8b358dd0f81b74048c97f457c11998b04b9192c2f154ace8",
+          "mirror_status": "mirrored",
+          "model": "anomaly_detector",
+          "payload_fingerprint": "3b5d348ec021e7eeeaebcb7882ed94891ac494a98b2cc24857388865db2f4410",
+          "probe_seed": "125269870eab4f84",
+          "status": 200,
+          "trust_mode": "ezkl_local_verified",
+          "verified_on_chain": true
+        },
+        {
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "can_execute": true,
+          "execution_chain": "dual",
+          "failure_reason": null,
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_tx_hash": "0x620f6dea90a61d306e0c6a0b29dd4778eab7dfde0ddcf815640d14157109aca",
+          "l2_verified_on_chain": true,
+          "l3_abi_used": "verify_ezkl_kzg_v1",
+          "l3_marker_name": "ezkl_kzg_v1",
+          "l3_mode": "native_kzg",
+          "l3_strict_binding_observed": true,
+          "l3_tx_hash": "0x1db8b886b6c0f2ef4b3f511d43cef58580a7cff2a6b4b232df1eb1eb2adcba",
+          "mirror_status": "mirrored",
+          "model": "creditworthiness",
+          "payload_fingerprint": "8429f668b886847f1d18df97398793c4da9dad6acce47a2ebac1cb3e006d2910",
+          "probe_seed": "df60e08be443a0a8",
+          "status": 200,
+          "trust_mode": "ezkl_local_verified",
+          "verified_on_chain": true
+        },
+        {
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "can_execute": true,
+          "execution_chain": "dual",
+          "failure_reason": null,
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_tx_hash": "0x511a6b9fd9abd7dc713f8064d0de5a07cf4abaa7e3f32c41123337c6dc52f95",
+          "l2_verified_on_chain": true,
+          "l3_abi_used": "verify_ezkl_kzg_v1",
+          "l3_marker_name": "ezkl_kzg_v1",
+          "l3_mode": "native_kzg",
+          "l3_strict_binding_observed": true,
+          "l3_tx_hash": "0xb88f738731c104448356e3895c2f2ed61d93248e184535122ffd1f82341d27",
+          "mirror_status": "mirrored",
+          "model": "llm_fallback",
+          "payload_fingerprint": "9dcf1b28e302fa841cdfaeba4f74b0247453df20b82451c5991d8565b1a2aef8",
+          "probe_seed": "561bdb99aa5af230",
+          "status": 200,
+          "trust_mode": "ezkl_local_verified",
+          "verified_on_chain": true
+        },
+        {
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "can_execute": true,
+          "execution_chain": "dual",
+          "failure_reason": null,
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_tx_hash": "0x33d7133e521df1b5bf3c3e4f4b9e24fcf435bf8a1551acd7c446c788c9fec2f",
+          "l2_verified_on_chain": true,
+          "l3_abi_used": "verify_ezkl_kzg_v1",
+          "l3_marker_name": "ezkl_kzg_v1",
+          "l3_mode": "native_kzg",
+          "l3_strict_binding_observed": true,
+          "l3_tx_hash": "0x439b58455351e87ee0144c3004120c9eb2e2e66d8406c8e775a1400dd11044a",
+          "mirror_status": "mirrored",
+          "model": "timing_predictor",
+          "payload_fingerprint": "f1bc6e4e39633e314a6ed6888be97e0d1c9e328b3c42b7efcc0a80f7201ed8b4",
+          "probe_seed": "9c4437aaefa60e9e",
+          "status": 200,
+          "trust_mode": "ezkl_local_verified",
+          "verified_on_chain": true
+        },
+        {
+          "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+          "bridge_compliant": true,
+          "can_execute": true,
+          "execution_chain": "dual",
+          "failure_reason": null,
+          "l2_mode": "starknet_l2_registry_mirrored",
+          "l2_tx_hash": "0x76cb41a4a6ed93a1f2b0d165d8de042d29b01a96951bea5627f987237a753e",
+          "l2_verified_on_chain": true,
+          "l3_abi_used": "verify_ezkl_kzg_v1",
+          "l3_marker_name": "ezkl_kzg_v1",
+          "l3_mode": "native_kzg",
+          "l3_strict_binding_observed": true,
+          "l3_tx_hash": "0x2e18dde26dfe131cc02cd300b5c620e49070083eaf12e05f86d1f2d8f82ab5a",
+          "mirror_status": "mirrored",
+          "model": "yield_forecast",
+          "payload_fingerprint": "2d9fb66c6111ce5e91be0431baf5afa75ef7dbc7cb6bd6038c3ccf26f0f194a0",
+          "probe_seed": "7656c73e504fd23d",
+          "status": 200,
+          "trust_mode": "ezkl_local_verified",
+          "verified_on_chain": true
+        }
+      ],
+      "native_kzg_onchain_verified_model_names": [
+        "anomaly_detector",
+        "creditworthiness",
+        "llm_fallback",
+        "timing_predictor",
+        "yield_forecast"
+      ],
+      "native_kzg_onchain_verified_models": 5,
+      "prev_new_bundle_models": [
+        "llm_fallback",
+        "timing_predictor"
+      ],
+      "prev_new_native_kzg_models": [
+        "llm_fallback",
+        "timing_predictor"
+      ],
+      "prev_regressed_bundle_models": [],
+      "prev_regressed_native_kzg_models": [],
+      "previous_run_delta_pct_points": 0.0,
+      "previous_run_generated_at": "2026-03-13T21:05:36.830529+00:00",
+      "proving_ready_models_catalog_total": 5,
+      "target_percent": 100.0,
+      "target_ratio": 1.0
+    },
+    "path_c_live": {
+      "artifact_found": true,
+      "artifact_path": "artifacts/hackathon_showcase/pathc_latest.json",
+      "l1_block_number": 10434986,
+      "l1_gas_used": 642407,
+      "l1_status": 1,
+      "l2_attempt": 61,
+      "l2_block_timestamp": 1773348432,
+      "l2_block_timestamp_iso": "2026-03-12T20:47:12+00:00",
+      "l2_output_commitment": "0x71bda01706622c3ec6f13382442b0b016be2e351f4e460fc06d02857c51c185",
+      "l2_poll_count": 61,
+      "l2_verified": true,
+      "l2_verified_on_l2": true,
+      "live_verified": true,
+      "mode": "verify_and_bridge",
+      "model_hash": "0x61ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812",
+      "output_commitment": "0x71bda01706622c3ec6f13382442b0b016be2e351f4e460fc06d02857c51c185",
+      "poll_url": "http://127.0.0.1:8002/api/v1/aggregation/l1/verification-status?model_hash=0x61ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812&nonce=0",
+      "receiver_address": "0x02ed07ab9be1d632259f3dd1bbeaf6354c20046b6df8659a30e3e97415b1a220",
+      "sender_address": "0x2a1b030f2835cB0ADC4ea271105e96da293853ab",
+      "sender_url": "https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab",
+      "tx_hash": "0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4",
+      "tx_url": "https://sepolia.etherscan.io/tx/0x6dbcc1a665357c50646599e395c5f83dd0fc89567a2ee09ac110915b85876db4",
+      "used_nonce": 0,
+      "verifier_address": "0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9",
+      "verifier_url": "https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9"
+    },
+    "path_rows": [
+      {
+        "doc_signal": "Live noir_honk receipt captured; Path A is receipt-backed in the active L3 environment.",
+        "path": "Path A (Noir HONK bridge)",
+        "runtime_contract": "0x213e38a87b0e075d8cb4baf8a5278210a06383e89797fa7a2a366cac6648f9f",
+        "runtime_contract_url": null,
+        "runtime_lane_available": true,
+        "runtime_lane_id": "noir_honk",
+        "runtime_lane_listed": true,
+        "runtime_network_label": "Madara L3 (local RPC)",
+        "status": "implemented_live"
+      },
+      {
+        "doc_signal": "Live verifyAndBridge receipt captured and L2 receiver confirmed for Path C.",
+        "path": "Path C (L1 Sepolia bridge)",
+        "runtime_contract": "0x2a1b030f2835cB0ADC4ea271105e96da293853ab",
+        "runtime_contract_url": "https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab",
+        "runtime_lane_available": true,
+        "runtime_lane_id": "l1_bridge",
+        "runtime_lane_listed": true,
+        "status": "implemented_live"
+      },
+      {
+        "doc_signal": "Cairo KZG verifier package builds; strict native KZG route is live with receipt-backed coverage across the current proving-ready catalog. Catalog warm coverage: 5/5 models with cached bundles.",
+        "path": "Path B (native Cairo KZG)",
+        "runtime_class_hash": "0xd73f1b91e9cec0bc9a90f351e4830fbbcba502b4233d649c0cf8f499fb1f09",
+        "runtime_contract": "0x6e77e138143163f89bf282056551da3dfff5fc96a41e683b25b9caab414a6c8",
+        "runtime_contract_url": null,
+        "runtime_lane_available": true,
+        "runtime_lane_id": "native_kzg",
+        "runtime_lane_listed": true,
+        "runtime_network_label": "Madara L3 (local RPC)",
+        "status": "implemented_live"
+      }
+    ],
+    "signals": {
+      "parent_phase3_config_keys": true,
+      "parent_phase3_service_stub": true,
+      "parent_phase4_config_key": true,
+      "parent_phase4_route": true,
+      "parent_phase4_strict_kzg": true,
+      "path_a_l3_status_ok": true,
+      "path_a_live_receipt_found": true,
+      "path_a_live_verified": true,
+      "path_a_status_doc": true,
+      "path_b_catalog_models_total": 5,
+      "path_b_excluded_models_total": 0,
+      "path_b_live_verified": true,
+      "path_b_native_kzg_attempted_models": 5,
+      "path_b_native_kzg_daily_new_count": 0,
+      "path_b_native_kzg_daily_regressed_count": 0,
+      "path_b_native_kzg_onchain_enabled": true,
+      "path_b_native_kzg_receipt_models": 5,
+      "path_b_native_kzg_verified_models": 5,
+      "path_b_proving_ready_catalog_total": 5,
+      "path_b_verifier_has_strict_selector": true,
+      "path_b_verifier_method_count": 3,
+      "path_b_verifier_rpc_verified": true,
+      "path_b_warm_coverage_ratio": 1.0,
+      "path_b_warm_daily_delta_pct_points": null,
+      "path_b_warm_daily_new_bundle_count": 0,
+      "path_b_warm_daily_regressed_bundle_count": 0,
+      "path_b_warm_daily_window_hours": 24,
+      "path_b_warm_gate_pass": true,
+      "path_b_warm_gate_reason": "",
+      "path_b_warm_history_entries": 19,
+      "path_b_warm_history_file": "artifacts/hackathon_showcase/pathb_bundle_history.jsonl",
+      "path_b_warm_min_coverage": 1.0,
+      "path_b_warm_models_total": 5,
+      "path_b_warm_models_verified": 5,
+      "path_b_warm_models_with_bundle": 5,
+      "path_b_warm_previous_delta_pct_points": 0.0,
+      "path_b_warm_report_found": true,
+      "path_c_l1_status_ok": true,
+      "path_c_l2_verified": true,
+      "path_c_live_receipt_found": true,
+      "path_c_live_verified": true,
+      "phase2_status_done": true,
+      "phase3_plan_expanded": true,
+      "phase4_plan_expanded": true
+    }
+  },
+  "started_at": "2026-03-13T21:23:53.286314+00:00",
+  "steps": [
+    {
+      "details": {
+        "admin_configured": false,
+        "service": "zkdefi-backend",
+        "status": 200
+      },
+      "name": "Backend health",
+      "ok": true
+    },
+    {
+      "details": {
+        "circuits": 6,
+        "circuits_with_wasm_and_zkey": 6,
+        "pack_id": "zkfico_pack_v1",
+        "status": 200
+      },
+      "name": "Reputation pack manifest",
+      "ok": true
+    },
+    {
+      "details": {
+        "FULL_PRIVACY_POOL_V2_ADDRESS_class_hash": "0xce55e551...b62eb1f117",
+        "GARAGA_VERIFIER_ADDRESS_class_hash": "0x4e7a5bbc...bce3b39061",
+        "MODEL_BRIDGE_VERIFIER_ADDRESS_class_hash": "0x4745a6bc...b5574257f8",
+        "RECEIPT_REGISTRY_ADDRESS_class_hash": "0x8b52ef13...5dff494959",
+        "REPUTATION_REGISTRY_ADDRESS_class_hash": "0x74f7c06b...8eec60c95f",
+        "VAULT_CONTROLLER_ADDRESS_class_hash": "0x64c7e534...77af39a88a",
+        "ZKML_VERIFIER_ADDRESS_class_hash": "0xf9c1bd17...b7687aa066",
+        "block_number": 7586780,
+        "resolved_contracts": 7,
+        "rpc_url": "https://starknet-sepolia-rpc.publicnode.com",
+        "voyager_links": 7
+      },
+      "name": "Raw RPC contract presence",
+      "ok": true
+    },
+    {
+      "details": {
+        "count": 306,
+        "first_tx_hash": "-",
+        "status": 200,
+        "tx_hashes": 0
+      },
+      "name": "Receipt stream visibility",
+      "ok": true
+    },
+    {
+      "details": {
+        "bridge_backend": "groth16_modelbridge",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x25c3261769...38a058ead570",
+        "can_execute": true,
+        "failure_reason": "",
+        "l3_actual_fee": "14210267849184 FRI",
+        "l3_mode": "groth16_garaga",
+        "l3_tx_hash": "0x4a03f13bd0...b0bd13656859",
+        "l3_verified_on_chain": true,
+        "proof_mode": "EZKL_BRIDGE",
+        "status": 200,
+        "strict_bridge": true,
+        "transient_status_ok": false
+      },
+      "name": "ModelBridge live l3 verify receipt",
+      "ok": true
+    },
+    {
+      "details": {
+        "bridge_backend": "groth16_modelbridge_heavy",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x83c243e212...88c26df3baa3",
+        "can_execute": true,
+        "failure_reason": "",
+        "l3_actual_fee": "14186607009184 FRI",
+        "l3_mode": "groth16_garaga",
+        "l3_tx_hash": "0x211e5457a8...1bff6cb81fdb",
+        "l3_verified_on_chain": true,
+        "proof_mode": "EZKL_BRIDGE",
+        "status": 200,
+        "strict_bridge": true,
+        "transient_status_ok": false
+      },
+      "name": "ModelBridgeHeavy live l3 verify receipt",
+      "ok": true
+    },
+    {
+      "details": {
+        "bridge_backend": "native_kzg_ezkl_serialized_mpcheck",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0x675018cebf...605693cc1159",
+        "can_execute": true,
+        "failure_reason": "",
+        "kzg_bundle_present": true,
+        "kzg_extractor_attempted": false,
+        "kzg_hint_felts": 1752,
+        "l3_actual_fee": "6229425956000 FRI",
+        "l3_mode": "native_kzg",
+        "l3_tx_hash": "0x2cd4ec813f...28a45855e281",
+        "l3_verified_on_chain": true,
+        "path_b_warm_coverage": "5/5 (100.00%)",
+        "path_b_warm_gate_pass": true,
+        "path_b_warm_gate_reason": "",
+        "path_b_warm_target_pct": 100.0,
+        "proof_mode": "EZKL_BRIDGE",
+        "status": 200,
+        "strict_bridge": true,
+        "transient_status_ok": false
+      },
+      "name": "Native KZG live l3 verify receipt",
+      "ok": true
+    },
+    {
+      "details": {
+        "bridge_backend": "noir_honk",
+        "bridge_compliant": true,
+        "bridge_proof_hash": "0xbde5045dfb...5b71593f7efd",
+        "can_execute": true,
+        "failure_reason": "",
+        "l3_actual_fee": "2310562321828384 FRI",
+        "l3_mode": "noir_honk",
+        "l3_tx_hash": "0x2c020793f1...74738f21f3ae",
+        "l3_verified_on_chain": true,
+        "lane_available": true,
+        "proof_mode": "EZKL_BRIDGE",
+        "status": 200,
+        "strict_bridge": true,
+        "transient_status_ok": false
+      },
+      "name": "Noir HONK live l3 verify receipt",
+      "ok": true
+    },
+    {
+      "details": {
+        "bridge_timeout_seconds": 45.0,
+        "dual_attempted": true,
+        "dual_attempts": 1,
+        "dual_bridge_timeout_seconds": 45.0,
+        "dual_failure_reason": "",
+        "dual_l2_mode": "starknet_l2_registry_mirrored",
+        "dual_l2_tx_hash": "0x64390320c5...ea6b021713ef",
+        "dual_l3_tx_hash": "0x5934fc3b90...97e513ef0541",
+        "dual_lanes_ready": true,
+        "dual_mirror_status": "mirrored",
+        "ezkl_probe_status": 0,
+        "ezkl_real_probe": false,
+        "hash_fallback_available": true,
+        "heavy_attempts": 1,
+        "heavy_bridge_backend": "groth16_modelbridge_heavy",
+        "heavy_contract": "0x7e3d6d99e8...580f60026ca0",
+        "heavy_lane_available": true,
+        "heavy_runtime_ok": true,
+        "l3_attempts": 1,
+        "landscape_projects": "EZKL,Garaga,Starknet verify-proofs docs,SNOS / SHARP model",
+        "landscape_sources": 6,
+        "ml_bridge_dual_status": 200,
+        "ml_bridge_heavy_mode": "groth16_garaga",
+        "ml_bridge_heavy_status": 200,
+        "ml_bridge_l3_mode": "groth16_garaga",
+        "ml_bridge_l3_status": 200,
+        "ml_bridge_noir_mode": "noir_honk",
+        "ml_bridge_noir_status": 200,
+        "model_bridge_heavy_verifier_address": "0x07e3d6d9...0f60026ca0",
+        "model_bridge_verifier_address": "0x037c42e8...786fa4626f",
+        "model_bridge_verifier_deployed": true,
+        "model_bridge_verifier_support": true,
+        "modelbridge_artifacts": "23/23",
+        "noir_attempts": 1,
+        "noir_contract": "0x213e38a87b...66cac6648f9f",
+        "noir_honk_available": true,
+        "proving_paths_status": 200,
+        "runtime_mode": "bridge_runtime_non_synthetic",
+        "runtime_probe_ok": true,
+        "snark_contract": "0x36f5c2fd4b...17a14e78bd00",
+        "snark_lane_available": true,
+        "stark_contract": "0x2c036366dc...e35ae0271e69",
+        "stark_lane_available": true,
+        "strict_bridge": true,
+        "zkml_verifier_address": "0x068abd64...a5aad08923",
+        "zkml_verifier_marker_found": true
+      },
+      "name": "Open-source ModelBridge + dual-proof architecture",
+      "ok": true
+    },
+    {
+      "details": {
+        "attempted_models": 5,
+        "execution_chain": "dual",
+        "gate_reason": "",
+        "l2_receipt_models": 5,
+        "l3_receipt_models": 5,
+        "mirrored_models": 5,
+        "native_kzg_onchain_enabled": true,
+        "strict_bridge": true,
+        "verified_models": 5
+      },
+      "name": "Path B dual native KZG mirrors are demonstrable",
+      "ok": true
+    },
+    {
+      "details": {
+        "docs_present": "5/5",
+        "native_kzg_available": true,
+        "native_kzg_lane_listed": true,
+        "noir_lane_listed": true,
+        "parent_phase3_config_keys": true,
+        "parent_phase3_service_stub": true,
+        "parent_phase4_route": true,
+        "path_a_l3_status": 200,
+        "path_a_live_receipt_found": true,
+        "path_a_live_verified": true,
+        "path_a_status_doc": true,
+        "path_b_native_kzg_attempted_models": 5,
+        "path_b_native_kzg_daily_new": 0,
+        "path_b_native_kzg_daily_regressions": 0,
+        "path_b_native_kzg_dual_gate": true,
+        "path_b_native_kzg_execution_chain": "dual",
+        "path_b_native_kzg_l2_receipt_models": 5,
+        "path_b_native_kzg_mirrored_models": 5,
+        "path_b_native_kzg_onchain_enabled": true,
+        "path_b_native_kzg_receipt_models": 5,
+        "path_b_native_kzg_verified_models": 5,
+        "path_b_warm_coverage_pct": 100.0,
+        "path_b_warm_daily_delta_pp": null,
+        "path_b_warm_daily_new_bundles": 0,
+        "path_b_warm_daily_regressions": 0,
+        "path_b_warm_daily_window_hours": 24,
+        "path_b_warm_gate_pass": true,
+        "path_b_warm_gate_reason": "",
+        "path_b_warm_history_entries": 19,
+        "path_b_warm_models": "5/5",
+        "path_b_warm_previous_delta_pp": 0.0,
+        "path_b_warm_report_found": true,
+        "path_b_warm_target_pct": 100.0,
+        "path_c_l1_status": 1,
+        "path_c_l2_verified": true,
+        "path_c_live_receipt_found": true,
+        "path_c_live_verified": true,
+        "phase2_status_done": true,
+        "phase3_plan_expanded": true,
+        "phase4_plan_expanded": true,
+        "strict_bridge": true
+      },
+      "name": "Recursive EZKL paths (Phase 2/3/4) status",
+      "ok": true
+    },
+    {
+      "details": {
+        "scope": "health, manifest, rpc, receipts, bridge, recursive_paths"
+      },
+      "name": "Bridge-only mode",
+      "ok": true
+    }
+  ],
+  "wallet": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
+}

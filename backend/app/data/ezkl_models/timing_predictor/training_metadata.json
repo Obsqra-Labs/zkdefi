@@ -1,0 +1,32 @@
+{
+  "model_hash": "ff6de515bb42e188c268a498ddb532b46ad985c3d1f068537df256f31c66ff7d",
+  "onnx_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/timing_predictor/timing_predictor.onnx",
+  "weights_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/timing_predictor/timing_predictor_mlp.pt",
+  "norm_params_path": "/opt/obsqra.starknet/zkdefi/backend/app/data/ezkl_models/timing_predictor/norm_params.json",
+  "training_samples": 500,
+  "real_samples": 0,
+  "synthetic_samples": 500,
+  "epochs": 300,
+  "final_loss": 0.007959945127367973,
+  "mae_blocks": 8.659228324890137,
+  "mae_confidence": 0.037042442709207535,
+  "feature_names": [
+    "fee0_current",
+    "fee1_current",
+    "tvl_current",
+    "fee_velocity_short",
+    "fee_velocity_long",
+    "fee_acceleration",
+    "fee_volatility",
+    "utilization_ratio",
+    "volume_trend",
+    "position_age_hours",
+    "tick_distance_from_center",
+    "gas_price_gwei",
+    "time_since_last_rebalance_hours",
+    "pool_concentration",
+    "fee_to_tvl_ratio"
+  ],
+  "architecture": "15\u219232\u219216\u21922",
+  "trained_at": "2026-03-13T21:59:33.389301"
+}

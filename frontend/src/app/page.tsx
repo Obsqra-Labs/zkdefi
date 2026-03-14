@@ -180,7 +180,7 @@ export default function LandingPage() {
               href="#capital-os"
               className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-6 py-3 font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
             >
-              Try the Demo
+              See the System
               <ChevronDown className="h-4 w-4" />
             </a>
             <a
@@ -268,7 +268,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Capital OS: Unified Demo ═══ */}
+      {/* ═══ The System: Identity → Oracle → Execution ═══ */}
       <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <CapitalOSSection />
