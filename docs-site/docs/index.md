@@ -2,47 +2,65 @@
 layout: home
 hero:
   name: zkde.fi
-  text: Privacy-first Capital OS for DeFi
-  tagline: Keep strategy data private, prove execution integrity, and move from signal to action in Capital OS and Trade Desk.
+  text: Proof-Gated Execution on Starknet
+  tagline: Capital only moves when cryptographic conditions are met. Every action produces a verifiable on-chain receipt.
   actions:
     - theme: brand
-      text: Start Here
+      text: The Primitive
       link: /intro
+    - theme: alt
+      text: Live Proof Readout
+      link: /proof-readout
     - theme: alt
       text: Open App
       link: https://zkde.fi
       target: _blank
 ---
 
-## What This Docs Reset Is About
+## What This Is
 
-These docs are focused on four things:
+zkde.fi is a reference implementation of **proof-gated private finance** — built on top of the [Obsqra Labs](https://obsqra.xyz) proving infrastructure using a SNARK-in-STARK dual-lane architecture.
 
-1. Privacy model: what stays private vs what is revealed.
-2. Unlocks: what reputation and proofs let you do.
-3. Product usage: how to run Capital OS and Trade Desk.
-4. System flow: how services, policies, and execution fit together.
+**Garaga** (Groth16) handles zkML verification in Cairo. **Stone** (STARK) handles execution integrity — the same prover infrastructure that secures Starknet blocks.
 
-## Core Product Surfaces
+```
+AI signal / strategy intent
+  ↓ zkML inference → Groth16 commitment (EZKL)
+  ↓ Garaga KZG pairing check in Cairo
+  ↓ Stone STARK execution envelope
+  ↓ Policy gate — no proof, no execution
+  ↓ On-chain receipt → Madara L3 fact registry
+```
 
-- [Capital OS](/capital-os): monitor posture, run policy-aware automation, coordinate execution.
-- [Trade Desk](/trade-desk): discover opportunities, choose adapter routes, simulate and execute.
-- [Profile](/profile-and-identity): trust state, reputation, disclosure and identity context.
+## What's Deployed
 
-## What You Unlock
+| Fact | Count |
+|---|---|
+| Smart contracts across Starknet Sepolia, Ethereum Sepolia, and Madara L3 | **20+** |
+| Circom circuits with WASM + zkey | **31** |
+| EZKL (Halo2/KZG) ML models | **2** |
+| On-chain trust receipts | **136+** |
+| Verified proof lanes (Groth16, STARK, Noir HONK, Native KZG) | **5** |
 
-- Privacy-preserving execution paths for sensitive strategy decisions.
-- Stronger policy and execution gates with better trust posture.
-- Credit and governance capabilities tied to verifiable reputation state.
-- Portable disclosure artifacts for integrations and compliance workflows.
+Live proof generation and full claim validation: **[zkde.fi/test](https://zkde.fi/test)**
 
-## First Read Path
+## Start Here
 
-1. [Introduction](/intro)
-2. [Quick Start](/quick-start)
-3. [Capital OS](/capital-os)
-4. [Trade Desk](/trade-desk)
-5. [How Systems Work](/how-systems-work)
-6. [Technical Foundations](/technical-foundations)
-7. [Recursive Proving Core](/recursive-multichain-proving-core)
-8. [API Overview](/api-overview)
+**If you're a judge or technical reviewer:**
+Start with [Live Proof Readout](/proof-readout) — every claim in these docs is verifiable there. Then read [Proof Pipeline](/proof-pipeline).
+
+**If you're an integrator:**
+Start with [API Overview](/api-overview) and [Developers](/developers).
+
+**If you're a user:**
+Start with [Capital OS](/capital-os) and [Trade Desk](/trade-desk).
+
+## Core Documentation
+
+- [The Primitive](/intro) — what the proof system is and why it exists
+- [Live Proof Readout](/proof-readout) — verifiable evidence at [zkde.fi/test](https://zkde.fi/test)
+- [Deployed Contracts](/contracts) — on-chain contract map across three networks
+- [Proof Pipeline](/proof-pipeline) — ProofMode, verifier lanes, settlement paths
+- [Privacy Rails](/privacy-rails) — commitment → nullifier → claim hash flow
+- [zkML + Circuit Stack](/zkml-circuits) — 13 agent skill circuits, EZKL, ModelBridge
+- [API Overview](/api-overview) — programmatic surface of the proof pipeline

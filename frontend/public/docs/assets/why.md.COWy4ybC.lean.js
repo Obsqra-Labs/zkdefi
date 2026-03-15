@@ -1,0 +1,1 @@
+import{_ as a,o as t,c as r,ag as o}from"./chunks/framework.D7xI0JV8.js";const p=JSON.parse('{"title":"Why zkde.fi?","description":"","frontmatter":{},"headers":[],"relativePath":"why.md","filePath":"why.md"}'),i={name:"why.md"};function s(l,e,n,h,c,u){return t(),r("div",null,[...e[0]||(e[0]=[o("",13)])])}const m=a(i,[["render",s]]);export{p as __pageData,m as default};

@@ -1,0 +1,1 @@
+import{_ as t,o as a,c as r,ag as o}from"./chunks/framework.D7xI0JV8.js";const f=JSON.parse('{"title":"The Primitive","description":"","frontmatter":{},"headers":[],"relativePath":"intro.md","filePath":"intro.md"}'),i={name:"intro.md"};function n(s,e,l,h,c,d){return a(),r("div",null,[...e[0]||(e[0]=[o("",20)])])}const u=t(i,[["render",n]]);export{f as __pageData,u as default};

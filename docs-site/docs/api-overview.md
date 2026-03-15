@@ -1,14 +1,8 @@
 # API Overview
 
-This page is the practical integration map for zkde.fi APIs, with endpoint-level references for the most relevant production and experimental flows.
+The zkde.fi API is the programmatic surface of the [proof pipeline](/proof-pipeline). Every endpoint that triggers execution passes through the circuit screening and policy gate layer before returning a calldata response. Read-only endpoints return current proof state, reputation state, and settlement status. Mutation endpoints that trigger capital movement require valid proof context.
 
-## The Problem This Solves
-
-Integrators need more than route-group names. They need concrete endpoint shapes, auth expectations, and scope boundaries to avoid incorrect assumptions in production integrations.
-
-## Why This Matters
-
-When auth and endpoint semantics are ambiguous, teams ship brittle clients, over-permissioned backend jobs, and incomplete incident runbooks.
+Live verification of the full API surface: **[zkde.fi/test](https://zkde.fi/test)**
 
 ## Base URLs
 

@@ -1,14 +1,21 @@
-# Contracts
+# Deployed Contracts
 
-This page lists core Starknet Sepolia contract references used by zkde.fi and related flows.
+zkde.fi is deployed across three networks: Starknet Sepolia, Ethereum Sepolia, and a dedicated Madara L3 appchain. Every contract listed here is live and independently verifiable via block explorer.
 
-## The Problem This Solves
+For live proof verification across all contracts: **[zkde.fi/test](https://zkde.fi/test)**
 
-Integrators and operators need an explicit contract map for explorer verification, runbook triage, and environment validation.
+## Ethereum Sepolia (L1)
 
-## Why This Matters
+| Contract | Address | Purpose |
+|---|---|---|
+| Halo2Verifier (EZKL KZG) | [`0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9`](https://sepolia.etherscan.io/address/0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9) | EZKL proof verification on L1 |
+| L1 EZKL Bridge Sender | [`0x2a1b030f2835cB0ADC4ea271105e96da293853ab`](https://sepolia.etherscan.io/address/0x2a1b030f2835cB0ADC4ea271105e96da293853ab) | L1→L2 proof bridge |
 
-Route-level errors often trace back to chain mismatch or incorrect contract references. A clear table reduces diagnosis time.
+## Madara L3 (Proof Appchain)
+
+| Contract | Address | Purpose |
+|---|---|---|
+| VerifiedFactRegistry | `0x5ed322b12ddc28d27b7797d79516ca285137f9bab9fde870191119b4c68d691` | Proof fact registration on dedicated L3 |
 
 ## Core Contract Map (Sepolia)
 
@@ -91,20 +98,32 @@ flowchart TD
   Execute --> VC[Update VaultController]
 ```
 
-## Problem It Solves For Integrators
+## Agent System Contracts (Starknet Sepolia)
 
-Provides a single checklist when validating:
+| Contract | Address |
+|---|---|
+| ReputationRegistry | [`0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022`](https://sepolia.voyager.online/contract/0x10d00b33b5683afd776c58638a222aa10605d7eeafa95979b5246312b7e022) |
+| VaultController (v3) | [`0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63`](https://sepolia.voyager.online/contract/0x2f29b985bc962f065160828296ab3889769a92a313d11077f186a81d0853b63) |
+| ValidationProofRegistry | [`0x20ea9a32eae3fe6fe5137ca9f576383f8723913e1619f17120cf1aeb7e06305`](https://sepolia.voyager.online/contract/0x20ea9a32eae3fe6fe5137ca9f576383f8723913e1619f17120cf1aeb7e06305) |
+| AllocationRouter | [`0xabda1150d8fc9db11b99c8485d671c53bc2ad65fe21a8d218c1e621a85843b`](https://sepolia.voyager.online/contract/0xabda1150d8fc9db11b99c8485d671c53bc2ad65fe21a8d218c1e621a85843b) |
+| AgentSkillRegistry | [`0x6a039b4e59b39fc2ab44c3c70a5ecdbe765a9afabb4b2765f9bb966dfb6ddda`](https://sepolia.voyager.online/contract/0x6a039b4e59b39fc2ab44c3c70a5ecdbe765a9afabb4b2765f9bb966dfb6ddda) |
+| BatchVerifier | [`0x285f944aa5cb8f90fa37c4dbdf5dd1eb2e34ab0bde9669e61fbd7a9a0f3b869`](https://sepolia.voyager.online/contract/0x285f944aa5cb8f90fa37c4dbdf5dd1eb2e34ab0bde9669e61fbd7a9a0f3b869) |
 
-- chain/network alignment
-- explorer visibility
-- call target correctness in generated calldata
+## Privacy Contracts (Starknet Sepolia)
 
-## Why It Matters Operationally
+| Contract | Address |
+|---|---|
+| FullPrivacyPoolV2 | [`0x03dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559`](https://sepolia.voyager.online/contract/0x03dde5617d362a6f9202cd3955b4508e2bd6b1c5d35250153beeb6237c811559) |
+| FullyShieldedPool | [`0x07fed6973cfc23b031c0476885ec87a401f1006bdc8ba58df2bd8611b38b5ff5`](https://sepolia.voyager.online/contract/0x07fed6973cfc23b031c0476885ec87a401f1006bdc8ba58df2bd8611b38b5ff5) |
 
-Misconfigured addresses can appear as policy or wallet bugs, but are often deployment/environment drift. Contract verification should be an early triage step.
+## Execution Adapters (Starknet Sepolia)
 
-## Source-Of-Truth Guidance
+| Contract | Address |
+|---|---|
+| EkuboLpAdapter | [`0x1f5e68f5470f2d316afdd057029438d950baa3dc59fc7060fd0a57ef88c4245`](https://sepolia.voyager.online/contract/0x1f5e68f5470f2d316afdd057029438d950baa3dc59fc7060fd0a57ef88c4245) |
+| LendingAdapter | [`0x2f76cf75ca90657b933686807884b3a1ffdc43347a9c5a053f2c2d108431357`](https://sepolia.voyager.online/contract/0x2f76cf75ca90657b933686807884b3a1ffdc43347a9c5a053f2c2d108431357) |
+| StakingAdapter | [`0x66c048e79c11c5f3f94ad2a7f7cdd033e5cd5b5b3d207f6dd37cc22526edadf`](https://sepolia.voyager.online/contract/0x66c048e79c11c5f3f94ad2a7f7cdd033e5cd5b5b3d207f6dd37cc22526edadf) |
 
-Use this page as an operator-facing quick reference. For release-critical automation, source addresses from deployment artifacts and environment configuration in CI/CD.
+---
 
-Next: [API overview](/api-overview) | [Deploying zkde.fi](/deploying-zkde-fi) | [Developers](/developers)
+Next: [Proof Pipeline](/proof-pipeline) | [API Overview](/api-overview) | [Developers](/developers)

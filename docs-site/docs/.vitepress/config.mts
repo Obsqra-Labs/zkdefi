@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'zkde.fi',
-  description: 'Privacy-first Capital OS and Trade Desk on Starknet',
+  description: 'Proof-gated execution on Starknet — verifiable agent infrastructure by Obsqra Labs',
   base: '/docs/',
   markdown: {
     config(md) {
@@ -34,46 +34,36 @@ export default defineConfig({
 
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Start', link: '/intro' },
-      { text: 'Quick Start', link: '/quick-start' },
-      { text: 'Capital OS', link: '/capital-os' },
-      { text: 'Trade Desk', link: '/trade-desk' },
-      { text: 'Systems', link: '/how-systems-work' },
+      { text: 'The Primitive', link: '/intro' },
+      { text: 'Live Proof', link: '/proof-readout' },
+      { text: 'Proof Pipeline', link: '/proof-pipeline' },
       { text: 'API', link: '/api-overview' },
       { text: 'App', link: 'https://zkde.fi' }
     ],
 
     sidebar: [
       {
-        text: 'Start',
+        text: 'What Was Built',
         items: [
-          { text: 'Introduction', link: '/intro' },
-          { text: 'Quick Start', link: '/quick-start' },
-          { text: 'App Overview', link: '/app-overview' }
+          { text: 'The Primitive', link: '/intro' },
+          { text: 'Live Proof Readout', link: '/proof-readout' },
+          { text: 'Deployed Contracts', link: '/contracts' }
         ]
       },
       {
-        text: 'Use The Product',
+        text: 'How The Proof Works',
+        items: [
+          { text: 'Proof Pipeline', link: '/proof-pipeline' },
+          { text: 'Privacy Rails', link: '/privacy-rails' },
+          { text: 'zkML + Circuit Stack', link: '/zkml-circuits' }
+        ]
+      },
+      {
+        text: 'Using The System',
         items: [
           { text: 'Capital OS', link: '/capital-os' },
           { text: 'Trade Desk', link: '/trade-desk' },
-          { text: 'Profile And Identity', link: '/profile-and-identity' }
-        ]
-      },
-      {
-        text: 'How It Works',
-        items: [
-          { text: 'Privacy Features', link: '/privacy-features' },
-          { text: 'How Systems Work', link: '/how-systems-work' }
-        ]
-      },
-      {
-        text: 'Technical Foundations',
-        items: [
-          { text: 'Technical Foundations', link: '/technical-foundations' },
-          { text: 'Recursive Proving Core', link: '/recursive-multichain-proving-core' },
-          { text: 'Reputation System', link: '/reputation-system' },
-          { text: 'Architecture Summary', link: '/architecture-summary' }
+          { text: 'Profile & Identity', link: '/profile-and-identity' }
         ]
       },
       {
@@ -81,13 +71,14 @@ export default defineConfig({
         items: [
           { text: 'API Overview', link: '/api-overview' },
           { text: 'Developers', link: '/developers' },
-          { text: 'Contracts', link: '/contracts' },
           { text: 'Deploying zkde.fi', link: '/deploying-zkde-fi' }
         ]
       },
       {
         text: 'Reference',
         items: [
+          { text: 'Architecture Summary', link: '/architecture-summary' },
+          { text: 'Reputation System', link: '/reputation-system' },
           { text: 'FAQ', link: '/faq' },
           { text: 'Troubleshooting', link: '/troubleshooting' }
         ]

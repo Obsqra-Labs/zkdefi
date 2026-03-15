@@ -1,6 +1,6 @@
 # Capital OS (`/agent`)
 
-Capital OS is the operating surface for posture, policy, and orchestration before execution.
+Capital OS is the orchestration layer that sits above the [proof pipeline](/proof-pipeline). Policy posture, vault constraints, and execution gates are all proof-backed — changes to execution policy require valid proof state before they take effect. This is not a dashboard for reading numbers; it is the control plane where a user's cryptographic trust posture determines what actions are available.
 
 ## What You Use It For
 

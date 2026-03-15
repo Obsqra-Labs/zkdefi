@@ -1,6 +1,6 @@
 # Trade Desk (`/trade`)
 
-Trade Desk is where opportunities become signed transactions.
+Trade Desk is the execution surface where opportunities are screened by the [13-circuit zkML bundle](/zkml-circuits) before any action is available for execution. No circuit pass means no execution path is surfaced. Every opportunity that appears in the Trade Desk has passed the relevant screening gates — risk score, anomaly detection, strategy integrity, and whatever other circuits the user's policy posture requires.
 
 ## Where Opportunities And Adapters Are
 
