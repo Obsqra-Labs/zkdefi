@@ -26,7 +26,7 @@ import { sepoliaVoyagerContractUrl, sepoliaVoyagerClassUrl, l3ExplorerUrl } from
 
 /* ═══════════════════ types ═══════════════════ */
 
-interface Pool {
+export interface Pool {
   pool_id: string;
   pool_name: string;
   risk_score: number;
@@ -39,7 +39,7 @@ interface Pool {
   flags: string[];
 }
 
-interface AnalysisResult {
+export interface AnalysisResult {
   timestamp: string;
   risk_profile: string;
   recommended_pools: Pool[];
@@ -202,6 +202,8 @@ interface TrustDemoProps {
   triggerKey: number;
   /** report loading state to parent */
   onLoadingChange?: (loading: boolean) => void;
+  /** lift oracle result up so Step 3 can consume it */
+  onResult?: (result: AnalysisResult) => void;
 }
 
 /* ═══════════════════ component ═══════════════════ */
@@ -212,6 +214,7 @@ export function TrustDemo({
   protocolWeights,
   triggerKey,
   onLoadingChange,
+  onResult,
 }: TrustDemoProps) {
   const [status, setStatus] = useState<PipelineStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -289,6 +292,7 @@ export function TrustDemo({
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json();
       setResult(data);
+      onResult?.(data);
 
       /* fetch LLM narration in parallel with batch skills */
       const narrationPromise = (async () => {

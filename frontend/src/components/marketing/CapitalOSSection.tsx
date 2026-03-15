@@ -6,9 +6,7 @@ import {
   Loader2,
   ArrowRight,
   Activity,
-  Key,
   Lock,
-  ShieldCheck,
   Eye,
   Zap,
 } from "lucide-react";
@@ -22,28 +20,16 @@ const CapitalBrainLazy = lazy(() =>
 const TrustDemoLazy = lazy(() =>
   import("./TrustDemo").then((m) => ({ default: m.TrustDemo }))
 );
-const TerminalPanelLazy = lazy(() =>
-  import("./TerminalPanel").then((m) => ({ default: m.TerminalPanel }))
-);
-const SessionWalletLazy = lazy(() =>
-  import("./SessionWallet").then((m) => ({ default: m.SessionWallet }))
-);
-const IntelligentStreamLazy = lazy(() =>
-  import("./IntelligentStream").then((m) => ({ default: m.IntelligentStream }))
-);
-const DarkVaultPanelLazy = lazy(() =>
-  import("./DarkVaultPanel").then((m) => ({ default: m.DarkVaultPanel }))
-);
-const ProofOfPerformanceLazy = lazy(() =>
-  import("./ProofOfPerformance").then((m) => ({ default: m.ProofOfPerformance }))
+const AgentExecutionLoopLazy = lazy(() =>
+  import("./AgentExecutionLoop").then((m) => ({ default: m.AgentExecutionLoop }))
 );
 
 import { DEFAULT_ENABLED, type BrainConfig } from "./CapitalBrain";
+import type { AnalysisResult } from "./TrustDemo";
 
 /* ── demo identifiers ── */
 const DEMO_ADDRESS =
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d";
-const DEMO_SESSION_ID = "demo-mainnet-session-001";
 const DEMO_L3_ADDRESS = "0x0474b940f499ca60d2aebce5c6b0b0c4e8b0947e";
 
 /* ── seeded reputation ── */
@@ -142,6 +128,9 @@ export function CapitalOSSection() {
   });
   const [triggerKey, setTriggerKey] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  /* ── Step 3: oracle result for execution loop ── */
+  const [oracleResult, setOracleResult] = useState<AnalysisResult | null>(null);
 
   const handleAnalyze = useCallback((cfg: BrainConfig) => {
     setConfig(cfg);
@@ -322,6 +311,7 @@ export function CapitalOSSection() {
                 protocolWeights={config.protocolWeights}
                 triggerKey={triggerKey}
                 onLoadingChange={setLoading}
+                onResult={setOracleResult}
               />
             </div>
           </div>
@@ -335,106 +325,22 @@ export function CapitalOSSection() {
         <div className="mx-auto max-w-3xl text-center">
           <StepBadge num={3} label="Gated Execution" icon={Zap} color="emerald" />
           <h3 className="text-xl font-bold text-zinc-100 sm:text-2xl">
-            Execute only when proofs pass.
+            The AI acts. The loop closes.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-            Identity verified. Data attested. Now execution is gated —
-            session keys delegate action without exposing your main wallet.
-            Every trade produces a ZK receipt that feeds back into your
-            reputation passport.
+            The oracle scored the opportunities. Now the agent picks the best
+            one, simulates a trade, and generates a ZK receipt — all in one
+            click. Every receipt feeds back into your reputation passport.
           </p>
         </div>
 
-        {/* Pipeline diagram */}
-        <div className="mx-auto max-w-2xl">
-          {/* Desktop */}
-          <div className="hidden items-center justify-center gap-0 text-[10px] font-semibold sm:flex">
-            <span className="rounded-l-lg border border-fuchsia-500/30 bg-fuchsia-500/5 px-3 py-2 text-fuchsia-400">
-              Identity Proof
-            </span>
-            <span className="border-y border-zinc-700 bg-zinc-900 px-2 py-2 text-zinc-600">→</span>
-            <span className="border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 text-cyan-400">
-              Oracle Data
-            </span>
-            <span className="border-y border-zinc-700 bg-zinc-900 px-2 py-2 text-zinc-600">→</span>
-            <span className="border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-emerald-400">
-              Policy Gate
-            </span>
-            <span className="border-y border-zinc-700 bg-zinc-900 px-2 py-2 text-zinc-600">→</span>
-            <span className="rounded-r-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-amber-400">
-              Receipt ↻
-            </span>
-          </div>
-          {/* Mobile */}
-          <div className="flex flex-col items-center gap-1 text-[10px] font-semibold sm:hidden">
-            <span className="w-full rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 px-3 py-2 text-center text-fuchsia-400">Identity Proof</span>
-            <span className="text-zinc-600">↓</span>
-            <span className="w-full rounded-lg border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 text-center text-cyan-400">Oracle Data</span>
-            <span className="text-zinc-600">↓</span>
-            <span className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-center text-emerald-400">Policy Gate</span>
-            <span className="text-zinc-600">↓</span>
-            <span className="w-full rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-center text-amber-400">Receipt ↻</span>
-          </div>
-        </div>
-
-        {/* Execution panels */}
+        {/* Agent execution loop */}
         <Suspense fallback={<StepSkeleton />}>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <TerminalPanelLazy
-              id="session-key"
-              title="Session Key"
-              accent="text-amber-400"
-              icon={<Key className="h-3 w-3 text-amber-400" />}
-            >
-              <SessionWalletLazy
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-                l3Address={DEMO_L3_ADDRESS}
-              />
-            </TerminalPanelLazy>
-
-            <TerminalPanelLazy
-              id="dark-vault"
-              title="Dark Vault"
-              accent="text-violet-400"
-              icon={<Lock className="h-3 w-3 text-violet-400" />}
-            >
-              <DarkVaultPanelLazy
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-              />
-            </TerminalPanelLazy>
-
-            <TerminalPanelLazy
-              id="proof"
-              title="ZK Proof of Performance"
-              accent="text-fuchsia-400"
-              icon={<ShieldCheck className="h-3 w-3 text-fuchsia-400" />}
-            >
-              <ProofOfPerformanceLazy
-                walletAddress={DEMO_ADDRESS}
-                sessionId={DEMO_SESSION_ID}
-              />
-            </TerminalPanelLazy>
-
-            <TerminalPanelLazy
-              id="stream"
-              title="Reputation Receipts"
-              accent="text-cyan-400"
-              icon={<Activity className="h-3 w-3 text-cyan-400" />}
-            >
-              <IntelligentStreamLazy
-                walletAddress={DEMO_ADDRESS}
-                pollIntervalMs={10000}
-              />
-            </TerminalPanelLazy>
-          </div>
+          <AgentExecutionLoopLazy
+            oracleResult={oracleResult}
+            walletAddress={DEMO_ADDRESS}
+          />
         </Suspense>
-
-        {/* Loop indicator */}
-        <p className="text-center text-[10px] text-zinc-600">
-          Every receipt feeds back into Step 1 — the loop closes.
-        </p>
       </section>
     </div>
   );

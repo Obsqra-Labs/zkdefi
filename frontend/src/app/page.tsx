@@ -268,22 +268,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ The System: Identity → Oracle → Execution ═══ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
-        </div>
-      </section>
-
-      {/* ═══ States of Trust: How It Works ═══ */}
+      {/* ═══ How It Works: Prove → Verify → Execute ═══ */}
       <section className="border-b border-zinc-800 px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">States of Trust</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Prove It. Verify It. Execute It.</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Not every action needs the same trust guarantee. Our tri-chain architecture lets you
-              choose — from fully trustless on-chain verification to delegated execution within
-              proof-gated bounds.
+              Every action follows the same pipeline — strategy stays private,
+              proofs govern execution, receipts build reputation.
             </p>
           </div>
 
@@ -299,7 +291,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold">Prove It</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 zkML models run inference off-chain and produce cryptographic commitments. The
-                ModelBridge binds model output, proof hash, value bounds, and timestamp into a
+                ModelBridge binds model output, proof hash, and timestamp into a
                 verifiable attestation. Your strategy stays private.
               </p>
             </article>
@@ -314,7 +306,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold">Verify It</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 On-chain contracts check the proof. Garaga verifies KZG pairings in Cairo. Stone
-                proves the execution trace as a STARK — the same prover infrastructure that secures
+                proves the execution trace as a STARK — the same prover that secures
                 Starknet blocks. The SNARK lives inside the STARK.
               </p>
             </article>
@@ -351,6 +343,13 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ═══ Live Demo: The System in Action ═══ */}
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <CapitalOSSection />
         </div>
       </section>
 
@@ -576,71 +575,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Architecture ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">What We Compose</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Individual tools solve pieces. We wire the full trust pipeline — from model inference to
-              L1 settlement.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                tool: "EZKL",
-                provides: "KZG proof of ML inference",
-                weAdd: "Stateful registry, receipt layer, policy gate binding",
-                color: "border-violet-500/30",
-              },
-              {
-                tool: "Garaga",
-                provides: "KZG pairing check in Cairo",
-                weAdd: "Calldata transform from EZKL proof format → Cairo-native input",
-                color: "border-cyan-500/30",
-              },
-              {
-                tool: "Stone",
-                provides: "STARK prover for Cairo",
-                weAdd: "SNARK verification embedded inside STARK envelope — heterogeneous composition",
-                color: "border-emerald-500/30",
-              },
-              {
-                tool: "obsqra",
-                provides: "The composition layer",
-                weAdd: "ModelBridge + BridgeRelay + tri-chain settlement + trust receipt pipeline",
-                color: "border-amber-500/30",
-              },
-            ].map((item) => (
-              <div key={item.tool} className={`rounded-xl border ${item.color} bg-zinc-900/40 p-5`}>
-                <h4 className="text-sm font-bold text-zinc-200">{item.tool}</h4>
-                <p className="mt-1 text-xs text-zinc-500">{item.provides}</p>
-                <div className="mt-3 border-t border-zinc-800/50 pt-3">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                    {item.tool === "obsqra" ? "What we ship" : "What we add"}
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">{item.weAdd}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ═══ Why Starknet ═══ */}
       <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
+          <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
               Proof-gated private finance needs an L2 purpose-built for
-              scalable verification and complex off-chain computation.
+              scalable verification.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
                 title: "Scalable proof verification",
@@ -650,29 +596,23 @@ export default function LandingPage() {
               },
               {
                 title: "Private execution logic",
-                desc: "Cairo programs can enforce arbitrary policy constraints without revealing the underlying rules. Strategy logic compiles to provable traces, not public bytecode.",
+                desc: "Cairo programs enforce policy constraints without revealing the rules. Strategy logic compiles to provable traces, not public bytecode.",
                 color: "border-emerald-500/20 bg-emerald-950/5",
                 accent: "text-emerald-400",
               },
               {
-                title: "Complex computation verified on-chain",
+                title: "Complex computation on-chain",
                 desc: "ML inference, risk models, and multi-step strategies run off-chain but settle on-chain through STARK proofs — the same infra that secures Starknet blocks.",
                 color: "border-violet-500/20 bg-violet-950/5",
                 accent: "text-violet-400",
               },
             ].map((item) => (
-              <div key={item.title} className={`rounded-xl border ${item.color} p-6`}>
+              <div key={item.title} className={`rounded-xl border ${item.color} p-5`}>
                 <h4 className={`text-sm font-bold ${item.accent}`}>{item.title}</h4>
                 <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.desc}</p>
               </div>
             ))}
           </div>
-
-          <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-relaxed text-zinc-600">
-            The Re&#123;define&#125; Privacy track highlights private DeFi, private voting,
-            confidential financial workflows, and private prediction markets.
-            zkde.fi demonstrates that a single architecture can support all of these simultaneously.
-          </p>
         </div>
       </section>
 
@@ -698,7 +638,7 @@ export default function LandingPage() {
                         ? "bg-emerald-500"
                         : phase.status === "active"
                           ? "bg-cyan-400 ring-4 ring-cyan-400/20"
-                          : phase.status === "upcoming"
+                          : phase.status === "planned"
                             ? "bg-amber-500/60"
                             : "bg-zinc-600"
                     }`}
@@ -712,7 +652,7 @@ export default function LandingPage() {
                             ? "bg-emerald-500/20 text-emerald-400"
                             : phase.status === "active"
                               ? "bg-cyan-500/20 text-cyan-400"
-                              : phase.status === "upcoming"
+                              : phase.status === "planned"
                                 ? "bg-amber-500/20 text-amber-400"
                                 : "bg-zinc-700/50 text-zinc-400"
                         }`}
@@ -721,7 +661,7 @@ export default function LandingPage() {
                           ? "Complete"
                           : phase.status === "active"
                             ? "In Progress"
-                            : phase.status === "upcoming"
+                            : phase.status === "planned"
                               ? "Next"
                               : "Planned"}
                       </span>
