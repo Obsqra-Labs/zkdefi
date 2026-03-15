@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
-  ChevronDown,
   ExternalLink,
   FileCheck,
   Layers,
@@ -13,7 +12,6 @@ import {
   X,
   Zap,
   Globe,
-  GitBranch,
   Box,
 } from "lucide-react";
 
@@ -139,33 +137,34 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
 
         <div className="relative mx-auto max-w-5xl text-center">
-          {/* Problem-first hook */}
-          <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
-            DeFi automation requires exposing too much information.
-          </p>
-
-          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              Private decisions.
+              Proof-gated execution
             </span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              Verifiable execution.
+              for private finance on Starknet.
             </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-zinc-300">
-            Strategy logic, model signals, and execution intent stay private.
-            Proofs — not disclosure — govern what capital is allowed to do.
-          </p>
-
-          <div className="mx-auto mt-5 flex items-center justify-center gap-3">
-            <span className="font-mono text-xl tracking-wide text-zinc-400 sm:text-2xl">
-              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
-            </span>
+          <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {[
+              { value: "20+", label: "contracts" },
+              { value: "31", label: "circuits" },
+              { value: "3", label: "chains" },
+              { value: "136+", label: "on-chain receipts" },
+            ].map((s) => (
+              <div key={s.label} className="flex items-baseline gap-1.5">
+                <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
+                <span className="text-sm text-zinc-500">{s.label}</span>
+              </div>
+            ))}
           </div>
-          <p className="mt-1 text-[10px] text-zinc-600 italic">
-            <span className="text-amber-400">*</span>earned over time, never assumed
+
+          <p className="mx-auto mt-5 max-w-3xl text-lg text-zinc-300">
+            Capital only moves when cryptographic conditions are met.
+            Every action produces a verifiable on-chain receipt.
+            SNARK-in-STARK dual-lane proving — Garaga, Stone, EZKL.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -177,11 +176,11 @@ export default function LandingPage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
-              href="#capital-os"
+              href="/test"
               className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-6 py-3 font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
             >
-              See the System
-              <ChevronDown className="h-4 w-4" />
+              Verify Every Claim
+              <ExternalLink className="h-4 w-4" />
             </a>
             <a
               href="https://github.com/Obsqra-Labs/zkdefi"
@@ -193,6 +192,14 @@ export default function LandingPage() {
               <ExternalLink className="h-4 w-4" />
             </a>
           </div>
+
+          <p className="mt-6 text-xs text-zinc-600">
+            zkde.fi is a reference implementation of{" "}
+            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>{" "}
+            proving infrastructure.{" "}
+            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>{" "}
+            is the infra layer. This is one app built on top of it.
+          </p>
         </div>
       </section>
 
@@ -265,91 +272,6 @@ export default function LandingPage() {
       <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
         <div className="mx-auto max-w-6xl">
           <LiveStatsBanner />
-        </div>
-      </section>
-
-      {/* ═══ How It Works: Prove → Verify → Execute ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Prove It. Verify It. Execute It.</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Every action follows the same pipeline — strategy stays private,
-              proofs govern execution, receipts build reputation.
-            </p>
-          </div>
-
-          {/* 3-column: Prove → Verify → Execute */}
-          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600/20">
-                <Lock className="h-6 w-6 text-emerald-400" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold">Prove It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                zkML models run inference off-chain and produce cryptographic commitments. The
-                ModelBridge binds model output, proof hash, and timestamp into a
-                verifiable attestation. Your strategy stays private.
-              </p>
-            </article>
-
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600/20">
-                <Shield className="h-6 w-6 text-cyan-300" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold">Verify It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                On-chain contracts check the proof. Garaga verifies KZG pairings in Cairo. Stone
-                proves the execution trace as a STARK — the same prover that secures
-                Starknet blocks. The SNARK lives inside the STARK.
-              </p>
-            </article>
-
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/20">
-                <FileCheck className="h-6 w-6 text-violet-400" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold">Execute It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Verified proofs unlock execution — vault deposits, LP positions, agent trades. An
-                auditable trust receipt is written to the chain. No valid proof means no execution,
-                ever. Trust is earned, not assumed.
-              </p>
-            </article>
-          </div>
-
-          {/* Trust mode matrix */}
-          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {TRUST_MODES.map((tm) => (
-              <div
-                key={tm.mode}
-                className={`rounded-xl border ${tm.border} ${tm.bg} p-5`}
-              >
-                <h4 className={`text-sm font-bold ${tm.color}`}>{tm.mode}</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{tm.desc}</p>
-                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                  Examples
-                </p>
-                <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Live Demo: The System in Action ═══ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
         </div>
       </section>
 
@@ -483,8 +405,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-
-
       {/* ═══ Tri-Chain Deployment ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-5xl">
@@ -572,6 +492,91 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═══ How It Works: Prove → Verify → Execute ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">Prove It. Verify It. Execute It.</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              Every action follows the same pipeline — strategy stays private,
+              proofs govern execution, receipts build reputation.
+            </p>
+          </div>
+
+          {/* 3-column: Prove → Verify → Execute */}
+          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600/20">
+                <Lock className="h-6 w-6 text-emerald-400" />
+              </div>
+              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
+                1
+              </div>
+              <h3 className="text-xl font-semibold">Prove It</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                zkML models run inference off-chain and produce cryptographic commitments. The
+                ModelBridge binds model output, proof hash, and timestamp into a
+                verifiable attestation. Your strategy stays private.
+              </p>
+            </article>
+
+            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600/20">
+                <Shield className="h-6 w-6 text-cyan-300" />
+              </div>
+              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
+                2
+              </div>
+              <h3 className="text-xl font-semibold">Verify It</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                On-chain contracts check the proof. Garaga verifies KZG pairings in Cairo. Stone
+                proves the execution trace as a STARK — the same prover that secures
+                Starknet blocks. The SNARK lives inside the STARK.
+              </p>
+            </article>
+
+            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/20">
+                <FileCheck className="h-6 w-6 text-violet-400" />
+              </div>
+              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
+                3
+              </div>
+              <h3 className="text-xl font-semibold">Execute It</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Verified proofs unlock execution — vault deposits, LP positions, agent trades. An
+                auditable trust receipt is written to the chain. No valid proof means no execution,
+                ever. Trust is earned, not assumed.
+              </p>
+            </article>
+          </div>
+
+          {/* Trust mode matrix */}
+          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {TRUST_MODES.map((tm) => (
+              <div
+                key={tm.mode}
+                className={`rounded-xl border ${tm.border} ${tm.bg} p-5`}
+              >
+                <h4 className={`text-sm font-bold ${tm.color}`}>{tm.mode}</h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{tm.desc}</p>
+                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                  Examples
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Live Demo: The System in Action ═══ */}
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <CapitalOSSection />
         </div>
       </section>
 
