@@ -3,16 +3,12 @@ import {
   ArrowRight,
   CheckCircle2,
   ExternalLink,
-  FileCheck,
-  Layers,
   Shield,
   Cpu,
   Lock,
   BarChart3,
   X,
-  Zap,
   Globe,
-  Box,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
@@ -149,7 +145,7 @@ export default function LandingPage() {
 
           <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {[
-              { value: "20+", label: "contracts" },
+              { value: "11", label: "contracts deployed" },
               { value: "31", label: "circuits" },
               { value: "3", label: "chains" },
               { value: "136+", label: "on-chain receipts" },
@@ -161,10 +157,12 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <p className="mx-auto mt-5 max-w-3xl text-lg text-zinc-300">
-            Capital only moves when cryptographic conditions are met.
-            Every action produces a verifiable on-chain receipt.
-            SNARK-in-STARK dual-lane proving — Garaga, Stone, EZKL.
+          <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-zinc-300">
+            Your strategy stays private. Your reputation is portable.
+            <br className="hidden sm:block" />
+            Your agents prove they behaved correctly.
+            <br className="hidden sm:block" />
+            All on Starknet. Every action verified on-chain.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -200,6 +198,20 @@ export default function LandingPage() {
             <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>{" "}
             is the infra layer. This is one app built on top of it.
           </p>
+        </div>
+      </section>
+
+      {/* ═══ The Loop: Reputation → Oracle → Execution ═══ */}
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <CapitalOSSection />
+        </div>
+      </section>
+
+      {/* ═══ Live Starknet Data Bar ═══ */}
+      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
+        <div className="mx-auto max-w-6xl">
+          <LiveStatsBanner />
         </div>
       </section>
 
@@ -268,139 +280,149 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Live Starknet Data Bar ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
-        <div className="mx-auto max-w-6xl">
-          <LiveStatsBanner />
-        </div>
-      </section>
-
-      {/* ═══ What We've Built ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">What We&apos;ve Built</h2>
+      {/* ═══ Why the Proofs Are Real ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">Why the Proofs Are Real</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Concrete infrastructure running across three chains — not a pitch deck.
-              Every claim is backed by on-chain evidence and API-verifiable endpoints.
+              Every technical claim on this page settles through two independent
+              verification systems across three chains. No single point of trust.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <PillarCard
-              icon={<Layers className="h-6 w-6 text-emerald-400" />}
-              iconBg="bg-emerald-600/20"
-              title="Tri-Chain ModelBridge"
-              body="Converts any ONNX model output into a Groth16 or STARK commitment. Bridges proofs across Madara L3 → Starknet L2 → Ethereum L1 via BridgeRelay. Open source."
-              tag="Core"
-              tagColor="emerald"
-              stats={[
-                { value: "3", label: "chains" },
-                { value: "Dual", label: "SNARK + STARK" },
-                { value: "Open", label: "source" },
-              ]}
-              details={[
-                "EZKL KZG proof → Garaga Cairo pairing check",
-                "Stone prover wraps execution in STARK envelope",
-                "Madara L3 → Starknet L2 state diff → Ethereum L1",
-                "Halo2Verifier (1,904 lines, auto-generated)",
-              ]}
-            />
-            <PillarCard
-              icon={<Shield className="h-6 w-6 text-cyan-300" />}
-              iconBg="bg-cyan-600/20"
-              title="Privacy Commitment Rails"
-              body="Three-tier privacy: Strict (full proof, no relayer), Standard (relayer + delay), Express (optimistic batch). All tiers flow through commitment → Merkle root → nullifier → selective disclosure."
-              tag="Live"
-              tagColor="cyan"
-              stats={[
-                { value: "3", label: "tiers" },
-                { value: "3/3", label: "rails proved" },
-                { value: "L3", label: "dark settlement" },
-              ]}
-              details={[
-                "Shielded → Nullifier → Claim Hash pipeline",
-                "Relayer withdraw queued with ETA",
-                "Madara L3 dark settlement verification",
-                "Private voting & lending via proof rails",
-              ]}
-            />
-            <PillarCard
-              icon={<Cpu className="h-6 w-6 text-violet-400" />}
-              iconBg="bg-violet-600/20"
-              title="Agent Composition"
-              body="Multi-processor pipelines: risk_scoring, correlation_risk, twap_position run in parallel. Each opportunity screened by 13 skill circuits. Composition only executes when all proofs pass."
-              tag="Live"
-              tagColor="violet"
-              stats={[
-                { value: "13", label: "skills / opp" },
-                { value: "5/5", label: "batch proofs" },
-                { value: "15", label: "listed skills" },
-              ]}
-              details={[
-                "risk_score, anomaly_detection, yield_optimality",
-                "strategy_integrity, execution_integrity",
-                "il_predictor, slippage_bound, mev_protection",
-                "Batch proof runtime: all 5 succeed w/ hashes",
-              ]}
-            />
-            <PillarCard
-              icon={<BarChart3 className="h-6 w-6 text-amber-400" />}
-              iconBg="bg-amber-600/20"
-              title="Prediction Market"
-              body="Snapshot forecaster with commit → reveal → score lifecycle. Multi-horizon predictions (5m, 30m, 4h) with probability distributions. Trust verified via zkML proofs with full explainability."
-              tag="Novel"
-              tagColor="amber"
-              stats={[
-                { value: "0.109", label: "Brier score" },
-                { value: "100%", label: "directional" },
-                { value: "3", label: "horizons" },
-              ]}
-              details={[
-                "Returns: 0.56% (5m), 0.91% (30m), 1.39% (4h)",
-                "Score receipt: 0x030c…1904",
-                "Trust mode: offchain_ezkl_verified",
-                "Natural-language explainability output",
-              ]}
-            />
-            <PillarCard
-              icon={<Zap className="h-6 w-6 text-rose-400" />}
-              iconBg="bg-rose-600/20"
-              title="Trust Receipt Pipeline"
-              body="Every proof-gated action writes an auditable receipt: proof hash, tx hash, and execution metadata. SHA-256 commitments bind model output to timestamped on-chain evidence."
-              tag="Live"
-              tagColor="rose"
-              stats={[
-                { value: "136+", label: "receipts" },
-                { value: "31", label: "circuits" },
-                { value: "SHA-256", label: "commitment" },
-              ]}
-              details={[
-                "Credit eligibility: verified=true, hash=0xc614…3acc",
-                "Receipt stream via /api/v1/receipts",
-                "31 circom circuits with WASM + zkey (dual-ready)",
-                "Poseidon worker + persistent hash service",
-              ]}
-            />
-            <PillarCard
-              icon={<Box className="h-6 w-6 text-teal-400" />}
-              iconBg="bg-teal-600/20"
-              title="Stone Prover Pipeline"
-              body="Same STARK prover infrastructure that secures Starknet blocks. Cairo programs + inputs → cpu_air_prover → STARK proof → cpu_air_verifier. Production-grade, battle-tested."
-              tag="Core"
-              tagColor="teal"
-              stats={[
-                { value: "Stone", label: "prover" },
-                { value: "Cairo", label: "programs" },
-                { value: "STARK", label: "proofs" },
-              ]}
-              details={[
-                "cpu_air_prover → cpu_air_verifier pipeline",
-                "Same infra as Starknet block proofs",
-                "Integrated with Garaga for KZG pairing checks",
-                "SNARK verification embedded inside STARK envelope",
-              ]}
-            />
+          <div className="mx-auto mt-12 max-w-3xl space-y-6">
+            {/* Garaga */}
+            <div className="rounded-xl border border-emerald-500/15 bg-emerald-950/5 p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20">
+                  <Shield className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-100">SNARK Verification — Garaga</h3>
+                  <p className="text-xs text-zinc-500">Groth16 KZG pairing check in Cairo</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Garaga verifies the SNARK (Groth16) in Cairo — the same curve math
+                that secures Ethereum blob commitments. EZKL generates the proof,
+                Garaga checks the pairing on-chain. The verifier contract is
+                auto-generated (1,904 lines of Halo2 verification logic).
+              </p>
+            </div>
+
+            {/* Stone */}
+            <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
+                  <Lock className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-100">STARK Envelope — Stone</h3>
+                  <p className="text-xs text-zinc-500">Same prover that secures Starknet blocks</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Stone wraps the execution trace in a STARK envelope — the same
+                prover infrastructure that secures Starknet blocks. The SNARK
+                lives inside the STARK. Both must pass. Neither can be faked
+                without compromising Ethereum L1 finality.
+              </p>
+            </div>
+
+            {/* Settlement path */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Settlement Path</p>
+              <p className="mt-3 font-mono text-sm text-emerald-400">
+                Madara L3 → Starknet L2 → Ethereum L1
+              </p>
+              <p className="mt-2 text-xs text-zinc-500">
+                136+ receipts on-chain. Every hash queryable via RPC.
+              </p>
+              <a
+                href="/test"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+              >
+                Verify every claim →
+              </a>
+            </div>
+          </div>
+
+          {/* Trust mode tiers */}
+          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {TRUST_MODES.map((tm) => (
+              <div
+                key={tm.mode}
+                className={`rounded-xl border ${tm.border} ${tm.bg} p-5`}
+              >
+                <h4 className={`text-sm font-bold ${tm.color}`}>{tm.mode}</h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{tm.desc}</p>
+                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                  Examples
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ What This Enables ═══ */}
+      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">What This Enables</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              The proof infrastructure unlocks capabilities that aren&apos;t possible
+              when trust is assumed.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
+                <Shield className="h-5 w-5 text-cyan-300" />
+              </div>
+              <h3 className="font-semibold text-zinc-100">Private Capital Flows</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Three-tier privacy rails — strict, standard, and express — all
+                flowing through commitment → Merkle root → nullifier → selective
+                disclosure. Dark settlement on Madara L3.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                3 tiers proved · Shielded → Nullifier → Claim Hash pipeline
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600/20">
+                <Cpu className="h-5 w-5 text-violet-400" />
+              </div>
+              <h3 className="font-semibold text-zinc-100">zkML-Gated Agent Decisions</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Multi-processor pipelines screen every opportunity through 13 skill
+                circuits. Batch composition only executes when all proofs pass.
+                Agents prove behavior, not just intent.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                13 skills per opportunity · 5/5 batch proofs passing
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-600/20">
+                <BarChart3 className="h-5 w-5 text-amber-400" />
+              </div>
+              <h3 className="font-semibold text-zinc-100">Verifiable Prediction Markets</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Commit → reveal → score lifecycle with multi-horizon forecasts.
+                Trust verified via zkML proofs with full explainability and
+                on-chain scoring receipts.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                0.109 Brier score · 100% directional accuracy · 3 horizons
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -411,7 +433,8 @@ export default function LandingPage() {
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">Tri-Chain Deployment</h2>
             <p className="mt-3 text-zinc-400">
-              11 contracts across Ethereum L1, Starknet L2, and Madara L3. Every hash is queryable via RPC.
+              Every technical claim on this page is backed by deployed contracts.
+              Here they are — 11 across Ethereum L1, Starknet L2, and Madara L3.
             </p>
           </div>
 
@@ -495,132 +518,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ How It Works: Prove → Verify → Execute ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Prove It. Verify It. Execute It.</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Every action follows the same pipeline — strategy stays private,
-              proofs govern execution, receipts build reputation.
-            </p>
-          </div>
-
-          {/* 3-column: Prove → Verify → Execute */}
-          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600/20">
-                <Lock className="h-6 w-6 text-emerald-400" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold">Prove It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                zkML models run inference off-chain and produce cryptographic commitments. The
-                ModelBridge binds model output, proof hash, and timestamp into a
-                verifiable attestation. Your strategy stays private.
-              </p>
-            </article>
-
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600/20">
-                <Shield className="h-6 w-6 text-cyan-300" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold">Verify It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                On-chain contracts check the proof. Garaga verifies KZG pairings in Cairo. Stone
-                proves the execution trace as a STARK — the same prover that secures
-                Starknet blocks. The SNARK lives inside the STARK.
-              </p>
-            </article>
-
-            <article className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7">
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/20">
-                <FileCheck className="h-6 w-6 text-violet-400" />
-              </div>
-              <div className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold">Execute It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Verified proofs unlock execution — vault deposits, LP positions, agent trades. An
-                auditable trust receipt is written to the chain. No valid proof means no execution,
-                ever. Trust is earned, not assumed.
-              </p>
-            </article>
-          </div>
-
-          {/* Trust mode matrix */}
-          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {TRUST_MODES.map((tm) => (
-              <div
-                key={tm.mode}
-                className={`rounded-xl border ${tm.border} ${tm.bg} p-5`}
-              >
-                <h4 className={`text-sm font-bold ${tm.color}`}>{tm.mode}</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{tm.desc}</p>
-                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                  Examples
-                </p>
-                <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Live Demo: The System in Action ═══ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
-        </div>
-      </section>
-
-      {/* ═══ Why Starknet ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Proof-gated private finance needs an L2 purpose-built for
-              scalable verification.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                title: "Scalable proof verification",
-                desc: "Native STARK verification at L2 cost. Garaga enables KZG pairing checks in Cairo — the same curve math that secures Ethereum's blob commitments.",
-                color: "border-cyan-500/20 bg-cyan-950/5",
-                accent: "text-cyan-400",
-              },
-              {
-                title: "Private execution logic",
-                desc: "Cairo programs enforce policy constraints without revealing the rules. Strategy logic compiles to provable traces, not public bytecode.",
-                color: "border-emerald-500/20 bg-emerald-950/5",
-                accent: "text-emerald-400",
-              },
-              {
-                title: "Complex computation on-chain",
-                desc: "ML inference, risk models, and multi-step strategies run off-chain but settle on-chain through STARK proofs — the same infra that secures Starknet blocks.",
-                color: "border-violet-500/20 bg-violet-950/5",
-                accent: "text-violet-400",
-              },
-            ].map((item) => (
-              <div key={item.title} className={`rounded-xl border ${item.color} p-5`}>
-                <h4 className={`text-sm font-bold ${item.accent}`}>{item.title}</h4>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ═══ Roadmap ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-20">
         <div className="mx-auto max-w-5xl">
@@ -695,6 +592,86 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ Why Starknet ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              Proof-gated private finance needs an L2 purpose-built for
+              scalable verification.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              {
+                title: "Scalable proof verification",
+                desc: "Native STARK verification at L2 cost. Garaga enables KZG pairing checks in Cairo — the same curve math that secures Ethereum's blob commitments.",
+                color: "border-cyan-500/20 bg-cyan-950/5",
+                accent: "text-cyan-400",
+              },
+              {
+                title: "Private execution logic",
+                desc: "Cairo programs enforce policy constraints without revealing the rules. Strategy logic compiles to provable traces, not public bytecode.",
+                color: "border-emerald-500/20 bg-emerald-950/5",
+                accent: "text-emerald-400",
+              },
+              {
+                title: "Complex computation on-chain",
+                desc: "ML inference, risk models, and multi-step strategies run off-chain but settle on-chain through STARK proofs — the same infra that secures Starknet blocks.",
+                color: "border-violet-500/20 bg-violet-950/5",
+                accent: "text-violet-400",
+              },
+            ].map((item) => (
+              <div key={item.title} className={`rounded-xl border ${item.color} p-5`}>
+                <h4 className={`text-sm font-bold ${item.accent}`}>{item.title}</h4>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Build on zkde.fi ═══ */}
+      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-16">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-2xl font-bold md:text-3xl">Building on zkde.fi?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400">
+            The full API surface, circuit specs, and integration docs are
+            available. The ModelBridge is open source. The proving
+            infrastructure is StarkForge.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/docs"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-5 py-2.5 text-sm font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
+            >
+              Documentation
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="https://github.com/Obsqra-Labs/zkdefi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+            >
+              GitHub
+              <ExternalLink className="h-4 w-4" />
+            </a>
+            <a
+              href="https://starkforge.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+            >
+              StarkForge
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ Footer ═══ */}
       <section className="px-6 py-12">
         <div className="mx-auto max-w-5xl">
@@ -735,73 +712,5 @@ export default function LandingPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-/* ─── helper components ────────────────────────────────────────────── */
-
-const TAG_COLORS: Record<string, string> = {
-  emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  cyan: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400",
-  violet: "border-violet-500/30 bg-violet-500/10 text-violet-400",
-  amber: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  rose: "border-rose-500/30 bg-rose-500/10 text-rose-400",
-  teal: "border-teal-500/30 bg-teal-500/10 text-teal-400",
-};
-
-function PillarCard({
-  icon,
-  iconBg,
-  title,
-  body,
-  tag,
-  tagColor = "emerald",
-  stats,
-  details,
-}: {
-  icon: React.ReactNode;
-  iconBg: string;
-  title: string;
-  body: string;
-  tag: string;
-  tagColor?: string;
-  stats?: { value: string; label: string }[];
-  details?: string[];
-}) {
-  return (
-    <article className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/50 p-7 transition-colors hover:border-emerald-500/30">
-      <div className="mb-4 flex items-center justify-between">
-        <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${iconBg}`}>
-          {icon}
-        </div>
-        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${TAG_COLORS[tagColor] ?? TAG_COLORS.emerald}`}>
-          {tag}
-        </span>
-      </div>
-      <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-zinc-400">{body}</p>
-
-      {stats && stats.length > 0 && (
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-lg bg-zinc-800/50 px-2 py-1.5 text-center">
-              <p className="text-sm font-bold text-emerald-400">{s.value}</p>
-              <p className="text-[10px] text-zinc-500">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {details && details.length > 0 && (
-        <ul className="mt-3 flex-1 space-y-1 border-t border-zinc-800/50 pt-3">
-          {details.map((d) => (
-            <li key={d} className="flex items-start gap-1.5 text-xs text-zinc-500">
-              <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-zinc-600" />
-              <span className="font-mono">{d}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </article>
   );
 }

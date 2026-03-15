@@ -157,17 +157,16 @@ export function CapitalOSSection() {
       {/* ═══ Hero headline ═══ */}
       <div className="mx-auto max-w-3xl text-center">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-cyan-500">
-          The System — Live Demo
+          The Loop — Live Demo
         </p>
         <h2 className="text-2xl font-bold leading-tight text-zinc-100 sm:text-3xl">
-          Private identity. Verified intelligence.
-          <br className="hidden sm:block" /> Proof-gated execution.
+          Your reputation. Your oracle.
+          <br className="hidden sm:block" /> Your proof.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          Three layers, one prover pipeline. Your identity stays private but
-          compliant. The oracle validates data for AI agents. Execution happens
-          only when proofs pass. Every action produces a receipt that builds
-          your reputation.
+          Build a private identity that compounds over time.
+          Get verified data your agents can trust.
+          Execute with proof — never expose your strategy.
         </p>
       </div>
 
@@ -271,15 +270,15 @@ export function CapitalOSSection() {
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8 border-t border-zinc-800 pt-16">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge num={2} label="ZK Oracle" icon={Eye} color="cyan" />
+          <StepBadge num={2} label="Verified Intelligence" icon={Eye} color="cyan" />
           <h3 className="text-xl font-bold text-zinc-100 sm:text-2xl">
-            Verified data for agents.
+            Verified data for your agents.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-            The same prover pipeline validates the data that our AI oracle
-            and other agents ingest. Real-time pool data from{" "}
+            Real-time pool data from{" "}
             <strong className="text-cyan-300">5 Starknet protocols</strong>,
-            AI-scored and zkML-attested — alongside your reputation passport.
+            AI-scored and zkML-attested. Your agents can prove they saw legitimate
+            data, ran the right model, and made a compliant decision.
           </p>
         </div>
 
@@ -292,7 +291,7 @@ export function CapitalOSSection() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">ZK Oracle</h3>
+                  <h3 className="text-lg font-semibold text-zinc-200">Verified Intelligence</h3>
                   <p className="mt-0.5 text-xs text-zinc-500">
                     Aggregated on-chain data · AI-scored · zkML-attested
                   </p>
@@ -328,9 +327,9 @@ export function CapitalOSSection() {
             The AI acts. The loop closes.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-            The oracle scored the opportunities. Now the agent picks the best
-            one, simulates a trade, and generates a ZK receipt — all in one
-            click. Every receipt feeds back into your reputation passport.
+            The agent picks the best opportunity, simulates a trade, and
+            generates a ZK receipt — all in one click. No valid proof means
+            no execution. Every receipt feeds back into your reputation passport.
           </p>
         </div>
 
