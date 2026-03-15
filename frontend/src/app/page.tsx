@@ -20,23 +20,23 @@ import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
 const TRUST_MODES = [
   {
     mode: "Trustless",
-    desc: "Full on-chain verification. Stone STARK proof + Garaga KZG pairing check. No relayer, no intermediary.",
+    desc: "Both proofs verified on-chain. No intermediary. The contract won't execute unless the math checks out.",
     color: "text-emerald-400",
     border: "border-emerald-500/30",
     bg: "bg-emerald-500/10",
-    examples: "On-chain settlement, vault execution, privacy pool deposits",
+    examples: "Vault deposits, privacy pool entries, on-chain settlement",
   },
   {
     mode: "Trust-minimized",
-    desc: "Off-chain zkML proof, on-chain receipt + hash commitment. Verifiable but batched for throughput.",
+    desc: "Proof generated off-chain, receipt committed on-chain. You can verify it anytime — it's batched for speed.",
     color: "text-cyan-400",
     border: "border-cyan-500/30",
     bg: "bg-cyan-500/10",
-    examples: "Agent execution, strategy analysis, risk scoring",
+    examples: "Agent trades, risk scoring, strategy analysis",
   },
   {
     mode: "Delegated",
-    desc: "Session-key delegation with policy constraints. The agent acts within proof-gated bounds you define.",
+    desc: "You set the rules, the agent acts within them. Like a session key — but proof-gated.",
     color: "text-amber-400",
     border: "border-amber-500/30",
     bg: "bg-amber-500/10",
@@ -133,22 +133,40 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
 
         <div className="relative mx-auto max-w-5xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
+            Every new protocol treats you like a stranger.
+          </p>
+
+          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              Proof-gated execution
+              Private decisions.
             </span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              for private finance on Starknet.
+              Verifiable execution.
             </span>
           </h1>
 
-          <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+          <div className="mx-auto mt-5 flex items-center justify-center gap-3">
+            <span className="font-mono text-xl tracking-wide text-zinc-400 sm:text-2xl">
+              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] italic text-zinc-600">
+            <span className="text-amber-400">*</span>earned over time, never assumed
+          </p>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-300">
+            Your strategy stays private. Your reputation travels with you.
+            Every action earns a verifiable receipt on Starknet.
+          </p>
+
+          <div className="mx-auto mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {[
-              { value: "11", label: "contracts deployed" },
+              { value: "11", label: "contracts" },
               { value: "31", label: "circuits" },
               { value: "3", label: "chains" },
-              { value: "136+", label: "on-chain receipts" },
+              { value: "136+", label: "receipts" },
             ].map((s) => (
               <div key={s.label} className="flex items-baseline gap-1.5">
                 <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
@@ -156,14 +174,6 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-
-          <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-zinc-300">
-            Your strategy stays private. Your reputation is portable.
-            <br className="hidden sm:block" />
-            Your agents prove they behaved correctly.
-            <br className="hidden sm:block" />
-            All on Starknet. Every action verified on-chain.
-          </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -192,11 +202,10 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-6 text-xs text-zinc-600">
-            zkde.fi is a reference implementation of{" "}
-            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>{" "}
-            proving infrastructure.{" "}
-            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>{" "}
-            is the infra layer. This is one app built on top of it.
+            zkde.fi by{" "}
+            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>.
+            Infra layer:{" "}
+            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>.
           </p>
         </div>
       </section>
@@ -228,15 +237,14 @@ export default function LandingPage() {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-rose-400">The Problem</h3>
               </div>
               <p className="text-sm leading-relaxed text-zinc-300">
-                Automated strategies, AI models, and coordinated capital all require
-                <strong className="text-white"> exposing execution intent on-chain</strong>.
-                Other participants can front-run, copy, or exploit that visibility.
+                To use DeFi today, you reveal everything — what you&apos;re buying,
+                how much, and when. Others see it before you execute.
               </p>
               <div className="mt-4 space-y-2">
                 {[
-                  "Strategy logic visible → gets front-run or copied",
-                  "Off-chain infra is opaque → users must trust blindly",
-                  "Privacy tools hide balances but don't govern execution",
+                  "Your trading strategy is visible to everyone",
+                  "AI agents can't prove they're acting honestly",
+                  "Your track record doesn't follow you between protocols",
                 ].map((line) => (
                   <div key={line} className="flex items-start gap-2 text-xs text-zinc-500">
                     <X className="mt-0.5 h-3 w-3 shrink-0 text-rose-500/60" />
@@ -245,7 +253,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="mt-4 text-xs italic text-zinc-600">
-                Users must choose: privacy without automation, or automation without privacy.
+                Privacy or automation — today you pick one.
               </p>
             </div>
 
@@ -258,22 +266,20 @@ export default function LandingPage() {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">The Insight</h3>
               </div>
               <p className="text-sm leading-relaxed text-zinc-300">
-                Privacy should not just hide information — it should
-                <strong className="text-white"> govern execution</strong>.
-                Proofs can verify that conditions are satisfied without revealing the underlying logic.
+                What if privacy didn&apos;t just hide information — but
+                <strong className="text-white"> controlled what&apos;s allowed to happen?</strong>{" "}
+                Proofs replace trust. Receipts replace promises.
               </p>
               <div className="mt-4 rounded-lg border border-emerald-500/10 bg-emerald-950/20 p-3">
                 <pre className="text-[11px] leading-relaxed text-emerald-300/80">
-{`strategy / AI signal
-  ↓  proof verification
-  ↓  policy gate
-  ↓  execution
-  ↓  receipt`}
+{`your strategy (private)
+  ↓  proof: "conditions met"
+  ↓  execution: capital moves
+  ↓  receipt: on-chain evidence`}
                 </pre>
               </div>
               <p className="mt-4 text-xs text-zinc-500">
-                Capital moves only when proofs pass. Strategy logic stays confidential.
-                Every action produces an auditable receipt.
+                Nothing moves without proof. Nothing happens without a receipt.
               </p>
             </div>
           </div>
@@ -284,10 +290,10 @@ export default function LandingPage() {
       <section className="border-b border-zinc-800 px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Why the Proofs Are Real</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">How We Prove It</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Every technical claim on this page settles through two independent
-              verification systems across three chains. No single point of trust.
+              Two independent proof systems check every claim.
+              Both must pass. Neither can be faked.
             </p>
           </div>
 
@@ -299,15 +305,14 @@ export default function LandingPage() {
                   <Shield className="h-5 w-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-zinc-100">SNARK Verification — Garaga</h3>
-                  <p className="text-xs text-zinc-500">Groth16 KZG pairing check in Cairo</p>
+                  <h3 className="font-semibold text-zinc-100">Check #1 — The math proof</h3>
+                  <p className="text-xs text-zinc-500">Garaga verifies the SNARK on Starknet</p>
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-zinc-400">
-                Garaga verifies the SNARK (Groth16) in Cairo — the same curve math
-                that secures Ethereum blob commitments. EZKL generates the proof,
-                Garaga checks the pairing on-chain. The verifier contract is
-                auto-generated (1,904 lines of Halo2 verification logic).
+                Your AI model runs off-chain and produces a cryptographic proof.
+                Garaga checks that proof on-chain using the same math that
+                secures Ethereum. If the math doesn&apos;t check out, nothing executes.
               </p>
             </div>
 
@@ -318,15 +323,14 @@ export default function LandingPage() {
                   <Lock className="h-5 w-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-zinc-100">STARK Envelope — Stone</h3>
-                  <p className="text-xs text-zinc-500">Same prover that secures Starknet blocks</p>
+                  <h3 className="font-semibold text-zinc-100">Check #2 — The execution proof</h3>
+                  <p className="text-xs text-zinc-500">Stone wraps everything in a STARK</p>
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-zinc-400">
-                Stone wraps the execution trace in a STARK envelope — the same
-                prover infrastructure that secures Starknet blocks. The SNARK
-                lives inside the STARK. Both must pass. Neither can be faked
-                without compromising Ethereum L1 finality.
+                The same prover that secures Starknet blocks wraps your
+                entire execution in a second proof. The first proof lives
+                inside this one. Both pass or nothing happens.
               </p>
             </div>
 
@@ -371,10 +375,9 @@ export default function LandingPage() {
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">What This Enables</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">What You Can Do</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              The proof infrastructure unlocks capabilities that aren&apos;t possible
-              when trust is assumed.
+              Things that aren&apos;t possible when you have to trust the other side.
             </p>
           </div>
 
@@ -383,14 +386,14 @@ export default function LandingPage() {
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
                 <Shield className="h-5 w-5 text-cyan-300" />
               </div>
-              <h3 className="font-semibold text-zinc-100">Private Capital Flows</h3>
+              <h3 className="font-semibold text-zinc-100">Move Money Privately</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Three-tier privacy rails — strict, standard, and express — all
-                flowing through commitment → Merkle root → nullifier → selective
-                disclosure. Dark settlement on Madara L3.
+                Deposit, withdraw, and transfer without revealing amounts or
+                destinations. Three privacy levels — from full proof to
+                optimistic batching. Settlement happens on a dedicated L3.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
-                3 tiers proved · Shielded → Nullifier → Claim Hash pipeline
+                3 privacy tiers · All proved · Dark L3 settlement
               </p>
             </div>
 
@@ -398,14 +401,14 @@ export default function LandingPage() {
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600/20">
                 <Cpu className="h-5 w-5 text-violet-400" />
               </div>
-              <h3 className="font-semibold text-zinc-100">zkML-Gated Agent Decisions</h3>
+              <h3 className="font-semibold text-zinc-100">AI Agents That Prove Their Work</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Multi-processor pipelines screen every opportunity through 13 skill
-                circuits. Batch composition only executes when all proofs pass.
-                Agents prove behavior, not just intent.
+                Every agent decision runs through 13 skill checks before
+                execution. The agent can&apos;t act unless all proofs pass.
+                You can verify what it did — and what it didn&apos;t.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
-                13 skills per opportunity · 5/5 batch proofs passing
+                13 checks per trade · All must pass · Receipts on-chain
               </p>
             </div>
 
@@ -413,14 +416,14 @@ export default function LandingPage() {
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-600/20">
                 <BarChart3 className="h-5 w-5 text-amber-400" />
               </div>
-              <h3 className="font-semibold text-zinc-100">Verifiable Prediction Markets</h3>
+              <h3 className="font-semibold text-zinc-100">Predictions You Can Check</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Commit → reveal → score lifecycle with multi-horizon forecasts.
-                Trust verified via zkML proofs with full explainability and
-                on-chain scoring receipts.
+                The system makes predictions, commits them on-chain before
+                the outcome, then scores itself publicly. No cherry-picking.
+                Every forecast has a receipt.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
-                0.109 Brier score · 100% directional accuracy · 3 horizons
+                0.109 Brier score · 100% direction calls · 3 time horizons
               </p>
             </div>
           </div>
@@ -431,10 +434,10 @@ export default function LandingPage() {
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Tri-Chain Deployment</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Deployed on Three Chains</h2>
             <p className="mt-3 text-zinc-400">
-              Every technical claim on this page is backed by deployed contracts.
-              Here they are — 11 across Ethereum L1, Starknet L2, and Madara L3.
+              11 contracts across Ethereum, Starknet, and our own proof chain.
+              Every address below is live and queryable right now.
             </p>
           </div>
 
@@ -598,28 +601,28 @@ export default function LandingPage() {
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Proof-gated private finance needs an L2 purpose-built for
-              scalable verification.
+              This kind of system needs an L2 that was designed for
+              proof verification from day one.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
-                title: "Scalable proof verification",
-                desc: "Native STARK verification at L2 cost. Garaga enables KZG pairing checks in Cairo — the same curve math that secures Ethereum's blob commitments.",
+                title: "Cheap proof verification",
+                desc: "Starknet can verify proofs natively at L2 cost. The same math that secures Ethereum's data blobs runs on-chain here for pennies.",
                 color: "border-cyan-500/20 bg-cyan-950/5",
                 accent: "text-cyan-400",
               },
               {
-                title: "Private execution logic",
-                desc: "Cairo programs enforce policy constraints without revealing the rules. Strategy logic compiles to provable traces, not public bytecode.",
+                title: "Private by design",
+                desc: "Cairo programs enforce rules without revealing them. Your strategy compiles into something provable, not something readable.",
                 color: "border-emerald-500/20 bg-emerald-950/5",
                 accent: "text-emerald-400",
               },
               {
-                title: "Complex computation on-chain",
-                desc: "ML inference, risk models, and multi-step strategies run off-chain but settle on-chain through STARK proofs — the same infra that secures Starknet blocks.",
+                title: "Real computation",
+                desc: "ML models and multi-step strategies run off-chain but settle on-chain through the same proofs that secure Starknet itself.",
                 color: "border-violet-500/20 bg-violet-950/5",
                 accent: "text-violet-400",
               },
@@ -636,11 +639,10 @@ export default function LandingPage() {
       {/* ═══ Build on zkde.fi ═══ */}
       <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold md:text-3xl">Building on zkde.fi?</h2>
+          <h2 className="text-2xl font-bold md:text-3xl">Want to build on this?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400">
-            The full API surface, circuit specs, and integration docs are
-            available. The ModelBridge is open source. The proving
-            infrastructure is StarkForge.
+            API docs, circuit specs, and the open-source ModelBridge
+            are all available. The infrastructure layer is StarkForge.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
