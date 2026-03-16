@@ -2,8 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-zinc-950 text-zinc-100 antialiased;
+@layer base {
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased font-sans;
+  }
+
+  /* Editorial serif display headings */
+  .font-display {
+    font-family: var(--font-serif), Georgia, serif;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+}
+
+@layer components {
+  /* Dark section with subtle noise grain */
+  .section-dark {
+    background-color: #0a0a0a;
+    position: relative;
+  }
+  .section-dark::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .section-dark > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Light section */
+  .section-light {
+    background-color: #fafafa;
+    color: #18181b;
+  }
+
+  /* Stats number — large editorial treatment */
+  .stat-number {
+    @apply font-serif text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Proof accent — blue used ONLY for proof elements */
+  .proof-accent {
+    @apply text-blue-400;
+  }
+
+  /* Thin separator rule */
+  .rule-thin {
+    @apply border-t border-zinc-800;
+  }
+  .section-light .rule-thin {
+    @apply border-zinc-200;
+  }
 }
 
 @keyframes proof-pulse {

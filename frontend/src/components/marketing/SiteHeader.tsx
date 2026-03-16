@@ -12,11 +12,11 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/95 px-6 py-4 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 px-6 py-4 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
           <img src="/logo.png" alt="zkde.fi" className="h-8 w-8 rounded-lg object-contain" />
-          <span className="text-lg font-semibold">zkde.fi</span>
+          <span className="font-serif text-lg font-bold tracking-tight">zkde.fi</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

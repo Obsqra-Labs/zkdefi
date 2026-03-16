@@ -98,10 +98,13 @@ function StepBadge({ num, label, icon: Icon, color }: {
   color: string;
 }) {
   return (
-    <div className={`mb-3 inline-flex items-center gap-2 rounded-full border border-${color}-500/20 bg-${color}-500/5 px-3 py-1`}>
-      <Icon className={`h-3.5 w-3.5 text-${color}-400`} />
-      <span className={`text-[10px] font-bold uppercase tracking-widest text-${color}-400`}>
-        Step {num} — {label}
+    <div className="mb-3 inline-flex items-center gap-2">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
+        Step {num}
+      </span>
+      <span className="text-zinc-700">—</span>
+      <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-${color}-400`}>
+        {label}
       </span>
     </div>
   );
@@ -156,14 +159,14 @@ export function CapitalOSSection() {
     <div className="space-y-20">
       {/* ═══ Hero headline ═══ */}
       <div className="mx-auto max-w-3xl text-center">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-cyan-500">
-          The Loop — Live Demo
+        <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+          Interactive Demo
         </p>
-        <h2 className="text-2xl font-bold leading-tight text-zinc-100 sm:text-3xl">
+        <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
           Your reputation. Your oracle.
           <br className="hidden sm:block" /> Your proof.
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-4 text-sm leading-relaxed text-zinc-500">
           Build a private identity that compounds over time.
           Get verified data your agents can trust.
           Execute with proof — never expose your strategy.
@@ -176,10 +179,10 @@ export function CapitalOSSection() {
       <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
           <StepBadge num={1} label="Reputation Passport" icon={Fingerprint} color="fuchsia" />
-          <h3 className="text-xl font-bold text-zinc-100 sm:text-2xl">
+          <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             Private but compliant.
           </h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
             Your on-chain footprint is scanned and compressed into a
             ZK identity proof using an{" "}
             <strong className="text-fuchsia-300">ERC-compatible Verifiable Credential</strong>.
@@ -194,8 +197,8 @@ export function CapitalOSSection() {
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-fuchsia-500/10">
               <Fingerprint className="h-4 w-4 text-fuchsia-400" />
             </div>
-            <p className="text-xs font-semibold text-zinc-200">Identity Proof</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+            <p className="font-serif text-xs font-semibold text-zinc-200">Identity Proof</p>
+            <p className="mt-1 font-mono text-[10px] leading-relaxed text-zinc-500">
               EZKL Halo2 circuit proves your reputation tier without revealing inputs.
               Verifiable on any chain.
             </p>
@@ -204,8 +207,8 @@ export function CapitalOSSection() {
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
               <Lock className="h-4 w-4 text-violet-400" />
             </div>
-            <p className="text-xs font-semibold text-zinc-200">Private Compliance</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+            <p className="font-serif text-xs font-semibold text-zinc-200">Private Compliance</p>
+            <p className="mt-1 font-mono text-[10px] leading-relaxed text-zinc-500">
               Protocols verify your tier without seeing your wallet.
               W3C Verifiable Credential standard.
             </p>
@@ -214,8 +217,8 @@ export function CapitalOSSection() {
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10">
               <Activity className="h-4 w-4 text-cyan-400" />
             </div>
-            <p className="text-xs font-semibold text-zinc-200">Reputation Receipts</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+            <p className="font-serif text-xs font-semibold text-zinc-200">Reputation Receipts</p>
+            <p className="mt-1 font-mono text-[10px] leading-relaxed text-zinc-500">
               Every action produces a nullified receipt.
               Your reputation grows with each verified execution.
             </p>
@@ -279,10 +282,10 @@ export function CapitalOSSection() {
       <section className="space-y-8 border-t border-zinc-800 pt-16">
         <div className="mx-auto max-w-3xl text-center">
           <StepBadge num={2} label="Verified Intelligence" icon={Eye} color="cyan" />
-          <h3 className="text-xl font-bold text-zinc-100 sm:text-2xl">
+          <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             Verified data for your agents.
           </h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
             Real-time pool data from{" "}
             <strong className="text-cyan-300">5 Starknet protocols</strong>,
             AI-scored and zkML-attested. Your agents can prove they saw legitimate
@@ -299,7 +302,7 @@ export function CapitalOSSection() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">Verified Intelligence</h3>
+                  <h3 className="font-serif text-lg font-semibold text-zinc-200">Verified Intelligence</h3>
                   <p className="mt-0.5 text-xs text-zinc-500">
                     Aggregated on-chain data · AI-scored · zkML-attested
                   </p>
@@ -331,10 +334,10 @@ export function CapitalOSSection() {
       <section className="space-y-8 border-t border-zinc-800 pt-16">
         <div className="mx-auto max-w-3xl text-center">
           <StepBadge num={3} label="Gated Execution" icon={Zap} color="emerald" />
-          <h3 className="text-xl font-bold text-zinc-100 sm:text-2xl">
+          <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             The AI acts. The loop closes.
           </h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
             The agent picks the best opportunity, simulates a trade, and
             generates a ZK receipt — all in one click. No valid proof means
             no execution. Every receipt feeds back into your reputation passport.

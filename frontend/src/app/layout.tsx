@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Source_Serif_4, JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { StarknetProvider } from "@/components/zkdefi/StarknetProvider";
 import { AppProvider } from "@/lib/AppContext";
@@ -6,6 +7,26 @@ import { ToastContainer } from "@/components/zkdefi/Toast";
 import { CookieConsent } from "@/components/CookieConsent";
 import { RiskDisclosure } from "@/components/RiskDisclosure";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+const serif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  weight: ["400", "600", "700", "900"],
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
+
+const sans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "zkde.fi — Hide everything. Prove anything.",
@@ -33,14 +54,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const criticalCSS = "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#09090b;color:#f4f4f5;font-family:ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.min-h-screen{min-height:100vh}.bg-zinc-950{background:#09090b}.text-zinc-100{color:#f4f4f5}";
+  const criticalCSS = "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#09090b;color:#f4f4f5;-webkit-font-smoothing:antialiased}.min-h-screen{min-height:100vh}.bg-zinc-950{background:#09090b}.text-zinc-100{color:#f4f4f5}";
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
+    <html lang="en" className={`${serif.variable} ${mono.variable} ${sans.variable} antialiased`} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
       </head>
       <body
-        className="min-h-screen bg-zinc-950 text-zinc-100"
+        className="min-h-screen bg-zinc-950 text-zinc-100 font-sans"
         style={{
           backgroundColor: "#09090b",
           color: "#f4f4f5",
