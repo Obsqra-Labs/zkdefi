@@ -141,7 +141,7 @@ export default function LandingPage() {
             DeFi makes you choose: be private or be trusted.
           </p>
 
-          <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
+          <h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
             <span className="text-white">
               Hide everything.
             </span>
@@ -153,11 +153,11 @@ export default function LandingPage() {
 
           {/* The formula — typographic sculpture */}
           <div className="mt-12 sm:mt-16">
-            <p className="font-serif text-5xl font-bold tracking-tight text-zinc-300 sm:text-6xl md:text-7xl lg:text-[5.25rem]">
-              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
+            <p className="font-serif text-3xl font-bold tracking-tight text-zinc-300 sm:text-4xl md:text-5xl">
+              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-zinc-500">*</span>
             </p>
             <p className="mt-3 font-serif text-sm italic text-zinc-600 sm:text-base">
-              <span className="text-amber-400/70">*</span>earned over time, never assumed
+              <span className="text-zinc-500">*</span>earned over time, never assumed
             </p>
           </div>
 
@@ -176,7 +176,7 @@ export default function LandingPage() {
               { value: "136+", label: "receipts" },
             ].map((s, i) => (
               <div key={s.label} className="flex flex-col">
-                <span className="font-serif text-5xl font-bold tabular-nums tracking-tight text-emerald-400 sm:text-6xl md:text-7xl">
+                <span className="font-serif text-2xl font-bold tabular-nums tracking-tight text-emerald-400 sm:text-3xl md:text-4xl">
                   {s.value}
                 </span>
                 <span className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
@@ -230,7 +230,7 @@ export default function LandingPage() {
           <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             How it works
           </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
             Five steps. One receipt.
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">
@@ -244,22 +244,22 @@ export default function LandingPage() {
                 num: "01",
                 label: "Strategy",
                 desc: "Your private conditions compile into a provable circuit",
-                color: "text-zinc-300",
+                color: "text-zinc-400",
                 accent: "border-zinc-700",
               },
               {
                 num: "02",
                 label: "Proof",
                 desc: "EZKL generates a Halo2 SNARK — conditions met, nothing revealed",
-                color: "text-blue-400",
-                accent: "border-blue-500/30",
+                color: "text-zinc-400",
+                accent: "border-zinc-700",
               },
               {
                 num: "03",
                 label: "Verify",
                 desc: "Garaga checks the proof on-chain using pairing math",
-                color: "text-blue-400",
-                accent: "border-blue-500/30",
+                color: "text-zinc-400",
+                accent: "border-zinc-700",
               },
               {
                 num: "04",
@@ -272,8 +272,8 @@ export default function LandingPage() {
                 num: "05",
                 label: "Receipt",
                 desc: "On-chain evidence feeds back into your reputation score",
-                color: "text-amber-400",
-                accent: "border-amber-500/30",
+                color: "text-emerald-400",
+                accent: "border-emerald-500/30",
               },
             ].map((step, i) => (
               <div key={step.num} className="relative flex flex-col">
@@ -302,7 +302,7 @@ export default function LandingPage() {
           3. THE LOOP — interactive demo  (CapitalOSSection)
              Show it, let them play.
       ═══════════════════════════════════════════════════════════════ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-24 sm:py-32">
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-6xl">
           <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             Live Demo
@@ -414,7 +414,7 @@ receipt         →  on-chain evidence`}
           <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             Dual verification
           </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
             How We Prove It
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -425,7 +425,7 @@ receipt         →  on-chain evidence`}
           {/* Check 1 — massive typographic statement */}
           <div className="mt-20 border-t border-zinc-800 pt-10">
             <div className="flex items-start gap-6 sm:gap-10">
-              <span className="font-serif text-7xl font-bold leading-none tracking-tighter text-zinc-800 sm:text-8xl md:text-[120px]">
+              <span className="font-serif text-6xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
                 1
               </span>
               <div className="pt-2 sm:pt-4">
@@ -447,7 +447,7 @@ receipt         →  on-chain evidence`}
           {/* Check 2 — massive typographic statement */}
           <div className="mt-16 border-t border-zinc-800 pt-10">
             <div className="flex items-start gap-6 sm:gap-10">
-              <span className="font-serif text-7xl font-bold leading-none tracking-tighter text-zinc-800 sm:text-8xl md:text-[120px]">
+              <span className="font-serif text-6xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
                 2
               </span>
               <div className="pt-2 sm:pt-4">
@@ -489,7 +489,7 @@ receipt         →  on-chain evidence`}
                 key={tm.mode}
                 className="bg-zinc-950 p-6"
               >
-                <h4 className={`font-serif text-lg font-bold ${tm.color}`}>{tm.mode}</h4>
+                <h4 className="font-serif text-lg font-bold text-zinc-100">{tm.mode}</h4>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-500">{tm.desc}</p>
                 <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
                   {tm.examples}
@@ -564,7 +564,7 @@ receipt         →  on-chain evidence`}
           <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             Deployed infrastructure
           </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
             What&apos;s Live
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -770,7 +770,7 @@ receipt         →  on-chain evidence`}
       ═══════════════════════════════════════════════════════════════ */}
       <section className="section-dark px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-3xl">
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
             Want to build on this?
           </h2>
           <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-500">
