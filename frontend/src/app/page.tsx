@@ -9,6 +9,9 @@ import {
   BarChart3,
   X,
   Globe,
+  Zap,
+  Clock,
+  Bot,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
@@ -116,6 +119,7 @@ const ROADMAP = [
       "Production Madara L3 with economic security",
       "DAO governance with private voting",
       "Public ModelBridge SDK + developer docs",
+      "StarkForge S-two integration — 100x proving cost reduction as Starknet transitions from Stone to S-two prover",
     ],
   },
 ] as const;
@@ -147,12 +151,12 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <div className="mx-auto mt-6 flex items-center justify-center gap-3">
-            <span className="font-mono text-2xl tracking-wide text-zinc-400 sm:text-3xl md:text-4xl">
+          <div className="mx-auto mt-8 flex items-center justify-center gap-3">
+            <span className="font-mono text-3xl tracking-wide text-zinc-300 sm:text-4xl md:text-5xl">
               trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
             </span>
           </div>
-          <p className="mt-1 text-[10px] italic text-zinc-600">
+          <p className="mt-2 text-xs italic text-zinc-600">
             <span className="text-amber-400">*</span>earned over time, never assumed
           </p>
 
@@ -208,6 +212,48 @@ export default function LandingPage() {
             Infra layer:{" "}
             <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>.
           </p>
+        </div>
+      </section>
+
+      {/* ═══ Why Now ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-14">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl">
+            Why this matters <span className="text-emerald-400">now</span>
+          </h2>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {[
+              {
+                icon: <Zap className="h-5 w-5 text-rose-400" />,
+                iconBg: "bg-rose-500/10",
+                title: "Privacy just became a race.",
+                body: "Aztec launched ($170M raised). Starknet shipped STRK20 with selective disclosure. The window for first-mover position is now.",
+              },
+              {
+                icon: <Clock className="h-5 w-5 text-cyan-400" />,
+                iconBg: "bg-cyan-500/10",
+                title: "Proving costs dropped 100×.",
+                body: "Starknet's S-two prover replaced Stone with 100× efficiency gains. Verifiable execution at scale is now economically viable.",
+              },
+              {
+                icon: <Bot className="h-5 w-5 text-amber-400" />,
+                iconBg: "bg-amber-500/10",
+                title: "Agents are moving real money.",
+                body: "EigenLayer, Coinbase AgentKit, ElizaOS — the agentic economy is live. None of them can prove their agents behaved correctly. We can.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6"
+              >
+                <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${item.iconBg}`}>
+                  {item.icon}
+                </div>
+                <h3 className="text-sm font-bold text-zinc-100">{item.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -276,6 +322,13 @@ export default function LandingPage() {
                 Nothing moves without proof. Nothing happens without a receipt.
               </p>
             </div>
+          </div>
+
+          {/* Competitive differentiation line */}
+          <div className="mt-8 rounded-xl border border-emerald-500/10 bg-emerald-950/5 px-6 py-4 text-center">
+            <p className="text-sm leading-relaxed text-zinc-300">
+              On-chain credit scores exist. <strong className="text-emerald-400">ZK-proved credit scores that travel cross-protocol without disclosure don&apos;t.</strong> Until now.
+            </p>
           </div>
         </div>
       </section>
@@ -354,7 +407,7 @@ export default function LandingPage() {
           </div>
 
           {/* Trust mode tiers */}
-          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
             {TRUST_MODES.map((tm) => (
               <div
                 key={tm.mode}
@@ -366,6 +419,39 @@ export default function LandingPage() {
                   Examples
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Competitive Positioning ═══ */}
+      <section className="border-b border-zinc-800 px-6 py-16">
+        <div className="mx-auto max-w-4xl">
+          <div className="space-y-8">
+            {[
+              {
+                title: "zkML proofs, not just analytics.",
+                body: "On-chain credit scoring is well-established (Cred Protocol, Spectral, ArcX). What nobody has shipped: a ZK proof of your score that travels cross-protocol without revealing the underlying wallet data.",
+                accent: "border-emerald-500/15",
+              },
+              {
+                title: "Verifiable agents, not just verifiable compute.",
+                body: "EigenAI and Lagrange prove inference. We gate DeFi execution based on it. The proof doesn't just verify the model ran — it unlocks or blocks the capital movement.",
+                accent: "border-cyan-500/15",
+              },
+              {
+                title: "Built on Starknet because math is better than trust.",
+                body: "TEE-based verifiable compute (EigenCompute, others) requires trusting the hardware manufacturer. ZK proofs require trusting math. In a post-Tornado-Cash regulatory environment, that distinction matters.",
+                accent: "border-violet-500/15",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className={`rounded-xl border ${item.accent} bg-zinc-900/30 p-6`}
+              >
+                <h3 className="text-base font-bold text-zinc-100">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.body}</p>
               </div>
             ))}
           </div>
@@ -708,7 +794,7 @@ export default function LandingPage() {
               </a>
               <span className="text-zinc-800">·</span>
               <span className="text-xs text-zinc-600">
-                Built on Starknet · Infra by Obsqra · Powered by Stone + Garaga + EZKL
+                Built on Starknet · Infra by Obsqra · Powered by Stone → S-two + Garaga + EZKL
               </span>
               <span className="text-zinc-800">·</span>
               <a

@@ -222,6 +222,14 @@ export function CapitalOSSection() {
           </div>
         </div>
 
+        {/* Selective disclosure callout */}
+        <div className="mx-auto max-w-3xl rounded-lg border border-violet-500/10 bg-violet-950/5 px-5 py-3 text-center">
+          <p className="text-[11px] leading-relaxed text-zinc-400">
+            <strong className="text-violet-300">Selective disclosure on demand.</strong>{" "}
+            Protocols verify your tier without seeing your wallet. Regulators can request disclosure. You control the key.
+          </p>
+        </div>
+
         {/* Onboard CTA or reputation dashboard */}
         {!onboarded ? (
           <div className="flex flex-col items-center gap-4">
