@@ -12,7 +12,6 @@ import {
   Zap,
   Clock,
   Bot,
-  Fingerprint,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
@@ -133,271 +132,201 @@ export default function LandingPage() {
       <SiteHeader />
 
       {/* ═══════════════════════════════════════════════════════════════
-          1. HERO — dark, editorial, typographic confidence
+          1. HERO
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="section-dark overflow-hidden px-6 pb-32 pt-24 sm:pb-40 sm:pt-32">
-        <div className="relative mx-auto max-w-5xl">
-          <p className="mb-8 font-mono text-xs font-medium uppercase tracking-[0.25em] text-zinc-500">
+      <section className="relative overflow-hidden border-b border-zinc-800 px-6 py-24">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-950/30 via-transparent to-cyan-950/30" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
+
+        <div className="relative mx-auto max-w-5xl text-center">
+          <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
             DeFi makes you choose: be private or be trusted.
           </p>
 
-          <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-            <span className="text-white">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
               Hide everything.
             </span>
             <br />
-            <span className="text-emerald-400">
+            <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
               Prove anything.
             </span>
           </h1>
 
-          {/* The formula — typographic sculpture */}
-          <div className="mt-12 sm:mt-16">
-            <p className="font-serif text-5xl font-bold tracking-tight text-zinc-300 sm:text-6xl md:text-7xl lg:text-[5.25rem]">
+          <div className="mx-auto mt-8 flex items-center justify-center gap-3">
+            <span className="font-mono text-3xl tracking-wide text-zinc-300 sm:text-4xl md:text-5xl">
               trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
-            </p>
-            <p className="mt-3 font-serif text-sm italic text-zinc-600 sm:text-base">
-              <span className="text-amber-400/70">*</span>earned over time, never assumed
-            </p>
+            </span>
           </div>
+          <p className="mt-2 text-xs italic text-zinc-600">
+            <span className="text-amber-400">*</span>earned over time, never assumed
+          </p>
 
-          <p className="mt-10 max-w-2xl text-lg leading-relaxed text-zinc-400 sm:text-xl sm:leading-relaxed">
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
             Build an anonymous reputation anchored by ZK receipts.
             Your strategy stays hidden. Your AI agents prove they behaved.
             Your track record travels with you — without revealing who you are.
           </p>
 
-          {/* Stats — editorial data display, massive numbers */}
-          <div className="mt-16 flex flex-wrap items-end gap-8 sm:gap-12 md:gap-16">
-            {[
-              { value: "11", label: "contracts" },
-              { value: "31", label: "circuits" },
-              { value: "3", label: "chains" },
-              { value: "136+", label: "receipts" },
-            ].map((s, i) => (
-              <div key={s.label} className="flex flex-col">
-                <span className="font-serif text-5xl font-bold tabular-nums tracking-tight text-emerald-400 sm:text-6xl md:text-7xl">
-                  {s.value}
-                </span>
-                <span className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* CTAs */}
-          <div className="mt-14 flex flex-wrap items-center gap-4">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/agent"
-              className="inline-flex items-center gap-2.5 rounded-lg bg-emerald-600 px-7 py-3.5 text-sm font-semibold tracking-wide transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 font-semibold transition-colors hover:bg-emerald-500"
             >
               Launch App
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
               href="/test"
-              className="inline-flex items-center gap-2.5 rounded-lg border border-zinc-700 px-7 py-3.5 text-sm font-medium text-zinc-300 transition-colors hover:border-emerald-500/50 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-6 py-3 font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
             >
               Verify Every Claim
+              <ExternalLink className="h-4 w-4" />
             </a>
             <a
               href="https://github.com/Obsqra-Labs/zkdefi"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-300"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-6 py-3 font-medium text-zinc-200 transition-colors hover:border-cyan-500/50 hover:text-white"
             >
               GitHub
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" />
             </a>
           </div>
 
-          <p className="mt-10 text-xs leading-relaxed text-zinc-700">
-            <span className="text-zinc-500">zkde.fi</span> is the protocol.{" "}
-            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">Obsqra Labs</a>{" "}
+          <p className="mt-6 text-xs leading-relaxed text-zinc-600">
+            <span className="text-zinc-400">zkde.fi</span> is the protocol.{" "}
+            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>{" "}
             builds it.{" "}
-            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">StarkForge</a>{" "}
+            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>{" "}
             is the proving layer underneath.
           </p>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          2. THE PROOF FLOW — visual diagram, the product in one image
+          2. THE LOOP — interactive demo  (CapitalOSSection)
+             Show it first, explain after.
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="border-b border-zinc-800 bg-zinc-950 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl">
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            How it works
-          </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Five steps. One receipt.
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">
-            Every action produces a cryptographic proof that feeds back into your reputation.
-          </p>
-
-          {/* Proof flow — 5 steps as designed cards */}
-          <div className="mt-16 grid grid-cols-1 gap-0 sm:grid-cols-5">
-            {[
-              {
-                num: "01",
-                label: "Strategy",
-                desc: "Your private conditions compile into a provable circuit",
-                color: "text-zinc-300",
-                accent: "border-zinc-700",
-              },
-              {
-                num: "02",
-                label: "Proof",
-                desc: "EZKL generates a Halo2 SNARK — conditions met, nothing revealed",
-                color: "text-blue-400",
-                accent: "border-blue-500/30",
-              },
-              {
-                num: "03",
-                label: "Verify",
-                desc: "Garaga checks the proof on-chain using pairing math",
-                color: "text-blue-400",
-                accent: "border-blue-500/30",
-              },
-              {
-                num: "04",
-                label: "Execute",
-                desc: "Capital moves only if both proof systems agree",
-                color: "text-emerald-400",
-                accent: "border-emerald-500/30",
-              },
-              {
-                num: "05",
-                label: "Receipt",
-                desc: "On-chain evidence feeds back into your reputation score",
-                color: "text-amber-400",
-                accent: "border-amber-500/30",
-              },
-            ].map((step, i) => (
-              <div key={step.num} className="relative flex flex-col">
-                {/* Connector line */}
-                {i > 0 && (
-                  <div className="absolute -left-px top-8 hidden h-px w-full bg-gradient-to-r from-zinc-800 to-transparent sm:block" />
-                )}
-                <div className={`border-t-2 ${step.accent} px-4 pb-6 pt-5 sm:px-5`}>
-                  <span className="font-serif text-3xl font-bold tracking-tight text-zinc-800 sm:text-4xl">
-                    {step.num}
-                  </span>
-                  <h3 className={`mt-2 text-sm font-bold uppercase tracking-wider ${step.color}`}>
-                    {step.label}
-                  </h3>
-                  <p className="mt-2 font-mono text-[11px] leading-relaxed text-zinc-600">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          3. THE LOOP — interactive demo  (CapitalOSSection)
-             Show it, let them play.
-      ═══════════════════════════════════════════════════════════════ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-24 sm:py-32">
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            Live Demo
-          </p>
-          <h2 className="mb-12 font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-            The Loop
-          </h2>
           <CapitalOSSection />
         </div>
+
+        {/* Stats — proof of work, after the demo */}
+        <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-zinc-800 pt-6">
+          {[
+            { value: "11", label: "contracts" },
+            { value: "31", label: "circuits" },
+            { value: "3", label: "chains" },
+            { value: "136+", label: "receipts" },
+          ].map((s) => (
+            <div key={s.label} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
+              <span className="text-sm text-zinc-500">{s.label}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          4. THE PROBLEM + WHY NOW  (context for those who want it)
+          3. THE PROBLEM + WHY NOW  (context for those who want it)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="border-b border-zinc-800 px-6 py-24 sm:py-32">
+      <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
 
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            The problem
-          </p>
-
           {/* Problem / Insight side-by-side */}
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
-            <div>
-              <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
-                Transparency is the&nbsp;tax.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-zinc-400">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="rounded-2xl border border-rose-500/15 bg-rose-950/5 p-7">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600/20">
+                  <Lock className="h-4 w-4 text-rose-400" />
+                </span>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-rose-400">The Problem</h3>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-300">
                 To use DeFi today, you reveal everything — what you&apos;re buying,
                 how much, and when. Others see it before you execute.
               </p>
-              <div className="mt-6 space-y-3">
+              <div className="mt-4 space-y-2">
                 {[
                   "Your trading strategy is visible to everyone",
                   "AI agents can't prove they're acting honestly",
                   "Your track record doesn't follow you between protocols",
                 ].map((line) => (
-                  <div key={line} className="flex items-start gap-3 text-sm text-zinc-500">
-                    <X className="mt-0.5 h-4 w-4 shrink-0 text-zinc-700" />
+                  <div key={line} className="flex items-start gap-2 text-xs text-zinc-500">
+                    <X className="mt-0.5 h-3 w-3 shrink-0 text-rose-500/60" />
                     <span>{line}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div>
-              <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-emerald-400 sm:text-3xl">
-                Privacy as&nbsp;control.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-zinc-400">
+            <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/5 p-7">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600/20">
+                  <Shield className="h-4 w-4 text-emerald-400" />
+                </span>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">The Insight</h3>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-300">
                 What if privacy didn&apos;t just hide information — but
-                <strong className="text-zinc-200"> controlled what&apos;s allowed to happen?</strong>{" "}
+                <strong className="text-white"> controlled what&apos;s allowed to happen?</strong>{" "}
                 Proofs replace trust. Receipts replace promises.
               </p>
-              <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-                <pre className="font-mono text-xs leading-loose text-zinc-500">
-{`your strategy  →  private
-proof           →  "conditions met"
-execution       →  capital moves
-receipt         →  on-chain evidence`}
+              <div className="mt-4 rounded-lg border border-emerald-500/10 bg-emerald-950/20 p-3">
+                <pre className="text-[11px] leading-relaxed text-emerald-300/80">
+{`your strategy (private)
+  ↓  proof: "conditions met"
+  ↓  execution: capital moves
+  ↓  receipt: on-chain evidence`}
                 </pre>
               </div>
             </div>
           </div>
 
-          {/* Competitive diff */}
-          <div className="mt-14 border-t border-zinc-800 pt-8">
-            <p className="font-serif text-xl leading-relaxed text-zinc-300 sm:text-2xl">
-              On-chain reputation scores exist. <strong className="text-emerald-400">ZK-proved reputation that travels cross-protocol without disclosure doesn&apos;t.</strong>
+          {/* Competitive diff line */}
+          <div className="mt-6 rounded-xl border border-emerald-500/10 bg-emerald-950/5 px-6 py-4 text-center">
+            <p className="text-sm leading-relaxed text-zinc-300">
+              On-chain reputation scores exist. <strong className="text-emerald-400">ZK-proved reputation that travels cross-protocol without disclosure doesn&apos;t.</strong> Until now.
             </p>
           </div>
 
-          {/* Why Now — 3 bullets */}
-          <div className="mt-16">
-            <p className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-              Why now
-            </p>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          {/* Why Now — 3 bullets below the problem */}
+          <div className="mt-10">
+            <h3 className="mb-5 text-center text-lg font-bold text-zinc-200">
+              Why this is solvable <span className="text-emerald-400">now</span>
+            </h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {[
                 {
+                  icon: <Zap className="h-4 w-4 text-rose-400" />,
+                  iconBg: "bg-rose-500/10",
                   title: "Privacy is becoming the default.",
                   body: "Every major L2 is shipping privacy features. The question isn't if DeFi goes private — it's who builds the proof layer first.",
                 },
                 {
+                  icon: <Clock className="h-4 w-4 text-cyan-400" />,
+                  iconBg: "bg-cyan-500/10",
                   title: "Proving costs dropped 100×.",
                   body: "S-two prover replaced Stone. Verifiable execution at scale is economically viable.",
                 },
                 {
+                  icon: <Bot className="h-4 w-4 text-amber-400" />,
+                  iconBg: "bg-amber-500/10",
                   title: "Agents are moving real money.",
                   body: "EigenLayer, Coinbase AgentKit, ElizaOS — none can prove their agents behaved. We can.",
                 },
               ].map((item) => (
-                <div key={item.title}>
-                  <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.body}</p>
+                <div
+                  key={item.title}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-5 py-4"
+                >
+                  <div className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${item.iconBg}`}>
+                    {item.icon}
+                  </div>
+                  <h4 className="text-xs font-bold text-zinc-200">{item.title}</h4>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{item.body}</p>
                 </div>
               ))}
             </div>
@@ -406,149 +335,141 @@ receipt         →  on-chain evidence`}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          5. HOW WE PROVE IT — massive typographic checks, the credibility moment
+          4. HOW WE PROVE IT  (absorbs competitive + trust modes + Why Starknet)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="section-dark border-b border-zinc-800 px-6 py-28 sm:py-36">
+      <section className="border-b border-zinc-800 px-6 py-20">
         <div className="mx-auto max-w-5xl">
-
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            Dual verification
-          </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            How We Prove It
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
-            Two independent proof systems check every claim.
-            Both must pass. Neither can be faked.
-          </p>
-
-          {/* Check 1 — massive typographic statement */}
-          <div className="mt-20 border-t border-zinc-800 pt-10">
-            <div className="flex items-start gap-6 sm:gap-10">
-              <span className="font-serif text-7xl font-bold leading-none tracking-tighter text-zinc-800 sm:text-8xl md:text-[120px]">
-                1
-              </span>
-              <div className="pt-2 sm:pt-4">
-                <h3 className="font-serif text-2xl font-bold text-zinc-100 sm:text-3xl">
-                  The math proof
-                </h3>
-                <p className="mt-1 font-mono text-xs text-blue-400">
-                  Garaga verifies the SNARK on Starknet
-                </p>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">
-                  Your AI model runs off-chain and produces a cryptographic proof.
-                  Garaga checks that proof on-chain using the same math that
-                  secures Ethereum. If the math doesn&apos;t check out, nothing executes.
-                </p>
-              </div>
-            </div>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">How We Prove It</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              Two independent proof systems check every claim.
+              Both must pass. Neither can be faked.
+            </p>
           </div>
 
-          {/* Check 2 — massive typographic statement */}
-          <div className="mt-16 border-t border-zinc-800 pt-10">
-            <div className="flex items-start gap-6 sm:gap-10">
-              <span className="font-serif text-7xl font-bold leading-none tracking-tighter text-zinc-800 sm:text-8xl md:text-[120px]">
-                2
-              </span>
-              <div className="pt-2 sm:pt-4">
-                <h3 className="font-serif text-2xl font-bold text-zinc-100 sm:text-3xl">
-                  The execution proof
-                </h3>
-                <p className="mt-1 font-mono text-xs text-blue-400">
-                  Stone wraps everything in a STARK
-                </p>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">
-                  The same prover that secures Starknet blocks wraps your
-                  entire execution in a second proof. The first proof lives
-                  inside this one. Both pass or nothing happens.
-                </p>
+          {/* Dual proof system */}
+          <div className="mx-auto mt-12 max-w-3xl space-y-6">
+            <div className="rounded-xl border border-emerald-500/15 bg-emerald-950/5 p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20">
+                  <Shield className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-100">Check #1 — The math proof</h3>
+                  <p className="text-xs text-zinc-500">Garaga verifies the SNARK on Starknet</p>
+                </div>
               </div>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Your AI model runs off-chain and produces a cryptographic proof.
+                Garaga checks that proof on-chain using the same math that
+                secures Ethereum. If the math doesn&apos;t check out, nothing executes.
+              </p>
             </div>
-          </div>
 
-          {/* Settlement path */}
-          <div className="mt-16 border-t border-zinc-800 pt-8">
-            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-              Settlement path
-            </p>
-            <p className="mt-4 font-mono text-lg tracking-wide text-blue-400 sm:text-xl">
-              Madara L3 → Starknet L2 → Ethereum L1
-            </p>
-            <p className="mt-2 text-sm text-zinc-600">
-              136+ receipts on-chain. Every hash queryable via RPC.{" "}
-              <a href="/test" className="text-blue-400 underline decoration-blue-400/30 underline-offset-2 hover:decoration-blue-400">
+            <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
+                  <Lock className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-100">Check #2 — The execution proof</h3>
+                  <p className="text-xs text-zinc-500">Stone wraps everything in a STARK</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                The same prover that secures Starknet blocks wraps your
+                entire execution in a second proof. The first proof lives
+                inside this one. Both pass or nothing happens.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Settlement Path</p>
+              <p className="mt-3 font-mono text-sm text-emerald-400">
+                Madara L3 → Starknet L2 → Ethereum L1
+              </p>
+              <p className="mt-2 text-xs text-zinc-500">
+                136+ receipts on-chain. Every hash queryable via RPC.
+              </p>
+              <a
+                href="/test"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300"
+              >
                 Verify every claim →
               </a>
-            </p>
+            </div>
           </div>
 
-          {/* Trust modes — minimal */}
-          <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3">
+          {/* Trust mode tiers */}
+          <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
             {TRUST_MODES.map((tm) => (
               <div
                 key={tm.mode}
-                className="bg-zinc-950 p-6"
+                className={`rounded-xl border ${tm.border} ${tm.bg} p-5`}
               >
-                <h4 className={`font-serif text-lg font-bold ${tm.color}`}>{tm.mode}</h4>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-500">{tm.desc}</p>
-                <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
-                  {tm.examples}
+                <h4 className={`text-sm font-bold ${tm.color}`}>{tm.mode}</h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{tm.desc}</p>
+                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                  Examples
                 </p>
+                <p className="mt-0.5 text-xs text-zinc-500">{tm.examples}</p>
               </div>
             ))}
           </div>
 
-          {/* How we're different */}
-          <div className="mt-20">
-            <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-              Competitive positioning
-            </p>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          {/* How we're different — folded competitive positioning */}
+          <div className="mt-14">
+            <h3 className="mb-6 text-center text-lg font-bold text-zinc-200">How we&apos;re different</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {[
                 {
                   title: "zkML proofs, not analytics",
                   body: "Cred Protocol, Spectral, and ArcX score wallets. We prove the score in ZK — it travels cross-protocol without revealing your data.",
+                  accent: "border-emerald-500/15",
                 },
                 {
                   title: "Agents gated, not just attested",
                   body: "EigenAI and Lagrange prove inference. We gate capital movement on it. The proof unlocks or blocks the trade.",
+                  accent: "border-cyan-500/15",
                 },
                 {
                   title: "Math, not hardware trust",
                   body: "TEE-based compute trusts the chip manufacturer. ZK proofs trust math. Post-Tornado-Cash, that distinction matters.",
+                  accent: "border-violet-500/15",
                 },
               ].map((item) => (
-                <div key={item.title}>
-                  <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.body}</p>
+                <div key={item.title} className={`rounded-xl border ${item.accent} bg-zinc-900/30 p-5`}>
+                  <h4 className="text-sm font-bold text-zinc-100">{item.title}</h4>
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.body}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Why Starknet — same minimal treatment */}
-          <div className="mt-20 border-t border-zinc-800 pt-10">
-            <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-              Why Starknet
-            </p>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+          {/* Why Starknet — compact 3-col */}
+          <div className="mt-14 rounded-xl border border-zinc-800 bg-zinc-900/30 p-6">
+            <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-zinc-400">Why Starknet</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {[
                 {
                   title: "Cheap proof verification",
                   desc: "Native STARK verification at L2 cost. The same math that secures Ethereum runs on-chain for pennies.",
+                  accent: "text-cyan-400",
                 },
                 {
                   title: "Private by design",
                   desc: "Cairo enforces rules without revealing them. Your strategy compiles into something provable, not readable.",
+                  accent: "text-emerald-400",
                 },
                 {
                   title: "Real computation",
                   desc: "ML models settle on-chain through the same proofs that secure Starknet blocks. S-two prover: 100× more efficient.",
+                  accent: "text-violet-400",
                 },
               ].map((item) => (
                 <div key={item.title}>
-                  <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                  <h4 className={`text-xs font-bold ${item.accent}`}>{item.title}</h4>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -557,132 +478,142 @@ receipt         →  on-chain evidence`}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          6. WHAT'S LIVE — dashboard-style contracts + use cases
+          5. WHAT'S LIVE  (merges Live Stats + Use Cases + Tri-Chain)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="border-b border-zinc-800 px-6 py-24 sm:py-32">
+      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            Deployed infrastructure
-          </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            What&apos;s Live
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
-            11 contracts, 3 chains, 136+ receipts — everything below is deployed and queryable right now.
-          </p>
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">What&apos;s Live</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
+              11 contracts, 3 chains, 136+ receipts — everything below is deployed and queryable right now.
+            </p>
+          </div>
 
-          {/* Live stats — inline */}
-          <div className="mt-10 border-t border-zinc-800 pt-6">
+          {/* Live stats bar — inline */}
+          <div className="mb-10 rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
             <LiveStatsBanner />
           </div>
 
-          {/* Use cases — clean cards */}
-          <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
-            {[
-              {
-                icon: <Shield className="h-5 w-5 text-zinc-400" />,
-                title: "Move Money Privately",
-                body: "Deposit, withdraw, and transfer without revealing amounts or destinations. Three privacy levels — from full proof to optimistic batching.",
-                detail: "3 privacy tiers · All proved · Dark L3 settlement",
-              },
-              {
-                icon: <Cpu className="h-5 w-5 text-zinc-400" />,
-                title: "AI Agents That Prove Their Work",
-                body: "Every agent decision runs through 13 skill checks before execution. The agent can't act unless all proofs pass.",
-                detail: "13 checks per trade · All must pass · Receipts on-chain",
-              },
-              {
-                icon: <BarChart3 className="h-5 w-5 text-zinc-400" />,
-                title: "Predictions You Can Check",
-                body: "Predictions committed on-chain before the outcome, then scored publicly. No cherry-picking. Every forecast has a receipt.",
-                detail: "0.109 Brier score · 100% direction calls · 3 time horizons",
-              },
-            ].map((uc) => (
-              <div key={uc.title}>
-                <div className="mb-3">{uc.icon}</div>
-                <h3 className="font-serif text-lg font-bold text-zinc-100">{uc.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{uc.body}</p>
-                <p className="mt-3 font-mono text-[10px] text-zinc-600">{uc.detail}</p>
+          {/* Use cases — what the proof system enables */}
+          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
+                <Shield className="h-5 w-5 text-cyan-300" />
               </div>
-            ))}
+              <h3 className="font-semibold text-zinc-100">Move Money Privately</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Deposit, withdraw, and transfer without revealing amounts or
+                destinations. Three privacy levels — from full proof to
+                optimistic batching.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                3 privacy tiers · All proved · Dark L3 settlement
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600/20">
+                <Cpu className="h-5 w-5 text-violet-400" />
+              </div>
+              <h3 className="font-semibold text-zinc-100">AI Agents That Prove Their Work</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Every agent decision runs through 13 skill checks before
+                execution. The agent can&apos;t act unless all proofs pass.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                13 checks per trade · All must pass · Receipts on-chain
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-600/20">
+                <BarChart3 className="h-5 w-5 text-amber-400" />
+              </div>
+              <h3 className="font-semibold text-zinc-100">Predictions You Can Check</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Predictions committed on-chain before the outcome, then
+                scored publicly. No cherry-picking. Every forecast has a receipt.
+              </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                0.109 Brier score · 100% direction calls · 3 time horizons
+              </p>
+            </div>
           </div>
 
-          {/* Tri-chain contracts — dashboard layout */}
-          <div className="mt-20">
-            <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-              Tri-chain deployment
-            </p>
-            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3">
-              {/* Starknet L2 */}
-              <div className="bg-zinc-950">
-                <div className="border-b border-zinc-800 px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-blue-400" />
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">Starknet L2</span>
-                  </div>
-                  <p className="mt-1 font-mono text-[10px] text-zinc-600">7 Cairo contracts</p>
+          {/* Tri-chain deployment */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Starknet L2 */}
+            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+              <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-cyan-500" />
+                  <h3 className="text-sm font-semibold text-zinc-200">Starknet Sepolia (L2)</h3>
                 </div>
-                <div className="divide-y divide-zinc-800/50">
-                  {STARKNET_CONTRACTS.map((c) => (
-                    <div key={c.name} className="flex items-center justify-between px-5 py-2.5">
-                      <span className="text-xs font-medium text-zinc-300">{c.name}</span>
-                      <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
-                    </div>
-                  ))}
-                </div>
+                <p className="mt-0.5 text-[10px] text-zinc-600">7 Cairo contracts</p>
               </div>
-
-              {/* Ethereum L1 */}
-              <div className="bg-zinc-950">
-                <div className="border-b border-zinc-800 px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-violet-400" />
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">Ethereum L1</span>
+              <div className="divide-y divide-zinc-800/50">
+                {STARKNET_CONTRACTS.map((c) => (
+                  <div key={c.name} className="flex items-center justify-between px-4 py-2">
+                    <span className="text-xs text-zinc-300">{c.name}</span>
+                    <span className="font-mono text-[10px] text-zinc-600">{c.hash}</span>
                   </div>
-                  <p className="mt-1 font-mono text-[10px] text-zinc-600">4 EVM contracts</p>
-                </div>
-                <div className="divide-y divide-zinc-800/50">
-                  {ETHEREUM_CONTRACTS.map((c) => (
-                    <div key={c.name} className="px-5 py-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-zinc-300">{c.name}</span>
-                        <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
-                      </div>
-                      <p className="mt-0.5 text-[10px] text-zinc-600">{c.note}</p>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
+            </div>
 
-              {/* Madara L3 */}
-              <div className="bg-zinc-950">
-                <div className="border-b border-zinc-800 px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">Madara L3</span>
-                  </div>
-                  <p className="mt-1 font-mono text-[10px] text-zinc-600">OBSQRA_PROOF_CHAIN</p>
+            {/* Ethereum L1 */}
+            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+              <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-violet-500" />
+                  <h3 className="text-sm font-semibold text-zinc-200">Ethereum Sepolia (L1)</h3>
                 </div>
-                <div className="divide-y divide-zinc-800/50">
-                  <div className="flex items-center justify-between px-5 py-2.5">
-                    <span className="text-xs font-medium text-zinc-300">ObsqraFactRegistry</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <span className="font-mono text-[10px] text-emerald-400">Live</span>
-                    </span>
+                <p className="mt-0.5 text-[10px] text-zinc-600">4 EVM contracts</p>
+              </div>
+              <div className="divide-y divide-zinc-800/50">
+                {ETHEREUM_CONTRACTS.map((c) => (
+                  <div key={c.name} className="px-4 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-300">{c.name}</span>
+                      <span className="font-mono text-[10px] text-zinc-600">{c.hash}</span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-zinc-600">{c.note}</p>
                   </div>
-                  <div className="px-5 py-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="font-serif text-xl font-bold text-zinc-200">5 s</span>
-                        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Block time</p>
-                      </div>
-                      <div>
-                        <span className="font-serif text-xl font-bold text-zinc-200">0</span>
-                        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Gas cost</p>
-                      </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Madara L3 */}
+            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+              <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  <h3 className="text-sm font-semibold text-zinc-200">Madara L3 (Proof Chain)</h3>
+                </div>
+                <p className="mt-0.5 text-[10px] text-zinc-600">OBSQRA_PROOF_CHAIN</p>
+              </div>
+              <div className="divide-y divide-zinc-800/50">
+                <div className="px-4 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-300">ObsqraFactRegistry</span>
+                    <span className="text-[10px] text-emerald-400">Live</span>
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-zinc-600">Receipt storage + hash verification</p>
+                </div>
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div>
+                      <p className="text-sm font-bold text-emerald-400">5 s</p>
+                      <p className="text-[10px] text-zinc-600">Block time</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-400">0</p>
+                      <p className="text-[10px] text-zinc-600">Gas cost</p>
                     </div>
                   </div>
+                </div>
+                <div className="px-4 py-2 text-xs text-zinc-500">
+                  Settlement: L3 → Starknet L2 → Ethereum L1
                 </div>
               </div>
             </div>
@@ -691,66 +622,67 @@ receipt         →  on-chain evidence`}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          7. ROADMAP  (clean timeline)
+          6. ROADMAP  (compact)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="border-b border-zinc-800 px-6 py-24 sm:py-32">
+      <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-            Progress
-          </p>
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-            Roadmap
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
-            Where we are — and where we&apos;re going.
-          </p>
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">Roadmap</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-zinc-400">
+              Where we are — and where we&apos;re going.
+            </p>
+          </div>
 
-          <div className="relative mt-14">
+          <div className="relative">
             <div className="absolute left-4 top-0 hidden h-full w-px bg-zinc-800 md:block" />
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               {ROADMAP.map((phase) => (
                 <div key={phase.phase} className="relative md:pl-12">
                   <div
-                    className={`absolute left-2.5 top-2 hidden h-3 w-3 rounded-full md:block ${
+                    className={`absolute left-2.5 top-1.5 hidden h-3 w-3 rounded-full md:block ${
                       phase.status === "done"
-                        ? "bg-emerald-400"
+                        ? "bg-emerald-500"
                         : phase.status === "active"
-                          ? "bg-blue-400 ring-4 ring-blue-400/20"
+                          ? "bg-cyan-400 ring-4 ring-cyan-400/20"
                           : phase.status === "planned"
-                            ? "bg-zinc-600"
-                            : "bg-zinc-700"
+                            ? "bg-amber-500/60"
+                            : "bg-zinc-600"
                     }`}
                   />
-                  <div className="border-t border-zinc-800 pt-6">
-                    <div className="mb-3 flex items-center gap-3">
-                      <h3 className="font-serif text-base font-bold text-zinc-200">{phase.phase}</h3>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <div className="mb-2 flex items-center gap-3">
+                      <h3 className="text-base font-semibold">{phase.phase}</h3>
                       <span
-                        className={`font-mono text-[10px] uppercase tracking-widest ${
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           phase.status === "done"
-                            ? "text-emerald-400"
+                            ? "bg-emerald-500/20 text-emerald-400"
                             : phase.status === "active"
-                              ? "text-blue-400"
-                              : "text-zinc-600"
+                              ? "bg-cyan-500/20 text-cyan-400"
+                              : phase.status === "planned"
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-zinc-700/50 text-zinc-400"
                         }`}
                       >
                         {phase.status === "done"
                           ? "Complete"
                           : phase.status === "active"
                             ? "In Progress"
-                            : "Next"}
+                            : phase.status === "planned"
+                              ? "Next"
+                              : "Planned"}
                       </span>
                     </div>
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-1">
                       {phase.items.map((item) => (
-                        <li key={item} className="flex items-start gap-2.5 text-sm text-zinc-500">
+                        <li key={item} className="flex items-start gap-2 text-sm text-zinc-400">
                           <CheckCircle2
                             className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
                               phase.status === "done"
-                                ? "text-emerald-500/60"
+                                ? "text-emerald-500"
                                 : phase.status === "active"
-                                  ? "text-blue-500/60"
-                                  : "text-zinc-700"
+                                  ? "text-cyan-500"
+                                  : "text-zinc-600"
                             }`}
                           />
                           {item}
@@ -766,21 +698,19 @@ receipt         →  on-chain evidence`}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          8. CTA + FOOTER — dark close, editorial
+          7. BUILDER CTA + FOOTER  (merged)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="section-dark px-6 py-28 sm:py-36">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Want to build on this?
-          </h2>
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-500">
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-2xl font-bold md:text-3xl">Want to build on this?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400">
             API docs, circuit specs, and the open-source ModelBridge
             are all available. The infrastructure layer is StarkForge.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2.5 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-zinc-950 transition-all hover:bg-zinc-200"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 px-5 py-2.5 text-sm font-medium text-emerald-300 transition-colors hover:border-emerald-400 hover:text-white"
             >
               Documentation
               <ArrowRight className="h-4 w-4" />
@@ -789,47 +719,61 @@ receipt         →  on-chain evidence`}
               href="https://github.com/Obsqra-Labs/zkdefi"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-7 py-3.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
             >
               GitHub
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" />
             </a>
             <a
               href="https://starkforge.xyz"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-300"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
             >
               StarkForge
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" />
             </a>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mx-auto mt-24 max-w-5xl border-t border-zinc-800 pt-10">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
-            {["Starknet L2", "Ethereum L1", "Madara L3", "SNARK-in-STARK", "Open Source"].map((t) => (
-              <span key={t}>{t}</span>
+        <div className="mx-auto mt-12 max-w-5xl border-t border-zinc-800 pt-8">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-400">
+            {[
+              { icon: <CheckCircle2 className="h-4 w-4 text-emerald-400" />, text: "Starknet L2" },
+              { icon: <CheckCircle2 className="h-4 w-4 text-violet-400" />, text: "Ethereum L1" },
+              { icon: <CheckCircle2 className="h-4 w-4 text-emerald-400" />, text: "Madara L3" },
+              { icon: <Shield className="h-4 w-4 text-cyan-400" />, text: "SNARK-in-STARK" },
+              { icon: <Globe className="h-4 w-4 text-amber-400" />, text: "Open Source" },
+            ].map((b) => (
+              <div key={b.text} className="flex items-center gap-2">
+                {b.icon}
+                <span>{b.text}</span>
+              </div>
             ))}
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-serif text-sm text-zinc-500">
-              zkde.fi <span className="text-zinc-700">by</span> Obsqra Labs
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <span className="text-sm font-medium text-zinc-400">
+              zkde.fi <span className="text-zinc-600">by</span> Obsqra Labs
             </span>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <a
                 href="https://github.com/Obsqra-Labs/zkdefi"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] text-zinc-700 transition-colors hover:text-zinc-400"
+                className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
               >
                 github.com/Obsqra-Labs/zkdefi
               </a>
+              <span className="text-zinc-800">·</span>
+              <span className="text-xs text-zinc-600">
+                Built on Starknet · Infra by Obsqra · Powered by Stone → S-two + Garaga + EZKL
+              </span>
+              <span className="text-zinc-800">·</span>
               <a
                 href="/docs/why.html"
-                className="font-mono text-[10px] text-zinc-700 transition-colors hover:text-emerald-400"
+                className="text-xs text-zinc-600 transition-colors hover:text-emerald-400"
               >
                 Why we built this →
               </a>
