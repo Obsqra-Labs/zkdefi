@@ -26,11 +26,19 @@ export default defineConfig({
     }
   },
   head: [
-    ['link', { rel: 'icon', href: '/favicon.ico' }]
+    ['link', { rel: 'icon', type: 'image/png', href: '/docs/favicon.png' }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: '/docs/favicon.ico' }],
+    ['link', { rel: 'apple-touch-icon', href: '/docs/favicon.png' }],
+    ['meta', { property: 'og:title', content: 'zkde.fi Docs — Hide everything. Prove anything.' }],
+    ['meta', { property: 'og:description', content: 'Anonymous reputation. Proof-gated AI agents. Verifiable receipts. Zero-knowledge DeFi on Starknet.' }],
+    ['meta', { property: 'og:image', content: '/docs/og-banner.png' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: '/docs/og-banner.png' }],
   ],
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: '/favicon.png',
 
     nav: [
       { text: 'Home', link: '/' },

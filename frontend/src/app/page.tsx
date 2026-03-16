@@ -133,17 +133,6 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
 
         <div className="relative mx-auto max-w-5xl text-center">
-          {/* Brand mark */}
-          <div className="mx-auto mb-8 max-w-md">
-            <img
-              src="/og-banner.png"
-              alt="zkdefi — Zero Knowledge Decentralized Finance"
-              className="w-full"
-              width={928}
-              height={474}
-            />
-          </div>
-
           <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
             DeFi makes you choose: be private or be trusted.
           </p>
