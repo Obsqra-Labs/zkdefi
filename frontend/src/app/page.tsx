@@ -131,7 +131,9 @@ export default function LandingPage() {
     <main className="min-h-screen bg-zinc-950 text-white">
       <SiteHeader />
 
-      {/* ═══ Hero ═══ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          1. HERO
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden border-b border-zinc-800 px-6 py-24">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-950/30 via-transparent to-cyan-950/30" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(16,185,129,0.16),transparent_52%)]" />
@@ -215,60 +217,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Why Now ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-14">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl">
-            Why this matters <span className="text-emerald-400">now</span>
-          </h2>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {[
-              {
-                icon: <Zap className="h-5 w-5 text-rose-400" />,
-                iconBg: "bg-rose-500/10",
-                title: "Privacy just became a race.",
-                body: "Aztec launched ($170M raised). Starknet shipped STRK20 with selective disclosure. The window for first-mover position is now.",
-              },
-              {
-                icon: <Clock className="h-5 w-5 text-cyan-400" />,
-                iconBg: "bg-cyan-500/10",
-                title: "Proving costs dropped 100×.",
-                body: "Starknet's S-two prover replaced Stone with 100× efficiency gains. Verifiable execution at scale is now economically viable.",
-              },
-              {
-                icon: <Bot className="h-5 w-5 text-amber-400" />,
-                iconBg: "bg-amber-500/10",
-                title: "Agents are moving real money.",
-                body: "EigenLayer, Coinbase AgentKit, ElizaOS — the agentic economy is live. None of them can prove their agents behaved correctly. We can.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6"
-              >
-                <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${item.iconBg}`}>
-                  {item.icon}
-                </div>
-                <h3 className="text-sm font-bold text-zinc-100">{item.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ The Loop: Reputation → Oracle → Execution ═══ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
-        </div>
-      </section>
-
-      {/* ═══ Problem → Insight Bridge ═══ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          2. THE PROBLEM + WHY NOW  (merged)
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
+
+          {/* Problem / Insight side-by-side */}
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {/* The Problem */}
             <div className="rounded-2xl border border-rose-500/15 bg-rose-950/5 p-7">
               <div className="mb-4 flex items-center gap-2">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600/20">
@@ -292,12 +248,8 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs italic text-zinc-600">
-                Privacy or automation — today you pick one.
-              </p>
             </div>
 
-            {/* The Insight */}
             <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/5 p-7">
               <div className="mb-4 flex items-center gap-2">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600/20">
@@ -318,29 +270,70 @@ export default function LandingPage() {
   ↓  receipt: on-chain evidence`}
                 </pre>
               </div>
-              <p className="mt-4 text-xs text-zinc-500">
-                Nothing moves without proof. Nothing happens without a receipt.
-              </p>
             </div>
           </div>
 
-          {/* Competitive differentiation line */}
-          <div className="mt-8 rounded-xl border border-emerald-500/10 bg-emerald-950/5 px-6 py-4 text-center">
+          {/* Competitive diff line */}
+          <div className="mt-6 rounded-xl border border-emerald-500/10 bg-emerald-950/5 px-6 py-4 text-center">
             <p className="text-sm leading-relaxed text-zinc-300">
               On-chain credit scores exist. <strong className="text-emerald-400">ZK-proved credit scores that travel cross-protocol without disclosure don&apos;t.</strong> Until now.
             </p>
           </div>
+
+          {/* Why Now — 3 bullets below the problem */}
+          <div className="mt-10">
+            <h3 className="mb-5 text-center text-lg font-bold text-zinc-200">
+              Why this is solvable <span className="text-emerald-400">now</span>
+            </h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[
+                {
+                  icon: <Zap className="h-4 w-4 text-rose-400" />,
+                  iconBg: "bg-rose-500/10",
+                  title: "Privacy became a race.",
+                  body: "Aztec launched ($170M). Starknet shipped STRK20. The first-mover window is now.",
+                },
+                {
+                  icon: <Clock className="h-4 w-4 text-cyan-400" />,
+                  iconBg: "bg-cyan-500/10",
+                  title: "Proving costs dropped 100×.",
+                  body: "S-two prover replaced Stone. Verifiable execution at scale is economically viable.",
+                },
+                {
+                  icon: <Bot className="h-4 w-4 text-amber-400" />,
+                  iconBg: "bg-amber-500/10",
+                  title: "Agents are moving real money.",
+                  body: "EigenLayer, Coinbase AgentKit, ElizaOS — none can prove their agents behaved. We can.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-5 py-4"
+                >
+                  <div className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${item.iconBg}`}>
+                    {item.icon}
+                  </div>
+                  <h4 className="text-xs font-bold text-zinc-200">{item.title}</h4>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ═══ Live Starknet Data Bar ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
+      {/* ═══════════════════════════════════════════════════════════════
+          3. THE LOOP — interactive demo  (CapitalOSSection)
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
-          <LiveStatsBanner />
+          <CapitalOSSection />
         </div>
       </section>
 
-      {/* ═══ How We Prove It ═══ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          4. HOW WE PROVE IT  (absorbs competitive + trust modes + Why Starknet)
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="border-b border-zinc-800 px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
@@ -351,8 +344,8 @@ export default function LandingPage() {
             </p>
           </div>
 
+          {/* Dual proof system */}
           <div className="mx-auto mt-12 max-w-3xl space-y-6">
-            {/* Garaga */}
             <div className="rounded-xl border border-emerald-500/15 bg-emerald-950/5 p-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20">
@@ -370,7 +363,6 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Stone */}
             <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
@@ -388,7 +380,6 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Settlement path */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
               <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Settlement Path</p>
               <p className="mt-3 font-mono text-sm text-emerald-400">
@@ -407,7 +398,7 @@ export default function LandingPage() {
           </div>
 
           {/* Trust mode tiers */}
-          <div className="mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
             {TRUST_MODES.map((tm) => (
               <div
                 key={tm.mode}
@@ -422,53 +413,86 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ═══ Competitive Positioning ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-16">
-        <div className="mx-auto max-w-4xl">
-          <div className="space-y-8">
-            {[
-              {
-                title: "zkML proofs, not just analytics.",
-                body: "On-chain credit scoring is well-established (Cred Protocol, Spectral, ArcX). What nobody has shipped: a ZK proof of your score that travels cross-protocol without revealing the underlying wallet data.",
-                accent: "border-emerald-500/15",
-              },
-              {
-                title: "Verifiable agents, not just verifiable compute.",
-                body: "EigenAI and Lagrange prove inference. We gate DeFi execution based on it. The proof doesn't just verify the model ran — it unlocks or blocks the capital movement.",
-                accent: "border-cyan-500/15",
-              },
-              {
-                title: "Built on Starknet because math is better than trust.",
-                body: "TEE-based verifiable compute (EigenCompute, others) requires trusting the hardware manufacturer. ZK proofs require trusting math. In a post-Tornado-Cash regulatory environment, that distinction matters.",
-                accent: "border-violet-500/15",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className={`rounded-xl border ${item.accent} bg-zinc-900/30 p-6`}
-              >
-                <h3 className="text-base font-bold text-zinc-100">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.body}</p>
-              </div>
-            ))}
+          {/* How we're different — folded competitive positioning */}
+          <div className="mt-14">
+            <h3 className="mb-6 text-center text-lg font-bold text-zinc-200">How we&apos;re different</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[
+                {
+                  title: "zkML proofs, not analytics",
+                  body: "Cred Protocol, Spectral, and ArcX score wallets. We prove the score in ZK — it travels cross-protocol without revealing your data.",
+                  accent: "border-emerald-500/15",
+                },
+                {
+                  title: "Agents gated, not just attested",
+                  body: "EigenAI and Lagrange prove inference. We gate capital movement on it. The proof unlocks or blocks the trade.",
+                  accent: "border-cyan-500/15",
+                },
+                {
+                  title: "Math, not hardware trust",
+                  body: "TEE-based compute trusts the chip manufacturer. ZK proofs trust math. Post-Tornado-Cash, that distinction matters.",
+                  accent: "border-violet-500/15",
+                },
+              ].map((item) => (
+                <div key={item.title} className={`rounded-xl border ${item.accent} bg-zinc-900/30 p-5`}>
+                  <h4 className="text-sm font-bold text-zinc-100">{item.title}</h4>
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Why Starknet — compact 3-col */}
+          <div className="mt-14 rounded-xl border border-zinc-800 bg-zinc-900/30 p-6">
+            <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-zinc-400">Why Starknet</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {[
+                {
+                  title: "Cheap proof verification",
+                  desc: "Native STARK verification at L2 cost. The same math that secures Ethereum runs on-chain for pennies.",
+                  accent: "text-cyan-400",
+                },
+                {
+                  title: "Private by design",
+                  desc: "Cairo enforces rules without revealing them. Your strategy compiles into something provable, not readable.",
+                  accent: "text-emerald-400",
+                },
+                {
+                  title: "Real computation",
+                  desc: "ML models settle on-chain through the same proofs that secure Starknet blocks. S-two prover: 100× more efficient.",
+                  accent: "text-violet-400",
+                },
+              ].map((item) => (
+                <div key={item.title}>
+                  <h4 className={`text-xs font-bold ${item.accent}`}>{item.title}</h4>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ What This Enables ═══ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          5. WHAT'S LIVE  (merges Live Stats + Use Cases + Tri-Chain)
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">What You Can Do</h2>
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold md:text-4xl">What&apos;s Live</h2>
             <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              Things that aren&apos;t possible when you have to trust the other side.
+              11 contracts, 3 chains, 136+ receipts — everything below is deployed and queryable right now.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* Live stats bar — inline */}
+          <div className="mb-10 rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+            <LiveStatsBanner />
+          </div>
+
+          {/* Use cases — what the proof system enables */}
+          <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600/20">
                 <Shield className="h-5 w-5 text-cyan-300" />
@@ -477,7 +501,7 @@ export default function LandingPage() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 Deposit, withdraw, and transfer without revealing amounts or
                 destinations. Three privacy levels — from full proof to
-                optimistic batching. Settlement happens on a dedicated L3.
+                optimistic batching.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
                 3 privacy tiers · All proved · Dark L3 settlement
@@ -492,7 +516,6 @@ export default function LandingPage() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 Every agent decision runs through 13 skill checks before
                 execution. The agent can&apos;t act unless all proofs pass.
-                You can verify what it did — and what it didn&apos;t.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
                 13 checks per trade · All must pass · Receipts on-chain
@@ -505,30 +528,17 @@ export default function LandingPage() {
               </div>
               <h3 className="font-semibold text-zinc-100">Predictions You Can Check</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                The system makes predictions, commits them on-chain before
-                the outcome, then scores itself publicly. No cherry-picking.
-                Every forecast has a receipt.
+                Predictions committed on-chain before the outcome, then
+                scored publicly. No cherry-picking. Every forecast has a receipt.
               </p>
               <p className="mt-3 text-xs text-zinc-600">
                 0.109 Brier score · 100% direction calls · 3 time horizons
               </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ═══ Tri-Chain Deployment ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Deployed on Three Chains</h2>
-            <p className="mt-3 text-zinc-400">
-              11 contracts across Ethereum, Starknet, and our own proof chain.
-              Every address below is live and queryable right now.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* Tri-chain deployment */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Starknet L2 */}
             <div className="rounded-xl border border-zinc-800 overflow-hidden">
               <div className="border-b border-zinc-800 bg-zinc-900/60 px-4 py-3">
@@ -600,7 +610,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="px-4 py-2 text-xs text-zinc-500">
-                  Settlement path: L3 state diff → Starknet L2 → Ethereum L1 finality
+                  Settlement: L3 → Starknet L2 → Ethereum L1
                 </div>
               </div>
             </div>
@@ -608,10 +618,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Roadmap ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-950/50 px-6 py-20">
+      {/* ═══════════════════════════════════════════════════════════════
+          6. ROADMAP  (compact)
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-12 text-center">
+          <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">Roadmap</h2>
             <p className="mx-auto mt-3 max-w-2xl text-zinc-400">
               Where we are — and where we&apos;re going.
@@ -621,7 +633,7 @@ export default function LandingPage() {
           <div className="relative">
             <div className="absolute left-4 top-0 hidden h-full w-px bg-zinc-800 md:block" />
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               {ROADMAP.map((phase) => (
                 <div key={phase.phase} className="relative md:pl-12">
                   <div
@@ -635,9 +647,9 @@ export default function LandingPage() {
                             : "bg-zinc-600"
                     }`}
                   />
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-                    <div className="mb-3 flex items-center gap-3">
-                      <h3 className="text-lg font-semibold">{phase.phase}</h3>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <div className="mb-2 flex items-center gap-3">
+                      <h3 className="text-base font-semibold">{phase.phase}</h3>
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           phase.status === "done"
@@ -658,11 +670,11 @@ export default function LandingPage() {
                               : "Planned"}
                       </span>
                     </div>
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-1">
                       {phase.items.map((item) => (
                         <li key={item} className="flex items-start gap-2 text-sm text-zinc-400">
                           <CheckCircle2
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${
+                            className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
                               phase.status === "done"
                                 ? "text-emerald-500"
                                 : phase.status === "active"
@@ -682,49 +694,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Why Starknet ═══ */}
-      <section className="border-b border-zinc-800 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Why Starknet</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-zinc-400">
-              This kind of system needs an L2 that was designed for
-              proof verification from day one.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                title: "Cheap proof verification",
-                desc: "Starknet can verify proofs natively at L2 cost. The same math that secures Ethereum's data blobs runs on-chain here for pennies.",
-                color: "border-cyan-500/20 bg-cyan-950/5",
-                accent: "text-cyan-400",
-              },
-              {
-                title: "Private by design",
-                desc: "Cairo programs enforce rules without revealing them. Your strategy compiles into something provable, not something readable.",
-                color: "border-emerald-500/20 bg-emerald-950/5",
-                accent: "text-emerald-400",
-              },
-              {
-                title: "Real computation",
-                desc: "ML models and multi-step strategies run off-chain but settle on-chain through the same proofs that secure Starknet itself.",
-                color: "border-violet-500/20 bg-violet-950/5",
-                accent: "text-violet-400",
-              },
-            ].map((item) => (
-              <div key={item.title} className={`rounded-xl border ${item.color} p-5`}>
-                <h4 className={`text-sm font-bold ${item.accent}`}>{item.title}</h4>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Build on zkde.fi ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-16">
+      {/* ═══════════════════════════════════════════════════════════════
+          7. BUILDER CTA + FOOTER  (merged)
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-bold md:text-3xl">Want to build on this?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400">
@@ -759,11 +732,9 @@ export default function LandingPage() {
             </a>
           </div>
         </div>
-      </section>
 
-      {/* ═══ Footer ═══ */}
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-5xl">
+        {/* Footer */}
+        <div className="mx-auto mt-12 max-w-5xl border-t border-zinc-800 pt-8">
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-400">
             {[
               { icon: <CheckCircle2 className="h-4 w-4 text-emerald-400" />, text: "Starknet L2" },
@@ -783,7 +754,7 @@ export default function LandingPage() {
             <span className="text-sm font-medium text-zinc-400">
               zkde.fi <span className="text-zinc-600">by</span> Obsqra Labs
             </span>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <a
                 href="https://github.com/Obsqra-Labs/zkdefi"
                 target="_blank"
