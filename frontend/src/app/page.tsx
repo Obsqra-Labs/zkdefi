@@ -175,7 +175,8 @@ export default function LandingPage() {
 
           <Reveal delay={450}>
             <p className="mt-10 max-w-2xl text-lg leading-relaxed text-zinc-400 sm:text-xl sm:leading-relaxed">
-              Build an anonymous reputation anchored by ZK receipts.
+              Built for <strong className="text-zinc-200">traders</strong> who want private execution
+              and <strong className="text-zinc-200">builders</strong> who want verifiable agents.
               Your strategy stays hidden. Your AI agents prove they behaved.
               Your track record travels with you — without revealing who you are.
             </p>
