@@ -168,20 +168,6 @@ export default function LandingPage() {
             Your track record travels with you — without revealing who you are.
           </p>
 
-          <div className="mx-auto mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {[
-              { value: "11", label: "contracts" },
-              { value: "31", label: "circuits" },
-              { value: "3", label: "chains" },
-              { value: "136+", label: "receipts" },
-            ].map((s) => (
-              <div key={s.label} className="flex items-baseline gap-1.5">
-                <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
-                <span className="text-sm text-zinc-500">{s.label}</span>
-              </div>
-            ))}
-          </div>
-
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/agent"
@@ -290,8 +276,8 @@ export default function LandingPage() {
                 {
                   icon: <Zap className="h-4 w-4 text-rose-400" />,
                   iconBg: "bg-rose-500/10",
-                  title: "Privacy became a race.",
-                  body: "Aztec launched ($170M). Starknet shipped STRK20. The first-mover window is now.",
+                  title: "Privacy is becoming the default.",
+                  body: "Every major L2 is shipping privacy features. The question isn't if DeFi goes private — it's who builds the proof layer first.",
                 },
                 {
                   icon: <Clock className="h-4 w-4 text-cyan-400" />,
@@ -328,6 +314,21 @@ export default function LandingPage() {
       <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <CapitalOSSection />
+        </div>
+
+        {/* Stats — proof of work, after the demo */}
+        <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-zinc-800 pt-6">
+          {[
+            { value: "11", label: "contracts" },
+            { value: "31", label: "circuits" },
+            { value: "3", label: "chains" },
+            { value: "136+", label: "receipts" },
+          ].map((s) => (
+            <div key={s.label} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
+              <span className="text-sm text-zinc-500">{s.label}</span>
+            </div>
+          ))}
         </div>
       </section>
 
