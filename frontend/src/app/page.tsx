@@ -134,16 +134,16 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-5xl text-center">
           <p className="mb-6 text-sm font-medium tracking-wide text-zinc-500">
-            Every new protocol treats you like a stranger.
+            DeFi makes you choose: be private or be trusted.
           </p>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              Your reputation should
+              Hide everything.
             </span>
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              travel with you.
+              Prove anything.
             </span>
           </h1>
 
@@ -157,8 +157,9 @@ export default function LandingPage() {
           </p>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
-            Your strategy stays private. Your agents prove they behaved.
-            Every action earns a verifiable receipt on Starknet.
+            Build an anonymous reputation anchored by ZK receipts.
+            Your strategy stays hidden. Your AI agents prove they behaved.
+            Your track record travels with you — without revealing who you are.
           </p>
 
           <div className="mx-auto mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
