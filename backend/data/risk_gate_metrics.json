@@ -319,5 +319,33 @@
     },
     "updated_at": "2026-03-14T20:48:09.360068+00:00",
     "last_address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777"
+  },
+  "2026-03-16": {
+    "total": 1,
+    "by_gate": {
+      "relayer": {
+        "allow": 0,
+        "advisory": 1,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 1,
+        "block": 0
+      },
+      "lending": {
+        "allow": 0,
+        "advisory": 1,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "tier_below_standard": 1,
+      "no_active_session": 1,
+      "passport_letter_below_c": 1,
+      "no_credit_line": 1
+    },
+    "updated_at": "2026-03-16T03:19:04.933102+00:00",
+    "last_address": "0x064833a70acd042034d8053436dac803b7bd6c9b5b0b1725364afbe687860c32"
   }
 }

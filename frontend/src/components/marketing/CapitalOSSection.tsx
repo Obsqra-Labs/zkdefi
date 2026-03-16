@@ -196,7 +196,7 @@ export function CapitalOSSection() {
             </div>
             <p className="text-xs font-semibold text-zinc-200">Identity Proof</p>
             <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-              EZKL Halo2 circuit proves your credit score without revealing inputs.
+              EZKL Halo2 circuit proves your reputation tier without revealing inputs.
               Verifiable on any chain.
             </p>
           </div>

@@ -434,43 +434,77 @@ export function AgentExecutionLoop({
           )}
 
           {/* CTA */}
-          {!oracleResult && (
-            <div className="text-center py-4">
-              <p className="text-xs text-zinc-600">
-                Run the ZK Oracle above to feed data into the agent.
+          {!oracleResult && phase === "idle" && trades.length === 0 && (
+            <div className="space-y-3 py-2">
+              {/* Show a sample completed receipt so Step 3 is never a dead-end */}
+              <div className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-[11px] font-semibold text-zinc-200">
+                    Sample: STRK/USDC Yield Pool
+                  </span>
+                  <span className="ml-auto text-[10px] font-mono text-cyan-400">
+                    8.2% APY
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-500 italic">
+                  &quot;Allocated 40% to top-performing STRK pool based on risk tier A&quot;
+                </p>
+                <div className="flex items-center gap-2 rounded-md border border-fuchsia-500/20 bg-fuchsia-500/5 px-2.5 py-1.5">
+                  <Shield className="h-3 w-3 text-fuchsia-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] text-fuchsia-300">
+                      ✓ Verified — trade executed within risk bounds
+                    </p>
+                    <p className="font-mono text-[8px] text-zinc-600 truncate">
+                      proof: 0x7a6b…3f91 (Halo2 receipt)
+                    </p>
+                  </div>
+                  <Fingerprint className="h-3 w-3 text-fuchsia-400/40" />
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5">
+                  <Activity className="h-3 w-3 text-amber-400" />
+                  <p className="text-[10px] text-amber-300">
+                    Receipt feeds back → reputation updated → next opportunity unlocked
+                  </p>
+                  <RefreshCw className="h-3 w-3 text-amber-400/40" />
+                </div>
+              </div>
+              <p className="text-center text-[9px] text-zinc-600">
+                ↑ Sample receipt. Run the ZK Oracle in Step 2 to generate a live one.
               </p>
             </div>
           )}
 
-          {oracleResult && (
-            <div className="flex flex-col items-center gap-2 pt-1">
-              <button
-                onClick={runLoop}
-                disabled={isRunning || !oracleResult.recommended_pools?.length}
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-500 hover:to-cyan-500 hover:shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isRunning ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {PHASE_LABELS[phase]}
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4" />
-                    {loopCount === 0
-                      ? "Let the Agent Run"
-                      : `Run Again (${loopCount} done)`}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </button>
-              <p className="text-[9px] text-zinc-600">
-                {loopCount === 0
+          <div className="flex flex-col items-center gap-2 pt-1">
+            <button
+              onClick={runLoop}
+              disabled={isRunning || !oracleResult?.recommended_pools?.length}
+              className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-500 hover:to-cyan-500 hover:shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {PHASE_LABELS[phase]}
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  {loopCount === 0
+                    ? "Let the Agent Run"
+                    : `Run Again (${loopCount} done)`}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
+            <p className="text-[9px] text-zinc-600">
+              {!oracleResult
+                ? "Complete Step 2 to activate live execution"
+                : loopCount === 0
                   ? "AI picks the top oracle opportunity, executes a paper trade, and generates a ZK receipt"
                   : "Each execution produces a receipt that feeds back into your reputation passport"}
-              </p>
-            </div>
-          )}
+            </p>
+          </div>
 
           {error && (
             <p className="text-center text-[10px] text-rose-400">{error}</p>

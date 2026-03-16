@@ -7794,61 +7794,52 @@ class ShowcaseRunner:
     </section>
   </main>
   <script>
-    (() => {{
-      const mainButtons = Array.from(document.querySelectorAll("[data-main-target]"));
+    (function() {{
+      const mainTabBar = document.querySelector(".tab-nav[data-group='main']");
+      const mainButtons = mainTabBar ? Array.from(mainTabBar.querySelectorAll(".tab-btn[data-main-target]")) : [];
       const subNavs = Array.from(document.querySelectorAll(".subtab-nav[data-main]"));
       const sections = Array.from(document.querySelectorAll(".report-section[data-main-tab][data-sub-tab]"));
 
-      const activateMain = (main) => {{
-        mainButtons.forEach((btn) => {{
+      function activateMain(main) {{
+        mainButtons.forEach(function(btn) {{
           btn.classList.toggle("active", btn.dataset.mainTarget === main);
         }});
-        subNavs.forEach((nav) => {{
-          const visible = nav.dataset.main === main;
-          nav.hidden = !visible;
-          const buttons = Array.from(nav.querySelectorAll("[data-sub-target]"));
-          if (!buttons.length) {{
-            return;
-          }}
-          let active = buttons.find((btn) => btn.classList.contains("active"));
-          if (!active || active.disabled) {{
-            active = buttons[0];
-          }}
-          const targetSub = active.dataset.subTarget;
-          buttons.forEach((btn) => {{
+        subNavs.forEach(function(nav) {{
+          nav.hidden = nav.dataset.main !== main;
+          const buttons = Array.from(nav.querySelectorAll(".tab-btn[data-sub-target]"));
+          if (!buttons.length) return;
+          var activeBtn = buttons.find(function(b) {{ return b.classList.contains("active"); }});
+          if (!activeBtn) activeBtn = buttons[0];
+          var targetSub = activeBtn.dataset.subTarget;
+          buttons.forEach(function(btn) {{
             btn.classList.toggle("active", btn.dataset.subTarget === targetSub);
           }});
         }});
-        const activeSubNav = subNavs.find((nav) => nav.dataset.main === main);
-        const activeSubButton = activeSubNav?.querySelector("[data-sub-target].active") || activeSubNav?.querySelector("[data-sub-target]");
-        activateSub(main, activeSubButton ? activeSubButton.dataset.subTarget : null);
-      }};
+        var activeSubNav = subNavs.find(function(nav) {{ return nav.dataset.main === main; }});
+        var activeSubBtn = activeSubNav ? (activeSubNav.querySelector(".tab-btn.active[data-sub-target]") || activeSubNav.querySelector(".tab-btn[data-sub-target]")) : null;
+        var firstSub = activeSubNav ? Array.from(activeSubNav.querySelectorAll("[data-sub-target]"))[0] : null;
+        activateSub(main, (activeSubBtn && activeSubBtn.dataset.subTarget) ? activeSubBtn.dataset.subTarget : (firstSub ? firstSub.dataset.subTarget : null));
+      }}
 
-      const activateSub = (main, sub) => {{
-        subNavs.forEach((nav) => {{
-          if (nav.dataset.main !== main) {{
-            return;
-          }}
-          Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {{
+      function activateSub(main, sub) {{
+        if (!sub) return;
+        subNavs.forEach(function(nav) {{
+          if (nav.dataset.main !== main) return;
+          Array.from(nav.querySelectorAll("[data-sub-target]")).forEach(function(btn) {{
             btn.classList.toggle("active", btn.dataset.subTarget === sub);
           }});
         }});
-        sections.forEach((section) => {{
-          const show = section.dataset.mainTab === main && section.dataset.subTab === sub;
-          section.style.display = show ? "block" : "none";
+        sections.forEach(function(section) {{
+          section.style.display = (section.dataset.mainTab === main && section.dataset.subTab === sub) ? "block" : "none";
         }});
-      }};
+      }}
 
-      mainButtons.forEach((btn) => {{
-        btn.addEventListener("click", () => {{
-          activateMain(btn.dataset.mainTarget);
-        }});
+      mainButtons.forEach(function(btn) {{
+        btn.addEventListener("click", function() {{ activateMain(btn.dataset.mainTarget); }});
       }});
-      subNavs.forEach((nav) => {{
-        Array.from(nav.querySelectorAll("[data-sub-target]")).forEach((btn) => {{
-          btn.addEventListener("click", () => {{
-            activateSub(nav.dataset.main || "overview", btn.dataset.subTarget || "claims");
-          }});
+      subNavs.forEach(function(nav) {{
+        Array.from(nav.querySelectorAll("[data-sub-target]")).forEach(function(btn) {{
+          btn.addEventListener("click", function() {{ activateSub(nav.dataset.main || "overview", btn.dataset.subTarget || "snapshot"); }});
         }});
       }});
 

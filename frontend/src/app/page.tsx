@@ -194,17 +194,43 @@ export default function LandingPage() {
             </a>
           </div>
 
-          <p className="mt-6 text-xs text-zinc-600">
-            zkde.fi by{" "}
-            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>.
-            Infra layer:{" "}
-            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>.
+          <p className="mt-6 text-xs leading-relaxed text-zinc-600">
+            <span className="text-zinc-400">zkde.fi</span> is the protocol.{" "}
+            <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">Obsqra Labs</a>{" "}
+            builds it.{" "}
+            <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-500 underline decoration-zinc-700 hover:text-zinc-400">StarkForge</a>{" "}
+            is the proving layer underneath.
           </p>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          2. THE PROBLEM + WHY NOW  (merged)
+          2. THE LOOP — interactive demo  (CapitalOSSection)
+             Show it first, explain after.
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <CapitalOSSection />
+        </div>
+
+        {/* Stats — proof of work, after the demo */}
+        <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-zinc-800 pt-6">
+          {[
+            { value: "11", label: "contracts" },
+            { value: "31", label: "circuits" },
+            { value: "3", label: "chains" },
+            { value: "136+", label: "receipts" },
+          ].map((s) => (
+            <div key={s.label} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
+              <span className="text-sm text-zinc-500">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          3. THE PROBLEM + WHY NOW  (context for those who want it)
       ═══════════════════════════════════════════════════════════════ */}
       <section className="border-b border-zinc-800 px-6 py-16">
         <div className="mx-auto max-w-5xl">
@@ -262,7 +288,7 @@ export default function LandingPage() {
           {/* Competitive diff line */}
           <div className="mt-6 rounded-xl border border-emerald-500/10 bg-emerald-950/5 px-6 py-4 text-center">
             <p className="text-sm leading-relaxed text-zinc-300">
-              On-chain credit scores exist. <strong className="text-emerald-400">ZK-proved credit scores that travel cross-protocol without disclosure don&apos;t.</strong> Until now.
+              On-chain reputation scores exist. <strong className="text-emerald-400">ZK-proved reputation that travels cross-protocol without disclosure doesn&apos;t.</strong> Until now.
             </p>
           </div>
 
@@ -305,30 +331,6 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          3. THE LOOP — interactive demo  (CapitalOSSection)
-      ═══════════════════════════════════════════════════════════════ */}
-      <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <CapitalOSSection />
-        </div>
-
-        {/* Stats — proof of work, after the demo */}
-        <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-zinc-800 pt-6">
-          {[
-            { value: "11", label: "contracts" },
-            { value: "31", label: "circuits" },
-            { value: "3", label: "chains" },
-            { value: "136+", label: "receipts" },
-          ].map((s) => (
-            <div key={s.label} className="flex items-baseline gap-1.5">
-              <span className="font-mono text-lg font-bold text-emerald-400 sm:text-xl">{s.value}</span>
-              <span className="text-sm text-zinc-500">{s.label}</span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -770,7 +772,7 @@ export default function LandingPage() {
               </span>
               <span className="text-zinc-800">·</span>
               <a
-                href="/docs/why"
+                href="/docs/why.html"
                 className="text-xs text-zinc-600 transition-colors hover:text-emerald-400"
               >
                 Why we built this →

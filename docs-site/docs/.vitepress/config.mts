@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'zkde.fi',
   description: 'Proof-gated execution on Starknet — verifiable agent infrastructure by Obsqra Labs',
   base: '/docs/',
+  cleanUrls: true,
   markdown: {
     config(md) {
       const defaultFence = md.renderer.rules.fence
