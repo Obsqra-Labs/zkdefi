@@ -8,8 +8,10 @@ Search-first proof-aware explorer surface. Provides:
 - GET  /forge/detail/{obj_type}/{obj_id}  Shared detail view (HTML or JSON)
 - GET  /forge/lane/{lane_id}    Lane-specific page (HTML, filtered feed)
 - GET  /forge/status            Compact system status strip (JSON)
+- GET  /forge/paths             Explorer API self-description (JSON); lists all paths to follow end-to-end.
 
 This is the first public surface of StarkForge (the proving fabric).
+Feed, search, and detail responses include detail_href or href so APIs link; follow Relationships on detail pages to traverse receipt → fact → proof job → model → transaction → block.
 zkSyslog is the searchable evidence log and proof-aware explorer within it.
 
 The explorer is self-contained: it reads only from backend services and APIs
@@ -288,15 +290,17 @@ async def forge_feed(
                     proof_type = str(r.get("proof_type", "") or "").lower()
                     if lane and lane.lower() not in proof_type:
                         continue
+                    rid = r.get("tx_hash", r.get("id", ""))
                     items.append({
                         "type": "receipt",
-                        "id": r.get("tx_hash", r.get("id", "")),
+                        "id": rid,
                         "action": r.get("action", "unknown"),
                         "proof_type": r.get("proof_type", ""),
                         "result": r.get("result", ""),
                         "timestamp": r.get("timestamp", ""),
                         "fact_hash": r.get("fact_hash", ""),
                         "source": "on-chain" if r.get("tx_hash") else "runtime",
+                        "detail_href": f"detail/receipt/{quote(str(rid), safe='')}",
                     })
         except Exception as e:
             logger.warning("forge feed receipt fetch: %s", e)
@@ -311,6 +315,14 @@ async def forge_feed(
         "scope": scope or "all",
         "lane": lane,
         "items": items,
+        "paths": {
+            "self": "feed",
+            "search": "search",
+            "detail": "detail/{type}/{id}",
+            "status": "status",
+            "health": "health",
+            "proving": "proving",
+        },
     }
 
 
@@ -351,12 +363,14 @@ async def forge_search(
                         if q:
                             if q.lower() not in searchable:
                                 continue
+                        rid = r.get("tx_hash", r.get("id", ""))
                         results["receipts"].append({
-                                "id": r.get("tx_hash", r.get("id", "")),
+                                "id": rid,
                                 "action": r.get("action", ""),
                                 "proof_type": r.get("proof_type", ""),
                                 "timestamp": r.get("timestamp", ""),
                                 "source": "on-chain" if r.get("tx_hash") else "runtime",
+                                "detail_href": f"detail/receipt/{quote(str(rid), safe='')}",
                             })
                     if scope == "txs":
                         results["receipts"] = [x for x in results["receipts"] if x.get("id", "").startswith("0x")]
@@ -376,7 +390,7 @@ async def forge_search(
             s = " ".join(str(v) for v in p.values()).lower()
             if q and q.lower() not in s:
                 continue
-            results["proofs"].append({"id": p["id"], "proof_type": p.get("proof_type", ""), "model_name": p.get("model_name", ""), "verified": p.get("verified", False)})
+            results["proofs"].append({"id": p["id"], "proof_type": p.get("proof_type", ""), "model_name": p.get("model_name", ""), "verified": p.get("verified", False), "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}"})
         results["proofs"] = results["proofs"][offset: offset + limit]
 
     if scope in (None, "all", "models"):
@@ -384,15 +398,12 @@ async def forge_search(
             s = (m.get("name") or m.get("id") or "").lower()
             if q and q.lower() not in s:
                 continue
-            results["models"].append({"id": m["id"], "name": m.get("name", m["id"]), "ready": m.get("ready", False)})
+            results["models"].append({"id": m["id"], "name": m.get("name", m["id"]), "ready": m.get("ready", False), "detail_href": f"detail/model/{quote(str(m['id']), safe='')}"})
         results["models"] = results["models"][offset: offset + limit]
 
     if scope in (None, "all", "contracts") and q and re.fullmatch(r"0x[0-9a-fA-F]{40,}", q.strip()):
-        results["contracts"].append({"id": q.strip(), "address": q.strip()})
-        results["contracts"] = results["contracts"][offset: offset + limit]
-
-    if scope in (None, "all", "contracts") and q and re.fullmatch(r"0x[0-9a-fA-F]{40,}", q.strip()):
-        results["contracts"].append({"id": q.strip(), "address": q.strip()})
+        addr = q.strip()
+        results["contracts"].append({"id": addr, "address": addr, "detail_href": f"detail/contract/{quote(addr, safe='')}"})
         results["contracts"] = results["contracts"][offset: offset + limit]
 
     if scope in (None, "all", "facts"):
@@ -410,7 +421,7 @@ async def forge_search(
                     seen_f.add(fh)
                     if q and q.lower() not in str(fh).lower():
                         continue
-                    results["facts"].append({"id": str(fh), "fact_hash": str(fh)})
+                    results["facts"].append({"id": str(fh), "fact_hash": str(fh), "detail_href": f"detail/fact/{quote(str(fh), safe='')}"})
                 results["facts"] = results["facts"][offset: offset + limit]
             except Exception:
                 pass
@@ -434,6 +445,12 @@ async def forge_search(
         "limit": limit,
         "has_more": has_more,
         "results": results,
+        "paths": {
+            "self": "search",
+            "feed": "feed",
+            "detail": "detail/{type}/{id}",
+            "status": "status",
+        },
     }
 
 
@@ -485,6 +502,10 @@ a:hover {{ text-decoration: underline; }}
 .container {{ max-width: 1000px; margin: 0 auto; }}
 h1 {{ font-size: 18px; margin-bottom: 8px; }}
 nav {{ margin-bottom: 16px; font-size: 13px; }}
+.breadcrumb {{ font-size: 12px; color: var(--muted); }}
+.breadcrumb a {{ color: var(--emerald); }}
+.breadcrumb-sep {{ margin: 0 6px; color: var(--muted); }}
+.breadcrumb-id {{ font-size: 11px; word-break: break-all; }}
 .detail-panes {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }}
 .pane {{ background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }}
 .pane h3 {{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 12px; }}
@@ -498,7 +519,7 @@ nav {{ margin-bottom: 16px; font-size: 13px; }}
 </head>
 <body>
 <div class="container">
-<nav><a href="../..">← zkSyslog</a></nav>
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../..">zkSyslog</a> <span class="breadcrumb-sep">→</span> <span>{escape(obj_type)}</span> <span class="breadcrumb-sep">→</span> <code class="breadcrumb-id">{escape(obj_id[:32])}{"…" if len(obj_id) > 32 else ""}</code></nav>
 <h1>{escape(obj_type)} detail</h1>
 <p class="muted" style="font-size:12px">{escape(obj_id)}</p>
 <div class="detail-panes">
@@ -716,15 +737,46 @@ async def forge_detail(
             except Exception:
                 pass
 
+    for rel in relationships:
+        rel["href"] = f"detail/{quote(str(rel.get('type', '')), safe='')}/{quote(str(rel.get('id', '')), safe='')}"
     payload = {
         "generated_at": _ts(),
         "summary": summary,
         "verification_timeline": timeline,
         "relationships": relationships,
+        "self_href": f"detail/{quote(obj_type, safe='')}/{quote(obj_id, safe='')}",
+        "paths": {
+            "home": "..",
+            "feed": "feed",
+            "search": "search",
+            "status": "status",
+            "detail": "detail/{type}/{id}",
+        },
     }
     if "text/html" in request.headers.get("accept", ""):
         return HTMLResponse(_render_detail_html(obj_type, obj_id, payload))
     return JSONResponse(payload)
+
+
+@router.get("/paths", summary="Explorer API paths (self-description)")
+async def forge_paths() -> dict[str, Any]:
+    """Returns the explorer surface: every path you can follow. Use these to traverse end-to-end."""
+    return {
+        "service": "starkforge-zksyslog",
+        "description": "Proof-aware evidence explorer. Follow links in feed, search, and detail to traverse receipts → facts → proof jobs → models → transactions → blocks.",
+        "paths": {
+            "home": {"method": "GET", "path": "", "description": "Explorer homepage (HTML)"},
+            "feed": {"method": "GET", "path": "feed", "description": "Latest proof-backed receipts; each item has detail_href"},
+            "search": {"method": "GET", "path": "search", "description": "Unified search; results have detail_href per item"},
+            "detail": {"method": "GET", "path": "detail/{type}/{id}", "description": "Any object; relationships include href to related objects"},
+            "status": {"method": "GET", "path": "status", "description": "System status (receipts, proofs, lanes)"},
+            "health": {"method": "GET", "path": "health", "description": "Health (HTML)"},
+            "proving": {"method": "GET", "path": "proving", "description": "Proving stats (HTML)"},
+            "lane": {"method": "GET", "path": "lane/{lane_id}", "description": "Feed filtered by proving lane"},
+        },
+        "object_types": ["receipt", "fact", "proof_job", "model", "transaction", "block", "contract", "entity"],
+        "evidence_flow": "action → proof job → fact → L3 tx → block (follow Relationships on each detail page)",
+    }
 
 
 @router.get("/lane/{lane_id}", response_class=HTMLResponse, summary="Lane-specific explorer page")
@@ -1112,6 +1164,24 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       color: var(--muted);
       margin-bottom: 8px;
     }}
+    .paths-section {{
+      margin-top: 24px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      font-size: 12px;
+      color: var(--muted);
+    }}
+    .paths-section h3 {{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }}
+    .paths-section a {{ color: var(--link); }}
+    .paths-section code {{ font-size: 11px; color: var(--emerald); }}
 
     /* ── Search results ── */
     #search-results {{
@@ -1264,6 +1334,14 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       {lanes_html}
     </div>
 
+    <!-- Explorer surface: follow paths end-to-end -->
+    <div class="paths-section">
+      <h3>Explorer API</h3>
+      <p class="paths-desc">This surface is proof-aware, not just L3. Follow <strong>Feed</strong> and <strong>Search</strong> into <strong>Detail</strong>; on each detail page use <strong>Relationships</strong> to go to linked facts, transactions, blocks, proof jobs, models. Every API response includes <code>detail_href</code> or <code>href</code> so you can traverse without constructing URLs.</p>
+      <p class="paths-flow"><strong>Evidence flow:</strong> action → proof job → fact → L3 tx → block</p>
+      <p><a href="paths" class="muted-link">Paths (JSON)</a> · <a href="feed" class="muted-link">Feed</a> · <a href="search" class="muted-link">Search</a> · <a href="status" class="muted-link">Status</a></p>
+    </div>
+
     <footer class="explorer-footer">
       <span>StarkForge / zkSyslog &mdash; Obsqra Labs</span>
       <span>Generated: {status.get("generated_at", "")}</span>
@@ -1392,26 +1470,6 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       const params = new URLSearchParams(window.location.search);
       const lane = params.get("lane");
       const q = params.get("q");
-      const scope = params.get("scope");
-      if (scope && ["all","receipts","txs","facts","proofs","contracts","models","entities"].indexOf(scope) >= 0) {{
-        activeScope = scope;
-        scopeChips.forEach(function(c) {{ c.classList.toggle("active", c.dataset.scope === scope); }});
-      }}
-      if (lane) {{
-        searchInput.value = lane;
-        searchResults.style.display = "block";
-        doSearch();
-      }} else if (q || scope) {{
-        if (q) searchInput.value = q;
-        searchResults.style.display = "block";
-        doSearch();
-      }}
-    }})();
-  </script>
-</body>
-</html>"""
-    return HTMLResponse(content=html)
-et("q");
       const scope = params.get("scope");
       if (scope && ["all","receipts","txs","facts","proofs","contracts","models","entities"].indexOf(scope) >= 0) {{
         activeScope = scope;

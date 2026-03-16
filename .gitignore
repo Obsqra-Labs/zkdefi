@@ -68,3 +68,27 @@ frontend.backup*/
 frontend.preview*/
 *.bak
 deploy_*_results.json
+
+# Development status files
+.HANDOFF-STATUS
+.PHASE*-STATUS
+.PHASE*-COMPLETE
+.PROJECT-STATUS
+*.COMPLETE.txt
+TRADE_DESK_IMPLEMENTATION_COMPLETE.txt
+.cursor/
+
+# Deployment markers
+*.deployed
+
+# Stray images / Figma exports
+*.png
+!frontend/public/*.png
+!docs-site/docs/public/*.png
+!docs-site/docs/.vitepress/dist/*.png
+
+# Generated artifacts
+artifacts/
+
+# Figma files
+*.fig

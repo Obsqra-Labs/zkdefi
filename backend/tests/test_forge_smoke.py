@@ -74,6 +74,14 @@ def test_forge_search_pagination(client):
     assert r.status_code == 200
     d = r.json()
     assert d.get("limit") == 5 and d.get("offset") == 0 and "has_more" in d
+def test_forge_paths(client):
+    r = client.get(BASE + "/paths")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    d = r.json()
+    assert "paths" in d and "detail" in d["paths"]
+    assert "object_types" in d and "receipt" in d["object_types"]
 def test_forge_detail_fact(client):
     r = client.get(BASE + "/detail/fact/0xabc123")
     if r.status_code == 404:

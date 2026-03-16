@@ -1,5 +1,7 @@
 # zkde.fi — Provable Receipt OS for Starknet
 
+> **Start at [zkde.fi/test](https://zkde.fi/test) — every claim below is verifiable there in under 60 seconds.** Judges: see [JUDGES.md](JUDGES.md) for a quick routing guide.
+
 > Every computation — human or AI — produces a verifiable receipt.
 > Receipts compose recursively. Reputation emerges from receipts.
 
