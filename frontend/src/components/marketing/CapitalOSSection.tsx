@@ -7,8 +7,6 @@ import {
   ArrowRight,
   Activity,
   Lock,
-  Eye,
-  Zap,
 } from "lucide-react";
 import { ReputationProfile, type ReputationData } from "./ReputationProfile";
 import { apiFetch } from "@/lib/api/client";
@@ -91,21 +89,23 @@ function StepSkeleton() {
 }
 
 /* ── step badge ── */
-function StepBadge({ num, label, icon: Icon, color }: {
-  num: number;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-}) {
+function StepBadge({ label, color }: { label: string; color: string }) {
   return (
     <div className="mb-3 inline-flex items-center gap-2">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
-        Step {num}
-      </span>
-      <span className="text-zinc-700">—</span>
       <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-${color}-400`}>
-        {label}
+        ◆ {label}
       </span>
+    </div>
+  );
+}
+
+/* ── flow connector between steps ── */
+function FlowConnector({ text }: { text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-2">
+      <div className="h-10 w-px border-l border-dashed border-zinc-700" />
+      <span className="font-mono text-[10px] text-zinc-500">{text}</span>
+      <div className="text-lg text-zinc-600">▾</div>
     </div>
   );
 }
@@ -156,20 +156,20 @@ export function CapitalOSSection() {
   }, []);
 
   return (
-    <div className="space-y-20">
+    <div className="space-y-16">
       {/* ═══ Hero headline ═══ */}
       <div className="mx-auto max-w-3xl text-center">
         <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
           Interactive Demo
         </p>
         <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
-          Your reputation. Your oracle.
-          <br className="hidden sm:block" /> Your proof.
+          The loop that makes
+          <br className="hidden sm:block" /> private DeFi work.
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-zinc-500">
-          Build a private identity that compounds over time.
-          Get verified data your agents can trust.
-          Execute with proof — never expose your strategy.
+          How does a trader execute privately without losing their track record?
+          <br className="hidden sm:block" />
+          Three answers. One loop.
         </p>
       </div>
 
@@ -178,16 +178,16 @@ export function CapitalOSSection() {
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge num={1} label="Reputation Passport" icon={Fingerprint} color="fuchsia" />
+          <StepBadge label="Reputation" color="fuchsia" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
-            Private but compliant.
+            Your reputation, proven privately.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
-            Your on-chain footprint is scanned and compressed into a
-            ZK identity proof using an{" "}
-            <strong className="text-fuchsia-300">ERC-compatible Verifiable Credential</strong>.
-            Your identity takes actions and earns reputation through receipts —
-            without ever revealing your positions, balances, or strategy.
+            Your DeFi history — positions, protocols, capital — is compressed into a
+            single{" "}
+            <strong className="text-fuchsia-300">ZK identity proof</strong>.
+            Protocols see your tier and credit class. They never see your wallet,
+            your balances, or your strategy. The proof travels with you.
           </p>
         </div>
 
@@ -277,19 +277,24 @@ export function CapitalOSSection() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Connector: Step 1 → Step 2                               */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <FlowConnector text="↓ This proof travels with you" />
+
+      {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 2 — ZK Oracle (always visible)                      */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="space-y-8 border-t border-zinc-800 pt-16">
+      <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge num={2} label="Verified Intelligence" icon={Eye} color="cyan" />
+          <StepBadge label="Oracle" color="cyan" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
-            Verified data for your agents.
+            Verified data for your agent.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
-            Real-time pool data from{" "}
-            <strong className="text-cyan-300">5 Starknet protocols</strong>,
-            AI-scored and zkML-attested. Your agents can prove they saw legitimate
-            data, ran the right model, and made a correct decision.
+            <strong className="text-cyan-300">62+ pools</strong> from 5 Starknet protocols,
+            AI-scored across 13 circuit checks and zkML-attested. Your agent picks the
+            best opportunity — and can prove it saw legitimate data, ran the right model,
+            and made a correct decision.
           </p>
         </div>
 
@@ -329,18 +334,25 @@ export function CapitalOSSection() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Connector: Step 2 → Step 3                               */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <FlowConnector text="↓ The top opportunity flows into execution" />
+
+      {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 3 — Gated Execution                                 */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="space-y-8 border-t border-zinc-800 pt-16">
+      <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge num={3} label="Gated Execution" icon={Zap} color="emerald" />
+          <StepBadge label="Execution" color="emerald" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
-            The AI acts. The loop closes.
+            The trade fires. The loop closes.
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
-            The agent picks the best opportunity, simulates a trade, and
-            generates a ZK receipt — all in one click. No valid proof means
-            no execution. Every receipt feeds back into your reputation passport.
+            The oracle result pre-fills the execution path. The agent simulates,
+            executes, and generates a{" "}
+            <strong className="text-emerald-300">ZK receipt</strong> — all in one click.
+            No valid proof means no execution. Every receipt feeds back into your
+            reputation passport. The loop closes.
           </p>
         </div>
 
@@ -349,9 +361,25 @@ export function CapitalOSSection() {
           <AgentExecutionLoopLazy
             oracleResult={oracleResult}
             walletAddress={DEMO_ADDRESS}
+            reputation={reputation}
           />
         </Suspense>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Builder callout                                           */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="mx-auto max-w-3xl border-t border-zinc-800 pt-8 text-center">
+        <p className="font-mono text-[11px] text-zinc-500">
+          Building an agent? The same proof pipeline is available as an API.{" "}
+          <a
+            href="/docs"
+            className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+          >
+            Start at zkde.fi/docs →
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

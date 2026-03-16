@@ -62,6 +62,16 @@
   100% { transform: scale(1); }
 }
 
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ring-pulse {
+  animation: ring-pulse 1.5s ease-out;
+}
+
 /* Glassmorphism utility */
 .glass {
   background: rgba(24, 24, 27, 0.7);

@@ -80,11 +80,13 @@ const SAFETY_COLOR: Record<string, string> = {
 interface AgentExecutionLoopProps {
   oracleResult: AnalysisResult | null;
   walletAddress?: string;
+  reputation?: { fico_score?: number; credit_class?: string; recommended_tier?: number } | null;
 }
 
 export function AgentExecutionLoop({
   oracleResult,
   walletAddress = DEMO_ADDRESS,
+  reputation,
 }: AgentExecutionLoopProps) {
   const [phase, setPhase] = useState<LoopPhase>("idle");
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
@@ -93,7 +95,19 @@ export function AgentExecutionLoop({
   const [currentProof, setCurrentProof] = useState<ProofReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loopCount, setLoopCount] = useState(0);
+  const [justActivated, setJustActivated] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const prevOracleRef = useRef<AnalysisResult | null>(null);
+
+  // Activation pulse when oracle data first arrives
+  useEffect(() => {
+    if (oracleResult && !prevOracleRef.current) {
+      setJustActivated(true);
+      const t = setTimeout(() => setJustActivated(false), 1500);
+      return () => clearTimeout(t);
+    }
+    prevOracleRef.current = oracleResult;
+  }, [oracleResult]);
 
   // Reset when oracle result changes
   useEffect(() => {
@@ -201,6 +215,9 @@ export function AgentExecutionLoop({
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
               Oracle Feed → Agent Input
             </span>
+            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/5 px-2 py-0.5 text-[8px] font-semibold text-cyan-400">
+              Pre-filled from oracle analysis
+            </span>
             <span className="ml-auto text-[9px] text-zinc-600">
               {oracleResult.confidence_score
                 ? `${(oracleResult.confidence_score * 100).toFixed(0)}% confidence`
@@ -212,6 +229,22 @@ export function AgentExecutionLoop({
               {oracleResult.summary_text ||
                 `${oracleResult.risk_profile} profile · ${topPools.length} pools scored · proof ${oracleResult.analysis_proof_hash?.slice(0, 12)}…`}
             </p>
+            {reputation && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-fuchsia-500/20 bg-fuchsia-500/5 px-3 py-1">
+                <Fingerprint className="h-3 w-3 text-fuchsia-400" />
+                <span className="text-[10px] font-medium text-fuchsia-300">
+                  Passport: Tier {reputation.recommended_tier} · FICO {reputation.fico_score} · Credit {reputation.credit_class}
+                </span>
+              </div>
+            )}
+            {!reputation && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 opacity-50">
+                <Fingerprint className="h-3 w-3 text-zinc-600" />
+                <span className="text-[10px] text-zinc-600">
+                  No passport attached — Step 1 generates your identity proof
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {topPools.map((pool) => {
                 const isSelected = selectedPool?.pool_id === pool.pool_id;
@@ -271,7 +304,9 @@ export function AgentExecutionLoop({
       )}
 
       {/* ── Execution timeline ── */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950/80 overflow-hidden">
+      <div className={`rounded-xl border bg-zinc-950/80 overflow-hidden transition-colors duration-500 ${
+        oracleResult ? 'border-emerald-500/30' : 'border-zinc-800'
+      }${justActivated ? ' ring-pulse' : ''}`}>
         <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/50 bg-zinc-900/50">
           <Zap className="h-4 w-4 text-emerald-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
@@ -480,7 +515,7 @@ export function AgentExecutionLoop({
             <button
               onClick={runLoop}
               disabled={isRunning || !oracleResult?.recommended_pools?.length}
-              className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-500 hover:to-cyan-500 hover:shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-500 hover:to-cyan-500 hover:shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed${justActivated ? ' animate-pulse shadow-emerald-500/40' : ''}`}
             >
               {isRunning ? (
                 <>
