@@ -8,11 +8,23 @@ import { RiskDisclosure } from "@/components/RiskDisclosure";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
-  title: "zkde.fi by Obsqra Labs | zkDE + GATE",
-  description: "zkde.fi — First GATE-compatible app. Zero-Knowledge Deterministic Engine (zkDE) + Governed Autonomous Trustless Execution (GATE). Trustless AI execution on Starknet. Proof-gated autonomous agent for private DeFi. Starknet Re{define} Hackathon (Privacy track). Open source.",
+  title: "zkde.fi — Hide everything. Prove anything.",
+  description: "Zero-knowledge DeFi on Starknet. Build an anonymous reputation anchored by ZK receipts. Your strategy stays hidden. Your AI agents prove they behaved.",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
+  },
+  openGraph: {
+    title: "zkde.fi — Hide everything. Prove anything.",
+    description: "Anonymous reputation. Proof-gated AI agents. Verifiable receipts. Zero-knowledge DeFi on Starknet.",
+    images: [{ url: "/og-banner.png", width: 928, height: 474, alt: "zkdefi — Zero Knowledge Decentralized Finance" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "zkde.fi — Hide everything. Prove anything.",
+    description: "Anonymous reputation. Proof-gated AI agents. Verifiable receipts on Starknet.",
+    images: ["/og-banner.png"],
   },
 };
 
