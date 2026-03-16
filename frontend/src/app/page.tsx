@@ -182,13 +182,29 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Stats — editorial data display, massive gradient numbers */}
-          <div className="mt-16 flex flex-wrap items-end gap-8 sm:gap-12 md:gap-16">
+          {/* Stats — editorial data display with breakdowns */}
+          <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 sm:gap-x-12 md:gap-x-16">
             {[
-              { value: "11", label: "contracts" },
-              { value: "31", label: "circuits" },
-              { value: "3", label: "chains" },
-              { value: "136+", label: "receipts" },
+              {
+                value: "11",
+                label: "contracts",
+                breakdown: "7 Cairo · 4 Solidity",
+              },
+              {
+                value: "31+",
+                label: "circuits",
+                breakdown: "31 Groth16 · 5 EZKL · 1 Noir",
+              },
+              {
+                value: "3",
+                label: "chains",
+                breakdown: "Madara L3 → Starknet L2 → Ethereum L1",
+              },
+              {
+                value: "136+",
+                label: "receipts",
+                breakdown: "users · agents · wallets · protocols",
+              },
             ].map((s, i) => (
               <Reveal key={s.label} delay={550 + i * 100}>
                 <div className="flex flex-col">
@@ -197,6 +213,9 @@ export default function LandingPage() {
                   </span>
                   <span className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
                     {s.label}
+                  </span>
+                  <span className="mt-1.5 font-mono text-[10px] leading-relaxed text-zinc-700">
+                    {s.breakdown}
                   </span>
                 </div>
               </Reveal>
