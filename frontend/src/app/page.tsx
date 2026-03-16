@@ -137,27 +137,22 @@ export default function LandingPage() {
             Every new protocol treats you like a stranger.
           </p>
 
-          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+          <h1 className="mx-auto mt-2 font-mono text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              Private decisions.
+              trust
             </span>
-            <br />
+            <span className="text-zinc-500"> = </span>
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              Verifiable execution.
+              Σ(receipts)
             </span>
+            <span className="text-amber-400">*</span>
           </h1>
-
-          <div className="mx-auto mt-5 flex items-center justify-center gap-3">
-            <span className="font-mono text-xl tracking-wide text-zinc-400 sm:text-2xl">
-              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
-            </span>
-          </div>
-          <p className="mt-1 text-[10px] italic text-zinc-600">
+          <p className="mt-2 text-xs italic text-zinc-600">
             <span className="text-amber-400">*</span>earned over time, never assumed
           </p>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-300">
-            Your strategy stays private. Your reputation travels with you.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
+            Your reputation travels with you. Your strategy stays private.
             Every action earns a verifiable receipt on Starknet.
           </p>
 
@@ -214,13 +209,6 @@ export default function LandingPage() {
       <section id="capital-os" className="scroll-mt-8 border-b border-zinc-800 bg-zinc-950/50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <CapitalOSSection />
-        </div>
-      </section>
-
-      {/* ═══ Live Starknet Data Bar ═══ */}
-      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
-        <div className="mx-auto max-w-6xl">
-          <LiveStatsBanner />
         </div>
       </section>
 
@@ -286,7 +274,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Why the Proofs Are Real ═══ */}
+      {/* ═══ Live Starknet Data Bar ═══ */}
+      <section className="border-b border-zinc-800 bg-zinc-900/30 px-6 py-3">
+        <div className="mx-auto max-w-6xl">
+          <LiveStatsBanner />
+        </div>
+      </section>
+
+      {/* ═══ How We Prove It ═══ */}
       <section className="border-b border-zinc-800 px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
@@ -709,6 +704,13 @@ export default function LandingPage() {
               <span className="text-xs text-zinc-600">
                 Built on Starknet · Infra by Obsqra · Powered by Stone + Garaga + EZKL
               </span>
+              <span className="text-zinc-800">·</span>
+              <a
+                href="/docs/why"
+                className="text-xs text-zinc-600 transition-colors hover:text-emerald-400"
+              >
+                Why we built this →
+              </a>
             </div>
           </div>
         </div>

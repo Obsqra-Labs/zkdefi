@@ -278,7 +278,7 @@ export function CapitalOSSection() {
             Real-time pool data from{" "}
             <strong className="text-cyan-300">5 Starknet protocols</strong>,
             AI-scored and zkML-attested. Your agents can prove they saw legitimate
-            data, ran the right model, and made a compliant decision.
+            data, ran the right model, and made a correct decision.
           </p>
         </div>
 

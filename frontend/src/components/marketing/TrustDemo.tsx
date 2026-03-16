@@ -522,10 +522,10 @@ export function TrustDemo({
             <div className="rounded-xl border border-violet-500/15 bg-violet-950/5 p-4">
               <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-400">
                 <MessageSquare className="h-3 w-3" />
-                AI Oracle · Onyx LLM
+                AI Oracle · zkML-attested
                 {narration && (
                   <span className="ml-auto rounded-full border border-zinc-800 px-1.5 py-0.5 text-[8px] font-normal text-zinc-600">
-                    {narration.source === "llm" ? "GPT-4o-mini via Onyx" : "deterministic fallback"}
+                    {narration.source === "llm" ? "proof-gated inference" : "deterministic fallback"}
                   </span>
                 )}
               </div>
