@@ -137,22 +137,27 @@ export default function LandingPage() {
             Every new protocol treats you like a stranger.
           </p>
 
-          <h1 className="mx-auto mt-2 font-mono text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             <span className="bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
-              trust
+              Your reputation should
             </span>
-            <span className="text-zinc-500"> = </span>
+            <br />
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              Σ(receipts)
+              travel with you.
             </span>
-            <span className="text-amber-400">*</span>
           </h1>
-          <p className="mt-2 text-xs italic text-zinc-600">
+
+          <div className="mx-auto mt-6 flex items-center justify-center gap-3">
+            <span className="font-mono text-2xl tracking-wide text-zinc-400 sm:text-3xl md:text-4xl">
+              trust = <span className="text-emerald-400">Σ</span>(receipts)<span className="text-amber-400">*</span>
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] italic text-zinc-600">
             <span className="text-amber-400">*</span>earned over time, never assumed
           </p>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
-            Your reputation travels with you. Your strategy stays private.
+            Your strategy stays private. Your agents prove they behaved.
             Every action earns a verifiable receipt on Starknet.
           </p>
 
