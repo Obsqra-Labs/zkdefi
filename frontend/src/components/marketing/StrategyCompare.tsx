@@ -133,7 +133,7 @@ export function StrategyCompare({
       const body: Record<string, unknown> = { wallet_address: walletAddress };
       if (hypotheticalUsd) body.hypothetical_usd = hypotheticalUsd;
 
-      const data = await apiFetch<CompareResult>("/api/v1/paper-trade/compare-strategies", {
+      const data = await apiFetch<CompareResult>("/api/v1/demo/compare-strategies", {
         method: "POST",
         body: JSON.stringify(body),
         timeoutMs: 60_000,

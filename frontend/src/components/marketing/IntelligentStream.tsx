@@ -40,7 +40,7 @@ const EVENT_META: Record<
   vault_deposit: { icon: Lock, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
   vault_withdraw: { icon: Lock, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
   proof_generated: { icon: ShieldCheck, color: "text-fuchsia-400", bg: "bg-fuchsia-500/10 border-fuchsia-500/20" },
-  paper_trade: { icon: TrendingUp, color: "text-teal-400", bg: "bg-teal-500/10 border-teal-500/20" },
+  trade: { icon: TrendingUp, color: "text-teal-400", bg: "bg-teal-500/10 border-teal-500/20" },
   snapshot: { icon: Layers, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
 };
 
@@ -71,7 +71,7 @@ export function IntelligentStream({
     try {
       setLoading(true);
       const res = await apiFetch<{ events: StreamEvent[]; count: number }>(
-        `/api/v1/paper-trade/stream/${walletAddress}?limit=${maxVisible}`,
+        `/api/v1/demo/stream/${walletAddress}?limit=${maxVisible}`,
         { timeoutMs: 10_000 }
       );
       const incoming = res.events ?? [];

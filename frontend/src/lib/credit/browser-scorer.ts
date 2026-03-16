@@ -123,14 +123,14 @@ async function ensureInit(): Promise<void> {
 
       // Fetch norm params
       if (!_normParams) {
-        const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/norm-params"));
+        const res = await fetch(apiUrl("/api/v1/demo/model-artifacts/norm-params"));
         if (!res.ok) throw new Error(`Failed to fetch norm params: ${res.status}`);
         _normParams = await res.json();
       }
 
       // Fetch ONNX model
       if (!_session) {
-        const res = await fetch(apiUrl("/api/v1/paper-trade/model-artifacts/onnx"));
+        const res = await fetch(apiUrl("/api/v1/demo/model-artifacts/onnx"));
         if (!res.ok) throw new Error(`Failed to fetch ONNX model: ${res.status}`);
         const buffer = await res.arrayBuffer();
         _session = await _ort.InferenceSession.create(buffer);

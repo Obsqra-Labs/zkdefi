@@ -57,7 +57,7 @@ export function DarkVaultPanel({
         wallet_address: string;
         vaults: VaultEntry[];
         total_shielded_usd: number;
-      }>(`/api/v1/paper-trade/vault/${walletAddress}`, { timeoutMs: 10_000 });
+      }>(`/api/v1/demo/vault/${walletAddress}`, { timeoutMs: 10_000 });
       setVaults(res.vaults ?? []);
       setTotalShielded(res.total_shielded_usd ?? 0);
     } catch {
@@ -75,7 +75,7 @@ export function DarkVaultPanel({
     setError(null);
     setIsDepositing(true);
     try {
-      await apiFetch("/api/v1/paper-trade/vault/deposit", {
+      await apiFetch("/api/v1/demo/vault/deposit", {
         method: "POST",
         body: JSON.stringify({
           wallet_address: walletAddress,
@@ -100,7 +100,7 @@ export function DarkVaultPanel({
   const withdraw = async (vaultId: string) => {
     setIsWithdrawing(vaultId);
     try {
-      await apiFetch(`/api/v1/paper-trade/vault/${vaultId}/withdraw`, {
+      await apiFetch(`/api/v1/demo/vault/${vaultId}/withdraw`, {
         method: "POST",
         timeoutMs: 10_000,
       });

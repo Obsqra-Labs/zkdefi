@@ -1,16 +1,16 @@
 """
-Paper Trade + Strategy Simulator API routes.
+Demo + Strategy Simulator API routes.
 
 Endpoints:
-  POST /paper-trade/simulate                — scan portfolio, propose strategy
-  POST /paper-trade/simulate-and-execute    — scan + propose + execute on paper
-  POST /paper-trade/reputation-scan         — deep behavioral reputation scan
-  POST /paper-trade/sessions                — create empty session
-  GET  /paper-trade/sessions/{session_id}   — get session state
-  POST /paper-trade/sessions/{session_id}/mtm       — mark-to-market
-  POST /paper-trade/sessions/{session_id}/snapshot   — take snapshot (+ L3)
-  POST /paper-trade/sessions/{session_id}/close      — close session
-  GET  /paper-trade/sessions                — list active sessions
+  POST /demo/simulate                — scan portfolio, propose strategy
+  POST /demo/simulate-and-execute    — scan + propose + simulate execution
+  POST /demo/reputation-scan         — deep behavioral reputation scan
+  POST /demo/sessions                — create empty session
+  GET  /demo/sessions/{session_id}   — get session state
+  POST /demo/sessions/{session_id}/mtm       — mark-to-market
+  POST /demo/sessions/{session_id}/snapshot   — take snapshot (+ L3)
+  POST /demo/sessions/{session_id}/close      — close session
+  GET  /demo/sessions                — list active sessions
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["paper-trade"])
+router = APIRouter(tags=["demo"])
 
 # ─── Shared in-memory stores ─────────────────────────────────────────────────
 
@@ -176,7 +176,7 @@ async def simulate_and_execute(req: SimulateRequest):
 @router.post("/sessions")
 async def create_session(req: CreateSessionRequest):
     """Create a new paper trading session."""
-    from app.services.paper_trade_engine import create_session as _create
+    from app.services.trade_engine import create_session as _create
 
     session = _create(req.wallet_address, req.starting_value_usd)
     return {
@@ -190,14 +190,14 @@ async def create_session(req: CreateSessionRequest):
 @router.get("/sessions")
 async def list_sessions(limit: int = 50):
     """List active paper trading sessions."""
-    from app.services.paper_trade_engine import list_active_sessions
+    from app.services.trade_engine import list_active_sessions
     return {"sessions": list_active_sessions(limit)}
 
 
 @router.get("/sessions/{session_id}")
 async def get_session(session_id: str):
     """Get full session state including positions and P&L."""
-    from app.services.paper_trade_engine import get_session as _get
+    from app.services.trade_engine import get_session as _get
 
     session = _get(session_id)
     if not session:
@@ -236,7 +236,7 @@ async def get_session(session_id: str):
 @router.post("/sessions/{session_id}/positions")
 async def add_position(session_id: str, req: OpenPositionRequest):
     """Manually add a paper position to a session."""
-    from app.services.paper_trade_engine import open_position
+    from app.services.trade_engine import open_position
 
     pos = open_position(
         session_id=session_id,
@@ -256,7 +256,7 @@ async def add_position(session_id: str, req: OpenPositionRequest):
 @router.post("/sessions/{session_id}/mtm")
 async def mark_to_market(session_id: str):
     """Re-price all positions using elapsed time × current APY."""
-    from app.services.paper_trade_engine import mark_to_market as _mtm
+    from app.services.trade_engine import mark_to_market as _mtm
 
     session = _mtm(session_id)
     if not session:
@@ -277,7 +277,7 @@ async def take_snapshot(session_id: str, settle_l3: bool = True):
 
     Returns the snapshot hash for proof binding.
     """
-    from app.services.paper_trade_engine import (
+    from app.services.trade_engine import (
         take_snapshot as _snap,
         settle_snapshot_to_l3,
     )
@@ -299,7 +299,7 @@ async def take_snapshot(session_id: str, settle_l3: bool = True):
 @router.post("/sessions/{session_id}/close")
 async def close_session(session_id: str):
     """Close a paper trading session (final P&L locked in)."""
-    from app.services.paper_trade_engine import (
+    from app.services.trade_engine import (
         close_session as _close,
         get_session as _get,
         take_snapshot as _snap,
@@ -669,7 +669,7 @@ async def onboard_identity(req: OnboardRequest):
       4. Return unified identity (L3 addr, session_id, reputation, credit score)
     """
     import hashlib as _hl
-    from app.services.paper_trade_engine import create_session, get_sessions_for_wallet
+    from app.services.trade_engine import create_session, get_sessions_for_wallet
 
     # 1. Reputation scan (same as /reputation-scan endpoint)
     try:
@@ -704,7 +704,7 @@ async def onboard_identity(req: OnboardRequest):
     session_key_resp = {
         "key_id": sk_id,
         "signing_key_prefix": sk_signing[:8] + "…",
-        "permissions": ["paper_trade", "snapshot", "proof"],
+        "permissions": ["trade", "snapshot", "proof"],
         "expires_at": now_onboard + 3600,
         "ttl_seconds": 3600,
         "status": "active",
@@ -738,7 +738,7 @@ class IssueSessionKeyRequest(BaseModel):
     session_id: str = Field(..., description="Paper trading session ID")
     ttl_seconds: int = Field(default=3600, description="Key lifetime in seconds (default 1h)")
     permissions: list[str] = Field(
-        default=["paper_trade", "snapshot", "proof"],
+        default=["trade", "snapshot", "proof"],
         description="Allowed actions for this session key",
     )
 
@@ -747,7 +747,7 @@ class IssueSessionKeyRequest(BaseModel):
 async def issue_session_key(req: IssueSessionKeyRequest):
     """
     Issue a short-lived session key for the embedded L3 wallet.
-    The session key allows paper trades, snapshots, and proof generation
+    The session key allows simulated trades, snapshots, and proof generation
     without re-signing with the parent wallet each time.
     """
     now = _time.time()
@@ -803,7 +803,7 @@ async def get_session_key(key_id: str):
 
 
 @router.post("/session-keys/{key_id}/sign")
-async def sign_with_session_key(key_id: str, action: str = "paper_trade"):
+async def sign_with_session_key(key_id: str, action: str = "trade"):
     """
     Simulate signing an action with a session key.
     Returns a signature hash if the key is valid and authorized.
@@ -972,7 +972,7 @@ async def proof_of_performance(req: ProofOfPerformanceRequest):
     Generate a ZK proof of paper trading performance.
     Proves a claim about PnL/APY *without* revealing the strategy or exact numbers.
     """
-    from app.services.paper_trade_engine import get_session
+    from app.services.trade_engine import get_session
 
     session = get_session(req.session_id)
     if not session:

@@ -131,12 +131,12 @@ export function PnLTracker({
     try {
       setLoading(true);
       // Mark-to-market first, then fetch session
-      await apiFetch(`/api/v1/paper-trade/sessions/${sessionId}/mtm`, {
+      await apiFetch(`/api/v1/demo/sessions/${sessionId}/mtm`, {
         method: "POST",
         timeoutMs: 15_000,
       });
       const data = await apiFetch<SessionData>(
-        `/api/v1/paper-trade/sessions/${sessionId}`,
+        `/api/v1/demo/sessions/${sessionId}`,
         { timeoutMs: 15_000 },
       );
       setSession(data);

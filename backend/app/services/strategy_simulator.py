@@ -367,12 +367,12 @@ async def execute_on_paper(
     settle_to_l3: bool = True,
 ) -> Dict[str, Any]:
     """
-    Execute a strategy proposal on the paper trade engine.
+    Execute a strategy proposal on the simulated trade engine.
 
     Creates a session, opens positions for each move, takes an initial
     snapshot, and optionally settles to L3.
     """
-    from app.services.paper_trade_engine import (
+    from app.services.trade_engine import (
         create_session,
         open_position,
         take_snapshot,

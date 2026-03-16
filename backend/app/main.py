@@ -229,7 +229,7 @@ batch_verification_router = _optional_router("app.api.routes.batch_verification"
 system_metrics_router = _optional_router("app.api.routes.system_metrics")
 landing_router = _optional_router("app.api.routes.landing")
 portfolio_router = _optional_router("app.api.routes.portfolio")
-paper_trade_router = _optional_router("app.api.routes.paper_trade")
+demo_router = _optional_router("app.api.routes.demo")
 forge_router = _optional_router("app.api.routes.forge")
 
 if zkdefi_router:
@@ -353,11 +353,11 @@ if portfolio_router:
         prefix="/api/v1",
         tags=["portfolio"],
     )
-if paper_trade_router:
+if demo_router:
     app.include_router(
-        paper_trade_router,
-        prefix="/api/v1/paper-trade",
-        tags=["paper-trade"],
+        demo_router,
+        prefix="/api/v1/demo",
+        tags=["demo"],
     )
 if forge_router:
     app.include_router(

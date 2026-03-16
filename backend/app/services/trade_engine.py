@@ -1,5 +1,5 @@
 """
-Paper Trade Engine — shadow ledger for simulated DeFi positions.
+Demo Engine — shadow ledger for simulated DeFi positions.
 
 Tracks virtual allocations against live mainnet pool APYs without
 on-chain writes.  Every state change produces a SHA-256 snapshot hash
@@ -73,7 +73,7 @@ class PaperTradeSession:
 
 @dataclass
 class SessionSnapshot:
-    """Point-in-time snapshot of a paper trade session."""
+    """Point-in-time snapshot of a simulated trade session."""
     snapshot_id: str
     session_id: str
     timestamp: str
@@ -276,7 +276,7 @@ def take_snapshot(session_id: str) -> Optional[SessionSnapshot]:
 
 async def settle_snapshot_to_l3(snapshot: SessionSnapshot) -> Optional[Dict[str, Any]]:
     """
-    Post a paper-trade snapshot fact to L3 via the existing Madara batch queue.
+    Post a demo snapshot fact to L3 via the existing Madara batch queue.
 
     Uses the same privacy-preserving pattern as vault_settlement_hook:
     fact_hash = SHA-256(PAPER_TRADE | snapshot_hash | session_id | salt)
@@ -292,11 +292,11 @@ async def settle_snapshot_to_l3(snapshot: SessionSnapshot) -> Optional[Dict[str,
         )
         item = _batch_queue.add(
             fact_hash=fact_hash,
-            proof_type="paper_trade_snapshot",
+            proof_type="trade_snapshot",
             user_address=ANONYMOUS_ADDRESS,
         )
         logger.info(
-            "L3 paper-trade fact queued: %s (batch_id=%s, pnl=$%.2f)",
+            "L3 demo fact queued: %s (batch_id=%s, pnl=$%.2f)",
             fact_hash[:16], item.id, snapshot.total_pnl_usd,
         )
 
@@ -312,12 +312,12 @@ async def settle_snapshot_to_l3(snapshot: SessionSnapshot) -> Optional[Dict[str,
             "snapshot_hash": snapshot.snapshot_hash,
         }
     except Exception as exc:
-        logger.warning("L3 paper-trade settlement failed: %s", exc)
+        logger.warning("L3 demo settlement failed: %s", exc)
         return None
 
 
 def close_session(session_id: str) -> bool:
-    """Close a paper trade session (no further trades allowed)."""
+    """Close a simulated trade session (no further trades allowed)."""
     session = _sessions.get(session_id)
     if not session:
         return False

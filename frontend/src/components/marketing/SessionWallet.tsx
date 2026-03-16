@@ -46,7 +46,7 @@ function timeLeft(expiresAt: number): string {
 }
 
 const PERM_LABELS: Record<string, { label: string; color: string }> = {
-  paper_trade: { label: "Trade", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" },
+  trade: { label: "Trade", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" },
   snapshot: { label: "Snapshot", color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" },
   proof: { label: "Proof", color: "text-violet-400 border-violet-500/30 bg-violet-500/10" },
 };
@@ -79,13 +79,13 @@ export function SessionWallet({
     setIsIssuing(true);
     setError(null);
     try {
-      const res = await apiFetch<SessionKeyInfo & { key_id: string }>("/api/v1/paper-trade/session-keys/issue", {
+      const res = await apiFetch<SessionKeyInfo & { key_id: string }>("/api/v1/demo/session-keys/issue", {
         method: "POST",
         body: JSON.stringify({
           wallet_address: walletAddress,
           session_id: sessionId,
           ttl_seconds: 3600,
-          permissions: ["paper_trade", "snapshot", "proof"],
+          permissions: ["trade", "snapshot", "proof"],
         }),
         timeoutMs: 15_000,
       });
@@ -109,7 +109,7 @@ export function SessionWallet({
   const revokeKey = useCallback(async () => {
     if (!key) return;
     try {
-      await apiFetch(`/api/v1/paper-trade/session-keys/${key.key_id}`, {
+      await apiFetch(`/api/v1/demo/session-keys/${key.key_id}`, {
         method: "DELETE",
         timeoutMs: 10_000,
       });
@@ -163,7 +163,7 @@ export function SessionWallet({
         {!key && (
           <div className="flex flex-col items-center gap-2 py-2">
             <p className="text-xs text-zinc-500 text-center">
-              Issue a session key so paper trades, snapshots, and proofs are signed
+              Issue a session key so trades, snapshots, and proofs are signed
               automatically — no wallet popups for 1 hour.
             </p>
             <button

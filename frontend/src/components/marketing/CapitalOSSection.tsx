@@ -144,7 +144,7 @@ export function CapitalOSSection() {
     setRepLoading(true);
     try {
       const rep = await apiFetch<ReputationData>(
-        `/api/v1/paper-trade/reputation/${DEMO_ADDRESS}`,
+        `/api/v1/demo/reputation/${DEMO_ADDRESS}`,
       );
       setReputation(rep);
     } catch {

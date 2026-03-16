@@ -57,7 +57,7 @@ This is not an AI agent. It's the **proving infrastructure** that any agent, mod
 │                                                         │
 │  ┌─────────────────────────┐                           │
 │  │     Capital OS          │  DeFi surface              │
-│  │  paper trade · scanner  │  (first receipt consumer)  │
+│  │  strategy sim · scanner │  (first receipt consumer)  │
 │  │  privacy pools          │                           │
 │  └─────────────────────────┘                           │
 └─────────────────────────────────────────────────────────┘

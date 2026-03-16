@@ -134,7 +134,7 @@ export function AgentExecutionLoop({
         proposal: TradeReceipt;
         execution: { session_id: string };
         portfolio: Record<string, unknown>;
-      }>("/api/v1/paper-trade/simulate-and-execute", {
+      }>("/api/v1/demo/simulate-and-execute", {
         method: "POST",
         body: JSON.stringify({
           wallet_address: walletAddress,
@@ -161,7 +161,7 @@ export function AgentExecutionLoop({
 
       let proof: ProofReceipt | null = null;
       try {
-        proof = await apiFetch<ProofReceipt>("/api/v1/paper-trade/proof-of-performance", {
+        proof = await apiFetch<ProofReceipt>("/api/v1/demo/proof-of-performance", {
           method: "POST",
           body: JSON.stringify({
             wallet_address: walletAddress,
@@ -501,7 +501,7 @@ export function AgentExecutionLoop({
               {!oracleResult
                 ? "Complete Step 2 to activate live execution"
                 : loopCount === 0
-                  ? "AI picks the top oracle opportunity, executes a paper trade, and generates a ZK receipt"
+                  ? "AI picks the top oracle opportunity, simulates execution, and generates a ZK receipt"
                   : "Each execution produces a receipt that feeds back into your reputation passport"}
             </p>
           </div>

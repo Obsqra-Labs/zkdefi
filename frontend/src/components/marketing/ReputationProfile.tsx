@@ -222,7 +222,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
       // Actually the backend needs normalized features. Get them from circuit-info or re-score.
       // For now, call the backend which uses the feature vector.
       const result = await apiFetch<{ wallet_address: string } & ProofResult>(
-        "/api/v1/paper-trade/generate-proof",
+        "/api/v1/demo/generate-proof",
         {
           method: "POST",
           body: JSON.stringify({
@@ -246,7 +246,7 @@ export function ReputationProfile({ data }: { data: ReputationData }) {
     setVcState("exporting");
     try {
       const result = await apiFetch<{ status: string } & VCResult>(
-        "/api/v1/paper-trade/export-vc",
+        "/api/v1/demo/export-vc",
         {
           method: "POST",
           body: JSON.stringify({

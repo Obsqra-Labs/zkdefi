@@ -71,7 +71,7 @@ export function ProofOfPerformance({
       if (proveType === "apy_above" && threshold) {
         body.threshold = parseFloat(threshold);
       }
-      const res = await apiFetch<ProofReceipt>("/api/v1/paper-trade/proof-of-performance", {
+      const res = await apiFetch<ProofReceipt>("/api/v1/demo/proof-of-performance", {
         method: "POST",
         body: JSON.stringify(body),
         timeoutMs: 15_000,

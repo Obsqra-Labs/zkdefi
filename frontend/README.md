@@ -10,7 +10,7 @@ Next.js 14 application for [zkde.fi](https://zkde.fi).
 | `/agent` | Agent identity + proof-gated actions |
 | `/profile` | User reputation dashboard + badge screening |
 | `/products` | DeFi products overview |
-| `/trade` | Paper trade desk + scanner |
+| `/trade` | Strategy simulator + scanner |
 | `/vault` | Privacy vault management |
 | `/lending` | Reputation-gated lending |
 | `/oracle` | Price oracle + signal feeds |
