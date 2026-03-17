@@ -163,14 +163,19 @@ class ReceiptService:
         return self._row_to_dict(row) if row else None
 
     async def get_user_receipts(self, user_address: str) -> list[dict[str, Any]]:
-        """Get all receipts for a user."""
+        """Get all receipts for a user (runs in thread to avoid blocking)."""
+        import asyncio
         key = (user_address or "").strip().lower()
-        with self._db_lock, self._db_connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM receipts WHERE LOWER(user_address)=? ORDER BY timestamp DESC",
-                (key,),
-            ).fetchall()
-        return [self._row_to_dict(r) for r in rows]
+
+        def _fetch() -> list[dict[str, Any]]:
+            with self._db_lock, self._db_connect() as conn:
+                rows = conn.execute(
+                    "SELECT * FROM receipts WHERE LOWER(user_address)=? ORDER BY timestamp DESC",
+                    (key,),
+                ).fetchall()
+            return [self._row_to_dict(r) for r in rows]
+
+        return await asyncio.to_thread(_fetch)
 
     def append_proof_receipt(
         self,
