@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   description: "Zero-knowledge DeFi on Starknet. Build an anonymous reputation anchored by ZK receipts. Your strategy stays hidden. Your AI agents prove they behaved.",
   icons: {
     icon: "/favicon.png",
-    apple: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
   alternates: {
     canonical: "https://zkde.fi",

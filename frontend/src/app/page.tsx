@@ -183,7 +183,7 @@ export default function LandingPage() {
               {
                 value: "3",
                 label: "chains",
-                breakdown: "Madara L3 → Starknet L2 → Ethereum L1",
+                breakdown: "L3 → L2 → L1",
               },
               {
                 value: "136+",
@@ -355,8 +355,8 @@ export default function LandingPage() {
                   <strong className="text-zinc-200"> controlled what&apos;s allowed to happen?</strong>{" "}
                   Proofs replace trust. Receipts replace promises.
                 </p>
-                <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-                  <pre className="font-mono text-xs leading-loose text-zinc-500">
+                <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 overflow-x-auto">
+                  <pre className="font-mono text-xs leading-loose text-zinc-500 whitespace-pre">
 {`your strategy  →  private
 proof           →  "conditions met"
 execution       →  capital moves
@@ -465,11 +465,11 @@ receipt         →  on-chain evidence`}
           {/* Check 1 — massive typographic statement */}
           <Reveal delay={200}>
             <div className="mt-20 border-t border-zinc-800 pt-10">
-              <div className="flex items-start gap-6 sm:gap-10">
-                <span className="font-serif text-6xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
+              <div className="flex items-start gap-4 sm:gap-6 md:gap-10">
+                <span className="font-serif text-5xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
                   1
                 </span>
-                <div className="pt-2 sm:pt-4">
+                <div className="min-w-0 pt-1 sm:pt-4">
                   <h3 className="font-serif text-2xl font-bold text-zinc-100 sm:text-3xl">
                     The math proof
                   </h3>
@@ -489,11 +489,11 @@ receipt         →  on-chain evidence`}
           {/* Check 2 — massive typographic statement */}
           <Reveal delay={100}>
             <div className="mt-16 border-t border-zinc-800 pt-10">
-              <div className="flex items-start gap-6 sm:gap-10">
-                <span className="font-serif text-6xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
+              <div className="flex items-start gap-4 sm:gap-6 md:gap-10">
+                <span className="font-serif text-5xl font-bold leading-none tracking-tighter text-zinc-800/50 sm:text-7xl md:text-[88px]">
                   2
                 </span>
-                <div className="pt-2 sm:pt-4">
+                <div className="min-w-0 pt-1 sm:pt-4">
                   <h3 className="font-serif text-2xl font-bold text-zinc-100 sm:text-3xl">
                     The execution proof
                   </h3>
@@ -516,11 +516,11 @@ receipt         →  on-chain evidence`}
               <p className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
                 Settlement path
               </p>
-              <p className="mt-4 font-mono text-lg tracking-wide sm:text-xl">
+              <p className="mt-4 font-mono text-base tracking-wide sm:text-lg md:text-xl">
                 <span className="text-emerald-400">Madara L3</span>
-                <span className="mx-2 text-zinc-700">→</span>
+                <span className="mx-1.5 text-zinc-700 sm:mx-2">→</span>
                 <span className="text-blue-400">Starknet L2</span>
-                <span className="mx-2 text-zinc-700">→</span>
+                <span className="mx-1.5 text-zinc-700 sm:mx-2">→</span>
                 <span className="text-violet-400">Ethereum L1</span>
               </p>
               <p className="mt-2 text-sm text-zinc-600">
@@ -645,9 +645,9 @@ receipt         →  on-chain evidence`}
                 </div>
                 <div className="divide-y divide-zinc-800/50">
                   {STARKNET_CONTRACTS.map((c) => (
-                    <div key={c.name} className="flex items-center justify-between px-5 py-2.5">
-                      <span className="text-xs font-medium text-zinc-300">{c.name}</span>
-                      <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
+                    <div key={c.name} className="flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
+                      <span className="text-xs font-medium text-zinc-300 truncate">{c.name}</span>
+                      <span className="shrink-0 rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
                     </div>
                   ))}
                 </div>
@@ -664,10 +664,10 @@ receipt         →  on-chain evidence`}
                 </div>
                 <div className="divide-y divide-zinc-800/50">
                   {ETHEREUM_CONTRACTS.map((c) => (
-                    <div key={c.name} className="px-5 py-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-zinc-300">{c.name}</span>
-                        <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
+                    <div key={c.name} className="px-4 py-2.5 sm:px-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-zinc-300 truncate">{c.name}</span>
+                        <span className="shrink-0 rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
                       </div>
                       <p className="mt-0.5 text-[10px] text-zinc-600">{c.note}</p>
                     </div>
