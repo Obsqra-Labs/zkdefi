@@ -14,6 +14,7 @@ import { IdentityCard } from "./IdentityCard";
 import { RiskPicker } from "./RiskPicker";
 import { OracleResults } from "./OracleResults";
 import { ExecutionBlock } from "./ExecutionBlock";
+import { IntelligentStream } from "./IntelligentStream";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
 import { DEFAULT_ENABLED } from "./CapitalBrain";
@@ -345,6 +346,40 @@ export function CapitalOSSection() {
           onExecutionComplete={() => setExecutionDone(true)}
         />
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* POST-RECEIPT — Stream + Capital OS teaser                 */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {executionDone && (
+        <section className="space-y-8">
+          {/* Intro line */}
+          <p className="text-center font-mono text-sm text-zinc-500">
+            Your agent, running.
+          </p>
+
+          {/* IntelligentStream — live event feed */}
+          <IntelligentStream
+            walletAddress={identityAddress ?? DEMO_ADDRESS}
+            pollIntervalMs={8000}
+            maxVisible={10}
+          />
+
+          {/* Capital OS teaser */}
+          <div className="mx-auto max-w-md text-center">
+            <p className="text-xs leading-relaxed text-zinc-500">
+              This is what you&apos;d see in{" "}
+              <strong className="text-zinc-300">Capital OS</strong> —
+              a live dashboard for your agent, positions, and proof receipts.
+            </p>
+            <a
+              href="/zkdefi"
+              className="mt-3 inline-flex items-center gap-1.5 font-mono text-xs text-emerald-400 underline underline-offset-2 transition-colors hover:text-emerald-300"
+            >
+              Open Capital OS →
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* Builder callout                                           */}
