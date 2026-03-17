@@ -32,7 +32,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
           <span className="font-serif text-lg font-bold tracking-tight">zkde.fi</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
           <a
             href="/#capital-os"
             className="text-sm text-zinc-400 transition-colors hover:text-white"
@@ -59,7 +59,8 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
             className="inline-flex items-center gap-1 text-sm text-zinc-400 transition-colors hover:text-white"
           >
             GitHub
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            <span className="sr-only">(opens in new tab)</span>
           </a>
         </nav>
 
@@ -70,14 +71,15 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 font-medium transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20"
           >
             Launch App
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
 
         <button
           type="button"
           className="p-2 text-zinc-300 hover:text-white md:hidden"
-          aria-label="Toggle menu"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((value) => !value)}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -85,7 +87,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
       </div>
 
       {mobileOpen && (
-        <div className="mx-auto mt-3 max-w-7xl space-y-1 rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 md:hidden">
+        <nav aria-label="Mobile navigation" className="mx-auto mt-3 max-w-7xl space-y-1 rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 md:hidden">
           <a
             href="/#capital-os"
             onClick={() => setMobileOpen(false)}
@@ -127,7 +129,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
               Launch App →
             </Link>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

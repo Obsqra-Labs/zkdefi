@@ -115,13 +115,13 @@ const ROADMAP = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
+    <main id="main-content" className="min-h-screen bg-zinc-950 text-white">
       <SiteHeader />
 
       {/* ═══════════════════════════════════════════════════════════════
           1. HERO — dark, editorial, typographic confidence
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="section-dark relative overflow-hidden px-6 pb-32 pt-24 sm:pb-40 sm:pt-32">
+      <section aria-labelledby="hero-heading" className="section-dark relative overflow-hidden px-6 pb-32 pt-24 sm:pb-40 sm:pt-32">
         {/* Background grid pattern */}
         <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden="true" />
         {/* Glow orb */}
@@ -135,7 +135,7 @@ export default function LandingPage() {
           </Reveal>
 
           <Reveal delay={200}>
-            <h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 id="hero-heading" className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               <span className="text-white">
                 Hide everything.
               </span>
@@ -215,7 +215,7 @@ export default function LandingPage() {
                 className="cta-glow inline-flex items-center gap-2.5 rounded-lg bg-emerald-600 px-7 py-3.5 text-sm font-semibold tracking-wide transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20"
               >
                 Launch App
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <a
                 href="/test"
@@ -230,7 +230,8 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-300"
               >
                 GitHub
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only">(opens in new tab)</span>
               </a>
             </div>
           </Reveal>
@@ -238,9 +239,9 @@ export default function LandingPage() {
           <Reveal delay={800}>
             <p className="mt-10 text-xs leading-relaxed text-zinc-700">
               <span className="text-zinc-500">zkde.fi</span> is the protocol.{" "}
-              <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">Obsqra Labs</a>{" "}
+              <a href="https://obsqra.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">Obsqra Labs<span className="sr-only"> (opens in new tab)</span></a>{" "}
               builds it.{" "}
-              <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">StarkForge</a>{" "}
+              <a href="https://starkforge.xyz" target="_blank" rel="noopener noreferrer" className="text-zinc-600 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400">StarkForge<span className="sr-only"> (opens in new tab)</span></a>{" "}
               is the proving layer underneath.
             </p>
           </Reveal>
@@ -251,13 +252,13 @@ export default function LandingPage() {
           2. THE PROOF FLOW — visual diagram, the product in one image
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="bg-zinc-950 px-6 py-24 sm:py-32">
+      <section aria-labelledby="proof-flow-heading" className="bg-zinc-950 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               How it works
             </p>
-            <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 id="proof-flow-heading" className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
               Five steps. One receipt.
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">
@@ -290,13 +291,13 @@ export default function LandingPage() {
              Show it, let them play.
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section id="capital-os" className="scroll-mt-8 px-6 py-24 sm:py-32">
+      <section id="capital-os" aria-labelledby="loop-heading" className="scroll-mt-8 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               Live Demo
             </p>
-            <h2 className="mb-12 font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 id="loop-heading" className="mb-12 font-serif text-3xl font-bold tracking-tight sm:text-4xl">
               The Loop
             </h2>
           </Reveal>
@@ -310,7 +311,7 @@ export default function LandingPage() {
           4. THE PROBLEM + WHY NOW  (context for those who want it)
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="px-6 py-24 sm:py-32">
+      <section aria-labelledby="problem-heading" className="px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
 
           <Reveal>
@@ -323,7 +324,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
             <Reveal delay={100}>
               <div>
-                <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
+                <h2 id="problem-heading" className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
                   Transparency is the&nbsp;tax.
                 </h2>
                 <p className="mt-4 text-base leading-relaxed text-zinc-400">
@@ -337,7 +338,7 @@ export default function LandingPage() {
                     "Your track record doesn't follow you between protocols",
                   ].map((line) => (
                     <div key={line} className="flex items-start gap-3 text-sm text-zinc-500">
-                      <X className="mt-0.5 h-4 w-4 shrink-0 text-zinc-700" />
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-zinc-700" aria-hidden="true" />
                       <span>{line}</span>
                     </div>
                   ))}
@@ -446,14 +447,14 @@ receipt         →  on-chain evidence`}
           5. HOW WE PROVE IT — massive typographic checks, the credibility moment
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="section-dark px-6 py-28 sm:py-36">
+      <section aria-labelledby="verification-heading" className="section-dark px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-5xl">
 
           <Reveal>
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               Dual verification
             </p>
-            <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 id="verification-heading" className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
               How We Prove It
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -539,13 +540,13 @@ receipt         →  on-chain evidence`}
           6. WHAT'S LIVE — dashboard-style contracts + use cases
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="px-6 py-24 sm:py-32">
+      <section aria-labelledby="live-heading" className="px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               Deployed infrastructure
             </p>
-            <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 id="live-heading" className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
               What&apos;s Live
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -564,19 +565,19 @@ receipt         →  on-chain evidence`}
           <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
             {[
               {
-                icon: <Shield className="h-5 w-5 text-emerald-400/60" />,
+                  icon: <Shield className="h-5 w-5 text-emerald-400/60" aria-hidden="true" />,
                 title: "Move Money Privately",
                 body: "Deposit, withdraw, and transfer without revealing amounts or destinations. Three privacy levels — from full proof to optimistic batching.",
                 detail: "3 privacy tiers · All proved · Dark L3 settlement",
               },
               {
-                icon: <Cpu className="h-5 w-5 text-blue-400/60" />,
+                  icon: <Cpu className="h-5 w-5 text-blue-400/60" aria-hidden="true" />,
                 title: "AI Agents That Prove Their Work",
                 body: "Every agent decision runs through 13 skill checks before execution. The agent can't act unless all proofs pass.",
                 detail: "13 checks per trade · All must pass · Receipts on-chain",
               },
               {
-                icon: <BarChart3 className="h-5 w-5 text-violet-400/60" />,
+                  icon: <BarChart3 className="h-5 w-5 text-violet-400/60" aria-hidden="true" />,
                 title: "Predictions You Can Check",
                 body: "Predictions committed on-chain before the outcome, then scored publicly. No cherry-picking. Every forecast has a receipt.",
                 detail: "0.109 Brier score · 100% direction calls · 3 time horizons",
@@ -716,13 +717,13 @@ receipt         →  on-chain evidence`}
           7. ROADMAP  (clean timeline)
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="px-6 py-24 sm:py-32">
+      <section aria-labelledby="roadmap-heading" className="px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               Progress
             </p>
-            <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 id="roadmap-heading" className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
               Roadmap
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -771,6 +772,7 @@ receipt         →  on-chain evidence`}
                       {phase.items.map((item) => (
                         <li key={item} className="flex items-start gap-2.5 text-sm text-zinc-500">
                           <CheckCircle2
+                            aria-hidden="true"
                             className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
                               phase.status === "done"
                                 ? "text-emerald-500/60"
@@ -796,7 +798,7 @@ receipt         →  on-chain evidence`}
           8. CTA + FOOTER — dark close, editorial
       ═══════════════════════════════════════════════════════════════ */}
       <div className="section-sep" aria-hidden="true" />
-      <section className="section-dark relative overflow-hidden px-6 py-28 sm:py-36">
+      <section aria-labelledby="cta-heading" className="section-dark relative overflow-hidden px-6 py-28 sm:py-36">
         {/* Subtle bottom glow */}
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-[400px] w-[800px] -translate-x-1/2 translate-y-1/2 rounded-full bg-emerald-500/[0.04] blur-[100px]" aria-hidden="true" />
 
@@ -805,7 +807,7 @@ receipt         →  on-chain evidence`}
             <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
               Get started
             </p>
-            <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 id="cta-heading" className="font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
               The infrastructure is live.<br />
               <span className="text-emerald-400">Build on it.</span>
             </h2>
@@ -823,7 +825,7 @@ receipt         →  on-chain evidence`}
                 className="cta-glow inline-flex items-center gap-2.5 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-zinc-950 transition-all hover:bg-zinc-200"
               >
                 Documentation
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <a
                 href="https://github.com/Obsqra-Labs/zkdefi"
@@ -832,7 +834,8 @@ receipt         →  on-chain evidence`}
                 className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-7 py-3.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
               >
                 GitHub
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only">(opens in new tab)</span>
               </a>
               <a
                 href="https://starkforge.xyz"
@@ -841,7 +844,8 @@ receipt         →  on-chain evidence`}
                 className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-300"
               >
                 StarkForge
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only">(opens in new tab)</span>
               </a>
             </div>
           </Reveal>
@@ -849,7 +853,7 @@ receipt         →  on-chain evidence`}
 
         {/* Footer */}
         <Reveal>
-          <div className="mx-auto mt-24 max-w-5xl border-t border-zinc-800 pt-10">
+          <footer className="mx-auto mt-24 max-w-5xl border-t border-zinc-800 pt-10" role="contentinfo">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
               {["Starknet L2", "Ethereum L1", "Madara L3", "SNARK-in-STARK", "Open Source"].map((t) => (
                 <span key={t}>{t}</span>
@@ -868,6 +872,7 @@ receipt         →  on-chain evidence`}
                   className="font-mono text-[10px] text-zinc-700 transition-colors hover:text-zinc-400"
                 >
                   github.com/Obsqra-Labs/zkdefi
+                  <span className="sr-only">(opens in new tab)</span>
                 </a>
                 <a
                   href="/docs/why.html"
@@ -877,7 +882,7 @@ receipt         →  on-chain evidence`}
                 </a>
               </div>
             </div>
-          </div>
+          </footer>
         </Reveal>
       </section>
     </main>

@@ -27,6 +27,13 @@ export function Reveal({
     const el = ref.current;
     if (!el) return;
 
+    // Respect reduced motion preference — reveal immediately
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      el.classList.add("revealed");
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

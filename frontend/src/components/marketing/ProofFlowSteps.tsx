@@ -39,6 +39,13 @@ export function ProofFlowSteps() {
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
+    // Respect reduced motion preference — light up all steps immediately
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setLit(Array(5).fill(true));
+      return;
+    }
+
     const observers: IntersectionObserver[] = [];
 
     refs.current.forEach((el, i) => {

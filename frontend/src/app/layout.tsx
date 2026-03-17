@@ -67,6 +67,7 @@ export default function RootLayout({
       <body
         className="min-h-screen bg-zinc-950 text-zinc-100 font-sans"
       >
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <ErrorBoundary>
           <StarknetProvider>
             <AppProvider>
