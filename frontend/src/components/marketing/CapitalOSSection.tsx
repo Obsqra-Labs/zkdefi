@@ -7,8 +7,10 @@ import {
   ArrowRight,
   Activity,
   Lock,
+  Wallet,
 } from "lucide-react";
-import { ReputationProfile, type ReputationData } from "./ReputationProfile";
+import { type ReputationData } from "./ReputationProfile";
+import { IdentityCard } from "./IdentityCard";
 import { apiFetch } from "@/lib/api/client";
 
 /* ── lazy-load heavy components ── */
@@ -28,7 +30,6 @@ import type { AnalysisResult } from "./TrustDemo";
 /* ── demo identifiers ── */
 const DEMO_ADDRESS =
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d";
-const DEMO_L3_ADDRESS = "0x0474b940f499ca60d2aebce5c6b0b0c4e8b0947e";
 
 /* ── seeded reputation ── */
 const GUEST_REPUTATION: ReputationData = {
@@ -99,16 +100,6 @@ function StepBadge({ label, color }: { label: string; color: string }) {
   );
 }
 
-/* ── flow connector between steps ── */
-function FlowConnector({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 py-2">
-      <div className="h-10 w-px border-l border-dashed border-zinc-700" />
-      <span className="font-mono text-[10px] text-zinc-500">{text}</span>
-      <div className="text-lg text-zinc-600">▾</div>
-    </div>
-  );
-}
 
 /**
  * CapitalOSSection — 3 stacked sections, all always visible:
@@ -144,8 +135,10 @@ export function CapitalOSSection() {
     setTriggerKey((k) => k + 1);
   }, []);
 
-  const handleOnboard = useCallback(async () => {
+  const handleGuestOnboard = useCallback(async () => {
     setRepLoading(true);
+    setIdentitySource("demo");
+    setIdentityAddress(DEMO_ADDRESS);
     try {
       const rep = await apiFetch<ReputationData>(
         `/api/v1/demo/reputation/${DEMO_ADDRESS}`,
@@ -237,53 +230,50 @@ export function CapitalOSSection() {
           </p>
         </div>
 
-        {/* Onboard CTA or reputation dashboard */}
+        {/* Two CTAs or identity card */}
         {!onboarded ? (
-          <div className="flex flex-col items-center gap-4">
+          <div className="mx-auto flex max-w-md flex-col items-stretch gap-3">
+            {/* Primary — Try as guest (full width, dominant) */}
             <button
-              onClick={handleOnboard}
+              onClick={handleGuestOnboard}
               disabled={repLoading}
-              className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-7 py-3.5 font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:from-fuchsia-500 hover:to-violet-500 hover:shadow-fuchsia-500/30 disabled:opacity-50"
+              className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-7 py-4 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:from-fuchsia-500 hover:to-violet-500 hover:shadow-fuchsia-500/30 disabled:opacity-50"
             >
               {repLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Scanning on-chain identity…
+                  Discovering identity…
                 </>
               ) : (
                 <>
                   <Fingerprint className="h-5 w-5" />
-                  Generate Identity Proof
+                  Try the loop as guest
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
             </button>
-            <p className="text-[10px] text-zinc-600">
-              No wallet needed · Uses demo address · Mainnet data
+
+            {/* Secondary — Connect wallet (smaller, stubbed) */}
+            <button
+              disabled
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Wallet connect coming soon"
+            >
+              <Wallet className="h-4 w-4" />
+              Connect wallet
+              <span className="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500">
+                soon
+              </span>
+            </button>
+
+            <p className="text-center text-[10px] text-zinc-600">
+              Try the loop in one click · No wallet needed
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="mx-auto max-w-lg rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-5 py-4 text-center">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-500">
-                Your Sovereign L3 Address
-              </p>
-              <code className="break-all font-mono text-sm font-medium text-emerald-300">
-                {DEMO_L3_ADDRESS}
-              </code>
-              <p className="mt-2 text-[10px] text-zinc-600">
-                Portable across all zkDefi-compatible protocols.
-              </p>
-            </div>
-            {reputation && <ReputationProfile data={reputation} />}
-          </div>
+          reputation && <IdentityCard data={reputation} />
         )}
       </section>
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* Connector: Step 1 → Step 2                               */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <FlowConnector text="↓ This proof travels with you" />
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 2 — ZK Oracle (always visible)                      */}
@@ -338,11 +328,6 @@ export function CapitalOSSection() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
-      {/* Connector: Step 2 → Step 3                               */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <FlowConnector text="↓ The top opportunity flows into execution" />
-
-      {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 3 — Gated Execution                                 */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
@@ -364,7 +349,7 @@ export function CapitalOSSection() {
         <Suspense fallback={<StepSkeleton />}>
           <AgentExecutionLoopLazy
             oracleResult={oracleResult}
-            walletAddress={DEMO_ADDRESS}
+            walletAddress={identityAddress ?? DEMO_ADDRESS}
             reputation={reputation}
           />
         </Suspense>
