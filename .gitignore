@@ -3,6 +3,9 @@ target/
 **/*.rs
 circuits/contracts/src/scarb-*/
 
+# Rust build output
+credit-scoring/target/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -68,6 +71,13 @@ circuits/build/private_vote_input.json
 
 # Large ML model files (EZKL proving keys - use external storage)
 backend/app/data/ezkl_models/**/*.key
+backend/app/data/ezkl_models/**/pk.key
+
+# Broken / stale Next.js builds
+frontend/.next.broken*/
+
+# Scarb compiled binaries
+circuits/contracts/src/scarb-*/bin/
 circuits/build/**/*.ptau
 circuits/build/**/accounts.json
 circuits/build/**/.secrets
