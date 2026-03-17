@@ -40,6 +40,25 @@ Thumbs.db
 .env.*
 !.env.example
 
+# ── Databases & runtime state (never track) ──
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# ── Credentials & session data ──
+backend/data/session_keys.json
+backend/data/issued_credentials.json
+backend/data/credential_revocations.json
+backend/app/data/session_keys.json
+
+# ── Circuit test inputs with secrets ──
+circuits/build/private_vote_input.json
+
+# ── ZK proving keys (large binaries — use releases/LFS) ──
+*.zkey
+*.ptau
+
 # Git worktrees (isolated branches)
 .worktrees/
 
@@ -49,8 +68,6 @@ Thumbs.db
 
 # Large ML model files (EZKL proving keys - use external storage)
 backend/app/data/ezkl_models/**/*.key
-backend/app/data/ezkl_models/**/*.zkey
-circuits/build/**/*.zkey
 circuits/build/**/*.ptau
 circuits/build/**/accounts.json
 circuits/build/**/.secrets
