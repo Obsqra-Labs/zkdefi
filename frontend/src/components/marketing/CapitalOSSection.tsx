@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Fingerprint,
   Loader2,
@@ -11,20 +11,11 @@ import {
 } from "lucide-react";
 import { type ReputationData } from "./ReputationProfile";
 import { IdentityCard } from "./IdentityCard";
+import { RiskPicker } from "./RiskPicker";
+import { OracleResults } from "./OracleResults";
+import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
-
-/* ── lazy-load heavy components ── */
-const CapitalBrainLazy = lazy(() =>
-  import("./CapitalBrain").then((m) => ({ default: m.CapitalBrain }))
-);
-const TrustDemoLazy = lazy(() =>
-  import("./TrustDemo").then((m) => ({ default: m.TrustDemo }))
-);
-const AgentExecutionLoopLazy = lazy(() =>
-  import("./AgentExecutionLoop").then((m) => ({ default: m.AgentExecutionLoop }))
-);
-
-import { DEFAULT_ENABLED, type BrainConfig } from "./CapitalBrain";
+import { DEFAULT_ENABLED } from "./CapitalBrain";
 import type { AnalysisResult } from "./TrustDemo";
 
 /* ── demo identifiers ── */
@@ -108,6 +99,11 @@ function StepBadge({ label, color }: { label: string; color: string }) {
  *  2. ZK Oracle — verified data intelligence (always visible, no gate)
  *  3. Gated Execution — proof-gated actions, verifiable receipts
  */
+/* ── lazy-load heavy components ── */
+const AgentExecutionLoopLazy = lazy(() =>
+  import("./AgentExecutionLoop").then((m) => ({ default: m.AgentExecutionLoop }))
+);
+
 export function CapitalOSSection() {
   /* ── identity ── */
   const [identityAddress, setIdentityAddress] = useState<string | null>(null);
@@ -118,22 +114,41 @@ export function CapitalOSSection() {
   const [reputation, setReputation] = useState<ReputationData | null>(null);
   const [repLoading, setRepLoading] = useState(false);
 
-  /* ── Step 2: oracle ── */
-  const [config, setConfig] = useState<BrainConfig>({
-    riskTolerance: 50,
+  /* ── Step 2: oracle (via hook) ── */
+  const [riskTolerance, setRiskTolerance] = useState(50);
+  const oracle = useOracleAnalysis({
+    riskTolerance,
     enabledSkills: DEFAULT_ENABLED,
     protocolWeights: { ekubo: 50, vesu: 30, lending: 20 },
   });
-  const [triggerKey, setTriggerKey] = useState(0);
-  const [loading, setLoading] = useState(false);
 
-  /* ── Step 3: oracle result for execution loop ── */
+  /* ── auto-analyze on identity resolve ── */
+  const hasAutoAnalyzed = useRef(false);
+  useEffect(() => {
+    if (onboarded && !hasAutoAnalyzed.current) {
+      hasAutoAnalyzed.current = true;
+      oracle.analyze();
+    }
+  }, [onboarded]);
+
+  /* ── re-analyze when risk changes (debounced) ── */
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleRiskChange = useCallback(
+    (value: number) => {
+      setRiskTolerance(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        oracle.analyze();
+      }, 300);
+    },
+    [oracle.analyze],
+  );
+
+  /* ── lift oracle result for Step 3 ── */
   const [oracleResult, setOracleResult] = useState<AnalysisResult | null>(null);
-
-  const handleAnalyze = useCallback((cfg: BrainConfig) => {
-    setConfig(cfg);
-    setTriggerKey((k) => k + 1);
-  }, []);
+  useEffect(() => {
+    if (oracle.result) setOracleResult(oracle.result);
+  }, [oracle.result]);
 
   const handleGuestOnboard = useCallback(async () => {
     setRepLoading(true);
@@ -292,39 +307,26 @@ export function CapitalOSSection() {
           </p>
         </div>
 
-        <Suspense fallback={<StepSkeleton />}>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-            <div className="lg:sticky lg:top-4 lg:self-start">
-              <CapitalBrainLazy onAnalyze={handleAnalyze} loading={loading} />
-            </div>
+        {/* Risk picker — vertical, single column */}
+        <RiskPicker
+          value={riskTolerance}
+          onChange={handleRiskChange}
+          loading={oracle.loading}
+        />
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-lg font-semibold text-zinc-200">Verified Intelligence</h3>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Aggregated on-chain data · AI-scored · zkML-attested
-                  </p>
-                </div>
-                {onboarded && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/20 bg-fuchsia-500/5 px-2.5 py-0.5 text-[10px] text-fuchsia-400">
-                    <Fingerprint className="h-3 w-3" />
-                    Passport attached
-                  </span>
-                )}
-              </div>
-
-              <TrustDemoLazy
-                riskTolerance={config.riskTolerance}
-                enabledSkills={config.enabledSkills}
-                protocolWeights={config.protocolWeights}
-                triggerKey={triggerKey}
-                onLoadingChange={setLoading}
-                onResult={setOracleResult}
-              />
-            </div>
-          </div>
-        </Suspense>
+        {/* Oracle results — directly below */}
+        <OracleResults
+          result={oracle.result}
+          loading={oracle.loading}
+          error={oracle.error}
+          profile={oracle.profile}
+          narration={oracle.narration}
+          narrationLoading={oracle.narrationLoading}
+          batchResults={oracle.batchResults}
+          batchLoading={oracle.batchLoading}
+          status={oracle.status}
+          onRetry={oracle.analyze}
+        />
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
