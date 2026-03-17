@@ -17,8 +17,16 @@ import { ExecutionBlock } from "./ExecutionBlock";
 import { IntelligentStream } from "./IntelligentStream";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
-import { DEFAULT_ENABLED } from "./CapitalBrain";
 import type { AnalysisResult } from "./TrustDemo";
+
+/* ── default skill set (inlined from CapitalBrain) ── */
+const DEFAULT_ENABLED = [
+  "il_predictor",
+  "yield_optimality",
+  "slippage_bound",
+  "strategy_integrity",
+  "execution_integrity",
+];
 
 /* ── demo identifiers ── */
 const DEMO_ADDRESS =
