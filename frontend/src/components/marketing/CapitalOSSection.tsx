@@ -17,6 +17,7 @@ import { ExecutionBlock } from "./ExecutionBlock";
 import { IntelligentStream } from "./IntelligentStream";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
+import { Reveal } from "./Reveal";
 import type { AnalysisResult } from "./TrustDemo";
 
 /* ── default skill set (inlined from CapitalBrain) ── */
@@ -167,6 +168,7 @@ export function CapitalOSSection() {
   return (
     <div className="space-y-20">
       {/* ═══ Subtitle + progress dots ═══ */}
+      <Reveal>
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-sm leading-relaxed text-zinc-500">
           How does a trader execute privately without losing their track record?
@@ -205,11 +207,13 @@ export function CapitalOSSection() {
           ))}
         </div>
       </div>
+      </Reveal>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 1 — Reputation Passport                             */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
+        <Reveal delay={100}>
         <div className="mx-auto max-w-3xl text-center">
           <StepLabel label="Reputation" color="fuchsia" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
@@ -223,8 +227,10 @@ export function CapitalOSSection() {
             your balances, or your strategy. The proof travels with you.
           </p>
         </div>
+        </Reveal>
 
         {/* Explainer cards */}
+        <Reveal delay={200}>
         <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-fuchsia-500/10">
@@ -257,16 +263,20 @@ export function CapitalOSSection() {
             </p>
           </div>
         </div>
+        </Reveal>
 
         {/* Selective disclosure callout */}
+        <Reveal delay={400}>
         <div className="mx-auto max-w-3xl rounded-lg border border-violet-500/10 bg-violet-950/5 px-5 py-3 text-center">
           <p className="text-[11px] leading-relaxed text-zinc-400">
             <strong className="text-violet-300">Selective disclosure on demand.</strong>{" "}
             Protocols verify your tier without seeing your wallet. Regulators can request disclosure. You control the key.
           </p>
         </div>
+        </Reveal>
 
         {/* Two CTAs or identity card */}
+        <Reveal delay={500}>
         {!onboarded ? (
           <div className="mx-auto flex max-w-md flex-col items-stretch gap-3">
             {/* Primary — Try as guest (full width, dominant) */}
@@ -309,12 +319,14 @@ export function CapitalOSSection() {
         ) : (
           reputation && <IdentityCard data={reputation} />
         )}
+        </Reveal>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 2 — ZK Oracle (always visible)                      */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
+        <Reveal>
         <div className="mx-auto max-w-3xl text-center">
           <StepLabel label="Oracle" color="cyan" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
@@ -327,15 +339,19 @@ export function CapitalOSSection() {
             and made a correct decision.
           </p>
         </div>
+        </Reveal>
 
         {/* Risk picker — vertical, single column */}
+        <Reveal delay={100}>
         <RiskPicker
           value={riskTolerance}
           onChange={handleRiskChange}
           loading={oracle.loading}
         />
+        </Reveal>
 
         {/* Oracle results — directly below */}
+        <Reveal delay={200}>
         <OracleResults
           result={oracle.result}
           loading={oracle.loading}
@@ -348,12 +364,14 @@ export function CapitalOSSection() {
           status={oracle.status}
           onRetry={oracle.analyze}
         />
+        </Reveal>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* STEP 3 — Gated Execution                                 */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
+        <Reveal>
         <div className="mx-auto max-w-3xl text-center">
           <StepLabel label="Execution" color="emerald" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
@@ -367,20 +385,24 @@ export function CapitalOSSection() {
             reputation passport. The loop closes.
           </p>
         </div>
+        </Reveal>
 
         {/* Execution block */}
+        <Reveal delay={100}>
         <ExecutionBlock
           oracleResult={oracleResult}
           walletAddress={identityAddress ?? DEMO_ADDRESS}
           riskTolerance={riskTolerance}
           onExecutionComplete={() => setExecutionDone(true)}
         />
+        </Reveal>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* POST-RECEIPT — Stream + Capital OS teaser                 */}
       {/* ═══════════════════════════════════════════════════════════ */}
       {executionDone && (
+        <Reveal>
         <section className="space-y-8">
           {/* Intro line */}
           <p className="text-center font-mono text-sm text-zinc-500">
@@ -409,11 +431,13 @@ export function CapitalOSSection() {
             </a>
           </div>
         </section>
+        </Reveal>
       )}
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* Builder callout                                           */}
       {/* ═══════════════════════════════════════════════════════════ */}
+      <Reveal>
       <div className="mx-auto max-w-3xl border-t border-zinc-800 pt-8 text-center">
         <p className="font-mono text-[11px] text-zinc-500">
           Building an agent? The same proof pipeline is available as an API.{" "}
@@ -425,6 +449,7 @@ export function CapitalOSSection() {
           </a>
         </p>
       </div>
+      </Reveal>
     </div>
   );
 }
