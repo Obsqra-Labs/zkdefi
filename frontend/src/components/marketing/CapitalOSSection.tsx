@@ -118,6 +118,10 @@ function FlowConnector({ text }: { text: string }) {
  *  3. Gated Execution — proof-gated actions, verifiable receipts
  */
 export function CapitalOSSection() {
+  /* ── identity ── */
+  const [identityAddress, setIdentityAddress] = useState<string | null>(null);
+  const [identitySource, setIdentitySource] = useState<"connected" | "demo" | null>(null);
+
   /* ── Step 1: reputation ── */
   const [onboarded, setOnboarded] = useState(false);
   const [reputation, setReputation] = useState<ReputationData | null>(null);
