@@ -345,6 +345,21 @@ export default function LandingPage() {
               </Reveal>
             ))}
           </div>
+
+          {/* Trust modes — relocated from Section 5 */}
+          <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3">
+            {TRUST_MODES.map((tm, i) => (
+              <Reveal key={tm.mode} delay={i * 100}>
+                <div className="h-full bg-zinc-950 p-6">
+                  <h4 className="font-serif text-lg font-bold text-zinc-100">{tm.mode}</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{tm.desc}</p>
+                  <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
+                    {tm.examples}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -470,6 +485,38 @@ receipt         →  on-chain evidence`}
               ))}
             </div>
           </div>
+
+          {/* How we're different — relocated from Section 5 */}
+          <div className="mt-16 border-t border-zinc-800 pt-10">
+            <Reveal>
+              <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+                How we&apos;re different
+              </p>
+            </Reveal>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              {[
+                {
+                  title: "zkML proofs, not analytics",
+                  body: "Cred Protocol, Spectral, and ArcX score wallets. We prove the score in ZK — it travels cross-protocol without revealing your data.",
+                },
+                {
+                  title: "Agents gated, not just attested",
+                  body: "EigenAI and Lagrange prove inference. We gate capital movement on it. The proof unlocks or blocks the trade.",
+                },
+                {
+                  title: "Math, not hardware trust",
+                  body: "TEE-based compute trusts the chip manufacturer. ZK proofs trust math. Post-Tornado-Cash, that distinction matters.",
+                },
+              ].map((item, i) => (
+                <Reveal key={item.title} delay={i * 100}>
+                  <div>
+                    <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.body}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -563,84 +610,6 @@ receipt         →  on-chain evidence`}
             </div>
           </Reveal>
 
-          {/* Trust modes — minimal */}
-          <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3">
-            {TRUST_MODES.map((tm, i) => (
-              <Reveal key={tm.mode} delay={i * 100}>
-                <div className="h-full bg-zinc-950 p-6">
-                  <h4 className="font-serif text-lg font-bold text-zinc-100">{tm.mode}</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{tm.desc}</p>
-                  <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
-                    {tm.examples}
-                  </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-
-          {/* How we're different */}
-          <div className="mt-20">
-            <Reveal>
-              <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-                Competitive positioning
-              </p>
-            </Reveal>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {[
-                {
-                  title: "zkML proofs, not analytics",
-                  body: "Cred Protocol, Spectral, and ArcX score wallets. We prove the score in ZK — it travels cross-protocol without revealing your data.",
-                },
-                {
-                  title: "Agents gated, not just attested",
-                  body: "EigenAI and Lagrange prove inference. We gate capital movement on it. The proof unlocks or blocks the trade.",
-                },
-                {
-                  title: "Math, not hardware trust",
-                  body: "TEE-based compute trusts the chip manufacturer. ZK proofs trust math. Post-Tornado-Cash, that distinction matters.",
-                },
-              ].map((item, i) => (
-                <Reveal key={item.title} delay={i * 100}>
-                  <div>
-                    <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-
-          {/* Why Starknet — same minimal treatment */}
-          <div className="mt-20 border-t border-zinc-800 pt-10">
-            <Reveal>
-              <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-                Why Starknet
-              </p>
-            </Reveal>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-              {[
-                {
-                  title: "Cheap proof verification",
-                  desc: "Native STARK verification at L2 cost. The same math that secures Ethereum runs on-chain for pennies.",
-                },
-                {
-                  title: "Private by design",
-                  desc: "Cairo enforces rules without revealing them. Your strategy compiles into something provable, not readable.",
-                },
-                {
-                  title: "Real computation",
-                  desc: "ML models settle on-chain through the same proofs that secure Starknet blocks. S-two prover: 100× more efficient.",
-                },
-              ].map((item, i) => (
-                <Reveal key={item.title} delay={i * 100}>
-                  <div>
-                    <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -700,6 +669,38 @@ receipt         →  on-chain evidence`}
                 </div>
               </Reveal>
             ))}
+          </div>
+
+          {/* Why Starknet — relocated from Section 5 */}
+          <div className="mt-16 border-t border-zinc-800 pt-10">
+            <Reveal>
+              <p className="mb-8 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+                Why Starknet
+              </p>
+            </Reveal>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+              {[
+                {
+                  title: "Cheap proof verification",
+                  desc: "Native STARK verification at L2 cost. The same math that secures Ethereum runs on-chain for pennies.",
+                },
+                {
+                  title: "Private by design",
+                  desc: "Cairo enforces rules without revealing them. Your strategy compiles into something provable, not readable.",
+                },
+                {
+                  title: "Real computation",
+                  desc: "ML models settle on-chain through the same proofs that secure Starknet blocks. S-two prover: 100× more efficient.",
+                },
+              ].map((item, i) => (
+                <Reveal key={item.title} delay={i * 100}>
+                  <div>
+                    <h4 className="text-sm font-bold text-zinc-200">{item.title}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
           </div>
 
           {/* Tri-chain contracts — dashboard layout */}
