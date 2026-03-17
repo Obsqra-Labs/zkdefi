@@ -174,6 +174,37 @@ export function CapitalOSSection() {
           <br className="hidden sm:block" />
           Three answers. One loop.
         </p>
+
+        {/* Semantic progress dots */}
+        <div className="mt-6 flex items-center justify-center gap-6" role="list" aria-label="Demo progress">
+          {[
+            { label: "Identity", done: onboarded, color: "bg-fuchsia-500" },
+            { label: "Oracle", done: !!oracleResult, color: "bg-cyan-500" },
+            { label: "Execution", done: executionDone, color: "bg-emerald-500" },
+          ].map((step) => (
+            <div
+              key={step.label}
+              role="listitem"
+              className="flex items-center gap-1.5"
+              aria-label={`${step.label}: ${step.done ? "complete" : "pending"}`}
+            >
+              <span
+                className={`inline-block h-2 w-2 rounded-full border transition-colors duration-500 ${
+                  step.done
+                    ? `${step.color} border-transparent`
+                    : "border-zinc-700 bg-transparent"
+                }`}
+              />
+              <span
+                className={`font-mono text-[10px] transition-colors duration-500 ${
+                  step.done ? "text-zinc-300" : "text-zinc-600"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════ */}
