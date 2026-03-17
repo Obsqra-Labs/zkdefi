@@ -18,6 +18,7 @@ import {
 import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
 import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
+import { ProofFlowSteps } from "@/components/marketing/ProofFlowSteps";
 import { Reveal, RevealStagger } from "@/components/marketing/Reveal";
 
 /* ─── data ─────────────────────────────────────────────────────────── */
@@ -68,25 +69,14 @@ const ETHEREUM_CONTRACTS = [
 
 const ROADMAP = [
   {
-    phase: "Phase 1 — Foundation",
+    phase: "Phases 1–2 — Foundation + ModelBridge",
     status: "done" as const,
     items: [
-      "Double-entry vault ledger + note tracking",
-      "Privacy commitment & nullifier rails",
-      "31 circom circuits with WASM + zkey",
-      "7 contracts deployed on Starknet Sepolia",
-      "Groth16 + STARK dual-proof lanes",
-    ],
-  },
-  {
-    phase: "Phase 2 — ModelBridge",
-    status: "done" as const,
-    items: [
-      "Open-source ModelBridge (zkML → circuit proof gate)",
+      "Double-entry vault ledger, privacy commitment & nullifier rails",
+      "31 circom circuits (WASM + zkey) · 7 Cairo + 4 EVM contracts deployed",
+      "Open-source ModelBridge: zkML → circuit proof gate",
+      "Garaga on-chain KZG verifier · Stone prover integration",
       "L3 hash-verified receipt pipeline on Madara",
-      "Garaga on-chain KZG pairing verifier",
-      "4 EVM contracts on Ethereum Sepolia",
-      "Stone prover integration (same infra as Starknet blocks)",
     ],
   },
   {
@@ -96,7 +86,6 @@ const ROADMAP = [
       "zkML-gated agent composition (13 skill circuits per opportunity)",
       "Trust receipt pipeline with SHA-256 commitments",
       "Private prediction market with commit-reveal-score lifecycle",
-      "Signal pass service with typed risk reports",
       "Tri-chain settlement: Madara L3 → Starknet L2 → Ethereum L1",
     ],
   },
@@ -107,21 +96,17 @@ const ROADMAP = [
       "SNARK-in-STARK recursive proof composition",
       "Batch N zkML proofs → single Starknet verification",
       "Cross-chain portable risk profiles via BridgeRelay",
-      "Noir HONK bridge + native Cairo KZG lanes ✓",
-      "Recursive trust receipts with composable attestations",
+      "Noir HONK bridge + native Cairo KZG lanes",
     ],
   },
   {
-    phase: "Phase 5 — Mainnet + Capital OS",
+    phase: "Phase 5 — Mainnet",
     status: "planned" as const,
     items: [
-      "Capital OS: full portfolio management, auto-rebalance, LP orchestration",
-      "Starknet mainnet contract deployment",
-      "Ethereum mainnet bridge finalization",
+      "Starknet + Ethereum mainnet deployment",
       "Production Madara L3 with economic security",
-      "DAO governance with private voting",
-      "Public ModelBridge SDK + developer docs",
-      "StarkForge S-two integration — 100x proving cost reduction as Starknet transitions from Stone to S-two prover",
+      "Capital OS: portfolio management, auto-rebalance, LP orchestration",
+      "StarkForge S-two integration — 100× proving cost reduction",
     ],
   },
 ] as const;
@@ -280,71 +265,8 @@ export default function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Proof flow — 5 steps as refined cards with connecting dots */}
-          <div className="mt-16 grid grid-cols-1 gap-0 sm:grid-cols-5">
-            {[
-              {
-                num: "01",
-                label: "Strategy",
-                desc: "Your private conditions compile into a provable circuit",
-                color: "text-zinc-400",
-                accent: "border-zinc-700",
-                dotColor: "bg-zinc-600",
-              },
-              {
-                num: "02",
-                label: "Proof",
-                desc: "EZKL generates a Halo2 SNARK — conditions met, nothing revealed",
-                color: "text-zinc-400",
-                accent: "border-zinc-700",
-                dotColor: "bg-zinc-600",
-              },
-              {
-                num: "03",
-                label: "Verify",
-                desc: "Garaga checks the proof on-chain using pairing math",
-                color: "text-zinc-400",
-                accent: "border-zinc-700",
-                dotColor: "bg-zinc-600",
-              },
-              {
-                num: "04",
-                label: "Execute",
-                desc: "Capital moves only if both proof systems agree",
-                color: "text-emerald-400",
-                accent: "border-emerald-500/30",
-                dotColor: "bg-emerald-500",
-              },
-              {
-                num: "05",
-                label: "Receipt",
-                desc: "On-chain evidence feeds back into your reputation score",
-                color: "text-emerald-400",
-                accent: "border-emerald-500/30",
-                dotColor: "bg-emerald-500",
-              },
-            ].map((step, i) => (
-              <Reveal key={step.num} delay={i * 100}>
-                <div className="relative flex flex-col">
-                  {/* Connector dot on the top border */}
-                  {i > 0 && (
-                    <div className={`absolute -top-[5px] left-6 hidden h-2.5 w-2.5 rounded-full ${step.dotColor} ring-4 ring-zinc-950 sm:block`} />
-                  )}
-                  <div className={`border-t-2 ${step.accent} px-4 pb-6 pt-5 sm:px-5`}>
-                    <span className="font-serif text-3xl font-bold tracking-tight text-zinc-800 sm:text-4xl">
-                      {step.num}
-                    </span>
-                    <h3 className={`mt-2 text-sm font-bold uppercase tracking-wider ${step.color}`}>
-                      {step.label}
-                    </h3>
-                    <p className="mt-2 font-mono text-[11px] leading-relaxed text-zinc-600">
-                      {step.desc}
-                    </p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          {/* Proof flow — 5 steps that progressively light up on scroll */}
+          <ProofFlowSteps />
 
           {/* Trust modes — relocated from Section 5 */}
           <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 md:grid-cols-3">
