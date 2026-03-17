@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ExternalLink, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SiteHeaderProps {
   compact?: boolean;
@@ -10,16 +11,34 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ compact = false }: SiteHeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 16);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-zinc-950/90 px-6 py-4 backdrop-blur-sm">
+    <header className={`sticky top-0 z-50 border-b bg-zinc-950/90 px-6 py-4 backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ${
+      scrolled
+        ? "border-zinc-700/50 shadow-lg shadow-black/20"
+        : "border-zinc-800/50"
+    }`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
-          <img src="/logo.png" alt="zkde.fi" className="h-8 w-8 rounded-lg object-contain" />
+          <Image src="/logo.png" alt="zkde.fi" width={32} height={32} className="rounded-lg object-contain" priority />
           <span className="font-serif text-lg font-bold tracking-tight">zkde.fi</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
+          <a
+            href="/#capital-os"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            The Loop
+          </a>
           <a
             href="/test"
             className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
@@ -67,6 +86,13 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
 
       {mobileOpen && (
         <div className="mx-auto mt-3 max-w-7xl space-y-1 rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 md:hidden">
+          <a
+            href="/#capital-os"
+            onClick={() => setMobileOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-white"
+          >
+            The Loop
+          </a>
           <a
             href="/test"
             onClick={() => setMobileOpen(false)}

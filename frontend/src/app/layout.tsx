@@ -29,11 +29,15 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://zkde.fi"),
   title: "zkde.fi — Hide everything. Prove anything.",
   description: "Zero-knowledge DeFi on Starknet. Build an anonymous reputation anchored by ZK receipts. Your strategy stays hidden. Your AI agents prove they behaved.",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
+  },
+  alternates: {
+    canonical: "https://zkde.fi",
   },
   openGraph: {
     title: "zkde.fi — Hide everything. Prove anything.",
@@ -62,14 +66,7 @@ export default function RootLayout({
       </head>
       <body
         className="min-h-screen bg-zinc-950 text-zinc-100 font-sans"
-        style={{
-          backgroundColor: "#09090b",
-          color: "#f4f4f5",
-          minHeight: "100vh",
-          WebkitFontSmoothing: "antialiased",
-        }}
       >
-        <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
         <ErrorBoundary>
           <StarknetProvider>
             <AppProvider>
