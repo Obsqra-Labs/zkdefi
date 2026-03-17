@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Fingerprint,
   Loader2,
@@ -13,6 +13,7 @@ import { type ReputationData } from "./ReputationProfile";
 import { IdentityCard } from "./IdentityCard";
 import { RiskPicker } from "./RiskPicker";
 import { OracleResults } from "./OracleResults";
+import { ExecutionBlock } from "./ExecutionBlock";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
 import { DEFAULT_ENABLED } from "./CapitalBrain";
@@ -71,15 +72,6 @@ const GUEST_REPUTATION: ReputationData = {
   },
 };
 
-/* ── loading skeleton ── */
-function StepSkeleton() {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-zinc-600" />
-    </div>
-  );
-}
-
 /* ── step badge ── */
 function StepBadge({ label, color }: { label: string; color: string }) {
   return (
@@ -99,11 +91,6 @@ function StepBadge({ label, color }: { label: string; color: string }) {
  *  2. ZK Oracle — verified data intelligence (always visible, no gate)
  *  3. Gated Execution — proof-gated actions, verifiable receipts
  */
-/* ── lazy-load heavy components ── */
-const AgentExecutionLoopLazy = lazy(() =>
-  import("./AgentExecutionLoop").then((m) => ({ default: m.AgentExecutionLoop }))
-);
-
 export function CapitalOSSection() {
   /* ── identity ── */
   const [identityAddress, setIdentityAddress] = useState<string | null>(null);
@@ -149,6 +136,9 @@ export function CapitalOSSection() {
   useEffect(() => {
     if (oracle.result) setOracleResult(oracle.result);
   }, [oracle.result]);
+
+  /* ── Step 3: execution complete flag (for stream + teaser) ── */
+  const [executionDone, setExecutionDone] = useState(false);
 
   const handleGuestOnboard = useCallback(async () => {
     setRepLoading(true);
@@ -347,14 +337,13 @@ export function CapitalOSSection() {
           </p>
         </div>
 
-        {/* Agent execution loop */}
-        <Suspense fallback={<StepSkeleton />}>
-          <AgentExecutionLoopLazy
-            oracleResult={oracleResult}
-            walletAddress={identityAddress ?? DEMO_ADDRESS}
-            reputation={reputation}
-          />
-        </Suspense>
+        {/* Execution block */}
+        <ExecutionBlock
+          oracleResult={oracleResult}
+          walletAddress={identityAddress ?? DEMO_ADDRESS}
+          riskTolerance={riskTolerance}
+          onExecutionComplete={() => setExecutionDone(true)}
+        />
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
