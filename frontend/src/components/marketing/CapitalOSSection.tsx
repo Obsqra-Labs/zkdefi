@@ -73,14 +73,12 @@ const GUEST_REPUTATION: ReputationData = {
   },
 };
 
-/* ── step badge ── */
-function StepBadge({ label, color }: { label: string; color: string }) {
+/* ── step label ── */
+function StepLabel({ label, color }: { label: string; color: string }) {
   return (
-    <div className="mb-3 inline-flex items-center gap-2">
-      <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-${color}-400`}>
-        ◆ {label}
-      </span>
-    </div>
+    <p className={`mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-${color}-400`}>
+      {label}
+    </p>
   );
 }
 
@@ -159,24 +157,17 @@ export function CapitalOSSection() {
   }, []);
 
   return (
-    <div className="space-y-16">
-      {/* ═══ Hero headline ═══ */}
+    <div className="space-y-20">
+      {/* ═══ Subtitle + progress dots ═══ */}
       <div className="mx-auto max-w-3xl text-center">
-        <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
-          Interactive Demo
-        </p>
-        <h2 className="font-serif text-2xl font-bold leading-tight tracking-tight text-zinc-100 sm:text-3xl">
-          The loop that makes
-          <br className="hidden sm:block" /> private DeFi work.
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-zinc-500">
+        <p className="text-sm leading-relaxed text-zinc-500">
           How does a trader execute privately without losing their track record?
           <br className="hidden sm:block" />
           Three answers. One loop.
         </p>
 
         {/* Semantic progress dots */}
-        <div className="mt-6 flex items-center justify-center gap-6" role="list" aria-label="Demo progress">
+        <div className="mt-5 flex items-center justify-center gap-6" role="list" aria-label="Demo progress">
           {[
             { label: "Identity", done: onboarded, color: "bg-fuchsia-500" },
             { label: "Oracle", done: !!oracleResult, color: "bg-cyan-500" },
@@ -212,7 +203,7 @@ export function CapitalOSSection() {
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge label="Reputation" color="fuchsia" />
+          <StepLabel label="Reputation" color="fuchsia" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             Your reputation, proven privately.
           </h3>
@@ -317,7 +308,7 @@ export function CapitalOSSection() {
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge label="Oracle" color="cyan" />
+          <StepLabel label="Oracle" color="cyan" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             Verified data for your agent.
           </h3>
@@ -356,7 +347,7 @@ export function CapitalOSSection() {
       {/* ═══════════════════════════════════════════════════════════ */}
       <section className="space-y-8">
         <div className="mx-auto max-w-3xl text-center">
-          <StepBadge label="Execution" color="emerald" />
+          <StepLabel label="Execution" color="emerald" />
           <h3 className="font-serif text-xl font-bold text-zinc-100 sm:text-2xl">
             The trade fires. The loop closes.
           </h3>
