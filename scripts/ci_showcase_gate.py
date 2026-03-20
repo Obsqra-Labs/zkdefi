@@ -7,6 +7,7 @@ This script is intended to run from repo root.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
 import subprocess
@@ -19,6 +20,7 @@ ARTIFACT_DIR = ROOT / "artifacts" / "hackathon_showcase"
 LATEST_REPORT = ARTIFACT_DIR / "latest.json"
 PATHA_LATEST = ARTIFACT_DIR / "patha_latest.json"
 PATHB_LATEST = ARTIFACT_DIR / "pathb_latest.json"
+PATHC_LATEST = ARTIFACT_DIR / "pathc_latest.json"
 
 
 def _env(name: str, default: str) -> str:
@@ -28,6 +30,21 @@ def _env(name: str, default: str) -> str:
 def _env_bool(name: str, default: bool) -> bool:
     raw = _env(name, "true" if default else "false").strip().lower()
     return raw in {"1", "true", "yes", "on"}
+
+
+def _parse_iso_datetime(raw: object) -> datetime | None:
+    if not isinstance(raw, str):
+        return None
+    value = raw.strip()
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _run(cmd: list[str], *, check: bool = True) -> int:
@@ -70,6 +87,54 @@ def _validate_warm_report(path: Path) -> None:
                 "Path B dual native KZG mirror gate failed: "
                 f"attempted={attempted} l2_receipts={l2_receipts} mirrored={mirrored}"
             )
+
+
+def _validate_pathc_artifact() -> None:
+    if not _env_bool("SHOWCASE_REQUIRE_PATHC_LIVE", False):
+        return
+    if not PATHC_LATEST.exists():
+        raise RuntimeError(f"missing Path C latest artifact: {PATHC_LATEST}")
+    pathc = json.loads(PATHC_LATEST.read_text())
+    if not isinstance(pathc, dict):
+        raise RuntimeError("Path C latest artifact is not a JSON object")
+
+    l1_receipt = pathc.get("l1_receipt") or {}
+    if not isinstance(l1_receipt, dict):
+        l1_receipt = {}
+    l2_last = pathc.get("l2_last") or {}
+    if not isinstance(l2_last, dict):
+        l2_last = {}
+
+    tx_hash = str(pathc.get("tx_hash", "") or "").strip()
+    model_hash = str(pathc.get("model_hash", "") or "").strip()
+    used_nonce = pathc.get("used_nonce")
+    l1_status = int(l1_receipt.get("status", 0) or 0)
+    l2_verified = bool(
+        pathc.get("l2_verified")
+        or pathc.get("l2_verified_on_l2")
+        or l2_last.get("verified")
+        or l2_last.get("verified_on_l2")
+    )
+    checked_at = (
+        _parse_iso_datetime(pathc.get("last_checked_at"))
+        or _parse_iso_datetime(pathc.get("generated_at"))
+        or datetime.fromtimestamp(PATHC_LATEST.stat().st_mtime, tz=timezone.utc)
+    )
+    max_age_hours = float(_env("SHOWCASE_PATHC_MAX_AGE_HOURS", "36"))
+    age_hours = max(0.0, (datetime.now(timezone.utc) - checked_at).total_seconds() / 3600.0)
+
+    if not (tx_hash and model_hash and used_nonce is not None and l1_status == 1 and l2_verified):
+        raise RuntimeError(
+            "Path C artifact gate failed: "
+            f"tx_hash_present={bool(tx_hash)} model_hash_present={bool(model_hash)} "
+            f"used_nonce_present={used_nonce is not None} l1_status={l1_status} "
+            f"l2_verified={l2_verified}"
+        )
+    if age_hours > max_age_hours:
+        raise RuntimeError(
+            "Path C freshness gate failed: "
+            f"age_hours={age_hours:.2f} max_age_hours={max_age_hours:.2f}"
+        )
 
 
 def _validate_latest_report() -> None:
@@ -233,6 +298,8 @@ def _validate_latest_report() -> None:
             "Path B dual artifact gate failed: "
             f"attempted={pathb_attempted} l2_receipts={pathb_l2_receipts} mirrored={pathb_mirrored}"
         )
+
+    _validate_pathc_artifact()
 
     lanes_text = "/".join(expected_required.keys())
     print(

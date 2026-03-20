@@ -98,6 +98,19 @@ def _load_payload(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_existing_artifact(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected JSON object in {path}")
+    return data
+
+
+def _artifact_timestamp(path: Path, value: Any) -> str:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+
+
 def _post_json(url: str, payload: dict[str, Any], timeout: float) -> tuple[int, dict[str, Any]]:
     response = httpx.post(url, json=payload, timeout=timeout)
     try:
@@ -200,7 +213,11 @@ def _decode_bridge_event(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Capture a live Path C L1->L2 bridge receipt into pathc_latest.json.")
-    parser.add_argument("--payload-json", required=True, help="JSON file with proof_hex/public_inputs/model_hash/output_commitment.")
+    parser.add_argument("--payload-json", help="JSON file with proof_hex/public_inputs/model_hash/output_commitment.")
+    parser.add_argument(
+        "--refresh-artifact",
+        help="Existing pathc_latest.json to refresh in place without submitting a new verifyAndBridge call.",
+    )
     parser.add_argument("--parent-base-url", default=os.getenv("PARENT_BASE_URL", DEFAULT_PARENT_BASE_URL))
     parser.add_argument("--artifact", default=str(DEFAULT_ARTIFACT))
     parser.add_argument("--timeout", type=float, default=60.0)
@@ -212,34 +229,73 @@ def main() -> int:
     parser.add_argument("--bridge-sender-artifact", default=str(DEFAULT_BRIDGE_SENDER_ARTIFACT))
     args = parser.parse_args()
 
-    payload_path = Path(args.payload_json).expanduser().resolve()
-    payload = _load_payload(payload_path)
-    if not payload.get("proof_hex"):
-        raise SystemExit("payload missing proof_hex")
-    if not payload.get("model_hash"):
-        raise SystemExit("payload missing model_hash")
-    if not payload.get("output_commitment"):
-        raise SystemExit("payload missing output_commitment")
+    if not args.payload_json and not args.refresh_artifact:
+        raise SystemExit("provide --payload-json or --refresh-artifact")
 
     parent_base = str(args.parent_base_url).rstrip("/")
     verify_url = f"{parent_base}/api/v1/aggregation/l1/verify"
     status_url = f"{parent_base}/api/v1/aggregation/l1/verification-status"
 
-    verify_body = {
-        "proof_hex": payload["proof_hex"],
-        "public_inputs": payload["public_inputs"],
-        "model_hash": payload["model_hash"],
-        "output_commitment": payload["output_commitment"],
-        "wait_for_l2": bool(args.wait_for_l2),
-        "l2_max_polls": int(args.l2_max_polls),
-        "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
-    }
-    verify_status, verify_result = _post_json(verify_url, verify_body, args.timeout)
-    if verify_status != 200 or not verify_result.get("success"):
-        print(json.dumps({"verify_status": verify_status, "verify_result": verify_result}, indent=2))
-        raise SystemExit(1)
+    payload_path: Path | None = None
+    existing_artifact: dict[str, Any] = {}
+    payload: dict[str, Any]
+    verify_status: int | None = None
+    verify_result: dict[str, Any] = {}
+    tx_hash = ""
+    query = None
+    used_nonce = None
+    message_hash = ""
 
-    query = verify_result.get("verification_status_query")
+    if args.payload_json:
+        payload_path = Path(args.payload_json).expanduser().resolve()
+        payload = _load_payload(payload_path)
+        if not payload.get("proof_hex"):
+            raise SystemExit("payload missing proof_hex")
+        if not payload.get("model_hash"):
+            raise SystemExit("payload missing model_hash")
+        if not payload.get("output_commitment"):
+            raise SystemExit("payload missing output_commitment")
+
+        verify_body = {
+            "proof_hex": payload["proof_hex"],
+            "public_inputs": payload["public_inputs"],
+            "model_hash": payload["model_hash"],
+            "output_commitment": payload["output_commitment"],
+            "wait_for_l2": bool(args.wait_for_l2),
+            "l2_max_polls": int(args.l2_max_polls),
+            "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
+        }
+        verify_status, verify_result = _post_json(verify_url, verify_body, args.timeout)
+        if verify_status != 200 or not verify_result.get("success"):
+            print(json.dumps({"verify_status": verify_status, "verify_result": verify_result}, indent=2))
+            raise SystemExit(1)
+
+        tx_hash = _first_non_empty(verify_result.get("tx_hash"))
+        query = verify_result.get("verification_status_query")
+        used_nonce = verify_result.get("used_nonce")
+        message_hash = _first_non_empty(verify_result.get("message_hash"))
+    else:
+        refresh_path = Path(args.refresh_artifact).expanduser().resolve()
+        existing_artifact = _load_existing_artifact(refresh_path)
+        payload = {
+            "proof_hex": "",
+            "public_inputs": _normalize_public_inputs(existing_artifact.get("public_inputs")),
+            "model_hash": _normalize_hex(existing_artifact.get("model_hash")),
+            "output_commitment": _normalize_hex(existing_artifact.get("output_commitment")),
+        }
+        tx_hash = _first_non_empty(existing_artifact.get("tx_hash"))
+        if not tx_hash:
+            raise SystemExit("refresh artifact missing tx_hash")
+        query = existing_artifact.get("verification_status_query")
+        used_nonce = existing_artifact.get("used_nonce")
+        message_hash = _first_non_empty(existing_artifact.get("message_hash"))
+        if not payload.get("model_hash"):
+            raise SystemExit("refresh artifact missing model_hash")
+        if not payload.get("output_commitment"):
+            raise SystemExit("refresh artifact missing output_commitment")
+        if not isinstance(query, dict) and used_nonce is not None:
+            query = {"model_hash": payload["model_hash"], "nonce": str(used_nonce)}
+
     l2_status = {}
     l2_status_code = None
     if isinstance(query, dict) and query.get("model_hash") and query.get("nonce"):
@@ -251,31 +307,55 @@ def main() -> int:
 
     parent_env = _load_env_file(PROJECT_ROOT.parent / "backend" / ".env")
     l1_rpc = _first_non_empty(args.l1_rpc, os.getenv("L1_SEPOLIA_RPC"), parent_env.get("L1_SEPOLIA_RPC"))
-    tx_hash = _first_non_empty(verify_result.get("tx_hash"))
     l1_receipt = _fetch_l1_receipt(l1_rpc, tx_hash, args.timeout)
     sender_address = _first_non_empty(
         os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
         parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+        existing_artifact.get("sender_address") if isinstance(existing_artifact, dict) else None,
     )
     bridge_event = _decode_bridge_event(
         receipt=l1_receipt,
         sender_address=sender_address,
         artifact_path=Path(args.bridge_sender_artifact).expanduser().resolve(),
     )
-    used_nonce = verify_result.get("used_nonce")
     if used_nonce is None:
         used_nonce = bridge_event.get("used_nonce")
-    message_hash = _first_non_empty(verify_result.get("message_hash"), bridge_event.get("message_hash"))
+    message_hash = _first_non_empty(message_hash, bridge_event.get("message_hash"))
     if not isinstance(query, dict) and used_nonce is not None:
         query = {"model_hash": payload["model_hash"], "nonce": str(used_nonce)}
     elif isinstance(query, dict) and used_nonce is not None and not query.get("nonce"):
         query["nonce"] = str(used_nonce)
         query.setdefault("model_hash", payload["model_hash"])
 
+    now_iso = datetime.now(timezone.utc).isoformat()
+    refresh_poll_entry = (
+        {
+            "attempt": 1,
+            "status_code": l2_status_code,
+            "verified": bool(l2_status.get("verified")),
+            "verified_on_l2": bool(l2_status.get("verified_on_l2")),
+            "output_commitment": l2_status.get("output_commitment"),
+            "block_timestamp": l2_status.get("block_timestamp"),
+            "error": l2_status.get("error"),
+            "checked_at": now_iso,
+        }
+        if l2_status_code is not None
+        else None
+    )
+    existing_polls = existing_artifact.get("l2_polls") if isinstance(existing_artifact.get("l2_polls"), list) else []
+    l2_polls = list(existing_polls)
+    if refresh_poll_entry is not None:
+        l2_polls.append(refresh_poll_entry)
+
     artifact = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "source_payload": str(payload_path),
-        "mode": verify_result.get("mode"),
+        "generated_at": (
+            now_iso
+            if args.payload_json
+            else _artifact_timestamp(refresh_path, existing_artifact.get("generated_at"))
+        ),
+        "last_checked_at": now_iso,
+        "source_payload": str(payload_path) if payload_path else existing_artifact.get("source_payload"),
+        "mode": verify_result.get("mode") or existing_artifact.get("mode"),
         "tx_hash": tx_hash,
         "model_hash": payload["model_hash"],
         "output_commitment": payload["output_commitment"],
@@ -286,28 +366,34 @@ def main() -> int:
             "blockNumber": int(l1_receipt.get("blockNumber", "0x0"), 16) if l1_receipt.get("blockNumber") else None,
             "gasUsed": int(l1_receipt.get("gasUsed", "0x0"), 16) if l1_receipt.get("gasUsed") else None,
         },
-        "l1_bridge_event": bridge_event or None,
-        "l2_verified": bool(verify_result.get("verified_on_l2") or l2_status.get("verified_on_l2")),
+        "l1_bridge_event": bridge_event or existing_artifact.get("l1_bridge_event") or None,
+        "l2_verified": bool(
+            verify_result.get("verified_on_l2")
+            or l2_status.get("verified_on_l2")
+            or existing_artifact.get("l2_verified")
+        ),
         "l2_last": {
-            "verified": bool(l2_status.get("verified")),
-            "verified_on_l2": bool(l2_status.get("verified_on_l2")),
-            "output_commitment": l2_status.get("output_commitment") or verify_result.get("l2_output_commitment"),
-            "block_timestamp": l2_status.get("block_timestamp") or verify_result.get("l2_block_timestamp"),
+            "verified": bool(l2_status.get("verified") or (existing_artifact.get("l2_last") or {}).get("verified")),
+            "verified_on_l2": bool(
+                l2_status.get("verified_on_l2")
+                or verify_result.get("verified_on_l2")
+                or (existing_artifact.get("l2_last") or {}).get("verified_on_l2")
+            ),
+            "output_commitment": (
+                l2_status.get("output_commitment")
+                or verify_result.get("l2_output_commitment")
+                or (existing_artifact.get("l2_last") or {}).get("output_commitment")
+            ),
+            "block_timestamp": (
+                l2_status.get("block_timestamp")
+                or verify_result.get("l2_block_timestamp")
+                or (existing_artifact.get("l2_last") or {}).get("block_timestamp")
+            ),
         },
-        "l2_polls": [
-            {
-                "attempt": 1,
-                "status_code": l2_status_code,
-                "verified": bool(l2_status.get("verified")),
-                "verified_on_l2": bool(l2_status.get("verified_on_l2")),
-                "output_commitment": l2_status.get("output_commitment"),
-                "block_timestamp": l2_status.get("block_timestamp"),
-                "error": l2_status.get("error"),
-            }
-        ] if l2_status_code is not None else [],
+        "l2_polls": l2_polls,
         "verification_status_query": query,
-        "verify_result": verify_result,
-        "verify_status_code": verify_status,
+        "verify_result": verify_result or existing_artifact.get("verify_result"),
+        "verify_status_code": verify_status if verify_status is not None else existing_artifact.get("verify_status_code"),
     }
 
     artifact_path = Path(args.artifact).expanduser().resolve()

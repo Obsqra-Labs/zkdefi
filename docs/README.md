@@ -67,3 +67,8 @@ Documentation index for zkde.fi — recursive multi-chain proving fabric on Star
 ## Live Proof Readout
 
 Public report: [zkde.fi/test](https://zkde.fi/test)
+
+Bridge artifacts tracked by the readout:
+- `artifacts/hackathon_showcase/patha_latest.json` for Path A (`noir_honk`)
+- `artifacts/hackathon_showcase/pathb_latest.json` for Path B (native KZG)
+- `artifacts/hackathon_showcase/pathc_latest.json` for Path C (`verifyAndBridge` + recurring monitor freshness)

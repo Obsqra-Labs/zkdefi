@@ -215,6 +215,21 @@ def _safe_int(raw: Any, default: int = 0) -> int:
         return default
 
 
+def _parse_iso_datetime(raw: Any) -> datetime | None:
+    if not isinstance(raw, str):
+        return None
+    value = raw.strip()
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _parse_hex_or_int(raw: Any, default: int = 0) -> int:
     try:
         if isinstance(raw, str):
@@ -3435,6 +3450,18 @@ class ShowcaseRunner:
         pathc_model_hash = str(pathc_live_receipt_raw.get("model_hash") or "")
         pathc_output_commitment = str(pathc_live_receipt_raw.get("output_commitment") or "")
         pathc_used_nonce = pathc_live_receipt_raw.get("used_nonce")
+        pathc_generated_at = (
+            _parse_iso_datetime(pathc_live_receipt_raw.get("generated_at"))
+            if pathc_live_receipt_raw
+            else None
+        )
+        if pathc_generated_at is None and PATHC_LIVE_RECEIPT_FILE.exists():
+            pathc_generated_at = datetime.fromtimestamp(PATHC_LIVE_RECEIPT_FILE.stat().st_mtime, tz=timezone.utc)
+        pathc_last_checked_at = (
+            _parse_iso_datetime(pathc_live_receipt_raw.get("last_checked_at"))
+            if pathc_live_receipt_raw
+            else None
+        ) or pathc_generated_at
         pathc_l1_receipt = (
             pathc_live_receipt_raw.get("l1_receipt")
             if isinstance(pathc_live_receipt_raw.get("l1_receipt"), dict)
@@ -3453,6 +3480,13 @@ class ShowcaseRunner:
             or pathc_l2_last.get("verified_on_l2")
         )
         pathc_live_verified = bool(pathc_tx_hash and pathc_l1_status == 1 and pathc_l2_verified)
+        pathc_max_age_hours = max(1.0, _safe_float(os.getenv("SHOWCASE_PATHC_MAX_AGE_HOURS"), 36.0))
+        pathc_age_hours = (
+            max(0.0, (datetime.now(timezone.utc) - pathc_last_checked_at).total_seconds() / 3600.0)
+            if pathc_last_checked_at is not None
+            else None
+        )
+        pathc_checked_recently = bool(pathc_age_hours is not None and pathc_age_hours <= pathc_max_age_hours)
         pathc_l2_block_timestamp = _safe_int(pathc_l2_last.get("block_timestamp"), 0)
         pathc_l2_block_timestamp_iso = (
             datetime.fromtimestamp(pathc_l2_block_timestamp, tz=timezone.utc).isoformat()
@@ -3540,7 +3574,7 @@ class ShowcaseRunner:
                 "path": "Path C (L1 Sepolia bridge)",
                 "status": (
                     "implemented_live"
-                    if (path_c_wiring_ready and pathc_live_verified)
+                    if (path_c_wiring_ready and pathc_live_verified and pathc_checked_recently)
                     else "implemented"
                     if path_c_wiring_ready
                     else "implemented_stub"
@@ -3549,7 +3583,11 @@ class ShowcaseRunner:
                 ),
                 "doc_signal": (
                     (
-                        "Live verifyAndBridge receipt captured and L2 receiver confirmed for Path C."
+                        (
+                            "Live verifyAndBridge receipt captured, L2 receiver confirmed, and recurring monitor check is fresh."
+                            if pathc_checked_recently
+                            else "Live verifyAndBridge receipt captured and L2 receiver confirmed, but the recurring monitor check is stale."
+                        )
                         if pathc_live_verified
                         else "L1 verifier + sender + receiver are wired; capture live verifyAndBridge + L2 receipt to complete Path C."
                     )
@@ -3558,7 +3596,7 @@ class ShowcaseRunner:
                 ),
                 "runtime_lane_id": "l1_bridge",
                 "runtime_lane_listed": path_c_wiring_ready,
-                "runtime_lane_available": pathc_live_verified,
+                "runtime_lane_available": (pathc_live_verified and pathc_checked_recently),
                 "runtime_contract": pathc_sender or pathc_verifier,
                 "runtime_contract_url": _etherscan_address_url(pathc_sender or pathc_verifier),
             },
@@ -3630,7 +3668,12 @@ class ShowcaseRunner:
                 else "Phase 2/Path A: capture a live noir_honk receipt and persist it as patha_latest.json for recurring stage check-ins."
             ),
             (
-                f"Phase 3: Path C live receipt is captured ({_short_hex(pathc_tx_hash, 12)}); scale from single receipt to recurring monitor checks."
+                (
+                    f"Phase 3: Path C recurring monitor is live ({_short_hex(pathc_tx_hash, 12)}); "
+                    f"last check age={pathc_age_hours:.1f}h."
+                )
+                if pathc_live_verified and pathc_checked_recently and pathc_age_hours is not None
+                else f"Phase 3: Path C live receipt is captured ({_short_hex(pathc_tx_hash, 12)}); refresh recurring monitor checks."
                 if pathc_live_verified
                 else "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status."
             ),
@@ -3693,6 +3736,9 @@ class ShowcaseRunner:
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
                 "path_c_live_verified": pathc_live_verified,
+                "path_c_checked_recently": pathc_checked_recently,
+                "path_c_max_age_hours": pathc_max_age_hours,
+                "path_c_age_hours": pathc_age_hours,
             },
             "env_snapshot": {
                 "parent_env_found": PARENT_BACKEND_ENV_FILE.exists(),
@@ -3833,7 +3879,11 @@ class ShowcaseRunner:
                 "artifact_path": _relative_to_project(PATHC_LIVE_RECEIPT_FILE),
                 "artifact_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "live_verified": pathc_live_verified,
+                "checked_recently": pathc_checked_recently,
                 "mode": pathc_mode,
+                "generated_at": (pathc_generated_at.isoformat() if pathc_generated_at else None),
+                "last_checked_at": (pathc_last_checked_at.isoformat() if pathc_last_checked_at else None),
+                "age_hours": (round(pathc_age_hours, 2) if pathc_age_hours is not None else None),
                 "tx_hash": pathc_tx_hash or None,
                 "tx_url": pathc_tx_url,
                 "model_hash": pathc_model_hash or None,
@@ -5805,7 +5855,11 @@ class ShowcaseRunner:
             ["Artifact path", f"<code>{escape(str(path_c_live.get('artifact_path') or '-'))}</code>"],
             ["Artifact present", "<span class=\"pass\">yes</span>" if path_c_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
             ["Live verified (L1 + L2)", "<span class=\"pass\">true</span>" if path_c_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Monitor freshness", "<span class=\"pass\">fresh</span>" if path_c_live.get("checked_recently") else "<span class=\"warn\">stale</span>"],
             ["Mode", escape(str(path_c_live.get("mode") or "-"))],
+            ["First captured (UTC)", escape(str(path_c_live.get("generated_at") or "-"))],
+            ["Last checked (UTC)", escape(str(path_c_live.get("last_checked_at") or "-"))],
+            ["Artifact age (hours)", escape(str(path_c_live.get("age_hours") if path_c_live.get("age_hours") is not None else "-"))],
             ["L1 tx hash", path_c_tx_html],
             ["L1 status", escape(str(path_c_live.get("l1_status") or "-"))],
             ["L1 block", escape(str(path_c_live.get("l1_block_number") or "-"))],
@@ -6850,6 +6904,7 @@ class ShowcaseRunner:
             and recursive_env.get("l1_signer_set")
             and recursive_env.get("l1_ezkl_verifier_set")
             and path_c_live.get("live_verified")
+            and path_c_live.get("checked_recently")
         )
         path_a_live_tx = str(path_a_live.get("tx_hash") or "")
         path_a_live_tx_url = str(path_a_live.get("tx_url") or "")
@@ -6911,6 +6966,7 @@ class ShowcaseRunner:
                 "ok": path_c_ready,
                 "evidence": (
                     f"live_verified={bool(path_c_live.get('live_verified'))}, "
+                    f"checked_recently={bool(path_c_live.get('checked_recently'))}, "
                     f"l1_status={path_c_live.get('l1_status')}, "
                     f"l2_verified_on_l2={bool(path_c_live.get('l2_verified_on_l2'))}, "
                     f"polls={path_c_live.get('l2_poll_count')}"
@@ -7898,9 +7954,11 @@ class ShowcaseRunner:
             "path_status": path_state,
             "path_c_live": {
                 "verified": bool(pathc_live.get("live_verified")),
+                "checked_recently": bool(pathc_live.get("checked_recently")),
                 "tx_hash": pathc_live.get("tx_hash"),
                 "l2_verified_on_l2": bool(pathc_live.get("l2_verified_on_l2")),
                 "nonce": pathc_live.get("used_nonce"),
+                "age_hours": pathc_live.get("age_hours"),
             },
             "receipts": {
                 "modelbridge": {

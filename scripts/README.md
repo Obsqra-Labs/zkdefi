@@ -165,6 +165,8 @@ Env knobs:
 - `SHOWCASE_WARM_EXECUTION_CHAIN` (default `dual`; use `l3` only if mirror infrastructure is intentionally out of scope)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS` (default `180`)
 - `SHOWCASE_GATE_BRIDGE_ONLY` (default `false` in raw gate; run only bridge-critical showcase sections)
+- `SHOWCASE_REQUIRE_PATHC_LIVE` (default `false` in raw gate; require a fresh Path C receipt artifact)
+- `SHOWCASE_PATHC_MAX_AGE_HOURS` (default `36`; freshness window for `pathc_latest.json`)
 
 Daily build for `/test` (same-server cron):
 
@@ -198,12 +200,24 @@ Daily build env knobs:
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
 - `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
 - `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)
+- `SHOWCASE_REQUIRE_PATHC_LIVE=true` (default in daily build; Path C artifact must remain live and fresh)
+- `SHOWCASE_PATHC_MAX_AGE_HOURS=36` (default freshness window for `pathc_latest.json`)
+- `PATHC_PAYLOAD_JSON=/abs/path/to/pathc_payload.json` (optional; capture a fresh Path C receipt before gating)
+- `PATHC_REFRESH_EXISTING=true` (default; refresh the existing `pathc_latest.json` artifact in place when no payload is set)
+- `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
 
 Path C live receipt capture:
 
 ```bash
 python3 scripts/capture_pathc_live_receipt.py \
   --payload-json /abs/path/to/pathc_payload.json
+```
+
+Path C recurring monitor refresh:
+
+```bash
+python3 scripts/capture_pathc_live_receipt.py \
+  --refresh-artifact artifacts/hackathon_showcase/pathc_latest.json
 ```
 
 Expected payload JSON fields:
@@ -215,6 +229,7 @@ Expected payload JSON fields:
 
 The script calls the parent backend `POST /api/v1/aggregation/l1/verify`, uses the returned `used_nonce` / `verification_status_query`, optionally polls L2, and writes `artifacts/hackathon_showcase/pathc_latest.json` in the shape consumed by the showcase.
 If the parent API has not been restarted with the newer Path C response fields yet, the script can still recover `used_nonce` and `message_hash` by decoding the `EzklVerifiedAndBridged` event from the L1 tx receipt.
+When run with `--refresh-artifact`, it does not submit a new proof. It re-checks the saved L1 tx receipt, re-polls `verification-status`, updates `last_checked_at`, and keeps Path C usable as a recurring monitor stage.
 
 ### Hackathon showcase artifacts
 
