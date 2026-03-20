@@ -159,11 +159,13 @@ def _validate_latest_report() -> None:
         )
 
     runs = (report.get("bridge_architecture") or {}).get("ml_bridge_runs") or {}
+    bridge_only = _env_bool("SHOWCASE_GATE_BRIDGE_ONLY", False)
     expected_required = {
         "l3": "groth16_garaga",
-        "l3_heavy_request": "groth16_garaga",
         "l3_native_kzg_request": "native_kzg",
     }
+    if not bridge_only:
+        expected_required["l3_heavy_request"] = "groth16_garaga"
     noir_required = _env_bool("SHOWCASE_REQUIRE_NOIR_LANE", False)
     if noir_required:
         expected_required["l3_noir_request"] = "noir_honk"

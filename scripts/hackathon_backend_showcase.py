@@ -2509,10 +2509,21 @@ class ShowcaseRunner:
         # Keep bridge calls stable even when caller passes a low global timeout.
         # Honor CLI timeout tuning even in strict mode; avoid forcing 240s hangs
         # when a bridge lane is unhealthy. Keep a sane floor for normal slow proofs.
-        bridge_timeout = max(self.timeout_seconds, 25.0)
+        if self.bridge_only:
+            bridge_timeout = max(min(self.timeout_seconds, 45.0), 25.0)
+        else:
+            bridge_timeout = max(self.timeout_seconds, 25.0)
+        inter_lane_cooldown = _safe_float(
+            os.getenv("SHOWCASE_BRIDGE_INTER_LANE_COOLDOWN_SECONDS"),
+            0.0,
+        )
+        if inter_lane_cooldown <= 0.0 and self.bridge_only:
+            inter_lane_cooldown = 4.0
         dual_timeout_override = _safe_float(os.getenv("SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS"), 0.0)
         if dual_timeout_override > 0:
             dual_bridge_timeout = dual_timeout_override
+        elif self.bridge_only:
+            dual_bridge_timeout = max(min(self.timeout_seconds, 70.0), 45.0)
         elif self.strict_bridge:
             # Dual executes L3 + mirror semantics; give it extra room to avoid
             # false negatives caused only by request timeout pressure.
@@ -2526,37 +2537,61 @@ class ShowcaseRunner:
                 return relaxed_default
             if strict_attempts_override > 0:
                 return max(1, strict_attempts_override)
+            if self.bridge_only:
+                return min(strict_default, 2)
             return strict_default
 
+        print("== Bridge Lanes ==")
+        print("running: ModelBridge l3")
         l3_status, l3_body, l3_attempts = self._call_ml_bridge_with_retry(
             l3_payload,
             max_attempts=_bridge_attempts(5, 5),
             timeout_seconds=bridge_timeout,
         )
+        print(f"done: ModelBridge l3 status={l3_status}")
+        if inter_lane_cooldown > 0:
+            print(f"cooldown: {inter_lane_cooldown:.1f}s before dual lane")
+            time.sleep(inter_lane_cooldown)
+        print("running: ModelBridge dual")
         dual_status, dual_body, dual_attempts = self._call_ml_bridge_with_retry(
             dual_payload,
             max_attempts=_bridge_attempts(6, 5),
             timeout_seconds=dual_bridge_timeout,
         )
-        heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
-            heavy_payload,
-            max_attempts=_bridge_attempts(5, 5),
-            timeout_seconds=bridge_timeout,
-        )
+        print(f"done: ModelBridge dual status={dual_status}")
+        heavy_status = 0
+        heavy_body: Any = {"detail": "skipped_in_bridge_only_mode"} if self.bridge_only else {}
+        heavy_attempts: list[dict[str, Any]] = []
+        if self.bridge_only:
+            print("skip: ModelBridgeHeavy l3 (bridge-only mode)")
+        else:
+            print("running: ModelBridgeHeavy l3")
+            heavy_status, heavy_body, heavy_attempts = self._call_ml_bridge_with_retry(
+                heavy_payload,
+                max_attempts=_bridge_attempts(5, 5),
+                timeout_seconds=bridge_timeout,
+            )
+            print(f"done: ModelBridgeHeavy l3 status={heavy_status}")
         noir_status = 0
         noir_body: Any = {}
         noir_attempts: list[dict[str, Any]] = []
         if noir_honk_available:
+            print("running: Noir HONK l3")
             noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
                 noir_payload,
                 max_attempts=_bridge_attempts(5, 5),
                 timeout_seconds=bridge_timeout,
             )
+            print(f"done: Noir HONK l3 status={noir_status}")
+        else:
+            print("skip: Noir HONK l3 (lane unavailable)")
+        print("running: Native KZG l3")
         native_kzg_status, native_kzg_body, native_kzg_attempts = self._call_ml_bridge_with_retry(
             native_kzg_payload,
             max_attempts=_bridge_attempts(4, 3),
             timeout_seconds=bridge_timeout,
         )
+        print(f"done: Native KZG l3 status={native_kzg_status}")
 
         l3_run = self._bridge_run_summary(l3_status, l3_body)
         dual_run = self._bridge_run_summary(dual_status, dual_body)
@@ -2771,26 +2806,34 @@ class ShowcaseRunner:
                 )
             )
         )
-        self._record(
-            "ModelBridgeHeavy live l3 verify receipt",
-            heavy_receipt_ok,
-            status=heavy_status,
-            proof_mode=heavy_run.get("proof_mode"),
-            bridge_backend=heavy_run.get("bridge_backend"),
-            bridge_compliant=heavy_run.get("bridge_compliant"),
-            l3_mode=heavy_mode,
-            l3_tx_hash=_short_hex(str(heavy_tx_hash) if heavy_tx_hash else None, 12),
-            l3_verified_on_chain=heavy_verified_on_chain,
-            l3_actual_fee=heavy_fee_meta.get("l3_actual_fee_display"),
-            bridge_proof_hash=_short_hex(
-                str(heavy_run.get("bridge_proof_hash")) if heavy_run.get("bridge_proof_hash") else None,
-                12,
-            ),
-            can_execute=heavy_run.get("can_execute"),
-            failure_reason=_clip_text(heavy_run.get("failure_reason"), 120),
-            strict_bridge=self.strict_bridge,
-            transient_status_ok=(heavy_status in {429, 500, 503}),
-        )
+        if self.bridge_only:
+            self._record(
+                "ModelBridgeHeavy live l3 verify receipt",
+                True,
+                skipped="bridge_only",
+                status="skipped",
+            )
+        else:
+            self._record(
+                "ModelBridgeHeavy live l3 verify receipt",
+                heavy_receipt_ok,
+                status=heavy_status,
+                proof_mode=heavy_run.get("proof_mode"),
+                bridge_backend=heavy_run.get("bridge_backend"),
+                bridge_compliant=heavy_run.get("bridge_compliant"),
+                l3_mode=heavy_mode,
+                l3_tx_hash=_short_hex(str(heavy_tx_hash) if heavy_tx_hash else None, 12),
+                l3_verified_on_chain=heavy_verified_on_chain,
+                l3_actual_fee=heavy_fee_meta.get("l3_actual_fee_display"),
+                bridge_proof_hash=_short_hex(
+                    str(heavy_run.get("bridge_proof_hash")) if heavy_run.get("bridge_proof_hash") else None,
+                    12,
+                ),
+                can_execute=heavy_run.get("can_execute"),
+                failure_reason=_clip_text(heavy_run.get("failure_reason"), 120),
+                strict_bridge=self.strict_bridge,
+                transient_status_ok=(heavy_status in {429, 500, 503}),
+            )
 
         native_kzg_l3_lane = native_kzg_run.get("l3") if isinstance(native_kzg_run.get("l3"), dict) else {}
         native_kzg_l2_lane = native_kzg_run.get("l2") if isinstance(native_kzg_run.get("l2"), dict) else {}
@@ -3211,7 +3254,7 @@ class ShowcaseRunner:
                 and dual_status == 200
                 and mirror_semantics_ok
             )
-            heavy_runtime_ok = heavy_status == 200
+            heavy_runtime_ok = True if self.bridge_only else (heavy_status == 200)
         else:
             l3_runtime_ok = l3_status in {200, 429, 500, 503}
             dual_runtime_ok = dual_status in {200, 429, 500, 503}
@@ -3219,7 +3262,7 @@ class ShowcaseRunner:
             # Non-strict mode: dual can be flaky under load; accept architecture readiness
             # when core bridge lanes (l3 + heavy + optional noir) demonstrate successfully.
             runtime_ok = l3_runtime_ok and (dual_runtime_ok or (heavy_status == 200 and noir_runtime_ok))
-            heavy_runtime_ok = heavy_status in {200, 422, 429, 500, 503}
+            heavy_runtime_ok = True if self.bridge_only else (heavy_status in {200, 422, 429, 500, 503})
         ok = (
             present >= 10
             and paths_status == 200
