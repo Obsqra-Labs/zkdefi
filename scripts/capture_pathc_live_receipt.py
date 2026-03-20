@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from web3 import Web3
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +24,10 @@ DEFAULT_GENERATED_PAYLOAD = (
 DEFAULT_PARENT_BASE_URL = "http://127.0.0.1:8002"
 DEFAULT_BRIDGE_SENDER_ARTIFACT = (
     PROJECT_ROOT / "contracts" / "l1_ezkl" / "out" / "L1EzklBridgeSender.sol" / "L1EzklBridgeSender.json"
+)
+STARKNET_FELT_MASK = (1 << 251) - 1
+STARKNET_CORE_LOG_MESSAGE_TO_L2_TOPIC0 = (
+    "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b"
 )
 
 
@@ -58,6 +63,21 @@ def _normalize_hex(value: Any) -> str:
         return hex(int(value))
     except Exception:
         return str(value)
+
+
+def _normalize_bridge_felt(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return ""
+        value = int(raw, 16) if raw.startswith(("0x", "0X")) else int(raw)
+    else:
+        value = int(value)
+    if value < 0:
+        raise ValueError("bridge felt values must be non-negative")
+    return hex(value & STARKNET_FELT_MASK)
 
 
 def _normalize_public_inputs(values: Any) -> list[str]:
@@ -102,13 +122,43 @@ def _load_payload(path: Path) -> dict[str, Any]:
         proof_obj.get("model_hash") if isinstance(proof_obj, dict) else None,
     )
     output_commitment = _first_non_empty(data.get("output_commitment"))
+    raw_model_hash = _first_non_empty(
+        data.get("raw_model_hash"),
+        proof_obj.get("raw_model_hash") if isinstance(proof_obj, dict) else None,
+        model_hash,
+    )
+    raw_output_commitment = _first_non_empty(
+        data.get("raw_output_commitment"),
+        proof_obj.get("raw_output_commitment") if isinstance(proof_obj, dict) else None,
+        output_commitment,
+    )
+    bridge_model_hash = _first_non_empty(
+        data.get("bridge_model_hash"),
+        proof_obj.get("bridge_model_hash") if isinstance(proof_obj, dict) else None,
+    )
+    bridge_output_commitment = _first_non_empty(
+        data.get("bridge_output_commitment"),
+        proof_obj.get("bridge_output_commitment") if isinstance(proof_obj, dict) else None,
+    )
 
     payload = {
         "proof_hex": proof_hex,
         "public_inputs": _normalize_public_inputs(public_inputs),
-        "model_hash": _normalize_hex(model_hash) if model_hash else "",
-        "output_commitment": _normalize_hex(output_commitment) if output_commitment else "",
+        "raw_model_hash": _normalize_hex(raw_model_hash) if raw_model_hash else "",
+        "raw_output_commitment": _normalize_hex(raw_output_commitment) if raw_output_commitment else "",
+        "bridge_model_hash": (
+            _normalize_hex(bridge_model_hash)
+            if bridge_model_hash
+            else (_normalize_bridge_felt(raw_model_hash) if raw_model_hash else "")
+        ),
+        "bridge_output_commitment": (
+            _normalize_hex(bridge_output_commitment)
+            if bridge_output_commitment
+            else (_normalize_bridge_felt(raw_output_commitment) if raw_output_commitment else "")
+        ),
     }
+    payload["model_hash"] = payload["bridge_model_hash"]
+    payload["output_commitment"] = payload["bridge_output_commitment"]
     return payload
 
 
@@ -238,16 +288,20 @@ async def _generate_payload_from_local_model(
     payload = {
         "proof_hex": _first_non_empty(getattr(proof, "proof_hex", "")),
         "public_inputs": _normalize_public_inputs(public_inputs_raw),
-        "model_hash": _normalize_hex(getattr(proof, "model_hash", "")),
-        "output_commitment": _canonical_output_commitment(
+        "raw_model_hash": _normalize_hex(getattr(proof, "model_hash", "")),
+        "raw_output_commitment": _canonical_output_commitment(
             list(getattr(proof, "inference_output", []) or [])
         ),
     }
+    payload["bridge_model_hash"] = _normalize_bridge_felt(payload["raw_model_hash"])
+    payload["bridge_output_commitment"] = _normalize_bridge_felt(payload["raw_output_commitment"])
+    payload["model_hash"] = payload["bridge_model_hash"]
+    payload["output_commitment"] = payload["bridge_output_commitment"]
     if not payload["proof_hex"]:
         raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include proof_hex")
     if not payload["public_inputs"]:
         raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include public_inputs")
-    if not payload["model_hash"]:
+    if not payload["raw_model_hash"]:
         raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include model_hash")
 
     generated_payload = {
@@ -274,6 +328,10 @@ async def _generate_payload_from_local_model(
         "input_source": input_source,
         "sample_index": sample_index,
         "generated_payload": str(generated_payload_path),
+        "raw_model_hash": payload["raw_model_hash"],
+        "raw_output_commitment": payload["raw_output_commitment"],
+        "bridge_model_hash": payload["bridge_model_hash"],
+        "bridge_output_commitment": payload["bridge_output_commitment"],
         "output_commitment_scheme": "sha256_csv_round_int_v1",
         "verified_local": True,
     }
@@ -567,6 +625,70 @@ def _decode_bridge_event(
     return _manual_decode()
 
 
+def _extract_core_message_log(receipt: dict[str, Any]) -> dict[str, Any]:
+    if not receipt:
+        return {}
+    logs = receipt.get("logs")
+    if not isinstance(logs, list):
+        return {}
+    for raw_log in logs:
+        if not isinstance(raw_log, dict):
+            continue
+        topics = raw_log.get("topics")
+        if not isinstance(topics, list) or len(topics) < 4:
+            continue
+        if str(topics[0] or "").lower() != STARKNET_CORE_LOG_MESSAGE_TO_L2_TOPIC0:
+            continue
+        return {
+            "core_address": _normalize_hex(raw_log.get("address")),
+            "from_address": _normalize_hex(str(topics[1])[-40:]),
+            "to_address": _normalize_hex(topics[2]),
+            "selector": _normalize_hex(topics[3]),
+        }
+    return {}
+
+
+def _fetch_core_message_state(
+    *,
+    rpc_url: str,
+    core_address: str,
+    message_hash: str,
+) -> dict[str, Any]:
+    if not rpc_url or not core_address or not message_hash:
+        return {}
+    abi = [
+        {
+            "inputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+            "name": "l1ToL2Messages",
+            "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+            "stateMutability": "view",
+            "type": "function",
+        }
+    ]
+    try:
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        contract = w3.eth.contract(address=Web3.to_checksum_address(core_address), abi=abi)
+        raw_value = contract.functions.l1ToL2Messages(message_hash).call()
+        slot_value = (
+            int.from_bytes(raw_value, "big")
+            if isinstance(raw_value, (bytes, bytearray))
+            else int(raw_value)
+        )
+        return {
+            "core_address": Web3.to_checksum_address(core_address),
+            "message_hash": _normalize_hex(message_hash),
+            "slot_value": hex(slot_value),
+            "pending": slot_value != 0,
+        }
+    except Exception as exc:
+        return {
+            "core_address": _normalize_hex(core_address),
+            "message_hash": _normalize_hex(message_hash),
+            "pending": False,
+            "error": str(exc),
+        }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Capture a live Path C L1->L2 bridge receipt into pathc_latest.json.")
     parser.add_argument("--payload-json", help="JSON file with proof_hex/public_inputs/model_hash/output_commitment.")
@@ -654,8 +776,8 @@ def main() -> int:
         verify_body = {
             "proof_hex": payload["proof_hex"],
             "public_inputs": payload["public_inputs"],
-            "model_hash": payload["model_hash"],
-            "output_commitment": payload["output_commitment"],
+            "model_hash": payload["bridge_model_hash"],
+            "output_commitment": payload["bridge_output_commitment"],
             "wait_for_l2": bool(args.wait_for_l2),
             "l2_max_polls": int(args.l2_max_polls),
             "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
@@ -687,8 +809,8 @@ def main() -> int:
         verify_body = {
             "proof_hex": payload["proof_hex"],
             "public_inputs": payload["public_inputs"],
-            "model_hash": payload["model_hash"],
-            "output_commitment": payload["output_commitment"],
+            "model_hash": payload["bridge_model_hash"],
+            "output_commitment": payload["bridge_output_commitment"],
             "wait_for_l2": bool(args.wait_for_l2),
             "l2_max_polls": int(args.l2_max_polls),
             "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
@@ -713,21 +835,33 @@ def main() -> int:
         payload = {
             "proof_hex": "",
             "public_inputs": _normalize_public_inputs(existing_artifact.get("public_inputs")),
-            "model_hash": _normalize_hex(existing_artifact.get("model_hash")),
-            "output_commitment": _normalize_hex(existing_artifact.get("output_commitment")),
+            "raw_model_hash": _normalize_hex(
+                existing_artifact.get("raw_model_hash") or existing_artifact.get("model_hash")
+            ),
+            "raw_output_commitment": _normalize_hex(
+                existing_artifact.get("raw_output_commitment") or existing_artifact.get("output_commitment")
+            ),
+            "bridge_model_hash": _normalize_hex(
+                existing_artifact.get("bridge_model_hash") or existing_artifact.get("model_hash")
+            ),
+            "bridge_output_commitment": _normalize_hex(
+                existing_artifact.get("bridge_output_commitment") or existing_artifact.get("output_commitment")
+            ),
         }
+        payload["model_hash"] = payload["bridge_model_hash"]
+        payload["output_commitment"] = payload["bridge_output_commitment"]
         tx_hash = _normalize_hex(_first_non_empty(existing_artifact.get("tx_hash")))
         if not tx_hash:
             raise SystemExit("refresh artifact missing tx_hash")
         query = existing_artifact.get("verification_status_query")
         used_nonce = existing_artifact.get("used_nonce")
         message_hash = _first_non_empty(existing_artifact.get("message_hash"))
-        if not payload.get("model_hash"):
+        if not payload.get("bridge_model_hash"):
             raise SystemExit("refresh artifact missing model_hash")
-        if not payload.get("output_commitment"):
+        if not payload.get("bridge_output_commitment"):
             raise SystemExit("refresh artifact missing output_commitment")
         if not isinstance(query, dict) and used_nonce is not None:
-            query = {"model_hash": payload["model_hash"], "nonce": str(used_nonce)}
+            query = {"model_hash": payload["bridge_model_hash"], "nonce": str(used_nonce)}
 
     l2_status = {}
     l2_status_code = None
@@ -752,14 +886,15 @@ def main() -> int:
         sender_address=sender_address,
         artifact_path=Path(args.bridge_sender_artifact).expanduser().resolve(),
     )
-    if used_nonce is None:
+    core_message_log = _extract_core_message_log(l1_receipt)
+    if bridge_event.get("used_nonce") is not None:
         used_nonce = bridge_event.get("used_nonce")
-    message_hash = _first_non_empty(message_hash, bridge_event.get("message_hash"))
+    message_hash = _first_non_empty(bridge_event.get("message_hash"), message_hash)
     if not isinstance(query, dict) and used_nonce is not None:
-        query = {"model_hash": payload["model_hash"], "nonce": str(used_nonce)}
+        query = {"model_hash": payload["bridge_model_hash"], "nonce": str(used_nonce)}
     elif isinstance(query, dict) and used_nonce is not None and not query.get("nonce"):
         query["nonce"] = str(used_nonce)
-        query.setdefault("model_hash", payload["model_hash"])
+        query.setdefault("model_hash", payload["bridge_model_hash"])
 
     now_iso = datetime.now(timezone.utc).isoformat()
     refresh_poll_entry = (
@@ -780,6 +915,11 @@ def main() -> int:
     l2_polls = list(existing_polls)
     if refresh_poll_entry is not None:
         l2_polls.append(refresh_poll_entry)
+    core_message_state = _fetch_core_message_state(
+        rpc_url=l1_rpc,
+        core_address=str(core_message_log.get("core_address") or ""),
+        message_hash=message_hash,
+    )
 
     artifact = {
         "generated_at": (
@@ -795,8 +935,12 @@ def main() -> int:
         "source_payload": str(payload_path) if payload_path else existing_artifact.get("source_payload"),
         "mode": verify_result.get("mode") or existing_artifact.get("mode"),
         "tx_hash": tx_hash,
-        "model_hash": payload["model_hash"],
-        "output_commitment": payload["output_commitment"],
+        "raw_model_hash": payload["raw_model_hash"],
+        "raw_output_commitment": payload["raw_output_commitment"],
+        "bridge_model_hash": payload["bridge_model_hash"],
+        "bridge_output_commitment": payload["bridge_output_commitment"],
+        "model_hash": payload["bridge_model_hash"],
+        "output_commitment": payload["bridge_output_commitment"],
         "used_nonce": used_nonce,
         "message_hash": message_hash,
         "l1_receipt": {
@@ -804,6 +948,8 @@ def main() -> int:
             "blockNumber": int(l1_receipt.get("blockNumber", "0x0"), 16) if l1_receipt.get("blockNumber") else None,
             "gasUsed": int(l1_receipt.get("gasUsed", "0x0"), 16) if l1_receipt.get("gasUsed") else None,
         },
+        "l1_core_message_log": core_message_log or existing_artifact.get("l1_core_message_log") or None,
+        "l1_core_message_state": core_message_state or existing_artifact.get("l1_core_message_state") or None,
         "l1_bridge_event": bridge_event or existing_artifact.get("l1_bridge_event") or None,
         "l2_verified": bool(
             verify_result.get("verified_on_l2")
