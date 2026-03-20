@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import hashlib
 import json
 import os
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -13,6 +17,9 @@ import httpx
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_latest.json"
+DEFAULT_GENERATED_PAYLOAD = (
+    PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_payload_latest.json"
+)
 DEFAULT_PARENT_BASE_URL = "http://127.0.0.1:8002"
 DEFAULT_BRIDGE_SENDER_ARTIFACT = (
     PROJECT_ROOT / "contracts" / "l1_ezkl" / "out" / "L1EzklBridgeSender.sol" / "L1EzklBridgeSender.json"
@@ -58,6 +65,13 @@ def _normalize_public_inputs(values: Any) -> list[str]:
         return []
     out: list[str] = []
     for value in values:
+        if isinstance(value, str):
+            raw = value.strip()
+            if raw and not raw.startswith("0x") and len(raw) == 64:
+                lowered = raw.lower()
+                if all(ch in "0123456789abcdef" for ch in lowered):
+                    out.append(hex(int.from_bytes(bytes.fromhex(lowered), "little")))
+                    continue
         out.append(_normalize_hex(value))
     return out
 
@@ -98,6 +112,174 @@ def _load_payload(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _backend_root() -> Path:
+    return PROJECT_ROOT / "backend"
+
+
+def _parent_backend_root() -> Path:
+    return PROJECT_ROOT.parent / "backend"
+
+
+def _ensure_backend_import_path() -> None:
+    backend_root = _backend_root()
+    backend_root_str = str(backend_root)
+    if backend_root_str not in sys.path:
+        sys.path.insert(0, backend_root_str)
+
+
+def _coerce_input_rows(raw: Any) -> list[list[float]]:
+    candidate = raw
+    if isinstance(candidate, dict) and isinstance(candidate.get("input_data"), list):
+        candidate = candidate.get("input_data")
+    if isinstance(candidate, list) and candidate and not isinstance(candidate[0], list):
+        candidate = [candidate]
+    if not isinstance(candidate, list) or not candidate:
+        raise ValueError("Expected input_data as a list of rows")
+    rows: list[list[float]] = []
+    for row in candidate:
+        if not isinstance(row, list):
+            raise ValueError("Each input row must be a list")
+        rows.append([float(value) for value in row])
+    return rows
+
+
+def _canonical_output_commitment(outputs: list[Any]) -> str:
+    rounded = [str(int(round(float(value)))) for value in (outputs or [])]
+    raw = ",".join(rounded).encode()
+    return "0x" + hashlib.sha256(raw).hexdigest()
+
+
+def _load_generated_input_rows(
+    *,
+    model_dir: Path,
+    input_json_path: Path | None,
+    sample_index: int,
+) -> tuple[list[list[float]], str]:
+    if input_json_path is not None:
+        data = json.loads(input_json_path.read_text(encoding="utf-8"))
+        return _coerce_input_rows(data), "input_json"
+
+    calibration_path = model_dir / "calibration.json"
+    if not calibration_path.exists():
+        raise FileNotFoundError(
+            f"No calibration.json found for model '{model_dir.name}' and no --input-json provided"
+        )
+    calibration = json.loads(calibration_path.read_text(encoding="utf-8"))
+    rows = _coerce_input_rows(calibration)
+    if sample_index < 0 or sample_index >= len(rows):
+        raise ValueError(
+            f"sample_index {sample_index} out of range for {model_dir.name} calibration set ({len(rows)} rows)"
+        )
+    return [rows[sample_index]], "calibration"
+
+
+async def _generate_payload_from_local_model(
+    *,
+    model_name: str,
+    input_json_path: Path | None,
+    sample_index: int,
+    generated_payload_path: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    _ensure_backend_import_path()
+
+    from app.services.ezkl_prover_service import get_ezkl_prover
+    from app.services.proof_pipeline import get_proof_pipeline
+
+    pipeline = get_proof_pipeline()
+    requested_model_name = str(model_name or "").strip()
+    if not requested_model_name:
+        raise ValueError("model_name is required")
+    resolved_model_name = pipeline._resolve_local_ezkl_model_name(requested_model_name)
+    model_dir = pipeline._local_ezkl_models_root() / resolved_model_name
+    if not model_dir.exists():
+        raise FileNotFoundError(f"Local EZKL model directory not found: {model_dir}")
+
+    raw_rows, input_source = _load_generated_input_rows(
+        model_dir=model_dir,
+        input_json_path=input_json_path,
+        sample_index=sample_index,
+    )
+    normalized_rows = pipeline._normalize_ezkl_input_data(
+        resolved_model_name=resolved_model_name,
+        input_data=raw_rows,
+    )
+
+    ezkl = get_ezkl_prover()
+    artifacts = None
+    try:
+        artifacts = ezkl.get_artifacts(resolved_model_name)
+    except Exception:
+        artifacts = None
+    if not artifacts or not artifacts.is_ready():
+        onnx_path = pipeline._discover_local_onnx_path(resolved_model_name)
+        if onnx_path is None:
+            raise FileNotFoundError(f"Could not discover ONNX artifact for model '{resolved_model_name}'")
+        artifacts = await ezkl.setup_model(resolved_model_name, onnx_path, force=False)
+    if not artifacts or not artifacts.is_ready():
+        raise RuntimeError(f"EZKL artifacts not ready for model '{resolved_model_name}'")
+
+    proof = await ezkl.prove_inference(
+        model_name=resolved_model_name,
+        input_data=normalized_rows,
+    )
+    verified = await ezkl.verify_proof(proof)
+    if not verified:
+        raise RuntimeError(f"Local EZKL verify failed for model '{resolved_model_name}'")
+
+    raw_proof_json = getattr(proof, "raw_proof_json", {}) or {}
+    public_inputs_raw: list[Any] = []
+    if isinstance(raw_proof_json.get("instances"), list):
+        instances = raw_proof_json.get("instances") or []
+        if instances and isinstance(instances[0], list):
+            public_inputs_raw = instances[0]
+    if not public_inputs_raw:
+        public_inputs_raw = list(getattr(proof, "public_inputs", []) or [])
+
+    payload = {
+        "proof_hex": _first_non_empty(getattr(proof, "proof_hex", "")),
+        "public_inputs": _normalize_public_inputs(public_inputs_raw),
+        "model_hash": _normalize_hex(getattr(proof, "model_hash", "")),
+        "output_commitment": _canonical_output_commitment(
+            list(getattr(proof, "inference_output", []) or [])
+        ),
+    }
+    if not payload["proof_hex"]:
+        raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include proof_hex")
+    if not payload["public_inputs"]:
+        raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include public_inputs")
+    if not payload["model_hash"]:
+        raise RuntimeError(f"Generated proof for '{resolved_model_name}' did not include model_hash")
+
+    generated_payload = {
+        **payload,
+        "source_model_name": requested_model_name,
+        "resolved_model_name": resolved_model_name,
+        "input_source": input_source,
+        "sample_index": sample_index,
+        "input_data": raw_rows,
+        "normalized_input_data": normalized_rows,
+        "inference_output": list(getattr(proof, "inference_output", []) or []),
+        "proof_hash": _normalize_hex(getattr(proof, "proof_hash", "")),
+        "verify_key_hash": _normalize_hex(getattr(proof, "verify_key_hash", "")),
+        "verified_local": True,
+        "output_commitment_scheme": "sha256_csv_round_int_v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    generated_payload_path.parent.mkdir(parents=True, exist_ok=True)
+    generated_payload_path.write_text(json.dumps(generated_payload, indent=2) + "\n", encoding="utf-8")
+
+    meta = {
+        "source_model_name": requested_model_name,
+        "resolved_model_name": resolved_model_name,
+        "input_source": input_source,
+        "sample_index": sample_index,
+        "generated_payload": str(generated_payload_path),
+        "output_commitment_scheme": "sha256_csv_round_int_v1",
+        "verified_local": True,
+    }
+    return payload, meta
+
+
 def _load_existing_artifact(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -129,6 +311,141 @@ def _get_json(url: str, params: dict[str, Any], timeout: float) -> tuple[int, di
     return response.status_code, body if isinstance(body, dict) else {"raw": body}
 
 
+def _parent_backend_python() -> str:
+    backend_root = _parent_backend_root()
+    venv_python = backend_root / "venv" / "bin" / "python"
+    if venv_python.exists():
+        return str(venv_python)
+    return sys.executable
+
+
+def _run_parent_backend_subprocess(*, code: str, payload: dict[str, Any], timeout: float) -> tuple[int, dict[str, Any]]:
+    proc = subprocess.run(
+        [_parent_backend_python(), "-c", code],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=max(30, int(timeout)),
+        cwd=str(_parent_backend_root()),
+    )
+    stdout = proc.stdout.strip()
+    stderr = proc.stderr.strip()
+    if proc.returncode != 0:
+        return 502, {
+            "success": False,
+            "error": stderr or stdout or f"parent subprocess exited {proc.returncode}",
+            "returncode": proc.returncode,
+        }
+    try:
+        body = json.loads(stdout or "{}")
+    except Exception:
+        body = {"raw": stdout, "stderr": stderr}
+    return 200, body if isinstance(body, dict) else {"raw": body}
+
+
+def _post_json_with_parent_fallback(
+    *,
+    url: str,
+    payload: dict[str, Any],
+    timeout: float,
+    enable_local_fallback: bool,
+) -> tuple[int, dict[str, Any]]:
+    try:
+        return _post_json(url, payload, timeout)
+    except Exception as exc:
+        if not enable_local_fallback:
+            raise
+        code = r"""
+import json, sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+repo_root = Path.cwd()
+load_dotenv(repo_root / ".env")
+sys.path.insert(0, str(repo_root))
+
+from app.services.l1_ezkl_bridge_service import get_l1_ezkl_bridge_service
+
+body = json.loads(sys.stdin.read())
+svc = get_l1_ezkl_bridge_service()
+proof_payload = body.get("proof_hex") or body.get("proof_calldata") or []
+result = svc.submit_ezkl_proof_to_l1(
+    proof_payload,
+    body.get("public_inputs") or [],
+    model_hash=body.get("model_hash"),
+    output_commitment=body.get("output_commitment"),
+    wait_for_l2=bool(body.get("wait_for_l2")),
+    l2_max_polls=int(body.get("l2_max_polls") or 8),
+    l2_poll_interval_seconds=float(body.get("l2_poll_interval_seconds") or 3.0),
+)
+verification_status_query = None
+if result.used_nonce is not None and body.get("model_hash") not in (None, ""):
+    verification_status_query = {
+        "model_hash": str(body.get("model_hash")),
+        "nonce": str(result.used_nonce),
+    }
+print(json.dumps({
+    "success": result.success,
+    "tx_hash": result.tx_hash,
+    "mode": result.mode,
+    "used_nonce": result.used_nonce,
+    "message_hash": result.message_hash or None,
+    "verified_on_l2": result.l2_verified_on_l2,
+    "l2_output_commitment": result.l2_output_commitment,
+    "l2_block_timestamp": result.l2_block_timestamp,
+    "l2_poll_attempts": result.l2_poll_attempts,
+    "verification_status_query": verification_status_query,
+    "not_configured": result.not_configured,
+    "error": result.error,
+    "fallback": "local_parent_service",
+}))
+"""
+        body = dict(payload)
+        body["_fallback_error"] = str(exc)
+        return _run_parent_backend_subprocess(code=code, payload=body, timeout=timeout)
+
+
+def _get_json_with_parent_fallback(
+    *,
+    url: str,
+    params: dict[str, Any],
+    timeout: float,
+    enable_local_fallback: bool,
+) -> tuple[int, dict[str, Any]]:
+    try:
+        return _get_json(url, params, timeout)
+    except Exception as exc:
+        if not enable_local_fallback:
+            raise
+        code = r"""
+import json, sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+repo_root = Path.cwd()
+load_dotenv(repo_root / ".env")
+sys.path.insert(0, str(repo_root))
+
+from app.services.l1_ezkl_bridge_service import get_l1_ezkl_bridge_service
+
+params = json.loads(sys.stdin.read())
+svc = get_l1_ezkl_bridge_service()
+status = svc.poll_l2_for_verification(params.get("model_hash") or "0", params.get("nonce") or "0")
+print(json.dumps({
+    "verified_on_l2": status.verified_on_l2,
+    "output_commitment": status.output_commitment,
+    "block_timestamp": status.block_timestamp,
+    "verified": status.verified,
+    "not_configured": status.not_configured,
+    "error": status.error,
+    "fallback": "local_parent_service",
+}))
+"""
+        body = dict(params)
+        body["_fallback_error"] = str(exc)
+        return _run_parent_backend_subprocess(code=code, payload=body, timeout=timeout)
+
+
 def _fetch_l1_receipt(rpc_url: str, tx_hash: str, timeout: float) -> dict[str, Any]:
     if not rpc_url or not tx_hash:
         return {}
@@ -152,11 +469,50 @@ def _decode_bridge_event(
 ) -> dict[str, Any]:
     if not receipt or not sender_address or not artifact_path.exists():
         return {}
+    def _manual_decode() -> dict[str, Any]:
+        sender_norm = sender_address.lower()
+        logs = receipt.get("logs")
+        if not isinstance(logs, list):
+            return {}
+        topic0_expected = (
+            "0x75c90c773d78e379aaaee2b3cc5be5d0cd3b70f8e2b773a402f709c7f07f7e99"
+        )
+        for raw_log in logs:
+            if not isinstance(raw_log, dict):
+                continue
+            if str(raw_log.get("address") or "").lower() != sender_norm:
+                continue
+            topics = raw_log.get("topics")
+            if not isinstance(topics, list) or len(topics) < 4:
+                continue
+            if str(topics[0] or "").lower() != topic0_expected:
+                continue
+            try:
+                caller = "0x" + str(topics[1])[-40:]
+                used_nonce = int(str(topics[2]), 16)
+                model_hash = _normalize_hex(str(topics[3]))
+                data_hex = str(raw_log.get("data") or "")
+                if data_hex.startswith("0x"):
+                    data_hex = data_hex[2:]
+                if len(data_hex) < 128:
+                    continue
+                output_commitment = "0x" + data_hex[:64]
+                message_hash = "0x" + data_hex[64:128]
+                return {
+                    "caller": caller,
+                    "used_nonce": used_nonce,
+                    "model_hash": model_hash,
+                    "output_commitment": output_commitment,
+                    "message_hash": message_hash,
+                }
+            except Exception:
+                continue
+        return {}
     try:
         from web3 import Web3
         from web3._utils.events import get_event_data
     except Exception:
-        return {}
+        return _manual_decode()
 
     try:
         artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
@@ -207,13 +563,39 @@ def _decode_bridge_event(
                 "message_hash": _normalize_hex(args.get("messageHash")),
             }
     except Exception:
-        return {}
-    return {}
+        return _manual_decode()
+    return _manual_decode()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Capture a live Path C L1->L2 bridge receipt into pathc_latest.json.")
     parser.add_argument("--payload-json", help="JSON file with proof_hex/public_inputs/model_hash/output_commitment.")
+    parser.add_argument(
+        "--model-name",
+        help="Generate a fresh Path C payload from a local first-party EZKL model before submitting.",
+    )
+    parser.add_argument(
+        "--input-json",
+        help="Optional JSON file with input_data rows for --model-name. Defaults to calibration.json sample.",
+    )
+    parser.add_argument(
+        "--sample-index",
+        type=int,
+        default=0,
+        help="Calibration sample index to use when --model-name is set and --input-json is omitted.",
+    )
+    parser.add_argument(
+        "--generated-payload",
+        default=str(DEFAULT_GENERATED_PAYLOAD),
+        help="Where to write the generated payload JSON when --model-name is used.",
+    )
+    parser.add_argument(
+        "--no-local-parent-fallback",
+        dest="local_parent_fallback",
+        action="store_false",
+        help="Disable same-host fallback to the parent backend service when the parent HTTP API is blocked or times out.",
+    )
+    parser.set_defaults(local_parent_fallback=True)
     parser.add_argument(
         "--refresh-artifact",
         help="Existing pathc_latest.json to refresh in place without submitting a new verifyAndBridge call.",
@@ -229,8 +611,17 @@ def main() -> int:
     parser.add_argument("--bridge-sender-artifact", default=str(DEFAULT_BRIDGE_SENDER_ARTIFACT))
     args = parser.parse_args()
 
-    if not args.payload_json and not args.refresh_artifact:
-        raise SystemExit("provide --payload-json or --refresh-artifact")
+    selected_sources = sum(
+        1
+        for flag in (
+            bool(args.payload_json),
+            bool(args.model_name),
+            bool(args.refresh_artifact),
+        )
+        if flag
+    )
+    if selected_sources != 1:
+        raise SystemExit("provide exactly one of --payload-json, --model-name, or --refresh-artifact")
 
     parent_base = str(args.parent_base_url).rstrip("/")
     verify_url = f"{parent_base}/api/v1/aggregation/l1/verify"
@@ -239,6 +630,7 @@ def main() -> int:
     payload_path: Path | None = None
     existing_artifact: dict[str, Any] = {}
     payload: dict[str, Any]
+    generated_payload_meta: dict[str, Any] | None = None
     verify_status: int | None = None
     verify_result: dict[str, Any] = {}
     tx_hash = ""
@@ -246,7 +638,43 @@ def main() -> int:
     used_nonce = None
     message_hash = ""
 
-    if args.payload_json:
+    if args.model_name:
+        payload_path = Path(args.generated_payload).expanduser().resolve()
+        input_json_path = (
+            Path(args.input_json).expanduser().resolve() if args.input_json else None
+        )
+        payload, generated_payload_meta = asyncio.run(
+            _generate_payload_from_local_model(
+                model_name=args.model_name,
+                input_json_path=input_json_path,
+                sample_index=int(args.sample_index),
+                generated_payload_path=payload_path,
+            )
+        )
+        verify_body = {
+            "proof_hex": payload["proof_hex"],
+            "public_inputs": payload["public_inputs"],
+            "model_hash": payload["model_hash"],
+            "output_commitment": payload["output_commitment"],
+            "wait_for_l2": bool(args.wait_for_l2),
+            "l2_max_polls": int(args.l2_max_polls),
+            "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
+        }
+        verify_status, verify_result = _post_json_with_parent_fallback(
+            url=verify_url,
+            payload=verify_body,
+            timeout=args.timeout,
+            enable_local_fallback=bool(args.local_parent_fallback),
+        )
+        if verify_status != 200 or not verify_result.get("success"):
+            print(json.dumps({"verify_status": verify_status, "verify_result": verify_result}, indent=2))
+            raise SystemExit(1)
+
+        tx_hash = _normalize_hex(_first_non_empty(verify_result.get("tx_hash")))
+        query = verify_result.get("verification_status_query")
+        used_nonce = verify_result.get("used_nonce")
+        message_hash = _first_non_empty(verify_result.get("message_hash"))
+    elif args.payload_json:
         payload_path = Path(args.payload_json).expanduser().resolve()
         payload = _load_payload(payload_path)
         if not payload.get("proof_hex"):
@@ -265,12 +693,17 @@ def main() -> int:
             "l2_max_polls": int(args.l2_max_polls),
             "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
         }
-        verify_status, verify_result = _post_json(verify_url, verify_body, args.timeout)
+        verify_status, verify_result = _post_json_with_parent_fallback(
+            url=verify_url,
+            payload=verify_body,
+            timeout=args.timeout,
+            enable_local_fallback=bool(args.local_parent_fallback),
+        )
         if verify_status != 200 or not verify_result.get("success"):
             print(json.dumps({"verify_status": verify_status, "verify_result": verify_result}, indent=2))
             raise SystemExit(1)
 
-        tx_hash = _first_non_empty(verify_result.get("tx_hash"))
+        tx_hash = _normalize_hex(_first_non_empty(verify_result.get("tx_hash")))
         query = verify_result.get("verification_status_query")
         used_nonce = verify_result.get("used_nonce")
         message_hash = _first_non_empty(verify_result.get("message_hash"))
@@ -283,7 +716,7 @@ def main() -> int:
             "model_hash": _normalize_hex(existing_artifact.get("model_hash")),
             "output_commitment": _normalize_hex(existing_artifact.get("output_commitment")),
         }
-        tx_hash = _first_non_empty(existing_artifact.get("tx_hash"))
+        tx_hash = _normalize_hex(_first_non_empty(existing_artifact.get("tx_hash")))
         if not tx_hash:
             raise SystemExit("refresh artifact missing tx_hash")
         query = existing_artifact.get("verification_status_query")
@@ -299,10 +732,11 @@ def main() -> int:
     l2_status = {}
     l2_status_code = None
     if isinstance(query, dict) and query.get("model_hash") and query.get("nonce"):
-        l2_status_code, l2_status = _get_json(
-            status_url,
-            {"model_hash": str(query["model_hash"]), "nonce": str(query["nonce"])},
-            args.timeout,
+        l2_status_code, l2_status = _get_json_with_parent_fallback(
+            url=status_url,
+            params={"model_hash": str(query["model_hash"]), "nonce": str(query["nonce"])},
+            timeout=args.timeout,
+            enable_local_fallback=bool(args.local_parent_fallback),
         )
 
     parent_env = _load_env_file(PROJECT_ROOT.parent / "backend" / ".env")
@@ -351,7 +785,11 @@ def main() -> int:
         "generated_at": (
             now_iso
             if args.payload_json
-            else _artifact_timestamp(refresh_path, existing_artifact.get("generated_at"))
+            else (
+                now_iso
+                if args.model_name
+                else _artifact_timestamp(refresh_path, existing_artifact.get("generated_at"))
+            )
         ),
         "last_checked_at": now_iso,
         "source_payload": str(payload_path) if payload_path else existing_artifact.get("source_payload"),
@@ -394,6 +832,7 @@ def main() -> int:
         "verification_status_query": query,
         "verify_result": verify_result or existing_artifact.get("verify_result"),
         "verify_status_code": verify_status if verify_status is not None else existing_artifact.get("verify_status_code"),
+        "generated_payload_meta": generated_payload_meta or existing_artifact.get("generated_payload_meta"),
     }
 
     artifact_path = Path(args.artifact).expanduser().resolve()

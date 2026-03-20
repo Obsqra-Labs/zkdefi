@@ -206,12 +206,27 @@ Daily build env knobs:
 - `PATHC_REFRESH_EXISTING=true` (default; refresh the existing `pathc_latest.json` artifact in place when no payload is set)
 - `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
 
-Path C live receipt capture:
+Path C live receipt capture from an existing payload:
 
 ```bash
 python3 scripts/capture_pathc_live_receipt.py \
   --payload-json /abs/path/to/pathc_payload.json
 ```
+
+Path C live receipt capture from a local first-party EZKL model:
+
+```bash
+python3 scripts/capture_pathc_live_receipt.py \
+  --model-name creditworthiness \
+  --no-wait-for-l2
+```
+
+Notes:
+
+- The currently deployed Sepolia Halo2 verifier was generated from the `creditworthiness` EZKL model, so that is the correct first-party model to use unless you redeploy the L1 verifier for a different VK.
+- `--model-name` writes `artifacts/hackathon_showcase/pathc_payload_latest.json` before submission, so the exact `proof_hex` / `public_inputs` / `model_hash` / `output_commitment` bundle is pinned for reruns and receipts.
+- Raw EZKL `instances` are normalized from little-endian limbs into canonical `uint256` hex before the proof is submitted to the L1 verifier.
+- If the parent HTTP API on `8002` is blocked or times out, the helper can fall back to the local parent backend service on the same host. Use `--no-local-parent-fallback` to disable that.
 
 Path C recurring monitor refresh:
 
@@ -241,6 +256,7 @@ Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REP
 - `artifacts/hackathon_showcase/latest.json`
 - `artifacts/hackathon_showcase/patha_latest.json` (latest Path A `NoirEzklBridge` / `noir_honk` receipt artifact used by recursive stage check-ins and strict Noir gate)
 - `artifacts/hackathon_showcase/pathb_latest.json` (latest Path B `EzklNativeKzg` runtime/verifier coverage artifact used by recursive stage check-ins and strict bridge gate)
+- `artifacts/hackathon_showcase/pathc_payload_latest.json` (latest first-party Path C payload bundle generated from a local EZKL proof)
 
 The HTML report includes:
 
