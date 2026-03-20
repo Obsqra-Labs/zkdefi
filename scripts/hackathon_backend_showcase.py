@@ -3492,6 +3492,14 @@ class ShowcaseRunner:
         pathc_tx_hash = str(pathc_live_receipt_raw.get("tx_hash") or "")
         pathc_model_hash = str(pathc_live_receipt_raw.get("model_hash") or "")
         pathc_output_commitment = str(pathc_live_receipt_raw.get("output_commitment") or "")
+        pathc_raw_model_hash = str(pathc_live_receipt_raw.get("raw_model_hash") or pathc_model_hash or "")
+        pathc_raw_output_commitment = str(
+            pathc_live_receipt_raw.get("raw_output_commitment") or pathc_output_commitment or ""
+        )
+        pathc_bridge_model_hash = str(pathc_live_receipt_raw.get("bridge_model_hash") or pathc_model_hash or "")
+        pathc_bridge_output_commitment = str(
+            pathc_live_receipt_raw.get("bridge_output_commitment") or pathc_output_commitment or ""
+        )
         pathc_used_nonce = pathc_live_receipt_raw.get("used_nonce")
         pathc_generated_at = (
             _parse_iso_datetime(pathc_live_receipt_raw.get("generated_at"))
@@ -3515,6 +3523,16 @@ class ShowcaseRunner:
             if isinstance(pathc_live_receipt_raw.get("l2_last"), dict)
             else {}
         )
+        pathc_core_message_log = (
+            pathc_live_receipt_raw.get("l1_core_message_log")
+            if isinstance(pathc_live_receipt_raw.get("l1_core_message_log"), dict)
+            else {}
+        )
+        pathc_core_message_state = (
+            pathc_live_receipt_raw.get("l1_core_message_state")
+            if isinstance(pathc_live_receipt_raw.get("l1_core_message_state"), dict)
+            else {}
+        )
         pathc_l2_polls = pathc_live_receipt_raw.get("l2_polls") if isinstance(pathc_live_receipt_raw.get("l2_polls"), list) else []
         pathc_l1_status = _safe_int(pathc_l1_receipt.get("status"), -1)
         pathc_l2_verified = bool(
@@ -3523,6 +3541,17 @@ class ShowcaseRunner:
             or pathc_l2_last.get("verified_on_l2")
         )
         pathc_live_verified = bool(pathc_tx_hash and pathc_l1_status == 1 and pathc_l2_verified)
+        pathc_core_pending = bool(pathc_core_message_state.get("pending"))
+        pathc_core_slot_value = str(pathc_core_message_state.get("slot_value") or "")
+        pathc_runtime_stage = (
+            "l2_confirmed"
+            if pathc_live_verified
+            else "core_enqueued_pending_l2"
+            if (pathc_tx_hash and pathc_l1_status == 1 and pathc_core_pending)
+            else "l1_verified_pending_core"
+            if (pathc_tx_hash and pathc_l1_status == 1)
+            else "receipt_missing"
+        )
         pathc_max_age_hours = max(1.0, _safe_float(os.getenv("SHOWCASE_PATHC_MAX_AGE_HOURS"), 36.0))
         pathc_age_hours = (
             max(0.0, (datetime.now(timezone.utc) - pathc_last_checked_at).total_seconds() / 3600.0)
@@ -3632,7 +3661,13 @@ class ShowcaseRunner:
                             else "Live verifyAndBridge receipt captured and L2 receiver confirmed, but the recurring monitor check is stale."
                         )
                         if pathc_live_verified
-                        else "L1 verifier + sender + receiver are wired; capture live verifyAndBridge + L2 receipt to complete Path C."
+                        else (
+                            "Live verifyAndBridge receipt captured, Ethereum tx mined, and Starknet Core queue confirms the message is pending; L2 receiver confirmation is the remaining step."
+                            if (pathc_tx_hash and pathc_l1_status == 1 and pathc_core_pending)
+                            else "Live verifyAndBridge receipt captured and mined on L1; waiting for Starknet Core enqueue / receiver confirmation."
+                            if (pathc_tx_hash and pathc_l1_status == 1)
+                            else "L1 verifier + sender + receiver are wired; capture live verifyAndBridge + L2 receipt to complete Path C."
+                        )
                     )
                     if path_c_wiring_ready
                     else "L1 verifier + bridge spec docs exist; parent backend has config keys and service support."
@@ -3718,7 +3753,13 @@ class ShowcaseRunner:
                 if pathc_live_verified and pathc_checked_recently and pathc_age_hours is not None
                 else f"Phase 3: Path C live receipt is captured ({_short_hex(pathc_tx_hash, 12)}); refresh recurring monitor checks."
                 if pathc_live_verified
-                else "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status."
+                else (
+                    f"Phase 3: Path C is mined on L1 and queued in Starknet Core ({_short_hex(pathc_tx_hash, 12)}); keep polling for L2 receiver consumption."
+                    if (pathc_tx_hash and pathc_l1_status == 1 and pathc_core_pending)
+                    else f"Phase 3: Path C live receipt is mined on L1 ({_short_hex(pathc_tx_hash, 12)}); wait for Starknet Core enqueue / L2 consumption."
+                    if (pathc_tx_hash and pathc_l1_status == 1)
+                    else "Phase 3: run a live verifyAndBridge call with a valid EZKL proof, then confirm via /aggregation/l1/verification-status."
+                )
             ),
             "Phase 3: keep allowed_l1_sender pinned to the deployed L1 bridge sender when rotating contracts.",
             "Phase 4: keep ezkl_kzg_verifier deployed on L3 and set L3_KZG_VERIFIER_ADDRESS in parent backend.",
@@ -3779,6 +3820,8 @@ class ShowcaseRunner:
                 "path_c_l1_status_ok": (pathc_l1_status == 1),
                 "path_c_l2_verified": pathc_l2_verified,
                 "path_c_live_verified": pathc_live_verified,
+                "path_c_core_pending": pathc_core_pending,
+                "path_c_runtime_stage": pathc_runtime_stage,
                 "path_c_checked_recently": pathc_checked_recently,
                 "path_c_max_age_hours": pathc_max_age_hours,
                 "path_c_age_hours": pathc_age_hours,
@@ -3923,6 +3966,7 @@ class ShowcaseRunner:
                 "artifact_found": PATHC_LIVE_RECEIPT_FILE.exists(),
                 "live_verified": pathc_live_verified,
                 "checked_recently": pathc_checked_recently,
+                "runtime_stage": pathc_runtime_stage,
                 "mode": pathc_mode,
                 "generated_at": (pathc_generated_at.isoformat() if pathc_generated_at else None),
                 "last_checked_at": (pathc_last_checked_at.isoformat() if pathc_last_checked_at else None),
@@ -3930,11 +3974,21 @@ class ShowcaseRunner:
                 "tx_hash": pathc_tx_hash or None,
                 "tx_url": pathc_tx_url,
                 "model_hash": pathc_model_hash or None,
+                "raw_model_hash": pathc_raw_model_hash or None,
+                "bridge_model_hash": pathc_bridge_model_hash or None,
                 "output_commitment": pathc_output_commitment or None,
+                "raw_output_commitment": pathc_raw_output_commitment or None,
+                "bridge_output_commitment": pathc_bridge_output_commitment or None,
                 "used_nonce": pathc_used_nonce,
                 "l1_status": (pathc_l1_status if pathc_l1_status >= 0 else None),
                 "l1_block_number": pathc_l1_receipt.get("blockNumber"),
                 "l1_gas_used": pathc_l1_receipt.get("gasUsed"),
+                "l1_core_pending": pathc_core_pending,
+                "l1_core_slot_value": (pathc_core_slot_value or None),
+                "l1_core_address": pathc_core_message_log.get("core_address"),
+                "l1_core_from_address": pathc_core_message_log.get("from_address"),
+                "l1_core_to_address": pathc_core_message_log.get("to_address"),
+                "l1_core_selector": pathc_core_message_log.get("selector"),
                 "l2_verified": bool(pathc_l2_last.get("verified")),
                 "l2_verified_on_l2": bool(pathc_l2_last.get("verified_on_l2")),
                 "l2_output_commitment": pathc_l2_last.get("output_commitment"),
@@ -5898,6 +5952,7 @@ class ShowcaseRunner:
             ["Artifact path", f"<code>{escape(str(path_c_live.get('artifact_path') or '-'))}</code>"],
             ["Artifact present", "<span class=\"pass\">yes</span>" if path_c_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
             ["Live verified (L1 + L2)", "<span class=\"pass\">true</span>" if path_c_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Runtime stage", escape(str(path_c_live.get("runtime_stage") or "-"))],
             ["Monitor freshness", "<span class=\"pass\">fresh</span>" if path_c_live.get("checked_recently") else "<span class=\"warn\">stale</span>"],
             ["Mode", escape(str(path_c_live.get("mode") or "-"))],
             ["First captured (UTC)", escape(str(path_c_live.get("generated_at") or "-"))],
@@ -5909,7 +5964,14 @@ class ShowcaseRunner:
             ["L1 gas used", escape(str(path_c_live.get("l1_gas_used") or "-"))],
             ["L1 sender", path_c_sender_html],
             ["L1 verifier", path_c_verifier_html],
+            ["L1 core message pending", "<span class=\"warn\">true</span>" if path_c_live.get("l1_core_pending") else "<span class=\"fail\">false</span>"],
+            ["L1 core queue value", escape(str(path_c_live.get("l1_core_slot_value") or "-"))],
+            ["L1 core address", escape(str(path_c_live.get("l1_core_address") or "-"))],
             ["Model hash", escape(_short_hex(str(path_c_live.get("model_hash") or "-"), 14))],
+            ["Raw model hash", escape(_short_hex(str(path_c_live.get("raw_model_hash") or "-"), 14))],
+            ["Bridge model hash", escape(_short_hex(str(path_c_live.get("bridge_model_hash") or "-"), 14))],
+            ["Raw output commitment", escape(_short_hex(str(path_c_live.get("raw_output_commitment") or "-"), 14))],
+            ["Bridge output commitment", escape(_short_hex(str(path_c_live.get("bridge_output_commitment") or "-"), 14))],
             ["Nonce used", escape(str(path_c_live.get("used_nonce") if path_c_live.get("used_nonce") is not None else "-"))],
             ["L2 verified_on_l2", "<span class=\"pass\">true</span>" if path_c_live.get("l2_verified_on_l2") else "<span class=\"fail\">false</span>"],
             ["L2 output commitment", escape(_short_hex(str(path_c_live.get("l2_output_commitment") or "-"), 14))],
@@ -7009,8 +7071,10 @@ class ShowcaseRunner:
                 "ok": path_c_ready,
                 "evidence": (
                     f"live_verified={bool(path_c_live.get('live_verified'))}, "
+                    f"runtime_stage={path_c_live.get('runtime_stage') or '-'}, "
                     f"checked_recently={bool(path_c_live.get('checked_recently'))}, "
                     f"l1_status={path_c_live.get('l1_status')}, "
+                    f"core_pending={bool(path_c_live.get('l1_core_pending'))}, "
                     f"l2_verified_on_l2={bool(path_c_live.get('l2_verified_on_l2'))}, "
                     f"polls={path_c_live.get('l2_poll_count')}"
                 ),
@@ -7050,7 +7114,11 @@ class ShowcaseRunner:
         if not path_a_ready:
             missing_gates.append("Path A live noir_honk receipt")
         if not path_c_ready:
-            missing_gates.append("Path C live verifyAndBridge + L2 confirmation")
+            missing_gates.append(
+                "Path C L2 receiver confirmation"
+                if bool(recursive_signals.get("path_c_core_pending"))
+                else "Path C live verifyAndBridge + L2 confirmation"
+            )
         if not path_b_ready:
             missing_gates.append("Path B strict native_kzg receipt coverage")
 
@@ -7082,7 +7150,9 @@ class ShowcaseRunner:
                 "Path C (L1 bridge)",
                 escape(_narrative_state(path_c_status, path_c_ready)),
                 escape(
-                    "Run live verifyAndBridge from L1 -> poll L2 receiver confirmation and pin receipt links."
+                    "Starknet Core already has the message queued; next unlock is receiver consumption on Sepolia and then recurring monitor confirmation."
+                    if bool(recursive_signals.get("path_c_core_pending"))
+                    else "Run live verifyAndBridge from L1 -> poll L2 receiver confirmation and pin receipt links."
                     if not path_c_ready
                     else "Expand from single flow to repeatable bridge monitoring and incident runbooks."
                 ),
