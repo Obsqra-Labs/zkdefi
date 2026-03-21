@@ -2954,7 +2954,7 @@ class ShowcaseRunner:
         )
         noir_payload = _bridge_payload(
             lane="noir",
-            execution_chain="l3",
+            execution_chain="dual",
             value_eth_floor=2.2,
             bridge_circuit="NoirEzklBridge",
         )
@@ -3496,6 +3496,7 @@ class ShowcaseRunner:
         }
 
         noir_l3_lane = noir_run.get("l3") if isinstance(noir_run.get("l3"), dict) else {}
+        noir_l2_lane = noir_run.get("l2") if isinstance(noir_run.get("l2"), dict) else {}
         best_noir_attempt = next(
             (
                 row
@@ -3521,6 +3522,8 @@ class ShowcaseRunner:
             if noir_l3_lane.get("verified_on_chain") is not None
             else best_noir_attempt.get("l3_verified_on_chain")
         )
+        noir_l2_tx_hash = str(noir_l2_lane.get("tx_hash") or "").strip()
+        noir_l2_tx_url = _voyager_tx_url(noir_l2_tx_hash) if noir_l2_tx_hash else None
         noir_fee_meta = self._fetch_starknet_tx_metrics(noir_tx_hash or None, rpc_url=self._madara_rpc_url)
         self._noir_live_receipt = {
             "status": noir_status,
@@ -3543,8 +3546,12 @@ class ShowcaseRunner:
             "l3_verified_on_chain": noir_verified_on_chain,
             "l3_tx_hash": noir_tx_hash or None,
             "l3_tx_url": noir_tx_url,
-            "l2_attempted": ((noir_run.get("l2") or {}).get("attempted") if isinstance(noir_run.get("l2"), dict) else None),
-            "l2_mode": ((noir_run.get("l2") or {}).get("mode") if isinstance(noir_run.get("l2"), dict) else None),
+            "l2_attempted": noir_l2_lane.get("attempted"),
+            "l2_success": noir_l2_lane.get("success"),
+            "l2_mode": noir_l2_lane.get("mode"),
+            "l2_verified_on_chain": noir_l2_lane.get("verified_on_chain"),
+            "l2_tx_hash": noir_l2_tx_hash or None,
+            "l2_tx_url": noir_l2_tx_url,
             "trust_mode": noir_run.get("trust_mode"),
             "trust_warning": noir_run.get("trust_warning"),
             "failure_reason": noir_run.get("failure_reason"),
@@ -3575,6 +3582,9 @@ class ShowcaseRunner:
             l3_mode=noir_mode,
             l3_tx_hash=_short_hex(noir_tx_hash or None, 12),
             l3_verified_on_chain=noir_verified_on_chain,
+            l2_mode=noir_l2_lane.get("mode"),
+            l2_tx_hash=_short_hex(noir_l2_tx_hash or None, 12),
+            mirror_status=noir_run.get("mirror_status"),
             l3_actual_fee=noir_fee_meta.get("l3_actual_fee_display"),
             bridge_proof_hash=_short_hex(
                 str(noir_run.get("bridge_proof_hash")) if noir_run.get("bridge_proof_hash") else None,
@@ -4656,7 +4666,7 @@ class ShowcaseRunner:
                 "pool_3_age_days": 190,
             },
             "submit_to_l3": True,
-            "execution_chain": "l3",
+            "execution_chain": "dual",
         }
         status = 0
         body: Any = {}
@@ -4680,14 +4690,20 @@ class ShowcaseRunner:
                     sleep_s = max(sleep_s, 61.0)
                 time.sleep(sleep_s)
         l3 = body.get("l3", {}) if isinstance(body, dict) and isinstance(body.get("l3"), dict) else {}
+        l2 = body.get("l2", {}) if isinstance(body, dict) and isinstance(body.get("l2"), dict) else {}
         tx_hash = l3.get("tx_hash")
         tx_url = _starknet_tx_url(str(tx_hash), self._madara_rpc_url) if tx_hash else None
+        l2_tx_hash = l2.get("tx_hash")
+        l2_tx_url = _voyager_tx_url(str(l2_tx_hash)) if l2_tx_hash else None
         self._heavy_stark_showcase = {
             "status": status,
             "success": (body.get("success") if isinstance(body, dict) else None),
             "circuit_name": (body.get("circuit_name") if isinstance(body, dict) else None),
             "proof_hash": (body.get("proof_hash") if isinstance(body, dict) else None),
             "fact_hash": (body.get("fact_hash") if isinstance(body, dict) else None),
+            "requested_execution_chain": (body.get("requested_execution_chain") if isinstance(body, dict) else None),
+            "primary_authority": (body.get("primary_authority") if isinstance(body, dict) else None),
+            "mirror_status": (body.get("mirror_status") if isinstance(body, dict) else None),
             "l3": {
                 "success": l3.get("success"),
                 "mode": l3.get("mode"),
@@ -4696,7 +4712,17 @@ class ShowcaseRunner:
                 "tx_url": tx_url,
                 "error": l3.get("error"),
             },
+            "l2": {
+                "attempted": l2.get("attempted"),
+                "success": l2.get("success"),
+                "mode": l2.get("mode"),
+                "verified_on_chain": l2.get("verified_on_chain"),
+                "tx_hash": l2_tx_hash,
+                "tx_url": l2_tx_url,
+                "error": l2.get("error"),
+            },
             "error": (body.get("error") if isinstance(body, dict) else None),
+            "failure_reason": (body.get("failure_reason") if isinstance(body, dict) else None),
         }
 
         transient = status in {429, 503}
@@ -4714,6 +4740,9 @@ class ShowcaseRunner:
             proof_hash=_short_hex((body.get("proof_hash") if isinstance(body, dict) else None), 12),
             l3_mode=l3.get("mode"),
             l3_tx_hash=_short_hex(str(tx_hash) if tx_hash else None, 12),
+            l2_mode=l2.get("mode"),
+            l2_tx_hash=_short_hex(str(l2_tx_hash) if l2_tx_hash else None, 12),
+            mirror_status=(body.get("mirror_status") if isinstance(body, dict) else None),
             transient_status_ok=transient,
             error=_clip_text((body.get("error") if isinstance(body, dict) else body), 120),
         )
@@ -6073,6 +6102,11 @@ class ShowcaseRunner:
 
         pathc_bench = benchmark_index.get("path_c", {})
         pathc_capture_history = _pathc_capture_history_summary(PATHC_HISTORY_FILE, window_entries=12)
+        recursive_paths = (
+            self._recursive_ezkl_paths
+            if isinstance(getattr(self, "_recursive_ezkl_paths", None), dict)
+            else {}
+        )
         pathc_route_inventory = (
             recursive_paths.get("path_c_route_inventory")
             if isinstance(recursive_paths.get("path_c_route_inventory"), dict)
@@ -6143,6 +6177,7 @@ class ShowcaseRunner:
         native_live = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
         heavy_live = payload.get("heavy_stark_showcase", {}) if isinstance(payload.get("heavy_stark_showcase"), dict) else {}
         heavy_l3 = heavy_live.get("l3", {}) if isinstance(heavy_live.get("l3"), dict) else {}
+        heavy_l2 = heavy_live.get("l2", {}) if isinstance(heavy_live.get("l2"), dict) else {}
         pathb_warm = recursive.get("path_b_warm_report", {}) if isinstance(recursive.get("path_b_warm_report"), dict) else {}
         pathc_routes = recursive.get("path_c_route_inventory", {}) if isinstance(recursive.get("path_c_route_inventory"), dict) else {}
 
@@ -6259,7 +6294,7 @@ class ShowcaseRunner:
                 "No confirmed L1 bridge receipt is currently available.",
             )
 
-        if str(noir_live.get("l2_tx_hash") or "").strip():
+        if str(noir_live.get("l2_tx_hash") or "").strip() and bool(noir_live.get("l2_verified_on_chain")):
             noir_l2_tx = str(noir_live.get("l2_tx_hash") or "").strip()
             entries.append(
                 {
@@ -6279,33 +6314,39 @@ class ShowcaseRunner:
         else:
             _exclude(
                 "NoirEzklBridge",
-                "internal_only_l3_lane",
-                "Current Noir receipt is Madara/L3-local only; there is no public mirror tx in this run.",
+                "no_public_mirror_receipt",
+                "Current Noir run has no verified public Starknet mirror tx to surface.",
             )
 
-        if str(heavy_l3.get("tx_url") or "").strip():
-            heavy_tx = str(heavy_l3.get("tx_hash") or "").strip()
+        if str(heavy_l2.get("tx_hash") or "").strip() and bool(heavy_l2.get("verified_on_chain")):
+            heavy_tx = str(heavy_l2.get("tx_hash") or "").strip()
             entries.append(
                 {
                     "lane": "StarkHeavyReputation",
-                    "title": "STARK integrity public tx",
+                    "title": "STARK integrity public Starknet mirror tx",
                     "network": "starknet_sepolia",
                     "public_chain": "starknet_l2",
                     "tx_hash": heavy_tx,
                     "voyager_url": _voyager_tx_url(heavy_tx),
                     "starkscan_url": _starkscan_tx_url(heavy_tx),
-                    "verified_on_chain": bool(heavy_l3.get("verified_on_chain")),
+                    "verified_on_chain": bool(heavy_l2.get("verified_on_chain")),
                     "proof_hash": heavy_live.get("proof_hash"),
                     "fact_hash": heavy_live.get("fact_hash"),
-                    "mode": heavy_l3.get("mode"),
-                    "note": "Public Starknet receipt for the STARK integrity lane.",
+                    "mode": heavy_l2.get("mode"),
+                    "note": "Primary STARK verification runs on L3; this is the public Starknet mirror receipt.",
                 }
+            )
+        elif bool(heavy_l2.get("verified_on_chain")):
+            _exclude(
+                "StarkHeavyReputation",
+                "registry_state_without_submission_tx",
+                "Heavy STARK is verified on Starknet, but the current L2 lookup only returned registry state without a public submission tx hash.",
             )
         else:
             _exclude(
                 "StarkHeavyReputation",
-                "internal_only_l3_lane",
-                "Current STARK integrity receipt is Madara/L3-local only; there is no public explorer-safe tx in this run.",
+                "no_public_mirror_receipt",
+                "Current STARK integrity receipt has no public Starknet mirror tx in this run.",
             )
 
         public_lane_count = len(entries)

@@ -1,6 +1,7 @@
 import pytest
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from app.services.proof_pipeline import ProofMode, ProofPipeline
 
@@ -880,3 +881,102 @@ async def test_try_generate_real_ezkl_proof_warms_kzg_bundle(monkeypatch, tmp_pa
     assert seen["model_name"] == "yield_forecast"
     assert seen["model_dir"].endswith("/yield_forecast")
     assert getattr(proof, "kzg_bundle_meta", {}).get("kzg_warm_attempted") is True
+
+
+@pytest.mark.asyncio
+async def test_heavy_stark_dual_preserves_public_mirror_receipt(monkeypatch):
+    pipeline = ProofPipeline()
+
+    class _HealthyProver:
+        async def health_check(self):
+            return True
+
+        async def generate_stone_proof(self, **kwargs):  # noqa: ANN003
+            return {
+                "proof_hash": "0x111",
+                "fact_hash": "0x123",
+                "proof": {"config_hash": "0x123", "calldata": ["0x123"]},
+            }
+
+    class _L3Client:
+        async def verify_proof(self, **kwargs):  # noqa: ANN003
+            return SimpleNamespace(
+                success=True,
+                mode="stark_integrity",
+                verified_on_chain=True,
+                tx_hash="0xl3",
+                error=None,
+                fact_hash="0xabc",
+            )
+
+    async def fake_l2(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "starknet_l2_registry_mirrored",
+            "tx_hash": "0xl2",
+            "error": None,
+        }
+
+    monkeypatch.setattr("app.services.proof_pipeline.get_obsqra_prover", lambda: _HealthyProver())
+    monkeypatch.setattr(
+        "app.services.l3_proving_path_client.get_l3_proving_path_client",
+        lambda: _L3Client(),
+    )
+    monkeypatch.setattr(pipeline, "_verify_l2_bridge", fake_l2)
+
+    result = await pipeline.generate_heavy_stark_proof(
+        pool_metrics={},
+        submit_to_l3=True,
+        execution_chain="dual",
+    )
+
+    assert result["success"] is True
+    assert result["requested_execution_chain"] == "dual"
+    assert result["primary_authority"] == "l3"
+    assert result["l3"]["verified_on_chain"] is True
+    assert result["l3"]["fact_hash"] == "0xabc"
+    assert result["l2"]["tx_hash"] == "0xl2"
+    assert result["mirror_status"] == "mirrored"
+    assert result["failure_reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_heavy_stark_l2_sets_failure_reason_when_strict_verification_fails(monkeypatch):
+    pipeline = ProofPipeline()
+
+    class _HealthyProver:
+        async def health_check(self):
+            return True
+
+        async def generate_stone_proof(self, **kwargs):  # noqa: ANN003
+            return {
+                "proof_hash": "0x111",
+                "fact_hash": "0x123",
+                "proof": {"config_hash": "0x123", "calldata": ["0x123"]},
+            }
+
+    async def fake_l2(**kwargs):
+        return {
+            "attempted": True,
+            "success": False,
+            "verified_on_chain": False,
+            "mode": "l2_unverified",
+            "tx_hash": None,
+            "error": "mirror not available",
+        }
+
+    monkeypatch.setattr("app.services.proof_pipeline.get_obsqra_prover", lambda: _HealthyProver())
+    monkeypatch.setattr(pipeline, "_verify_l2_bridge", fake_l2)
+
+    result = await pipeline.generate_heavy_stark_proof(
+        pool_metrics={},
+        submit_to_l3=True,
+        execution_chain="l2",
+    )
+
+    assert result["success"] is True
+    assert result["primary_authority"] == "l2"
+    assert result["l2"]["verified_on_chain"] is False
+    assert result["failure_reason"] == "mirror not available"

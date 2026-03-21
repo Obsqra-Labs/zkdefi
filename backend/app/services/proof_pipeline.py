@@ -1554,7 +1554,80 @@ class ProofPipeline:
         """
         from app.services.l3_proving_path_client import get_l3_proving_path_client
 
+        execution_chain = self._normalize_execution_chain(execution_chain)
+        primary_authority = "l3" if execution_chain in {"l3", "dual"} else "l2"
         prover = get_obsqra_prover()
+
+        async def _attach_chain_verification(
+            result_obj: dict[str, Any],
+            *,
+            fact_hash_value: str,
+            proof_type: str,
+            stark_proof_data: dict[str, Any] | None,
+        ) -> None:
+            if not submit_to_l3 or not fact_hash_value:
+                return
+
+            if execution_chain in {"l3", "dual"}:
+                client = get_l3_proving_path_client()
+                l3_res = await client.verify_proof(
+                    fact_hash=fact_hash_value,
+                    proof_type=proof_type,
+                    circuit_name="StarkHeavyReputation",
+                    stark_proof_data=stark_proof_data,
+                    execution_chain=execution_chain,
+                )
+                result_obj["l3"] = {
+                    "attempted": True,
+                    "success": l3_res.success,
+                    "mode": l3_res.mode,
+                    "verified_on_chain": l3_res.verified_on_chain,
+                    "tx_hash": l3_res.tx_hash,
+                    "error": l3_res.error,
+                    "fact_hash": l3_res.fact_hash or fact_hash_value,
+                }
+
+            if execution_chain in {"l2", "dual"}:
+                l2_fact_hash = fact_hash_value
+                if execution_chain == "dual":
+                    l3_fact_hash = str((result_obj.get("l3") or {}).get("fact_hash") or "").strip()
+                    if l3_fact_hash:
+                        l2_fact_hash = l3_fact_hash
+                attempts = 1 + (self._mirror_retry_count if execution_chain == "dual" else 0)
+                l2_result: dict[str, Any] | None = None
+                for _ in range(attempts):
+                    l2_result = await self._verify_l2_bridge(fact_hash=l2_fact_hash)
+                    if self._is_cryptographically_verified(l2_result):
+                        break
+                result_obj["l2"] = l2_result or {
+                    "attempted": True,
+                    "success": False,
+                    "verified_on_chain": False,
+                    "mode": "l2_unverified",
+                    "tx_hash": None,
+                    "error": "L2 verification unavailable",
+                }
+                if execution_chain == "dual":
+                    l2_mode = str((result_obj.get("l2") or {}).get("mode") or "").strip().lower()
+                    if self._is_cryptographically_verified(result_obj.get("l2")):
+                        result_obj["mirror_status"] = "mirrored"
+                    elif l2_mode == "l2_registry_unavailable":
+                        result_obj["mirror_status"] = "mirror_unavailable"
+                    elif l2_mode == "l2_mirror_underfunded":
+                        result_obj["mirror_status"] = "mirror_underfunded"
+                    else:
+                        result_obj["mirror_status"] = "mirror_failed"
+
+            if primary_authority == "l3" and self._strict_l3_verification:
+                if not self._is_cryptographically_verified(result_obj.get("l3")):
+                    result_obj["failure_reason"] = (
+                        ((result_obj.get("l3") or {}).get("error")) or "Strict L3 verification failed"
+                    )
+            if primary_authority == "l2" and self._strict_l2_verification:
+                if not self._is_cryptographically_verified(result_obj.get("l2")):
+                    result_obj["failure_reason"] = (
+                        ((result_obj.get("l2") or {}).get("error")) or "Strict L2 verification failed"
+                    )
 
         async def _build_local_heavy_fallback(reason: str) -> dict[str, Any]:
             seed = "|".join(f"{k}:{program_input[k]}" for k in sorted(program_input.keys()))
@@ -1574,31 +1647,30 @@ class ProofPipeline:
                     "hash registration path was used for continuity."
                 ),
                 "error": reason,
+                "requested_execution_chain": execution_chain,
+                "primary_authority": primary_authority,
+                "mirror_status": "not_requested" if execution_chain != "dual" else None,
+                "failure_reason": None,
+                "l2": None,
             }
-            if submit_to_l3:
-                try:
-                    client = get_l3_proving_path_client()
-                    l3_res = await client.verify_proof(
-                        fact_hash=fact_hash,
-                        proof_type="sha256",
-                        circuit_name="StarkHeavyReputation",
-                        execution_chain=execution_chain,
-                    )
-                    fallback["l3"] = {
-                        "success": l3_res.success,
-                        "mode": l3_res.mode,
-                        "verified_on_chain": l3_res.verified_on_chain,
-                        "tx_hash": l3_res.tx_hash,
-                        "error": l3_res.error,
-                    }
-                except Exception as l3_exc:
-                    fallback["l3"] = {
-                        "success": False,
-                        "mode": "unreachable",
-                        "verified_on_chain": False,
-                        "tx_hash": "",
-                        "error": str(l3_exc),
-                    }
+            try:
+                await _attach_chain_verification(
+                    fallback,
+                    fact_hash_value=fact_hash,
+                    proof_type="sha256",
+                    stark_proof_data=None,
+                )
+            except Exception as chain_exc:
+                fallback["l3"] = {
+                    "attempted": True,
+                    "success": False,
+                    "mode": "unreachable",
+                    "verified_on_chain": False,
+                    "tx_hash": "",
+                    "error": str(chain_exc),
+                    "fact_hash": fact_hash,
+                }
+                fallback["failure_reason"] = str(chain_exc)
             return fallback
 
         program_input = {}
@@ -1614,7 +1686,12 @@ class ProofPipeline:
             "proof_hash": None,
             "fact_hash": None,
             "stark_proof_data": None,
+            "requested_execution_chain": execution_chain,
+            "primary_authority": primary_authority,
+            "mirror_status": "not_requested" if execution_chain != "dual" else None,
+            "failure_reason": None,
             "l3": None,
+            "l2": None,
         }
 
         try:
@@ -1636,23 +1713,14 @@ class ProofPipeline:
             result["fact_hash"] = fact_hash
             result["stark_proof_data"] = stone_result.get("proof") or stone_result.get("calldata") or {"config_hash": fact_hash, "calldata": [fact_hash]}
 
-            if submit_to_l3 and fact_hash:
-                client = get_l3_proving_path_client()
+            if fact_hash:
                 fact_hash_str = hex(fact_hash) if isinstance(fact_hash, int) else (str(fact_hash) if str(fact_hash).startswith("0x") else "0x" + str(fact_hash))
-                l3_res = await client.verify_proof(
-                    fact_hash=fact_hash_str,
+                await _attach_chain_verification(
+                    result,
+                    fact_hash_value=fact_hash_str,
                     proof_type="stark",
-                    circuit_name="StarkHeavyReputation",
                     stark_proof_data=result["stark_proof_data"],
-                    execution_chain=execution_chain,
                 )
-                result["l3"] = {
-                    "success": l3_res.success,
-                    "mode": l3_res.mode,
-                    "verified_on_chain": l3_res.verified_on_chain,
-                    "tx_hash": l3_res.tx_hash,
-                    "error": l3_res.error,
-                }
         except Exception as exc:
             reason = str(exc)
             logger.warning("StarkHeavyReputation proof failed, using local fallback: %s", reason)
