@@ -231,6 +231,38 @@ async def test_dual_preserves_mirrored_l2_tx_hash(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_verify_l2_bridge_preserves_backend_detail(monkeypatch):
+    pipeline = ProofPipeline()
+
+    class _StoneStub:
+        async def verify_proof_on_chain(self, fact_hash, chain_id="starknet-sepolia", verification_policy=None):  # noqa: ANN001, ARG002
+            return {
+                "verified": True,
+                "chain": chain_id,
+                "block": None,
+                "error": None,
+                "source": "mirrored_from_l3",
+                "tx_hash": "0xfeed",
+                "verification_policy": "both",
+                "verification_backend": "obsqra",
+                "obsqra_verified": True,
+                "integrity_verified": False,
+            }
+
+    monkeypatch.setattr("app.services.prover_integrations.StoneProverClient", _StoneStub)
+
+    result = await pipeline._verify_l2_bridge(fact_hash="0x123")
+
+    assert result["verified_on_chain"] is True
+    assert result["mode"] == "starknet_l2_registry_mirrored"
+    assert result["tx_hash"] == "0xfeed"
+    assert result["verification_policy"] == "both"
+    assert result["verification_backend"] == "obsqra"
+    assert result["obsqra_verified"] is True
+    assert result["integrity_verified"] is False
+
+
+@pytest.mark.asyncio
 async def test_l2_strict_blocks_when_unverified(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)

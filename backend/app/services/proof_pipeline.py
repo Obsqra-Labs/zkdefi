@@ -405,6 +405,10 @@ class ProofPipeline:
                 "verified_on_chain": False,
                 "tx_hash": None,
                 "error": "Missing fact hash for L2 verification",
+                "verification_policy": None,
+                "verification_backend": None,
+                "obsqra_verified": None,
+                "integrity_verified": None,
             }
         try:
             from app.services.prover_integrations import StoneProverClient
@@ -419,6 +423,12 @@ class ProofPipeline:
             )
             verify_error = str(verify.get("error") or "")
             verify_source = str(verify.get("source") or "")
+            verify_meta = {
+                "verification_policy": verify.get("verification_policy"),
+                "verification_backend": verify.get("verification_backend"),
+                "obsqra_verified": verify.get("obsqra_verified"),
+                "integrity_verified": verify.get("integrity_verified"),
+            }
             verify_error_l = verify_error.lower()
             if "endpoint unavailable" in verify_error.lower():
                 return {
@@ -429,6 +439,7 @@ class ProofPipeline:
                     "tx_hash": None,
                     "error": "L2 verification endpoint unavailable on parent API",
                     "block": None,
+                    **verify_meta,
                 }
             verified = bool(verify.get("verified", False))
             if verified:
@@ -445,6 +456,7 @@ class ProofPipeline:
                     "tx_hash": verify.get("tx_hash"),
                     "error": None,
                     "block": verify.get("block"),
+                    **verify_meta,
                 }
 
             if verify_error_l == "l3_registry_unavailable":
@@ -456,6 +468,7 @@ class ProofPipeline:
                     "tx_hash": None,
                     "error": "L3 registry unavailable for mirror assist",
                     "block": verify.get("block"),
+                    **verify_meta,
                 }
 
             if verify_error_l.startswith("mirror_"):
@@ -472,6 +485,7 @@ class ProofPipeline:
                     "tx_hash": verify.get("tx_hash"),
                     "error": verify_error or "L3->L2 mirror registration failed",
                     "block": verify.get("block"),
+                    **verify_meta,
                 }
 
             return {
@@ -479,9 +493,10 @@ class ProofPipeline:
                 "success": False,
                 "mode": "l2_unverified",
                 "verified_on_chain": False,
-                "tx_hash": None,
+                "tx_hash": verify.get("tx_hash"),
                 "error": verify.get("error") or "L2 fact not verified",
                 "block": verify.get("block"),
+                **verify_meta,
             }
         except Exception as exc:
             return {
@@ -491,6 +506,10 @@ class ProofPipeline:
                 "verified_on_chain": False,
                 "tx_hash": None,
                 "error": str(exc),
+                "verification_policy": None,
+                "verification_backend": None,
+                "obsqra_verified": None,
+                "integrity_verified": None,
             }
 
     @staticmethod

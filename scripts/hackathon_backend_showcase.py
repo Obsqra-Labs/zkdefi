@@ -776,6 +776,45 @@ def _receipt_public_tx_url(row: dict[str, Any]) -> str | None:
     return None
 
 
+def _verification_backend_label(data: dict[str, Any] | None) -> str:
+    if not isinstance(data, dict):
+        return "-"
+    backend = str(data.get("verification_backend") or "").strip().lower()
+    if backend in {"obsqra", "integrity", "both"}:
+        return backend
+    obsqra = data.get("obsqra_verified")
+    integrity = data.get("integrity_verified")
+    if obsqra is True and integrity is True:
+        return "both"
+    if obsqra is True:
+        return "obsqra"
+    if integrity is True:
+        return "integrity"
+    return "-"
+
+
+def _verification_backend_detail(data: dict[str, Any] | None) -> str:
+    if not isinstance(data, dict):
+        return "-"
+    backend = _verification_backend_label(data)
+    policy = str(data.get("verification_policy") or "").strip().lower()
+    obsqra = data.get("obsqra_verified")
+    integrity = data.get("integrity_verified")
+    parts: list[str] = []
+    if backend != "-":
+        parts.append(backend)
+    if policy:
+        parts.append(f"policy={policy}")
+    if obsqra is not None or integrity is not None:
+        parts.append(
+            "obsqra/integrity="
+            f"{str(bool(obsqra)).lower() if obsqra is not None else '-'}"
+            "/"
+            f"{str(bool(integrity)).lower() if integrity is not None else '-'}"
+        )
+    return ", ".join(parts) if parts else "-"
+
+
 def _to_iso_utc(ts: float | None = None) -> str:
     if ts is None:
         ts = time.time()
@@ -2527,6 +2566,10 @@ class ShowcaseRunner:
                 "tx_hash": l2_tx,
                 "tx_url": _starknet_tx_url(str(l2_tx), l2_rpc_url) if l2_tx else None,
                 "error": l2.get("error"),
+                "verification_policy": l2.get("verification_policy"),
+                "verification_backend": l2.get("verification_backend"),
+                "obsqra_verified": l2.get("obsqra_verified"),
+                "integrity_verified": l2.get("integrity_verified"),
             },
             "mirror_status": verification.get("mirror_status"),
             "failure_reason": failure_reason,
@@ -3368,6 +3411,14 @@ class ShowcaseRunner:
             "l3_tx_url": native_kzg_tx_url,
             "l2_attempted": native_kzg_l2_lane.get("attempted"),
             "l2_mode": native_kzg_l2_lane.get("mode"),
+            "l2_success": native_kzg_l2_lane.get("success"),
+            "l2_verified_on_chain": native_kzg_l2_lane.get("verified_on_chain"),
+            "l2_tx_hash": native_kzg_l2_lane.get("tx_hash"),
+            "l2_tx_url": native_kzg_l2_lane.get("tx_url"),
+            "l2_verification_policy": native_kzg_l2_lane.get("verification_policy"),
+            "l2_verification_backend": native_kzg_l2_lane.get("verification_backend"),
+            "l2_obsqra_verified": native_kzg_l2_lane.get("obsqra_verified"),
+            "l2_integrity_verified": native_kzg_l2_lane.get("integrity_verified"),
             "trust_mode": native_kzg_run.get("trust_mode"),
             "trust_warning": native_kzg_run.get("trust_warning"),
             "failure_reason": native_kzg_run.get("failure_reason"),
@@ -3488,6 +3539,18 @@ class ShowcaseRunner:
             ),
             "l2_tx_hash": dual_l2_tx_hash,
             "l2_tx_url": dual_l2_tx_url,
+            "l2_verification_policy": dual_l2_lane.get("verification_policy") or best_dual_attempt.get("l2_verification_policy"),
+            "l2_verification_backend": dual_l2_lane.get("verification_backend") or best_dual_attempt.get("l2_verification_backend"),
+            "l2_obsqra_verified": (
+                dual_l2_lane.get("obsqra_verified")
+                if dual_l2_lane.get("obsqra_verified") is not None
+                else best_dual_attempt.get("l2_obsqra_verified")
+            ),
+            "l2_integrity_verified": (
+                dual_l2_lane.get("integrity_verified")
+                if dual_l2_lane.get("integrity_verified") is not None
+                else best_dual_attempt.get("l2_integrity_verified")
+            ),
             "trust_mode": dual_run.get("trust_mode"),
             "trust_warning": dual_run.get("trust_warning"),
             "failure_reason": dual_run.get("failure_reason"),
@@ -3552,6 +3615,10 @@ class ShowcaseRunner:
             "l2_verified_on_chain": noir_l2_lane.get("verified_on_chain"),
             "l2_tx_hash": noir_l2_tx_hash or None,
             "l2_tx_url": noir_l2_tx_url,
+            "l2_verification_policy": noir_l2_lane.get("verification_policy"),
+            "l2_verification_backend": noir_l2_lane.get("verification_backend"),
+            "l2_obsqra_verified": noir_l2_lane.get("obsqra_verified"),
+            "l2_integrity_verified": noir_l2_lane.get("integrity_verified"),
             "trust_mode": noir_run.get("trust_mode"),
             "trust_warning": noir_run.get("trust_warning"),
             "failure_reason": noir_run.get("failure_reason"),
@@ -4720,6 +4787,10 @@ class ShowcaseRunner:
                 "tx_hash": l2_tx_hash,
                 "tx_url": l2_tx_url,
                 "error": l2.get("error"),
+                "verification_policy": l2.get("verification_policy"),
+                "verification_backend": l2.get("verification_backend"),
+                "obsqra_verified": l2.get("obsqra_verified"),
+                "integrity_verified": l2.get("integrity_verified"),
             },
             "error": (body.get("error") if isinstance(body, dict) else None),
             "failure_reason": (body.get("failure_reason") if isinstance(body, dict) else None),
@@ -6207,6 +6278,10 @@ class ShowcaseRunner:
                     "verified_on_chain": True,
                     "proof_hash": dual_live.get("bridge_proof_hash"),
                     "mode": dual_live.get("l2_mode"),
+                    "verification_backend": dual_live.get("l2_verification_backend"),
+                    "verification_policy": dual_live.get("l2_verification_policy"),
+                    "obsqra_verified": dual_live.get("l2_obsqra_verified"),
+                    "integrity_verified": dual_live.get("l2_integrity_verified"),
                     "note": "Primary proof runs on L3; this is the public Starknet mirror receipt.",
                 }
             )
@@ -6246,6 +6321,10 @@ class ShowcaseRunner:
                     "mode": native_pick.get("l2_mode"),
                     "strict_binding": bool(native_pick.get("l3_strict_binding_observed")),
                     "model": native_pick.get("model"),
+                    "verification_backend": native_pick.get("verification_backend"),
+                    "verification_policy": native_pick.get("verification_policy"),
+                    "obsqra_verified": native_pick.get("obsqra_verified"),
+                    "integrity_verified": native_pick.get("integrity_verified"),
                     "note": "Primary verification runs on L3 native KZG; this is the public Starknet mirror receipt.",
                 }
             )
@@ -6308,6 +6387,10 @@ class ShowcaseRunner:
                     "verified_on_chain": bool(noir_live.get("l2_verified_on_chain")),
                     "proof_hash": noir_live.get("bridge_proof_hash"),
                     "mode": noir_live.get("l2_mode"),
+                    "verification_backend": noir_live.get("l2_verification_backend"),
+                    "verification_policy": noir_live.get("l2_verification_policy"),
+                    "obsqra_verified": noir_live.get("l2_obsqra_verified"),
+                    "integrity_verified": noir_live.get("l2_integrity_verified"),
                     "note": "Public Starknet mirror receipt for Noir HONK lane.",
                 }
             )
@@ -6333,6 +6416,10 @@ class ShowcaseRunner:
                     "proof_hash": heavy_live.get("proof_hash"),
                     "fact_hash": heavy_live.get("fact_hash"),
                     "mode": heavy_l2.get("mode"),
+                    "verification_backend": heavy_l2.get("verification_backend"),
+                    "verification_policy": heavy_l2.get("verification_policy"),
+                    "obsqra_verified": heavy_l2.get("obsqra_verified"),
+                    "integrity_verified": heavy_l2.get("integrity_verified"),
                     "note": "Primary STARK verification runs on L3; this is the public Starknet mirror receipt.",
                 }
             )
@@ -6340,7 +6427,10 @@ class ShowcaseRunner:
             _exclude(
                 "StarkHeavyReputation",
                 "registry_state_without_submission_tx",
-                "Heavy STARK is verified on Starknet, but the current L2 lookup only returned registry state without a public submission tx hash.",
+                (
+                    "Heavy STARK is verified on Starknet, but the current L2 lookup only returned registry state without a public submission tx hash. "
+                    f"Backend={_verification_backend_detail(heavy_l2)}."
+                ),
             )
         else:
             _exclude(
@@ -6407,6 +6497,17 @@ class ShowcaseRunner:
                 note_bits.append(f"l2_verified={str(bool(entry.get('l2_verified'))).lower()}")
             if entry.get("mode"):
                 note_bits.append(f"mode={entry.get('mode')}")
+            if entry.get("verification_backend"):
+                note_bits.append(f"backend={entry.get('verification_backend')}")
+            if entry.get("verification_policy"):
+                note_bits.append(f"policy={entry.get('verification_policy')}")
+            if entry.get("obsqra_verified") is not None or entry.get("integrity_verified") is not None:
+                note_bits.append(
+                    "obsqra/integrity="
+                    f"{str(bool(entry.get('obsqra_verified'))).lower() if entry.get('obsqra_verified') is not None else '-'}"
+                    "/"
+                    f"{str(bool(entry.get('integrity_verified'))).lower() if entry.get('integrity_verified') is not None else '-'}"
+                )
             if entry.get("strict_binding") is not None:
                 note_bits.append(f"strict_binding={str(bool(entry.get('strict_binding'))).lower()}")
             if entry.get("proof_hash"):
@@ -7435,6 +7536,19 @@ class ShowcaseRunner:
                 f"{dual_live_receipt.get('l2_attempted') or False} / {dual_live_receipt.get('l2_success') or False} / {dual_live_receipt.get('l2_verified_on_chain') or False}"
             )],
             ["L2 mode", escape(str(dual_live_receipt.get("l2_mode") or "-"))],
+            [
+                "L2 verification backend",
+                escape(
+                    _verification_backend_detail(
+                        {
+                            "verification_policy": dual_live_receipt.get("l2_verification_policy"),
+                            "verification_backend": dual_live_receipt.get("l2_verification_backend"),
+                            "obsqra_verified": dual_live_receipt.get("l2_obsqra_verified"),
+                            "integrity_verified": dual_live_receipt.get("l2_integrity_verified"),
+                        }
+                    )
+                ),
+            ],
             ["L2 tx hash", dual_l2_tx_html],
             ["Trust mode", escape(str(dual_live_receipt.get("trust_mode") or "-"))],
             ["Failure reason", escape(_clip_text(dual_live_receipt.get("failure_reason"), 180) or "-")],
@@ -7517,6 +7631,19 @@ class ShowcaseRunner:
             ["L3 tx hash", noir_live_receipt_tx_html],
             ["Can execute", "<span class=\"pass\">true</span>" if noir_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
             ["Mirror status", escape(str(noir_live_receipt.get("mirror_status") or "-"))],
+            [
+                "L2 verification backend",
+                escape(
+                    _verification_backend_detail(
+                        {
+                            "verification_policy": noir_live_receipt.get("l2_verification_policy"),
+                            "verification_backend": noir_live_receipt.get("l2_verification_backend"),
+                            "obsqra_verified": noir_live_receipt.get("l2_obsqra_verified"),
+                            "integrity_verified": noir_live_receipt.get("l2_integrity_verified"),
+                        }
+                    )
+                ),
+            ],
             ["Trust mode", escape(str(noir_live_receipt.get("trust_mode") or "-"))],
             ["Failure reason", escape(_clip_text(noir_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(noir_live_receipt.get("generated_at") or "-"))],
@@ -7574,6 +7701,19 @@ class ShowcaseRunner:
             ["L3 tx hash", native_kzg_live_receipt_tx_html],
             ["Can execute", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
             ["Mirror status", escape(str(native_kzg_live_receipt.get("mirror_status") or "-"))],
+            [
+                "L2 verification backend",
+                escape(
+                    _verification_backend_detail(
+                        {
+                            "verification_policy": native_kzg_live_receipt.get("l2_verification_policy"),
+                            "verification_backend": native_kzg_live_receipt.get("l2_verification_backend"),
+                            "obsqra_verified": native_kzg_live_receipt.get("l2_obsqra_verified"),
+                            "integrity_verified": native_kzg_live_receipt.get("l2_integrity_verified"),
+                        }
+                    )
+                ),
+            ],
             ["Verifier expected fact", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("expected_fact_hash") or "-"), 14))],
             ["Verifier proof hash", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("last_proof_hash") or "-"), 14))],
             ["Verifier payload hash", escape(_short_hex(str((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("last_payload_hash") or "-"), 14))],
@@ -7764,6 +7904,29 @@ class ShowcaseRunner:
                 "<span class=\"pass\">true</span>" if heavy_stark_l3.get("verified_on_chain") else "<span class=\"fail\">false</span>",
             ],
             ["L3 tx hash", heavy_stark_tx_html],
+            ["L2 mode", escape(str((heavy_stark.get("l2") or {}).get("mode") or "-"))],
+            [
+                "L2 verified_on_chain",
+                "<span class=\"pass\">true</span>"
+                if (heavy_stark.get("l2") or {}).get("verified_on_chain")
+                else "<span class=\"fail\">false</span>",
+            ],
+            [
+                "L2 verification backend",
+                escape(_verification_backend_detail(heavy_stark.get("l2") if isinstance(heavy_stark.get("l2"), dict) else {})),
+            ],
+            [
+                "L2 tx hash",
+                (
+                    (
+                        f"<a href=\"{escape(str((heavy_stark.get('l2') or {}).get('tx_url') or ''))}\" target=\"_blank\" rel=\"noreferrer\">"
+                        f"{escape(_short_hex(str((heavy_stark.get('l2') or {}).get('tx_hash') or '-'), 14))}</a>"
+                    )
+                    if (heavy_stark.get("l2") or {}).get("tx_url") and (heavy_stark.get("l2") or {}).get("tx_hash")
+                    else escape(_short_hex(str((heavy_stark.get("l2") or {}).get("tx_hash") or "-"), 14))
+                ),
+            ],
+            ["L2 error", escape(_clip_text((heavy_stark.get("l2") or {}).get("error"), 180) or "-")],
             ["L3 error", escape(_clip_text(heavy_stark_l3.get("error"), 180) or "-")],
             ["Error", escape(_clip_text(heavy_stark.get("error"), 180) or "-")],
         ]
