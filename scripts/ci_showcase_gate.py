@@ -326,6 +326,8 @@ def main() -> int:
     warm_request_timeout = _env("SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS", "180")
     warm_bootstrap_known_models = _env_bool("SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS", False)
     warm_bootstrap_force = _env_bool("SHOWCASE_WARM_BOOTSTRAP_FORCE", False)
+    skip_heavy_stark = _env_bool("SHOWCASE_GATE_SKIP_HEAVY_STARK", False)
+    skip_ai_marketplace = _env_bool("SHOWCASE_GATE_SKIP_AI_MARKETPLACE", False)
     os.environ["SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"] = strict_attempts
 
     warm_cmd = [
@@ -355,23 +357,25 @@ def main() -> int:
     _run(warm_cmd)
     _validate_warm_report(Path(warm_output))
 
-    showcase_rc = _run(
-        [
-            "python3",
-            "scripts/hackathon_backend_showcase.py",
-            "--base-url",
-            base_url,
-            "--strict-bridge",
-            "--skip-heavy-stark",
-            "--skip-ai-marketplace",
-            "--emit-report",
-            "--emit-report-force",
-            "--timeout-seconds",
-            timeout_seconds,
-        ]
-        + (["--bridge-only"] if bridge_only else []),
-        check=False,
-    )
+    showcase_cmd = [
+        "python3",
+        "scripts/hackathon_backend_showcase.py",
+        "--base-url",
+        base_url,
+        "--strict-bridge",
+        "--emit-report",
+        "--emit-report-force",
+        "--timeout-seconds",
+        timeout_seconds,
+    ]
+    if skip_heavy_stark:
+        showcase_cmd.append("--skip-heavy-stark")
+    if skip_ai_marketplace:
+        showcase_cmd.append("--skip-ai-marketplace")
+    if bridge_only:
+        showcase_cmd.append("--bridge-only")
+
+    showcase_rc = _run(showcase_cmd, check=False)
     if showcase_rc != 0:
         print(
             f"note: showcase runner exited {showcase_rc}; "

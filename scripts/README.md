@@ -198,7 +198,9 @@ Daily build env knobs:
 - `SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS=true` (default in daily build; provision supported first-party models if their EZKL artifacts are missing)
 - `SHOWCASE_WARM_BOOTSTRAP_FORCE=false` (default in daily build; set `true` only when you explicitly want retraining)
 - `SHOWCASE_WARM_REQUEST_TIMEOUT_SECONDS=180`
-- `SHOWCASE_GATE_BRIDGE_ONLY=true` (default in daily build; keep `/test` focused on bridge research unless you explicitly want the full suite)
+- `SHOWCASE_GATE_BRIDGE_ONLY=false` (default in daily build; render the full report unless you intentionally want bridge-only gating)
+- `SHOWCASE_GATE_SKIP_HEAVY_STARK=false` (default in daily build; set `true` only if you intentionally want to skip heavy STARK sections)
+- `SHOWCASE_GATE_SKIP_AI_MARKETPLACE=false` (default in daily build; set `true` only if you intentionally want to skip AI marketplace sections)
 - `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)
 - `SHOWCASE_REQUIRE_PATHC_LIVE=true` (default in daily build; Path C artifact must remain live and fresh)
 - `SHOWCASE_PATHC_MAX_AGE_HOURS=36` (default freshness window for `pathc_latest.json`)
