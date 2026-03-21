@@ -1,0 +1,8 @@
+[package]
+name = "noir_ezkl_bridge_v2"
+type = "bin"
+authors = ["obsqra.xyz"]
+compiler_version = ">=0.30.0"
+description = "Versioned EZKL-style bridge circuit with proof-hash and timestamp binding (Noir -> Garaga HONK)"
+
+[dependencies]

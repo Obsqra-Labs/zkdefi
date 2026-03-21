@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 _ZKDEFI_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 NOIR_PKG = _ZKDEFI_ROOT / "circuits" / "noir_ezkl_bridge"
+NOIR_PKG_V2 = _ZKDEFI_ROOT / "circuits" / "noir_ezkl_bridge_v2"
 BN254_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
 
@@ -46,14 +47,9 @@ def _has_garaga() -> bool:
         return False
 
 
-def _generate_noir_ezkl_bridge_proof_once(
-    expected_model_hash: int,
-    output_lower_bound: int,
-    output_upper_bound: int,
-    model_output: int,
-) -> dict:
+def _generate_noir_proof_once(*, package_path: Path, package_slug: str, prover_toml_body: str) -> dict:
     """
-    Generate Noir proof and Garaga HONK calldata for noir_ezkl_bridge circuit.
+    Generate Noir proof and Garaga HONK calldata for a Noir bridge package.
     Returns {"proof_calldata": list[int], "public_inputs": list, "success": True}.
     Raises RuntimeError if nargo/bb/garaga or Noir package missing.
     """
@@ -63,30 +59,19 @@ def _generate_noir_ezkl_bridge_proof_once(
         raise RuntimeError("Noir HONK requires bb on PATH (bbup)")
     if not _has_garaga():
         raise RuntimeError("Noir HONK calldata requires garaga CLI (pip install garaga==1.0.1)")
-    if not NOIR_PKG.is_dir():
-        raise RuntimeError(f"Noir package not found: {NOIR_PKG}")
+    if not package_path.is_dir():
+        raise RuntimeError(f"Noir package not found: {package_path}")
 
-    expected_model_hash_felt = int(expected_model_hash) % BN254_SCALAR_FIELD
-    output_lower_bound_u128 = max(0, int(output_lower_bound))
-    output_upper_bound_u128 = max(0, int(output_upper_bound))
-    model_output_u128 = max(0, int(model_output))
-
-    with tempfile.TemporaryDirectory(prefix="noir_ezkl_bridge_") as tmpdir:
-        pkg_dir = Path(tmpdir) / "noir_ezkl_bridge"
+    with tempfile.TemporaryDirectory(prefix=f"{package_slug}_") as tmpdir:
+        pkg_dir = Path(tmpdir) / package_slug
         shutil.copytree(
-            NOIR_PKG,
+            package_path,
             pkg_dir,
             ignore=shutil.ignore_patterns("target", "proof_calldata.txt", "Prover.toml"),
         )
         target_dir = pkg_dir / "target"
         prover_toml = pkg_dir / "Prover.toml"
-        prover_toml.write_text(
-            f'expected_model_hash = "{expected_model_hash_felt}"\n'
-            f'output_lower_bound = "{output_lower_bound_u128}"\n'
-            f'output_upper_bound = "{output_upper_bound_u128}"\n'
-            f'model_output = "{model_output_u128}"\n',
-            encoding="utf-8",
-        )
+        prover_toml.write_text(prover_toml_body, encoding="utf-8")
         cwd = str(pkg_dir)
         env = os.environ.copy()
 
@@ -161,6 +146,33 @@ def _generate_noir_ezkl_bridge_proof_once(
         return {"proof_calldata": calldata_int, "public_inputs": [], "success": True}
 
 
+def _generate_noir_ezkl_bridge_proof_once(
+    expected_model_hash: int,
+    output_lower_bound: int,
+    output_upper_bound: int,
+    model_output: int,
+) -> dict:
+    """
+    Generate Noir proof and Garaga HONK calldata for noir_ezkl_bridge circuit.
+    Returns {"proof_calldata": list[int], "public_inputs": list, "success": True}.
+    """
+    expected_model_hash_felt = int(expected_model_hash) % BN254_SCALAR_FIELD
+    output_lower_bound_u128 = max(0, int(output_lower_bound))
+    output_upper_bound_u128 = max(0, int(output_upper_bound))
+    model_output_u128 = max(0, int(model_output))
+    prover_toml_body = (
+        f'expected_model_hash = "{expected_model_hash_felt}"\n'
+        f'output_lower_bound = "{output_lower_bound_u128}"\n'
+        f'output_upper_bound = "{output_upper_bound_u128}"\n'
+        f'model_output = "{model_output_u128}"\n'
+    )
+    return _generate_noir_proof_once(
+        package_path=NOIR_PKG,
+        package_slug="noir_ezkl_bridge",
+        prover_toml_body=prover_toml_body,
+    )
+
+
 def generate_noir_ezkl_bridge_proof(
     expected_model_hash: int,
     output_lower_bound: int,
@@ -195,6 +207,49 @@ def generate_noir_ezkl_bridge_proof(
             time.sleep(0.75 * attempt)
     assert last_error is not None
     raise last_error
+
+
+def generate_noir_ezkl_bridge_v2_proof(
+    *,
+    expected_model_hash: int,
+    output_lower_bound: int,
+    output_upper_bound: int,
+    timestamp: int,
+    ezkl_proof_hash: int,
+    model_output: list[int],
+    model_weights_hash: int,
+) -> dict:
+    """
+    Generate Noir proof and Garaga HONK calldata for the versioned Path A v2 package.
+
+    V2 is not wired into the live verifier lane yet. It exists so the stronger
+    Path A semantics can be built and tested without breaking the currently
+    deployed Noir verifier.
+    """
+    expected_model_hash_felt = int(expected_model_hash) % BN254_SCALAR_FIELD
+    output_lower_bound_u128 = max(0, int(output_lower_bound))
+    output_upper_bound_u128 = max(0, int(output_upper_bound))
+    timestamp_felt = int(timestamp) % BN254_SCALAR_FIELD
+    ezkl_proof_hash_felt = int(ezkl_proof_hash) % BN254_SCALAR_FIELD
+    model_weights_hash_felt = int(model_weights_hash) % BN254_SCALAR_FIELD
+    outputs = [max(0, int(v)) for v in list(model_output or [])[:8]]
+    while len(outputs) < 8:
+        outputs.append(0)
+    outputs_literal = ", ".join(f'"{value}"' for value in outputs)
+    prover_toml_body = (
+        f'expected_model_hash = "{expected_model_hash_felt}"\n'
+        f'output_lower_bound = "{output_lower_bound_u128}"\n'
+        f'output_upper_bound = "{output_upper_bound_u128}"\n'
+        f'timestamp = "{timestamp_felt}"\n'
+        f'ezkl_proof_hash = "{ezkl_proof_hash_felt}"\n'
+        f'model_weights_hash = "{model_weights_hash_felt}"\n'
+        f'model_output = [{outputs_literal}]\n'
+    )
+    return _generate_noir_proof_once(
+        package_path=NOIR_PKG_V2,
+        package_slug="noir_ezkl_bridge_v2",
+        prover_toml_body=prover_toml_body,
+    )
 
 
 def noir_honk_available() -> bool:

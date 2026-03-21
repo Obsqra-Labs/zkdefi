@@ -262,6 +262,12 @@ Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REP
 - `artifacts/hackathon_showcase/latest.json`
 - `artifacts/hackathon_showcase/patha_latest.json` (latest Path A `NoirEzklBridge` / `noir_honk` receipt artifact used by recursive stage check-ins and strict Noir gate)
 - `artifacts/hackathon_showcase/pathb_latest.json` (latest Path B `EzklNativeKzg` runtime/verifier coverage artifact used by recursive stage check-ins and strict bridge gate)
+
+Path A hardening track:
+
+- `circuits/noir_ezkl_bridge_v2/` is the versioned Noir package that adds `timestamp` and `ezkl_proof_hash` binding without mutating the currently deployed Path A verifier.
+- `bash circuits/build_noir_ezkl_bridge_v2.sh` builds that package locally.
+- `bash circuits/generate_noir_ezkl_bridge_v2_honk_verifier.sh` generates the corresponding Garaga HONK verifier project for the future V2 lane.
 - `artifacts/hackathon_showcase/pathc_latest.json` (latest confirmed Path C receipt kept safe for strict gate / report readiness)
 - `artifacts/hackathon_showcase/pathc_pending_latest.json` (newest pending Path C receipt when a fresh L1 tx has not confirmed on L2 yet)
 - `artifacts/hackathon_showcase/pathc_history.jsonl` (append-only Path C receipt history keyed by live L1 tx, used for model-coverage reporting and rotation)
