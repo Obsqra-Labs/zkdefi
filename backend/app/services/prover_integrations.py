@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 GARAGA_VERIFIER_URL = os.getenv("GARAGA_VERIFIER_URL", "http://localhost:5000")
 OBSQRA_PROVER_URL = os.getenv("OBSQRA_PROVER_URL", "https://starknet.obsqra.fi/api/v1")
 OBSQRA_API_KEY = os.getenv("OBSQRA_API_KEY", "")
+OBSQRA_L2_VERIFICATION_POLICY = os.getenv("OBSQRA_L2_VERIFICATION_POLICY", "").strip().lower()
 INTEGRITY_RPC = os.getenv("INTEGRITY_RPC", "https://starknet-sepolia.public.blastapi.io")
 
 
@@ -140,9 +141,15 @@ class GaragaProverClient:
 class StoneProverClient:
     """Integration with Obsqra Stone Prover for zkML proofs."""
     
-    def __init__(self, base_url: str = OBSQRA_PROVER_URL, api_key: str = OBSQRA_API_KEY):
+    def __init__(
+        self,
+        base_url: str = OBSQRA_PROVER_URL,
+        api_key: str = OBSQRA_API_KEY,
+        l2_verification_policy: str | None = OBSQRA_L2_VERIFICATION_POLICY or None,
+    ):
         self.base_url = base_url
         self.api_key = api_key
+        self.l2_verification_policy = l2_verification_policy
         self.timeout = 300  # Stone proofs can take time
 
     @staticmethod
@@ -251,6 +258,7 @@ class StoneProverClient:
         self,
         fact_hash: str,
         chain_id: str = "starknet-sepolia",
+        verification_policy: str | None = None,
     ) -> Dict[str, Any]:
         """
         Check if a proof fact has been registered on the Integrity fact registry.
@@ -263,15 +271,19 @@ class StoneProverClient:
             {"verified": bool, "chain": str, "block": int|None, "error": str|None}
         """
         try:
+            resolved_policy = verification_policy or self.l2_verification_policy
+            params = {
+                "chain": chain_id,
+                # Explicit for compatibility endpoints that can mirror
+                # proven L3 facts into the L2 registry on demand.
+                "mirror_from_l3": "true",
+            }
+            if resolved_policy:
+                params["verification_policy"] = resolved_policy
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"{self.base_url}/verify/{fact_hash}",
-                    params={
-                        "chain": chain_id,
-                        # Explicit for compatibility endpoints that can mirror
-                        # proven L3 facts into the L2 registry on demand.
-                        "mirror_from_l3": "true",
-                    },
+                    params=params,
                 )
                 if response.status_code == 404:
                     return {
@@ -280,6 +292,7 @@ class StoneProverClient:
                         "block": None,
                         "error": "L2 verification endpoint unavailable on OBSQRA API",
                         "tx_hash": None,
+                        "verification_policy": resolved_policy,
                     }
 
                 if response.status_code == 200:
@@ -291,6 +304,10 @@ class StoneProverClient:
                         "error": data.get("error"),
                         "source": data.get("source"),
                         "tx_hash": data.get("tx_hash"),
+                        "verification_policy": data.get("verification_policy"),
+                        "verification_backend": data.get("verification_backend"),
+                        "obsqra_verified": data.get("obsqra_verified"),
+                        "integrity_verified": data.get("integrity_verified"),
                     }
                 else:
                     return {
@@ -300,6 +317,10 @@ class StoneProverClient:
                         "error": response.text,
                         "source": None,
                         "tx_hash": None,
+                        "verification_policy": resolved_policy,
+                        "verification_backend": None,
+                        "obsqra_verified": None,
+                        "integrity_verified": None,
                     }
         except Exception as e:
             logger.error(f"Proof verification check failed: {e}")
@@ -310,6 +331,10 @@ class StoneProverClient:
                 "error": str(e),
                 "source": None,
                 "tx_hash": None,
+                "verification_policy": verification_policy or self.l2_verification_policy,
+                "verification_backend": None,
+                "obsqra_verified": None,
+                "integrity_verified": None,
             }
 
 
