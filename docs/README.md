@@ -87,6 +87,7 @@ Bridge artifacts tracked by the readout:
 Current Path A V2 live state:
 - verifier class hash: `0x161e48066a133fb8daf704c70d33abf8da10074cf97e498a4237444d14122fd`
 - verifier address: `0x48d7af1f9de06b4888e2f451e197c85eb048ab75c40e358803d67225c3e97cf`
+- current promotion policy: `SHOWCASE_PREFER_NOIR_V2=true` in the daily build, so the strict readout treats V2 as the primary Path A lane while legacy Noir remains visible as fallback evidence
 - current report-backed V2 lane mode: `dual`
 - current report-backed V2 L3 tx: `0x283371249484dbf90afd188224fa1d7ec1a4b169d2d74d5e9769bfedd583f0c`
 - current report-backed V2 L2 tx: `0x5581017e0678281da2cbeb9251caf359fce3ceb1b9bfdbb19dc3d11f2942163`
@@ -99,7 +100,8 @@ Operational note:
 - When Path C rotation is enabled, the daily build prefers models explicitly named in `L1_EZKL_ROUTE_MAP` before it falls back to compatibility discovery by preflight.
 - The `/test` Path C live receipt section now shows the chosen route source/key alongside the active L1 sender/verifier/receiver so the verifier path is explainable in the report itself.
 - The bridge readout now probes the baseline `ModelBridge` lane with model-local calibration input when available instead of a generic seeded matrix. That change matters because the strict report is supposed to validate the live bridge stack, not fail due to a synthetic input shape that the selected model would never see in production.
-- `SHOWCASE_REQUIRE_NOIR_V2_LANE=true` is now supported in the local gate/daily scripts if you want to promote the mirrored V2 lane into the required strict bridge bar without removing the legacy Path A lane yet.
+- `SHOWCASE_REQUIRE_NOIR_V2_LANE=true` is supported in the local gate/daily scripts if you want to enforce V2 explicitly in addition to the primary Path A check.
+- `SHOWCASE_PREFER_NOIR_V2=true` is the cleaner promotion switch: it moves the primary Path A claim/gate/report semantics to V2 without removing the legacy Noir lane from the readout.
 
 The top summary in `/test` now treats Path C as a benchmarked bridge lane, not just a status badge:
 - `PathCBridge` appears in the operational benchmark snapshot

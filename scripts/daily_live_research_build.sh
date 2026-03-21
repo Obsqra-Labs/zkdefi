@@ -18,6 +18,7 @@ PRECOMPUTE_MODELS="${PATHB_PRECOMPUTE_MODELS:-yield_forecast creditworthiness an
 GATE_BRIDGE_ONLY="${SHOWCASE_GATE_BRIDGE_ONLY:-false}"
 REQUIRE_NOIR_LANE="${SHOWCASE_REQUIRE_NOIR_LANE:-true}"
 REQUIRE_NOIR_V2_LANE="${SHOWCASE_REQUIRE_NOIR_V2_LANE:-false}"
+PREFER_NOIR_V2="${SHOWCASE_PREFER_NOIR_V2:-true}"
 REQUIRE_PATHC_LIVE="${SHOWCASE_REQUIRE_PATHC_LIVE:-true}"
 PATHC_MAX_AGE_HOURS="${SHOWCASE_PATHC_MAX_AGE_HOURS:-36}"
 PATHC_PAYLOAD_JSON="${PATHC_PAYLOAD_JSON:-}"
@@ -48,6 +49,7 @@ BUILD_RC=0
   echo "showcase_gate_bridge_only=$GATE_BRIDGE_ONLY"
   echo "showcase_require_noir_lane=$REQUIRE_NOIR_LANE"
   echo "showcase_require_noir_v2_lane=$REQUIRE_NOIR_V2_LANE"
+  echo "showcase_prefer_noir_v2=$PREFER_NOIR_V2"
   echo "showcase_bridge_timeout_seconds=${BRIDGE_TIMEOUT_OVERRIDE:-<default>}"
   echo "showcase_dual_bridge_timeout_seconds=${DUAL_TIMEOUT_OVERRIDE:-<default>}"
   echo "showcase_noir_bridge_timeout_seconds=${NOIR_TIMEOUT_OVERRIDE:-<default>}"
@@ -220,6 +222,7 @@ PY
     SHOWCASE_GATE_SKIP_AI_MARKETPLACE="$GATE_SKIP_AI_MARKETPLACE" \
     SHOWCASE_REQUIRE_NOIR_LANE="$REQUIRE_NOIR_LANE" \
     SHOWCASE_REQUIRE_NOIR_V2_LANE="$REQUIRE_NOIR_V2_LANE" \
+    SHOWCASE_PREFER_NOIR_V2="$PREFER_NOIR_V2" \
     SHOWCASE_REQUIRE_PATHC_LIVE="$REQUIRE_PATHC_LIVE" \
     SHOWCASE_PATHC_MAX_AGE_HOURS="$PATHC_MAX_AGE_HOURS" \
     python3 scripts/ci_showcase_gate.py; then

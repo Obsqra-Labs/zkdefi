@@ -176,10 +176,11 @@ def _validate_latest_report() -> None:
     }
     if not bridge_only:
         expected_required["l3_heavy_request"] = "groth16_garaga"
+    prefer_noir_v2 = _env_bool("SHOWCASE_PREFER_NOIR_V2", False)
     noir_required = _env_bool("SHOWCASE_REQUIRE_NOIR_LANE", False)
     noir_v2_required = _env_bool("SHOWCASE_REQUIRE_NOIR_V2_LANE", False)
     if noir_required:
-        expected_required["l3_noir_request"] = "noir_honk"
+        expected_required["l3_noir_v2_request" if prefer_noir_v2 else "l3_noir_request"] = "noir_honk"
     else:
         lane = runs.get("l3_noir_request") or {}
         l3 = lane.get("l3") or {}
@@ -225,21 +226,48 @@ def _validate_latest_report() -> None:
         raise RuntimeError("bridge lane gate failed: " + "; ".join(lane_errors))
 
     if noir_required:
-        if not PATHA_LATEST.exists():
-            raise RuntimeError(f"missing Path A latest artifact: {PATHA_LATEST}")
-        patha = json.loads(PATHA_LATEST.read_text())
-        if not isinstance(patha, dict):
-            raise RuntimeError("Path A latest artifact is not a JSON object")
-        patha_status = int(patha.get("status", 0) or 0)
-        patha_mode = str(patha.get("l3_mode", "") or "").strip().lower()
-        patha_verified = bool(patha.get("l3_verified_on_chain"))
-        patha_tx_hash = str(patha.get("l3_tx_hash", "") or "").strip()
-        if not (patha_status == 200 and patha_mode == "noir_honk" and patha_verified and patha_tx_hash):
-            raise RuntimeError(
-                "Path A artifact gate failed: "
-                f"status={patha_status} mode={patha_mode} "
-                f"verified_on_chain={patha_verified} tx_hash_present={bool(patha_tx_hash)}"
-            )
+        if prefer_noir_v2:
+            if not PATHA_V2_LATEST.exists():
+                raise RuntimeError(f"missing preferred Path A V2 latest artifact: {PATHA_V2_LATEST}")
+            patha_v2 = json.loads(PATHA_V2_LATEST.read_text())
+            if not isinstance(patha_v2, dict):
+                raise RuntimeError("Preferred Path A V2 latest artifact is not a JSON object")
+            patha_v2_status = int(patha_v2.get("status", 0) or 0)
+            patha_v2_mode = str(patha_v2.get("l3_mode", "") or "").strip().lower()
+            patha_v2_verified = bool(patha_v2.get("l3_verified_on_chain"))
+            patha_v2_tx_hash = str(patha_v2.get("l3_tx_hash", "") or "").strip()
+            patha_v2_l2_verified = bool(patha_v2.get("l2_verified_on_chain"))
+            patha_v2_l2_tx_hash = str(patha_v2.get("l2_tx_hash", "") or "").strip()
+            if not (
+                patha_v2_status == 200
+                and patha_v2_mode == "noir_honk"
+                and patha_v2_verified
+                and patha_v2_tx_hash
+                and patha_v2_l2_verified
+                and patha_v2_l2_tx_hash
+            ):
+                raise RuntimeError(
+                    "Preferred Path A V2 artifact gate failed: "
+                    f"status={patha_v2_status} mode={patha_v2_mode} "
+                    f"verified_on_chain={patha_v2_verified} tx_hash_present={bool(patha_v2_tx_hash)} "
+                    f"l2_verified_on_chain={patha_v2_l2_verified} l2_tx_hash_present={bool(patha_v2_l2_tx_hash)}"
+                )
+        else:
+            if not PATHA_LATEST.exists():
+                raise RuntimeError(f"missing Path A latest artifact: {PATHA_LATEST}")
+            patha = json.loads(PATHA_LATEST.read_text())
+            if not isinstance(patha, dict):
+                raise RuntimeError("Path A latest artifact is not a JSON object")
+            patha_status = int(patha.get("status", 0) or 0)
+            patha_mode = str(patha.get("l3_mode", "") or "").strip().lower()
+            patha_verified = bool(patha.get("l3_verified_on_chain"))
+            patha_tx_hash = str(patha.get("l3_tx_hash", "") or "").strip()
+            if not (patha_status == 200 and patha_mode == "noir_honk" and patha_verified and patha_tx_hash):
+                raise RuntimeError(
+                    "Path A artifact gate failed: "
+                    f"status={patha_status} mode={patha_mode} "
+                    f"verified_on_chain={patha_verified} tx_hash_present={bool(patha_tx_hash)}"
+                )
 
     if noir_v2_required:
         if not PATHA_V2_LATEST.exists():
