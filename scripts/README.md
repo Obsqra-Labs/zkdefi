@@ -167,10 +167,12 @@ Env knobs:
 
 - `SHOWCASE_BASE_URL` (default `http://127.0.0.1:8003`)
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
+- `SHOWCASE_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for the baseline `ModelBridge` L3 lane in bridge-only strict runs; useful when the report would otherwise probe with synthetic timing assumptions that are tighter than the live prover path)
 - `SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for `execution_chain=dual`, useful when strict mode times out under load)
 - `SHOWCASE_NOIR_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for Noir HONK lanes; default strict budget is `75s` in bridge-only mode and `max(timeout, 75s)` otherwise)
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `SHOWCASE_REQUIRE_NOIR_LANE` (default `false`; when `true`, CI gate hard-requires Noir lane `noir_honk` + on-chain verify)
+- `SHOWCASE_REQUIRE_NOIR_V2_LANE` (default `false`; when `true`, CI gate hard-requires `NoirEzklBridgeV2` to verify on L3 and mirror onto public Starknet L2)
 - `SHOWCASE_BENCHMARK_WINDOW_RUNS` (default `40`; rolling history window used for stability/gas trend table)
 - `PATHB_WARM_MIN_COVERAGE` (default `1.0`)
 - `SHOWCASE_WARM_OUTPUT` (default `artifacts/hackathon_showcase/pathb_bundle_warm.json`)
@@ -215,6 +217,7 @@ Daily build env knobs:
 - `SHOWCASE_GATE_SKIP_HEAVY_STARK=false` (default in daily build; set `true` only if you intentionally want to skip heavy STARK sections)
 - `SHOWCASE_GATE_SKIP_AI_MARKETPLACE=false` (default in daily build; set `true` only if you intentionally want to skip AI marketplace sections)
 - `SHOWCASE_REQUIRE_NOIR_LANE=true` (default in daily build; Path A is now part of the strict bridge bar)
+- `SHOWCASE_REQUIRE_NOIR_V2_LANE=false` (default in daily build; set `true` when you want the strict gate to treat `NoirEzklBridgeV2` as part of the required mirrored bridge bar)
 - `SHOWCASE_REQUIRE_PATHC_LIVE=true` (default in daily build; Path C artifact must remain live and fresh)
 - `SHOWCASE_PATHC_MAX_AGE_HOURS=36` (default freshness window for `pathc_latest.json`)
 - `PATHC_PAYLOAD_JSON=/abs/path/to/pathc_payload.json` (optional; capture a fresh Path C receipt before gating)
@@ -224,6 +227,13 @@ Daily build env knobs:
 - `PATHC_ROTATE_MODELS="creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor"` (rotation order / least-recently-used pool for Path C capture; models explicitly present in `L1_EZKL_ROUTE_MAP` are tried first, then the script falls back to compatibility discovery by preflight)
 - `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
 - `L1_EZKL_ROUTE_MAP='{"creditworthiness":{"bridge_sender_address":"0x...","receiver_address":"0x...","verifier_address":"0x...","mode":"verify_and_bridge"}}'` (optional parent-backend env; lets Path C choose an L1 verifier/sender/receiver by model name, raw model hash, or bridged model hash instead of assuming a single global route)
+
+Path A V2 / public mirror notes:
+
+- `NoirEzklBridgeV2` now runs as a `dual` lane in the bridge readout, not L3-only.
+- `patha_v2_latest.json` is expected to carry both `l3_tx_hash` and `l2_tx_hash` when the lane is healthy.
+- The public proof dashboard will include V2 only when the mirrored Starknet receipt is real and explorer-safe.
+- The strict showcase probe now prefers model-local `calibration.json` input for bridge lanes before it falls back to a generic seeded matrix. This avoids false negatives where a live lane was healthy but the generic probe payload did not match the model’s expected input shape.
 
 Path C live receipt capture from an existing payload:
 

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = ROOT / "artifacts" / "hackathon_showcase"
 LATEST_REPORT = ARTIFACT_DIR / "latest.json"
 PATHA_LATEST = ARTIFACT_DIR / "patha_latest.json"
+PATHA_V2_LATEST = ARTIFACT_DIR / "patha_v2_latest.json"
 PATHB_LATEST = ARTIFACT_DIR / "pathb_latest.json"
 PATHC_LATEST = ARTIFACT_DIR / "pathc_latest.json"
 
@@ -176,6 +177,7 @@ def _validate_latest_report() -> None:
     if not bridge_only:
         expected_required["l3_heavy_request"] = "groth16_garaga"
     noir_required = _env_bool("SHOWCASE_REQUIRE_NOIR_LANE", False)
+    noir_v2_required = _env_bool("SHOWCASE_REQUIRE_NOIR_V2_LANE", False)
     if noir_required:
         expected_required["l3_noir_request"] = "noir_honk"
     else:
@@ -189,6 +191,23 @@ def _validate_latest_report() -> None:
                 "note: noir lane degraded but non-blocking "
                 f"(status={status} mode={mode} verified_on_chain={verified}); "
                 "set SHOWCASE_REQUIRE_NOIR_LANE=true to enforce",
+                flush=True,
+            )
+    if noir_v2_required:
+        expected_required["l3_noir_v2_request"] = "noir_honk"
+    else:
+        lane = runs.get("l3_noir_v2_request") or {}
+        l3 = lane.get("l3") or {}
+        l2 = lane.get("l2") or {}
+        status = int(lane.get("status", 0) or 0)
+        mode = str(l3.get("mode", "") or "").strip().lower()
+        verified = bool(l3.get("verified_on_chain"))
+        mirrored = bool(l2.get("verified_on_chain"))
+        if not (status == 200 and mode == "noir_honk" and verified and mirrored):
+            print(
+                "note: noir v2 lane degraded or not mirrored but non-blocking "
+                f"(status={status} mode={mode} verified_on_chain={verified} l2_mirrored={mirrored}); "
+                "set SHOWCASE_REQUIRE_NOIR_V2_LANE=true to enforce",
                 flush=True,
             )
     lane_errors: list[str] = []
@@ -220,6 +239,33 @@ def _validate_latest_report() -> None:
                 "Path A artifact gate failed: "
                 f"status={patha_status} mode={patha_mode} "
                 f"verified_on_chain={patha_verified} tx_hash_present={bool(patha_tx_hash)}"
+            )
+
+    if noir_v2_required:
+        if not PATHA_V2_LATEST.exists():
+            raise RuntimeError(f"missing Path A V2 latest artifact: {PATHA_V2_LATEST}")
+        patha_v2 = json.loads(PATHA_V2_LATEST.read_text())
+        if not isinstance(patha_v2, dict):
+            raise RuntimeError("Path A V2 latest artifact is not a JSON object")
+        patha_v2_status = int(patha_v2.get("status", 0) or 0)
+        patha_v2_mode = str(patha_v2.get("l3_mode", "") or "").strip().lower()
+        patha_v2_verified = bool(patha_v2.get("l3_verified_on_chain"))
+        patha_v2_tx_hash = str(patha_v2.get("l3_tx_hash", "") or "").strip()
+        patha_v2_l2_verified = bool(patha_v2.get("l2_verified_on_chain"))
+        patha_v2_l2_tx_hash = str(patha_v2.get("l2_tx_hash", "") or "").strip()
+        if not (
+            patha_v2_status == 200
+            and patha_v2_mode == "noir_honk"
+            and patha_v2_verified
+            and patha_v2_tx_hash
+            and patha_v2_l2_verified
+            and patha_v2_l2_tx_hash
+        ):
+            raise RuntimeError(
+                "Path A V2 artifact gate failed: "
+                f"status={patha_v2_status} mode={patha_v2_mode} "
+                f"verified_on_chain={patha_v2_verified} tx_hash_present={bool(patha_v2_tx_hash)} "
+                f"l2_verified_on_chain={patha_v2_l2_verified} l2_tx_hash_present={bool(patha_v2_l2_tx_hash)}"
             )
 
     native_receipt = (report.get("bridge_architecture") or {}).get("native_kzg_live_receipt") or {}

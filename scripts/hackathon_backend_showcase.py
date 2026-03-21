@@ -2966,6 +2966,25 @@ class ShowcaseRunner:
         ezkl_probe_ready = ezkl_probe_status == 200 and bool(ezkl_probe_proof)
 
         probe_seed = f"{self._bridge_probe_seed}:{selected_model}"
+        model_name_effective = {"yield_predictor": "yield_forecast"}.get(selected_model, selected_model)
+        bridge_probe_input: Any = _seeded_probe_matrix(f"{probe_seed}:shared:input", 4)
+        calibration_path = (
+            Path(__file__).resolve().parents[1]
+            / "backend"
+            / "app"
+            / "data"
+            / "ezkl_models"
+            / model_name_effective
+            / "calibration.json"
+        )
+        try:
+            if calibration_path.exists():
+                calibration_payload = json.loads(calibration_path.read_text())
+                calibration_input = calibration_payload.get("input_data")
+                if calibration_input is not None:
+                    bridge_probe_input = calibration_input
+        except Exception:
+            bridge_probe_input = _seeded_probe_matrix(f"{probe_seed}:shared:input:fallback", 4)
 
         def _bridge_payload(
             *,
@@ -2977,7 +2996,7 @@ class ShowcaseRunner:
             payload = {
                 "user_address": self.wallet,
                 "model_name": selected_model,
-                "input_data": _seeded_probe_matrix(f"{probe_seed}:{lane}:input", 4),
+                "input_data": bridge_probe_input,
                 "expected_model_hash": 0,
                 "output_lower_bound": -10000,
                 "output_upper_bound": 10000,
@@ -3016,7 +3035,7 @@ class ShowcaseRunner:
         )
         noir_v2_payload = _bridge_payload(
             lane="noir_v2",
-            execution_chain="l3",
+            execution_chain="dual",
             value_eth_floor=2.25,
             bridge_circuit="NoirEzklBridgeV2",
         )
@@ -3046,8 +3065,11 @@ class ShowcaseRunner:
         )
         if inter_lane_cooldown <= 0.0 and self.bridge_only:
             inter_lane_cooldown = 4.0
+        bridge_timeout_override = _safe_float(os.getenv("SHOWCASE_BRIDGE_TIMEOUT_SECONDS"), 0.0)
         dual_timeout_override = _safe_float(os.getenv("SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS"), 0.0)
         noir_timeout_override = _safe_float(os.getenv("SHOWCASE_NOIR_BRIDGE_TIMEOUT_SECONDS"), 0.0)
+        if bridge_timeout_override > 0:
+            bridge_timeout = bridge_timeout_override
         if dual_timeout_override > 0:
             dual_bridge_timeout = dual_timeout_override
         elif self.bridge_only:
@@ -3131,13 +3153,13 @@ class ShowcaseRunner:
         if noir_honk_v2_available:
             if self.strict_bridge and not self.bridge_only:
                 time.sleep(4.0)
-            print("running: Noir HONK V2 l3")
+            print("running: Noir HONK V2 dual")
             noir_v2_status, noir_v2_body, noir_v2_attempts = self._call_ml_bridge_with_retry(
                 noir_v2_payload,
                 max_attempts=_bridge_attempts(5, 5),
                 timeout_seconds=noir_bridge_timeout,
             )
-            print(f"done: Noir HONK V2 l3 status={noir_v2_status}")
+            print(f"done: Noir HONK V2 dual status={noir_v2_status}")
         else:
             print("skip: Noir HONK V2 l3 (lane unavailable)")
         print("running: Native KZG l3")
@@ -3789,7 +3811,7 @@ class ShowcaseRunner:
             strict_noir_v2_receipt_ok or noir_v2_status in {429, 500, 503}
         )
         self._record(
-            "Noir HONK V2 live l3 verify receipt",
+            "Noir HONK V2 live dual verify receipt",
             noir_v2_receipt_ok,
             status=noir_v2_status,
             proof_mode=noir_v2_run.get("proof_mode"),
@@ -4734,6 +4756,10 @@ class ShowcaseRunner:
                 "mode": patha_mode or None,
                 "tx_hash": patha_tx_hash or None,
                 "tx_url": patha_tx_url or None,
+                "l2_tx_hash": patha_live_receipt.get("l2_tx_hash"),
+                "l2_tx_url": patha_live_receipt.get("l2_tx_url"),
+                "l2_verified_on_chain": patha_live_receipt.get("l2_verified_on_chain"),
+                "mirror_status": patha_live_receipt.get("mirror_status"),
                 "bridge_backend": patha_live_receipt.get("bridge_backend"),
                 "proof_mode": patha_live_receipt.get("proof_mode"),
                 "bridge_proof_hash": patha_live_receipt.get("bridge_proof_hash"),
@@ -4752,6 +4778,10 @@ class ShowcaseRunner:
                 "mode": patha_v2_mode or None,
                 "tx_hash": patha_v2_tx_hash or None,
                 "tx_url": patha_v2_tx_url or None,
+                "l2_tx_hash": patha_v2_live_receipt.get("l2_tx_hash"),
+                "l2_tx_url": patha_v2_live_receipt.get("l2_tx_url"),
+                "l2_verified_on_chain": patha_v2_live_receipt.get("l2_verified_on_chain"),
+                "mirror_status": patha_v2_live_receipt.get("mirror_status"),
                 "bridge_backend": patha_v2_live_receipt.get("bridge_backend"),
                 "proof_mode": patha_v2_live_receipt.get("proof_mode"),
                 "bridge_proof_hash": patha_v2_live_receipt.get("bridge_proof_hash"),
@@ -7294,8 +7324,14 @@ class ShowcaseRunner:
             ["Bridge backend", escape(str(path_a_live.get("bridge_backend") or "-"))],
             ["Proof mode", escape(str(path_a_live.get("proof_mode") or "-"))],
             ["L3 tx hash", path_a_live_tx_html],
+            ["L2 mirror tx hash", (
+                f"<a href=\"{escape(str(path_a_live.get('l2_tx_url') or ''))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(str(path_a_live.get('l2_tx_hash') or ''), 14))}</a>"
+                if path_a_live.get("l2_tx_hash") and path_a_live.get("l2_tx_url")
+                else escape(_short_hex(str(path_a_live.get("l2_tx_hash") or "-"), 14))
+            )],
             ["L3 status", escape(str(path_a_live.get("status") or "-"))],
             ["Can execute", "<span class=\"pass\">true</span>" if path_a_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(path_a_live.get("mirror_status") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(path_a_live.get("bridge_proof_hash") or "-"), 14))],
             ["Calldata words", escape(str(path_a_live.get("calldata_words") or "-"))],
             ["L3 actual fee", escape(str(path_a_live.get("l3_actual_fee_display") or "-"))],
@@ -7318,8 +7354,14 @@ class ShowcaseRunner:
             ["Bridge backend", escape(str(path_a_v2_live.get("bridge_backend") or "-"))],
             ["Proof mode", escape(str(path_a_v2_live.get("proof_mode") or "-"))],
             ["L3 tx hash", path_a_v2_live_tx_html],
+            ["L2 mirror tx hash", (
+                f"<a href=\"{escape(str(path_a_v2_live.get('l2_tx_url') or ''))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(str(path_a_v2_live.get('l2_tx_hash') or ''), 14))}</a>"
+                if path_a_v2_live.get("l2_tx_hash") and path_a_v2_live.get("l2_tx_url")
+                else escape(_short_hex(str(path_a_v2_live.get("l2_tx_hash") or "-"), 14))
+            )],
             ["L3 status", escape(str(path_a_v2_live.get("status") or "-"))],
             ["Can execute", "<span class=\"pass\">true</span>" if path_a_v2_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(path_a_v2_live.get("mirror_status") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(path_a_v2_live.get("bridge_proof_hash") or "-"), 14))],
             ["Calldata words", escape(str(path_a_v2_live.get("calldata_words") or "-"))],
             ["L3 actual fee", escape(str(path_a_v2_live.get("l3_actual_fee_display") or "-"))],
@@ -7964,6 +8006,13 @@ class ShowcaseRunner:
             if noir_live_receipt_tx_url and noir_live_receipt_tx != "-"
             else escape(_short_hex(noir_live_receipt_tx, 14))
         )
+        noir_live_receipt_l2_tx = str(noir_live_receipt.get("l2_tx_hash") or "-")
+        noir_live_receipt_l2_tx_url = noir_live_receipt.get("l2_tx_url")
+        noir_live_receipt_l2_tx_html = (
+            f"<a href=\"{escape(str(noir_live_receipt_l2_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(noir_live_receipt_l2_tx, 14))}</a>"
+            if noir_live_receipt_l2_tx_url and noir_live_receipt_l2_tx != "-"
+            else escape(_short_hex(noir_live_receipt_l2_tx, 14))
+        )
         noir_live_receipt_rows = [
             ["API status", escape(str(noir_live_receipt.get("status") or "-"))],
             ["Lane available", "<span class=\"pass\">true</span>" if noir_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
@@ -7985,6 +8034,7 @@ class ShowcaseRunner:
                 f"{noir_live_receipt.get('l3_l1_gas') or '-'} / {noir_live_receipt.get('l3_l1_data_gas') or '-'} / {noir_live_receipt.get('l3_l2_gas') or '-'}"
             )],
             ["L3 tx hash", noir_live_receipt_tx_html],
+            ["L2 tx hash", noir_live_receipt_l2_tx_html],
             ["Can execute", "<span class=\"pass\">true</span>" if noir_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
             ["Mirror status", escape(str(noir_live_receipt.get("mirror_status") or "-"))],
             [
@@ -8018,6 +8068,13 @@ class ShowcaseRunner:
             if noir_v2_live_receipt_tx_url and noir_v2_live_receipt_tx != "-"
             else escape(_short_hex(noir_v2_live_receipt_tx, 14))
         )
+        noir_v2_live_receipt_l2_tx = str(noir_v2_live_receipt.get("l2_tx_hash") or "-")
+        noir_v2_live_receipt_l2_tx_url = noir_v2_live_receipt.get("l2_tx_url")
+        noir_v2_live_receipt_l2_tx_html = (
+            f"<a href=\"{escape(str(noir_v2_live_receipt_l2_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(noir_v2_live_receipt_l2_tx, 14))}</a>"
+            if noir_v2_live_receipt_l2_tx_url and noir_v2_live_receipt_l2_tx != "-"
+            else escape(_short_hex(noir_v2_live_receipt_l2_tx, 14))
+        )
         noir_v2_live_receipt_rows = [
             ["API status", escape(str(noir_v2_live_receipt.get("status") or "-"))],
             ["Lane available", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
@@ -8039,6 +8096,7 @@ class ShowcaseRunner:
                 f"{noir_v2_live_receipt.get('l3_l1_gas') or '-'} / {noir_v2_live_receipt.get('l3_l1_data_gas') or '-'} / {noir_v2_live_receipt.get('l3_l2_gas') or '-'}"
             )],
             ["L3 tx hash", noir_v2_live_receipt_tx_html],
+            ["L2 tx hash", noir_v2_live_receipt_l2_tx_html],
             ["Can execute", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
             ["Mirror status", escape(str(noir_v2_live_receipt.get("mirror_status") or "-"))],
             [
