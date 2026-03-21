@@ -69,6 +69,7 @@ def _load_parent_route_map(*, parent_env: dict[str, str]) -> dict[str, dict[str,
             routes[route_key] = {
                 "verifier_address": "",
                 "bridge_sender_address": value.strip(),
+                "bridge_receiver_address": "",
                 "mode": "",
             }
             continue
@@ -82,6 +83,12 @@ def _load_parent_route_map(*, parent_env: dict[str, str]) -> dict[str, dict[str,
                 value.get("bridge_sender_address")
                 or value.get("bridge_sender")
                 or value.get("sender_address")
+                or ""
+            ).strip(),
+            "bridge_receiver_address": str(
+                value.get("bridge_receiver_address")
+                or value.get("receiver_address")
+                or value.get("l2_receiver_address")
                 or ""
             ).strip(),
             "mode": str(value.get("mode") or "").strip().lower(),
@@ -148,6 +155,10 @@ def _resolve_parent_route_snapshot(
         os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
         parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
     )
+    default_receiver = _first_non_empty(
+        os.getenv("L1_BRIDGE_RECEIVER_ADDRESS"),
+        parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS"),
+    )
     candidates: list[tuple[str, str]] = []
     if model_name:
         normalized_name = str(model_name).strip().lower()
@@ -163,6 +174,9 @@ def _resolve_parent_route_snapshot(
             continue
         verifier_address = str(route.get("verifier_address") or "").strip() or default_verifier
         bridge_sender_address = str(route.get("bridge_sender_address") or "").strip()
+        bridge_receiver_address = (
+            str(route.get("bridge_receiver_address") or "").strip() or default_receiver
+        )
         route_mode = str(route.get("mode") or "").strip().lower()
         if route_mode == "verify_only":
             bridge_sender_address = ""
@@ -173,12 +187,14 @@ def _resolve_parent_route_snapshot(
             "route_source": source,
             "verifier_address": verifier_address,
             "bridge_sender_address": bridge_sender_address,
+            "bridge_receiver_address": bridge_receiver_address,
         }
     return {
         "route_key": "default",
         "route_source": "default",
         "verifier_address": default_verifier,
         "bridge_sender_address": default_sender,
+        "bridge_receiver_address": default_receiver,
     }
 
 
@@ -520,6 +536,7 @@ def _pathc_history_row(artifact: dict[str, Any]) -> dict[str, Any]:
         "route_source": artifact.get("route_source"),
         "verifier_address": artifact.get("verifier_address"),
         "bridge_sender_address": artifact.get("bridge_sender_address"),
+        "bridge_receiver_address": artifact.get("bridge_receiver_address"),
         "source_model_name": (
             artifact.get("source_model_name")
             or generated_meta.get("source_model_name")
@@ -666,6 +683,12 @@ if result.used_nonce is not None and body.get("model_hash") not in (None, ""):
         "model_hash": str(body.get("model_hash")),
         "nonce": str(result.used_nonce),
     }
+    if result.bridge_receiver_address:
+        verification_status_query["receiver_address"] = result.bridge_receiver_address
+    if body.get("raw_model_hash") not in (None, ""):
+        verification_status_query["raw_model_hash"] = str(body.get("raw_model_hash"))
+    if body.get("model_name"):
+        verification_status_query["model_name"] = str(body.get("model_name"))
 print(json.dumps({
     "success": result.success,
     "tx_hash": result.tx_hash,
@@ -674,6 +697,7 @@ print(json.dumps({
     "route_source": result.route_source or None,
     "verifier_address": result.verifier_address or None,
     "bridge_sender_address": result.bridge_sender_address or None,
+    "bridge_receiver_address": result.bridge_receiver_address or None,
     "used_nonce": result.used_nonce,
     "message_hash": result.message_hash or None,
     "verified_on_l2": result.l2_verified_on_l2,
@@ -716,7 +740,13 @@ from app.services.l1_ezkl_bridge_service import get_l1_ezkl_bridge_service
 
 params = json.loads(sys.stdin.read())
 svc = get_l1_ezkl_bridge_service()
-status = svc.poll_l2_for_verification(params.get("model_hash") or "0", params.get("nonce") or "0")
+status = svc.poll_l2_for_verification(
+    params.get("model_hash") or "0",
+    params.get("nonce") or "0",
+    raw_model_hash=params.get("raw_model_hash"),
+    model_name=params.get("model_name"),
+    bridge_receiver_address=params.get("receiver_address"),
+)
 print(json.dumps({
     "verified_on_l2": status.verified_on_l2,
     "output_commitment": status.output_commitment,
@@ -1116,9 +1146,19 @@ def main() -> int:
     l2_status = {}
     l2_status_code = None
     if isinstance(query, dict) and query.get("model_hash") and query.get("nonce"):
+        status_params = {
+            "model_hash": str(query["model_hash"]),
+            "nonce": str(query["nonce"]),
+        }
+        if query.get("receiver_address"):
+            status_params["receiver_address"] = str(query["receiver_address"])
+        if query.get("raw_model_hash") not in (None, ""):
+            status_params["raw_model_hash"] = str(query["raw_model_hash"])
+        if query.get("model_name"):
+            status_params["model_name"] = str(query["model_name"])
         l2_status_code, l2_status = _get_json_with_parent_fallback(
             url=status_url,
-            params={"model_hash": str(query["model_hash"]), "nonce": str(query["nonce"])},
+            params=status_params,
             timeout=args.timeout,
             enable_local_fallback=bool(args.local_parent_fallback),
         )
@@ -1154,10 +1194,19 @@ def main() -> int:
         used_nonce = bridge_event.get("used_nonce")
     message_hash = _first_non_empty(bridge_event.get("message_hash"), message_hash)
     if not isinstance(query, dict) and used_nonce is not None:
-        query = {"model_hash": payload["bridge_model_hash"], "nonce": str(used_nonce)}
+        query = {
+            "model_hash": payload["bridge_model_hash"],
+            "nonce": str(used_nonce),
+        }
+        if route_model_name:
+            query["model_name"] = route_model_name
     elif isinstance(query, dict) and used_nonce is not None and not query.get("nonce"):
         query["nonce"] = str(used_nonce)
         query.setdefault("model_hash", payload["bridge_model_hash"])
+    if isinstance(query, dict) and route_model_name and not query.get("model_name"):
+        query["model_name"] = route_model_name
+    if isinstance(query, dict) and route_snapshot.get("bridge_receiver_address") and not query.get("receiver_address"):
+        query["receiver_address"] = route_snapshot.get("bridge_receiver_address")
 
     now_iso = datetime.now(timezone.utc).isoformat()
     refresh_poll_entry = (
@@ -1245,6 +1294,7 @@ def main() -> int:
         "route_source": verify_result.get("route_source") or existing_artifact.get("route_source") or route_snapshot.get("route_source"),
         "verifier_address": verify_result.get("verifier_address") or existing_artifact.get("verifier_address") or route_snapshot.get("verifier_address"),
         "bridge_sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("bridge_sender_address") or route_snapshot.get("bridge_sender_address") or sender_address,
+        "bridge_receiver_address": verify_result.get("bridge_receiver_address") or existing_artifact.get("bridge_receiver_address") or route_snapshot.get("bridge_receiver_address"),
         "sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("sender_address") or sender_address,
         "generated_payload_meta": generated_payload_meta or existing_artifact.get("generated_payload_meta"),
         "source_model_name": (
@@ -1333,6 +1383,7 @@ def main() -> int:
                 "used_nonce": artifact["used_nonce"],
                 "route_key": artifact.get("route_key"),
                 "route_source": artifact.get("route_source"),
+                "bridge_receiver_address": artifact.get("bridge_receiver_address"),
                 "resolved_model_name": artifact.get("resolved_model_name"),
             },
             indent=2,

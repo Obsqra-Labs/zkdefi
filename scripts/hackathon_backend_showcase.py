@@ -3784,7 +3784,11 @@ class ShowcaseRunner:
             or parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS")
             or ""
         )
-        pathc_receiver = parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")
+        pathc_receiver = str(
+            pathc_live_receipt_raw.get("bridge_receiver_address")
+            or parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")
+            or ""
+        )
         pathc_verifier = str(
             pathc_live_receipt_raw.get("verifier_address")
             or parent_env.get("L1_EZKL_VERIFIER_ADDRESS")
@@ -3792,10 +3796,22 @@ class ShowcaseRunner:
         )
         parent_api_base = str(parent_env.get("OBSQRA_API_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
         pathc_poll_url = None
+        pathc_status_query = (
+            pathc_live_receipt_raw.get("verification_status_query")
+            if isinstance(pathc_live_receipt_raw.get("verification_status_query"), dict)
+            else {}
+        )
         if pathc_model_hash and pathc_used_nonce is not None:
+            query_params = {"model_hash": pathc_model_hash, "nonce": str(pathc_used_nonce)}
+            if pathc_status_query.get("receiver_address"):
+                query_params["receiver_address"] = str(pathc_status_query.get("receiver_address"))
+            if pathc_status_query.get("raw_model_hash") not in (None, ""):
+                query_params["raw_model_hash"] = str(pathc_status_query.get("raw_model_hash"))
+            if pathc_status_query.get("model_name"):
+                query_params["model_name"] = str(pathc_status_query.get("model_name"))
             pathc_poll_url = (
                 f"{parent_api_base}/api/v1/aggregation/l1/verification-status?"
-                + parse.urlencode({"model_hash": pathc_model_hash, "nonce": str(pathc_used_nonce)})
+                + parse.urlencode(query_params)
             )
 
         patha_live_receipt_current = (
@@ -6445,6 +6461,7 @@ class ShowcaseRunner:
             ["Route key", escape(str(path_c_live.get("route_key") or "-"))],
             ["L1 sender", path_c_sender_html],
             ["L1 verifier", path_c_verifier_html],
+            ["L2 receiver", escape(str(path_c_live.get("receiver_address") or "-"))],
             ["L1 core message pending", "<span class=\"warn\">true</span>" if path_c_live.get("l1_core_pending") else "<span class=\"fail\">false</span>"],
             ["L1 core queue value", escape(str(path_c_live.get("l1_core_slot_value") or "-"))],
             ["L1 core address", escape(str(path_c_live.get("l1_core_address") or "-"))],

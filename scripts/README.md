@@ -210,7 +210,7 @@ Daily build env knobs:
 - `PATHC_CAPTURE_ROTATING_MODEL=false` (set `true` to mint a fresh Path C receipt from a rotating verifier-compatible EZKL model instead of only refreshing the pinned artifact)
 - `PATHC_ROTATE_MODELS="creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor"` (rotation order / least-recently-used pool for Path C capture; models explicitly present in `L1_EZKL_ROUTE_MAP` are tried first, then the script falls back to compatibility discovery by preflight)
 - `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
-- `L1_EZKL_ROUTE_MAP='{"creditworthiness":{"bridge_sender_address":"0x...","verifier_address":"0x...","mode":"verify_and_bridge"}}'` (optional parent-backend env; lets Path C choose an L1 verifier/sender by model name, raw model hash, or bridged model hash instead of assuming a single global route)
+- `L1_EZKL_ROUTE_MAP='{"creditworthiness":{"bridge_sender_address":"0x...","receiver_address":"0x...","verifier_address":"0x...","mode":"verify_and_bridge"}}'` (optional parent-backend env; lets Path C choose an L1 verifier/sender/receiver by model name, raw model hash, or bridged model hash instead of assuming a single global route)
 
 Path C live receipt capture from an existing payload:
 
@@ -284,7 +284,7 @@ The HTML report includes:
 - Dedicated **Path A Live Receipt** table sourced from `patha_latest.json`, so Path A is tracked as a receipt-backed stage instead of just a listed lane
 - Dedicated Path B live artifact sourced from `pathb_latest.json`, so Path B stage readiness is pinned to live catalog receipts plus verifier ABI/runtime checks instead of only the in-memory warm report
 - Dedicated **Path C Recent Receipt History** table sourced from `pathc_history.jsonl`, so the report can show verifier-compatible model coverage instead of one pinned L1->L2 example
-- Path C route visibility in the report: route source/key plus the active L1 sender/verifier are shown in the live receipt section, so `/test` makes the current verifier selection explicit instead of implying a single hardcoded L1 route
+- Path C route visibility in the report: route source/key plus the active L1 sender/verifier/receiver are shown in the live receipt section, so `/test` makes the current verifier selection explicit instead of implying a single hardcoded L1 route
 - Path C capture safety: fresh pending captures are written to `pathc_pending_latest.json` and only promoted over `pathc_latest.json` once L2 confirmation is real, so strict gate readiness does not regress during experimentation
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
