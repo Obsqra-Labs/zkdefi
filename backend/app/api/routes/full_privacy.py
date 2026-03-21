@@ -7,6 +7,7 @@ Endpoints for:
 - Selective disclosure proofs
 """
 
+import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
@@ -66,6 +67,10 @@ class DepositCommitmentResponse(BaseModel):
 
 class RegisterCommitmentRequest(BaseModel):
     commitment: str = Field(..., min_length=1)
+    wait_for_onchain: bool = Field(
+        default=True,
+        description="When false, return after local Merkle registration and sync the root on-chain in the background.",
+    )
 
 
 class RegisterCommitmentResponse(BaseModel):
@@ -282,18 +287,22 @@ async def register_commitment(request: RegisterCommitmentRequest, _caller: str =
         result = svc.register_commitment(commitment)
         root_int = int(result["merkle_root"], 16) if result["merkle_root"].startswith("0x") else int(result["merkle_root"])
 
-        # SYNCHRONOUS: wait for on-chain root registration with retries
-        _log.info("Registering root on-chain (synchronous): %s", hex(root_int)[:30])
-        registered = await register_root_on_chain(root_int, max_retries=3)
+        if request.wait_for_onchain:
+            # SYNCHRONOUS: wait for on-chain root registration with retries
+            _log.info("Registering root on-chain (synchronous): %s", hex(root_int)[:30])
+            registered = await register_root_on_chain(root_int, max_retries=3)
 
-        if not registered:
-            _log.error("FAILED to register root on-chain: %s", hex(root_int))
-            raise HTTPException(
-                status_code=503,
-                detail="Merkle root registration failed on-chain after retries. Commitment saved locally. Try again or wait."
-            )
+            if not registered:
+                _log.error("FAILED to register root on-chain: %s", hex(root_int))
+                raise HTTPException(
+                    status_code=503,
+                    detail="Merkle root registration failed on-chain after retries. Commitment saved locally. Try again or wait."
+                )
 
-        _log.info("Root registered on-chain successfully: %s", hex(root_int)[:30])
+            _log.info("Root registered on-chain successfully: %s", hex(root_int)[:30])
+        else:
+            _log.info("Registering root on-chain (background): %s", hex(root_int)[:30])
+            asyncio.create_task(register_root_on_chain(root_int, max_retries=3))
         return RegisterCommitmentResponse(**result)
     except HTTPException:
         raise

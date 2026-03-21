@@ -1221,7 +1221,7 @@ class ShowcaseRunner:
                 register_status, register_body = self.client.call(
                     "POST",
                     "/api/v1/zkdefi/full_privacy/deposit/register_commitment",
-                    payload={"commitment": commitment},
+                    payload={"commitment": commitment, "wait_for_onchain": False},
                     headers=auth_headers,
                 )
                 row["register_status"] = register_status
