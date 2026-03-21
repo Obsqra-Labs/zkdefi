@@ -10,6 +10,7 @@ Operational and deployment scripts for zkde.fi.
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 - Path A latest receipt: `artifacts/hackathon_showcase/patha_latest.json`
+- Path A V2 latest receipt: `artifacts/hackathon_showcase/patha_v2_latest.json`
 - Path B latest receipt: `artifacts/hackathon_showcase/pathb_latest.json`
 - Path A V2 deploy record: `.noir_ezkl_bridge_v2_honk.deployed`
 
@@ -167,6 +168,7 @@ Env knobs:
 - `SHOWCASE_BASE_URL` (default `http://127.0.0.1:8003`)
 - `SHOWCASE_TIMEOUT_SECONDS` (default `50`)
 - `SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for `execution_chain=dual`, useful when strict mode times out under load)
+- `SHOWCASE_NOIR_BRIDGE_TIMEOUT_SECONDS` (optional; override timeout for Noir HONK lanes; default strict budget is `75s` in bridge-only mode and `max(timeout, 75s)` otherwise)
 - `SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS` (default `2` in CI gate; limits strict bridge retry loops)
 - `SHOWCASE_REQUIRE_NOIR_LANE` (default `false`; when `true`, CI gate hard-requires Noir lane `noir_honk` + on-chain verify)
 - `SHOWCASE_BENCHMARK_WINDOW_RUNS` (default `40`; rolling history window used for stability/gas trend table)

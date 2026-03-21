@@ -74,6 +74,7 @@ Daily `/test` builds now target the full showcase by default, not bridge-only mo
 
 Bridge artifacts tracked by the readout:
 - `artifacts/hackathon_showcase/patha_latest.json` for Path A (`noir_honk`)
+- `artifacts/hackathon_showcase/patha_v2_latest.json` for Path A V2 (`NoirEzklBridgeV2` / `noir_honk_v2`)
 - `artifacts/hackathon_showcase/pathb_latest.json` for Path B (native KZG)
 - `artifacts/hackathon_showcase/pathc_latest.json` for Path C (`verifyAndBridge` + recurring monitor freshness)
 - `artifacts/hackathon_showcase/pathc_pending_latest.json` for the newest pending Path C capture that has not reached L2 confirmation yet
@@ -86,8 +87,8 @@ Bridge artifacts tracked by the readout:
 Current Path A V2 live state:
 - verifier class hash: `0x161e48066a133fb8daf704c70d33abf8da10074cf97e498a4237444d14122fd`
 - verifier address: `0x48d7af1f9de06b4888e2f451e197c85eb048ab75c40e358803d67225c3e97cf`
-- first live V2 lane: `yield_forecast`
-- first live V2 L3 tx: `0x2aadcebbd5af9942a71514bb46f1571988fcbdc0088f88a32afa902d15d9fe8`
+- current report-backed V2 lane: `yield_forecast`
+- current report-backed V2 L3 tx: `0x54d00009c6d2f2693e72dae6d9ddfe0a5aa2e116060b542fec5c3d45dac7893`
 - reproducible one-off deploy helper: `python3 scripts/deploy_noir_ezkl_bridge_v2_honk_verifier_l3.py`
 
 Operational note:

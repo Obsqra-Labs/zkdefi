@@ -42,6 +42,7 @@ VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 STARKSCAN_SEPOLIA_BASE = "https://sepolia.starkscan.co"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
 PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
+PATHA_V2_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_v2_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
 PATHB_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_latest.json"
 PATHB_WARM_REPORT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_bundle_warm.json"
@@ -988,6 +989,7 @@ class ShowcaseRunner:
         self._modelbridge_live_receipt: dict[str, Any] = {}
         self._modelbridge_heavy_live_receipt: dict[str, Any] = {}
         self._noir_live_receipt: dict[str, Any] = {}
+        self._noir_v2_live_receipt: dict[str, Any] = {}
         self._native_kzg_live_receipt: dict[str, Any] = {}
         self._heavy_stark_showcase: dict[str, Any] = {}
         self._last_report_state: dict[str, Any] = {}
@@ -1418,6 +1420,8 @@ class ShowcaseRunner:
                 print(f"  - Latest HTML: {artifacts['latest_html']}")
                 if artifacts.get("patha_latest"):
                     print(f"  - Path A Latest: {artifacts['patha_latest']}")
+                if artifacts.get("patha_v2_latest"):
+                    print(f"  - Path A V2 Latest: {artifacts['patha_v2_latest']}")
                 if artifacts.get("pathb_latest"):
                     print(f"  - Path B Latest: {artifacts['pathb_latest']}")
                 if artifacts.get("history"):
@@ -2864,6 +2868,7 @@ class ShowcaseRunner:
             {"groth16_model_bridge_heavy", "model_bridge_heavy"},
         )
         noir_honk_available = self._path_available(proving_rows, {"noir_honk"})
+        noir_honk_v2_available = self._path_available(proving_rows, {"noir_honk_v2"})
         stark_available = self._path_available(proving_rows, {"stark_integrity", "integrity_stark"})
         hash_fallback_available = self._path_available(proving_rows, {"hash_only"})
         snark_contract = next(
@@ -2896,6 +2901,14 @@ class ShowcaseRunner:
                 str(row.get("contract"))
                 for row in proving_rows
                 if str(row.get("id") or "").strip().lower() in {"noir_honk"} and row.get("contract")
+            ),
+            None,
+        )
+        noir_v2_contract = next(
+            (
+                str(row.get("contract"))
+                for row in proving_rows
+                if str(row.get("id") or "").strip().lower() in {"noir_honk_v2"} and row.get("contract")
             ),
             None,
         )
@@ -3001,6 +3014,12 @@ class ShowcaseRunner:
             value_eth_floor=2.2,
             bridge_circuit="NoirEzklBridge",
         )
+        noir_v2_payload = _bridge_payload(
+            lane="noir_v2",
+            execution_chain="l3",
+            value_eth_floor=2.25,
+            bridge_circuit="NoirEzklBridgeV2",
+        )
         native_kzg_payload = _bridge_payload(
             lane="native_kzg",
             execution_chain="l3",
@@ -3011,6 +3030,7 @@ class ShowcaseRunner:
         dual_probe_fingerprint = _payload_fingerprint(dual_payload)
         heavy_probe_fingerprint = _payload_fingerprint(heavy_payload)
         noir_probe_fingerprint = _payload_fingerprint(noir_payload)
+        noir_v2_probe_fingerprint = _payload_fingerprint(noir_v2_payload)
         native_kzg_probe_fingerprint = _payload_fingerprint(native_kzg_payload)
 
         # Keep bridge calls stable even when caller passes a low global timeout.
@@ -3027,6 +3047,7 @@ class ShowcaseRunner:
         if inter_lane_cooldown <= 0.0 and self.bridge_only:
             inter_lane_cooldown = 4.0
         dual_timeout_override = _safe_float(os.getenv("SHOWCASE_DUAL_BRIDGE_TIMEOUT_SECONDS"), 0.0)
+        noir_timeout_override = _safe_float(os.getenv("SHOWCASE_NOIR_BRIDGE_TIMEOUT_SECONDS"), 0.0)
         if dual_timeout_override > 0:
             dual_bridge_timeout = dual_timeout_override
         elif self.bridge_only:
@@ -3037,6 +3058,14 @@ class ShowcaseRunner:
             dual_bridge_timeout = max(bridge_timeout, 75.0)
         else:
             dual_bridge_timeout = bridge_timeout
+        if noir_timeout_override > 0:
+            noir_bridge_timeout = noir_timeout_override
+        elif self.bridge_only:
+            noir_bridge_timeout = max(bridge_timeout, 75.0)
+        elif self.strict_bridge:
+            noir_bridge_timeout = max(bridge_timeout, 75.0)
+        else:
+            noir_bridge_timeout = bridge_timeout
         strict_attempts_override = _safe_int(os.getenv("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"), 0)
 
         def _bridge_attempts(strict_default: int, relaxed_default: int) -> int:
@@ -3091,11 +3120,26 @@ class ShowcaseRunner:
             noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
                 noir_payload,
                 max_attempts=_bridge_attempts(5, 5),
-                timeout_seconds=bridge_timeout,
+                timeout_seconds=noir_bridge_timeout,
             )
             print(f"done: Noir HONK l3 status={noir_status}")
         else:
             print("skip: Noir HONK l3 (lane unavailable)")
+        noir_v2_status = 0
+        noir_v2_body: Any = {}
+        noir_v2_attempts: list[dict[str, Any]] = []
+        if noir_honk_v2_available:
+            if self.strict_bridge and not self.bridge_only:
+                time.sleep(4.0)
+            print("running: Noir HONK V2 l3")
+            noir_v2_status, noir_v2_body, noir_v2_attempts = self._call_ml_bridge_with_retry(
+                noir_v2_payload,
+                max_attempts=_bridge_attempts(5, 5),
+                timeout_seconds=noir_bridge_timeout,
+            )
+            print(f"done: Noir HONK V2 l3 status={noir_v2_status}")
+        else:
+            print("skip: Noir HONK V2 l3 (lane unavailable)")
         print("running: Native KZG l3")
         native_kzg_status, native_kzg_body, native_kzg_attempts = self._call_ml_bridge_with_retry(
             native_kzg_payload,
@@ -3108,6 +3152,7 @@ class ShowcaseRunner:
         dual_run = self._bridge_run_summary(dual_status, dual_body)
         heavy_run = self._bridge_run_summary(heavy_status, heavy_body)
         noir_run = self._bridge_run_summary(noir_status, noir_body)
+        noir_v2_run = self._bridge_run_summary(noir_v2_status, noir_v2_body)
         native_kzg_run = self._bridge_run_summary(native_kzg_status, native_kzg_body)
         best_heavy_attempt_for_summary = next(
             (
@@ -3663,6 +3708,111 @@ class ShowcaseRunner:
             transient_status_ok=(noir_status in {429, 500, 503}),
         )
 
+        noir_v2_l3_lane = noir_v2_run.get("l3") if isinstance(noir_v2_run.get("l3"), dict) else {}
+        noir_v2_l2_lane = noir_v2_run.get("l2") if isinstance(noir_v2_run.get("l2"), dict) else {}
+        best_noir_v2_attempt = next(
+            (
+                row
+                for row in reversed(noir_v2_attempts)
+                if isinstance(row, dict) and (row.get("l3_tx_hash") or row.get("l3_success"))
+            ),
+            {},
+        )
+        noir_v2_tx_hash = str(noir_v2_l3_lane.get("tx_hash") or best_noir_v2_attempt.get("l3_tx_hash") or "").strip()
+        noir_v2_tx_url = (
+            noir_v2_l3_lane.get("tx_url")
+            or best_noir_v2_attempt.get("l3_tx_url")
+            or (_starknet_tx_url(noir_v2_tx_hash, self._madara_rpc_url) if noir_v2_tx_hash else None)
+        )
+        noir_v2_mode = noir_v2_l3_lane.get("mode") or best_noir_v2_attempt.get("l3_mode")
+        noir_v2_success = (
+            noir_v2_l3_lane.get("success")
+            if noir_v2_l3_lane.get("success") is not None
+            else best_noir_v2_attempt.get("l3_success")
+        )
+        noir_v2_verified_on_chain = (
+            noir_v2_l3_lane.get("verified_on_chain")
+            if noir_v2_l3_lane.get("verified_on_chain") is not None
+            else best_noir_v2_attempt.get("l3_verified_on_chain")
+        )
+        noir_v2_l2_tx_hash = str(noir_v2_l2_lane.get("tx_hash") or "").strip()
+        noir_v2_l2_tx_url = _voyager_tx_url(noir_v2_l2_tx_hash) if noir_v2_l2_tx_hash else None
+        noir_v2_fee_meta = self._fetch_starknet_tx_metrics(noir_v2_tx_hash or None, rpc_url=self._madara_rpc_url)
+        self._noir_v2_live_receipt = {
+            "status": noir_v2_status,
+            "probe_seed": self._bridge_probe_seed,
+            "probe_fingerprint": noir_v2_probe_fingerprint,
+            "proof_mode": noir_v2_run.get("proof_mode"),
+            "proof_mode_level": noir_v2_run.get("proof_mode_level"),
+            "requested_execution_chain": noir_v2_run.get("requested_execution_chain"),
+            "bridge_proof_hash": noir_v2_run.get("bridge_proof_hash"),
+            "bridge_compliant": noir_v2_run.get("bridge_compliant"),
+            "bridge_backend": noir_v2_run.get("bridge_backend"),
+            "calldata_words": noir_v2_run.get("model_bridge_calldata_words"),
+            "can_execute": noir_v2_run.get("can_execute"),
+            "primary_authority": noir_v2_run.get("primary_authority"),
+            "mirror_status": noir_v2_run.get("mirror_status"),
+            "lane_available": noir_honk_v2_available,
+            "l3_attempted": noir_v2_l3_lane.get("attempted"),
+            "l3_success": noir_v2_success,
+            "l3_mode": noir_v2_mode,
+            "l3_verified_on_chain": noir_v2_verified_on_chain,
+            "l3_tx_hash": noir_v2_tx_hash or None,
+            "l3_tx_url": noir_v2_tx_url,
+            "l2_attempted": noir_v2_l2_lane.get("attempted"),
+            "l2_success": noir_v2_l2_lane.get("success"),
+            "l2_mode": noir_v2_l2_lane.get("mode"),
+            "l2_verified_on_chain": noir_v2_l2_lane.get("verified_on_chain"),
+            "l2_tx_hash": noir_v2_l2_tx_hash or None,
+            "l2_tx_url": noir_v2_l2_tx_url,
+            "l2_verification_policy": noir_v2_l2_lane.get("verification_policy"),
+            "l2_verification_backend": noir_v2_l2_lane.get("verification_backend"),
+            "l2_obsqra_verified": noir_v2_l2_lane.get("obsqra_verified"),
+            "l2_integrity_verified": noir_v2_l2_lane.get("integrity_verified"),
+            "trust_mode": noir_v2_run.get("trust_mode"),
+            "trust_warning": noir_v2_run.get("trust_warning"),
+            "failure_reason": noir_v2_run.get("failure_reason"),
+            "generated_at": noir_v2_run.get("generated_at"),
+            "total_duration_ms": noir_v2_run.get("total_duration_ms"),
+            **noir_v2_fee_meta,
+        }
+        strict_noir_v2_receipt_ok = (
+            noir_honk_v2_available
+            and noir_v2_status == 200
+            and bool(noir_v2_l3_lane.get("attempted"))
+            and bool(noir_v2_run.get("model_bridge_calldata_words"))
+            and bool(noir_v2_run.get("bridge_proof_hash"))
+            and str(noir_v2_mode or "").strip().lower() == "noir_honk"
+            and bool(noir_v2_verified_on_chain)
+        )
+        noir_v2_receipt_ok = strict_noir_v2_receipt_ok if self.strict_bridge else (
+            strict_noir_v2_receipt_ok or noir_v2_status in {429, 500, 503}
+        )
+        self._record(
+            "Noir HONK V2 live l3 verify receipt",
+            noir_v2_receipt_ok,
+            status=noir_v2_status,
+            proof_mode=noir_v2_run.get("proof_mode"),
+            bridge_backend=noir_v2_run.get("bridge_backend"),
+            bridge_compliant=noir_v2_run.get("bridge_compliant"),
+            lane_available=noir_honk_v2_available,
+            l3_mode=noir_v2_mode,
+            l3_tx_hash=_short_hex(noir_v2_tx_hash or None, 12),
+            l3_verified_on_chain=noir_v2_verified_on_chain,
+            l2_mode=noir_v2_l2_lane.get("mode"),
+            l2_tx_hash=_short_hex(noir_v2_l2_tx_hash or None, 12),
+            mirror_status=noir_v2_run.get("mirror_status"),
+            l3_actual_fee=noir_v2_fee_meta.get("l3_actual_fee_display"),
+            bridge_proof_hash=_short_hex(
+                str(noir_v2_run.get("bridge_proof_hash")) if noir_v2_run.get("bridge_proof_hash") else None,
+                12,
+            ),
+            can_execute=noir_v2_run.get("can_execute"),
+            failure_reason=_clip_text(noir_v2_run.get("failure_reason"), 120),
+            strict_bridge=self.strict_bridge,
+            transient_status_ok=(noir_v2_status in {429, 500, 503}),
+        )
+
         benchmark_receipts: list[dict[str, Any]] = [
             {
                 "lane": "ModelBridge",
@@ -3709,6 +3859,22 @@ class ShowcaseRunner:
                 "tx_hash": self._noir_live_receipt.get("l3_tx_hash"),
                 "tx_url": self._noir_live_receipt.get("l3_tx_url"),
                 "lane_available": self._noir_live_receipt.get("lane_available"),
+            },
+            {
+                "lane": "NoirEzklBridgeV2",
+                "status": self._noir_v2_live_receipt.get("status"),
+                "bridge_backend": self._noir_v2_live_receipt.get("bridge_backend"),
+                "l3_mode": self._noir_v2_live_receipt.get("l3_mode"),
+                "verified_on_chain": self._noir_v2_live_receipt.get("l3_verified_on_chain"),
+                "duration_ms": self._noir_v2_live_receipt.get("total_duration_ms"),
+                "actual_fee_display": noir_v2_fee_meta.get("l3_actual_fee_display", "-"),
+                "execution_steps": noir_v2_fee_meta.get("l3_execution_steps"),
+                "l1_gas": noir_v2_fee_meta.get("l3_l1_gas"),
+                "l1_data_gas": noir_v2_fee_meta.get("l3_l1_data_gas"),
+                "l2_gas": noir_v2_fee_meta.get("l3_l2_gas"),
+                "tx_hash": self._noir_v2_live_receipt.get("l3_tx_hash"),
+                "tx_url": self._noir_v2_live_receipt.get("l3_tx_url"),
+                "lane_available": self._noir_v2_live_receipt.get("lane_available"),
             },
             {
                 "lane": "EzklNativeKzg",
@@ -3761,6 +3927,7 @@ class ShowcaseRunner:
                 "l3": l3_run,
                 "l3_heavy_request": heavy_run,
                 "l3_noir_request": noir_run,
+                "l3_noir_v2_request": noir_v2_run,
                 "l3_native_kzg_request": native_kzg_run,
                 "dual": dual_run,
             },
@@ -3768,18 +3935,21 @@ class ShowcaseRunner:
             "dual_live_receipt": dict(self._dual_live_receipt),
             "modelbridge_heavy_live_receipt": dict(self._modelbridge_heavy_live_receipt),
             "noir_live_receipt": dict(self._noir_live_receipt),
+            "noir_v2_live_receipt": dict(self._noir_v2_live_receipt),
             "native_kzg_live_receipt": dict(self._native_kzg_live_receipt),
             "benchmark_receipts": benchmark_receipts,
             "ml_bridge_attempts": {
                 "l3": l3_attempts,
                 "l3_heavy_request": heavy_attempts,
                 "l3_noir_request": noir_attempts,
+                "l3_noir_v2_request": noir_v2_attempts,
                 "l3_native_kzg_request": native_kzg_attempts,
                 "dual": dual_attempts,
             },
             "dual_lanes_ready": dual_ready,
             "model_bridge_heavy_lane_available": model_bridge_heavy_available,
             "noir_honk_lane_available": noir_honk_available,
+            "noir_honk_v2_lane_available": noir_honk_v2_available,
             "model_bridge_verifier_support": model_bridge_support,
             "model_bridge_verifier_support_ready": bool(support_ready),
             "bridge_unlocks": list(BRIDGE_UNLOCKS),
@@ -3837,6 +4007,9 @@ class ShowcaseRunner:
             noir_honk_available=noir_honk_available,
             ml_bridge_noir_status=noir_status,
             ml_bridge_noir_mode=((noir_run.get("l3") or {}).get("mode")),
+            noir_honk_v2_available=noir_honk_v2_available,
+            ml_bridge_noir_v2_status=noir_v2_status,
+            ml_bridge_noir_v2_mode=((noir_v2_run.get("l3") or {}).get("mode")),
             ml_bridge_dual_status=dual_status,
             dual_mirror_status=dual_run.get("mirror_status"),
             dual_l2_mode=((dual_run.get("l2") or {}).get("mode")),
@@ -3850,6 +4023,7 @@ class ShowcaseRunner:
             noir_attempts=len(noir_attempts),
             bridge_timeout_seconds=bridge_timeout,
             dual_bridge_timeout_seconds=dual_bridge_timeout,
+            noir_bridge_timeout_seconds=noir_bridge_timeout,
             runtime_probe_ok=runtime_ok,
             heavy_runtime_ok=heavy_runtime_ok,
             strict_bridge=self.strict_bridge,
@@ -3867,6 +4041,7 @@ class ShowcaseRunner:
             snark_contract=_short_hex(snark_contract),
             heavy_contract=_short_hex(heavy_contract),
             noir_contract=_short_hex(noir_contract),
+            noir_v2_contract=_short_hex(noir_v2_contract),
             stark_contract=_short_hex(stark_contract),
         )
 
@@ -3988,6 +4163,10 @@ class ShowcaseRunner:
         proving_rows = proving_rows if isinstance(proving_rows, list) else []
         noir_row = next(
             (row for row in proving_rows if isinstance(row, dict) and str(row.get("id") or "").strip().lower() == "noir_honk"),
+            None,
+        )
+        noir_v2_row = next(
+            (row for row in proving_rows if isinstance(row, dict) and str(row.get("id") or "").strip().lower() == "noir_honk_v2"),
             None,
         )
         kzg_row = next(
@@ -4208,6 +4387,41 @@ class ShowcaseRunner:
             and patha_verified_on_chain
         )
 
+        patha_v2_live_receipt_current = (
+            self._bridge_architecture.get("noir_v2_live_receipt")
+            if isinstance(self._bridge_architecture, dict)
+            and isinstance(self._bridge_architecture.get("noir_v2_live_receipt"), dict)
+            else {}
+        )
+        patha_v2_live_receipt_raw: dict[str, Any] = {}
+        if PATHA_V2_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHA_V2_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    patha_v2_live_receipt_raw = parsed
+            except Exception:
+                patha_v2_live_receipt_raw = {}
+        patha_v2_live_receipt = (
+            patha_v2_live_receipt_current
+            if patha_v2_live_receipt_current
+            else patha_v2_live_receipt_raw
+        )
+        patha_v2_mode = str(patha_v2_live_receipt.get("l3_mode") or "")
+        patha_v2_tx_hash = str(patha_v2_live_receipt.get("l3_tx_hash") or "")
+        patha_v2_tx_url = (
+            str(patha_v2_live_receipt.get("l3_tx_url") or "")
+            or (_starknet_tx_url(patha_v2_tx_hash, l3_runtime_rpc) if patha_v2_tx_hash else "")
+        )
+        patha_v2_l3_status = _safe_int(patha_v2_live_receipt.get("status"), 0)
+        patha_v2_verified_on_chain = bool(patha_v2_live_receipt.get("l3_verified_on_chain"))
+        patha_v2_can_execute = bool(patha_v2_live_receipt.get("can_execute"))
+        patha_v2_live_verified = bool(
+            patha_v2_tx_hash
+            and patha_v2_l3_status == 200
+            and patha_v2_mode.strip().lower() == "noir_honk"
+            and patha_v2_verified_on_chain
+        )
+
         path_rows = [
             {
                 "path": "Path A (Noir HONK bridge)",
@@ -4237,6 +4451,33 @@ class ShowcaseRunner:
                     else None
                 ),
                 "runtime_network_label": _rpc_network_label(l3_runtime_rpc) if (noir_row or {}).get("contract") else None,
+            },
+            {
+                "path": "Path A V2 (Noir HONK bridge v2)",
+                "status": (
+                    "implemented_live"
+                    if patha_v2_live_verified
+                    else "implemented"
+                    if (bool((noir_v2_row or {}).get("available")) if isinstance(noir_v2_row, dict) else False)
+                    else "partial"
+                ),
+                "doc_signal": (
+                    "Versioned Path A lane is live; V2 binds timestamp + ezkl_proof_hash and has its own receipt-backed verifier lane."
+                    if patha_v2_live_verified
+                    else "Versioned Path A lane is wired and deployed; capture recurring V2 receipts before treating it as fully evidenced."
+                    if (bool((noir_v2_row or {}).get("available")) if isinstance(noir_v2_row, dict) else False)
+                    else "Versioned Path A lane is not listed in the active proving-path inventory."
+                ),
+                "runtime_lane_id": "noir_honk_v2",
+                "runtime_lane_listed": noir_v2_row is not None,
+                "runtime_lane_available": bool((noir_v2_row or {}).get("available")) if isinstance(noir_v2_row, dict) else False,
+                "runtime_contract": (noir_v2_row or {}).get("contract") if isinstance(noir_v2_row, dict) else None,
+                "runtime_contract_url": (
+                    _starknet_contract_url(str((noir_v2_row or {}).get("contract") or ""), l3_runtime_rpc)
+                    if isinstance(noir_v2_row, dict) and (noir_v2_row or {}).get("contract")
+                    else None
+                ),
+                "runtime_network_label": _rpc_network_label(l3_runtime_rpc) if (noir_v2_row or {}).get("contract") else None,
             },
             {
                 "path": "Path C (L1 Sepolia bridge)",
@@ -4342,6 +4583,11 @@ class ShowcaseRunner:
                 else "Phase 2/Path A: capture a live noir_honk receipt and persist it as patha_latest.json for recurring stage check-ins."
             ),
             (
+                f"Phase 2/Path A V2: recurring noir_honk_v2 receipt is live ({_short_hex(patha_v2_tx_hash, 12)}); keep {PATHA_V2_LIVE_RECEIPT_FILE.name} refreshed while the legacy Path A lane remains in service."
+                if patha_v2_live_verified
+                else "Phase 2/Path A V2: capture a live noir_honk_v2 receipt and persist it as patha_v2_latest.json before promoting V2 into the strict bridge gate."
+            ),
+            (
                 (
                     f"Phase 3: Path C recurring monitor is live ({_short_hex(pathc_tx_hash, 12)}); "
                     f"last check age={pathc_age_hours:.1f}h."
@@ -4376,6 +4622,9 @@ class ShowcaseRunner:
                 "path_a_live_receipt_found": (PATHA_LIVE_RECEIPT_FILE.exists() or bool(patha_live_receipt_current)),
                 "path_a_live_verified": patha_live_verified,
                 "path_a_l3_status_ok": (patha_l3_status == 200),
+                "path_a_v2_live_receipt_found": (PATHA_V2_LIVE_RECEIPT_FILE.exists() or bool(patha_v2_live_receipt_current)),
+                "path_a_v2_live_verified": patha_v2_live_verified,
+                "path_a_v2_l3_status_ok": (patha_v2_l3_status == 200),
                 "phase2_status_done": phase2_status_done,
                 "phase3_plan_expanded": phase3_plan_expanded,
                 "phase4_plan_expanded": phase4_plan_expanded,
@@ -4494,6 +4743,24 @@ class ShowcaseRunner:
                 "l3_execution_steps": patha_live_receipt.get("l3_execution_steps"),
                 "failure_reason": patha_live_receipt.get("failure_reason"),
                 "generated_at": patha_live_receipt.get("generated_at"),
+            },
+            "path_a_v2_live": {
+                "artifact_path": _relative_to_project(PATHA_V2_LIVE_RECEIPT_FILE),
+                "artifact_found": PATHA_V2_LIVE_RECEIPT_FILE.exists(),
+                "live_verified": patha_v2_live_verified,
+                "status": (patha_v2_l3_status if patha_v2_l3_status > 0 else None),
+                "mode": patha_v2_mode or None,
+                "tx_hash": patha_v2_tx_hash or None,
+                "tx_url": patha_v2_tx_url or None,
+                "bridge_backend": patha_v2_live_receipt.get("bridge_backend"),
+                "proof_mode": patha_v2_live_receipt.get("proof_mode"),
+                "bridge_proof_hash": patha_v2_live_receipt.get("bridge_proof_hash"),
+                "calldata_words": patha_v2_live_receipt.get("calldata_words"),
+                "can_execute": patha_v2_can_execute,
+                "l3_actual_fee_display": patha_v2_live_receipt.get("l3_actual_fee_display"),
+                "l3_execution_steps": patha_v2_live_receipt.get("l3_execution_steps"),
+                "failure_reason": patha_v2_live_receipt.get("failure_reason"),
+                "generated_at": patha_v2_live_receipt.get("generated_at"),
             },
             "path_b_warm_report": {
                 "artifact_path": _relative_to_project(pathb_warm_report_file),
@@ -5860,11 +6127,12 @@ class ShowcaseRunner:
                 "error": "failed_to_parse_history",
             }
 
-        lane_order = ["modelbridge", "modelbridge_heavy", "noir", "native_kzg", "path_c"]
+        lane_order = ["modelbridge", "modelbridge_heavy", "noir", "noir_v2", "native_kzg", "path_c"]
         lane_labels = {
             "modelbridge": "ModelBridge",
             "modelbridge_heavy": "ModelBridgeHeavy",
             "noir": "NoirEzklBridge",
+            "noir_v2": "NoirEzklBridgeV2",
             "native_kzg": "EzklNativeKzg",
             "path_c": "PathCBridge",
         }
@@ -5872,6 +6140,7 @@ class ShowcaseRunner:
             "modelbridge": "modelbridge",
             "modelbridgeheavy": "modelbridge_heavy",
             "noirezklbridge": "noir",
+            "noirezklbridgev2": "noir_v2",
             "ezklnativekzg": "native_kzg",
             "pathcbridge": "path_c",
             "pathc": "path_c",
@@ -5882,6 +6151,7 @@ class ShowcaseRunner:
             "modelbridge": "FRI",
             "modelbridge_heavy": "FRI",
             "noir": "FRI",
+            "noir_v2": "FRI",
             "native_kzg": "FRI",
             "path_c": "gas",
         }
@@ -6115,6 +6385,15 @@ class ShowcaseRunner:
             except Exception:
                 patha_latest = {}
 
+        patha_v2_latest: dict[str, Any] = {}
+        if PATHA_V2_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHA_V2_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    patha_v2_latest = parsed
+            except Exception:
+                patha_v2_latest = {}
+
         def _lane_rate_row(
             path_label: str,
             lane_key: str,
@@ -6149,6 +6428,17 @@ class ShowcaseRunner:
                 else "degraded",
                 note="Receipt-backed Noir HONK lane with recurring L3 verifier evidence.",
                 latest_tx_hash=str(patha_latest.get("l3_tx_hash") or ""),
+            )
+        )
+        path_rows.append(
+            _lane_rate_row(
+                "Path A V2",
+                "noir_v2",
+                status="live noir_honk_v2"
+                if bool(patha_v2_latest.get("l3_verified_on_chain"))
+                else "degraded",
+                note="Versioned Noir HONK bridge lane that additionally binds EZKL proof hash and timestamp.",
+                latest_tx_hash=str(patha_v2_latest.get("l3_tx_hash") or ""),
             )
         )
         path_rows.append(
@@ -6245,6 +6535,7 @@ class ShowcaseRunner:
 
         dual_live = bridge.get("dual_live_receipt", {}) if isinstance(bridge.get("dual_live_receipt"), dict) else {}
         noir_live = bridge.get("noir_live_receipt", {}) if isinstance(bridge.get("noir_live_receipt"), dict) else {}
+        noir_v2_live = bridge.get("noir_v2_live_receipt", {}) if isinstance(bridge.get("noir_v2_live_receipt"), dict) else {}
         native_live = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
         heavy_live = payload.get("heavy_stark_showcase", {}) if isinstance(payload.get("heavy_stark_showcase"), dict) else {}
         heavy_l3 = heavy_live.get("l3", {}) if isinstance(heavy_live.get("l3"), dict) else {}
@@ -6401,6 +6692,34 @@ class ShowcaseRunner:
                 "Current Noir run has no verified public Starknet mirror tx to surface.",
             )
 
+        if str(noir_v2_live.get("l2_tx_hash") or "").strip() and bool(noir_v2_live.get("l2_verified_on_chain")):
+            noir_v2_l2_tx = str(noir_v2_live.get("l2_tx_hash") or "").strip()
+            entries.append(
+                {
+                    "lane": "NoirEzklBridgeV2",
+                    "title": "Noir HONK V2 public Starknet mirror tx",
+                    "network": "starknet_sepolia",
+                    "public_chain": "starknet_l2",
+                    "tx_hash": noir_v2_l2_tx,
+                    "voyager_url": _voyager_tx_url(noir_v2_l2_tx),
+                    "starkscan_url": _starkscan_tx_url(noir_v2_l2_tx),
+                    "verified_on_chain": bool(noir_v2_live.get("l2_verified_on_chain")),
+                    "proof_hash": noir_v2_live.get("bridge_proof_hash"),
+                    "mode": noir_v2_live.get("l2_mode"),
+                    "verification_backend": noir_v2_live.get("l2_verification_backend"),
+                    "verification_policy": noir_v2_live.get("l2_verification_policy"),
+                    "obsqra_verified": noir_v2_live.get("l2_obsqra_verified"),
+                    "integrity_verified": noir_v2_live.get("l2_integrity_verified"),
+                    "note": "Public Starknet mirror receipt for Noir HONK V2 lane.",
+                }
+            )
+        else:
+            _exclude(
+                "NoirEzklBridgeV2",
+                "no_public_mirror_receipt",
+                "Current Noir V2 run has no verified public Starknet mirror tx to surface.",
+            )
+
         if str(heavy_l2.get("tx_hash") or "").strip() and bool(heavy_l2.get("verified_on_chain")):
             heavy_tx = str(heavy_l2.get("tx_hash") or "").strip()
             entries.append(
@@ -6467,6 +6786,7 @@ class ShowcaseRunner:
             "sources": {
                 "latest_report": "artifacts/hackathon_showcase/latest.json",
                 "patha_latest": str(PATHA_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
+                "patha_v2_latest": str(PATHA_V2_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
                 "pathb_latest": str(PATHB_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
                 "pathc_latest": str(PATHC_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
             },
@@ -6856,6 +7176,11 @@ class ShowcaseRunner:
             if isinstance(recursive_paths.get("path_a_live"), dict)
             else {}
         )
+        path_a_v2_live = (
+            recursive_paths.get("path_a_v2_live")
+            if isinstance(recursive_paths.get("path_a_v2_live"), dict)
+            else {}
+        )
         path_b_runtime_verifier = (
             recursive_paths.get("path_b_runtime_verifier")
             if isinstance(recursive_paths.get("path_b_runtime_verifier"), dict)
@@ -6865,6 +7190,8 @@ class ShowcaseRunner:
             ["Path A status in roadmap", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_status_doc") else "<span class=\"fail\">no</span>"],
             ["Path A live receipt artifact found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_receipt_found") else "<span class=\"fail\">no</span>"],
             ["Path A live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_verified") else "<span class=\"fail\">no</span>"],
+            ["Path A V2 live receipt artifact found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_v2_live_receipt_found") else "<span class=\"fail\">no</span>"],
+            ["Path A V2 live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_v2_live_verified") else "<span class=\"fail\">no</span>"],
             ["Phase 2 status marked complete", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase2_status_done") else "<span class=\"fail\">no</span>"],
             ["Phase 3 tasks expanded (3.1-3.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase3_plan_expanded") else "<span class=\"fail\">no</span>"],
             ["Phase 4 tasks expanded (4.1-4.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase4_plan_expanded") else "<span class=\"fail\">no</span>"],
@@ -6975,6 +7302,30 @@ class ShowcaseRunner:
             ["L3 execution steps", escape(str(path_a_live.get("l3_execution_steps") or "-"))],
             ["Failure reason", escape(_clip_text(path_a_live.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(path_a_live.get("generated_at") or "-"))],
+        ]
+        path_a_v2_live_tx = str(path_a_v2_live.get("tx_hash") or "")
+        path_a_v2_live_tx_url = str(path_a_v2_live.get("tx_url") or "")
+        path_a_v2_live_tx_html = (
+            f"<a href=\"{escape(path_a_v2_live_tx_url)}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(path_a_v2_live_tx, 14))}</a>"
+            if path_a_v2_live_tx and path_a_v2_live_tx_url
+            else escape(_short_hex(path_a_v2_live_tx, 14) if path_a_v2_live_tx else "-")
+        )
+        path_a_v2_live_rows = [
+            ["Artifact path", f"<code>{escape(str(path_a_v2_live.get('artifact_path') or '-'))}</code>"],
+            ["Artifact present", "<span class=\"pass\">yes</span>" if path_a_v2_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
+            ["Live verified (L3)", "<span class=\"pass\">true</span>" if path_a_v2_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Mode", escape(str(path_a_v2_live.get("mode") or "-"))],
+            ["Bridge backend", escape(str(path_a_v2_live.get("bridge_backend") or "-"))],
+            ["Proof mode", escape(str(path_a_v2_live.get("proof_mode") or "-"))],
+            ["L3 tx hash", path_a_v2_live_tx_html],
+            ["L3 status", escape(str(path_a_v2_live.get("status") or "-"))],
+            ["Can execute", "<span class=\"pass\">true</span>" if path_a_v2_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Bridge proof hash", escape(_short_hex(str(path_a_v2_live.get("bridge_proof_hash") or "-"), 14))],
+            ["Calldata words", escape(str(path_a_v2_live.get("calldata_words") or "-"))],
+            ["L3 actual fee", escape(str(path_a_v2_live.get("l3_actual_fee_display") or "-"))],
+            ["L3 execution steps", escape(str(path_a_v2_live.get("l3_execution_steps") or "-"))],
+            ["Failure reason", escape(_clip_text(path_a_v2_live.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(path_a_v2_live.get("generated_at") or "-"))],
         ]
         recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
         recursive_env_rows = [
@@ -7351,10 +7702,11 @@ class ShowcaseRunner:
             "l3": "L3",
             "l3_heavy_request": "L3_HEAVY_REQUEST",
             "l3_noir_request": "L3_NOIR_REQUEST",
+            "l3_noir_v2_request": "L3_NOIR_V2_REQUEST",
             "l3_native_kzg_request": "L3_NATIVE_KZG_REQUEST",
             "dual": "DUAL",
         }
-        run_order = ["l3", "l3_heavy_request", "l3_noir_request", "l3_native_kzg_request", "dual"]
+        run_order = ["l3", "l3_heavy_request", "l3_noir_request", "l3_noir_v2_request", "l3_native_kzg_request", "dual"]
         for run_name in run_order:
             if run_name not in ml_runs:
                 continue
@@ -7379,10 +7731,11 @@ class ShowcaseRunner:
             "l3": "groth16_garaga",
             "l3_heavy_request": "groth16_garaga",
             "l3_noir_request": "noir_honk",
+            "l3_noir_v2_request": "noir_honk",
             "l3_native_kzg_request": "native_kzg",
         }
         lane_health_rows = []
-        for run_name in ["l3", "l3_heavy_request", "l3_noir_request", "l3_native_kzg_request"]:
+        for run_name in ["l3", "l3_heavy_request", "l3_noir_request", "l3_noir_v2_request", "l3_native_kzg_request"]:
             run = ml_runs.get(run_name) if isinstance(ml_runs.get(run_name), dict) else {}
             l3 = run.get("l3") if isinstance(run.get("l3"), dict) else {}
             status = _safe_int(run.get("status"), 0)
@@ -7400,6 +7753,9 @@ class ShowcaseRunner:
             elif run_name == "l3_noir_request" and mode_l == "missing_calldata":
                 verdict_html = "<span class=\"warn\">degraded (tracked)</span>"
                 note = "Noir calldata generation flaky; tracked for follow-up while core lanes continue"
+            elif run_name == "l3_noir_v2_request" and mode_l == "missing_calldata":
+                verdict_html = "<span class=\"warn\">degraded (tracked)</span>"
+                note = "Noir V2 calldata generation failed; investigate versioned HONK workspace/toolchain path"
             elif status == 0:
                 note = "timeout or transport issue; retry/run gate again"
             elif status == 200 and not verified:
@@ -7650,6 +8006,60 @@ class ShowcaseRunner:
             ["Duration ms", escape(str(noir_live_receipt.get("total_duration_ms") or "-"))],
         ]
 
+        noir_v2_live_receipt = (
+            bridge.get("noir_v2_live_receipt", {})
+            if isinstance(bridge.get("noir_v2_live_receipt"), dict)
+            else {}
+        )
+        noir_v2_live_receipt_tx = str(noir_v2_live_receipt.get("l3_tx_hash") or "-")
+        noir_v2_live_receipt_tx_url = noir_v2_live_receipt.get("l3_tx_url")
+        noir_v2_live_receipt_tx_html = (
+            f"<a href=\"{escape(str(noir_v2_live_receipt_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(noir_v2_live_receipt_tx, 14))}</a>"
+            if noir_v2_live_receipt_tx_url and noir_v2_live_receipt_tx != "-"
+            else escape(_short_hex(noir_v2_live_receipt_tx, 14))
+        )
+        noir_v2_live_receipt_rows = [
+            ["API status", escape(str(noir_v2_live_receipt.get("status") or "-"))],
+            ["Lane available", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
+            ["Probe seed", escape(str(noir_v2_live_receipt.get("probe_seed") or "-"))],
+            ["Probe fingerprint", escape(_short_hex(str(noir_v2_live_receipt.get("probe_fingerprint") or "-"), 14))],
+            ["Proof mode", escape(str(noir_v2_live_receipt.get("proof_mode") or "-"))],
+            ["Requested chain", escape(str(noir_v2_live_receipt.get("requested_execution_chain") or "-"))],
+            ["Bridge proof hash", escape(_short_hex(str(noir_v2_live_receipt.get("bridge_proof_hash") or "-"), 14))],
+            ["Bridge backend", escape(str(noir_v2_live_receipt.get("bridge_backend") or "-"))],
+            ["Bridge compliant", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Noir V2 calldata words", escape(str(noir_v2_live_receipt.get("calldata_words") or "-"))],
+            ["L3 attempted", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
+            ["L3 success", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 verifier mode", escape(str(noir_v2_live_receipt.get("l3_mode") or "-"))],
+            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 actual fee", escape(str(noir_v2_live_receipt.get("l3_actual_fee_display") or "-"))],
+            ["L3 execution steps", escape(str(noir_v2_live_receipt.get("l3_execution_steps") or "-"))],
+            ["L1 gas / data gas / L2 gas", escape(
+                f"{noir_v2_live_receipt.get('l3_l1_gas') or '-'} / {noir_v2_live_receipt.get('l3_l1_data_gas') or '-'} / {noir_v2_live_receipt.get('l3_l2_gas') or '-'}"
+            )],
+            ["L3 tx hash", noir_v2_live_receipt_tx_html],
+            ["Can execute", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Mirror status", escape(str(noir_v2_live_receipt.get("mirror_status") or "-"))],
+            [
+                "L2 verification backend",
+                escape(
+                    _verification_backend_detail(
+                        {
+                            "verification_policy": noir_v2_live_receipt.get("l2_verification_policy"),
+                            "verification_backend": noir_v2_live_receipt.get("l2_verification_backend"),
+                            "obsqra_verified": noir_v2_live_receipt.get("l2_obsqra_verified"),
+                            "integrity_verified": noir_v2_live_receipt.get("l2_integrity_verified"),
+                        }
+                    )
+                ),
+            ],
+            ["Trust mode", escape(str(noir_v2_live_receipt.get("trust_mode") or "-"))],
+            ["Failure reason", escape(_clip_text(noir_v2_live_receipt.get("failure_reason"), 180) or "-")],
+            ["Generated at", escape(str(noir_v2_live_receipt.get("generated_at") or "-"))],
+            ["Duration ms", escape(str(noir_v2_live_receipt.get("total_duration_ms") or "-"))],
+        ]
+
         native_kzg_live_receipt = (
             bridge.get("native_kzg_live_receipt", {})
             if isinstance(bridge.get("native_kzg_live_receipt"), dict)
@@ -7740,6 +8150,15 @@ class ShowcaseRunner:
                     f"Live noir_honk receipt {escape(_short_hex(path_a_live_tx, 12))} shows the same proof intent can clear a second proving backend on-chain."
                     if path_a_live.get("live_verified")
                     else "Path A is wired, but needs a live noir_honk receipt to be treated as fully evidenced."
+                ),
+            ],
+            [
+                "Path A V2 (Noir HONK + proof-hash binding)",
+                "Versioned HONK bridge lane that binds timestamp and EZKL proof hash explicitly, instead of reusing the legacy Path A circuit shape.",
+                (
+                    f"Live noir_honk_v2 receipt {escape(_short_hex(path_a_v2_live_tx, 12))} shows the upgrade lane is deployed and independently verifiable."
+                    if path_a_v2_live.get("live_verified")
+                    else "Path A V2 is wired and deployed, but still needs recurring receipt evidence before it should replace the legacy Path A lane."
                 ),
             ],
             [
@@ -8497,6 +8916,10 @@ class ShowcaseRunner:
             (row for row in path_rows_src if isinstance(row, dict) and "Path A" in str(row.get("path") or "")),
             {},
         )
+        path_a_v2_row = next(
+            (row for row in path_rows_src if isinstance(row, dict) and "Path A V2" in str(row.get("path") or "")),
+            {},
+        )
         path_b_row = next(
             (row for row in path_rows_src if isinstance(row, dict) and "Path B" in str(row.get("path") or "")),
             {},
@@ -8511,6 +8934,16 @@ class ShowcaseRunner:
             and path_a_row.get("runtime_lane_available")
             and path_a_live.get("live_verified")
         )
+        path_a_v2 = (
+            recursive_paths.get("path_a_v2_live")
+            if isinstance(recursive_paths.get("path_a_v2_live"), dict)
+            else {}
+        )
+        path_a_v2_ready = bool(
+            str(path_a_v2_row.get("status") or "").startswith("implemented")
+            and path_a_v2_row.get("runtime_lane_available")
+            and path_a_v2.get("live_verified")
+        )
         path_c_ready = bool(
             str(path_c_row.get("status") or "").startswith("implemented")
             and recursive_env.get("l1_signer_set")
@@ -8520,6 +8953,8 @@ class ShowcaseRunner:
         )
         path_a_live_tx = str(path_a_live.get("tx_hash") or "")
         path_a_live_tx_url = str(path_a_live.get("tx_url") or "")
+        path_a_v2_live_tx = str(path_a_v2.get("tx_hash") or "")
+        path_a_v2_live_tx_url = str(path_a_v2.get("tx_url") or "")
         path_c_live_tx = str(path_c_live.get("tx_hash") or "")
         path_c_live_tx_url = str(path_c_live.get("tx_url") or "")
         path_b_e2e_tx = ""
@@ -8605,6 +9040,7 @@ class ShowcaseRunner:
         ]
         stage_complete_count = sum(1 for row in stage_rows_data if row.get("ok"))
         path_a_status = str(path_a_row.get("status") or "partial")
+        path_a_v2_status = str(path_a_v2_row.get("status") or "partial")
         path_b_status = str(path_b_row.get("status") or "partial")
         path_c_status = str(path_c_row.get("status") or "partial")
 
@@ -8651,6 +9087,15 @@ class ShowcaseRunner:
                     "Capture a public noir_honk verifier tx in the target environment and persist it into patha_latest.json for stage check-ins."
                     if not path_a_ready
                     else "Path A is receipt-backed; next step is a production runbook with recurring Noir receipt evidence and benchmarking."
+                ),
+            ],
+            [
+                "Path A V2 (Versioned Noir HONK)",
+                escape(_narrative_state(path_a_v2_status, path_a_v2_ready)),
+                escape(
+                    "Capture recurring noir_honk_v2 receipts and decide when V2 should replace the legacy Path A lane in the strict bridge gate."
+                    if not path_a_v2_ready
+                    else "Path A V2 is live; next step is deciding promotion policy from legacy Path A to the versioned lane."
                 ),
             ],
             [
@@ -9337,7 +9782,7 @@ class ShowcaseRunner:
     <section class="report-section" data-main-tab="bridge" data-sub-tab="live">
       <h2>Live Research Receipts: ModelBridge + Noir + Native KZG</h2>
       <div class="intent">
-        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, `NoirEzklBridge`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
+        <strong>What this tests:</strong> Live `proofs/ml-bridge` runs routed through `l3`, `dual`, `ModelBridgeHeavy`, `NoirEzklBridge`, `NoirEzklBridgeV2`, and `EzklNativeKzg`, each with a fresh probe fingerprint so receipts are generated from the current run instead of cached bridge facts.<br/>
         <strong>Why Obsqra Labs wanted this:</strong> Powers deterministic “advisory -> proving -> receipt emitted” status in execution drawers.<br/>
         <strong>Unlocks:</strong> Shows exactly when AI-guided flow crosses into cryptographic evidence and where to inspect each lane on-chain.
       </div>
@@ -9349,6 +9794,8 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], heavy_live_receipt_rows)}
       <h3>Noir HONK Receipt (Path A)</h3>
       {self._html_table(["Field", "Value"], noir_live_receipt_rows)}
+      <h3>Noir HONK V2 Receipt (Path A V2)</h3>
+      {self._html_table(["Field", "Value"], noir_v2_live_receipt_rows)}
       <h3>Native KZG Receipt (Path B)</h3>
       {self._html_table(["Field", "Value"], native_kzg_live_receipt_rows)}
       <h3>Lane Health + Degradation Notes</h3>
@@ -9446,6 +9893,9 @@ class ShowcaseRunner:
       <h3>Path A Live Receipt (Noir HONK)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/patha_latest.json</code> (captured from live `NoirEzklBridge` -> `noir_honk` verification).</p>
       {self._html_table(["Field", "Value"], path_a_live_rows)}
+      <h3>Path A V2 Live Receipt (Noir HONK V2)</h3>
+      <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/patha_v2_latest.json</code> (captured from live `NoirEzklBridgeV2` -> `noir_honk` verification).</p>
+      {self._html_table(["Field", "Value"], path_a_v2_live_rows)}
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
@@ -9829,6 +10279,7 @@ class ShowcaseRunner:
         public_dashboard_json.write_text(public_dashboard_blob, encoding="utf-8")
         public_dashboard_md.write_text(public_dashboard_md_blob, encoding="utf-8")
         patha_latest = self.artifact_dir / "patha_latest.json"
+        patha_v2_latest = self.artifact_dir / "patha_v2_latest.json"
         pathb_latest = self.artifact_dir / "pathb_latest.json"
         patha_live = (
             (payload.get("bridge_architecture") or {}).get("noir_live_receipt")
@@ -9842,6 +10293,24 @@ class ShowcaseRunner:
                         "generated_at": payload.get("generated_at"),
                         "lane": "NoirEzklBridge",
                         **patha_live,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+        patha_v2_live = (
+            (payload.get("bridge_architecture") or {}).get("noir_v2_live_receipt")
+            if isinstance(payload.get("bridge_architecture"), dict)
+            else {}
+        )
+        if isinstance(patha_v2_live, dict) and patha_v2_live:
+            patha_v2_latest.write_text(
+                json.dumps(
+                    {
+                        "generated_at": payload.get("generated_at"),
+                        "lane": "NoirEzklBridgeV2",
+                        **patha_v2_live,
                     },
                     indent=2,
                     sort_keys=True,
@@ -9919,6 +10388,8 @@ class ShowcaseRunner:
         }
         if patha_latest.exists():
             out["patha_latest"] = str(patha_latest.resolve())
+        if patha_v2_latest.exists():
+            out["patha_v2_latest"] = str(patha_v2_latest.resolve())
         if pathb_latest.exists():
             out["pathb_latest"] = str(pathb_latest.resolve())
         if history_path:
