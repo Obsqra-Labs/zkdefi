@@ -147,6 +147,11 @@ def _validate_latest_report() -> None:
     total = int(score.get("total", 0) or 0)
     raw_exit_code = report.get("exit_code", 1)
     exit_code = 1 if raw_exit_code is None else int(raw_exit_code)
+    report_state = report.get("report_state") or {}
+    if not isinstance(report_state, dict):
+        report_state = {}
+    publish_ready = bool(report_state.get("publish_ready"))
+    strict_gate_ready = bool(report_state.get("strict_gate_ready"))
     if total <= 0:
         raise RuntimeError("latest showcase report has empty core score")
     if validated <= 0:
@@ -157,6 +162,10 @@ def _validate_latest_report() -> None:
             f"continuing with strict bridge lane checks (exit_code={exit_code}, core_score={validated}/{total})",
             flush=True,
         )
+    if not publish_ready:
+        raise RuntimeError("latest showcase report is not publish_ready")
+    if not strict_gate_ready:
+        raise RuntimeError("latest showcase report is not strict_gate_ready")
 
     runs = (report.get("bridge_architecture") or {}).get("ml_bridge_runs") or {}
     bridge_only = _env_bool("SHOWCASE_GATE_BRIDGE_ONLY", False)

@@ -557,6 +557,7 @@ class ShowcaseRunner:
         self._noir_live_receipt: dict[str, Any] = {}
         self._native_kzg_live_receipt: dict[str, Any] = {}
         self._heavy_stark_showcase: dict[str, Any] = {}
+        self._last_report_state: dict[str, Any] = {}
         self._bridge_probe_seed = hashlib.sha256(
             f"{time.time_ns()}:{os.getpid()}:{self.wallet}".encode("utf-8")
         ).hexdigest()[:16]
@@ -814,34 +815,82 @@ class ShowcaseRunner:
             "prev_regressed_native_kzg_models": prev_regressed_native_kzg,
         }
 
-    def _final_stage_report_readiness(self) -> tuple[bool, list[str]]:
+    def _required_report_steps(self) -> list[str]:
         if self.bridge_only:
-            required_steps = [
+            return [
                 "Open-source ModelBridge + dual-proof architecture",
                 "ModelBridge live l3 verify receipt",
                 "Noir HONK live l3 verify receipt",
                 "Path B dual native KZG mirrors are demonstrable",
                 "Recursive EZKL paths (Phase 2/3/4) status",
             ]
-        else:
-            required_steps = [
-                "Open-source ModelBridge + dual-proof architecture",
-                "ModelBridge live l3 verify receipt",
-                "ModelBridgeHeavy live l3 verify receipt",
-                "Noir HONK live l3 verify receipt",
-                "Path B dual native KZG mirrors are demonstrable",
-                "StarkHeavyReputation STARK flow",
-                "Recursive EZKL paths (Phase 2/3/4) status",
-            ]
+        return [
+            "Open-source ModelBridge + dual-proof architecture",
+            "ModelBridge live l3 verify receipt",
+            "ModelBridgeHeavy live l3 verify receipt",
+            "Noir HONK live l3 verify receipt",
+            "Path B dual native KZG mirrors are demonstrable",
+            "StarkHeavyReputation STARK flow",
+            "Recursive EZKL paths (Phase 2/3/4) status",
+        ]
+
+    def _report_state(self) -> dict[str, Any]:
+        required_steps = self._required_report_steps()
         missing = [name for name in required_steps if not self._step_ok(name)]
-        ready = (
-            bool(self.strict_bridge)
-            and (self.bridge_only or not self.fast_mode)
-            and not missing
-            and self.core_total > 0
-            and self.core_score >= self.core_total
-        )
-        return ready, missing
+        core_complete = self.core_total > 0 and self.core_score >= self.core_total
+        full_scope = bool(self.bridge_only or not self.fast_mode)
+        publish_ready = full_scope and not missing and core_complete
+        strict_gate_ready = publish_ready and bool(self.strict_bridge)
+        if self.bridge_only:
+            run_profile = "bridge_only_strict" if self.strict_bridge else "bridge_only"
+            run_profile_label = "Bridge-only strict" if self.strict_bridge else "Bridge-only"
+        else:
+            run_profile = "full_strict" if self.strict_bridge else "full"
+            run_profile_label = "Full strict" if self.strict_bridge else "Full"
+
+        if strict_gate_ready:
+            mode = "strict_gate_ready"
+            headline = "Strict gate ready"
+            summary = (
+                "All required stage gates and claim checks passed under the strict validation path. "
+                "This artifact is suitable for the daily production-style `/test` run."
+            )
+        elif publish_ready:
+            mode = "publish_ready"
+            headline = "Publish ready"
+            summary = (
+                "All required stage gates and claim checks passed. This artifact is suitable for sharing, "
+                "but it was not produced under the strict gate path."
+            )
+        elif self.emit_report_force:
+            mode = "forced_emit"
+            headline = "Forced emit"
+            summary = (
+                "The artifact was emitted for inspection even though the required stage gates are not all green yet."
+            )
+        else:
+            mode = "in_progress"
+            headline = "In progress"
+            summary = "Required stage evidence is still incomplete."
+
+        return {
+            "mode": mode,
+            "headline": headline,
+            "summary": summary,
+            "publish_ready": publish_ready,
+            "strict_gate_ready": strict_gate_ready,
+            "strict_requested": bool(self.strict_bridge),
+            "full_scope": full_scope,
+            "run_profile": run_profile,
+            "run_profile_label": run_profile_label,
+            "required_steps_total": len(required_steps),
+            "required_steps_passed": len(required_steps) - len(missing),
+            "required_steps": required_steps,
+            "missing_steps": missing,
+            "core_complete": core_complete,
+            "core_validated": self.core_score,
+            "core_total": self.core_total,
+        }
 
     def run(self) -> int:
         started_at = time.time()
@@ -915,9 +964,13 @@ class ShowcaseRunner:
 
         print("")
         exit_code = self.print_claim_matrix()
+        report_state = self._report_state()
+        self._last_report_state = report_state
         if self.emit_report:
-            final_ready, missing_steps = self._final_stage_report_readiness()
-            if final_ready or self.emit_report_force:
+            publish_ready = bool(report_state.get("publish_ready"))
+            strict_gate_ready = bool(report_state.get("strict_gate_ready"))
+            missing_steps = list(report_state.get("missing_steps") or [])
+            if publish_ready or self.emit_report_force:
                 artifacts = self.write_artifacts(started_at=started_at, exit_code=exit_code)
                 print("")
                 print("Artifacts:")
@@ -931,8 +984,12 @@ class ShowcaseRunner:
                     print(f"  - Path B Latest: {artifacts['pathb_latest']}")
                 if artifacts.get("history"):
                     print(f"  - History JSONL: {artifacts['history']}")
-                if self.emit_report_force and not final_ready:
-                    print("Report mode: forced emit (final-stage readiness was not met).")
+                if strict_gate_ready:
+                    print("Report mode: strict-gate-ready.")
+                elif publish_ready:
+                    print("Report mode: publish-ready (strict gate was not requested for this run).")
+                elif self.emit_report_force:
+                    print("Report mode: forced emit (required stage evidence is still incomplete).")
             else:
                 print("")
                 print("Artifacts: skipped (final-stage readiness not met).")
@@ -5368,12 +5425,14 @@ class ShowcaseRunner:
         benchmark_rollup = self._benchmark_rollup_from_history(
             window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40)
         )
+        report_state = self._last_report_state or self._report_state()
         return {
             "generated_at": _to_iso_utc(),
             "started_at": _to_iso_utc(started_at),
             "base_url": self.client.base_url,
             "wallet": self.wallet,
             "exit_code": exit_code,
+            "report_state": report_state,
             "core_claims": self.claims,
             "core_score": {
                 "validated": self.core_score,
@@ -6974,6 +7033,33 @@ class ShowcaseRunner:
         core_validated = _safe_int(core_score.get("validated"), 0)
         core_total = _safe_int(core_score.get("total"), 0)
         core_complete = core_total > 0 and core_validated >= core_total
+        report_state = payload.get("report_state", {}) if isinstance(payload.get("report_state"), dict) else {}
+        report_mode = str(report_state.get("mode") or "in_progress")
+        report_headline = str(report_state.get("headline") or "In progress")
+        report_summary = str(report_state.get("summary") or "Required stage evidence is still incomplete.")
+        report_missing_steps = report_state.get("missing_steps") if isinstance(report_state.get("missing_steps"), list) else []
+        report_profile_label = str(report_state.get("run_profile_label") or report_state.get("run_profile") or "-")
+        report_required_total = _safe_int(report_state.get("required_steps_total"), 0)
+        report_required_passed = _safe_int(report_state.get("required_steps_passed"), 0)
+        strict_gate_ready = bool(report_state.get("strict_gate_ready"))
+        publish_ready = bool(report_state.get("publish_ready"))
+        strict_requested = bool(report_state.get("strict_requested"))
+        report_state_class = "good" if report_mode in {"strict_gate_ready", "publish_ready"} else "warn"
+        strict_pill_class = "good" if strict_gate_ready else ("muted" if not strict_requested else "warn")
+        strict_pill_label = (
+            "strict gate ready"
+            if strict_gate_ready
+            else "strict gate not requested"
+            if not strict_requested
+            else "strict gate pending"
+        )
+        publish_pill_class = "good" if publish_ready else "warn"
+        publish_pill_label = "publish ready" if publish_ready else "publish pending"
+        missing_steps_html = (
+            f"<div class=\"report-status-missing\"><strong>Missing:</strong> {escape(', '.join(str(item) for item in report_missing_steps))}</div>"
+            if report_missing_steps
+            else ""
+        )
 
         onchain = payload.get("onchain", {}) if isinstance(payload.get("onchain"), dict) else {}
         onchain_receipts = onchain.get("receipts") if isinstance(onchain.get("receipts"), list) else []
@@ -7332,7 +7418,7 @@ class ShowcaseRunner:
     .hero-top {{
       display: grid;
       grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 14px;
+      gap: 18px;
       align-items: start;
     }}
     .subline {{
@@ -7340,17 +7426,98 @@ class ShowcaseRunner:
       color: #b7c2d7;
       max-width: 930px;
     }}
-    .hero-meta-grid {{
+    .hero-side-panel {{
+      display: grid;
+      gap: 10px;
+    }}
+    .report-status {{
+      border: 1px solid #2f3a50;
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(12, 18, 30, 0.82);
+    }}
+    .report-status.good {{
+      border-color: rgba(16, 185, 129, 0.45);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.08) inset;
+    }}
+    .report-status.warn {{
+      border-color: rgba(251, 146, 60, 0.4);
+      box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.08) inset;
+    }}
+    .report-status-pills {{
       display: grid;
       gap: 8px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 8px;
+    }}
+    .status-pill {{
+      border: 1px solid #344861;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      background: rgba(26, 38, 57, 0.8);
+      color: #d8e6fb;
+      text-align: center;
+    }}
+    .status-pill.good {{
+      border-color: rgba(16, 185, 129, 0.62);
+      color: #b8ffe2;
+      background: rgba(16, 185, 129, 0.14);
+    }}
+    .status-pill.warn {{
+      border-color: rgba(251, 146, 60, 0.62);
+      color: #ffd8b3;
+      background: rgba(251, 146, 60, 0.14);
+    }}
+    .status-pill.muted {{
+      border-color: #39506f;
+      color: #c8d8ef;
+      background: rgba(30, 43, 62, 0.84);
+    }}
+    .report-status-title {{
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #ecf5ff;
+    }}
+    .report-status-copy {{
+      margin: 6px 0 0;
+      color: #b7c2d7;
+      font-size: 13px;
+    }}
+    .report-status-meta {{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }}
+    .report-meta-chip {{
+      border: 1px solid #31435d;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      color: #c7d4e8;
+      background: rgba(22, 33, 49, 0.68);
+    }}
+    .report-status-missing {{
+      margin-top: 10px;
+      font-size: 12px;
+      color: #ffd8b3;
+      overflow-wrap: anywhere;
+    }}
+    .hero-meta-grid {{
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr;
     }}
     .hero-meta-item {{
       border: 1px solid #2f3a50;
       border-radius: 10px;
       padding: 8px 10px;
       background: rgba(12, 18, 30, 0.72);
-      min-height: 56px;
+      min-height: auto;
     }}
     .hero-meta-item .k {{
       display: block;
@@ -7596,11 +7763,27 @@ class ShowcaseRunner:
               <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
             </div>
           </div>
-          <div class="hero-meta-grid">
-            <div class="hero-meta-item"><span class="k">Generated</span><span class="v">{escape(str(payload.get('generated_at')))} UTC</span></div>
-            <div class="hero-meta-item"><span class="k">Base URL</span><span class="v">{escape(str(payload.get('base_url')))}</span></div>
-            <div class="hero-meta-item"><span class="k">Wallet</span><span class="v">{escape(str(payload.get('wallet')))}</span></div>
-            <div class="hero-meta-item"><span class="k">Latest On-chain TX</span><span class="v">{(f'<a href="{escape(str(latest_tx_url))}" target="_blank" rel="noreferrer">{escape(_short_hex(latest_tx_hash, 14))}</a>' if latest_tx_hash and latest_tx_url else escape(_short_hex(latest_tx_hash, 14) if latest_tx_hash else '-'))}</span></div>
+          <div class="hero-side-panel">
+            <div class="report-status {report_state_class}">
+              <div class="report-status-pills">
+                <span class="status-pill {publish_pill_class}">{escape(publish_pill_label)}</span>
+                <span class="status-pill {strict_pill_class}">{escape(strict_pill_label)}</span>
+              </div>
+              <p class="report-status-title">{escape(report_headline)}</p>
+              <p class="report-status-copy">{escape(report_summary)}</p>
+              <div class="report-status-meta">
+                <span class="report-meta-chip">run: {escape(report_profile_label)}</span>
+                <span class="report-meta-chip">required stages: {escape(str(report_required_passed))}/{escape(str(report_required_total))}</span>
+                <span class="report-meta-chip">core claims: {escape(str(core_validated))}/{escape(str(core_total))}</span>
+              </div>
+              {missing_steps_html}
+            </div>
+            <div class="hero-meta-grid">
+              <div class="hero-meta-item"><span class="k">Generated</span><span class="v">{escape(str(payload.get('generated_at')))} UTC</span></div>
+              <div class="hero-meta-item"><span class="k">Base URL</span><span class="v">{escape(str(payload.get('base_url')))}</span></div>
+              <div class="hero-meta-item"><span class="k">Wallet</span><span class="v">{escape(str(payload.get('wallet')))}</span></div>
+              <div class="hero-meta-item"><span class="k">Latest On-chain TX</span><span class="v">{(f'<a href="{escape(str(latest_tx_url))}" target="_blank" rel="noreferrer">{escape(_short_hex(latest_tx_hash, 14))}</a>' if latest_tx_hash and latest_tx_url else escape(_short_hex(latest_tx_hash, 14) if latest_tx_hash else '-'))}</span></div>
+            </div>
           </div>
         </div>
       </div>
