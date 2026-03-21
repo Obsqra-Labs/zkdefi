@@ -774,6 +774,11 @@ class ShowcaseRunner:
             if not retryable:
                 return status, body, attempts
             sleep_s = 1.2 + (0.8 * idx)
+            if "nonce" in text:
+                # L3 submissions can briefly report stale nonces even when the
+                # prior tx is valid; give the sequencer time to expose the next
+                # pending nonce before retrying.
+                sleep_s = max(sleep_s, 8.0 + (2.0 * idx))
             if status in {0, 408, 429, 503, 504}:
                 # Give overloaded or timing-out bridge lanes real recovery time.
                 sleep_s = max(sleep_s, 5.0 + (1.5 * idx))
@@ -2759,6 +2764,10 @@ class ShowcaseRunner:
         noir_body: Any = {}
         noir_attempts: list[dict[str, Any]] = []
         if noir_honk_available:
+            if self.strict_bridge and not self.bridge_only:
+                # Give the previous Groth16 lane time to settle its pending
+                # nonce before we start the HONK path in the same run.
+                time.sleep(4.0)
             print("running: Noir HONK l3")
             noir_status, noir_body, noir_attempts = self._call_ml_bridge_with_retry(
                 noir_payload,
