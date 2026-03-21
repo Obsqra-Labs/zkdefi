@@ -5,7 +5,7 @@ Hackathon backend showcase runner.
 Purpose:
 - Demonstrate "UI lagging behind backend" with terminal-first evidence.
 - Validate core claims across proofs, agents, privacy rails, and on-chain reads.
-- Emit a local HTML + JSON report with Starkscan/Etherscan links and deep circuit evidence.
+- Emit a local HTML + JSON report with public explorer links and deep circuit evidence.
 
 Usage:
   python scripts/hackathon_backend_showcase.py
@@ -38,6 +38,7 @@ DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "hackathon_showcase"
 ENV_FILE = PROJECT_ROOT / "backend" / ".env"
 PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
+VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 STARKSCAN_SEPOLIA_BASE = "https://sepolia.starkscan.co"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
 PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
@@ -655,16 +656,34 @@ def _compact_int(value: Any) -> str:
 def _voyager_contract_url(address: str | None) -> str | None:
     if not address:
         return None
-    return f"{STARKSCAN_SEPOLIA_BASE}/contract/{address}"
+    return f"{VOYAGER_SEPOLIA_BASE}/contract/{address}"
 
 
 def _voyager_class_url(class_hash: str | None) -> str | None:
     if not class_hash:
         return None
-    return f"{STARKSCAN_SEPOLIA_BASE}/class/{class_hash}"
+    return f"{VOYAGER_SEPOLIA_BASE}/class/{class_hash}"
 
 
 def _voyager_tx_url(tx_hash: str | None) -> str | None:
+    if not tx_hash:
+        return None
+    return f"{VOYAGER_SEPOLIA_BASE}/tx/{tx_hash}"
+
+
+def _starkscan_contract_url(address: str | None) -> str | None:
+    if not address:
+        return None
+    return f"{STARKSCAN_SEPOLIA_BASE}/contract/{address}"
+
+
+def _starkscan_class_url(class_hash: str | None) -> str | None:
+    if not class_hash:
+        return None
+    return f"{STARKSCAN_SEPOLIA_BASE}/class/{class_hash}"
+
+
+def _starkscan_tx_url(tx_hash: str | None) -> str | None:
     if not tx_hash:
         return None
     return f"{STARKSCAN_SEPOLIA_BASE}/tx/{tx_hash}"
@@ -6114,6 +6133,285 @@ class ShowcaseRunner:
         out["path_rows"] = path_rows
         return out
 
+    def _build_public_proof_dashboard(self, payload: dict[str, Any]) -> dict[str, Any]:
+        bridge = payload.get("bridge_architecture", {}) if isinstance(payload.get("bridge_architecture"), dict) else {}
+        recursive = payload.get("recursive_ezkl_paths", {}) if isinstance(payload.get("recursive_ezkl_paths"), dict) else {}
+        benchmark = payload.get("benchmark_rollup", {}) if isinstance(payload.get("benchmark_rollup"), dict) else {}
+
+        dual_live = bridge.get("dual_live_receipt", {}) if isinstance(bridge.get("dual_live_receipt"), dict) else {}
+        noir_live = bridge.get("noir_live_receipt", {}) if isinstance(bridge.get("noir_live_receipt"), dict) else {}
+        native_live = bridge.get("native_kzg_live_receipt", {}) if isinstance(bridge.get("native_kzg_live_receipt"), dict) else {}
+        heavy_live = payload.get("heavy_stark_showcase", {}) if isinstance(payload.get("heavy_stark_showcase"), dict) else {}
+        heavy_l3 = heavy_live.get("l3", {}) if isinstance(heavy_live.get("l3"), dict) else {}
+        pathb_warm = recursive.get("path_b_warm_report", {}) if isinstance(recursive.get("path_b_warm_report"), dict) else {}
+        pathc_routes = recursive.get("path_c_route_inventory", {}) if isinstance(recursive.get("path_c_route_inventory"), dict) else {}
+
+        entries: list[dict[str, Any]] = []
+        exclusions: list[dict[str, Any]] = []
+
+        def _exclude(lane: str, reason: str, detail: str) -> None:
+            exclusions.append(
+                {
+                    "lane": lane,
+                    "reason": reason,
+                    "detail": detail,
+                }
+            )
+
+        dual_l2_tx = str(dual_live.get("l2_tx_hash") or "").strip()
+        if dual_l2_tx and bool(dual_live.get("l2_verified_on_chain")):
+            entries.append(
+                {
+                    "lane": "ModelBridge",
+                    "title": "ModelBridge public Starknet mirror tx",
+                    "network": "starknet_sepolia",
+                    "public_chain": "starknet_l2",
+                    "tx_hash": dual_l2_tx,
+                    "voyager_url": _voyager_tx_url(dual_l2_tx),
+                    "starkscan_url": _starkscan_tx_url(dual_l2_tx),
+                    "verified_on_chain": True,
+                    "proof_hash": dual_live.get("bridge_proof_hash"),
+                    "mode": dual_live.get("l2_mode"),
+                    "note": "Primary proof runs on L3; this is the public Starknet mirror receipt.",
+                }
+            )
+        else:
+            _exclude(
+                "ModelBridge",
+                "no_public_mirror_receipt",
+                "Current report has an L3-local receipt but no public Starknet mirror tx for this lane.",
+            )
+
+        native_rows = pathb_warm.get("native_kzg_onchain_rows") if isinstance(pathb_warm.get("native_kzg_onchain_rows"), list) else []
+        preferred_native_model = os.getenv("PUBLIC_PROOF_DASHBOARD_NATIVE_MODEL", "yield_forecast").strip() or "yield_forecast"
+        public_native_rows = [
+            row
+            for row in native_rows
+            if isinstance(row, dict)
+            and bool(row.get("l2_verified_on_chain"))
+            and str(row.get("l2_tx_hash") or "").strip()
+        ]
+        native_pick = next(
+            (row for row in public_native_rows if str(row.get("model") or "").strip() == preferred_native_model),
+            public_native_rows[0] if public_native_rows else None,
+        )
+        if isinstance(native_pick, dict):
+            native_l2_tx = str(native_pick.get("l2_tx_hash") or "").strip()
+            entries.append(
+                {
+                    "lane": "EzklNativeKzg",
+                    "title": f"Native KZG public Starknet mirror tx ({str(native_pick.get('model') or '-')})",
+                    "network": "starknet_sepolia",
+                    "public_chain": "starknet_l2",
+                    "tx_hash": native_l2_tx,
+                    "voyager_url": _voyager_tx_url(native_l2_tx),
+                    "starkscan_url": _starkscan_tx_url(native_l2_tx),
+                    "verified_on_chain": True,
+                    "proof_hash": None,
+                    "mode": native_pick.get("l2_mode"),
+                    "strict_binding": bool(native_pick.get("l3_strict_binding_observed")),
+                    "model": native_pick.get("model"),
+                    "note": "Primary verification runs on L3 native KZG; this is the public Starknet mirror receipt.",
+                }
+            )
+        else:
+            _exclude(
+                "EzklNativeKzg",
+                "no_public_mirror_receipt",
+                "Path B has no current public Starknet mirror receipt to surface.",
+            )
+
+        route_rows = pathc_routes.get("rows") if isinstance(pathc_routes.get("rows"), list) else []
+        confirmed_routes = [
+            row
+            for row in route_rows
+            if isinstance(row, dict)
+            and bool(row.get("l2_verified"))
+            and str(row.get("latest_tx_hash") or "").strip()
+        ]
+        route_pick = next(
+            (row for row in confirmed_routes if bool(row.get("is_primary"))),
+            confirmed_routes[0] if confirmed_routes else None,
+        )
+        if isinstance(route_pick, dict):
+            l1_tx = str(route_pick.get("latest_tx_hash") or "").strip()
+            entries.append(
+                {
+                    "lane": "PathCBridge",
+                    "title": f"L1 Ethereum bridge tx ({str(route_pick.get('resolved_model_name') or route_pick.get('route_key') or '-')})",
+                    "network": "ethereum_sepolia",
+                    "public_chain": "ethereum_l1",
+                    "tx_hash": l1_tx,
+                    "etherscan_url": _etherscan_tx_url(l1_tx),
+                    "verified_on_chain": True,
+                    "proof_hash": None,
+                    "mode": route_pick.get("mode"),
+                    "l2_verified": bool(route_pick.get("l2_verified")),
+                    "route_key": route_pick.get("route_key"),
+                    "route_source": route_pick.get("route_source"),
+                    "note": "Public Ethereum verifier tx with confirmed Starknet receiver consumption.",
+                }
+            )
+        else:
+            _exclude(
+                "PathCBridge",
+                "no_public_l1_receipt",
+                "No confirmed L1 bridge receipt is currently available.",
+            )
+
+        if str(noir_live.get("l2_tx_hash") or "").strip():
+            noir_l2_tx = str(noir_live.get("l2_tx_hash") or "").strip()
+            entries.append(
+                {
+                    "lane": "NoirEzklBridge",
+                    "title": "Noir HONK public Starknet mirror tx",
+                    "network": "starknet_sepolia",
+                    "public_chain": "starknet_l2",
+                    "tx_hash": noir_l2_tx,
+                    "voyager_url": _voyager_tx_url(noir_l2_tx),
+                    "starkscan_url": _starkscan_tx_url(noir_l2_tx),
+                    "verified_on_chain": bool(noir_live.get("l2_verified_on_chain")),
+                    "proof_hash": noir_live.get("bridge_proof_hash"),
+                    "mode": noir_live.get("l2_mode"),
+                    "note": "Public Starknet mirror receipt for Noir HONK lane.",
+                }
+            )
+        else:
+            _exclude(
+                "NoirEzklBridge",
+                "internal_only_l3_lane",
+                "Current Noir receipt is Madara/L3-local only; there is no public mirror tx in this run.",
+            )
+
+        if str(heavy_l3.get("tx_url") or "").strip():
+            heavy_tx = str(heavy_l3.get("tx_hash") or "").strip()
+            entries.append(
+                {
+                    "lane": "StarkHeavyReputation",
+                    "title": "STARK integrity public tx",
+                    "network": "starknet_sepolia",
+                    "public_chain": "starknet_l2",
+                    "tx_hash": heavy_tx,
+                    "voyager_url": _voyager_tx_url(heavy_tx),
+                    "starkscan_url": _starkscan_tx_url(heavy_tx),
+                    "verified_on_chain": bool(heavy_l3.get("verified_on_chain")),
+                    "proof_hash": heavy_live.get("proof_hash"),
+                    "fact_hash": heavy_live.get("fact_hash"),
+                    "mode": heavy_l3.get("mode"),
+                    "note": "Public Starknet receipt for the STARK integrity lane.",
+                }
+            )
+        else:
+            _exclude(
+                "StarkHeavyReputation",
+                "internal_only_l3_lane",
+                "Current STARK integrity receipt is Madara/L3-local only; there is no public explorer-safe tx in this run.",
+            )
+
+        public_lane_count = len(entries)
+        benchmark_rows = benchmark.get("rows") if isinstance(benchmark.get("rows"), list) else []
+        benchmark_window = benchmark.get("history_entries_used")
+        native_models_total = _safe_int(pathb_warm.get("native_kzg_onchain_attempted_models"), 0)
+        native_models_verified = _safe_int(pathb_warm.get("native_kzg_onchain_l2_receipt_models"), 0)
+        pathc_configured = _safe_int(pathc_routes.get("configured_routes_total"), 0)
+        pathc_confirmed = _safe_int(pathc_routes.get("confirmed_routes_total"), 0)
+
+        return {
+            "generated_at": payload.get("generated_at"),
+            "status": "ok" if public_lane_count > 0 else "empty",
+            "summary": {
+                "public_entries_total": public_lane_count,
+                "excluded_entries_total": len(exclusions),
+                "benchmark_window_runs": benchmark_window,
+                "native_kzg_public_model_coverage": f"{native_models_verified}/{native_models_total}" if native_models_total else "-",
+                "path_c_confirmed_routes": f"{pathc_confirmed}/{pathc_configured}" if pathc_configured else "-",
+                "notes": [
+                    "Only public, explorer-safe receipts belong in this block.",
+                    "Madara/L3-local hashes stay in the full report but are excluded from this public dashboard.",
+                    "Starknet public links prefer Voyager and include Starkscan as a fallback.",
+                ],
+            },
+            "entries": entries,
+            "excluded_lanes": exclusions,
+            "sources": {
+                "latest_report": "artifacts/hackathon_showcase/latest.json",
+                "patha_latest": str(PATHA_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
+                "pathb_latest": str(PATHB_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
+                "pathc_latest": str(PATHC_LIVE_RECEIPT_FILE.relative_to(PROJECT_ROOT)),
+            },
+        }
+
+    def _render_public_proof_dashboard_markdown(self, dashboard: dict[str, Any]) -> str:
+        summary = dashboard.get("summary") if isinstance(dashboard.get("summary"), dict) else {}
+        entries = dashboard.get("entries") if isinstance(dashboard.get("entries"), list) else []
+        exclusions = dashboard.get("excluded_lanes") if isinstance(dashboard.get("excluded_lanes"), list) else []
+        lines = [
+            "This is not a whitepaper. The system is running. The public receipts below are RPC-audited and resolve to real public explorer transactions. Internal Madara/L3 hashes are intentionally excluded from this block.",
+            "",
+            "Live proof dashboard",
+            "[zkde.fi/test](https://zkde.fi/test)",
+            "— regenerates fresh receipts on demand",
+            "",
+        ]
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            title = str(entry.get("title") or entry.get("lane") or "Receipt")
+            tx_hash = str(entry.get("tx_hash") or "")
+            network = str(entry.get("network") or "")
+            note_bits: list[str] = []
+            if entry.get("verified_on_chain") is not None:
+                note_bits.append(f"verified_on_chain={str(bool(entry.get('verified_on_chain'))).lower()}")
+            if entry.get("l2_verified") is not None:
+                note_bits.append(f"l2_verified={str(bool(entry.get('l2_verified'))).lower()}")
+            if entry.get("mode"):
+                note_bits.append(f"mode={entry.get('mode')}")
+            if entry.get("strict_binding") is not None:
+                note_bits.append(f"strict_binding={str(bool(entry.get('strict_binding'))).lower()}")
+            if entry.get("proof_hash"):
+                note_bits.append(f"proof_hash={_short_hex(str(entry.get('proof_hash')), 14)}")
+            if entry.get("route_key"):
+                note_bits.append(f"route={entry.get('route_key')}")
+            if entry.get("model"):
+                note_bits.append(f"model={entry.get('model')}")
+            primary_url = str(entry.get("etherscan_url") or entry.get("voyager_url") or entry.get("starkscan_url") or "")
+            alt_url = str(entry.get("starkscan_url") or "")
+            lines.append(title)
+            if primary_url and tx_hash:
+                lines.append(f"[{_short_hex(tx_hash, 14)}]({primary_url}) ↗")
+            else:
+                lines.append(_short_hex(tx_hash, 14) if tx_hash else "-")
+            if note_bits:
+                lines.append(", ".join(note_bits))
+            if network == "starknet_sepolia" and alt_url:
+                lines.append(f"alt_explorer={alt_url}")
+            lines.append("")
+
+        lines.append("Public-route coverage")
+        lines.append(
+            f"Path B mirrored models: {summary.get('native_kzg_public_model_coverage') or '-'}"
+        )
+        lines.append(
+            f"Path C confirmed routes: {summary.get('path_c_confirmed_routes') or '-'}"
+        )
+        if summary.get("benchmark_window_runs") is not None:
+            lines.append(f"Benchmark window: {summary.get('benchmark_window_runs')} runs")
+        lines.append("")
+
+        if exclusions:
+            lines.append("Internal-only / excluded lanes")
+            for row in exclusions:
+                if not isinstance(row, dict):
+                    continue
+                lines.append(
+                    f"- {row.get('lane')}: {row.get('detail') or row.get('reason')}"
+                )
+            lines.append("")
+
+        lines.append("GitHub")
+        lines.append("[github.com/Obsqra-Labs/zkdefi](https://github.com/Obsqra-Labs/zkdefi) ↗")
+        return "\n".join(lines).strip() + "\n"
+
     def _report_payload(self, started_at: float, exit_code: int) -> dict[str, Any]:
         benchmark_rollup = self._benchmark_rollup_from_history(
             window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40)
@@ -6123,7 +6421,7 @@ class ShowcaseRunner:
             window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40),
         )
         report_state = self._last_report_state or self._report_state()
-        return {
+        payload = {
             "generated_at": _to_iso_utc(),
             "started_at": _to_iso_utc(started_at),
             "base_url": self.client.base_url,
@@ -6172,6 +6470,8 @@ class ShowcaseRunner:
                 "llm_config_packs": self._llm_config_packs,
             },
         }
+        payload["public_proof_dashboard"] = self._build_public_proof_dashboard(payload)
+        return payload
 
     def _html_table(self, headers: list[str], rows: list[list[str]]) -> str:
         if not rows:
@@ -6207,6 +6507,67 @@ class ShowcaseRunner:
                     escape(str(step.get("name"))),
                     "<span class=\"pass\">PASS</span>" if step.get("ok") else "<span class=\"fail\">FAIL</span>",
                     escape(compact),
+                ]
+            )
+
+        public_dashboard = (
+            payload.get("public_proof_dashboard", {})
+            if isinstance(payload.get("public_proof_dashboard"), dict)
+            else {}
+        )
+        public_dashboard_summary = (
+            public_dashboard.get("summary")
+            if isinstance(public_dashboard.get("summary"), dict)
+            else {}
+        )
+        public_dashboard_rows = []
+        for row in public_dashboard.get("entries", []):
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("tx_hash") or "-")
+            preferred_url = str(row.get("etherscan_url") or row.get("voyager_url") or row.get("starkscan_url") or "")
+            fallback_url = str(row.get("starkscan_url") or "")
+            tx_html = (
+                f"<a href=\"{escape(preferred_url)}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
+                if preferred_url and tx_hash != "-"
+                else escape(_short_hex(tx_hash, 14))
+            )
+            fallback_html = (
+                f"<a href=\"{escape(fallback_url)}\" target=\"_blank\" rel=\"noreferrer\">Starkscan</a>"
+                if fallback_url and fallback_url != preferred_url
+                else "-"
+            )
+            note_bits = []
+            if row.get("proof_hash"):
+                note_bits.append(f"proof_hash={_short_hex(str(row.get('proof_hash')), 14)}")
+            if row.get("mode"):
+                note_bits.append(f"mode={row.get('mode')}")
+            if row.get("model"):
+                note_bits.append(f"model={row.get('model')}")
+            if row.get("strict_binding") is not None:
+                note_bits.append(f"strict_binding={str(bool(row.get('strict_binding'))).lower()}")
+            if row.get("route_key"):
+                note_bits.append(f"route={row.get('route_key')}")
+            public_dashboard_rows.append(
+                [
+                    escape(str(row.get("title") or row.get("lane") or "-")),
+                    escape(str(row.get("public_chain") or row.get("network") or "-")),
+                    "<span class=\"pass\">true</span>" if row.get("verified_on_chain") else "<span class=\"fail\">false</span>",
+                    tx_html,
+                    fallback_html,
+                    escape(", ".join(note_bits) if note_bits else str(row.get("note") or "-")),
+                ]
+            )
+
+        public_dashboard_exclusion_rows = []
+        for row in public_dashboard.get("excluded_lanes", []):
+            if not isinstance(row, dict):
+                continue
+            public_dashboard_exclusion_rows.append(
+                [
+                    escape(str(row.get("lane") or "-")),
+                    escape(str(row.get("reason") or "-")),
+                    escape(str(row.get("detail") or "-")),
                 ]
             )
 
@@ -8730,6 +9091,19 @@ class ShowcaseRunner:
       </div>
       <h3>Research Framing</h3>
       {self._html_table(["Lens", "Current Position", "Evidence Standard"], research_story_rows)}
+      <h3>Public Proof Dashboard (Explorer-safe)</h3>
+      <p class="meta">
+        This block is safe to reuse on landing pages. It includes only public receipts that can be validated independently on public explorers.
+        Internal Madara/L3 hashes stay in the full report and are not promoted here.
+        Public entries: {escape(str(public_dashboard_summary.get('public_entries_total') or 0))} |
+        Excluded lanes: {escape(str(public_dashboard_summary.get('excluded_entries_total') or 0))} |
+        Path B public model coverage: {escape(str(public_dashboard_summary.get('native_kzg_public_model_coverage') or '-'))} |
+        Path C confirmed routes: {escape(str(public_dashboard_summary.get('path_c_confirmed_routes') or '-'))}
+      </p>
+      {self._html_table(["Receipt", "Public Chain", "Verified", "Preferred Explorer", "Fallback", "Signal"], public_dashboard_rows)}
+      <p class="meta">Reusable snippet source: <code>artifacts/hackathon_showcase/public_proof_dashboard.md</code></p>
+      <h3>Excluded From Public Dashboard</h3>
+      {self._html_table(["Lane", "Reason", "Detail"], public_dashboard_exclusion_rows)}
       <h3>Recursive Stage Check-ins</h3>
       {self._html_table(["#", "Stage", "Status", "Goal", "Evidence", "Explorer TX"], recursive_stage_rows)}
       <h3>Versioning Checkpoints</h3>
@@ -8909,7 +9283,7 @@ class ShowcaseRunner:
     </section>
 
     <section class="report-section" data-main-tab="infra" data-sub-tab="contracts">
-      <h2>On-chain Links (Starkscan)</h2>
+      <h2>On-chain Links (Public Explorers)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
         <strong>Why Obsqra Labs wanted this:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
@@ -9231,14 +9605,25 @@ class ShowcaseRunner:
         html_path = self.artifact_dir / f"showcase-{stamp}.html"
         latest_json = self.artifact_dir / "latest.json"
         latest_html = self.artifact_dir / "latest.html"
+        public_dashboard_json = self.artifact_dir / "public_proof_dashboard.json"
+        public_dashboard_md = self.artifact_dir / "public_proof_dashboard.md"
 
         json_blob = json.dumps(payload, indent=2, sort_keys=True)
         html_blob = self._render_html_report(payload)
+        public_dashboard = (
+            payload.get("public_proof_dashboard", {})
+            if isinstance(payload.get("public_proof_dashboard"), dict)
+            else {}
+        )
+        public_dashboard_blob = json.dumps(public_dashboard, indent=2, sort_keys=True)
+        public_dashboard_md_blob = self._render_public_proof_dashboard_markdown(public_dashboard)
 
         json_path.write_text(json_blob, encoding="utf-8")
         html_path.write_text(html_blob, encoding="utf-8")
         latest_json.write_text(json_blob, encoding="utf-8")
         latest_html.write_text(html_blob, encoding="utf-8")
+        public_dashboard_json.write_text(public_dashboard_blob, encoding="utf-8")
+        public_dashboard_md.write_text(public_dashboard_md_blob, encoding="utf-8")
         patha_latest = self.artifact_dir / "patha_latest.json"
         pathb_latest = self.artifact_dir / "pathb_latest.json"
         patha_live = (
@@ -9325,6 +9710,8 @@ class ShowcaseRunner:
             "html": str(html_path.resolve()),
             "latest_json": str(latest_json.resolve()),
             "latest_html": str(latest_html.resolve()),
+            "public_proof_dashboard_json": str(public_dashboard_json.resolve()),
+            "public_proof_dashboard_md": str(public_dashboard_md.resolve()),
         }
         if patha_latest.exists():
             out["patha_latest"] = str(patha_latest.resolve())

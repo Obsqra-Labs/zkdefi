@@ -98,7 +98,7 @@ def main() -> int:
         if "etherscan.io" in link:
             ok, detail = _audit_eth(tx_hash)
             network = "ethereum_sepolia"
-        elif "starkscan.co" in link:
+        elif "starkscan.co" in link or "voyager.online" in link:
             ok, detail = _audit_stark(tx_hash)
             network = "starknet_sepolia"
         else:
