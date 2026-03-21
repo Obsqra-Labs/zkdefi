@@ -4662,7 +4662,7 @@ class ShowcaseRunner:
                 time.sleep(sleep_s)
         l3 = body.get("l3", {}) if isinstance(body, dict) and isinstance(body.get("l3"), dict) else {}
         tx_hash = l3.get("tx_hash")
-        tx_url = _voyager_tx_url(str(tx_hash)) if tx_hash else None
+        tx_url = _starknet_tx_url(str(tx_hash), self._madara_rpc_url) if tx_hash else None
         self._heavy_stark_showcase = {
             "status": status,
             "success": (body.get("success") if isinstance(body, dict) else None),
@@ -7343,7 +7343,11 @@ class ShowcaseRunner:
         heavy_stark_tx_html = (
             f"<a href=\"{escape(str(heavy_stark_tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(heavy_stark_tx_hash, 14))}</a>"
             if heavy_stark_tx_url and heavy_stark_tx_hash != "-"
-            else escape(_short_hex(heavy_stark_tx_hash, 14))
+            else (
+                f"{escape(_short_hex(heavy_stark_tx_hash, 14))}<div class=\"meta\">Madara L3 tx hash (not publicly indexed)</div>"
+                if heavy_stark_tx_hash != "-"
+                else escape(_short_hex(heavy_stark_tx_hash, 14))
+            )
         )
         heavy_stark_rows = [
             ["API status", escape(str(heavy_stark.get("status") or "-"))],
