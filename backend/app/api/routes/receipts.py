@@ -12,6 +12,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Body, Query
 
+from app.db.decision_store import get_decision_store
 from app.services.receipt_service import get_receipt_service
 
 logger = logging.getLogger(__name__)
@@ -61,8 +62,9 @@ async def get_on_chain_receipts(address: str):
     raw = await svc.get_user_receipts(address)
 
     receipts = []
+    seen_tx_keys: set[tuple[str | None, str | None, str | None]] = set()
     for r in raw:
-        receipts.append({
+        row = {
             "tx_hash": r.get("tx_hash"),
             "fact_hash": r.get("fact_hash"),
             "proof_type": r.get("proof_type", "unknown"),
@@ -74,7 +76,66 @@ async def get_on_chain_receipts(address: str):
                 for k, v in r.items()
                 if k not in ("tx_hash", "fact_hash", "proof_type", "result", "timestamp", "user")
             },
-        })
+        }
+        receipts.append(row)
+        seen_tx_keys.add(
+            (
+                str(row.get("tx_hash") or "") or None,
+                str(row.get("fact_hash") or "") or None,
+                str(row.get("timestamp") or "") or None,
+            )
+        )
+
+    try:
+        decision_rows = await get_decision_store().get_user_history(address, limit=1000)
+    except Exception:
+        decision_rows = []
+
+    for row in decision_rows:
+        if not isinstance(row, dict):
+            continue
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        fact_hash = metadata.get("fact_hash") or metadata.get("proof_hash")
+        proof_type = metadata.get("proof_type") or row.get("proof_mode") or row.get("event_type") or "unknown"
+        action = row.get("event_type") or row.get("gate") or proof_type
+        timestamp = row.get("created_at")
+
+        for tx_field, tx_source in (("l3_tx_hash", "l3"), ("l2_tx_hash", "l2")):
+            tx_hash = row.get(tx_field)
+            if not tx_hash:
+                continue
+            dedupe_key = (
+                str(tx_hash) or None,
+                str(fact_hash or "") or None,
+                str(timestamp or "") or None,
+            )
+            if dedupe_key in seen_tx_keys:
+                continue
+            seen_tx_keys.add(dedupe_key)
+            receipts.append(
+                {
+                    "tx_hash": tx_hash,
+                    "fact_hash": fact_hash,
+                    "proof_type": proof_type,
+                    "action": action,
+                    "result": row.get("outcome"),
+                    "timestamp": timestamp,
+                    "meta": {
+                        "source": "decision_store",
+                        "tx_source": tx_source,
+                        "gate": row.get("gate"),
+                        "proof_mode": row.get("proof_mode"),
+                        "model_name": row.get("model_name"),
+                        "model_hash": row.get("model_hash"),
+                        "execution_chain": row.get("execution_chain"),
+                        "primary_chain": row.get("primary_chain"),
+                        "verification_mode": row.get("verification_mode"),
+                        "verified_on_chain": row.get("verified_on_chain"),
+                        "mirror_status": row.get("mirror_status"),
+                        "failure_reason": row.get("failure_reason"),
+                    },
+                }
+            )
 
     return {"receipts": receipts, "count": len(receipts)}
 
