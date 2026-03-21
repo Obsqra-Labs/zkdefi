@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def _has_garaga() -> bool:
         return False
 
 
-def generate_noir_ezkl_bridge_proof(
+def _generate_noir_ezkl_bridge_proof_once(
     expected_model_hash: int,
     output_lower_bound: int,
     output_upper_bound: int,
@@ -158,6 +159,42 @@ def generate_noir_ezkl_bridge_proof(
             raise RuntimeError(f"garaga calldata produced no felts (stdout={stdout_sample!r})")
 
         return {"proof_calldata": calldata_int, "public_inputs": [], "success": True}
+
+
+def generate_noir_ezkl_bridge_proof(
+    expected_model_hash: int,
+    output_lower_bound: int,
+    output_upper_bound: int,
+    model_output: int,
+) -> dict:
+    """
+    Generate Noir proof and Garaga HONK calldata for noir_ezkl_bridge circuit.
+
+    The Noir/bb/garaga toolchain occasionally flakes under load even when the
+    very next attempt succeeds. Retry a small number of times before surfacing
+    a fallback to the bridge pipeline.
+    """
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            return _generate_noir_ezkl_bridge_proof_once(
+                expected_model_hash=expected_model_hash,
+                output_lower_bound=output_lower_bound,
+                output_upper_bound=output_upper_bound,
+                model_output=model_output,
+            )
+        except Exception as exc:
+            last_error = exc
+            if attempt >= 3:
+                break
+            logger.warning(
+                "NoirEzklBridge attempt %s/3 failed, retrying: %s",
+                attempt,
+                exc,
+            )
+            time.sleep(0.75 * attempt)
+    assert last_error is not None
+    raise last_error
 
 
 def noir_honk_available() -> bool:
