@@ -723,6 +723,40 @@ def _starknet_tx_url(tx_hash: str | None, rpc_url: str | None) -> str | None:
     return _voyager_tx_url(tx_hash)
 
 
+def _receipt_public_tx_url(row: dict[str, Any]) -> str | None:
+    if not isinstance(row, dict):
+        return None
+    tx_hash = str(row.get("tx_hash") or "").strip()
+    if not tx_hash:
+        return None
+    meta = row.get("meta") if isinstance(row.get("meta"), dict) else {}
+    source = str(row.get("source") or meta.get("source") or "").strip().lower()
+    tx_source = str(row.get("tx_source") or meta.get("tx_source") or "").strip().lower()
+    execution_chain = str(row.get("execution_chain") or meta.get("execution_chain") or "").strip().lower()
+    primary_chain = str(row.get("primary_chain") or meta.get("primary_chain") or "").strip().lower()
+    verified_on_chain = bool(row.get("verified_on_chain") or meta.get("verified_on_chain"))
+
+    # Raw receipt-service rows can carry tx-shaped values that are not guaranteed
+    # to be publicly indexed chain receipts, so do not emit explorer links for them.
+    if source and source != "decision_store":
+        return None
+    if not source and not tx_source:
+        return None
+
+    # Public Starknet explorer links are only valid for the L2 mirror lane here.
+    if tx_source == "l2":
+        return _voyager_tx_url(tx_hash)
+
+    # Do not link Madara/local L3 hashes as public explorer txs.
+    if tx_source == "l3":
+        return None
+
+    # Fallback for explicitly L2-rooted decision rows without tx_source.
+    if verified_on_chain and primary_chain == "l2" and execution_chain != "l3":
+        return _voyager_tx_url(tx_hash)
+    return None
+
+
 def _to_iso_utc(ts: float | None = None) -> str:
     if ts is None:
         ts = time.time()
@@ -2306,7 +2340,14 @@ class ShowcaseRunner:
                     "action": row.get("action"),
                     "proof_type": row.get("proof_type"),
                     "timestamp": row.get("timestamp"),
-                    "voyager_tx": _voyager_tx_url(str(tx_hash)),
+                    "voyager_tx": _receipt_public_tx_url(row),
+                    "publicly_indexed": bool(_receipt_public_tx_url(row)),
+                    "tx_source": (
+                        str(row.get("tx_source") or ((row.get("meta") or {}).get("tx_source") if isinstance(row.get("meta"), dict) else "") or "").strip()
+                    ),
+                    "source": (
+                        str(row.get("source") or ((row.get("meta") or {}).get("source") if isinstance(row.get("meta"), dict) else "") or "").strip()
+                    ),
                 }
             )
 
@@ -2329,6 +2370,7 @@ class ShowcaseRunner:
             count=count,
             tx_hashes=len(unique_rows),
             first_tx_hash=_short_hex(unique_rows[0]["tx_hash"] if unique_rows else None),
+            public_explorer_links=sum(1 for row in unique_rows if row.get("publicly_indexed")),
         )
 
     def _extract_proving_paths(self, raw: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -6194,6 +6236,15 @@ class ShowcaseRunner:
                 continue
             tx_hash = str(row.get("tx_hash") or "-")
             tx_link = row.get("voyager_tx")
+            tx_source = str(row.get("tx_source") or "-")
+            source = str(row.get("source") or "-")
+            tx_note = (
+                "public Starknet Sepolia tx"
+                if tx_link
+                else "internal receipt hash"
+                if source != "decision_store"
+                else "non-public lane hash"
+            )
             tx_html = (
                 f"<a href=\"{escape(str(tx_link))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 16))}</a>"
                 if tx_link
@@ -6205,6 +6256,7 @@ class ShowcaseRunner:
                     escape(str(row.get("action") or "-")),
                     escape(str(row.get("proof_type") or "-")),
                     escape(str(row.get("timestamp") or "-")),
+                    escape(tx_note if tx_source == "-" else f"{tx_note} ({tx_source})"),
                 ]
             )
 
@@ -8862,7 +8914,7 @@ class ShowcaseRunner:
       <p class="meta">RPC used: {escape(str((payload.get('onchain') or {}).get('rpc_url') or '-'))}</p>
       {self._html_table(["Contract", "Address", "Class Hash"], contract_rows)}
       <h3>Receipts / Tx Links</h3>
-      {self._html_table(["Tx", "Action", "Proof Type", "Timestamp"], receipt_rows)}
+      {self._html_table(["Tx", "Action", "Proof Type", "Timestamp", "Link Status"], receipt_rows)}
     </section>
 
     <section class="report-section" data-main-tab="infra" data-sub-tab="circuits">
