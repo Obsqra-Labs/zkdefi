@@ -508,6 +508,34 @@ class AgentSkillService:
                 "production_error": True,
             }
 
+        if proof_result.get("success") and proof_result.get("proof_hash"):
+            try:
+                from .proof_registry import get_proof_registry
+
+                raw_proof = proof_result.get("proof")
+                proof_size_bytes = len(str(raw_proof).encode()) if raw_proof is not None else 0
+                public_signals = proof_result.get("public_signals") or []
+                inference_output: list[float] = []
+                if isinstance(public_signals, list):
+                    for value in public_signals:
+                        try:
+                            inference_output.append(float(value))
+                        except (TypeError, ValueError):
+                            continue
+
+                get_proof_registry().store_proof(
+                    proof_hash=str(proof_result.get("proof_hash")),
+                    model_name=skill.circuit_name,
+                    user_address=hex(user_address) if user_address else "",
+                    proof_type="groth16",
+                    action_type=skill.skill_id,
+                    proof_size_bytes=proof_size_bytes,
+                    inference_output=inference_output,
+                    verified_locally=bool(proof_result.get("success")),
+                )
+            except Exception as exc:
+                logger.warning("Failed to register skill proof %s: %s", skill_id, exc)
+
         duration = int((time.monotonic() - t0) * 1000)
 
         return {

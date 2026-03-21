@@ -201,6 +201,27 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
                 return v
     except Exception:
         pass
+
+    try:
+        from app.services.proof_registry import get_proof_registry
+
+        record = get_proof_registry().get_proof(proof_hash)
+        if record is not None:
+            return {
+                "proof_hash": record.proof_hash,
+                "status": "indexed",
+                "source": "proof_registry",
+                "model_name": record.model_name,
+                "user_address": record.user_address,
+                "proof_type": record.proof_type,
+                "action_type": record.action_type,
+                "verified_locally": record.verified_locally,
+                "created_at": record.created_at,
+                "tx_hash": record.tx_hash,
+                "registry_record": record.to_dict(),
+            }
+    except Exception:
+        pass
     raise HTTPException(status_code=404, detail="Proof not found")
 
 
