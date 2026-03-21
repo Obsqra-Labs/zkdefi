@@ -250,19 +250,55 @@ async def _probe_native_kzg_onchain(
     payload_fingerprint = _payload_fingerprint(payload)
     url = f"{base_url.rstrip('/')}/api/v1/zkdefi/proofs/ml-bridge"
 
-    async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+    probe_attempts: list[dict[str, Any]] = []
+    final_resp = None
+    final_body: dict[str, Any] = {}
+    final_error = ""
+    timeout_budget = max(30.0, float(timeout_seconds))
+    for attempt in range(1, 3):
+        attempt_timeout = timeout_budget if attempt == 1 else max(timeout_budget * 1.5, timeout_budget + 90.0)
         try:
-            resp = await client.post(url, json=payload)
-            body = resp.json() if resp.content else {}
+            async with httpx.AsyncClient(timeout=attempt_timeout) as client:
+                resp = await client.post(url, json=payload)
+                body = resp.json() if resp.content else {}
+            probe_attempts.append(
+                {
+                    "attempt": attempt,
+                    "timeout_seconds": attempt_timeout,
+                    "status": int(resp.status_code),
+                    "error": None,
+                }
+            )
+            final_resp = resp
+            final_body = body if isinstance(body, dict) else {}
+            final_error = ""
+            if int(resp.status_code) == 200:
+                break
         except Exception as exc:
-            return {
-                "attempted": True,
-                "status": 0,
-                "verified_on_chain": False,
-                "can_execute": False,
-                "error": str(exc),
-            }
+            final_resp = None
+            final_body = {}
+            final_error = str(exc)
+            probe_attempts.append(
+                {
+                    "attempt": attempt,
+                    "timeout_seconds": attempt_timeout,
+                    "status": 0,
+                    "error": final_error,
+                }
+            )
 
+    if final_resp is None:
+        return {
+            "attempted": True,
+            "status": 0,
+            "verified_on_chain": False,
+            "can_execute": False,
+            "error": final_error,
+            "attempts": probe_attempts,
+        }
+
+    resp = final_resp
+    body = final_body
     verification = body.get("verification") if isinstance(body, dict) else {}
     l3 = verification.get("l3") if isinstance(verification, dict) else {}
     l2 = verification.get("l2") if isinstance(verification, dict) else {}
@@ -288,6 +324,7 @@ async def _probe_native_kzg_onchain(
         "trust_mode": body.get("trust_mode") if isinstance(body, dict) else None,
         "failure_reason": verification.get("failure_reason") if isinstance(verification, dict) else None,
         "error": (body.get("detail") or body.get("error")) if isinstance(body, dict) else None,
+        "attempts": probe_attempts,
     }
 
 
@@ -529,6 +566,7 @@ async def _run(args: argparse.Namespace) -> int:
                 row["native_kzg_trust_mode"] = native_probe.get("trust_mode")
                 row["native_kzg_probe_seed"] = native_probe.get("probe_seed")
                 row["native_kzg_payload_fingerprint"] = native_probe.get("payload_fingerprint")
+                row["native_kzg_probe_attempts"] = native_probe.get("attempts")
                 row["native_kzg_failure_reason"] = native_probe.get("failure_reason") or native_probe.get("error")
         except Exception as exc:
             row["ezkl_verified"] = False

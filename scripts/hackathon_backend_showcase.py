@@ -311,6 +311,23 @@ def _percentile_int(values: list[int], pct: float) -> int | None:
     return ordered[idx]
 
 
+def _compact_int(value: Any) -> str:
+    try:
+        n = int(value)
+    except Exception:
+        return "-"
+    abs_n = abs(n)
+    if abs_n >= 1_000_000_000_000:
+        return f"{n / 1_000_000_000_000:.1f}T"
+    if abs_n >= 1_000_000_000:
+        return f"{n / 1_000_000_000:.1f}B"
+    if abs_n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if abs_n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
+
+
 def _voyager_contract_url(address: str | None) -> str | None:
     if not address:
         return None
@@ -2584,7 +2601,7 @@ class ShowcaseRunner:
         elif self.strict_bridge:
             # Dual executes L3 + mirror semantics; give it extra room to avoid
             # false negatives caused only by request timeout pressure.
-            dual_bridge_timeout = max(bridge_timeout, 45.0)
+            dual_bridge_timeout = max(bridge_timeout, 75.0)
         else:
             dual_bridge_timeout = bridge_timeout
         strict_attempts_override = _safe_int(os.getenv("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"), 0)
@@ -5421,9 +5438,191 @@ class ShowcaseRunner:
             "rows": rows,
         }
 
+    def _bridge_runtime_stability_from_history(
+        self,
+        benchmark_rollup: dict[str, Any],
+        *,
+        window_runs: int = 40,
+    ) -> dict[str, Any]:
+        history_path = self.artifact_dir / "history.jsonl"
+        out: dict[str, Any] = {
+            "artifact_path": _relative_to_project(history_path),
+            "history_found": history_path.exists(),
+            "history_entries_total": 0,
+            "history_entries_used": 0,
+            "window_runs_requested": max(1, int(window_runs)),
+            "path_rows": [],
+        }
+        if not history_path.exists():
+            return out
+
+        entries: list[dict[str, Any]] = []
+        for line in history_path.read_text(encoding="utf-8").splitlines():
+            raw = line.strip()
+            if not raw:
+                continue
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                continue
+            if isinstance(parsed, dict):
+                entries.append(parsed)
+
+        used_rows = entries[-max(1, int(window_runs)) :]
+        out["history_entries_total"] = len(entries)
+        out["history_entries_used"] = len(used_rows)
+
+        benchmark_rows = (
+            benchmark_rollup.get("rows")
+            if isinstance(benchmark_rollup.get("rows"), list)
+            else []
+        )
+        benchmark_index: dict[str, dict[str, Any]] = {}
+        for row in benchmark_rows:
+            if not isinstance(row, dict):
+                continue
+            lane_key = str(row.get("lane_key") or "").strip().lower()
+            if lane_key:
+                benchmark_index[lane_key] = row
+
+        pathb_latest: dict[str, Any] = {}
+        if PATHB_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHB_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    pathb_latest = parsed
+            except Exception:
+                pathb_latest = {}
+
+        pathc_latest: dict[str, Any] = {}
+        if PATHC_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHC_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    pathc_latest = parsed
+            except Exception:
+                pathc_latest = {}
+
+        patha_latest: dict[str, Any] = {}
+        if PATHA_LIVE_RECEIPT_FILE.exists():
+            try:
+                parsed = json.loads(PATHA_LIVE_RECEIPT_FILE.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    patha_latest = parsed
+            except Exception:
+                patha_latest = {}
+
+        def _lane_rate_row(
+            path_label: str,
+            lane_key: str,
+            *,
+            status: str,
+            note: str,
+            latest_tx_hash: str,
+        ) -> dict[str, Any]:
+            bench = benchmark_index.get(lane_key, {})
+            return {
+                "path": path_label,
+                "status": status,
+                "samples": _safe_int(bench.get("samples"), 0),
+                "verified_rate_pct": _safe_float(bench.get("verified_rate_pct"), 0.0),
+                "duration_p50_ms": _safe_int(bench.get("duration_p50_ms"), 0),
+                "duration_p95_ms": _safe_int(bench.get("duration_p95_ms"), 0),
+                "fee_p50": _safe_int(bench.get("fee_p50"), 0),
+                "fee_p95": _safe_int(bench.get("fee_p95"), 0),
+                "latest_mode": str(bench.get("latest_mode") or ""),
+                "latest_verified": bool(bench.get("latest_verified")),
+                "latest_tx_hash": latest_tx_hash or str(bench.get("latest_tx_hash") or ""),
+                "note": note,
+            }
+
+        path_rows: list[dict[str, Any]] = []
+        path_rows.append(
+            _lane_rate_row(
+                "Path A",
+                "noir",
+                status="live noir_honk"
+                if bool(patha_latest.get("l3_verified_on_chain"))
+                else "degraded",
+                note="Receipt-backed Noir HONK lane with recurring L3 verifier evidence.",
+                latest_tx_hash=str(patha_latest.get("l3_tx_hash") or ""),
+            )
+        )
+        path_rows.append(
+            _lane_rate_row(
+                "Path B",
+                "native_kzg",
+                status=(
+                    f"strict native_kzg {pathb_latest.get('verified_models') or 0}/{pathb_latest.get('attempted_models') or 0} mirrored"
+                    if bool(pathb_latest.get("live_verified"))
+                    else "degraded"
+                ),
+                note=(
+                    f"Coverage {pathb_latest.get('verified_models') or 0}/{pathb_latest.get('attempted_models') or 0} "
+                    f"models on {pathb_latest.get('execution_chain') or '-'}; "
+                    f"L2 mirrored {pathb_latest.get('mirrored_models') or 0}."
+                ),
+                latest_tx_hash=str(
+                    (benchmark_index.get("native_kzg") or {}).get("latest_tx_hash") or ""
+                ),
+            )
+        )
+
+        pathc_samples = 0
+        pathc_verified = 0
+        pathc_recent = 0
+        latest_pathc_tx = str(pathc_latest.get("tx_hash") or "")
+        latest_pathc_checked = _parse_iso_datetime(pathc_latest.get("last_checked_at"))
+        latest_pathc_age = (
+            max(0.0, (datetime.now(timezone.utc) - latest_pathc_checked).total_seconds() / 3600.0)
+            if latest_pathc_checked is not None
+            else _safe_float(pathc_latest.get("age_hours"), 0.0)
+        )
+        for entry in used_rows:
+            pathc = entry.get("path_c_live") if isinstance(entry.get("path_c_live"), dict) else {}
+            if not pathc:
+                continue
+            pathc_samples += 1
+            if bool(pathc.get("verified")) and bool(pathc.get("l2_verified_on_l2")):
+                pathc_verified += 1
+            if bool(pathc.get("checked_recently")):
+                pathc_recent += 1
+            if not latest_pathc_tx:
+                latest_pathc_tx = str(pathc.get("tx_hash") or "")
+        path_rows.append(
+            {
+                "path": "Path C",
+                "status": "l1->l2 confirmed"
+                if bool(pathc_latest.get("l2_verified"))
+                else "pending confirmation",
+                "samples": pathc_samples,
+                "verified_rate_pct": (
+                    round((pathc_verified / pathc_samples) * 100.0, 2) if pathc_samples > 0 else 0.0
+                ),
+                "duration_p50_ms": None,
+                "duration_p95_ms": None,
+                "fee_p50": None,
+                "fee_p95": None,
+                "latest_mode": "l1_bridge",
+                "latest_verified": bool(pathc_latest.get("l2_verified")),
+                "latest_tx_hash": latest_pathc_tx,
+                "note": (
+                    f"L2 confirmed {pathc_verified}/{pathc_samples} recent report windows; "
+                    f"checked_recently {pathc_recent}/{pathc_samples}; "
+                    f"last age {latest_pathc_age:.2f}h."
+                ),
+            }
+        )
+        out["path_rows"] = path_rows
+        return out
+
     def _report_payload(self, started_at: float, exit_code: int) -> dict[str, Any]:
         benchmark_rollup = self._benchmark_rollup_from_history(
             window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40)
+        )
+        bridge_runtime_stability = self._bridge_runtime_stability_from_history(
+            benchmark_rollup,
+            window_runs=_safe_int(os.getenv("SHOWCASE_BENCHMARK_WINDOW_RUNS"), 40),
         )
         report_state = self._last_report_state or self._report_state()
         return {
@@ -5455,6 +5654,7 @@ class ShowcaseRunner:
             "circuit_inventory": self._circuit_inventory,
             "bridge_architecture": self._bridge_architecture,
             "benchmark_rollup": benchmark_rollup,
+            "bridge_runtime_stability": bridge_runtime_stability,
             "recursive_ezkl_paths": self._recursive_ezkl_paths,
             "heavy_stark_showcase": self._heavy_stark_showcase,
             "ecosystem_landscape": self._ecosystem_landscape,
@@ -6481,6 +6681,55 @@ class ShowcaseRunner:
                     escape(str(row.get("latest_mode") or "-")),
                     latest_verified_html,
                     tx_html,
+                ]
+            )
+
+        bridge_runtime_stability = (
+            payload.get("bridge_runtime_stability")
+            if isinstance(payload.get("bridge_runtime_stability"), dict)
+            else {}
+        )
+        top_ops_snapshot_rows = []
+        for row in (benchmark_rollup.get("rows") or []):
+            if not isinstance(row, dict):
+                continue
+            top_ops_snapshot_rows.append(
+                [
+                    escape(str(row.get("lane") or "-")),
+                    escape(f"{_safe_float(row.get('verified_rate_pct'), 0.0):.2f}%"),
+                    escape(str(row.get("duration_p50_ms") or "-")),
+                    escape(str(row.get("duration_p95_ms") or "-")),
+                    escape(_compact_int(row.get("fee_p50")) if row.get("fee_p50") else "-"),
+                    escape(_compact_int(row.get("fee_p95")) if row.get("fee_p95") else "-"),
+                ]
+            )
+
+        path_stability_rows = []
+        for row in (bridge_runtime_stability.get("path_rows") or []):
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("latest_tx_hash") or "-")
+            tx_url: str | None = None
+            if str(row.get("path") or "") == "Path C":
+                tx_url = _etherscan_tx_url(tx_hash) if tx_hash and tx_hash != "-" else None
+            elif str(row.get("path") or "") == "Path B":
+                tx_url = _starknet_tx_url(tx_hash, path_b_runtime_verifier.get("rpc_url") or self._madara_rpc_url) if tx_hash and tx_hash != "-" else None
+            else:
+                tx_url = _starknet_tx_url(tx_hash, self._madara_rpc_url) if tx_hash and tx_hash != "-" else None
+            tx_html = (
+                f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 12))}</a>"
+                if tx_url and tx_hash != "-"
+                else escape(_short_hex(tx_hash, 12) if tx_hash != "-" else "-")
+            )
+            path_stability_rows.append(
+                [
+                    escape(str(row.get("path") or "-")),
+                    escape(str(row.get("status") or "-")),
+                    escape(str(row.get("samples") or 0)),
+                    escape(f"{_safe_float(row.get('verified_rate_pct'), 0.0):.2f}%"),
+                    escape(str(row.get("latest_mode") or "-")),
+                    tx_html,
+                    escape(str(row.get("note") or "-")),
                 ]
             )
 
@@ -7612,6 +7861,23 @@ class ShowcaseRunner:
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }}
+    .summary-panels {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }}
+    .summary-panel {{
+      border: 1px solid #2f3b54;
+      border-radius: 12px;
+      background: rgba(12, 18, 29, 0.8);
+      padding: 12px;
+    }}
+    .summary-panel h3 {{
+      margin-top: 0;
+    }}
+    .summary-panel .meta {{
+      font-size: 12px;
+    }}
     .exec-card {{
       border: 1px solid #2f3b54;
       border-radius: 12px;
@@ -7734,6 +8000,7 @@ class ShowcaseRunner:
       h2 {{ font-size: 18px; }}
       .hero-top {{ grid-template-columns: 1fr; }}
       .hero-meta-grid {{ grid-template-columns: 1fr; }}
+      .summary-panels {{ grid-template-columns: 1fr; }}
       .executive {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       th, td {{ font-size: 12px; padding: 7px 6px; }}
     }}
@@ -7790,6 +8057,24 @@ class ShowcaseRunner:
 
       <div class="executive">
         {executive_cards_html}
+      </div>
+
+      <div class="summary-panels">
+        <article class="summary-panel">
+          <h3>Operational Benchmark Snapshot</h3>
+          <p class="meta">
+            Visible rollup from the recent strict/full history window so gas and latency do not stay buried in the bridge appendix.
+            Window={escape(str(benchmark_rollup.get('history_entries_used') or 0))}/{escape(str(benchmark_rollup.get('history_entries_total') or 0))} runs.
+          </p>
+          {self._html_table(["Lane", "Verified Rate", "p50 ms", "p95 ms", "p50 Fee", "p95 Fee"], top_ops_snapshot_rows)}
+        </article>
+        <article class="summary-panel">
+          <h3>Recursive Path Stability</h3>
+          <p class="meta">
+            Multirun evidence for Paths A/B/C. This is the bridge/runtime view: current state, recent pass rate, and latest receipt pointer.
+          </p>
+          {self._html_table(["Path", "Current State", "Samples", "Verified Rate", "Mode", "Latest Tx", "Note"], path_stability_rows)}
+        </article>
       </div>
 
       <div class="tab-nav" data-group="main">
@@ -7897,6 +8182,11 @@ class ShowcaseRunner:
         Source: <code>{escape(str(benchmark_rollup.get('artifact_path') or 'artifacts/hackathon_showcase/history.jsonl'))}</code>
       </p>
       {self._html_table(["Lane", "Samples", "Verified Rate", "Dominant Mode", "p50 ms", "p95 ms", "p50 Fee", "p95 Fee", "Latest Mode", "Latest Verified", "Latest Tx"], benchmark_trend_rows)}
+      <h3>Recursive Path Stability (Multirun)</h3>
+      <p class="meta">
+        Path-level runtime evidence across the same history window. Path B includes live model coverage and dual mirror state, while Path C tracks recurring bridge confirmation rather than just one L1 tx.
+      </p>
+      {self._html_table(["Path", "Current State", "Samples", "Verified Rate", "Mode", "Latest Tx", "Note"], path_stability_rows)}
       <h3>StarkHeavyReputation (Stone -> L3)</h3>
       <p class="meta">
         Phase 1 backend lane: protocol-agnostic 4-pool heavy STARK proving path (`stark_heavy_reputation` /
