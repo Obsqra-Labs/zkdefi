@@ -5,7 +5,7 @@ Hackathon backend showcase runner.
 Purpose:
 - Demonstrate "UI lagging behind backend" with terminal-first evidence.
 - Validate core claims across proofs, agents, privacy rails, and on-chain reads.
-- Emit a local HTML + JSON report with Voyager links and deep circuit evidence.
+- Emit a local HTML + JSON report with Starkscan/Etherscan links and deep circuit evidence.
 
 Usage:
   python scripts/hackathon_backend_showcase.py
@@ -38,7 +38,7 @@ DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "hackathon_showcase"
 ENV_FILE = PROJECT_ROOT / "backend" / ".env"
 PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
-VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
+STARKSCAN_SEPOLIA_BASE = "https://sepolia.starkscan.co"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
 PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
@@ -420,6 +420,221 @@ def _pathc_capture_history_summary(path: Path, *, window_entries: int = 12) -> d
     }
 
 
+def _load_l1_route_map(env_map: dict[str, str]) -> dict[str, dict[str, str]]:
+    raw = str(env_map.get("L1_EZKL_ROUTE_MAP") or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    routes: dict[str, dict[str, str]] = {}
+    for key, value in parsed.items():
+        route_key = str(key or "").strip().lower()
+        if not route_key or not isinstance(value, dict):
+            continue
+        routes[route_key] = {
+            "verifier_address": str(value.get("verifier_address") or value.get("verifier") or "").strip(),
+            "bridge_sender_address": str(
+                value.get("bridge_sender_address")
+                or value.get("bridge_sender")
+                or value.get("sender_address")
+                or ""
+            ).strip(),
+            "bridge_receiver_address": str(
+                value.get("bridge_receiver_address")
+                or value.get("receiver_address")
+                or value.get("l2_receiver_address")
+                or ""
+            ).strip(),
+            "mode": str(value.get("mode") or "").strip().lower(),
+        }
+    return routes
+
+
+def _pathc_route_inventory(
+    *,
+    history_path: Path,
+    latest_artifact: dict[str, Any],
+    parent_env: dict[str, str],
+    parent_api_base: str,
+    timeout_seconds: float = 8.0,
+) -> dict[str, Any]:
+    rows = _load_jsonl_dict_rows(history_path)
+    route_map = _load_l1_route_map(parent_env)
+    default_verifier = str(parent_env.get("L1_EZKL_VERIFIER_ADDRESS") or "").strip()
+    default_sender = str(parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS") or "").strip()
+    default_receiver = str(parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS") or "").strip()
+    inventory: dict[str, dict[str, Any]] = {}
+
+    def _route_slot(key: str, model_name: str | None = None) -> dict[str, Any]:
+        route_key = str(key or "").strip().lower() or "default"
+        if route_key not in inventory:
+            configured = route_map.get(route_key, {})
+            inventory[route_key] = {
+                "route_key": route_key,
+                "resolved_model_name": model_name or (None if route_key == "default" else route_key),
+                "route_source": "default" if route_key == "default" else "model_name",
+                "verifier_address": configured.get("verifier_address") or default_verifier,
+                "bridge_sender_address": configured.get("bridge_sender_address") or default_sender,
+                "bridge_receiver_address": configured.get("bridge_receiver_address") or default_receiver,
+                "mode": configured.get("mode") or ("verify_and_bridge" if route_key != "default" else ""),
+                "configured": bool(configured) or route_key == "default",
+                "latest_tx_hash": "",
+                "used_nonce": None,
+                "model_hash": "",
+                "raw_model_hash": "",
+                "generated_at": "",
+                "last_checked_at": "",
+                "l1_status": None,
+                "l2_verified": False,
+                "l2_block_timestamp": None,
+                "live_poll_verified": False,
+                "live_poll_output_commitment": "",
+                "live_poll_block_timestamp": None,
+                "is_primary": False,
+            }
+        return inventory[route_key]
+
+    def _merge_row(slot: dict[str, Any], row: dict[str, Any], *, primary: bool = False) -> None:
+        model_name = str(row.get("resolved_model_name") or row.get("source_model_name") or "").strip()
+        if model_name:
+            slot["resolved_model_name"] = model_name
+        if primary:
+            slot["is_primary"] = True
+        for field_name in ("route_source", "verifier_address", "bridge_sender_address", "bridge_receiver_address"):
+            value = str(row.get(field_name) or "").strip()
+            if value:
+                slot[field_name] = value
+        if row.get("tx_hash"):
+            slot["latest_tx_hash"] = str(row.get("tx_hash"))
+        if row.get("used_nonce") is not None:
+            slot["used_nonce"] = row.get("used_nonce")
+        model_hash = str(
+            row.get("bridge_model_hash")
+            or row.get("model_hash")
+            or ""
+        ).strip()
+        raw_model_hash = str(row.get("raw_model_hash") or "").strip()
+        if model_hash:
+            slot["model_hash"] = model_hash
+        if raw_model_hash:
+            slot["raw_model_hash"] = raw_model_hash
+        if row.get("generated_at"):
+            slot["generated_at"] = str(row.get("generated_at"))
+        if row.get("last_checked_at"):
+            slot["last_checked_at"] = str(row.get("last_checked_at"))
+        if row.get("l1_status") is not None:
+            slot["l1_status"] = row.get("l1_status")
+        if row.get("l2_block_timestamp") is not None:
+            slot["l2_block_timestamp"] = row.get("l2_block_timestamp")
+        slot["l2_verified"] = bool(
+            row.get("l2_verified")
+            or row.get("l2_verified_on_l2")
+            or slot.get("l2_verified")
+        )
+
+    for history_row in rows:
+        route_key = str(history_row.get("route_key") or "").strip().lower()
+        model_name = str(history_row.get("resolved_model_name") or history_row.get("source_model_name") or "").strip()
+        slot = _route_slot(route_key or model_name or "default", model_name or None)
+        _merge_row(slot, history_row)
+
+    if latest_artifact:
+        latest_route_key = str(latest_artifact.get("route_key") or "").strip().lower()
+        latest_model_name = str(
+            latest_artifact.get("resolved_model_name")
+            or latest_artifact.get("source_model_name")
+            or ""
+        ).strip()
+        slot = _route_slot(latest_route_key or latest_model_name or "default", latest_model_name or None)
+        _merge_row(slot, latest_artifact, primary=True)
+
+    for route_key, configured in route_map.items():
+        _route_slot(route_key, route_key if route_key != "default" else None)
+        slot = inventory[route_key]
+        if configured.get("verifier_address"):
+            slot["verifier_address"] = configured.get("verifier_address")
+        if configured.get("bridge_sender_address"):
+            slot["bridge_sender_address"] = configured.get("bridge_sender_address")
+        if configured.get("bridge_receiver_address"):
+            slot["bridge_receiver_address"] = configured.get("bridge_receiver_address")
+        if configured.get("mode"):
+            slot["mode"] = configured.get("mode")
+
+    if rows and "default" not in inventory:
+        default_rows = [
+            row
+            for row in rows
+            if not str(row.get("route_key") or "").strip()
+        ]
+        if default_rows:
+            slot = _route_slot("default", str(default_rows[-1].get("resolved_model_name") or default_rows[-1].get("source_model_name") or "").strip() or "creditworthiness")
+            slot["route_source"] = "default"
+            if default_verifier:
+                slot["verifier_address"] = default_verifier
+            if default_sender:
+                slot["bridge_sender_address"] = default_sender
+            if default_receiver:
+                slot["bridge_receiver_address"] = default_receiver
+
+    for slot in inventory.values():
+        model_hash = str(slot.get("model_hash") or "").strip()
+        nonce = slot.get("used_nonce")
+        if not model_hash or nonce is None:
+            continue
+        query = {"model_hash": model_hash, "nonce": str(nonce)}
+        raw_model_hash = str(slot.get("raw_model_hash") or "").strip()
+        model_name = str(slot.get("resolved_model_name") or "").strip()
+        receiver = str(slot.get("bridge_receiver_address") or "").strip()
+        if raw_model_hash:
+            query["raw_model_hash"] = raw_model_hash
+        if model_name and model_name.lower() != "default":
+            query["model_name"] = model_name
+        if receiver:
+            query["receiver_address"] = receiver
+        status_url = (
+            f"{parent_api_base.rstrip('/')}/api/v1/aggregation/l1/verification-status?"
+            + parse.urlencode(query)
+        )
+        slot["poll_url"] = status_url
+        try:
+            req = request.Request(
+                url=status_url,
+                method="GET",
+                headers={"Accept": "application/json", "User-Agent": "zkdefi-hackathon-showcase/2.0"},
+            )
+            with request.urlopen(req, timeout=timeout_seconds) as resp:
+                parsed = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+            live_verified = bool(parsed.get("verified_on_l2") or parsed.get("verified"))
+            slot["live_poll_verified"] = live_verified
+            slot["live_poll_output_commitment"] = str(parsed.get("output_commitment") or "")
+            slot["live_poll_block_timestamp"] = _safe_int(parsed.get("block_timestamp"), 0) or None
+            slot["l2_verified"] = bool(slot.get("l2_verified") or live_verified)
+            if slot["live_poll_block_timestamp"] and not slot.get("l2_block_timestamp"):
+                slot["l2_block_timestamp"] = slot["live_poll_block_timestamp"]
+        except Exception:
+            slot["live_poll_verified"] = bool(slot.get("l2_verified"))
+
+    inventory_rows = sorted(
+        inventory.values(),
+        key=lambda row: (
+            0 if row.get("is_primary") else 1,
+            0 if row.get("l2_verified") else 1,
+            str(row.get("resolved_model_name") or row.get("route_key") or ""),
+        ),
+    )
+    return {
+        "configured_routes_total": len(inventory_rows),
+        "receipt_routes_total": sum(1 for row in inventory_rows if row.get("latest_tx_hash")),
+        "confirmed_routes_total": sum(1 for row in inventory_rows if row.get("l2_verified")),
+        "primary_route_key": next((str(row.get("route_key") or "") for row in inventory_rows if row.get("is_primary")), None),
+        "rows": inventory_rows,
+    }
+
+
 def _compact_int(value: Any) -> str:
     try:
         n = int(value)
@@ -440,19 +655,19 @@ def _compact_int(value: Any) -> str:
 def _voyager_contract_url(address: str | None) -> str | None:
     if not address:
         return None
-    return f"{VOYAGER_SEPOLIA_BASE}/contract/{address}"
+    return f"{STARKSCAN_SEPOLIA_BASE}/contract/{address}"
 
 
 def _voyager_class_url(class_hash: str | None) -> str | None:
     if not class_hash:
         return None
-    return f"{VOYAGER_SEPOLIA_BASE}/class/{class_hash}"
+    return f"{STARKSCAN_SEPOLIA_BASE}/class/{class_hash}"
 
 
 def _voyager_tx_url(tx_hash: str | None) -> str | None:
     if not tx_hash:
         return None
-    return f"{VOYAGER_SEPOLIA_BASE}/tx/{tx_hash}"
+    return f"{STARKSCAN_SEPOLIA_BASE}/tx/{tx_hash}"
 
 
 def _etherscan_address_url(address: str | None) -> str | None:
@@ -2067,7 +2282,7 @@ class ShowcaseRunner:
             "rpc_url": selected_rpc,
             "block_number": block_result if ok_block else f"error:{block_result}",
             "resolved_contracts": len(resolved),
-            "voyager_links": len(contract_rows),
+            "explorer_links": len(contract_rows),
         }
         for key in sorted(resolved):
             detail_map[f"{key}_class_hash"] = _short_hex(resolved[key], size=10)
@@ -3795,6 +4010,12 @@ class ShowcaseRunner:
             or ""
         )
         parent_api_base = str(parent_env.get("OBSQRA_API_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
+        pathc_route_inventory = _pathc_route_inventory(
+            history_path=PATHC_HISTORY_FILE,
+            latest_artifact=pathc_live_receipt_raw,
+            parent_env=parent_env,
+            parent_api_base=parent_api_base,
+        )
         pathc_poll_url = None
         pathc_status_query = (
             pathc_live_receipt_raw.get("verification_status_query")
@@ -4250,6 +4471,7 @@ class ShowcaseRunner:
                 "receiver_address": pathc_receiver,
             },
             "path_c_capture_history": pathc_capture_history,
+            "path_c_route_inventory": pathc_route_inventory,
             "next_steps": next_steps,
         }
 
@@ -5790,6 +6012,11 @@ class ShowcaseRunner:
 
         pathc_bench = benchmark_index.get("path_c", {})
         pathc_capture_history = _pathc_capture_history_summary(PATHC_HISTORY_FILE, window_entries=12)
+        pathc_route_inventory = (
+            recursive_paths.get("path_c_route_inventory")
+            if isinstance(recursive_paths.get("path_c_route_inventory"), dict)
+            else {}
+        )
         pathc_samples = 0
         pathc_verified = 0
         pathc_recent = 0
@@ -5830,6 +6057,8 @@ class ShowcaseRunner:
                 "latest_verified": bool(pathc_latest.get("l2_verified")),
                 "latest_tx_hash": latest_pathc_tx,
                 "note": (
+                    f"route coverage {pathc_route_inventory.get('confirmed_routes_total') or 0}/"
+                    f"{pathc_route_inventory.get('configured_routes_total') or 0} confirmed; "
                     f"recent model coverage {pathc_capture_history.get('distinct_models_recent') or 0}/"
                     f"{pathc_capture_history.get('distinct_models_total') or 0}; "
                     f"L2 confirmed {pathc_verified}/{pathc_samples} recent report windows; "
@@ -6166,7 +6395,7 @@ class ShowcaseRunner:
             ["Required ABI methods", escape(", ".join(path_b_runtime_verifier.get("required_methods") or []) or "-")],
             ["ABI methods found", escape(", ".join(path_b_runtime_verifier.get("abi_methods") or []) or "-")],
             ["Strict selector readiness", "<span class=\"pass\">ready</span>" if path_b_runtime_verifier.get("required_methods_ok") else "<span class=\"fail\">missing ABI method</span>"],
-            ["Public explorer", escape("not available for local Madara L3") if _is_local_rpc_url(path_b_runtime_verifier.get("rpc_url")) else escape("Voyager")],
+            ["Public explorer", escape("not available for local Madara L3") if _is_local_rpc_url(path_b_runtime_verifier.get("rpc_url")) else escape("Starkscan")],
         ]
         path_a_live_tx = str(path_a_live.get("tx_hash") or "")
         path_a_live_tx_url = str(path_a_live.get("tx_url") or "")
@@ -6439,6 +6668,11 @@ class ShowcaseRunner:
             if isinstance(recursive_paths.get("path_c_capture_history"), dict)
             else {}
         )
+        path_c_route_inventory = (
+            recursive_paths.get("path_c_route_inventory")
+            if isinstance(recursive_paths.get("path_c_route_inventory"), dict)
+            else {}
+        )
         path_c_recent_models = path_c_capture_history.get("recent_models") if isinstance(path_c_capture_history.get("recent_models"), list) else []
         path_c_live_rows = [
             ["Artifact path", f"<code>{escape(str(path_c_live.get('artifact_path') or '-'))}</code>"],
@@ -6478,8 +6712,55 @@ class ShowcaseRunner:
             ["Capture history file", f"<code>{escape(str(path_c_capture_history.get('artifact_path') or '-'))}</code>"],
             ["Distinct models captured", escape(str(path_c_capture_history.get("distinct_models_total") or 0))],
             ["Recent model coverage", escape(", ".join(str(x) for x in path_c_recent_models) if path_c_recent_models else "-")],
+            ["Configured route inventory", escape(str(path_c_route_inventory.get("configured_routes_total") or 0))],
+            ["Receipt-backed routes", escape(str(path_c_route_inventory.get("receipt_routes_total") or 0))],
+            ["L2-confirmed routes", escape(str(path_c_route_inventory.get("confirmed_routes_total") or 0))],
             ["Verification status URL", path_c_poll_html],
         ]
+        path_c_route_rows = []
+        for row in path_c_route_inventory.get("rows") or []:
+            if not isinstance(row, dict):
+                continue
+            tx_hash = str(row.get("latest_tx_hash") or "")
+            tx_url = _etherscan_tx_url(tx_hash) if tx_hash else None
+            tx_html = (
+                f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
+                if tx_url
+                else escape(_short_hex(tx_hash, 14) if tx_hash else "-")
+            )
+            verifier = str(row.get("verifier_address") or "")
+            sender = str(row.get("bridge_sender_address") or "")
+            receiver = str(row.get("bridge_receiver_address") or "")
+            verifier_html = (
+                f"<a href=\"{escape(_etherscan_address_url(verifier) or '')}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(verifier, 14))}</a>"
+                if verifier and _etherscan_address_url(verifier)
+                else escape(_short_hex(verifier, 14) if verifier else "-")
+            )
+            sender_html = (
+                f"<a href=\"{escape(_etherscan_address_url(sender) or '')}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(sender, 14))}</a>"
+                if sender and _etherscan_address_url(sender)
+                else escape(_short_hex(sender, 14) if sender else "-")
+            )
+            status_html = (
+                "<span class=\"pass\">confirmed</span>"
+                if row.get("l2_verified")
+                else "<span class=\"warn\">l1 mined / pending l2</span>"
+                if row.get("latest_tx_hash")
+                else "<span class=\"warn\">configured</span>"
+            )
+            primary_html = "<span class=\"pass\">yes</span>" if row.get("is_primary") else "-"
+            path_c_route_rows.append(
+                [
+                    escape(str(row.get("resolved_model_name") or row.get("route_key") or "-")),
+                    escape(str(row.get("route_key") or "-")),
+                    status_html,
+                    primary_html,
+                    verifier_html,
+                    sender_html,
+                    escape(_short_hex(receiver, 14) if receiver else "-"),
+                    tx_html,
+                ]
+            )
         path_c_history_rows = []
         if PATHC_HISTORY_FILE.exists():
             for row in _load_jsonl_dict_rows(PATHC_HISTORY_FILE)[-6:]:
@@ -8534,6 +8815,9 @@ class ShowcaseRunner:
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
+      <h3>Path C Route Coverage</h3>
+      <p class="meta">Configured model-specific L1 bridge routes cross-checked against the latest live captures. This is the fastest way to see how broad the L1 -&gt; L2 bridge surface really is right now, instead of reading only the current primary receipt.</p>
+      {self._html_table(["Model", "Route Key", "Status", "Primary", "Verifier", "Sender", "Receiver", "Latest Tx"], path_c_route_rows)}
       <h3>Path C Recent Receipt History</h3>
       <p class="meta">Recent Path C captures across first-party EZKL models. This is the bridge-coverage view, separate from the single latest receipt used by the strict gate.</p>
       {self._html_table(["Model", "Captured At (UTC)", "Route Source", "Route Key", "L2 Confirmed", "Latency ms", "L1 Gas", "Tx"], path_c_history_rows)}
@@ -8569,7 +8853,7 @@ class ShowcaseRunner:
     </section>
 
     <section class="report-section" data-main-tab="infra" data-sub-tab="contracts">
-      <h2>On-chain Links (Voyager)</h2>
+      <h2>On-chain Links (Starkscan)</h2>
       <div class="intent">
         <strong>What this tests:</strong> Contract/class presence on Starknet RPC and receipt linkage to explorer URLs.<br/>
         <strong>Why Obsqra Labs wanted this:</strong> “View on-chain” buttons in product surfaces should point to these references.<br/>
