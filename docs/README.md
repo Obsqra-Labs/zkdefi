@@ -80,6 +80,7 @@ Bridge artifacts tracked by the readout:
 - `artifacts/hackathon_showcase/pathc_history.jsonl` for Path C receipt history across captured first-party models
 - `artifacts/hackathon_showcase/pathc_payload_latest.json` for the fresh first-party EZKL payload used to mint the latest Path C receipt
 - `circuits/noir_ezkl_bridge_v2/` for the versioned Path A hardening package (adds proof-hash + timestamp binding without replacing the live Noir verifier lane)
+- `circuits/contracts/src/garaga_verifier_noir_ezkl_bridge_v2/` for the generated Cairo verifier project corresponding to that versioned Path A lane
 
 Operational note:
 - The daily build now refreshes `pathc_pending_latest.json` before it attempts a new Path C capture, so an already-mined L1 receipt can promote itself into `pathc_latest.json` as soon as Starknet confirms it.
