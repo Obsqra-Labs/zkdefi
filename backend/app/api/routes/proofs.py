@@ -21,7 +21,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.services.bridge_lanes import (
+    BridgeCircuitName,
+    bridge_lane_payload,
+    normalize_bridge_circuit,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,10 +90,15 @@ class MLBridgeProofRequest(BaseModel):
     expected_model_hash: int = Field(default=0, description="Expected model hash felt")
     output_lower_bound: int = Field(default=0, description="Model output lower bound")
     output_upper_bound: int = Field(default=10000, description="Model output upper bound")
-    bridge_circuit: Literal["ModelBridge", "ModelBridgeHeavy", "NoirEzklBridge", "EzklNativeKzg"] = Field(
-        default="ModelBridge",
+    bridge_circuit: BridgeCircuitName = Field(
+        default=BridgeCircuitName.MODEL_BRIDGE,
         description="Bridge circuit lane to use for L3 verification",
     )
+
+    @field_validator("bridge_circuit", mode="before")
+    @classmethod
+    def _normalize_bridge_circuit(cls, value: object) -> BridgeCircuitName:
+        return normalize_bridge_circuit(value)  # type: ignore[arg-type]
 
 
 # ── Read Endpoints ──────────────────────────────────────────────────────
@@ -162,6 +173,61 @@ async def list_models() -> dict[str, Any]:
                     "final_loss": meta.get("final_loss"),
                 })
     return {"models": result, "count": len(result), "models_dir": str(models_dir)}
+
+
+@router.get("/bridge-lanes")
+async def list_bridge_lane_metadata() -> dict[str, Any]:
+    """List supported bridge lanes and their runtime readiness."""
+    from app.services.groth16_prover import (
+        MODEL_BRIDGE_HEAVY_VK,
+        MODEL_BRIDGE_HEAVY_WASM,
+        MODEL_BRIDGE_HEAVY_ZKEY,
+        MODEL_BRIDGE_VK,
+        MODEL_BRIDGE_WASM,
+        MODEL_BRIDGE_ZKEY,
+    )
+    from app.services.noir_prover import noir_honk_available
+
+    readiness: dict[str, dict[str, Any]] = {
+        BridgeCircuitName.MODEL_BRIDGE.value: {
+            "ready": bool(MODEL_BRIDGE_WASM.exists() and MODEL_BRIDGE_ZKEY.exists() and MODEL_BRIDGE_VK.exists()),
+            "artifacts": {
+                "wasm": str(MODEL_BRIDGE_WASM),
+                "zkey": str(MODEL_BRIDGE_ZKEY),
+                "vk": str(MODEL_BRIDGE_VK),
+            },
+        },
+        BridgeCircuitName.MODEL_BRIDGE_HEAVY.value: {
+            "ready": bool(
+                MODEL_BRIDGE_HEAVY_WASM.exists()
+                and MODEL_BRIDGE_HEAVY_ZKEY.exists()
+                and MODEL_BRIDGE_HEAVY_VK.exists()
+            ),
+            "artifacts": {
+                "wasm": str(MODEL_BRIDGE_HEAVY_WASM),
+                "zkey": str(MODEL_BRIDGE_HEAVY_ZKEY),
+                "vk": str(MODEL_BRIDGE_HEAVY_VK),
+            },
+        },
+        BridgeCircuitName.NOIR_EZKL_BRIDGE.value: {
+            "ready": bool(noir_honk_available()),
+            "artifacts": {},
+        },
+        BridgeCircuitName.EZKL_NATIVE_KZG.value: {
+            "ready": True,
+            "artifacts": {},
+        },
+    }
+
+    lanes: list[dict[str, Any]] = []
+    for lane in bridge_lane_payload():
+        lane_name = str(lane["name"])
+        lane_readiness = readiness.get(lane_name, {"ready": False, "artifacts": {}})
+        lane["ready"] = bool(lane_readiness.get("ready"))
+        lane["artifacts"] = lane_readiness.get("artifacts") or {}
+        lanes.append(lane)
+
+    return {"bridge_lanes": lanes, "count": len(lanes)}
 
 
 @router.get("/sequencer-status")
@@ -331,5 +397,5 @@ async def generate_ml_bridge_proof(req: MLBridgeProofRequest) -> dict[str, Any]:
         output_lower_bound=req.output_lower_bound,
         output_upper_bound=req.output_upper_bound,
         execution_chain=req.execution_chain,
-        bridge_circuit=req.bridge_circuit,
+        bridge_circuit=req.bridge_circuit.value,
     )

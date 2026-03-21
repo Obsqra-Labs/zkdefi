@@ -82,8 +82,8 @@ Native KZG strictness defaults (backend):
 
 ModelBridge real-EZKL bridge toggles (backend):
 
-- `MODELBRIDGE_TRY_REAL_EZKL=true` (attempt real local EZKL proof generation for `ModelBridge` and `ModelBridgeHeavy` before synthetic fallback)
-- `MODELBRIDGE_REQUIRE_REAL_EZKL=false` (when `true`, block ModelBridge execution if no locally verified EZKL proof is available)
+- `MODELBRIDGE_TRY_REAL_EZKL=true` (attempt real local EZKL proof generation for `ModelBridge`, `ModelBridgeHeavy`, and `NoirEzklBridge` before synthetic fallback)
+- `MODELBRIDGE_REQUIRE_REAL_EZKL=false` (when `true`, block those bridge lanes if no locally verified EZKL proof is available)
 - `MODELBRIDGE_REQUIRE_REAL_GROTH16=true` (default strict mode; when Groth16 bridge proof generation fails, block execution instead of sending placeholder calldata)
 
 Native KZG bundle injection hooks (Path B progression):

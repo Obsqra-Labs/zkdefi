@@ -18,6 +18,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
+from app.services.bridge_lanes import BridgeCircuitName, get_bridge_lane
 from app.services.obsqra_prover_client import get_obsqra_prover
 from app.services.zkml_anomaly_service import get_anomaly_service
 from app.services.zkml_risk_service import get_risk_service
@@ -712,10 +713,11 @@ class ProofPipeline:
     ) -> tuple[dict[str, Any], str, list[str], str]:
         """Returns (bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3)."""
         ts = int(datetime.now(timezone.utc).timestamp())
-        use_noir_honk = (bridge_circuit or "").strip() == "NoirEzklBridge"
-        use_native_kzg = (bridge_circuit or "").strip() == "EzklNativeKzg"
-        use_heavy = (bridge_circuit or "ModelBridge").strip() == "ModelBridgeHeavy"
-        n_out = 16 if use_heavy else 8
+        lane = get_bridge_lane(bridge_circuit)
+        use_noir_honk = lane.is_noir_honk
+        use_native_kzg = lane.is_native_kzg
+        use_heavy = lane.name == BridgeCircuitName.MODEL_BRIDGE_HEAVY
+        n_out = lane.output_count
         outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:n_out]]
         while len(outputs_int) < n_out:
             outputs_int.append(0)
@@ -740,6 +742,8 @@ class ProofPipeline:
             "success": True,
             "is_compliant": is_compliant,
             "proof_hash": bridge_fact_hash,
+            "bridge_lane": lane.short_id,
+            "bridge_proof_type": lane.proof_type,
             "proof": {
                 "model_hash": hex(effective_model_hash),
                 "model_hash_raw": hex(int(effective_model_hash_raw)),
@@ -766,14 +770,14 @@ class ProofPipeline:
                     model_output=avg_out,
                 )
                 calldata = [hex(c) for c in honk_result["proof_calldata"]]
-                circuit_name_for_l3 = "NoirEzklBridge"
+                circuit_name_for_l3 = lane.circuit_name_for_l3
                 bridge_proof["bridge_backend"] = "noir_honk"
                 logger.info("NoirEzklBridge HONK proof generated (calldata len=%s)", len(calldata))
             except Exception as exc:
                 logger.warning("NoirEzklBridge HONK proof unavailable: %s", exc)
                 bridge_proof["bridge_backend"] = "placeholder_fallback"
                 bridge_proof["fallback_error"] = str(exc)
-                circuit_name_for_l3 = "NoirEzklBridge"
+                circuit_name_for_l3 = lane.circuit_name_for_l3
                 calldata = []
             return bridge_proof, bridge_fact_hash, calldata, circuit_name_for_l3
 
@@ -784,7 +788,7 @@ class ProofPipeline:
                 serialize_ezkl_proof_to_kzg_calldata,
             )
 
-            circuit_name_for_l3 = "EzklNativeKzg"
+            circuit_name_for_l3 = lane.circuit_name_for_l3
             try:
                 raw_proof_json = getattr(ezkl_proof, "raw_proof_json", {}) or {}
                 if raw_proof_json:
@@ -876,7 +880,7 @@ class ProofPipeline:
                     output_upper_bound=output_upper_bound,
                     timestamp=ts,
                 )
-                circuit_name_for_l3 = "ModelBridgeHeavy"
+                circuit_name_for_l3 = lane.circuit_name_for_l3
                 bridge_proof["bridge_backend"] = "groth16_modelbridge_heavy"
             else:
                 bridge_result = Groth16Prover.generate_model_bridge_proof(
@@ -888,7 +892,7 @@ class ProofPipeline:
                     output_upper_bound=output_upper_bound,
                     timestamp=ts,
                 )
-                circuit_name_for_l3 = "ModelBridge"
+                circuit_name_for_l3 = lane.circuit_name_for_l3
                 bridge_proof["bridge_backend"] = "groth16_modelbridge"
             calldata = bridge_result["proof_calldata"]
             logger.info("%s Groth16 proof generated (calldata len=%s)", circuit_name_for_l3, len(calldata))
@@ -896,7 +900,7 @@ class ProofPipeline:
             logger.warning("ModelBridge Groth16 proof unavailable, using placeholder: %s", exc)
             bridge_proof["bridge_backend"] = "placeholder_fallback"
             bridge_proof["fallback_error"] = str(exc)
-            circuit_name_for_l3 = "ModelBridge" if not use_heavy else "ModelBridgeHeavy"
+            circuit_name_for_l3 = lane.circuit_name_for_l3
             if self._modelbridge_require_real_groth16:
                 bridge_proof["success"] = False
                 bridge_proof["is_compliant"] = False
@@ -969,19 +973,18 @@ class ProofPipeline:
         )
 
         commitment_hash = self._generate_commitment(user_address, model_name, "ml_proof")
-        cache_key = f"ml_{commitment_hash}_{int(mode)}_{execution_chain}"
+        lane = get_bridge_lane(bridge_circuit)
+        bridge_circuit_name = lane.circuit_name_for_l3
+        cache_key = f"ml_{commitment_hash}_{int(mode)}_{execution_chain}_{bridge_circuit_name}"
         cached = self._get_cached(cache_key)
         if cached:
             return cached
 
         t0 = _time.monotonic()
 
-        bridge_circuit_name = (bridge_circuit or "").strip() or "ModelBridge"
-        use_native_kzg = bridge_circuit_name == "EzklNativeKzg"
-        use_model_bridge_lane = bridge_circuit_name in {"ModelBridge", "ModelBridgeHeavy"}
-        should_try_real_ezkl = bool(
-            self._modelbridge_try_real_ezkl and (use_native_kzg or use_model_bridge_lane)
-        )
+        use_native_kzg = lane.is_native_kzg
+        use_model_bridge_lane = lane.is_modelbridge_family
+        should_try_real_ezkl = bool(self._modelbridge_try_real_ezkl and lane.attempts_real_ezkl)
         real_ezkl_requirement_error: str | None = None
         ezkl_verified = True
         trust_mode = "synthetic_dev_only"
@@ -1005,6 +1008,12 @@ class ProofPipeline:
                     "EZKL proof generated and verified locally, then serialized for native KZG path. "
                     "On-chain trust still depends on deployed Cairo KZG verifier semantics."
                 )
+            elif lane.is_noir_honk:
+                trust_mode = "ezkl_local_verified_noir_bridge"
+                trust_warning = (
+                    "EZKL proof generated and verified locally, then bound into Noir HONK policy gates. "
+                    "Execution trust depends on deployed Noir HONK verifier lanes."
+                )
             else:
                 trust_mode = "ezkl_local_verified_bridge"
                 trust_warning = (
@@ -1024,6 +1033,12 @@ class ProofPipeline:
                 )
                 logger.info(
                     "EzklNativeKzg requested but real EZKL artifacts unavailable; using deterministic placeholder payload."
+                )
+            elif lane.is_noir_honk:
+                trust_mode = "synthetic_fallback_noir_bridge"
+                trust_warning = (
+                    "NoirEzklBridge requested but no locally verified EZKL proof was produced. "
+                    "Current run uses deterministic placeholder EZKL payload."
                 )
             elif use_model_bridge_lane:
                 trust_mode = "synthetic_fallback_modelbridge"
@@ -1123,8 +1138,9 @@ class ProofPipeline:
                     from app.services.proof_sequencer_client import get_sequencer_client
 
                     seq = get_sequencer_client()
-                    is_noir_honk = bridge_circuit_used == "NoirEzklBridge"
-                    is_native_kzg = bridge_circuit_used == "EzklNativeKzg"
+                    bridge_lane_used = get_bridge_lane(bridge_circuit_used)
+                    is_noir_honk = bridge_lane_used.is_noir_honk
+                    is_native_kzg = bridge_lane_used.is_native_kzg
                     await seq.submit_proof(
                         proof_id=bridge_fact_hash,
                         fact_hash=bridge_fact_hash,
@@ -1147,11 +1163,12 @@ class ProofPipeline:
             result["verification"]["failure_reason"] = "ModelBridge proof is required for chain verification"
         elif result["can_execute"] and bridge_fact_hash:
             model_bridge_calldata = (result.get("combined_calldata") or {}).get("model_bridge_calldata")
-            circuit_name_l3 = result.get("bridge_circuit_used") or "ModelBridge"
+            bridge_lane_used = get_bridge_lane(result.get("bridge_circuit_used") or bridge_circuit_name)
+            circuit_name_l3 = bridge_lane_used.circuit_name_for_l3
 
             if execution_chain in {"l3", "dual"}:
-                is_noir_honk = (result.get("bridge_circuit_used") or "") == "NoirEzklBridge"
-                is_native_kzg = (result.get("bridge_circuit_used") or "") == "EzklNativeKzg"
+                is_noir_honk = bridge_lane_used.is_noir_honk
+                is_native_kzg = bridge_lane_used.is_native_kzg
                 l3_result = await self._verify_l3_bridge(
                     fact_hash=bridge_fact_hash,
                     circuit_name=circuit_name_l3,
@@ -1159,7 +1176,7 @@ class ProofPipeline:
                     execution_chain=execution_chain,
                     honk_calldata=model_bridge_calldata if is_noir_honk else None,
                     kzg_calldata=model_bridge_calldata if is_native_kzg else None,
-                    proof_type="noir_honk" if is_noir_honk else ("native_kzg" if is_native_kzg else "groth16"),
+                    proof_type=bridge_lane_used.proof_type,
                 )
                 result["verification"]["l3"] = l3_result
 

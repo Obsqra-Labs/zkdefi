@@ -231,6 +231,61 @@ async def test_dual_preserves_mirrored_l2_tx_hash(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_bridge_cache_key_is_lane_specific(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    def fake_build_bridge_bundle(*, bridge_circuit, **kwargs):
+        proof_type = "native_kzg" if bridge_circuit == "EzklNativeKzg" else "groth16"
+        return (
+            {
+                "success": True,
+                "is_compliant": True,
+                "bridge_backend": f"backend:{bridge_circuit}",
+                "bridge_proof_type": proof_type,
+            },
+            f"0x{abs(hash(bridge_circuit)) & 0xffff:x}",
+            [bridge_circuit],
+            bridge_circuit,
+        )
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": kwargs["proof_type"],
+            "tx_hash": f"0x{kwargs['proof_type']}",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_build_bridge_bundle", fake_build_bridge_bundle)
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    groth16_result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="ModelBridge",
+    )
+    native_result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="EzklNativeKzg",
+    )
+
+    assert groth16_result["bridge_circuit_used"] == "ModelBridge"
+    assert native_result["bridge_circuit_used"] == "EzklNativeKzg"
+    assert groth16_result["verification"]["l3"]["mode"] == "groth16"
+    assert native_result["verification"]["l3"]["mode"] == "native_kzg"
+
+
+@pytest.mark.asyncio
 async def test_verify_l2_bridge_preserves_backend_detail(monkeypatch):
     pipeline = ProofPipeline()
 
@@ -712,6 +767,61 @@ async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_noir_bridge_prefers_real_ezkl_when_available(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    class _FakeEzklProof:
+        proof_hash = "0x1234"
+        model_hash = "0x5678"
+        inference_output = [2.0]
+        output_hash = "0x9999"
+        raw_proof_json = {"proof": [1], "instances": [[1]]}
+
+        def to_dict(self):
+            return {
+                "proof_hash": self.proof_hash,
+                "model_hash": self.model_hash,
+                "output_hash": self.output_hash,
+            }
+
+    async def fake_real_ezkl(**kwargs):
+        return _FakeEzklProof(), True
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "noir_honk",
+            "tx_hash": "0xabc",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+    monkeypatch.setattr(
+        "app.services.noir_prover.generate_noir_ezkl_bridge_proof",
+        lambda **kwargs: {"proof_calldata": [1, 2, 3], "success": True},
+    )
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="yield_predictor",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="NoirEzklBridge",
+    )
+
+    assert result["can_execute"] is True
+    assert result["trust_mode"] == "ezkl_local_verified_noir_bridge"
+    assert result["bridge_circuit_used"] == "NoirEzklBridge"
+    assert result["bridge_proof"]["bridge_backend"] == "noir_honk"
+    assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
+
+
+@pytest.mark.asyncio
 async def test_modelbridge_require_real_ezkl_blocks_when_unavailable(monkeypatch):
     monkeypatch.setenv("MODELBRIDGE_REQUIRE_REAL_EZKL", "true")
     pipeline = ProofPipeline()
@@ -743,6 +853,45 @@ async def test_modelbridge_require_real_ezkl_blocks_when_unavailable(monkeypatch
         proof_mode=ProofMode.EZKL_BRIDGE,
         execution_chain="l3",
         bridge_circuit="ModelBridge",
+    )
+
+    assert result["can_execute"] is False
+    assert result["trust_mode"] == "real_ezkl_required_unavailable"
+    assert called["l3"] is False
+
+
+@pytest.mark.asyncio
+async def test_noir_bridge_require_real_ezkl_blocks_when_unavailable(monkeypatch):
+    monkeypatch.setenv("MODELBRIDGE_REQUIRE_REAL_EZKL", "true")
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    async def fake_real_ezkl(**kwargs):
+        return None, False
+
+    called = {"l3": False}
+
+    async def fake_l3(**kwargs):
+        called["l3"] = True
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "noir_honk",
+            "tx_hash": "0xabc",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="yield_predictor",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="NoirEzklBridge",
     )
 
     assert result["can_execute"] is False

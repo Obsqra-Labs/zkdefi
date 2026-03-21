@@ -68,6 +68,8 @@ Documentation index for zkde.fi — recursive multi-chain proving fabric on Star
 
 Public report: [zkde.fi/test](https://zkde.fi/test)
 
+Backend bridge lane metadata: `GET /api/v1/zkdefi/proofs/bridge-lanes`
+
 Daily `/test` builds now target the full showcase by default, not bridge-only mode. The bridge lanes still remain part of the strict gate, but the scheduled report is expected to render the broader readout unless you explicitly override it back down to bridge-only.
 
 Bridge artifacts tracked by the readout:
