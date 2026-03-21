@@ -206,9 +206,11 @@ Daily build env knobs:
 - `SHOWCASE_PATHC_MAX_AGE_HOURS=36` (default freshness window for `pathc_latest.json`)
 - `PATHC_PAYLOAD_JSON=/abs/path/to/pathc_payload.json` (optional; capture a fresh Path C receipt before gating)
 - `PATHC_REFRESH_EXISTING=true` (default; refresh the existing `pathc_latest.json` artifact in place when no payload is set)
+- `PATHC_REFRESH_PENDING_EXISTING=true` (default; refresh `pathc_pending_latest.json` first so an already-enqueued L1 tx can auto-promote into `pathc_latest.json` once L2 confirmation lands)
 - `PATHC_CAPTURE_ROTATING_MODEL=false` (set `true` to mint a fresh Path C receipt from a rotating verifier-compatible EZKL model instead of only refreshing the pinned artifact)
 - `PATHC_ROTATE_MODELS="creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor"` (rotation order / least-recently-used pool for Path C capture; the script tries candidates in order until one matches the deployed L1 verifier)
 - `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
+- `L1_EZKL_ROUTE_MAP='{"creditworthiness":{"bridge_sender_address":"0x...","verifier_address":"0x...","mode":"verify_and_bridge"}}'` (optional parent-backend env; lets Path C choose an L1 verifier/sender by model name, raw model hash, or bridged model hash instead of assuming a single global route)
 
 Path C live receipt capture from an existing payload:
 
@@ -248,7 +250,7 @@ Expected payload JSON fields:
 
 The script calls the parent backend `POST /api/v1/aggregation/l1/verify`, uses the returned `used_nonce` / `verification_status_query`, optionally polls L2, and writes `artifacts/hackathon_showcase/pathc_latest.json` in the shape consumed by the showcase.
 If the parent API has not been restarted with the newer Path C response fields yet, the script can still recover `used_nonce` and `message_hash` by decoding the `EzklVerifiedAndBridged` event from the L1 tx receipt.
-When run with `--refresh-artifact`, it does not submit a new proof. It re-checks the saved L1 tx receipt, re-polls `verification-status`, updates `last_checked_at`, and keeps Path C usable as a recurring monitor stage.
+When run with `--refresh-artifact`, it does not submit a new proof. It re-checks the saved L1 tx receipt, re-polls `verification-status`, updates `last_checked_at`, and keeps Path C usable as a recurring monitor stage. If the refreshed receipt is sitting in `pathc_pending_latest.json` and now has real L2 confirmation, the helper promotes it into `pathc_latest.json` and removes the stale pending artifact automatically.
 
 ### Hackathon showcase artifacts
 

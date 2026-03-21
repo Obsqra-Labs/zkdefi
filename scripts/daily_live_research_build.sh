@@ -21,6 +21,7 @@ REQUIRE_PATHC_LIVE="${SHOWCASE_REQUIRE_PATHC_LIVE:-true}"
 PATHC_MAX_AGE_HOURS="${SHOWCASE_PATHC_MAX_AGE_HOURS:-36}"
 PATHC_PAYLOAD_JSON="${PATHC_PAYLOAD_JSON:-}"
 PATHC_REFRESH_EXISTING="${PATHC_REFRESH_EXISTING:-true}"
+PATHC_REFRESH_PENDING_EXISTING="${PATHC_REFRESH_PENDING_EXISTING:-true}"
 PATHC_CAPTURE_ROTATING_MODEL="${PATHC_CAPTURE_ROTATING_MODEL:-false}"
 PATHC_ROTATE_MODELS="${PATHC_ROTATE_MODELS:-creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor}"
 PARENT_BASE_URL="${PARENT_BASE_URL:-http://127.0.0.1:8002}"
@@ -46,6 +47,7 @@ BUILD_RC=0
   echo "showcase_pathc_max_age_hours=$PATHC_MAX_AGE_HOURS"
   echo "pathc_payload_json=${PATHC_PAYLOAD_JSON:-<unset>}"
   echo "pathc_refresh_existing=$PATHC_REFRESH_EXISTING"
+  echo "pathc_refresh_pending_existing=$PATHC_REFRESH_PENDING_EXISTING"
   echo "pathc_capture_rotating_model=$PATHC_CAPTURE_ROTATING_MODEL"
   echo "pathc_rotate_models=$PATHC_ROTATE_MODELS"
   echo "parent_base_url=$PARENT_BASE_URL"
@@ -65,6 +67,19 @@ BUILD_RC=0
     fi
   else
     echo "pathb_precompute_status=SKIP"
+  fi
+  if [[ "$PATHC_REFRESH_PENDING_EXISTING" == "true" && -f "$ARTIFACT_DIR/pathc_pending_latest.json" ]]; then
+    if PARENT_BASE_URL="$PARENT_BASE_URL" \
+      python3 scripts/capture_pathc_live_receipt.py \
+        --refresh-artifact "$ARTIFACT_DIR/pathc_pending_latest.json" \
+        --parent-base-url "$PARENT_BASE_URL"; then
+      echo "pathc_pending_refresh_status=PASS"
+    else
+      echo "pathc_pending_refresh_status=WARN"
+      echo "pathc_pending_refresh_warning=refresh_pending_failed_continuing_to_gate"
+    fi
+  else
+    echo "pathc_pending_refresh_status=SKIP"
   fi
   if [[ -n "$PATHC_PAYLOAD_JSON" && -f "$PATHC_PAYLOAD_JSON" ]]; then
     if PARENT_BASE_URL="$PARENT_BASE_URL" \

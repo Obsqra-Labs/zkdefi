@@ -405,6 +405,10 @@ def _pathc_history_row(artifact: dict[str, Any]) -> dict[str, Any]:
         "tx_hash": artifact.get("tx_hash"),
         "message_hash": artifact.get("message_hash"),
         "used_nonce": artifact.get("used_nonce"),
+        "route_key": artifact.get("route_key"),
+        "route_source": artifact.get("route_source"),
+        "verifier_address": artifact.get("verifier_address"),
+        "bridge_sender_address": artifact.get("bridge_sender_address"),
         "source_model_name": (
             artifact.get("source_model_name")
             or generated_meta.get("source_model_name")
@@ -538,6 +542,8 @@ result = svc.submit_ezkl_proof_to_l1(
     proof_payload,
     body.get("public_inputs") or [],
     model_hash=body.get("model_hash"),
+    raw_model_hash=body.get("raw_model_hash"),
+    model_name=body.get("model_name"),
     output_commitment=body.get("output_commitment"),
     wait_for_l2=bool(body.get("wait_for_l2")),
     l2_max_polls=int(body.get("l2_max_polls") or 8),
@@ -553,6 +559,10 @@ print(json.dumps({
     "success": result.success,
     "tx_hash": result.tx_hash,
     "mode": result.mode,
+    "route_key": result.route_key or None,
+    "route_source": result.route_source or None,
+    "verifier_address": result.verifier_address or None,
+    "bridge_sender_address": result.bridge_sender_address or None,
     "used_nonce": result.used_nonce,
     "message_hash": result.message_hash or None,
     "verified_on_l2": result.l2_verified_on_l2,
@@ -868,6 +878,7 @@ def main() -> int:
     query = None
     used_nonce = None
     message_hash = ""
+    route_model_name = ""
 
     if args.model_name:
         payload_path = Path(args.generated_payload).expanduser().resolve()
@@ -885,12 +896,15 @@ def main() -> int:
         verify_body = {
             "proof_hex": payload["proof_hex"],
             "public_inputs": payload["public_inputs"],
+            "raw_model_hash": payload["raw_model_hash"],
             "model_hash": payload["bridge_model_hash"],
+            "model_name": (generated_payload_meta or {}).get("resolved_model_name"),
             "output_commitment": payload["bridge_output_commitment"],
             "wait_for_l2": bool(args.wait_for_l2),
             "l2_max_polls": int(args.l2_max_polls),
             "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
         }
+        route_model_name = str(verify_body.get("model_name") or "")
         verify_status, verify_result = _post_json_with_parent_fallback(
             url=verify_url,
             payload=verify_body,
@@ -908,6 +922,7 @@ def main() -> int:
     elif args.payload_json:
         payload_path = Path(args.payload_json).expanduser().resolve()
         payload = _load_payload(payload_path)
+        payload_source_data = _load_existing_artifact(payload_path)
         if not payload.get("proof_hex"):
             raise SystemExit("payload missing proof_hex")
         if not payload.get("model_hash"):
@@ -918,12 +933,18 @@ def main() -> int:
         verify_body = {
             "proof_hex": payload["proof_hex"],
             "public_inputs": payload["public_inputs"],
+            "raw_model_hash": payload["raw_model_hash"],
             "model_hash": payload["bridge_model_hash"],
+            "model_name": _first_non_empty(
+                payload_source_data.get("resolved_model_name"),
+                payload_source_data.get("source_model_name"),
+            ) or None,
             "output_commitment": payload["bridge_output_commitment"],
             "wait_for_l2": bool(args.wait_for_l2),
             "l2_max_polls": int(args.l2_max_polls),
             "l2_poll_interval_seconds": float(args.l2_poll_interval_seconds),
         }
+        route_model_name = str(verify_body.get("model_name") or "")
         verify_status, verify_result = _post_json_with_parent_fallback(
             url=verify_url,
             payload=verify_body,
@@ -971,6 +992,15 @@ def main() -> int:
             raise SystemExit("refresh artifact missing output_commitment")
         if not isinstance(query, dict) and used_nonce is not None:
             query = {"model_hash": payload["bridge_model_hash"], "nonce": str(used_nonce)}
+        route_model_name = _first_non_empty(
+            existing_artifact.get("resolved_model_name"),
+            existing_artifact.get("source_model_name"),
+            (
+                existing_artifact.get("generated_payload_meta") or {}
+            ).get("resolved_model_name")
+            if isinstance(existing_artifact.get("generated_payload_meta"), dict)
+            else None,
+        )
 
     l2_status = {}
     l2_status_code = None
@@ -986,8 +1016,10 @@ def main() -> int:
     l1_rpc = _first_non_empty(args.l1_rpc, os.getenv("L1_SEPOLIA_RPC"), parent_env.get("L1_SEPOLIA_RPC"))
     l1_receipt = _fetch_l1_receipt(l1_rpc, tx_hash, args.timeout)
     sender_address = _first_non_empty(
+        verify_result.get("bridge_sender_address"),
         os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
         parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+        existing_artifact.get("bridge_sender_address") if isinstance(existing_artifact, dict) else None,
         existing_artifact.get("sender_address") if isinstance(existing_artifact, dict) else None,
     )
     bridge_event = _decode_bridge_event(
@@ -1087,6 +1119,11 @@ def main() -> int:
         "verification_status_query": query,
         "verify_result": verify_result or existing_artifact.get("verify_result"),
         "verify_status_code": verify_status if verify_status is not None else existing_artifact.get("verify_status_code"),
+        "route_key": verify_result.get("route_key") or existing_artifact.get("route_key"),
+        "route_source": verify_result.get("route_source") or existing_artifact.get("route_source"),
+        "verifier_address": verify_result.get("verifier_address") or existing_artifact.get("verifier_address"),
+        "bridge_sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("bridge_sender_address") or sender_address,
+        "sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("sender_address") or sender_address,
         "generated_payload_meta": generated_payload_meta or existing_artifact.get("generated_payload_meta"),
         "source_model_name": (
             (generated_payload_meta or {}).get("source_model_name")
@@ -1096,6 +1133,7 @@ def main() -> int:
         "resolved_model_name": (
             (generated_payload_meta or {}).get("resolved_model_name")
             or ((existing_artifact.get("generated_payload_meta") or {}).get("resolved_model_name") if isinstance(existing_artifact.get("generated_payload_meta"), dict) else None)
+            or route_model_name
             or existing_artifact.get("resolved_model_name")
         ),
         "input_source": (
@@ -1141,6 +1179,22 @@ def main() -> int:
     promote_to_primary = artifact_live or not current_primary_live
     write_path = artifact_path if promote_to_primary else pending_artifact_path
     write_path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    if promote_to_primary and pending_artifact_path.exists():
+        remove_pending = False
+        try:
+            pending_existing = _load_existing_artifact(pending_artifact_path)
+            pending_tx = str(pending_existing.get("tx_hash") or "").strip().lower()
+            current_tx = str(tx_hash or "").strip().lower()
+            if current_tx and pending_tx == current_tx:
+                remove_pending = True
+        except Exception:
+            if Path(args.refresh_artifact or "").expanduser().resolve() == pending_artifact_path:
+                remove_pending = True
+        if remove_pending:
+            try:
+                pending_artifact_path.unlink()
+            except FileNotFoundError:
+                pass
     history_path = Path(args.history_file).expanduser().resolve()
     history_row = _pathc_history_row(artifact)
     history_appended = _append_pathc_history(history_path, history_row)
@@ -1155,6 +1209,8 @@ def main() -> int:
                 "history_appended": history_appended,
                 "tx_hash": tx_hash,
                 "used_nonce": artifact["used_nonce"],
+                "route_key": artifact.get("route_key"),
+                "route_source": artifact.get("route_source"),
                 "resolved_model_name": artifact.get("resolved_model_name"),
             },
             indent=2,
