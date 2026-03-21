@@ -1215,6 +1215,11 @@ class ProofPipeline:
         primary_result = result["verification"]["l3"] if primary_authority == "l3" else result["verification"]["l2"]
         if isinstance(primary_result, dict):
             verification_mode = primary_result.get("mode")
+        event_fact_hash = ""
+        if isinstance(primary_result, dict):
+            event_fact_hash = str(primary_result.get("fact_hash") or "").strip()
+        if not event_fact_hash:
+            event_fact_hash = str(bridge_fact_hash or (result.get("bridge_proof") or {}).get("proof_hash") or "").strip()
 
         await self._log_proof_event(
             user_address=user_address,
@@ -1227,6 +1232,8 @@ class ProofPipeline:
             metadata={
                 "commitment_hash": commitment_hash,
                 "action_type": action_type or "ml_inference",
+                "fact_hash": event_fact_hash or None,
+                "proof_hash": event_fact_hash or None,
             },
             execution_chain=execution_chain,
             primary_chain=primary_authority,

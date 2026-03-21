@@ -396,6 +396,46 @@ async def test_native_kzg_dual_preserves_mirror_receipts(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_ml_bridge_log_event_carries_fact_hash(monkeypatch):
+    pipeline = ProofPipeline()
+
+    captured_event = {}
+
+    async def fake_log_event(*args, **kwargs):
+        captured_event.update(kwargs)
+
+    monkeypatch.setattr(pipeline, "_log_proof_event", fake_log_event)
+    monkeypatch.setattr(
+        "app.services.proof_sequencer_client.get_sequencer_client",
+        lambda: _NoopSequencer(),
+    )
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "groth16_garaga",
+            "tx_hash": "0xabc",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+    )
+
+    assert result["can_execute"] is True
+    assert captured_event["metadata"]["fact_hash"] == result["bridge_proof"]["proof_hash"]
+    assert captured_event["metadata"]["proof_hash"] == result["bridge_proof"]["proof_hash"]
+
+
+@pytest.mark.asyncio
 async def test_native_kzg_strict_blocks_placeholder(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)
