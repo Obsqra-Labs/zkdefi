@@ -106,6 +106,8 @@ def try_compile() -> bool:
     abi = data.get("abi") or []
     if not bytecode:
         return False
+    if isinstance(bytecode, str) and bytecode.startswith("0x"):
+        bytecode = bytecode[2:]
     artifact = {"abi": abi, "bytecode": "0x" + bytecode}
     ARTIFACT_JSON.write_text(json.dumps(artifact, indent=2))
     print("Compiled artifact written to", ARTIFACT_JSON)

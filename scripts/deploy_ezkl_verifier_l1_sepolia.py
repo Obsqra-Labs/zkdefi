@@ -80,7 +80,7 @@ def main() -> int:
     if not bytecode or not isinstance(bytecode, str):
         print("Artifact must contain 'bytecode' or 'deployedBytecode' (or .object).", file=sys.stderr)
         return 1
-    if bytecode.startswith("0x"):
+    while bytecode.startswith("0x"):
         bytecode = bytecode[2:]
     bytecode = bytes.fromhex(bytecode)
     abi = artifact.get("abi") or artifact.get("data", {}).get("abi") or []
