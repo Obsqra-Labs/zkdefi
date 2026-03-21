@@ -822,6 +822,69 @@ async def test_noir_bridge_prefers_real_ezkl_when_available(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_noir_bridge_v2_prefers_real_ezkl_when_available(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    class _FakeEzklProof:
+        proof_hash = "0x1234"
+        model_hash = "0x5678"
+        inference_output = [2.0, 3.0]
+        output_hash = "0x9999"
+        raw_proof_json = {"proof": [1], "instances": [[1]]}
+
+        def to_dict(self):
+            return {
+                "proof_hash": self.proof_hash,
+                "model_hash": self.model_hash,
+                "output_hash": self.output_hash,
+            }
+
+    async def fake_real_ezkl(**kwargs):
+        return _FakeEzklProof(), True
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "noir_honk",
+            "tx_hash": "0xabc",
+            "error": None,
+        }
+
+    captured: dict[str, object] = {}
+
+    def fake_noir_v2(**kwargs):
+        captured.update(kwargs)
+        return {"proof_calldata": [7, 8, 9], "success": True}
+
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+    monkeypatch.setattr(
+        "app.services.noir_prover.generate_noir_ezkl_bridge_v2_proof",
+        fake_noir_v2,
+    )
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="yield_predictor",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+        bridge_circuit="NoirEzklBridgeV2",
+    )
+
+    assert result["can_execute"] is True
+    assert result["trust_mode"] == "ezkl_local_verified_noir_bridge_v2"
+    assert result["bridge_circuit_used"] == "NoirEzklBridgeV2"
+    assert result["bridge_proof"]["bridge_backend"] == "noir_honk_v2"
+    assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
+    assert captured["ezkl_proof_hash"] == int(_FakeEzklProof.proof_hash, 16)
+    assert captured["model_output"] == [2, 3, 0, 0, 0, 0, 0, 0]
+
+
+@pytest.mark.asyncio
 async def test_modelbridge_require_real_ezkl_blocks_when_unavailable(monkeypatch):
     monkeypatch.setenv("MODELBRIDGE_REQUIRE_REAL_EZKL", "true")
     pipeline = ProofPipeline()

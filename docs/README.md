@@ -81,6 +81,14 @@ Bridge artifacts tracked by the readout:
 - `artifacts/hackathon_showcase/pathc_payload_latest.json` for the fresh first-party EZKL payload used to mint the latest Path C receipt
 - `circuits/noir_ezkl_bridge_v2/` for the versioned Path A hardening package (adds proof-hash + timestamp binding without replacing the live Noir verifier lane)
 - `circuits/contracts/src/garaga_verifier_noir_ezkl_bridge_v2/` for the generated Cairo verifier project corresponding to that versioned Path A lane
+- `.noir_ezkl_bridge_v2_honk.deployed` for the deployed Madara L3 V2 verifier address/class hash and the first live V2 receipt reference
+
+Current Path A V2 live state:
+- verifier class hash: `0x161e48066a133fb8daf704c70d33abf8da10074cf97e498a4237444d14122fd`
+- verifier address: `0x48d7af1f9de06b4888e2f451e197c85eb048ab75c40e358803d67225c3e97cf`
+- first live V2 lane: `yield_forecast`
+- first live V2 L3 tx: `0x2aadcebbd5af9942a71514bb46f1571988fcbdc0088f88a32afa902d15d9fe8`
+- reproducible one-off deploy helper: `python3 scripts/deploy_noir_ezkl_bridge_v2_honk_verifier_l3.py`
 
 Operational note:
 - The daily build now refreshes `pathc_pending_latest.json` before it attempts a new Path C capture, so an already-mined L1 receipt can promote itself into `pathc_latest.json` as soon as Starknet confirms it.

@@ -8,6 +8,7 @@ def test_bridge_lane_aliases_normalize():
     assert normalize_bridge_circuit(None) == BridgeCircuitName.MODEL_BRIDGE
     assert normalize_bridge_circuit("heavy") == BridgeCircuitName.MODEL_BRIDGE_HEAVY
     assert normalize_bridge_circuit("noir") == BridgeCircuitName.NOIR_EZKL_BRIDGE
+    assert normalize_bridge_circuit("noir-v2") == BridgeCircuitName.NOIR_EZKL_BRIDGE_V2
     assert normalize_bridge_circuit("native-kzg") == BridgeCircuitName.EZKL_NATIVE_KZG
 
 
@@ -26,12 +27,14 @@ def test_ml_bridge_request_accepts_alias_bridge_names():
 @pytest.mark.asyncio
 async def test_bridge_lane_metadata_route_exposes_registry(monkeypatch):
     monkeypatch.setattr("app.services.noir_prover.noir_honk_available", lambda: True)
+    monkeypatch.setattr("app.services.noir_prover.noir_honk_v2_available", lambda: True)
 
     payload = await list_bridge_lane_metadata()
 
-    assert payload["count"] == 4
+    assert payload["count"] == 5
     lanes = {row["name"]: row for row in payload["bridge_lanes"]}
     assert lanes["ModelBridge"]["proof_type"] == "groth16"
     assert lanes["ModelBridgeHeavy"]["output_count"] == 16
     assert lanes["NoirEzklBridge"]["proof_type"] == "noir_honk"
+    assert lanes["NoirEzklBridgeV2"]["proof_type"] == "noir_honk"
     assert lanes["EzklNativeKzg"]["proof_type"] == "native_kzg"

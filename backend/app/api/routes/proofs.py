@@ -186,7 +186,7 @@ async def list_bridge_lane_metadata() -> dict[str, Any]:
         MODEL_BRIDGE_WASM,
         MODEL_BRIDGE_ZKEY,
     )
-    from app.services.noir_prover import noir_honk_available
+    from app.services.noir_prover import noir_honk_available, noir_honk_v2_available
 
     readiness: dict[str, dict[str, Any]] = {
         BridgeCircuitName.MODEL_BRIDGE.value: {
@@ -211,6 +211,10 @@ async def list_bridge_lane_metadata() -> dict[str, Any]:
         },
         BridgeCircuitName.NOIR_EZKL_BRIDGE.value: {
             "ready": bool(noir_honk_available()),
+            "artifacts": {},
+        },
+        BridgeCircuitName.NOIR_EZKL_BRIDGE_V2.value: {
+            "ready": bool(noir_honk_v2_available()),
             "artifacts": {},
         },
         BridgeCircuitName.EZKL_NATIVE_KZG.value: {

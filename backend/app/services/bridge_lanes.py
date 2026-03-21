@@ -9,6 +9,7 @@ class BridgeCircuitName(str, Enum):
     MODEL_BRIDGE = "ModelBridge"
     MODEL_BRIDGE_HEAVY = "ModelBridgeHeavy"
     NOIR_EZKL_BRIDGE = "NoirEzklBridge"
+    NOIR_EZKL_BRIDGE_V2 = "NoirEzklBridgeV2"
     EZKL_NATIVE_KZG = "EzklNativeKzg"
 
 
@@ -44,6 +45,7 @@ class BridgeLaneSpec:
             BridgeCircuitName.MODEL_BRIDGE,
             BridgeCircuitName.MODEL_BRIDGE_HEAVY,
             BridgeCircuitName.NOIR_EZKL_BRIDGE,
+            BridgeCircuitName.NOIR_EZKL_BRIDGE_V2,
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,6 +83,14 @@ _BRIDGE_LANES: tuple[BridgeLaneSpec, ...] = (
         output_count=8,
         description="Noir HONK bridge lane over the ModelBridge policy scaffold.",
         aliases=("noir", "noir_honk", "noir_ezkl", "noir_ezkl_bridge", "honk"),
+    ),
+    BridgeLaneSpec(
+        name=BridgeCircuitName.NOIR_EZKL_BRIDGE_V2,
+        short_id="noir_v2",
+        proof_type="noir_honk",
+        output_count=8,
+        description="Versioned Noir HONK bridge lane binding EZKL proof hash + bounded outputs.",
+        aliases=("noir_v2", "noir-v2", "honk_v2", "noir_ezkl_bridge_v2", "noir2"),
     ),
     BridgeLaneSpec(
         name=BridgeCircuitName.EZKL_NATIVE_KZG,

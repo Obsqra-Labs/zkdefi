@@ -254,4 +254,10 @@ def generate_noir_ezkl_bridge_v2_proof(
 
 def noir_honk_available() -> bool:
     return _has_nargo() and _has_bb() and _has_garaga() and NOIR_PKG.is_dir()
+
+
+def noir_honk_v2_available() -> bool:
+    return _has_nargo() and _has_bb() and _has_garaga() and NOIR_PKG_V2.is_dir()
+
+
 """Noir EZKL-bridge prover."""

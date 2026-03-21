@@ -11,6 +11,7 @@ Operational and deployment scripts for zkde.fi.
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 - Path A latest receipt: `artifacts/hackathon_showcase/patha_latest.json`
 - Path B latest receipt: `artifacts/hackathon_showcase/pathb_latest.json`
+- Path A V2 deploy record: `.noir_ezkl_bridge_v2_honk.deployed`
 
 The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate Obsqra Labs research claims with backend + on-chain receipts.
 
@@ -26,6 +27,7 @@ The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is t
 | **daily_live_research_build.sh** | Server-side daily runner for `/test`: executes `ci_showcase_gate.py`, refreshes `latest.html/json`, and writes timestamped logs under `artifacts/hackathon_showcase/daily_logs/`. |
 | **precompute_kzg_mpcheck_sidecars.py** | Refreshes `mpcheck_hint_felts` + `precomputed_line_felts` sidecars for local EZKL models so native KZG can stay on `kzg_mpcheck_v3` without re-deriving lines on every request. |
 | **capture_pathc_live_receipt.py** | Operational Path C helper: submit a real `verifyAndBridge` call to the parent backend, optionally wait for L2 confirmation, and write `artifacts/hackathon_showcase/pathc_latest.json` for the report. |
+| **deploy_noir_ezkl_bridge_v2_honk_verifier_l3.py** | Declare + deploy only the versioned `NoirEzklBridgeV2` HONK verifier to Madara L3 and print `L3_NOIR_EZKL_BRIDGE_V2_HONK_VERIFIER_ADDRESS=...`. |
 | **register_verifiers.sh** | Register reputation verifiers (Solvency, RiskPassport, TraderPerformance, StrategyIntegrity, ExecutionIntegrity) with ObsqraFactRegistry. Uses `.env.verifiers`. |
 | **deploy_reputation_verifiers.sh** | Deploy Garaga verifiers to Starknet (if present). |
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
@@ -71,6 +73,15 @@ Path B reproducibility:
 Bridge execution is prioritized before optional proof checks so ModelBridge receipt attempts do not lose budget to other endpoints under load.
 Dual bridge validation uses `proof_mode=1` (EZKL_BRIDGE) to test chain mirroring reliability without adding execution-proof latency from `FULL_DUAL_PROVER`.
 Mirror semantics: `mirrored` = L2 mirror verified, `mirror_unavailable` = parent L2 registry endpoint unavailable, `mirror_failed` = mirror attempted but failed.
+
+Versioned Path A lane:
+
+- `GET /api/v1/zkdefi/proofs/bridge-lanes` now exposes `NoirEzklBridgeV2` alongside the legacy `NoirEzklBridge`.
+- The parent L3 verifier route now supports `L3_NOIR_EZKL_BRIDGE_V2_HONK_VERIFIER_ADDRESS`.
+- Current live V2 deploy:
+  - class hash `0x161e48066a133fb8daf704c70d33abf8da10074cf97e498a4237444d14122fd`
+  - contract `0x48d7af1f9de06b4888e2f451e197c85eb048ab75c40e358803d67225c3e97cf`
+  - first live L3 receipt `0x2aadcebbd5af9942a71514bb46f1571988fcbdc0088f88a32afa902d15d9fe8`
 
 Native KZG strictness defaults (backend):
 

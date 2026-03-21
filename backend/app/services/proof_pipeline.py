@@ -717,6 +717,7 @@ class ProofPipeline:
         use_noir_honk = lane.is_noir_honk
         use_native_kzg = lane.is_native_kzg
         use_heavy = lane.name == BridgeCircuitName.MODEL_BRIDGE_HEAVY
+        use_noir_honk_v2 = lane.name == BridgeCircuitName.NOIR_EZKL_BRIDGE_V2
         n_out = lane.output_count
         outputs_int = [int(round(v)) for v in ezkl_proof.inference_output[:n_out]]
         while len(outputs_int) < n_out:
@@ -759,22 +760,37 @@ class ProofPipeline:
             "bridge_backend": "placeholder_fallback",
         }
 
-        # Noir HONK path (NoirEzklBridge)
+        # Noir HONK path (NoirEzklBridge / NoirEzklBridgeV2)
         if use_noir_honk:
             try:
-                from app.services.noir_prover import generate_noir_ezkl_bridge_proof
-                honk_result = generate_noir_ezkl_bridge_proof(
-                    expected_model_hash=effective_model_hash,
-                    output_lower_bound=output_lower_bound,
-                    output_upper_bound=output_upper_bound,
-                    model_output=avg_out,
-                )
+                if use_noir_honk_v2:
+                    from app.services.noir_prover import generate_noir_ezkl_bridge_v2_proof
+
+                    honk_result = generate_noir_ezkl_bridge_v2_proof(
+                        expected_model_hash=effective_model_hash,
+                        output_lower_bound=output_lower_bound,
+                        output_upper_bound=output_upper_bound,
+                        timestamp=ts,
+                        ezkl_proof_hash=int(getattr(ezkl_proof, "proof_hash", "0x0"), 16),
+                        model_output=outputs_int,
+                        model_weights_hash=effective_model_hash,
+                    )
+                    bridge_proof["bridge_backend"] = "noir_honk_v2"
+                else:
+                    from app.services.noir_prover import generate_noir_ezkl_bridge_proof
+
+                    honk_result = generate_noir_ezkl_bridge_proof(
+                        expected_model_hash=effective_model_hash,
+                        output_lower_bound=output_lower_bound,
+                        output_upper_bound=output_upper_bound,
+                        model_output=avg_out,
+                    )
+                    bridge_proof["bridge_backend"] = "noir_honk"
                 calldata = [hex(c) for c in honk_result["proof_calldata"]]
                 circuit_name_for_l3 = lane.circuit_name_for_l3
-                bridge_proof["bridge_backend"] = "noir_honk"
-                logger.info("NoirEzklBridge HONK proof generated (calldata len=%s)", len(calldata))
+                logger.info("%s HONK proof generated (calldata len=%s)", lane.circuit_name_for_l3, len(calldata))
             except Exception as exc:
-                logger.warning("NoirEzklBridge HONK proof unavailable: %s", exc)
+                logger.warning("%s HONK proof unavailable: %s", lane.circuit_name_for_l3, exc)
                 bridge_proof["bridge_backend"] = "placeholder_fallback"
                 bridge_proof["fallback_error"] = str(exc)
                 circuit_name_for_l3 = lane.circuit_name_for_l3
@@ -1009,7 +1025,11 @@ class ProofPipeline:
                     "On-chain trust still depends on deployed Cairo KZG verifier semantics."
                 )
             elif lane.is_noir_honk:
-                trust_mode = "ezkl_local_verified_noir_bridge"
+                trust_mode = (
+                    "ezkl_local_verified_noir_bridge_v2"
+                    if lane.name == BridgeCircuitName.NOIR_EZKL_BRIDGE_V2
+                    else "ezkl_local_verified_noir_bridge"
+                )
                 trust_warning = (
                     "EZKL proof generated and verified locally, then bound into Noir HONK policy gates. "
                     "Execution trust depends on deployed Noir HONK verifier lanes."
@@ -1035,9 +1055,13 @@ class ProofPipeline:
                     "EzklNativeKzg requested but real EZKL artifacts unavailable; using deterministic placeholder payload."
                 )
             elif lane.is_noir_honk:
-                trust_mode = "synthetic_fallback_noir_bridge"
+                trust_mode = (
+                    "synthetic_fallback_noir_bridge_v2"
+                    if lane.name == BridgeCircuitName.NOIR_EZKL_BRIDGE_V2
+                    else "synthetic_fallback_noir_bridge"
+                )
                 trust_warning = (
-                    "NoirEzklBridge requested but no locally verified EZKL proof was produced. "
+                    f"{lane.circuit_name_for_l3} requested but no locally verified EZKL proof was produced. "
                     "Current run uses deterministic placeholder EZKL payload."
                 )
             elif use_model_bridge_lane:
