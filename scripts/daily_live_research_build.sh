@@ -95,15 +95,39 @@ BUILD_RC=0
     fi
   elif [[ "$PATHC_CAPTURE_ROTATING_MODEL" == "true" ]]; then
     mapfile -t PATHC_ROTATE_CANDIDATES < <(
-      PATHC_ROTATE_MODELS="$PATHC_ROTATE_MODELS" ARTIFACT_DIR="$ARTIFACT_DIR" python3 - <<'PY'
+      PATHC_ROTATE_MODELS="$PATHC_ROTATE_MODELS" ARTIFACT_DIR="$ARTIFACT_DIR" ROOT_DIR="$ROOT_DIR" python3 - <<'PY'
 import json
 import os
 from pathlib import Path
 
 models = [m.strip() for m in os.getenv("PATHC_ROTATE_MODELS", "").split() if m.strip()]
 artifact_dir = Path(os.getenv("ARTIFACT_DIR", "."))
+root_dir = Path(os.getenv("ROOT_DIR", "."))
+parent_env_path = root_dir.parent / "backend" / ".env"
 history_path = artifact_dir / "pathc_history.jsonl"
 latest_seen = {}
+route_backed_models = set()
+
+if parent_env_path.exists():
+    for raw in parent_env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip() != "L1_EZKL_ROUTE_MAP":
+            continue
+        raw_map = value.strip().strip("'").strip('"')
+        try:
+            parsed = json.loads(raw_map)
+        except Exception:
+            parsed = {}
+        if isinstance(parsed, dict):
+            for route_key in parsed:
+                token = str(route_key or "").strip().lower()
+                if token in models:
+                    route_backed_models.add(token)
+        break
+
 if history_path.exists():
     for raw in history_path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -122,6 +146,7 @@ if history_path.exists():
 ordered = sorted(
     models,
     key=lambda model: (
+        0 if model in route_backed_models else 1,
         1 if model in latest_seen else 0,
         str(latest_seen.get(model) or ""),
         model,

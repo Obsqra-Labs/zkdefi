@@ -50,6 +50,45 @@ def _load_env_file(path: Path) -> dict[str, str]:
     return out
 
 
+def _load_parent_route_map(*, parent_env: dict[str, str]) -> dict[str, dict[str, str]]:
+    raw = _first_non_empty(os.getenv("L1_EZKL_ROUTE_MAP"), parent_env.get("L1_EZKL_ROUTE_MAP"))
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    routes: dict[str, dict[str, str]] = {}
+    for key, value in parsed.items():
+        route_key = _normalize_route_token(key)
+        if not route_key:
+            continue
+        if isinstance(value, str):
+            routes[route_key] = {
+                "verifier_address": "",
+                "bridge_sender_address": value.strip(),
+                "mode": "",
+            }
+            continue
+        if not isinstance(value, dict):
+            continue
+        routes[route_key] = {
+            "verifier_address": str(
+                value.get("verifier_address") or value.get("verifier") or ""
+            ).strip(),
+            "bridge_sender_address": str(
+                value.get("bridge_sender_address")
+                or value.get("bridge_sender")
+                or value.get("sender_address")
+                or ""
+            ).strip(),
+            "mode": str(value.get("mode") or "").strip().lower(),
+        }
+    return routes
+
+
 def _first_non_empty(*values: str | None) -> str:
     for value in values:
         if value and str(value).strip():
@@ -69,6 +108,78 @@ def _normalize_hex(value: Any) -> str:
         return hex(int(value))
     except Exception:
         return str(value)
+
+
+def _normalize_route_token(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return ""
+        if raw.startswith(("0x", "0X")):
+            try:
+                return hex(int(raw, 16))
+            except Exception:
+                return raw.lower()
+        try:
+            return hex(int(raw))
+        except Exception:
+            return raw.lower()
+    try:
+        return hex(int(value))
+    except Exception:
+        return str(value).strip().lower()
+
+
+def _resolve_parent_route_snapshot(
+    *,
+    parent_env: dict[str, str],
+    model_name: str | None,
+    raw_model_hash: Any,
+    bridge_model_hash: Any,
+) -> dict[str, str]:
+    route_map = _load_parent_route_map(parent_env=parent_env)
+    default_verifier = _first_non_empty(
+        os.getenv("L1_EZKL_VERIFIER_ADDRESS"),
+        parent_env.get("L1_EZKL_VERIFIER_ADDRESS"),
+    )
+    default_sender = _first_non_empty(
+        os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+        parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
+    )
+    candidates: list[tuple[str, str]] = []
+    if model_name:
+        normalized_name = str(model_name).strip().lower()
+        if normalized_name:
+            candidates.append(("model_name", normalized_name))
+    for source, raw in (("raw_model_hash", raw_model_hash), ("model_hash", bridge_model_hash)):
+        normalized = _normalize_route_token(raw)
+        if normalized:
+            candidates.append((source, normalized))
+    for source, key in candidates:
+        route = route_map.get(key)
+        if not isinstance(route, dict):
+            continue
+        verifier_address = str(route.get("verifier_address") or "").strip() or default_verifier
+        bridge_sender_address = str(route.get("bridge_sender_address") or "").strip()
+        route_mode = str(route.get("mode") or "").strip().lower()
+        if route_mode == "verify_only":
+            bridge_sender_address = ""
+        elif route_mode == "verify_and_bridge" and not bridge_sender_address:
+            bridge_sender_address = default_sender
+        return {
+            "route_key": key,
+            "route_source": source,
+            "verifier_address": verifier_address,
+            "bridge_sender_address": bridge_sender_address,
+        }
+    return {
+        "route_key": "default",
+        "route_source": "default",
+        "verifier_address": default_verifier,
+        "bridge_sender_address": default_sender,
+    }
 
 
 def _normalize_bridge_felt(value: Any) -> str:
@@ -1013,10 +1124,21 @@ def main() -> int:
         )
 
     parent_env = _load_env_file(PROJECT_ROOT.parent / "backend" / ".env")
+    route_snapshot = _resolve_parent_route_snapshot(
+        parent_env=parent_env,
+        model_name=route_model_name or _first_non_empty(
+            (generated_payload_meta or {}).get("resolved_model_name") if isinstance(generated_payload_meta, dict) else None,
+            existing_artifact.get("resolved_model_name") if isinstance(existing_artifact, dict) else None,
+            existing_artifact.get("source_model_name") if isinstance(existing_artifact, dict) else None,
+        ),
+        raw_model_hash=payload.get("raw_model_hash"),
+        bridge_model_hash=payload.get("bridge_model_hash"),
+    )
     l1_rpc = _first_non_empty(args.l1_rpc, os.getenv("L1_SEPOLIA_RPC"), parent_env.get("L1_SEPOLIA_RPC"))
     l1_receipt = _fetch_l1_receipt(l1_rpc, tx_hash, args.timeout)
     sender_address = _first_non_empty(
         verify_result.get("bridge_sender_address"),
+        route_snapshot.get("bridge_sender_address"),
         os.getenv("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
         parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS"),
         existing_artifact.get("bridge_sender_address") if isinstance(existing_artifact, dict) else None,
@@ -1119,10 +1241,10 @@ def main() -> int:
         "verification_status_query": query,
         "verify_result": verify_result or existing_artifact.get("verify_result"),
         "verify_status_code": verify_status if verify_status is not None else existing_artifact.get("verify_status_code"),
-        "route_key": verify_result.get("route_key") or existing_artifact.get("route_key"),
-        "route_source": verify_result.get("route_source") or existing_artifact.get("route_source"),
-        "verifier_address": verify_result.get("verifier_address") or existing_artifact.get("verifier_address"),
-        "bridge_sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("bridge_sender_address") or sender_address,
+        "route_key": verify_result.get("route_key") or existing_artifact.get("route_key") or route_snapshot.get("route_key"),
+        "route_source": verify_result.get("route_source") or existing_artifact.get("route_source") or route_snapshot.get("route_source"),
+        "verifier_address": verify_result.get("verifier_address") or existing_artifact.get("verifier_address") or route_snapshot.get("verifier_address"),
+        "bridge_sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("bridge_sender_address") or route_snapshot.get("bridge_sender_address") or sender_address,
         "sender_address": verify_result.get("bridge_sender_address") or existing_artifact.get("sender_address") or sender_address,
         "generated_payload_meta": generated_payload_meta or existing_artifact.get("generated_payload_meta"),
         "source_model_name": (

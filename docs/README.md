@@ -81,6 +81,8 @@ Bridge artifacts tracked by the readout:
 Operational note:
 - The daily build now refreshes `pathc_pending_latest.json` before it attempts a new Path C capture, so an already-mined L1 receipt can promote itself into `pathc_latest.json` as soon as Starknet confirms it.
 - The parent backend can optionally select the L1 verifier / bridge sender by model via `L1_EZKL_ROUTE_MAP`, which is useful once Path C spans more than one verifier-compatible EZKL model.
+- When Path C rotation is enabled, the daily build prefers models explicitly named in `L1_EZKL_ROUTE_MAP` before it falls back to compatibility discovery by preflight.
+- The `/test` Path C live receipt section now shows the chosen route source/key alongside the active L1 sender/verifier so the verifier path is explainable in the report itself.
 
 The top summary in `/test` now treats Path C as a benchmarked bridge lane, not just a status badge:
 - `PathCBridge` appears in the operational benchmark snapshot

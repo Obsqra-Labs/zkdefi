@@ -3702,6 +3702,8 @@ class ShowcaseRunner:
         pathc_bridge_output_commitment = str(
             pathc_live_receipt_raw.get("bridge_output_commitment") or pathc_output_commitment or ""
         )
+        pathc_route_key = str(pathc_live_receipt_raw.get("route_key") or "")
+        pathc_route_source = str(pathc_live_receipt_raw.get("route_source") or "")
         pathc_used_nonce = pathc_live_receipt_raw.get("used_nonce")
         pathc_generated_at = (
             _parse_iso_datetime(pathc_live_receipt_raw.get("generated_at"))
@@ -3776,9 +3778,18 @@ class ShowcaseRunner:
         )
         pathc_capture_history = _pathc_capture_history_summary(PATHC_HISTORY_FILE, window_entries=12)
         pathc_tx_url = _etherscan_tx_url(pathc_tx_hash) if pathc_tx_hash else None
-        pathc_sender = parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS")
+        pathc_sender = str(
+            pathc_live_receipt_raw.get("bridge_sender_address")
+            or pathc_live_receipt_raw.get("sender_address")
+            or parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS")
+            or ""
+        )
         pathc_receiver = parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")
-        pathc_verifier = parent_env.get("L1_EZKL_VERIFIER_ADDRESS")
+        pathc_verifier = str(
+            pathc_live_receipt_raw.get("verifier_address")
+            or parent_env.get("L1_EZKL_VERIFIER_ADDRESS")
+            or ""
+        )
         parent_api_base = str(parent_env.get("OBSQRA_API_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
         pathc_poll_url = None
         if pathc_model_hash and pathc_used_nonce is not None:
@@ -4216,6 +4227,8 @@ class ShowcaseRunner:
                 "poll_url": pathc_poll_url,
                 "sender_address": pathc_sender,
                 "sender_url": _etherscan_address_url(pathc_sender) if pathc_sender else None,
+                "route_key": pathc_route_key or None,
+                "route_source": pathc_route_source or None,
                 "verifier_address": pathc_verifier,
                 "verifier_url": _etherscan_address_url(pathc_verifier) if pathc_verifier else None,
                 "receiver_address": pathc_receiver,
@@ -6428,6 +6441,8 @@ class ShowcaseRunner:
             ["L1 status", escape(str(path_c_live.get("l1_status") or "-"))],
             ["L1 block", escape(str(path_c_live.get("l1_block_number") or "-"))],
             ["L1 gas used", escape(str(path_c_live.get("l1_gas_used") or "-"))],
+            ["Route source", escape(str(path_c_live.get("route_source") or "-"))],
+            ["Route key", escape(str(path_c_live.get("route_key") or "-"))],
             ["L1 sender", path_c_sender_html],
             ["L1 verifier", path_c_verifier_html],
             ["L1 core message pending", "<span class=\"warn\">true</span>" if path_c_live.get("l1_core_pending") else "<span class=\"fail\">false</span>"],
@@ -6463,6 +6478,8 @@ class ShowcaseRunner:
                     [
                         escape(str(row.get("resolved_model_name") or row.get("source_model_name") or "-")),
                         escape(str(row.get("generated_at") or "-")),
+                        escape(str(row.get("route_source") or "-")),
+                        escape(str(row.get("route_key") or "-")),
                         verified_html,
                         escape(str(row.get("confirmation_latency_ms") or "-")),
                         escape(_cost_display(row.get("l1_gas_used"), "gas")),
@@ -8502,7 +8519,7 @@ class ShowcaseRunner:
       {self._html_table(["Field", "Value"], path_c_live_rows)}
       <h3>Path C Recent Receipt History</h3>
       <p class="meta">Recent Path C captures across first-party EZKL models. This is the bridge-coverage view, separate from the single latest receipt used by the strict gate.</p>
-      {self._html_table(["Model", "Captured At (UTC)", "L2 Confirmed", "Latency ms", "L1 Gas", "Tx"], path_c_history_rows)}
+      {self._html_table(["Model", "Captured At (UTC)", "Route Source", "Route Key", "L2 Confirmed", "Latency ms", "L1 Gas", "Tx"], path_c_history_rows)}
       <h3>Path B Catalog Warm Report</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run). This section now separates first-party model bootstrap provenance from the actual native-KZG receipt counts, so the report does not blur training/setup readiness with cryptographic execution readiness.</p>
       {self._html_table(["Field", "Value"], path_b_warm_rows)}
