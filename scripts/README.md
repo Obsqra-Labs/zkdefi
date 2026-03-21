@@ -269,10 +269,11 @@ The HTML report includes:
 - Dual-lane mirror status now distinguishes `mirror_underfunded` from generic mirror failure, so low Sepolia wallet balance is reported as an infra constraint rather than a fake protocol error
 - Dedicated **Lane Health + Degradation Notes** matrix so any unstable lane (for example Noir calldata availability) is explicit in the report
 - Dedicated **Bridge Benchmark Receipts** compact table: per-lane HTTP/mode/backend/verified flag + duration + fee + gas + explorer tx
-- Dedicated **Rolling Stability + Gas Trend** table from `artifacts/hackathon_showcase/history.jsonl` (verified-rate + p50/p95 latency/fee by lane)
+- Dedicated **Rolling Stability + Gas Trend** table from `artifacts/hackathon_showcase/history.jsonl` (verified-rate + p50/p95 latency/cost by lane; `FRI` for L3 lanes, `gas` for Path C L1 bridge)
 - Dedicated **StarkHeavyReputation (Stone -> L3)** section: heavy STARK proof hash/fact hash, L3 mode, and tx/error evidence
 - Open-source ModelBridge deep dive: bridge artifacts, STARK/SNARK proving lanes, uniqueness unlock matrix, and ecosystem comparison
 - Recursive EZKL path status panel (Phase 2/3/4): Path A Noir HONK completion signals, Path C L1 bridge sender/receiver wiring (`verifyAndBridge` + poll), Path B native KZG routing signals, plus env readiness, **stage completion check-ins**, and **GitHub version gates**
+- Top-level **Operational Benchmark Snapshot** now includes `PathCBridge` with live confirmation latency and L1 gas usage sourced from the current strict run instead of waiting for the next history window
 - Dedicated **Path A Live Receipt** table sourced from `patha_latest.json`, so Path A is tracked as a receipt-backed stage instead of just a listed lane
 - Dedicated Path B live artifact sourced from `pathb_latest.json`, so Path B stage readiness is pinned to live catalog receipts plus verifier ABI/runtime checks instead of only the in-memory warm report
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)

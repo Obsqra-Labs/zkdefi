@@ -311,6 +311,54 @@ def _percentile_int(values: list[int], pct: float) -> int | None:
     return ordered[idx]
 
 
+def _cost_display(value: Any, unit: str | None = None) -> str:
+    amount = _parse_fee_display_int(value)
+    if amount is None:
+        return "-"
+    normalized_unit = str(unit or "").strip() or "FRI"
+    return f"{_compact_int(amount)} {normalized_unit}"
+
+
+def _pathc_confirmation_latency_ms(pathc_live: dict[str, Any]) -> int | None:
+    if not isinstance(pathc_live, dict):
+        return None
+    generated_at = _parse_iso_datetime(pathc_live.get("generated_at"))
+    if generated_at is None:
+        return None
+    l2_block_timestamp = _safe_int(pathc_live.get("l2_block_timestamp"), 0)
+    if l2_block_timestamp > 0:
+        latency_ms = int(round((float(l2_block_timestamp) - generated_at.timestamp()) * 1000.0))
+        return latency_ms if latency_ms > 0 else None
+    last_checked_at = _parse_iso_datetime(pathc_live.get("last_checked_at"))
+    if last_checked_at is None:
+        return None
+    latency_ms = int(round((last_checked_at - generated_at).total_seconds() * 1000.0))
+    return latency_ms if latency_ms > 0 else None
+
+
+def _pathc_benchmark_row(pathc_live: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(pathc_live, dict):
+        return None
+    tx_hash = str(pathc_live.get("tx_hash") or "").strip()
+    if not tx_hash:
+        return None
+    l1_status = pathc_live.get("l1_status")
+    verified_on_l2 = bool(pathc_live.get("l2_verified_on_l2"))
+    l1_gas_used = _safe_int(pathc_live.get("l1_gas_used"), 0)
+    duration_ms = _pathc_confirmation_latency_ms(pathc_live)
+    return {
+        "lane": "PathCBridge",
+        "status": 200 if l1_status in (1, "1") else 202,
+        "mode": pathc_live.get("mode") or "verify_and_bridge",
+        "verified_on_chain": verified_on_l2,
+        "duration_ms": duration_ms,
+        "actual_fee_display": (f"{l1_gas_used} gas" if l1_gas_used > 0 else "-"),
+        "actual_fee_amount": (l1_gas_used if l1_gas_used > 0 else None),
+        "cost_unit": "gas",
+        "tx_hash": tx_hash,
+    }
+
+
 def _compact_int(value: Any) -> str:
     try:
         n = int(value)
@@ -5304,18 +5352,30 @@ class ShowcaseRunner:
                 "error": "failed_to_parse_history",
             }
 
-        lane_order = ["modelbridge", "modelbridge_heavy", "noir", "native_kzg"]
+        lane_order = ["modelbridge", "modelbridge_heavy", "noir", "native_kzg", "path_c"]
         lane_labels = {
             "modelbridge": "ModelBridge",
             "modelbridge_heavy": "ModelBridgeHeavy",
             "noir": "NoirEzklBridge",
             "native_kzg": "EzklNativeKzg",
+            "path_c": "PathCBridge",
         }
         lane_aliases = {
             "modelbridge": "modelbridge",
             "modelbridgeheavy": "modelbridge_heavy",
             "noirezklbridge": "noir",
             "ezklnativekzg": "native_kzg",
+            "pathcbridge": "path_c",
+            "pathc": "path_c",
+            "l1bridge": "path_c",
+            "verifyandbridge": "path_c",
+        }
+        lane_cost_units = {
+            "modelbridge": "FRI",
+            "modelbridge_heavy": "FRI",
+            "noir": "FRI",
+            "native_kzg": "FRI",
+            "path_c": "gas",
         }
 
         stats: dict[str, dict[str, Any]] = {
@@ -5329,6 +5389,7 @@ class ShowcaseRunner:
                 "latest_mode": None,
                 "latest_verified": None,
                 "latest_status": None,
+                "cost_unit": lane_cost_units.get(key, "FRI"),
             }
             for key in lane_order
         }
@@ -5336,6 +5397,7 @@ class ShowcaseRunner:
         used_rows = entries[-max(1, int(window_runs)) :]
         for row in used_rows:
             benchmark_rows = row.get("benchmark_receipts") if isinstance(row.get("benchmark_receipts"), list) else []
+            pathc_counted = False
             if benchmark_rows:
                 for item in benchmark_rows:
                     if not isinstance(item, dict):
@@ -5344,6 +5406,8 @@ class ShowcaseRunner:
                     lane_key = lane_aliases.get(re.sub(r"[^a-z0-9_]+", "", lane_raw))
                     if not lane_key or lane_key not in stats:
                         continue
+                    if lane_key == "path_c":
+                        pathc_counted = True
                     bucket = stats[lane_key]
                     bucket["samples"] += 1
                     verified = bool(item.get("verified_on_chain"))
@@ -5369,6 +5433,36 @@ class ShowcaseRunner:
                     bucket["latest_mode"] = mode
                     bucket["latest_verified"] = verified
                     bucket["latest_status"] = _safe_int(item.get("status"), 0)
+                if pathc_counted:
+                    continue
+
+            pathc_live = row.get("path_c_live") if isinstance(row.get("path_c_live"), dict) else {}
+            pathc_benchmark = _pathc_benchmark_row(pathc_live)
+            if pathc_benchmark is not None:
+                bucket = stats["path_c"]
+                bucket["samples"] += 1
+                verified = bool(pathc_benchmark.get("verified_on_chain"))
+                if verified:
+                    bucket["verified"] += 1
+                duration_ms = _safe_int(pathc_benchmark.get("duration_ms"), 0)
+                if duration_ms > 0:
+                    bucket["durations"].append(duration_ms)
+                gas_amount = _safe_int(pathc_benchmark.get("actual_fee_amount"), 0)
+                if gas_amount > 0:
+                    bucket["fees"].append(gas_amount)
+                mode = str(pathc_benchmark.get("mode") or "-")
+                mode_key = mode.strip().lower()
+                if mode_key:
+                    mode_counts = bucket["modes"]
+                    mode_counts[mode_key] = _safe_int(mode_counts.get(mode_key), 0) + 1
+                tx_hash = str(pathc_benchmark.get("tx_hash") or "").strip()
+                if tx_hash:
+                    bucket["latest_tx_hash"] = tx_hash
+                bucket["latest_mode"] = mode
+                bucket["latest_verified"] = verified
+                bucket["latest_status"] = _safe_int(pathc_benchmark.get("status"), 0)
+
+            if benchmark_rows:
                 continue
 
             # Backward-compatible fallback for older history rows without benchmark_receipts.
@@ -5422,6 +5516,7 @@ class ShowcaseRunner:
                     "duration_p95_ms": _percentile_int([_safe_int(v, 0) for v in durations if _safe_int(v, 0) > 0], 95.0),
                     "fee_p50": _percentile_int([_safe_int(v, 0) for v in fees if _safe_int(v, 0) > 0], 50.0),
                     "fee_p95": _percentile_int([_safe_int(v, 0) for v in fees if _safe_int(v, 0) > 0], 95.0),
+                    "cost_unit": bucket.get("cost_unit") or lane_cost_units.get(lane_key, "FRI"),
                     "latest_tx_hash": bucket.get("latest_tx_hash"),
                     "latest_mode": bucket.get("latest_mode"),
                     "latest_verified": bucket.get("latest_verified"),
@@ -5568,6 +5663,7 @@ class ShowcaseRunner:
             )
         )
 
+        pathc_bench = benchmark_index.get("path_c", {})
         pathc_samples = 0
         pathc_verified = 0
         pathc_recent = 0
@@ -5599,17 +5695,20 @@ class ShowcaseRunner:
                 "verified_rate_pct": (
                     round((pathc_verified / pathc_samples) * 100.0, 2) if pathc_samples > 0 else 0.0
                 ),
-                "duration_p50_ms": None,
-                "duration_p95_ms": None,
-                "fee_p50": None,
-                "fee_p95": None,
+                "duration_p50_ms": pathc_bench.get("duration_p50_ms"),
+                "duration_p95_ms": pathc_bench.get("duration_p95_ms"),
+                "fee_p50": pathc_bench.get("fee_p50"),
+                "fee_p95": pathc_bench.get("fee_p95"),
+                "cost_unit": pathc_bench.get("cost_unit") or "gas",
                 "latest_mode": "l1_bridge",
                 "latest_verified": bool(pathc_latest.get("l2_verified")),
                 "latest_tx_hash": latest_pathc_tx,
                 "note": (
                     f"L2 confirmed {pathc_verified}/{pathc_samples} recent report windows; "
                     f"checked_recently {pathc_recent}/{pathc_samples}; "
-                    f"last age {latest_pathc_age:.2f}h."
+                    f"last age {latest_pathc_age:.2f}h; "
+                    f"p50 confirm {str(pathc_bench.get('duration_p50_ms') or '-')}ms; "
+                    f"p50 L1 gas {_cost_display(pathc_bench.get('fee_p50'), 'gas')}."
                 ),
             }
         )
@@ -6655,7 +6754,11 @@ class ShowcaseRunner:
             if not isinstance(row, dict):
                 continue
             tx_hash = str(row.get("latest_tx_hash") or "-")
-            tx_url = _voyager_tx_url(tx_hash) if tx_hash and tx_hash != "-" else None
+            lane_key = str(row.get("lane_key") or "").strip().lower()
+            if lane_key == "path_c":
+                tx_url = _etherscan_tx_url(tx_hash) if tx_hash and tx_hash != "-" else None
+            else:
+                tx_url = _starknet_tx_url(tx_hash, self._madara_rpc_url) if tx_hash and tx_hash != "-" else None
             tx_html = (
                 f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
                 if tx_url
@@ -6676,8 +6779,8 @@ class ShowcaseRunner:
                     escape(str(row.get("dominant_mode") or "-")),
                     escape(str(row.get("duration_p50_ms") or "-")),
                     escape(str(row.get("duration_p95_ms") or "-")),
-                    escape(str(row.get("fee_p50") or "-")),
-                    escape(str(row.get("fee_p95") or "-")),
+                    escape(_cost_display(row.get("fee_p50"), row.get("cost_unit"))),
+                    escape(_cost_display(row.get("fee_p95"), row.get("cost_unit"))),
                     escape(str(row.get("latest_mode") or "-")),
                     latest_verified_html,
                     tx_html,
@@ -6699,8 +6802,8 @@ class ShowcaseRunner:
                     escape(f"{_safe_float(row.get('verified_rate_pct'), 0.0):.2f}%"),
                     escape(str(row.get("duration_p50_ms") or "-")),
                     escape(str(row.get("duration_p95_ms") or "-")),
-                    escape(_compact_int(row.get("fee_p50")) if row.get("fee_p50") else "-"),
-                    escape(_compact_int(row.get("fee_p95")) if row.get("fee_p95") else "-"),
+                    escape(_cost_display(row.get("fee_p50"), row.get("cost_unit"))),
+                    escape(_cost_display(row.get("fee_p95"), row.get("cost_unit"))),
                 ]
             )
 
@@ -8064,9 +8167,10 @@ class ShowcaseRunner:
           <h3>Operational Benchmark Snapshot</h3>
           <p class="meta">
             Visible rollup from the recent strict/full history window so gas and latency do not stay buried in the bridge appendix.
+            Cost is reported as `FRI` for L3 lanes and `gas` for the L1 Path C bridge.
             Window={escape(str(benchmark_rollup.get('history_entries_used') or 0))}/{escape(str(benchmark_rollup.get('history_entries_total') or 0))} runs.
           </p>
-          {self._html_table(["Lane", "Verified Rate", "p50 ms", "p95 ms", "p50 Fee", "p95 Fee"], top_ops_snapshot_rows)}
+          {self._html_table(["Lane", "Verified Rate", "p50 ms", "p95 ms", "p50 Cost", "p95 Cost"], top_ops_snapshot_rows)}
         </article>
         <article class="summary-panel">
           <h3>Recursive Path Stability</h3>
@@ -8181,7 +8285,7 @@ class ShowcaseRunner:
         (requested window={escape(str(benchmark_rollup.get('window_runs_requested') or 0))}).
         Source: <code>{escape(str(benchmark_rollup.get('artifact_path') or 'artifacts/hackathon_showcase/history.jsonl'))}</code>
       </p>
-      {self._html_table(["Lane", "Samples", "Verified Rate", "Dominant Mode", "p50 ms", "p95 ms", "p50 Fee", "p95 Fee", "Latest Mode", "Latest Verified", "Latest Tx"], benchmark_trend_rows)}
+      {self._html_table(["Lane", "Samples", "Verified Rate", "Dominant Mode", "p50 ms", "p95 ms", "p50 Cost", "p95 Cost", "Latest Mode", "Latest Verified", "Latest Tx"], benchmark_trend_rows)}
       <h3>Recursive Path Stability (Multirun)</h3>
       <p class="meta">
         Path-level runtime evidence across the same history window. Path B includes live model coverage and dual mirror state, while Path C tracks recurring bridge confirmation rather than just one L1 tx.
@@ -8533,6 +8637,9 @@ class ShowcaseRunner:
             )
 
         pathc_live = recursive.get("path_c_live", {}) if isinstance(recursive.get("path_c_live"), dict) else {}
+        pathc_benchmark = _pathc_benchmark_row(pathc_live)
+        if pathc_benchmark is not None:
+            benchmark_rows.append(pathc_benchmark)
 
         return {
             "generated_at": payload.get("generated_at"),
@@ -8541,10 +8648,17 @@ class ShowcaseRunner:
             "path_c_live": {
                 "verified": bool(pathc_live.get("live_verified")),
                 "checked_recently": bool(pathc_live.get("checked_recently")),
+                "mode": pathc_live.get("mode"),
                 "tx_hash": pathc_live.get("tx_hash"),
+                "generated_at": pathc_live.get("generated_at"),
+                "last_checked_at": pathc_live.get("last_checked_at"),
                 "l2_verified_on_l2": bool(pathc_live.get("l2_verified_on_l2")),
                 "nonce": pathc_live.get("used_nonce"),
                 "age_hours": pathc_live.get("age_hours"),
+                "l1_status": pathc_live.get("l1_status"),
+                "l1_gas_used": pathc_live.get("l1_gas_used"),
+                "l2_block_timestamp": pathc_live.get("l2_block_timestamp"),
+                "confirmation_latency_ms": _pathc_confirmation_latency_ms(pathc_live),
             },
             "receipts": {
                 "modelbridge": {
@@ -8594,6 +8708,8 @@ class ShowcaseRunner:
             return None
 
     def write_artifacts(self, started_at: float, exit_code: int) -> dict[str, str]:
+        payload = self._report_payload(started_at=started_at, exit_code=exit_code)
+        history_path = self._append_history(payload)
         payload = self._report_payload(started_at=started_at, exit_code=exit_code)
 
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -8692,8 +8808,6 @@ class ShowcaseRunner:
                 ),
                 encoding="utf-8",
             )
-        history_path = self._append_history(payload)
-
         out = {
             "json": str(json_path.resolve()),
             "html": str(html_path.resolve()),

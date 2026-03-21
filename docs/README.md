@@ -75,3 +75,8 @@ Bridge artifacts tracked by the readout:
 - `artifacts/hackathon_showcase/pathb_latest.json` for Path B (native KZG)
 - `artifacts/hackathon_showcase/pathc_latest.json` for Path C (`verifyAndBridge` + recurring monitor freshness)
 - `artifacts/hackathon_showcase/pathc_payload_latest.json` for the fresh first-party EZKL payload used to mint the latest Path C receipt
+
+The top summary in `/test` now treats Path C as a benchmarked bridge lane, not just a status badge:
+- `PathCBridge` appears in the operational benchmark snapshot
+- latency is reported from initial Path C generation to L2 confirmation
+- cost is reported as L1 gas used (`gas`), while L3 bridge lanes remain in `FRI`
