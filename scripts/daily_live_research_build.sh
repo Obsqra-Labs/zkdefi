@@ -21,6 +21,8 @@ REQUIRE_PATHC_LIVE="${SHOWCASE_REQUIRE_PATHC_LIVE:-true}"
 PATHC_MAX_AGE_HOURS="${SHOWCASE_PATHC_MAX_AGE_HOURS:-36}"
 PATHC_PAYLOAD_JSON="${PATHC_PAYLOAD_JSON:-}"
 PATHC_REFRESH_EXISTING="${PATHC_REFRESH_EXISTING:-true}"
+PATHC_CAPTURE_ROTATING_MODEL="${PATHC_CAPTURE_ROTATING_MODEL:-false}"
+PATHC_ROTATE_MODELS="${PATHC_ROTATE_MODELS:-creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor}"
 PARENT_BASE_URL="${PARENT_BASE_URL:-http://127.0.0.1:8002}"
 WARM_BOOTSTRAP_KNOWN_MODELS="${SHOWCASE_WARM_BOOTSTRAP_KNOWN_MODELS:-true}"
 WARM_BOOTSTRAP_FORCE="${SHOWCASE_WARM_BOOTSTRAP_FORCE:-false}"
@@ -44,6 +46,8 @@ BUILD_RC=0
   echo "showcase_pathc_max_age_hours=$PATHC_MAX_AGE_HOURS"
   echo "pathc_payload_json=${PATHC_PAYLOAD_JSON:-<unset>}"
   echo "pathc_refresh_existing=$PATHC_REFRESH_EXISTING"
+  echo "pathc_capture_rotating_model=$PATHC_CAPTURE_ROTATING_MODEL"
+  echo "pathc_rotate_models=$PATHC_ROTATE_MODELS"
   echo "parent_base_url=$PARENT_BASE_URL"
   echo "showcase_warm_bootstrap_known_models=$WARM_BOOTSTRAP_KNOWN_MODELS"
   echo "showcase_warm_bootstrap_force=$WARM_BOOTSTRAP_FORCE"
@@ -73,6 +77,72 @@ BUILD_RC=0
       echo "pathc_refresh_status=WARN"
       echo "pathc_refresh_mode=capture"
       echo "pathc_refresh_warning=live_capture_failed_continuing_to_gate"
+    fi
+  elif [[ "$PATHC_CAPTURE_ROTATING_MODEL" == "true" ]]; then
+    mapfile -t PATHC_ROTATE_CANDIDATES < <(
+      PATHC_ROTATE_MODELS="$PATHC_ROTATE_MODELS" ARTIFACT_DIR="$ARTIFACT_DIR" python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+models = [m.strip() for m in os.getenv("PATHC_ROTATE_MODELS", "").split() if m.strip()]
+artifact_dir = Path(os.getenv("ARTIFACT_DIR", "."))
+history_path = artifact_dir / "pathc_history.jsonl"
+latest_seen = {}
+if history_path.exists():
+    for raw in history_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(row, dict):
+            continue
+        model = str(row.get("resolved_model_name") or row.get("source_model_name") or "").strip()
+        generated_at = str(row.get("generated_at") or "").strip()
+        if model and generated_at:
+            latest_seen[model] = max(generated_at, str(latest_seen.get(model) or ""))
+ordered = sorted(
+    models,
+    key=lambda model: (
+        1 if model in latest_seen else 0,
+        str(latest_seen.get(model) or ""),
+        model,
+    ),
+)
+for model in ordered:
+    print(model)
+PY
+    )
+    PATHC_SELECTED_MODEL=""
+    PATHC_FAILED_MODELS=()
+    for candidate in "${PATHC_ROTATE_CANDIDATES[@]}"; do
+      [[ -n "$candidate" ]] || continue
+      if PARENT_BASE_URL="$PARENT_BASE_URL" \
+        python3 scripts/capture_pathc_live_receipt.py \
+          --model-name "$candidate" \
+          --parent-base-url "$PARENT_BASE_URL"; then
+        PATHC_SELECTED_MODEL="$candidate"
+        break
+      fi
+      PATHC_FAILED_MODELS+=("$candidate")
+    done
+    if [[ -n "$PATHC_SELECTED_MODEL" ]]; then
+        echo "pathc_refresh_status=PASS"
+        echo "pathc_refresh_mode=rotate_model"
+        echo "pathc_refresh_model=$PATHC_SELECTED_MODEL"
+        if [[ "${#PATHC_FAILED_MODELS[@]}" -gt 0 ]]; then
+          echo "pathc_refresh_failed_models=${PATHC_FAILED_MODELS[*]}"
+        fi
+    else
+      echo "pathc_refresh_status=WARN"
+      echo "pathc_refresh_mode=rotate_model"
+      echo "pathc_refresh_warning=no_rotating_model_capture_succeeded"
+      if [[ "${#PATHC_FAILED_MODELS[@]}" -gt 0 ]]; then
+        echo "pathc_refresh_failed_models=${PATHC_FAILED_MODELS[*]}"
+      fi
     fi
   elif [[ "$PATHC_REFRESH_EXISTING" == "true" && -f "$ARTIFACT_DIR/pathc_latest.json" ]]; then
     if PARENT_BASE_URL="$PARENT_BASE_URL" \

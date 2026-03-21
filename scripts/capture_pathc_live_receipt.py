@@ -18,8 +18,14 @@ from web3 import Web3
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_latest.json"
+DEFAULT_PENDING_ARTIFACT = (
+    PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_pending_latest.json"
+)
 DEFAULT_GENERATED_PAYLOAD = (
     PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_payload_latest.json"
+)
+DEFAULT_HISTORY = (
+    PROJECT_ROOT / "artifacts" / "hackathon_showcase" / "pathc_history.jsonl"
 )
 DEFAULT_PARENT_BASE_URL = "http://127.0.0.1:8002"
 DEFAULT_BRIDGE_SENDER_ARTIFACT = (
@@ -349,6 +355,107 @@ def _artifact_timestamp(path: Path, value: Any) -> str:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+
+
+def _parse_iso_datetime(raw: Any) -> datetime | None:
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _pathc_confirmation_latency_ms(artifact: dict[str, Any]) -> int | None:
+    generated_at = _parse_iso_datetime(artifact.get("generated_at"))
+    if generated_at is None:
+        return None
+    l2_last = artifact.get("l2_last") if isinstance(artifact.get("l2_last"), dict) else {}
+    block_timestamp = l2_last.get("block_timestamp")
+    try:
+        block_timestamp_int = int(block_timestamp) if block_timestamp is not None else 0
+    except Exception:
+        block_timestamp_int = 0
+    if block_timestamp_int > 0:
+        latency_ms = int(round((float(block_timestamp_int) - generated_at.timestamp()) * 1000.0))
+        return latency_ms if latency_ms > 0 else None
+    last_checked_at = _parse_iso_datetime(artifact.get("last_checked_at"))
+    if last_checked_at is None:
+        return None
+    latency_ms = int(round((last_checked_at - generated_at).total_seconds() * 1000.0))
+    return latency_ms if latency_ms > 0 else None
+
+
+def _pathc_history_row(artifact: dict[str, Any]) -> dict[str, Any]:
+    generated_meta = (
+        artifact.get("generated_payload_meta")
+        if isinstance(artifact.get("generated_payload_meta"), dict)
+        else {}
+    )
+    return {
+        "generated_at": artifact.get("generated_at"),
+        "last_checked_at": artifact.get("last_checked_at"),
+        "mode": artifact.get("mode"),
+        "tx_hash": artifact.get("tx_hash"),
+        "message_hash": artifact.get("message_hash"),
+        "used_nonce": artifact.get("used_nonce"),
+        "source_model_name": (
+            artifact.get("source_model_name")
+            or generated_meta.get("source_model_name")
+        ),
+        "resolved_model_name": (
+            artifact.get("resolved_model_name")
+            or generated_meta.get("resolved_model_name")
+        ),
+        "input_source": (
+            artifact.get("input_source")
+            or generated_meta.get("input_source")
+        ),
+        "sample_index": (
+            artifact.get("sample_index")
+            if artifact.get("sample_index") is not None
+            else generated_meta.get("sample_index")
+        ),
+        "raw_model_hash": artifact.get("raw_model_hash"),
+        "bridge_model_hash": artifact.get("bridge_model_hash") or artifact.get("model_hash"),
+        "raw_output_commitment": artifact.get("raw_output_commitment"),
+        "bridge_output_commitment": artifact.get("bridge_output_commitment") or artifact.get("output_commitment"),
+        "l1_status": (artifact.get("l1_receipt") or {}).get("status"),
+        "l1_block_number": (artifact.get("l1_receipt") or {}).get("blockNumber"),
+        "l1_gas_used": (artifact.get("l1_receipt") or {}).get("gasUsed"),
+        "l2_verified": bool(artifact.get("l2_verified")),
+        "l2_verified_on_l2": bool(((artifact.get("l2_last") or {}).get("verified_on_l2"))),
+        "l2_block_timestamp": (artifact.get("l2_last") or {}).get("block_timestamp"),
+        "confirmation_latency_ms": _pathc_confirmation_latency_ms(artifact),
+    }
+
+
+def _append_pathc_history(path: Path, row: dict[str, Any]) -> bool:
+    tx_hash = str(row.get("tx_hash") or "").strip().lower()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        try:
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                line = raw.strip()
+                if not line:
+                    continue
+                parsed = json.loads(line)
+                if not isinstance(parsed, dict):
+                    continue
+                existing_tx = str(parsed.get("tx_hash") or "").strip().lower()
+                if tx_hash and existing_tx == tx_hash:
+                    return False
+        except Exception:
+            pass
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
+    return True
 
 
 def _post_json(url: str, payload: dict[str, Any], timeout: float) -> tuple[int, dict[str, Any]]:
@@ -724,6 +831,8 @@ def main() -> int:
     )
     parser.add_argument("--parent-base-url", default=os.getenv("PARENT_BASE_URL", DEFAULT_PARENT_BASE_URL))
     parser.add_argument("--artifact", default=str(DEFAULT_ARTIFACT))
+    parser.add_argument("--pending-artifact", default=str(DEFAULT_PENDING_ARTIFACT))
+    parser.add_argument("--history-file", default=str(DEFAULT_HISTORY))
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--wait-for-l2", action="store_true", default=True)
     parser.add_argument("--no-wait-for-l2", dest="wait_for_l2", action="store_false")
@@ -979,12 +1088,78 @@ def main() -> int:
         "verify_result": verify_result or existing_artifact.get("verify_result"),
         "verify_status_code": verify_status if verify_status is not None else existing_artifact.get("verify_status_code"),
         "generated_payload_meta": generated_payload_meta or existing_artifact.get("generated_payload_meta"),
+        "source_model_name": (
+            (generated_payload_meta or {}).get("source_model_name")
+            or ((existing_artifact.get("generated_payload_meta") or {}).get("source_model_name") if isinstance(existing_artifact.get("generated_payload_meta"), dict) else None)
+            or existing_artifact.get("source_model_name")
+        ),
+        "resolved_model_name": (
+            (generated_payload_meta or {}).get("resolved_model_name")
+            or ((existing_artifact.get("generated_payload_meta") or {}).get("resolved_model_name") if isinstance(existing_artifact.get("generated_payload_meta"), dict) else None)
+            or existing_artifact.get("resolved_model_name")
+        ),
+        "input_source": (
+            (generated_payload_meta or {}).get("input_source")
+            or ((existing_artifact.get("generated_payload_meta") or {}).get("input_source") if isinstance(existing_artifact.get("generated_payload_meta"), dict) else None)
+            or existing_artifact.get("input_source")
+        ),
+        "sample_index": (
+            (generated_payload_meta or {}).get("sample_index")
+            if (generated_payload_meta or {}).get("sample_index") is not None
+            else (
+                (existing_artifact.get("generated_payload_meta") or {}).get("sample_index")
+                if isinstance(existing_artifact.get("generated_payload_meta"), dict)
+                and (existing_artifact.get("generated_payload_meta") or {}).get("sample_index") is not None
+                else existing_artifact.get("sample_index")
+            )
+        ),
+        "output_commitment_scheme": (
+            (generated_payload_meta or {}).get("output_commitment_scheme")
+            or ((existing_artifact.get("generated_payload_meta") or {}).get("output_commitment_scheme") if isinstance(existing_artifact.get("generated_payload_meta"), dict) else None)
+            or existing_artifact.get("output_commitment_scheme")
+        ),
     }
 
     artifact_path = Path(args.artifact).expanduser().resolve()
+    pending_artifact_path = Path(args.pending_artifact).expanduser().resolve()
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
-    artifact_path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"artifact": str(artifact_path), "tx_hash": tx_hash, "used_nonce": artifact["used_nonce"]}, indent=2))
+    pending_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_live = bool(
+        artifact.get("l2_verified")
+        or ((artifact.get("l2_last") or {}).get("verified_on_l2") if isinstance(artifact.get("l2_last"), dict) else False)
+    )
+    current_primary: dict[str, Any] = {}
+    if artifact_path.exists():
+        try:
+            current_primary = _load_existing_artifact(artifact_path)
+        except Exception:
+            current_primary = {}
+    current_primary_live = bool(
+        current_primary.get("l2_verified")
+        or ((current_primary.get("l2_last") or {}).get("verified_on_l2") if isinstance(current_primary.get("l2_last"), dict) else False)
+    )
+    promote_to_primary = artifact_live or not current_primary_live
+    write_path = artifact_path if promote_to_primary else pending_artifact_path
+    write_path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    history_path = Path(args.history_file).expanduser().resolve()
+    history_row = _pathc_history_row(artifact)
+    history_appended = _append_pathc_history(history_path, history_row)
+    print(
+        json.dumps(
+            {
+                "artifact": str(write_path),
+                "primary_artifact": str(artifact_path),
+                "pending_artifact": str(pending_artifact_path),
+                "promoted_to_primary": promote_to_primary,
+                "history_file": str(history_path),
+                "history_appended": history_appended,
+                "tx_hash": tx_hash,
+                "used_nonce": artifact["used_nonce"],
+                "resolved_model_name": artifact.get("resolved_model_name"),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

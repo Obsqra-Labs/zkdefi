@@ -206,6 +206,8 @@ Daily build env knobs:
 - `SHOWCASE_PATHC_MAX_AGE_HOURS=36` (default freshness window for `pathc_latest.json`)
 - `PATHC_PAYLOAD_JSON=/abs/path/to/pathc_payload.json` (optional; capture a fresh Path C receipt before gating)
 - `PATHC_REFRESH_EXISTING=true` (default; refresh the existing `pathc_latest.json` artifact in place when no payload is set)
+- `PATHC_CAPTURE_ROTATING_MODEL=false` (set `true` to mint a fresh Path C receipt from a rotating verifier-compatible EZKL model instead of only refreshing the pinned artifact)
+- `PATHC_ROTATE_MODELS="creditworthiness yield_forecast anomaly_detector llm_fallback timing_predictor"` (rotation order / least-recently-used pool for Path C capture; the script tries candidates in order until one matches the deployed L1 verifier)
 - `PARENT_BASE_URL=http://127.0.0.1:8002` (parent backend base URL used for Path C capture/refresh)
 
 Path C live receipt capture from an existing payload:
@@ -258,6 +260,9 @@ Report files are written only when `--emit-report` is set (or `SHOWCASE_EMIT_REP
 - `artifacts/hackathon_showcase/latest.json`
 - `artifacts/hackathon_showcase/patha_latest.json` (latest Path A `NoirEzklBridge` / `noir_honk` receipt artifact used by recursive stage check-ins and strict Noir gate)
 - `artifacts/hackathon_showcase/pathb_latest.json` (latest Path B `EzklNativeKzg` runtime/verifier coverage artifact used by recursive stage check-ins and strict bridge gate)
+- `artifacts/hackathon_showcase/pathc_latest.json` (latest confirmed Path C receipt kept safe for strict gate / report readiness)
+- `artifacts/hackathon_showcase/pathc_pending_latest.json` (newest pending Path C receipt when a fresh L1 tx has not confirmed on L2 yet)
+- `artifacts/hackathon_showcase/pathc_history.jsonl` (append-only Path C receipt history keyed by live L1 tx, used for model-coverage reporting and rotation)
 - `artifacts/hackathon_showcase/pathc_payload_latest.json` (latest first-party Path C payload bundle generated from a local EZKL proof)
 
 The HTML report includes:
@@ -276,6 +281,8 @@ The HTML report includes:
 - Top-level **Operational Benchmark Snapshot** now includes `PathCBridge` with live confirmation latency and L1 gas usage sourced from the current strict run instead of waiting for the next history window
 - Dedicated **Path A Live Receipt** table sourced from `patha_latest.json`, so Path A is tracked as a receipt-backed stage instead of just a listed lane
 - Dedicated Path B live artifact sourced from `pathb_latest.json`, so Path B stage readiness is pinned to live catalog receipts plus verifier ABI/runtime checks instead of only the in-memory warm report
+- Dedicated **Path C Recent Receipt History** table sourced from `pathc_history.jsonl`, so the report can show verifier-compatible model coverage instead of one pinned L1->L2 example
+- Path C capture safety: fresh pending captures are written to `pathc_pending_latest.json` and only promoted over `pathc_latest.json` once L2 confirmation is real, so strict gate readiness does not regress during experimentation
 - Voyager links for deployed contracts/classes and receipt tx hashes (when present)
 - Deep circuit inventory (`31` first-party Circom circuits) with artifact readiness
 - AI + marketplace snapshot: opportunities, advisory calls, strategy badge screening

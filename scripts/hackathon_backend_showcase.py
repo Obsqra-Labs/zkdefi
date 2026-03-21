@@ -44,6 +44,7 @@ PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
 PATHB_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_latest.json"
 PATHB_WARM_REPORT_FILE = DEFAULT_ARTIFACT_DIR / "pathb_bundle_warm.json"
+PATHC_HISTORY_FILE = DEFAULT_ARTIFACT_DIR / "pathc_history.jsonl"
 
 # Public landscape references used in the HTML report to position the bridge
 # architecture relative to known open-source stacks.
@@ -356,6 +357,66 @@ def _pathc_benchmark_row(pathc_live: dict[str, Any]) -> dict[str, Any] | None:
         "actual_fee_amount": (l1_gas_used if l1_gas_used > 0 else None),
         "cost_unit": "gas",
         "tx_hash": tx_hash,
+    }
+
+
+def _load_jsonl_dict_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            parsed = json.loads(line)
+            if isinstance(parsed, dict):
+                rows.append(parsed)
+    except Exception:
+        return []
+    return rows
+
+
+def _pathc_capture_history_summary(path: Path, *, window_entries: int = 12) -> dict[str, Any]:
+    rows = _load_jsonl_dict_rows(path)
+    if not rows:
+        return {
+            "artifact_path": _relative_to_project(path),
+            "artifact_found": path.exists(),
+            "entries_total": 0,
+            "entries_used": 0,
+            "distinct_models_total": 0,
+            "distinct_models_recent": 0,
+            "recent_models": [],
+            "latest_model": None,
+            "latest_tx_hash": None,
+            "latest_verified": False,
+        }
+    used = rows[-max(1, int(window_entries)) :]
+    all_models = []
+    recent_models = []
+    for row in rows:
+        model = str(row.get("resolved_model_name") or row.get("source_model_name") or "").strip()
+        if model:
+            all_models.append(model)
+    for row in used:
+        model = str(row.get("resolved_model_name") or row.get("source_model_name") or "").strip()
+        if model:
+            recent_models.append(model)
+    latest = used[-1] if used else rows[-1]
+    return {
+        "artifact_path": _relative_to_project(path),
+        "artifact_found": path.exists(),
+        "entries_total": len(rows),
+        "entries_used": len(used),
+        "distinct_models_total": len(set(all_models)),
+        "distinct_models_recent": len(set(recent_models)),
+        "recent_models": sorted(set(recent_models)),
+        "latest_model": str(latest.get("resolved_model_name") or latest.get("source_model_name") or "") or None,
+        "latest_tx_hash": str(latest.get("tx_hash") or "") or None,
+        "latest_verified": bool(latest.get("l2_verified_on_l2")),
+        "latest_confirmation_latency_ms": _safe_int(latest.get("confirmation_latency_ms"), 0) or None,
+        "latest_l1_gas_used": _safe_int(latest.get("l1_gas_used"), 0) or None,
     }
 
 
@@ -3612,6 +3673,16 @@ class ShowcaseRunner:
 
         pathc_mode = str(pathc_live_receipt_raw.get("mode") or "")
         pathc_tx_hash = str(pathc_live_receipt_raw.get("tx_hash") or "")
+        pathc_source_model_name = str(
+            pathc_live_receipt_raw.get("source_model_name")
+            or ((pathc_live_receipt_raw.get("generated_payload_meta") or {}).get("source_model_name") if isinstance(pathc_live_receipt_raw.get("generated_payload_meta"), dict) else "")
+            or ""
+        )
+        pathc_resolved_model_name = str(
+            pathc_live_receipt_raw.get("resolved_model_name")
+            or ((pathc_live_receipt_raw.get("generated_payload_meta") or {}).get("resolved_model_name") if isinstance(pathc_live_receipt_raw.get("generated_payload_meta"), dict) else "")
+            or ""
+        )
         pathc_model_hash = str(pathc_live_receipt_raw.get("model_hash") or "")
         pathc_output_commitment = str(pathc_live_receipt_raw.get("output_commitment") or "")
         pathc_raw_model_hash = str(pathc_live_receipt_raw.get("raw_model_hash") or pathc_model_hash or "")
@@ -3687,6 +3758,14 @@ class ShowcaseRunner:
             if pathc_l2_block_timestamp > 0
             else None
         )
+        pathc_confirmation_latency_ms = _pathc_confirmation_latency_ms(
+            {
+                "generated_at": (pathc_generated_at.isoformat() if pathc_generated_at else None),
+                "last_checked_at": (pathc_last_checked_at.isoformat() if pathc_last_checked_at else None),
+                "l2_block_timestamp": pathc_l2_block_timestamp,
+            }
+        )
+        pathc_capture_history = _pathc_capture_history_summary(PATHC_HISTORY_FILE, window_entries=12)
         pathc_tx_url = _etherscan_tx_url(pathc_tx_hash) if pathc_tx_hash else None
         pathc_sender = parent_env.get("L1_EZKL_BRIDGE_SENDER_ADDRESS")
         pathc_receiver = parent_env.get("L1_BRIDGE_RECEIVER_ADDRESS")
@@ -3947,6 +4026,10 @@ class ShowcaseRunner:
                 "path_c_checked_recently": pathc_checked_recently,
                 "path_c_max_age_hours": pathc_max_age_hours,
                 "path_c_age_hours": pathc_age_hours,
+                "path_c_capture_history_found": pathc_capture_history.get("artifact_found"),
+                "path_c_capture_entries_total": pathc_capture_history.get("entries_total"),
+                "path_c_capture_models_total": pathc_capture_history.get("distinct_models_total"),
+                "path_c_capture_models_recent": pathc_capture_history.get("distinct_models_recent"),
             },
             "env_snapshot": {
                 "parent_env_found": PARENT_BACKEND_ENV_FILE.exists(),
@@ -4090,9 +4173,12 @@ class ShowcaseRunner:
                 "checked_recently": pathc_checked_recently,
                 "runtime_stage": pathc_runtime_stage,
                 "mode": pathc_mode,
+                "source_model_name": (pathc_source_model_name or None),
+                "resolved_model_name": (pathc_resolved_model_name or None),
                 "generated_at": (pathc_generated_at.isoformat() if pathc_generated_at else None),
                 "last_checked_at": (pathc_last_checked_at.isoformat() if pathc_last_checked_at else None),
                 "age_hours": (round(pathc_age_hours, 2) if pathc_age_hours is not None else None),
+                "confirmation_latency_ms": pathc_confirmation_latency_ms,
                 "tx_hash": pathc_tx_hash or None,
                 "tx_url": pathc_tx_url,
                 "model_hash": pathc_model_hash or None,
@@ -4125,6 +4211,7 @@ class ShowcaseRunner:
                 "verifier_url": _etherscan_address_url(pathc_verifier) if pathc_verifier else None,
                 "receiver_address": pathc_receiver,
             },
+            "path_c_capture_history": pathc_capture_history,
             "next_steps": next_steps,
         }
 
@@ -5664,6 +5751,7 @@ class ShowcaseRunner:
         )
 
         pathc_bench = benchmark_index.get("path_c", {})
+        pathc_capture_history = _pathc_capture_history_summary(PATHC_HISTORY_FILE, window_entries=12)
         pathc_samples = 0
         pathc_verified = 0
         pathc_recent = 0
@@ -5704,6 +5792,8 @@ class ShowcaseRunner:
                 "latest_verified": bool(pathc_latest.get("l2_verified")),
                 "latest_tx_hash": latest_pathc_tx,
                 "note": (
+                    f"recent model coverage {pathc_capture_history.get('distinct_models_recent') or 0}/"
+                    f"{pathc_capture_history.get('distinct_models_total') or 0}; "
                     f"L2 confirmed {pathc_verified}/{pathc_samples} recent report windows; "
                     f"checked_recently {pathc_recent}/{pathc_samples}; "
                     f"last age {latest_pathc_age:.2f}h; "
@@ -6306,6 +6396,12 @@ class ShowcaseRunner:
             if path_c_poll_url
             else "-"
         )
+        path_c_capture_history = (
+            recursive_paths.get("path_c_capture_history")
+            if isinstance(recursive_paths.get("path_c_capture_history"), dict)
+            else {}
+        )
+        path_c_recent_models = path_c_capture_history.get("recent_models") if isinstance(path_c_capture_history.get("recent_models"), list) else []
         path_c_live_rows = [
             ["Artifact path", f"<code>{escape(str(path_c_live.get('artifact_path') or '-'))}</code>"],
             ["Artifact present", "<span class=\"pass\">yes</span>" if path_c_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
@@ -6313,9 +6409,12 @@ class ShowcaseRunner:
             ["Runtime stage", escape(str(path_c_live.get("runtime_stage") or "-"))],
             ["Monitor freshness", "<span class=\"pass\">fresh</span>" if path_c_live.get("checked_recently") else "<span class=\"warn\">stale</span>"],
             ["Mode", escape(str(path_c_live.get("mode") or "-"))],
+            ["Source model", escape(str(path_c_live.get("source_model_name") or path_c_live.get("resolved_model_name") or "-"))],
+            ["Resolved model", escape(str(path_c_live.get("resolved_model_name") or "-"))],
             ["First captured (UTC)", escape(str(path_c_live.get("generated_at") or "-"))],
             ["Last checked (UTC)", escape(str(path_c_live.get("last_checked_at") or "-"))],
             ["Artifact age (hours)", escape(str(path_c_live.get("age_hours") if path_c_live.get("age_hours") is not None else "-"))],
+            ["Confirmation latency (ms)", escape(str(path_c_live.get("confirmation_latency_ms") or "-"))],
             ["L1 tx hash", path_c_tx_html],
             ["L1 status", escape(str(path_c_live.get("l1_status") or "-"))],
             ["L1 block", escape(str(path_c_live.get("l1_block_number") or "-"))],
@@ -6335,8 +6434,33 @@ class ShowcaseRunner:
             ["L2 output commitment", escape(_short_hex(str(path_c_live.get("l2_output_commitment") or "-"), 14))],
             ["L2 block timestamp (UTC)", escape(str(path_c_live.get("l2_block_timestamp_iso") or "-"))],
             ["Poll attempts until confirm", escape(str(path_c_live.get("l2_poll_count") or "-"))],
+            ["Capture history file", f"<code>{escape(str(path_c_capture_history.get('artifact_path') or '-'))}</code>"],
+            ["Distinct models captured", escape(str(path_c_capture_history.get("distinct_models_total") or 0))],
+            ["Recent model coverage", escape(", ".join(str(x) for x in path_c_recent_models) if path_c_recent_models else "-")],
             ["Verification status URL", path_c_poll_html],
         ]
+        path_c_history_rows = []
+        if PATHC_HISTORY_FILE.exists():
+            for row in _load_jsonl_dict_rows(PATHC_HISTORY_FILE)[-6:]:
+                tx_hash = str(row.get("tx_hash") or "")
+                tx_url = _etherscan_tx_url(tx_hash) if tx_hash else None
+                tx_html = (
+                    f"<a href=\"{escape(str(tx_url))}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
+                    if tx_url
+                    else escape(_short_hex(tx_hash, 14) if tx_hash else "-")
+                )
+                verified_html = "<span class=\"pass\">true</span>" if row.get("l2_verified_on_l2") else "<span class=\"fail\">false</span>"
+                path_c_history_rows.append(
+                    [
+                        escape(str(row.get("resolved_model_name") or row.get("source_model_name") or "-")),
+                        escape(str(row.get("generated_at") or "-")),
+                        verified_html,
+                        escape(str(row.get("confirmation_latency_ms") or "-")),
+                        escape(_cost_display(row.get("l1_gas_used"), "gas")),
+                        tx_html,
+                    ]
+                )
+        path_c_history_rows = list(reversed(path_c_history_rows))
         recursive_next_rows = [
             [escape(str(idx + 1)), escape(str(item))]
             for idx, item in enumerate(recursive_paths.get("next_steps") or [])
@@ -8367,6 +8491,9 @@ class ShowcaseRunner:
       <h3>Path C Live Receipt (L1 -&gt; L2)</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathc_latest.json</code> (captured from live `verifyAndBridge` + poll flow).</p>
       {self._html_table(["Field", "Value"], path_c_live_rows)}
+      <h3>Path C Recent Receipt History</h3>
+      <p class="meta">Recent Path C captures across first-party EZKL models. This is the bridge-coverage view, separate from the single latest receipt used by the strict gate.</p>
+      {self._html_table(["Model", "Captured At (UTC)", "L2 Confirmed", "Latency ms", "L1 Gas", "Tx"], path_c_history_rows)}
       <h3>Path B Catalog Warm Report</h3>
       <p class="meta">Receipt source: <code>artifacts/hackathon_showcase/pathb_bundle_warm.json</code> (real-proof warm coverage run). This section now separates first-party model bootstrap provenance from the actual native-KZG receipt counts, so the report does not blur training/setup readiness with cryptographic execution readiness.</p>
       {self._html_table(["Field", "Value"], path_b_warm_rows)}
@@ -8649,6 +8776,8 @@ class ShowcaseRunner:
                 "verified": bool(pathc_live.get("live_verified")),
                 "checked_recently": bool(pathc_live.get("checked_recently")),
                 "mode": pathc_live.get("mode"),
+                "source_model_name": pathc_live.get("source_model_name"),
+                "resolved_model_name": pathc_live.get("resolved_model_name"),
                 "tx_hash": pathc_live.get("tx_hash"),
                 "generated_at": pathc_live.get("generated_at"),
                 "last_checked_at": pathc_live.get("last_checked_at"),
