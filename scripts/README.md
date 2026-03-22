@@ -17,6 +17,13 @@ Operational and deployment scripts for zkde.fi.
 
 The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate Obsqra Labs research claims with backend + on-chain receipts.
 
+Serving contract:
+
+- `https://zkde.fi/test` should be served statically by nginx from `artifacts/hackathon_showcase/latest.html`
+- `https://zkde.fi/explorer/` should stay proxied to the backend Forge routes on `:8003`
+- Repo nginx template: `nginx/zkde.fi.conf`
+- Bootstrap installer: `scripts/setup-nginx-pm2.sh`
+
 Artifact-backed API surfaces:
 
 - `GET /api/v1/zkdefi/public-proof-dashboard` returns the current explorer-safe public proof block from `latest.json`

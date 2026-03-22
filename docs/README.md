@@ -88,6 +88,12 @@ Canonical public explorer pages:
 - `https://zkde.fi/explorer/facts/page`
 - `https://zkde.fi/explorer/models/page`
 
+Serving contract:
+- `https://zkde.fi/test` is served directly by nginx from `artifacts/hackathon_showcase/latest.html`, not proxied through the backend hot path.
+- `https://zkde.fi/explorer/` remains a backend-proxied Forge surface.
+- Repo-managed nginx template: `nginx/zkde.fi.conf`
+- Bootstrap installer: `scripts/setup-nginx-pm2.sh`
+
 Underlying API routes:
 - `GET /api/v1/zkdefi/forge`
 - `GET /api/v1/zkdefi/forge/proofs`
