@@ -172,7 +172,12 @@ def _get_pathc_route_rows() -> list[dict[str, Any]]:
 
 def _pathc_settlement_graph(route: dict[str, Any]) -> dict[str, Any] | None:
     model_name = str(route.get("model_name") or "").strip()
-    tx_hash = str(route.get("tx_hash") or "").strip()
+    tx_hash = str(
+        route.get("latest_public_tx_hash")
+        or route.get("latest_tx_hash")
+        or route.get("tx_hash")
+        or ""
+    ).strip()
     if not model_name or not tx_hash:
         return None
     return {
@@ -187,7 +192,7 @@ def _pathc_settlement_graph(route: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _pathc_summary_rows() -> list[dict[str, Any]]:
-    rows = _get_pathc_route_rows()
+    rows = _get_pathc_route_inventory_rows()
     confirmed = [row for row in rows if bool(row.get("l2_verified"))]
     latest_confirmed = confirmed[0] if confirmed else None
     models = {str(row.get("model_name") or "").strip() for row in rows if str(row.get("model_name") or "").strip()}
@@ -201,11 +206,71 @@ def _pathc_summary_rows() -> list[dict[str, Any]]:
             "confirmed_route_count": len(confirmed),
             "model_count": len(models),
             "confirmed_model_count": len(confirmed_models),
-            "latest_public_timestamp": latest_confirmed.get("generated_at") if latest_confirmed else None,
-            "latest_public_tx_hash": latest_confirmed.get("tx_hash") if latest_confirmed else None,
+            "latest_public_timestamp": latest_confirmed.get("latest_public_timestamp") if latest_confirmed else None,
+            "latest_public_tx_hash": latest_confirmed.get("latest_public_tx_hash") if latest_confirmed else None,
             "latest_public_model_name": latest_confirmed.get("model_name") if latest_confirmed else None,
         }
     ]
+
+
+def _get_pathc_route_inventory_rows() -> list[dict[str, Any]]:
+    by_route: dict[str, dict[str, Any]] = {}
+    for row in _get_pathc_route_rows():
+        route_id = (
+            str(row.get("route_key") or "").strip()
+            or str(row.get("model_name") or "").strip()
+            or str(row.get("tx_hash") or "").strip()
+        )
+        if not route_id:
+            continue
+        current = by_route.get(route_id)
+        if current is None:
+            current = {
+                "route_id": route_id,
+                "route_key": row.get("route_key"),
+                "route_source": row.get("route_source"),
+                "model_name": row.get("model_name"),
+                "mode": row.get("mode"),
+                "network": row.get("network"),
+                "detail_href": row.get("detail_href"),
+                "latest_attempt_timestamp": row.get("generated_at"),
+                "latest_tx_hash": row.get("tx_hash"),
+                "latest_public_timestamp": row.get("latest_public_timestamp"),
+                "latest_public_tx_hash": row.get("latest_public_tx_hash"),
+                "l2_verified": bool(row.get("l2_verified")),
+            }
+            by_route[route_id] = current
+            continue
+        if str(row.get("generated_at") or "") >= str(current.get("latest_attempt_timestamp") or ""):
+            current["latest_attempt_timestamp"] = row.get("generated_at")
+            current["latest_tx_hash"] = row.get("tx_hash")
+            current["detail_href"] = row.get("detail_href")
+        if row.get("route_key"):
+            current["route_key"] = row.get("route_key")
+        if row.get("route_source"):
+            current["route_source"] = row.get("route_source")
+        if row.get("model_name"):
+            current["model_name"] = row.get("model_name")
+        if row.get("mode"):
+            current["mode"] = row.get("mode")
+        if row.get("network"):
+            current["network"] = row.get("network")
+        if row.get("l2_verified") and (
+            str(row.get("latest_public_timestamp") or "") >= str(current.get("latest_public_timestamp") or "")
+        ):
+            current["latest_public_timestamp"] = row.get("latest_public_timestamp")
+            current["latest_public_tx_hash"] = row.get("latest_public_tx_hash")
+            current["l2_verified"] = True
+
+    rows = list(by_route.values())
+    rows.sort(
+        key=lambda row: (
+            str(row.get("latest_public_timestamp") or row.get("latest_attempt_timestamp") or ""),
+            str(row.get("latest_public_tx_hash") or row.get("latest_tx_hash") or ""),
+        ),
+        reverse=True,
+    )
+    return rows
 
 
 def _classify_query(q: str) -> str:
@@ -774,7 +839,7 @@ async def _graph_neighborhood_for_model(
         if isinstance(graph, dict)
     ]
     model_key = str(model_name or "").strip().lower()
-    for route in _get_pathc_route_rows():
+    for route in _get_pathc_route_inventory_rows():
         if str(route.get("model_name") or "").strip().lower() != model_key:
             continue
         if public_only and not route.get("l2_verified"):
@@ -828,7 +893,7 @@ async def _get_model_rows(
     lane: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     model_proofs = await _list_proofs_for_search(5000)
-    pathc_routes = _get_pathc_route_rows()
+    pathc_routes = _get_pathc_route_inventory_rows()
     proofs_by_model: dict[str, list[dict[str, Any]]] = {}
     pathc_by_model: dict[str, list[dict[str, Any]]] = {}
     for proof in model_proofs:
@@ -879,8 +944,8 @@ async def _get_model_rows(
         latest_pathc_route = max(
             model_pathc_routes,
             key=lambda route: (
-                str(route.get("latest_public_timestamp") or ""),
-                str(route.get("tx_hash") or ""),
+                str(route.get("latest_attempt_timestamp") or route.get("latest_public_timestamp") or ""),
+                str(route.get("latest_tx_hash") or route.get("latest_public_tx_hash") or ""),
             ),
             default={},
         )
@@ -954,8 +1019,8 @@ async def _get_model_rows(
                 "latest_public_source_kind": latest_public_source_kind,
                 "pathc_route_count": len(model_pathc_routes),
                 "pathc_confirmed_count": len(confirmed_pathc_routes),
-                "latest_pathc_tx_hash": latest_pathc_route.get("tx_hash"),
-                "latest_pathc_timestamp": latest_pathc_route.get("latest_public_timestamp"),
+                "latest_pathc_tx_hash": latest_pathc_route.get("latest_tx_hash") or latest_pathc_route.get("latest_public_tx_hash"),
+                "latest_pathc_timestamp": latest_pathc_route.get("latest_attempt_timestamp") or latest_pathc_route.get("latest_public_timestamp"),
                 "latest_pathc_route_key": latest_pathc_route.get("route_key"),
                 "latest_pathc_route_source": latest_pathc_route.get("route_source"),
                 "latest_confirmed_pathc_tx_hash": latest_public_pathc_route.get("latest_public_tx_hash"),
@@ -1175,7 +1240,7 @@ async def forge_status() -> dict[str, Any]:
     health = await _get_system_health()
     proof_stats = await _get_proof_stats()
     lane_summary = await _get_lane_summary_rows()
-    pathc_routes = _get_pathc_route_rows()
+    pathc_routes = _get_pathc_route_inventory_rows()
     derived_total = sum(int(row.get("proof_count") or 0) for row in lane_summary)
     derived_public = sum(int(row.get("public_proof_count") or 0) for row in lane_summary)
     confirmed_pathc = [row for row in pathc_routes if row.get("l2_verified")]
