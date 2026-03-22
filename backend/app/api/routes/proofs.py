@@ -28,6 +28,7 @@ from app.services.bridge_lanes import (
     bridge_lane_payload,
     normalize_bridge_circuit,
 )
+from app.services.proof_projection import lane_model_alias, normalize_indexed_proof_payload
 from app.services.receipt_provenance import (
     build_public_receipt_index_for_user,
     collect_public_receipts_for_hashes,
@@ -55,6 +56,13 @@ def _proof_lookup_hashes(payload: dict[str, Any], requested_hash: str) -> set[st
         str(metadata.get("fact_hash") or "").strip().lower(),
         str(metadata.get("bridge_fact_hash") or "").strip().lower(),
     }
+    lane_model_hashes = {
+        lane_model_alias(bridge_statement.get("lane"), bridge_statement.get("model_name")),
+        lane_model_alias(bridge_statement.get("lane"), bridge_statement.get("requested_model_name")),
+        lane_model_alias(payload.get("lane"), bridge_statement.get("model_name")),
+        lane_model_alias(metadata.get("bridge_lane"), bridge_statement.get("model_name")),
+    }
+    hashes.update({str(value).strip().lower() for value in lane_model_hashes if value})
     hashes.discard("")
     return hashes
 
@@ -65,6 +73,7 @@ async def _attach_public_receipts(
     *,
     receipt_index: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
+    payload = normalize_indexed_proof_payload(payload)
     metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
     user_address = (
         payload.get("user_address")
@@ -79,7 +88,7 @@ async def _attach_public_receipts(
         if receipt_index is not None
         else await collect_public_receipts_for_hashes(lookup_hashes, user_address=user_address)
     )
-    enriched = dict(payload)
+    enriched = normalize_indexed_proof_payload(dict(payload))
     enriched["public_receipts"] = public_receipts
     enriched["public_receipt_summary"] = summarize_public_receipts(public_receipts)
     return enriched

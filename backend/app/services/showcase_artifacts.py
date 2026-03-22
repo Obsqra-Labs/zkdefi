@@ -13,6 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 _ARTIFACT_DIR = _REPO_ROOT / "artifacts" / "hackathon_showcase"
 _LATEST_JSON = _ARTIFACT_DIR / "latest.json"
 _PUBLIC_PROOF_DASHBOARD_MD = _ARTIFACT_DIR / "public_proof_dashboard.md"
+_PATHB_BUNDLE_WARM_JSON = _ARTIFACT_DIR / "pathb_bundle_warm.json"
 
 
 def showcase_artifact_dir() -> Path:
@@ -42,3 +43,13 @@ def load_public_proof_dashboard_markdown() -> str:
         except OSError:
             return ""
     return ""
+
+
+def load_pathb_bundle_warm_report() -> dict[str, Any]:
+    if not _PATHB_BUNDLE_WARM_JSON.exists():
+        return {}
+    try:
+        raw = json.loads(_PATHB_BUNDLE_WARM_JSON.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return raw if isinstance(raw, dict) else {}

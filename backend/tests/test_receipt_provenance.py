@@ -118,3 +118,43 @@ async def test_collect_public_receipts_matches_felt_reduced_hashes(monkeypatch):
 
     assert len(rows) == 1
     assert rows[0]["tx_hash"] == "0xfeltl2"
+
+
+@pytest.mark.asyncio
+async def test_collect_public_receipts_includes_pathb_native_kzg_model_alias(monkeypatch):
+    class FakeReceiptService:
+        async def get_user_receipts(self, address: str):
+            return []
+
+    class FakeDecisionStore:
+        async def get_user_history(self, address: str, limit: int = 1000):
+            return []
+
+    monkeypatch.setattr(provenance, "get_receipt_service", lambda: FakeReceiptService())
+    monkeypatch.setattr(provenance, "get_decision_store", lambda: FakeDecisionStore())
+    monkeypatch.setattr(
+        provenance,
+        "load_pathb_bundle_warm_report",
+        lambda: {
+            "generated_at": "2026-03-22T06:00:00Z",
+            "rows": [
+                {
+                    "model": "yield_forecast",
+                    "proof_hash": "0xartifactproof",
+                    "native_kzg_mirror_status": "mirrored",
+                    "native_kzg_l2_tx_hash": "0xartifactl2",
+                }
+            ],
+        },
+    )
+
+    rows = await provenance.collect_public_receipts_for_hashes(
+        ["lane_model:native_kzg:yield_forecast"],
+        user_address="0xabc",
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["tx_hash"] == "0xartifactl2"
+    assert rows[0]["source"] == "pathb_artifact"
+    assert rows[0]["public_chain"] == "starknet_l2"
+    assert rows[0]["proof_match_scope"] == "lane_model"

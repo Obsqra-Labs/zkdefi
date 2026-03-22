@@ -105,6 +105,8 @@ Underlying API routes:
 Compact Forge graph endpoint: `GET /api/v1/zkdefi/forge/graph/{type}/{id}`
 Dedicated Forge proof feed filters: `lane=...`, `model_name=...`, `public_only=true`, plus settlement cursor params. `model_name` matches the canonical bridge statement model, not only the raw registry alias.
 Dedicated Forge proof feed items now include a typed `settlement_graph` (`nodes` + `edges`) so explorer clients can follow proof → fact/model/transaction relationships without reconstructing them locally.
+Indexed native-KZG proof rows now inherit mirrored Starknet L2 provenance from the current Path B artifact when exact per-proof receipt rows are missing, keyed by the canonical `native_kzg + model_name` lane/model pair.
+Legacy indexed Groth16 rows without bridge metadata are normalized into the explicit explorer lane `legacy_groth16` instead of falling into `unknown`.
 Dedicated Forge model feed rows now separate `latest_activity_timestamp` from `latest_public_timestamp`, and expose `proof_count`, `public_proof_count`, `lane_counts`, and binding-profile metadata so ModelBridge coverage is not flattened into one misleading “latest” row.
 Forge model detail now uses that same aggregated proof/public-settlement view, instead of only raw local artifact readiness.
 Forge proofs page now shows `Latest Activity` and `Latest Public Settlement` side-by-side, so runtime freshness is not conflated with public settlement.

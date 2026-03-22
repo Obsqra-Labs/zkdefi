@@ -7,6 +7,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
+from app.services.proof_projection import lane_model_alias
+from app.services.showcase_artifacts import load_pathb_bundle_warm_report
+
 
 def get_decision_store():
     from app.db.decision_store import get_decision_store as _get_decision_store
@@ -155,6 +158,38 @@ def _row_matches_lookup(lookup_hashes: set[str], *values: object) -> bool:
     return any(_normalize_lookup_value(value) in lookup_hashes for value in values)
 
 
+def _pathb_native_kzg_public_rows() -> list[dict[str, Any]]:
+    report = load_pathb_bundle_warm_report()
+    generated_at = report.get("generated_at")
+    rows = report.get("rows") if isinstance(report.get("rows"), list) else []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("native_kzg_mirror_status") or "").strip().lower() != "mirrored":
+            continue
+        tx_hash = row.get("native_kzg_l2_tx_hash")
+        if not tx_hash:
+            continue
+        model_name = row.get("model")
+        proof_hash = row.get("proof_hash")
+        receipt_row = {
+            "tx_hash": tx_hash,
+            "proof_hash": proof_hash,
+            "fact_hash": proof_hash,
+            "timestamp": generated_at,
+            "source": "pathb_artifact",
+            "tx_source": "l2",
+            "action": "native_kzg_mirror",
+            "bridge_lane": "native_kzg",
+            "model_name": model_name,
+            "proof_match_scope": "lane_model",
+        }
+        receipt_row.update(tx_route_meta(tx_hash, tx_source="l2"))
+        out.append(receipt_row)
+    return out
+
+
 async def collect_public_receipts_for_hashes(
     proof_hashes: Iterable[object],
     *,
@@ -167,11 +202,8 @@ async def collect_public_receipts_for_hashes(
 
 async def build_public_receipt_index_for_user(user_address: str) -> dict[str, list[dict[str, Any]]]:
     addr = str(user_address or "").strip().lower()
-    if not addr:
-        return {}
-
-    receipts = await get_receipt_service().get_user_receipts(addr)
-    decisions = await get_decision_store().get_user_history(addr, limit=1000)
+    receipts = await get_receipt_service().get_user_receipts(addr) if addr else []
+    decisions = await get_decision_store().get_user_history(addr, limit=1000) if addr else []
 
     index: dict[str, list[dict[str, Any]]] = {}
     seen: set[tuple[str, str]] = set()
@@ -229,6 +261,14 @@ async def build_public_receipt_index_for_user(user_address: str) -> dict[str, li
                 metadata.get("fact_hash"),
                 metadata.get("bridge_fact_hash"),
             )
+
+    for row in _pathb_native_kzg_public_rows():
+        _append_row(
+            row,
+            row.get("proof_hash"),
+            row.get("fact_hash"),
+            lane_model_alias(row.get("bridge_lane"), row.get("model_name")),
+        )
 
     for rows in index.values():
         rows.sort(key=lambda row: str(row.get("timestamp") or ""), reverse=True)
