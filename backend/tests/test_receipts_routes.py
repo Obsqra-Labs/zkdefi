@@ -52,6 +52,14 @@ async def test_on_chain_receipts_merge_tx_backed_decision_events(monkeypatch):
     assert all(row["proof_type"] == "credit_eligibility" for row in tx_rows)
     assert {row["meta"]["tx_source"] for row in tx_rows} == {"l3", "l2"}
     assert all(row["fact_hash"] == "0xfact" for row in tx_rows)
+    l2_row = next(row for row in tx_rows if row["tx_hash"] == "0xl2")
+    l3_row = next(row for row in tx_rows if row["tx_hash"] == "0xl3")
+    assert l2_row["public_receipt"] is True
+    assert l2_row["network"] == "starknet_sepolia"
+    assert l2_row["voyager_url"].endswith("/tx/0xl2")
+    assert l3_row["public_receipt"] is False
+    assert l3_row["tx_visibility"] == "internal"
+    assert l3_row["explorer_url"] is None
 
 
 @pytest.mark.asyncio
@@ -106,3 +114,59 @@ async def test_list_receipts_merges_decision_events_and_backfills_fact_hash(monk
     assert merged["fact_hash"] == "0xbridgefact"
     assert merged["proof_type"] == "ml_bridge"
     assert merged["adapter"] == "ml_inference"
+    assert merged["public_receipt"] is False
+    assert merged["tx_visibility"] == "internal"
+
+
+@pytest.mark.asyncio
+async def test_receipts_public_only_filters_to_public_rows(monkeypatch):
+    class FakeReceiptService:
+        async def get_user_receipts(self, address: str):
+            return [
+                {
+                    "receipt_id": "0xreceipt",
+                    "timestamp": "2026-03-21T00:00:00Z",
+                    "action_type": "deposit",
+                    "adapter": "ekubo",
+                    "amount": 123,
+                    "user": address,
+                    "tx_hash": "0xraw",
+                    "proof_hash": "0xrawproof",
+                    "fact_hash": "0xrawproof",
+                    "metadata": {"tx_source": "l3"},
+                }
+            ]
+
+    class FakeDecisionStore:
+        async def get_user_history(self, address: str, limit: int = 1000):
+            return [
+                {
+                    "id": 88,
+                    "event_type": "proof_generated",
+                    "gate": "ml_inference",
+                    "outcome": "success",
+                    "proof_mode": "EZKL_BRIDGE",
+                    "verification_mode": "groth16_garaga",
+                    "verified_on_chain": True,
+                    "l3_tx_hash": "0xl3",
+                    "l2_tx_hash": "0xl2",
+                    "metadata": {
+                        "proof_type": "ml_bridge",
+                        "proof_hash": "0xfact",
+                    },
+                    "created_at": "2026-03-21T01:02:03Z",
+                }
+            ]
+
+    monkeypatch.setattr(receipt_routes, "get_receipt_service", lambda: FakeReceiptService())
+    monkeypatch.setattr(receipt_routes, "get_decision_store", lambda: FakeDecisionStore())
+
+    listed = await receipt_routes.list_receipts(address="0xabc", public_only=True)
+    assert len(listed) == 1
+    assert listed[0]["tx_hash"] == "0xl2"
+    assert listed[0]["public_receipt"] is True
+
+    on_chain = await receipt_routes.get_on_chain_receipts("0xabc", public_only=True)
+    assert on_chain["count"] == 1
+    assert on_chain["receipts"][0]["tx_hash"] == "0xl2"
+    assert on_chain["receipts"][0]["public_receipt"] is True

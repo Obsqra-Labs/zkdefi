@@ -16,6 +16,13 @@ Operational and deployment scripts for zkde.fi.
 
 The `/test` page mirrors what `hackathon_backend_showcase.py` generates and is the fastest way to validate Obsqra Labs research claims with backend + on-chain receipts.
 
+Artifact-backed API surfaces:
+
+- `GET /api/v1/zkdefi/public-proof-dashboard` returns the current explorer-safe public proof block from `latest.json`
+- `GET /api/v1/zkdefi/public-proof-dashboard/markdown` returns the markdown snippet emitted for external embeds
+- `GET /api/v1/zkdefi/receipts?address=...&public_only=true` filters the receipt feed to public explorer-backed rows only
+- `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true` does the same for the aggregated on-chain feed
+
 ---
 
 ## Index

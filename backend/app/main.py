@@ -228,6 +228,7 @@ collateral_router = _optional_router("app.api.routes.collateral")
 batch_verification_router = _optional_router("app.api.routes.batch_verification")
 system_metrics_router = _optional_router("app.api.routes.system_metrics")
 landing_router = _optional_router("app.api.routes.landing")
+public_proof_dashboard_router = _optional_router("app.api.routes.public_proof_dashboard")
 portfolio_router = _optional_router("app.api.routes.portfolio")
 demo_router = _optional_router("app.api.routes.demo")
 forge_router = _optional_router("app.api.routes.forge")
@@ -400,6 +401,12 @@ if landing_router:
         landing_router,
         prefix="/api/v1/zkdefi",
         tags=["landing"],
+    )
+if public_proof_dashboard_router:
+    app.include_router(
+        public_proof_dashboard_router,
+        prefix="/api/v1/zkdefi",
+        tags=["showcase"],
     )
 if orchestration_router:
     app.include_router(

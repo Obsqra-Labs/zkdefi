@@ -5,17 +5,11 @@ Used by the marketing landing page to show live stats (e.g. from /test report).
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from fastapi import APIRouter
 
-router = APIRouter(tags=["landing"])
+from app.services.showcase_artifacts import load_latest_showcase_report
 
-# Repo root: backend/app/api/routes/landing.py -> backend -> repo_root
-_ROUTE_DIR = Path(__file__).resolve().parent
-_REPO_ROOT = _ROUTE_DIR.parent.parent.parent
-_SHOWCASE_JSON = _REPO_ROOT / "artifacts" / "hackathon_showcase" / "latest.json"
+router = APIRouter(tags=["landing"])
 
 DEFAULT_STATS = {
     "agent_models": 0,
@@ -27,13 +21,7 @@ DEFAULT_STATS = {
 
 def _load_landing_stats() -> dict[str, int]:
     """Read latest.json and extract a small stats subset for the landing page."""
-    if not _SHOWCASE_JSON.exists():
-        return DEFAULT_STATS.copy()
-    try:
-        raw = json.loads(_SHOWCASE_JSON.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return DEFAULT_STATS.copy()
-
+    raw = load_latest_showcase_report()
     if not isinstance(raw, dict):
         return DEFAULT_STATS.copy()
 
