@@ -794,12 +794,15 @@ async def _graph_neighborhood_for_object(
         return await _graph_neighborhood_for_model(obj_id, limit=limit, public_only=public_only)
 
     proof_rec: dict[str, Any] | None = None
+    pathc_route: dict[str, Any] | None = None
     if obj_type == "proof_job":
         proof_rec = await _get_proof_record(obj_id)
     elif obj_type == "fact":
         proof_rec = await _get_proof_record(obj_id)
     elif obj_type in ("transaction", "tx"):
         proof_rec = await _find_proof_record_by_public_tx(obj_id)
+        if proof_rec is None:
+            pathc_route = _find_pathc_route_by_tx(obj_id)
     elif obj_type == "receipt":
         receipt_row = await _find_receipt_record(obj_id)
         if receipt_row:
@@ -809,6 +812,8 @@ async def _graph_neighborhood_for_object(
             proof_rec = await _find_proof_record_by_public_tx(obj_id)
 
     graph = _settlement_graph_from_proof_record(proof_rec) if proof_rec else None
+    if not isinstance(graph, dict) and pathc_route:
+        graph = _pathc_settlement_graph(pathc_route)
     if not isinstance(graph, dict):
         return None
     return _merge_settlement_graphs([graph], center_type=obj_type, center_id=obj_id)
@@ -1799,7 +1804,12 @@ async def forge_detail(
                         source=str(rel.get("source") or ""),
                     )
             elif pathc_route:
-                settlement_graph = _pathc_settlement_graph(pathc_route)
+                graph = _pathc_settlement_graph(pathc_route)
+                settlement_graph = _merge_settlement_graphs(
+                    [graph] if isinstance(graph, dict) else [],
+                    center_type="transaction",
+                    center_id=obj_id,
+                )
                 summary.update(
                     {
                         "status": "public_settled" if pathc_route.get("l2_verified") else "pending",
@@ -1866,7 +1876,12 @@ async def forge_detail(
                     source=str(rel.get("source") or ""),
                 )
         elif pathc_route:
-            settlement_graph = _pathc_settlement_graph(pathc_route)
+            graph = _pathc_settlement_graph(pathc_route)
+            settlement_graph = _merge_settlement_graphs(
+                [graph] if isinstance(graph, dict) else [],
+                center_type="transaction",
+                center_id=obj_id,
+            )
             summary.update(
                 {
                     "status": "public_settled" if pathc_route.get("l2_verified") else "pending",

@@ -579,7 +579,45 @@ def test_forge_detail_transaction_uses_pathc_provenance(client, monkeypatch):
     assert payload["summary"]["status"] == "public_settled"
     assert payload["summary"]["model"] == "yield_forecast"
     assert payload["summary"]["route_key"] == "yield_forecast"
+    assert (payload.get("settlement_graph") or {}).get("center", {}).get("id") == "0xpathc"
     assert any(rel["type"] == "model" and rel["id"] == "yield_forecast" for rel in payload["relationships"])
+
+
+def test_forge_graph_transaction_uses_pathc_provenance(client, monkeypatch):
+    async def fake_find_proof_record_by_public_tx(tx_hash: str):
+        assert tx_hash == "0xpathc"
+        return None
+
+    monkeypatch.setattr(
+        forge_routes,
+        "_find_proof_record_by_public_tx",
+        fake_find_proof_record_by_public_tx,
+    )
+    monkeypatch.setattr(
+        forge_routes,
+        "_get_pathc_route_rows",
+        lambda: [
+            {
+                "tx_hash": "0xpathc",
+                "model_name": "yield_forecast",
+                "route_key": "yield_forecast",
+                "route_source": "model_name",
+                "latest_public_timestamp": "2026-03-22T09:00:00Z",
+                "latest_public_tx_hash": "0xpathc",
+                "l2_verified": True,
+                "mode": "verify_and_bridge",
+            }
+        ],
+    )
+
+    r = client.get(BASE + "/graph/transaction/0xpathc")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["graph"]["center"]["type"] == "transaction"
+    assert payload["graph"]["center"]["id"] == "0xpathc"
+    assert any(node["type"] == "model" and node["id"] == "yield_forecast" for node in payload["graph"]["nodes"])
 
 
 def test_forge_models_feed_includes_pathc_coverage(client, monkeypatch):
