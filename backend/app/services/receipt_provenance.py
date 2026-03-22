@@ -7,8 +7,17 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from app.db.decision_store import get_decision_store
-from app.services.receipt_service import get_receipt_service
+
+def get_decision_store():
+    from app.db.decision_store import get_decision_store as _get_decision_store
+
+    return _get_decision_store()
+
+
+def get_receipt_service():
+    from app.services.receipt_service import get_receipt_service as _get_receipt_service
+
+    return _get_receipt_service()
 
 
 def voyager_tx_url(tx_hash: str | None) -> str | None:
@@ -151,28 +160,32 @@ async def collect_public_receipts_for_hashes(
     user_address: str | None = None,
     limit: int = 100,
 ) -> list[dict[str, Any]]:
-    lookup_hashes = _normalized_hashes(proof_hashes)
-    if not lookup_hashes:
-        return []
+    receipt_index = await build_public_receipt_index_for_user(user_address or "")
+    return public_receipts_from_index(receipt_index, proof_hashes, limit=limit)
 
+
+async def build_public_receipt_index_for_user(user_address: str) -> dict[str, list[dict[str, Any]]]:
     addr = str(user_address or "").strip().lower()
-    receipts = await get_receipt_service().get_user_receipts(addr) if addr else []
-    decisions = await get_decision_store().get_user_history(addr, limit=1000) if addr else []
+    if not addr:
+        return {}
 
-    out: list[dict[str, Any]] = []
+    receipts = await get_receipt_service().get_user_receipts(addr)
+    decisions = await get_decision_store().get_user_history(addr, limit=1000)
+
+    index: dict[str, list[dict[str, Any]]] = {}
     seen: set[tuple[str, str]] = set()
+
+    def _append_row(row: dict[str, Any], *aliases: object) -> None:
+        dedupe = (str(row.get("tx_hash")), str(row.get("source")))
+        if dedupe in seen:
+            return
+        seen.add(dedupe)
+        normalized_aliases = _normalized_hashes(aliases)
+        for alias in normalized_aliases:
+            index.setdefault(alias, []).append(row)
 
     for row in receipts:
         metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
-        if not _row_matches_lookup(
-            lookup_hashes,
-            row.get("proof_hash"),
-            row.get("fact_hash"),
-            metadata.get("proof_hash"),
-            metadata.get("fact_hash"),
-            metadata.get("bridge_fact_hash"),
-        ):
-            continue
         receipt_row = {
             "tx_hash": row.get("tx_hash"),
             "proof_hash": row.get("proof_hash"),
@@ -184,21 +197,17 @@ async def collect_public_receipts_for_hashes(
         receipt_row.update(tx_route_meta(receipt_row.get("tx_hash"), metadata=metadata))
         if not receipt_row.get("public_receipt"):
             continue
-        dedupe = (str(receipt_row.get("tx_hash")), str(receipt_row.get("source")))
-        if dedupe in seen:
-            continue
-        seen.add(dedupe)
-        out.append(receipt_row)
-
-    for row in decisions:
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
-        if not _row_matches_lookup(
-            lookup_hashes,
+        _append_row(
+            receipt_row,
+            row.get("proof_hash"),
+            row.get("fact_hash"),
             metadata.get("proof_hash"),
             metadata.get("fact_hash"),
             metadata.get("bridge_fact_hash"),
-        ):
-            continue
+        )
+
+    for row in decisions:
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
         for tx_source, tx_field in (("l1", "l1_tx_hash"), ("l2", "l2_tx_hash")):
             tx_hash = row.get(tx_field)
             decision_row = {
@@ -213,11 +222,36 @@ async def collect_public_receipts_for_hashes(
             decision_row.update(tx_route_meta(tx_hash, tx_source=tx_source))
             if not decision_row.get("public_receipt"):
                 continue
-            dedupe = (str(decision_row.get("tx_hash")), str(decision_row.get("source")))
+            _append_row(
+                decision_row,
+                metadata.get("proof_hash"),
+                metadata.get("fact_hash"),
+                metadata.get("bridge_fact_hash"),
+            )
+
+    for rows in index.values():
+        rows.sort(key=lambda row: str(row.get("timestamp") or ""), reverse=True)
+    return index
+
+
+def public_receipts_from_index(
+    receipt_index: dict[str, list[dict[str, Any]]],
+    proof_hashes: Iterable[object],
+    *,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    lookup_hashes = _normalized_hashes(proof_hashes)
+    if not lookup_hashes:
+        return []
+    out: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for alias in lookup_hashes:
+        for row in receipt_index.get(alias, []):
+            dedupe = (str(row.get("tx_hash")), str(row.get("source")))
             if dedupe in seen:
                 continue
             seen.add(dedupe)
-            out.append(decision_row)
+            out.append(row)
 
     out.sort(key=lambda row: str(row.get("timestamp") or ""), reverse=True)
     return out[:limit]

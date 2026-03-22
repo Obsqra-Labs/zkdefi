@@ -29,7 +29,9 @@ from app.services.bridge_lanes import (
     normalize_bridge_circuit,
 )
 from app.services.receipt_provenance import (
+    build_public_receipt_index_for_user,
     collect_public_receipts_for_hashes,
+    public_receipts_from_index,
     summarize_public_receipts,
 )
 
@@ -57,7 +59,12 @@ def _proof_lookup_hashes(payload: dict[str, Any], requested_hash: str) -> set[st
     return hashes
 
 
-async def _attach_public_receipts(payload: dict[str, Any], requested_hash: str) -> dict[str, Any]:
+async def _attach_public_receipts(
+    payload: dict[str, Any],
+    requested_hash: str,
+    *,
+    receipt_index: dict[str, list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
     metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
     user_address = (
         payload.get("user_address")
@@ -66,9 +73,11 @@ async def _attach_public_receipts(payload: dict[str, Any], requested_hash: str) 
         or metadata.get("user")
         or ""
     )
-    public_receipts = await collect_public_receipts_for_hashes(
-        _proof_lookup_hashes(payload, requested_hash),
-        user_address=user_address,
+    lookup_hashes = _proof_lookup_hashes(payload, requested_hash)
+    public_receipts = (
+        public_receipts_from_index(receipt_index, lookup_hashes)
+        if receipt_index is not None
+        else await collect_public_receipts_for_hashes(lookup_hashes, user_address=user_address)
     )
     enriched = dict(payload)
     enriched["public_receipts"] = public_receipts
@@ -150,10 +159,63 @@ class MLBridgeProofRequest(BaseModel):
 async def list_proofs(
     model_name: str = Query(None, description="Filter by model name"),
     user_address: str = Query(None, description="Filter by user address"),
+    source: Literal["cache", "indexed"] = Query("cache", description="Proof source to query"),
+    public_only: bool = Query(False, description="For indexed proofs, keep only rows with public L1/L2 settlements"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
     """List proof records with optional filters."""
+    if source == "indexed":
+        try:
+            from app.services.proof_registry import get_proof_registry
+
+            registry = get_proof_registry()
+            records = registry.list_proofs(
+                model_name=model_name,
+                user_address=user_address,
+                limit=5000,
+                offset=0,
+            )
+            receipt_indexes: dict[str, dict[str, list[dict[str, Any]]]] = {}
+            items: list[dict[str, Any]] = []
+            for record in records:
+                record_dict = record.to_dict()
+                metadata = record_dict.get("metadata") or {}
+                addr = str(record.user_address or "").strip().lower()
+                if addr not in receipt_indexes:
+                    receipt_indexes[addr] = await build_public_receipt_index_for_user(addr)
+                payload = await _attach_public_receipts(
+                    {
+                        "proof_hash": record.proof_hash,
+                        "status": "indexed",
+                        "source": "proof_registry",
+                        "model_name": record.model_name,
+                        "user_address": record.user_address,
+                        "proof_type": record.proof_type,
+                        "action_type": record.action_type,
+                        "verified_locally": record.verified_locally,
+                        "created_at": record.created_at,
+                        "tx_hash": record.tx_hash,
+                        "bridge_statement": metadata.get("bridge_statement"),
+                        "metadata": metadata,
+                        "registry_record": record_dict,
+                    },
+                    record.proof_hash,
+                    receipt_index=receipt_indexes.get(addr),
+                )
+                if public_only and not (payload.get("public_receipt_summary") or {}).get("count"):
+                    continue
+                items.append(payload)
+            total = len(items)
+            return {
+                "proofs": items[offset: offset + limit],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "source_mode": "indexed",
+            }
+        except Exception as exc:
+            return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "indexed"}
     try:
         from app.services.proof_pipeline import get_proof_pipeline
         pipeline = get_proof_pipeline()
@@ -161,9 +223,15 @@ async def list_proofs(
         items = list(cache.values())
         if model_name:
             items = [i for i in items if (i.get("ezkl_proof") or {}).get("model_name") == model_name]
-        return {"proofs": items[offset: offset + limit], "total": len(items), "limit": limit, "offset": offset}
+        return {
+            "proofs": items[offset: offset + limit],
+            "total": len(items),
+            "limit": limit,
+            "offset": offset,
+            "source_mode": "cache",
+        }
     except Exception as exc:
-        return {"proofs": [], "total": 0, "error": str(exc)}
+        return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "cache"}
 
 
 @router.get("/stats")
