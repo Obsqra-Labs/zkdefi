@@ -9769,6 +9769,37 @@ class ShowcaseRunner:
       color: #a7f3d0;
       background: rgba(16, 185, 129, 0.1);
     }}
+    .hero-cta-row {{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }}
+    .hero-cta {{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      border: 1px solid #31455f;
+      background: rgba(12, 18, 30, 0.84);
+      color: #dff6ff;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform .12s ease-in-out, border-color .12s ease-in-out;
+    }}
+    .hero-cta:hover {{
+      border-color: #67e8f9;
+      transform: translateY(-1px);
+      text-decoration: none;
+    }}
+    .hero-cta.primary {{
+      border-color: rgba(16, 185, 129, 0.72);
+      background: rgba(16, 185, 129, 0.14);
+      color: #d9fff0;
+    }}
     .tab-nav, .subtab-nav {{
       display: flex;
       gap: 8px;
@@ -9986,6 +10017,12 @@ class ShowcaseRunner:
               <span class="chip">STARK + SNARK + L1 bridge roadmap</span>
               <span class="chip novel">Novel: open-source ModelBridge (zkML -> circuit proof gate)</span>
               <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
+            </div>
+            <div class="hero-cta-row">
+              <a class="hero-cta primary" href="{escape(PUBLIC_EXPLORER_BASE)}" target="_blank" rel="noreferrer">Open Explorer</a>
+              <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'proofs/page')}" target="_blank" rel="noreferrer">Proofs</a>
+              <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'facts/page')}" target="_blank" rel="noreferrer">Facts</a>
+              <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'models/page')}" target="_blank" rel="noreferrer">Models</a>
             </div>
           </div>
           <div class="hero-side-panel">
