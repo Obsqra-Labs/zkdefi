@@ -1632,9 +1632,19 @@ async def forge_models_feed(
 @router.get("/paths", summary="Explorer API paths (self-description)")
 async def forge_paths() -> dict[str, Any]:
     """Returns the explorer surface: every path you can follow. Use these to traverse end-to-end."""
+    public_base = "https://zkde.fi/explorer/"
+    api_base = "/api/v1/zkdefi/forge"
     return {
         "service": "starkforge-zksyslog",
         "description": "Proof-aware evidence explorer. Follow links in feed, search, and detail to traverse receipts → facts → proof jobs → models → transactions → blocks.",
+        "public_base_url": public_base,
+        "api_base_path": api_base,
+        "public_pages": {
+            "home": public_base,
+            "proofs": public_base + "proofs/page",
+            "facts": public_base + "facts/page",
+            "models": public_base + "models/page",
+        },
         "paths": {
             "home": {"method": "GET", "path": "", "description": "Explorer homepage (HTML)"},
             "feed": {"method": "GET", "path": "feed", "description": "Latest proof-backed receipts; each item has detail_href"},

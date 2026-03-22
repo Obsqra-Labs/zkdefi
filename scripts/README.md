@@ -7,6 +7,7 @@ Operational and deployment scripts for zkde.fi.
 ## Live research report
 
 - Public readout: [https://zkde.fi/test](https://zkde.fi/test)
+- Public explorer: [https://zkde.fi/explorer/](https://zkde.fi/explorer/)
 - Local latest HTML: `artifacts/hackathon_showcase/latest.html`
 - Local latest JSON: `artifacts/hackathon_showcase/latest.json`
 - Path A latest receipt: `artifacts/hackathon_showcase/patha_latest.json`
@@ -20,6 +21,7 @@ Artifact-backed API surfaces:
 
 - `GET /api/v1/zkdefi/public-proof-dashboard` returns the current explorer-safe public proof block from `latest.json`
 - `GET /api/v1/zkdefi/public-proof-dashboard/markdown` returns the markdown snippet emitted for external embeds
+- `GET /api/v1/zkdefi/forge/paths` returns the Forge API self-description plus canonical public explorer pages under `public_pages`
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true` filters the receipt feed to public explorer-backed rows only
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true` does the same for the aggregated on-chain feed
 
