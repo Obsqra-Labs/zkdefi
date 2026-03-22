@@ -231,6 +231,99 @@ async def test_dual_preserves_mirrored_l2_tx_hash(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_bridge_registry_metadata_updated_after_verification(monkeypatch):
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+    calls: dict[str, object] = {}
+
+    class FakeRegistry:
+        def store_proof(self, **kwargs):
+            calls["stored"] = kwargs
+            return SimpleNamespace(proof_hash=kwargs.get("proof_hash"))
+
+        def update_proof_metadata(self, proof_hash: str, *, metadata=None, tx_hash=None):
+            calls["updated"] = {
+                "proof_hash": proof_hash,
+                "metadata": metadata,
+                "tx_hash": tx_hash,
+            }
+            return SimpleNamespace(proof_hash=proof_hash)
+
+    def fake_build_bridge_bundle(*, bridge_circuit, **kwargs):
+        return (
+            {
+                "success": True,
+                "is_compliant": True,
+                "bridge_backend": "backend:modelbridge_heavy",
+                "bridge_lane": "modelbridge_heavy",
+                "bridge_proof_type": "groth16",
+                "proof_hash": "0xbridge",
+                "bridge_statement": {
+                    "lane": "modelbridge_heavy",
+                    "proof_type": "groth16",
+                    "model_name": "yield_forecast",
+                    "fact_hash": "0xbridge",
+                    "bridge_fact_hash": "0xbridge",
+                    "binding_profile": {
+                        "statement_version": "obsqra_bridge_statement_v1",
+                    },
+                },
+            },
+            "0xbridge",
+            ["0x1"],
+            bridge_circuit,
+        )
+
+    async def fake_l3(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "groth16_garaga",
+            "tx_hash": "0xl3",
+            "fact_hash": "0xbridge",
+            "error": None,
+        }
+
+    async def fake_l2(**kwargs):
+        return {
+            "attempted": True,
+            "success": True,
+            "verified_on_chain": True,
+            "mode": "starknet_l2_registry_mirrored",
+            "tx_hash": "0xl2",
+            "error": None,
+        }
+
+    monkeypatch.setattr(pipeline, "_build_bridge_bundle", fake_build_bridge_bundle)
+    monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+    monkeypatch.setattr(pipeline, "_verify_l2_bridge", fake_l2)
+    monkeypatch.setattr(
+        "app.services.proof_registry.get_proof_registry",
+        lambda: FakeRegistry(),
+    )
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="yield_predictor",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="dual",
+        bridge_circuit="ModelBridgeHeavy",
+    )
+
+    assert result["verification"]["mirror_status"] == "mirrored"
+    assert calls["stored"]["proof_hash"] == "0xbridge"
+    updated = calls["updated"]
+    assert updated["proof_hash"] == "0xbridge"
+    assert updated["tx_hash"] == "0xl2"
+    assert updated["metadata"]["requested_execution_chain"] == "dual"
+    assert updated["metadata"]["mirror_status"] == "mirrored"
+    assert updated["metadata"]["verification"]["l3"]["tx_hash"] == "0xl3"
+    assert updated["metadata"]["verification"]["l2"]["tx_hash"] == "0xl2"
+
+
+@pytest.mark.asyncio
 async def test_bridge_cache_key_is_lane_specific(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)

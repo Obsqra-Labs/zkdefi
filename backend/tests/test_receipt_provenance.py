@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from types import SimpleNamespace
 
 import app.services.receipt_provenance as provenance
 
@@ -158,3 +159,67 @@ async def test_collect_public_receipts_includes_pathb_native_kzg_model_alias(mon
     assert rows[0]["source"] == "pathb_artifact"
     assert rows[0]["public_chain"] == "starknet_l2"
     assert rows[0]["proof_match_scope"] == "lane_model"
+
+
+@pytest.mark.asyncio
+async def test_collect_public_receipts_includes_proof_registry_metadata_fallback(monkeypatch):
+    class FakeReceiptService:
+        async def get_user_receipts(self, address: str):
+            return []
+
+    class FakeDecisionStore:
+        async def get_user_history(self, address: str, limit: int = 1000):
+            return []
+
+    class FakeRecord(SimpleNamespace):
+        def to_dict(self):
+            return {
+                "proof_hash": self.proof_hash,
+                "model_name": self.model_name,
+                "action_type": self.action_type,
+                "created_at_iso": "2026-03-22T08:00:00Z",
+                "submitted_at_iso": None,
+                "metadata": self.metadata,
+                "tx_hash": self.tx_hash,
+            }
+
+    class FakeProofRegistry:
+        def list_proofs(self, **kwargs):
+            return [
+                FakeRecord(
+                    proof_hash="0xproof-registry",
+                    model_name="yield_forecast",
+                    action_type="ml_bridge",
+                    tx_hash="0xpublicl2",
+                    metadata={
+                        "bridge_statement": {
+                            "lane": "modelbridge_heavy",
+                            "model_name": "yield_forecast",
+                            "fact_hash": "0xfact-registry",
+                        },
+                        "verification": {
+                            "l2": {
+                                "verified_on_chain": True,
+                                "tx_hash": "0xpublicl2",
+                            }
+                        },
+                        "l2_tx_hash": "0xpublicl2",
+                    },
+                )
+            ]
+
+    monkeypatch.setattr(provenance, "get_receipt_service", lambda: FakeReceiptService())
+    monkeypatch.setattr(provenance, "get_decision_store", lambda: FakeDecisionStore())
+    monkeypatch.setattr(provenance, "get_proof_registry", lambda: FakeProofRegistry())
+
+    rows = await provenance.collect_public_receipts_for_hashes(
+        ["0xproof-registry", "0xfact-registry"],
+        user_address="0xabc",
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["tx_hash"] == "0xpublicl2"
+    assert rows[0]["source"] == "proof_registry_metadata"
+    assert rows[0]["proof_match_scope"] == "exact_hash"
+    summary = provenance.summarize_public_receipts(rows)
+    assert summary["latest_match_scope"] == "exact_hash"

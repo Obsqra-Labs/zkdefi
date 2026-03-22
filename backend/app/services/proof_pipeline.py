@@ -1220,6 +1220,7 @@ class ProofPipeline:
         }
 
         bridge_fact_hash = ""
+        registry_proof_hash = ""
         if mode >= ProofMode.EZKL_BRIDGE and ezkl_verified:
             bridge_proof, bridge_fact_hash, model_bridge_calldata, bridge_circuit_used = self._build_bridge_bundle(
                 ezkl_proof=ezkl_proof,
@@ -1232,6 +1233,7 @@ class ProofPipeline:
             result["bridge_proof"] = bridge_proof
             result["bridge_statement"] = bridge_proof.get("bridge_statement")
             result["bridge_circuit_used"] = bridge_circuit_used
+            registry_proof_hash = str(bridge_fact_hash or bridge_proof.get("proof_hash") or "").strip()
 
             try:
                 from app.services.proof_registry import get_proof_registry
@@ -1245,7 +1247,7 @@ class ProofPipeline:
                     "trust_mode": trust_mode,
                 }
                 get_proof_registry().store_proof(
-                    proof_hash=str(bridge_fact_hash or bridge_proof.get("proof_hash") or ""),
+                    proof_hash=registry_proof_hash,
                     model_name=model_name,
                     user_address=user_address,
                     proof_type=str(bridge_proof.get("bridge_proof_type") or ""),
@@ -1396,6 +1398,42 @@ class ProofPipeline:
             event_fact_hash = str(primary_result.get("fact_hash") or "").strip()
         if not event_fact_hash:
             event_fact_hash = str(bridge_fact_hash or (result.get("bridge_proof") or {}).get("proof_hash") or "").strip()
+
+        if registry_proof_hash:
+            try:
+                from app.services.proof_registry import get_proof_registry
+
+                verification_meta = result.get("verification") if isinstance(result.get("verification"), dict) else {}
+                l3_meta = verification_meta.get("l3") if isinstance(verification_meta.get("l3"), dict) else {}
+                l2_meta = verification_meta.get("l2") if isinstance(verification_meta.get("l2"), dict) else {}
+                public_tx_hash = str(
+                    (l2_meta.get("tx_hash") if l2_meta.get("verified_on_chain") else "") or ""
+                ).strip() or None
+                registry_update = {
+                    "bridge_statement": result.get("bridge_statement") or {},
+                    "bridge_backend": ((result.get("bridge_proof") or {}).get("bridge_backend")),
+                    "bridge_circuit": result.get("bridge_circuit_used"),
+                    "bridge_lane": ((result.get("bridge_proof") or {}).get("bridge_lane")),
+                    "bridge_proof_type": ((result.get("bridge_proof") or {}).get("bridge_proof_type")),
+                    "trust_mode": trust_mode,
+                    "fact_hash": event_fact_hash or None,
+                    "bridge_fact_hash": event_fact_hash or None,
+                    "requested_execution_chain": verification_meta.get("requested_execution_chain"),
+                    "primary_authority": verification_meta.get("primary_authority"),
+                    "verification": verification_meta,
+                    "verification_mode": verification_mode,
+                    "l3_tx_hash": l3_meta.get("tx_hash"),
+                    "l2_tx_hash": l2_meta.get("tx_hash"),
+                    "mirror_status": verification_meta.get("mirror_status"),
+                    "failure_reason": verification_meta.get("failure_reason"),
+                }
+                get_proof_registry().update_proof_metadata(
+                    registry_proof_hash,
+                    metadata={k: v for k, v in registry_update.items() if v is not None},
+                    tx_hash=public_tx_hash,
+                )
+            except Exception as exc:
+                logger.warning("Failed to update bridge proof registry metadata: %s", exc)
 
         await self._log_proof_event(
             user_address=user_address,

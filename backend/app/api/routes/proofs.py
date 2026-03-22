@@ -473,21 +473,6 @@ async def sequencer_status() -> dict[str, Any]:
 async def get_proof(proof_hash: str) -> dict[str, Any]:
     """Get a specific proof record by hash."""
     try:
-        from app.services.proof_pipeline import get_proof_pipeline
-        pipeline = get_proof_pipeline()
-        for v in pipeline._cache.values():
-            if v.get("commitment_hash") == proof_hash:
-                return await _attach_public_receipts(v, proof_hash)
-            bp = v.get("bridge_proof") or {}
-            if bp.get("proof_hash") == proof_hash:
-                return await _attach_public_receipts(v, proof_hash)
-            ep = v.get("ezkl_proof") or {}
-            if ep.get("proof_hash") == proof_hash:
-                return await _attach_public_receipts(v, proof_hash)
-    except Exception:
-        pass
-
-    try:
         from app.services.proof_registry import get_proof_registry
 
         registry = get_proof_registry()
@@ -510,6 +495,21 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
                 "metadata": metadata,
                 "registry_record": record_dict,
             }, proof_hash)
+    except Exception:
+        pass
+
+    try:
+        from app.services.proof_pipeline import get_proof_pipeline
+        pipeline = get_proof_pipeline()
+        for v in pipeline._cache.values():
+            if v.get("commitment_hash") == proof_hash:
+                return await _attach_public_receipts(v, proof_hash)
+            bp = v.get("bridge_proof") or {}
+            if bp.get("proof_hash") == proof_hash:
+                return await _attach_public_receipts(v, proof_hash)
+            ep = v.get("ezkl_proof") or {}
+            if ep.get("proof_hash") == proof_hash:
+                return await _attach_public_receipts(v, proof_hash)
     except Exception:
         pass
     raise HTTPException(status_code=404, detail="Proof not found")

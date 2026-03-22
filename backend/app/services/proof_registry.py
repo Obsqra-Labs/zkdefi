@@ -191,6 +191,48 @@ class ProofRegistryService:
         finally:
             conn.close()
 
+    def update_proof_metadata(
+        self,
+        proof_hash: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+        tx_hash: str | None = None,
+    ) -> ProofRecord | None:
+        """Merge metadata into an existing proof record and optionally set a public tx hash."""
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM proofs WHERE proof_hash = ?", (proof_hash,)
+            ).fetchone()
+            if not row:
+                return None
+            record = self._row_to_record(row)
+            try:
+                existing = json.loads(record.metadata_json or "{}")
+            except Exception:
+                existing = {}
+            merged = dict(existing if isinstance(existing, dict) else {})
+            if isinstance(metadata, dict):
+                for key, value in metadata.items():
+                    if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                        nested = dict(merged.get(key) or {})
+                        nested.update(value)
+                        merged[key] = nested
+                    else:
+                        merged[key] = value
+            next_tx_hash = str(tx_hash or row["tx_hash"] or "").strip() or None
+            conn.execute(
+                "UPDATE proofs SET metadata_json = ?, tx_hash = ? WHERE proof_hash = ?",
+                (json.dumps(merged, sort_keys=True), next_tx_hash, proof_hash),
+            )
+            conn.commit()
+            updated = conn.execute(
+                "SELECT * FROM proofs WHERE proof_hash = ?", (proof_hash,)
+            ).fetchone()
+            return self._row_to_record(updated) if updated else None
+        finally:
+            conn.close()
+
     # ── Query proofs ────────────────────────────────────────────────────
 
     def get_proof(self, proof_hash: str) -> ProofRecord | None:

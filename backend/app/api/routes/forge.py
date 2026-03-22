@@ -92,6 +92,17 @@ def _binding_profile_label(profile: object) -> str | None:
     return text or None
 
 
+def _match_scope_label(scope: object) -> str | None:
+    value = str(scope or "").strip().lower()
+    if not value:
+        return "exact proof"
+    if value == "lane_model":
+        return "lane/model mirror"
+    if value == "exact_hash":
+        return "exact proof"
+    return value.replace("_", " ")
+
+
 def _classify_query(q: str) -> str:
     """Heuristic classifier for search queries."""
     q = q.strip()
@@ -269,6 +280,8 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
                 "latest_public_timestamp": _normalize_timestamp(summary.get("latest_timestamp")),
+                "latest_public_match_scope": summary.get("latest_match_scope"),
+                "latest_public_match_scope_label": _match_scope_label(summary.get("latest_match_scope")),
                 "latest_activity_timestamp": _normalize_timestamp(row.get("created_at")),
                 "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
             }
@@ -352,6 +365,8 @@ def _proof_record_components(proof_rec: dict[str, Any]) -> tuple[dict[str, Any],
         "binding_profile_label": _binding_profile_label(bridge_statement.get("binding_profile")),
         "model": model_name or "",
         "latest_public_tx_hash": settlement.get("latest_tx_hash"),
+        "latest_public_match_scope": settlement.get("latest_match_scope"),
+        "latest_public_match_scope_label": _match_scope_label(settlement.get("latest_match_scope")),
         "public_receipts": settlement.get("count", 0),
     }
     timeline = [
@@ -503,6 +518,8 @@ def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, An
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
                 "latest_public_timestamp": _normalize_timestamp(summary.get("latest_timestamp")),
+                "latest_public_match_scope": summary.get("latest_match_scope"),
+                "latest_public_match_scope_label": _match_scope_label(summary.get("latest_match_scope")),
                 "latest_activity_timestamp": _normalize_timestamp(row.get("created_at")),
                 "public_receipts": summary.get("count", 0),
                 "source": "indexed_public" if summary.get("count") else "indexed",
@@ -750,6 +767,8 @@ async def _get_model_rows(
                 "latest_public_binding_profile": latest_public_proof.get("binding_profile"),
                 "latest_public_tx_hash": latest_public_proof.get("latest_public_tx_hash"),
                 "latest_public_timestamp": latest_public_proof.get("latest_public_timestamp"),
+                "latest_public_match_scope": latest_public_proof.get("latest_public_match_scope"),
+                "latest_public_match_scope_label": latest_public_proof.get("latest_public_match_scope_label"),
                 "settlement_graph": graph_source.get("settlement_graph"),
                 "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
                 "graph_href": f"graph/model/{quote(str(m['id']), safe='')}",
@@ -1185,6 +1204,8 @@ async def forge_search(
                     "lane": p.get("lane"),
                     "latest_public_tx_hash": p.get("latest_public_tx_hash"),
                     "latest_public_timestamp": p.get("latest_public_timestamp"),
+                    "latest_public_match_scope": p.get("latest_public_match_scope"),
+                    "latest_public_match_scope_label": p.get("latest_public_match_scope_label"),
                     "settlement_graph": p.get("settlement_graph"),
                     "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}",
                 })
@@ -1994,6 +2015,7 @@ async def forge_proofs_page(
         latest_activity = str(item.get("latest_activity_timestamp") or "-")
         latest_public_tx_hash = str(item.get("latest_public_tx_hash") or "")
         latest_public_timestamp = str(item.get("latest_public_timestamp") or "-")
+        latest_public_match_scope = str(item.get("latest_public_match_scope_label") or "exact proof")
         binding_label = str(item.get("binding_profile_label") or "-")
         graph = item.get("settlement_graph") if isinstance(item.get("settlement_graph"), dict) else {}
         node_count = len(graph.get("nodes") or []) if isinstance(graph.get("nodes"), list) else 0
@@ -2004,6 +2026,7 @@ async def forge_proofs_page(
             public_html = (
                 f'<a href="../detail/transaction/{quote(latest_public_tx_hash, safe="")}"><code>{escape(short_tx)}</code></a>'
                 f'<div class="muted">{escape(latest_public_timestamp)}</div>'
+                f'<div class="muted">{escape(latest_public_match_scope)}</div>'
             )
         else:
             public_html = '<span class="muted">not public yet</span>'
@@ -2118,8 +2141,9 @@ function renderRows(items) {{
     const graph = item.settlement_graph || {{}};
     const nodeCount = Array.isArray(graph.nodes) ? graph.nodes.length : 0;
     const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
+    const matchScope = item.latest_public_match_scope_label || 'exact proof';
     const publicCell = item.latest_public_tx_hash
-      ? '<a href="../detail/transaction/' + encodeURIComponent(item.latest_public_tx_hash) + '"><code>' + escapeHtml(item.latest_public_tx_hash.length > 24 ? item.latest_public_tx_hash.slice(0, 12) + '...' + item.latest_public_tx_hash.slice(-8) : item.latest_public_tx_hash) + '</code></a><div class="muted">' + escapeHtml(item.latest_public_timestamp || '-') + '</div>'
+      ? '<a href="../detail/transaction/' + encodeURIComponent(item.latest_public_tx_hash) + '"><code>' + escapeHtml(item.latest_public_tx_hash.length > 24 ? item.latest_public_tx_hash.slice(0, 12) + '...' + item.latest_public_tx_hash.slice(-8) : item.latest_public_tx_hash) + '</code></a><div class="muted">' + escapeHtml(item.latest_public_timestamp || '-') + '</div><div class="muted">' + escapeHtml(matchScope) + '</div>'
       : '<span class="muted">not public yet</span>';
     tr.innerHTML = '<td><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code>' + escapeHtml(shortId) + '</code></a></td>' +
       '<td>' + escapeHtml(item.model_name || '-') + '</td>' +

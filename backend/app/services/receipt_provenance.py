@@ -23,6 +23,12 @@ def get_receipt_service():
     return _get_receipt_service()
 
 
+def get_proof_registry():
+    from app.services.proof_registry import get_proof_registry as _get_proof_registry
+
+    return _get_proof_registry()
+
+
 def voyager_tx_url(tx_hash: str | None) -> str | None:
     tx = str(tx_hash or "").strip()
     return f"https://sepolia.voyager.online/tx/{tx}" if tx else None
@@ -128,6 +134,7 @@ def summarize_public_receipts(receipts: list[dict[str, Any]]) -> dict[str, Any]:
         "latest_tx_hash": latest.get("tx_hash") if latest else None,
         "latest_network": latest.get("network") if latest else None,
         "latest_timestamp": latest.get("timestamp") if latest else None,
+        "latest_match_scope": latest.get("proof_match_scope") if latest else None,
     }
 
 
@@ -190,6 +197,75 @@ def _pathb_native_kzg_public_rows() -> list[dict[str, Any]]:
     return out
 
 
+def _proof_registry_public_rows(user_address: str) -> list[dict[str, Any]]:
+    addr = str(user_address or "").strip().lower()
+    if not addr:
+        return []
+
+    try:
+        records = get_proof_registry().list_proofs(user_address=addr, limit=5000, offset=0)
+    except Exception:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for record in records:
+        record_dict = record.to_dict()
+        metadata = record_dict.get("metadata") if isinstance(record_dict.get("metadata"), dict) else {}
+        bridge_statement = metadata.get("bridge_statement") if isinstance(metadata.get("bridge_statement"), dict) else {}
+        verification = metadata.get("verification") if isinstance(metadata.get("verification"), dict) else {}
+        proof_hash = record_dict.get("proof_hash")
+        fact_hash = (
+            metadata.get("fact_hash")
+            or metadata.get("bridge_fact_hash")
+            or bridge_statement.get("fact_hash")
+            or bridge_statement.get("bridge_fact_hash")
+            or proof_hash
+        )
+        model_name = bridge_statement.get("model_name") or record_dict.get("model_name")
+        bridge_lane = bridge_statement.get("lane") or metadata.get("bridge_lane")
+        timestamp = (
+            record_dict.get("submitted_at_iso")
+            or record_dict.get("created_at_iso")
+            or record_dict.get("created_at")
+        )
+
+        seen_candidates: set[tuple[str, str]] = set()
+        candidates: list[tuple[str, str | None]] = []
+        for tx_source in ("l1", "l2"):
+            top_level_tx = str(metadata.get(f"{tx_source}_tx_hash") or "").strip() or None
+            if top_level_tx:
+                candidates.append((tx_source, top_level_tx))
+            section = verification.get(tx_source)
+            if isinstance(section, dict) and section.get("verified_on_chain"):
+                section_tx = str(section.get("tx_hash") or "").strip() or None
+                if section_tx:
+                    candidates.append((tx_source, section_tx))
+
+        for tx_source, tx_hash in candidates:
+            if not tx_hash:
+                continue
+            dedupe_key = (tx_source, tx_hash)
+            if dedupe_key in seen_candidates:
+                continue
+            seen_candidates.add(dedupe_key)
+            receipt_row = {
+                "tx_hash": tx_hash,
+                "proof_hash": proof_hash,
+                "fact_hash": fact_hash,
+                "timestamp": timestamp,
+                "source": "proof_registry_metadata",
+                "tx_source": tx_source,
+                "action": record_dict.get("action_type"),
+                "bridge_lane": bridge_lane,
+                "model_name": model_name,
+                "proof_match_scope": "exact_hash",
+            }
+            receipt_row.update(tx_route_meta(tx_hash, tx_source=tx_source))
+            if receipt_row.get("public_receipt"):
+                out.append(receipt_row)
+    return out
+
+
 async def collect_public_receipts_for_hashes(
     proof_hashes: Iterable[object],
     *,
@@ -209,7 +285,10 @@ async def build_public_receipt_index_for_user(user_address: str) -> dict[str, li
     seen: set[tuple[str, str]] = set()
 
     def _append_row(row: dict[str, Any], *aliases: object) -> None:
-        dedupe = (str(row.get("tx_hash")), str(row.get("source")))
+        dedupe = (
+            str(row.get("tx_hash") or ""),
+            str(row.get("public_chain") or row.get("network") or row.get("tx_source") or ""),
+        )
         if dedupe in seen:
             return
         seen.add(dedupe)
@@ -226,6 +305,7 @@ async def build_public_receipt_index_for_user(user_address: str) -> dict[str, li
             "timestamp": row.get("timestamp"),
             "source": "receipt_store",
             "tx_source": metadata.get("tx_source"),
+            "proof_match_scope": "exact_hash",
         }
         receipt_row.update(tx_route_meta(receipt_row.get("tx_hash"), metadata=metadata))
         if not receipt_row.get("public_receipt"):
@@ -251,6 +331,7 @@ async def build_public_receipt_index_for_user(user_address: str) -> dict[str, li
                 "source": "decision_store",
                 "tx_source": tx_source,
                 "action": row.get("event_type"),
+                "proof_match_scope": "exact_hash",
             }
             decision_row.update(tx_route_meta(tx_hash, tx_source=tx_source))
             if not decision_row.get("public_receipt"):
@@ -261,6 +342,13 @@ async def build_public_receipt_index_for_user(user_address: str) -> dict[str, li
                 metadata.get("fact_hash"),
                 metadata.get("bridge_fact_hash"),
             )
+
+    for row in _proof_registry_public_rows(addr):
+        _append_row(
+            row,
+            row.get("proof_hash"),
+            row.get("fact_hash"),
+        )
 
     for row in _pathb_native_kzg_public_rows():
         _append_row(

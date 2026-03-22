@@ -410,3 +410,67 @@ async def test_list_proofs_indexed_normalizes_legacy_ezkl_kzg_lane(monkeypatch):
     row = payload["proofs"][0]
     assert row["lane"] == "native_kzg"
     assert row["bridge_statement"]["lane"] == "native_kzg"
+
+
+@pytest.mark.asyncio
+async def test_get_proof_prefers_registry_record_over_cache(monkeypatch):
+    class FakeRegistry:
+        def get_proof_by_alias(self, proof_hash: str):
+            assert proof_hash == "0xproof"
+            return SimpleNamespace(
+                proof_hash="0xproof",
+                model_name="yield_forecast",
+                user_address="0xabc",
+                proof_type="groth16",
+                action_type="ml_bridge",
+                verified_locally=True,
+                created_at=1.0,
+                tx_hash="0xpublic",
+                to_dict=lambda: {
+                    "metadata": {
+                        "bridge_statement": {
+                            "lane": "modelbridge_heavy",
+                            "model_name": "yield_forecast",
+                            "fact_hash": "0xproof",
+                        },
+                        "verification": {
+                            "l2": {
+                                "verified_on_chain": True,
+                                "tx_hash": "0xpublic",
+                            }
+                        },
+                    }
+                },
+            )
+
+    class FakePipeline:
+        _cache = {
+            "cached": {
+                "bridge_proof": {"proof_hash": "0xproof"},
+                "commitment_hash": "0xproof",
+                "source": "cache",
+            }
+        }
+
+    async def fake_attach_public_receipts(payload, requested_hash, **kwargs):
+        enriched = dict(payload)
+        enriched["public_receipts"] = [{"tx_hash": "0xpublic"}]
+        enriched["public_receipt_summary"] = {
+            "count": 1,
+            "starknet_l2": 1,
+            "ethereum_l1": 0,
+            "latest_tx_hash": "0xpublic",
+            "latest_timestamp": "2026-03-22T10:00:00Z",
+            "latest_match_scope": "exact_hash",
+        }
+        return enriched
+
+    monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
+    monkeypatch.setattr("app.services.proof_pipeline.get_proof_pipeline", lambda: FakePipeline())
+    monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+
+    payload = await proofs_routes.get_proof("0xproof")
+
+    assert payload["source"] == "proof_registry"
+    assert payload["tx_hash"] == "0xpublic"
+    assert payload["public_receipt_summary"]["latest_match_scope"] == "exact_hash"

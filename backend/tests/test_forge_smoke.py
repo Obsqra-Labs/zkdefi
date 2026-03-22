@@ -99,6 +99,42 @@ def test_forge_proofs_page(client):
     assert "Load more" in r.text
     assert 'id="model-name"' in r.text
     assert 'id="lane-name"' in r.text
+
+
+def test_forge_proofs_page_renders_match_scope_label(client, monkeypatch):
+    async def fake_get_filtered_proof_feed_payload(**kwargs):
+        return {
+            "items": [
+                {
+                    "id": "0xproof-match-scope",
+                    "model_name": "yield_forecast",
+                    "lane": "native_kzg",
+                    "proof_type": "native_kzg",
+                    "latest_activity_timestamp": "2026-03-22T06:30:00Z",
+                    "latest_public_tx_hash": "0xl2tx-match-scope",
+                    "latest_public_timestamp": "2026-03-22T06:45:00Z",
+                    "latest_public_match_scope_label": "lane/model mirror",
+                    "binding_profile_label": "full / obsqra_bridge_statement_v1",
+                    "detail_href": "detail/proof_job/0xproof-match-scope",
+                    "settlement_graph": {
+                        "nodes": [{"type": "proof_job", "id": "0xproof-match-scope"}],
+                        "edges": [],
+                    },
+                }
+            ],
+            "total_results": 1,
+            "next_cursor": None,
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_filtered_proof_feed_payload", fake_get_filtered_proof_feed_payload)
+
+    r = client.get(BASE + "/proofs/page", params={"public_only": "true"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "lane/model mirror" in r.text
+
+
 def test_forge_facts_page(client):
     r = client.get(BASE + "/facts/page")
     if r.status_code == 404:
@@ -457,6 +493,7 @@ def test_forge_search_scope_proofs_returns_cursor(client, monkeypatch):
                         "count": 1,
                         "latest_tx_hash": "0xl2tx",
                         "latest_timestamp": "2026-03-22T05:00:00Z",
+                        "latest_match_scope": "exact_hash",
                     },
                 }
             ],
@@ -743,6 +780,7 @@ def test_forge_proofs_feed_returns_cursor_payload(client, monkeypatch):
         "proof_hash": "0xproof1",
     }
     assert payload["items"][0]["id"] == "0xproof1"
+    assert payload["items"][0]["latest_public_match_scope_label"] == "exact proof"
     assert payload["items"][0]["settlement_graph"]["edges"][0]["verb"] == "commits"
 
 
@@ -821,6 +859,7 @@ def test_forge_detail_proof_job_includes_settlement_graph(client, monkeypatch):
                 "count": 1,
                 "latest_tx_hash": "0xl2tx-graph",
                 "latest_timestamp": "2026-03-22T07:15:00Z",
+                "latest_match_scope": "lane_model",
             },
         }
 
@@ -832,6 +871,7 @@ def test_forge_detail_proof_job_includes_settlement_graph(client, monkeypatch):
     assert r.status_code == 200
     payload = r.json()
     assert payload["summary"]["status"] == "public_settled"
+    assert payload["summary"]["latest_public_match_scope_label"] == "lane/model mirror"
     assert payload["settlement_graph"]["nodes"][1]["type"] == "fact"
     assert payload["settlement_graph"]["edges"][2]["verb"] == "settles_with"
 
