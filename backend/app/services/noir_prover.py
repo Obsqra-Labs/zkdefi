@@ -222,9 +222,8 @@ def generate_noir_ezkl_bridge_v2_proof(
     """
     Generate Noir proof and Garaga HONK calldata for the versioned Path A v2 package.
 
-    V2 is not wired into the live verifier lane yet. It exists so the stronger
-    Path A semantics can be built and tested without breaking the currently
-    deployed Noir verifier.
+    Retry a small number of times for the same transient bb/garaga failures
+    that affect the legacy Noir lane under load.
     """
     expected_model_hash_felt = int(expected_model_hash) % BN254_SCALAR_FIELD
     output_lower_bound_u128 = max(0, int(output_lower_bound))
@@ -245,11 +244,27 @@ def generate_noir_ezkl_bridge_v2_proof(
         f'model_weights_hash = "{model_weights_hash_felt}"\n'
         f'model_output = [{outputs_literal}]\n'
     )
-    return _generate_noir_proof_once(
-        package_path=NOIR_PKG_V2,
-        package_slug="noir_ezkl_bridge_v2",
-        prover_toml_body=prover_toml_body,
-    )
+
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            return _generate_noir_proof_once(
+                package_path=NOIR_PKG_V2,
+                package_slug="noir_ezkl_bridge_v2",
+                prover_toml_body=prover_toml_body,
+            )
+        except Exception as exc:
+            last_error = exc
+            if attempt >= 3:
+                break
+            logger.warning(
+                "NoirEzklBridgeV2 attempt %s/3 failed, retrying: %s",
+                attempt,
+                exc,
+            )
+            time.sleep(0.75 * attempt)
+    assert last_error is not None
+    raise last_error
 
 
 def noir_honk_available() -> bool:
