@@ -3193,7 +3193,7 @@ class ShowcaseRunner:
         if dual_timeout_override > 0:
             dual_bridge_timeout = dual_timeout_override
         elif self.bridge_only:
-            dual_bridge_timeout = max(min(self.timeout_seconds, 70.0), 45.0)
+            dual_bridge_timeout = max(bridge_timeout, 75.0)
         elif self.strict_bridge:
             # Dual executes L3 + mirror semantics; give it extra room to avoid
             # false negatives caused only by request timeout pressure.
