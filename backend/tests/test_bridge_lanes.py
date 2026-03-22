@@ -36,5 +36,7 @@ async def test_bridge_lane_metadata_route_exposes_registry(monkeypatch):
     assert lanes["ModelBridge"]["proof_type"] == "groth16"
     assert lanes["ModelBridgeHeavy"]["output_count"] == 16
     assert lanes["NoirEzklBridge"]["proof_type"] == "noir_honk"
+    assert lanes["NoirEzklBridge"]["binding_profile"]["binds_ezkl_proof_hash"] is False
     assert lanes["NoirEzklBridgeV2"]["proof_type"] == "noir_honk"
+    assert lanes["NoirEzklBridgeV2"]["binding_profile"]["binds_ezkl_proof_hash"] is True
     assert lanes["EzklNativeKzg"]["proof_type"] == "native_kzg"

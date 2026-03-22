@@ -404,6 +404,11 @@ async def test_native_kzg_path_sends_kzg_calldata(monkeypatch):
     assert captured["kzg_calldata"]
     assert captured["groth16_calldata"] is None
     assert result["bridge_proof"]["proof_hash"] == result["bridge_proof"]["kzg_payload"]["fact_hash_felt"]
+    assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
+    assert result["bridge_statement"]["lane"] == "native_kzg"
+    assert result["bridge_statement"]["proof_type"] == "native_kzg"
+    assert result["bridge_statement"]["binding_profile"]["binds_ezkl_proof_hash"] is True
+    assert result["bridge_statement"]["bridge_fact_hash"] == result["bridge_proof"]["proof_hash"]
     assert result["can_execute"] is True
 
 
@@ -764,6 +769,12 @@ async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
     assert result["trust_mode"] == "ezkl_local_verified_bridge"
     assert result["bridge_circuit_used"] == "ModelBridge"
     assert result["bridge_proof"]["bridge_backend"] == "groth16_modelbridge"
+    assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
+    assert result["bridge_statement"]["lane"] == "modelbridge"
+    assert result["bridge_statement"]["proof_type"] == "groth16"
+    assert result["bridge_statement"]["model_name"] == "yield_predictor"
+    assert result["bridge_statement"]["ezkl_proof_hash"] == "0x1234"
+    assert result["bridge_statement"]["binding_profile"]["binds_timestamp"] is True
 
 
 @pytest.mark.asyncio
@@ -819,6 +830,10 @@ async def test_noir_bridge_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_circuit_used"] == "NoirEzklBridge"
     assert result["bridge_proof"]["bridge_backend"] == "noir_honk"
     assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
+    assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
+    assert result["bridge_statement"]["lane"] == "noir"
+    assert result["bridge_statement"]["binding_profile"]["binds_ezkl_proof_hash"] is False
+    assert result["bridge_statement"]["binding_profile"]["binds_timestamp"] is False
 
 
 @pytest.mark.asyncio
@@ -880,6 +895,9 @@ async def test_noir_bridge_v2_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_circuit_used"] == "NoirEzklBridgeV2"
     assert result["bridge_proof"]["bridge_backend"] == "noir_honk_v2"
     assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
+    assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
+    assert result["bridge_statement"]["lane"] == "noir_v2"
+    assert result["bridge_statement"]["binding_profile"]["binds_ezkl_proof_hash"] is True
     assert captured["ezkl_proof_hash"] == int(_FakeEzklProof.proof_hash, 16)
     assert captured["model_output"] == [2, 3, 0, 0, 0, 0, 0, 0]
 

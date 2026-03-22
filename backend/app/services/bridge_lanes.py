@@ -22,6 +22,13 @@ class BridgeLaneSpec:
     description: str
     aliases: tuple[str, ...]
     attempts_real_ezkl: bool = True
+    statement_version: str = "obsqra_bridge_statement_v1"
+    binds_model_hash: bool = True
+    binds_output_bounds: bool = True
+    binds_output_vector: bool = True
+    binds_output_commitment: bool = True
+    binds_timestamp: bool = True
+    binds_ezkl_proof_hash: bool = True
 
     @property
     def circuit_name_for_l3(self) -> str:
@@ -56,6 +63,15 @@ class BridgeLaneSpec:
         data["is_native_kzg"] = self.is_native_kzg
         data["is_groth16"] = self.is_groth16
         data["is_modelbridge_family"] = self.is_modelbridge_family
+        data["binding_profile"] = {
+            "statement_version": self.statement_version,
+            "binds_model_hash": self.binds_model_hash,
+            "binds_output_bounds": self.binds_output_bounds,
+            "binds_output_vector": self.binds_output_vector,
+            "binds_output_commitment": self.binds_output_commitment,
+            "binds_timestamp": self.binds_timestamp,
+            "binds_ezkl_proof_hash": self.binds_ezkl_proof_hash,
+        }
         return data
 
 
@@ -83,6 +99,10 @@ _BRIDGE_LANES: tuple[BridgeLaneSpec, ...] = (
         output_count=8,
         description="Noir HONK bridge lane over the ModelBridge policy scaffold.",
         aliases=("noir", "noir_honk", "noir_ezkl", "noir_ezkl_bridge", "honk"),
+        binds_output_vector=False,
+        binds_output_commitment=False,
+        binds_timestamp=False,
+        binds_ezkl_proof_hash=False,
     ),
     BridgeLaneSpec(
         name=BridgeCircuitName.NOIR_EZKL_BRIDGE_V2,

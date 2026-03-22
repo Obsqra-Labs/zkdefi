@@ -545,6 +545,58 @@ class ProofPipeline:
             n = int(value)
         return hex(n % FELT251_MODULUS)
 
+    @staticmethod
+    def _lane_binding_profile(lane: Any) -> dict[str, bool | str]:
+        return {
+            "statement_version": str(getattr(lane, "statement_version", "obsqra_bridge_statement_v1")),
+            "binds_model_hash": bool(getattr(lane, "binds_model_hash", True)),
+            "binds_output_bounds": bool(getattr(lane, "binds_output_bounds", True)),
+            "binds_output_vector": bool(getattr(lane, "binds_output_vector", True)),
+            "binds_output_commitment": bool(getattr(lane, "binds_output_commitment", True)),
+            "binds_timestamp": bool(getattr(lane, "binds_timestamp", True)),
+            "binds_ezkl_proof_hash": bool(getattr(lane, "binds_ezkl_proof_hash", True)),
+        }
+
+    def _build_bridge_statement(
+        self,
+        *,
+        lane: Any,
+        model_name: str,
+        effective_model_hash: int,
+        effective_model_hash_raw: int,
+        ezkl_proof_hash: str,
+        output_commitment: str,
+        bridge_fact_hash: str,
+        timestamp: int,
+        outputs_int: list[int],
+        avg_output: int,
+        output_lower_bound: int,
+        output_upper_bound: int,
+        is_compliant: bool,
+    ) -> dict[str, Any]:
+        binding_profile = self._lane_binding_profile(lane)
+        return {
+            "statement_version": binding_profile["statement_version"],
+            "lane": lane.short_id,
+            "circuit_name": lane.circuit_name_for_l3,
+            "proof_type": lane.proof_type,
+            "model_name": model_name or "",
+            "model_hash": hex(effective_model_hash),
+            "model_hash_raw": hex(int(effective_model_hash_raw)),
+            "ezkl_proof_hash": self._felt_hex(ezkl_proof_hash),
+            "bridge_fact_hash": bridge_fact_hash,
+            "fact_hash": bridge_fact_hash,
+            "output_commitment": output_commitment,
+            "timestamp": timestamp,
+            "output_count": len(outputs_int),
+            "outputs_int": list(outputs_int),
+            "avg_output": avg_output,
+            "output_lower_bound": int(output_lower_bound),
+            "output_upper_bound": int(output_upper_bound),
+            "is_compliant": bool(is_compliant),
+            "binding_profile": binding_profile,
+        }
+
     def _generate_synthetic_ezkl_proof(
         self,
         *,
@@ -732,17 +784,34 @@ class ProofPipeline:
         output_commitment = "0x" + hashlib.sha256(
             ",".join(str(v) for v in outputs_int).encode()
         ).hexdigest()
+        ezkl_proof_hash = str(getattr(ezkl_proof, "proof_hash", "0x0"))
 
         bridge_seed = (
-            f"{ezkl_proof.proof_hash}:{effective_model_hash}:{output_commitment}:"
+            f"{ezkl_proof_hash}:{effective_model_hash}:{output_commitment}:"
             f"{output_lower_bound}:{output_upper_bound}:{ts}"
         )
         bridge_fact_hash = "0x" + hashlib.sha256(bridge_seed.encode()).hexdigest()
+        bridge_statement = self._build_bridge_statement(
+            lane=lane,
+            model_name=model_name,
+            effective_model_hash=effective_model_hash,
+            effective_model_hash_raw=effective_model_hash_raw,
+            ezkl_proof_hash=ezkl_proof_hash,
+            output_commitment=output_commitment,
+            bridge_fact_hash=bridge_fact_hash,
+            timestamp=ts,
+            outputs_int=outputs_int,
+            avg_output=avg_out,
+            output_lower_bound=output_lower_bound,
+            output_upper_bound=output_upper_bound,
+            is_compliant=is_compliant,
+        )
 
         bridge_proof = {
             "success": True,
             "is_compliant": is_compliant,
             "proof_hash": bridge_fact_hash,
+            "fact_hash": bridge_fact_hash,
             "bridge_lane": lane.short_id,
             "bridge_proof_type": lane.proof_type,
             "proof": {
@@ -750,7 +819,9 @@ class ProofPipeline:
                 "model_hash_raw": hex(int(effective_model_hash_raw)),
                 "output_commitment": output_commitment,
                 "timestamp": ts,
+                "ezkl_proof_hash": self._felt_hex(ezkl_proof_hash),
             },
+            "bridge_statement": bridge_statement,
             "public_signals": [
                 str(effective_model_hash),
                 str(int(output_commitment, 16)),
@@ -860,6 +931,9 @@ class ProofPipeline:
                 if payload_fact.startswith("0x"):
                     bridge_fact_hash = payload_fact
                     bridge_proof["proof_hash"] = bridge_fact_hash
+                    bridge_proof["fact_hash"] = bridge_fact_hash
+                    bridge_proof["bridge_statement"]["bridge_fact_hash"] = bridge_fact_hash
+                    bridge_proof["bridge_statement"]["fact_hash"] = bridge_fact_hash
                 logger.info(
                     "EzklNativeKzg calldata prepared via %s (len=%s)",
                     bridge_proof["bridge_backend"],
@@ -1101,6 +1175,7 @@ class ProofPipeline:
             "trust_mode": trust_mode,
             "trust_warning": trust_warning,
             "bridge_proof": None,
+            "bridge_statement": None,
             "execution_proof": None,
             "can_execute": ezkl_verified,
             "combined_calldata": None,
@@ -1140,6 +1215,7 @@ class ProofPipeline:
                 bridge_circuit=bridge_circuit,
             )
             result["bridge_proof"] = bridge_proof
+            result["bridge_statement"] = bridge_proof.get("bridge_statement")
             result["bridge_circuit_used"] = bridge_circuit_used
 
             if bridge_proof.get("success") and bridge_proof.get("is_compliant"):
