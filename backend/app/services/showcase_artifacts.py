@@ -14,6 +14,8 @@ _ARTIFACT_DIR = _REPO_ROOT / "artifacts" / "hackathon_showcase"
 _LATEST_JSON = _ARTIFACT_DIR / "latest.json"
 _PUBLIC_PROOF_DASHBOARD_MD = _ARTIFACT_DIR / "public_proof_dashboard.md"
 _PATHB_BUNDLE_WARM_JSON = _ARTIFACT_DIR / "pathb_bundle_warm.json"
+_PATHC_LATEST_JSON = _ARTIFACT_DIR / "pathc_latest.json"
+_PATHC_HISTORY_JSONL = _ARTIFACT_DIR / "pathc_history.jsonl"
 
 
 def showcase_artifact_dir() -> Path:
@@ -53,3 +55,33 @@ def load_pathb_bundle_warm_report() -> dict[str, Any]:
     except (json.JSONDecodeError, OSError):
         return {}
     return raw if isinstance(raw, dict) else {}
+
+
+def load_pathc_latest_report() -> dict[str, Any]:
+    if not _PATHC_LATEST_JSON.exists():
+        return {}
+    try:
+        raw = json.loads(_PATHC_LATEST_JSON.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def load_pathc_history() -> list[dict[str, Any]]:
+    if not _PATHC_HISTORY_JSONL.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    try:
+        for line in _PATHC_HISTORY_JSONL.read_text(encoding="utf-8").splitlines():
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                raw = json.loads(text)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(raw, dict):
+                rows.append(raw)
+    except OSError:
+        return []
+    return rows

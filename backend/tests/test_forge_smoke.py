@@ -57,6 +57,55 @@ def test_forge_status(client):
     assert "public_settled" in data["proof_stats"]
     assert "lane_summary" in data
     assert isinstance(data["lane_summary"], list)
+
+
+def test_forge_status_includes_path_c_summary(client, monkeypatch):
+    async def fake_get_system_health():
+        return {"status": "ok"}
+
+    async def fake_get_proof_stats():
+        return {"total_proofs": 2, "verified_proofs": 1, "pending_proofs": 1}
+
+    async def fake_get_lane_summary_rows(limit: int = 5000):
+        return []
+
+    async def fake_get_receipt_service():
+        return None
+
+    monkeypatch.setattr(forge_routes, "_get_system_health", fake_get_system_health)
+    monkeypatch.setattr(forge_routes, "_get_proof_stats", fake_get_proof_stats)
+    monkeypatch.setattr(forge_routes, "_get_lane_summary_rows", fake_get_lane_summary_rows)
+    monkeypatch.setattr(forge_routes, "_get_receipt_service", fake_get_receipt_service)
+    monkeypatch.setattr(
+        forge_routes,
+        "_get_pathc_route_rows",
+        lambda: [
+            {
+                "tx_hash": "0xpathc-confirmed",
+                "model_name": "yield_forecast",
+                "latest_public_timestamp": "2026-03-22T08:00:00Z",
+                "latest_public_tx_hash": "0xpathc-confirmed",
+                "l2_verified": True,
+            },
+            {
+                "tx_hash": "0xpathc-pending",
+                "model_name": "anomaly_detector",
+                "latest_public_timestamp": "2026-03-22T07:00:00Z",
+                "latest_public_tx_hash": None,
+                "l2_verified": False,
+            },
+        ],
+    )
+
+    r = client.get(BASE + "/status")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["path_c_summary"]["route_count"] == 2
+    assert payload["path_c_summary"]["confirmed_count"] == 1
+    assert payload["path_c_summary"]["latest_confirmed_model"] == "yield_forecast"
+    assert payload["path_c_summary"]["latest_confirmed_tx_hash"] == "0xpathc-confirmed"
 def test_forge_detail_entity(client):
     r = client.get(BASE + "/detail/entity/foo")
     if r.status_code == 404:
@@ -366,6 +415,8 @@ def test_forge_detail_model_uses_aggregated_bridge_state(client, monkeypatch):
             "id": "yield_forecast",
             "proof_count": 4,
             "public_proof_count": 2,
+            "pathc_route_count": 1,
+            "pathc_confirmed_count": 1,
             "lane_counts": {"modelbridge": 2, "noir_v2": 2},
             "binding_profiles": ["full / obsqra_bridge_statement_v1"],
             "latest_proof_hash": "0xproof_activity",
@@ -393,6 +444,13 @@ def test_forge_detail_model_uses_aggregated_bridge_state(client, monkeypatch):
             },
             "latest_public_tx_hash": "0xl2tx-model",
             "latest_public_timestamp": "2026-03-22T06:05:00Z",
+            "latest_public_source_kind": "proof",
+            "latest_pathc_tx_hash": "0xpathc-model",
+            "latest_pathc_timestamp": "2026-03-22T06:10:00Z",
+            "latest_pathc_route_key": "yield_forecast",
+            "latest_pathc_route_source": "model_name",
+            "latest_confirmed_pathc_tx_hash": "0xpathc-model",
+            "latest_confirmed_pathc_timestamp": "2026-03-22T06:10:00Z",
         }
 
     async def fake_graph_neighborhood_for_model(model_name: str, *, limit: int = 3, public_only: bool = False):
@@ -422,9 +480,13 @@ def test_forge_detail_model_uses_aggregated_bridge_state(client, monkeypatch):
     assert payload["summary"]["status"] == "ready"
     assert payload["summary"]["proof_count"] == 4
     assert payload["summary"]["public_proof_count"] == 2
+    assert payload["summary"]["pathc_route_count"] == 1
+    assert payload["summary"]["pathc_confirmed_count"] == 1
     assert payload["summary"]["latest_public_tx_hash"] == "0xl2tx-model"
+    assert payload["summary"]["latest_confirmed_pathc_tx_hash"] == "0xpathc-model"
     assert payload["summary"]["latest_binding_profile_label"] == "full / obsqra_bridge_statement_v1"
     assert any(rel["type"] == "transaction" and rel["id"] == "0xl2tx-model" for rel in payload["relationships"])
+    assert any(rel["type"] == "transaction" and rel["id"] == "0xpathc-model" for rel in payload["relationships"])
     assert (payload.get("settlement_graph") or {}).get("center", {}).get("id") == "yield_forecast"
 
 
@@ -475,6 +537,90 @@ def test_forge_detail_transaction_uses_indexed_provenance(client, monkeypatch):
     assert payload["summary"]["status"] == "public_settled"
     assert payload["summary"]["tx_status"] == "ACCEPTED_ON_L2"
     assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])
+
+
+def test_forge_detail_transaction_uses_pathc_provenance(client, monkeypatch):
+    async def fake_get_tx_receipt(tx_hash: str):
+        assert tx_hash == "0xpathc"
+        return {
+            "finality_status": "ACCEPTED_ON_L1",
+            "execution_status": "SUCCEEDED",
+            "block_number": 321,
+        }
+
+    async def fake_find_proof_record_by_public_tx(tx_hash: str):
+        assert tx_hash == "0xpathc"
+        return None
+
+    monkeypatch.setattr(forge_routes, "_get_tx_receipt", fake_get_tx_receipt)
+    monkeypatch.setattr(forge_routes, "_find_proof_record_by_public_tx", fake_find_proof_record_by_public_tx)
+    monkeypatch.setattr(
+        forge_routes,
+        "_get_pathc_route_rows",
+        lambda: [
+            {
+                "tx_hash": "0xpathc",
+                "model_name": "yield_forecast",
+                "route_key": "yield_forecast",
+                "route_source": "model_name",
+                "latest_public_timestamp": "2026-03-22T09:00:00Z",
+                "latest_public_tx_hash": "0xpathc",
+                "l2_verified": True,
+                "mode": "verify_and_bridge",
+            }
+        ],
+    )
+
+    r = client.get(BASE + "/detail/transaction/0xpathc")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "public_settled"
+    assert payload["summary"]["model"] == "yield_forecast"
+    assert payload["summary"]["route_key"] == "yield_forecast"
+    assert any(rel["type"] == "model" and rel["id"] == "yield_forecast" for rel in payload["relationships"])
+
+
+def test_forge_models_feed_includes_pathc_coverage(client, monkeypatch):
+    async def fake_list_proofs_for_search(limit: int = 50):
+        return []
+
+    monkeypatch.setattr(forge_routes, "_list_proofs_for_search", fake_list_proofs_for_search)
+    monkeypatch.setattr(
+        forge_routes,
+        "_list_models_for_search",
+        lambda limit=50: [{"id": "yield_forecast", "name": "yield_forecast", "ready": True}],
+    )
+    monkeypatch.setattr(
+        forge_routes,
+        "_get_pathc_route_rows",
+        lambda: [
+            {
+                "tx_hash": "0xpathc-model",
+                "model_name": "yield_forecast",
+                "route_key": "yield_forecast",
+                "route_source": "model_name",
+                "latest_public_timestamp": "2026-03-22T10:00:00Z",
+                "latest_public_tx_hash": "0xpathc-model",
+                "l2_verified": True,
+                "mode": "verify_and_bridge",
+            }
+        ],
+    )
+
+    r = client.get(BASE + "/models", params={"public_only": "true"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["count"] == 1
+    item = payload["items"][0]
+    assert item["pathc_route_count"] == 1
+    assert item["pathc_confirmed_count"] == 1
+    assert item["latest_public_lane"] == "path_c_bridge"
+    assert item["latest_public_source_kind"] == "path_c"
+    assert item["latest_public_tx_hash"] == "0xpathc-model"
 
 
 def test_forge_search_scope_proofs_returns_cursor(client, monkeypatch):
@@ -645,6 +791,7 @@ def test_forge_model_rows_separate_activity_from_public_settlement(client, monke
         ]
 
     monkeypatch.setattr(forge_routes, "_list_proofs_for_search", fake_list_proofs_for_search)
+    monkeypatch.setattr(forge_routes, "_get_pathc_route_rows", lambda: [])
 
     r = client.get(BASE + "/models")
     if r.status_code == 404:
@@ -659,7 +806,7 @@ def test_forge_model_rows_separate_activity_from_public_settlement(client, monke
     assert row["proof_count"] == 2
     assert row["public_proof_count"] == 1
     assert row["lane_counts"] == {"modelbridge": 1, "noir_v2": 1}
-    assert row["settlement_graph"]["nodes"][0]["type"] == "transaction"
+    assert any(node["type"] == "transaction" and node["id"] == "0xl2tx-model" for node in row["settlement_graph"]["nodes"])
 
 
 def test_forge_model_rows_public_only_filters_without_public_receipts(client, monkeypatch):

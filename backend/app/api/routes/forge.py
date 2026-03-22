@@ -103,6 +103,111 @@ def _match_scope_label(scope: object) -> str | None:
     return value.replace("_", " ")
 
 
+def _load_pathc_artifacts() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    try:
+        from app.services.showcase_artifacts import load_pathc_history, load_pathc_latest_report
+
+        latest = load_pathc_latest_report()
+        history = load_pathc_history()
+        return (
+            latest if isinstance(latest, dict) else {},
+            history if isinstance(history, list) else [],
+        )
+    except Exception:
+        return {}, []
+
+
+def _normalize_pathc_route_row(raw: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    tx_hash = str(raw.get("tx_hash") or "").strip()
+    if not tx_hash:
+        return None
+    model_name = (
+        str(raw.get("resolved_model_name") or "").strip()
+        or str(raw.get("source_model_name") or "").strip()
+        or str(raw.get("route_key") or "").strip()
+    )
+    generated_at = _normalize_timestamp(raw.get("last_checked_at") or raw.get("generated_at"))
+    l2_verified = bool(raw.get("l2_verified") or (raw.get("l2_last") or {}).get("verified_on_l2"))
+    return {
+        "tx_hash": tx_hash,
+        "model_name": model_name,
+        "route_key": str(raw.get("route_key") or "").strip() or None,
+        "route_source": str(raw.get("route_source") or "").strip() or None,
+        "generated_at": generated_at,
+        "latest_public_timestamp": generated_at if l2_verified else None,
+        "latest_public_tx_hash": tx_hash if l2_verified else None,
+        "l1_status": raw.get("l1_status", (raw.get("l1_receipt") or {}).get("status")),
+        "l1_gas_used": raw.get("l1_gas_used", (raw.get("l1_receipt") or {}).get("gasUsed")),
+        "l2_verified": l2_verified,
+        "mode": str(raw.get("mode") or "verify_and_bridge"),
+        "network": "ethereum_sepolia",
+        "detail_href": f"detail/transaction/{quote(tx_hash, safe='')}",
+        "source": "pathc_artifact",
+    }
+
+
+def _get_pathc_route_rows() -> list[dict[str, Any]]:
+    latest, history = _load_pathc_artifacts()
+    rows_by_tx: dict[str, dict[str, Any]] = {}
+    for raw in history:
+        row = _normalize_pathc_route_row(raw)
+        if not row:
+            continue
+        rows_by_tx[str(row.get("tx_hash"))] = row
+    latest_row = _normalize_pathc_route_row(latest)
+    if latest_row:
+        rows_by_tx[str(latest_row.get("tx_hash"))] = latest_row
+    rows = list(rows_by_tx.values())
+    rows.sort(
+        key=lambda row: (
+            str(row.get("generated_at") or ""),
+            str(row.get("tx_hash") or ""),
+        ),
+        reverse=True,
+    )
+    return rows
+
+
+def _pathc_settlement_graph(route: dict[str, Any]) -> dict[str, Any] | None:
+    model_name = str(route.get("model_name") or "").strip()
+    tx_hash = str(route.get("tx_hash") or "").strip()
+    if not model_name or not tx_hash:
+        return None
+    return {
+        "nodes": [
+            {"type": "model", "id": model_name, "href": f"detail/model/{quote(model_name, safe='')}"},
+            {"type": "transaction", "id": tx_hash, "href": f"detail/transaction/{quote(tx_hash, safe='')}"},
+        ],
+        "edges": [
+            {"from": tx_hash, "to": model_name, "verb": "bridges_for"},
+        ],
+    }
+
+
+def _pathc_summary_rows() -> list[dict[str, Any]]:
+    rows = _get_pathc_route_rows()
+    confirmed = [row for row in rows if bool(row.get("l2_verified"))]
+    latest_confirmed = confirmed[0] if confirmed else None
+    models = {str(row.get("model_name") or "").strip() for row in rows if str(row.get("model_name") or "").strip()}
+    confirmed_models = {
+        str(row.get("model_name") or "").strip() for row in confirmed if str(row.get("model_name") or "").strip()
+    }
+    return [
+        {
+            "lane": "path_c_bridge",
+            "route_count": len(rows),
+            "confirmed_route_count": len(confirmed),
+            "model_count": len(models),
+            "confirmed_model_count": len(confirmed_models),
+            "latest_public_timestamp": latest_confirmed.get("generated_at") if latest_confirmed else None,
+            "latest_public_tx_hash": latest_confirmed.get("tx_hash") if latest_confirmed else None,
+            "latest_public_model_name": latest_confirmed.get("model_name") if latest_confirmed else None,
+        }
+    ]
+
+
 def _classify_query(q: str) -> str:
     """Heuristic classifier for search queries."""
     q = q.strip()
@@ -497,6 +602,16 @@ async def _get_model_info(model_id: str) -> dict[str, Any] | None:
         return None
 
 
+def _find_pathc_route_by_tx(tx_hash: str) -> dict[str, Any] | None:
+    target = str(tx_hash or "").strip().lower()
+    if not target:
+        return None
+    for row in _get_pathc_route_rows():
+        if str(row.get("tx_hash") or "").strip().lower() == target:
+            return row
+    return None
+
+
 def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     proof_rows = payload.get("proofs") if isinstance(payload.get("proofs"), list) else []
     items: list[dict[str, Any]] = []
@@ -658,6 +773,13 @@ async def _graph_neighborhood_for_model(
         for graph in (item.get("settlement_graph") for item in items)
         if isinstance(graph, dict)
     ]
+    model_key = str(model_name or "").strip().lower()
+    for route in _get_pathc_route_rows():
+        if str(route.get("model_name") or "").strip().lower() != model_key:
+            continue
+        if public_only and not route.get("l2_verified"):
+            continue
+        graphs.append(_pathc_settlement_graph(route))
     return _merge_settlement_graphs(graphs, center_type="model", center_id=model_name)
 
 
@@ -701,7 +823,9 @@ async def _get_model_rows(
     lane: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     model_proofs = await _list_proofs_for_search(5000)
+    pathc_routes = _get_pathc_route_rows()
     proofs_by_model: dict[str, list[dict[str, Any]]] = {}
+    pathc_by_model: dict[str, list[dict[str, Any]]] = {}
     for proof in model_proofs:
         model_key = str(proof.get("model_name") or "").strip().lower()
         if not model_key:
@@ -709,6 +833,13 @@ async def _get_model_rows(
         if lane and str(proof.get("lane") or "").strip().lower() != str(lane).strip().lower():
             continue
         proofs_by_model.setdefault(model_key, []).append(proof)
+    for route in pathc_routes:
+        model_key = str(route.get("model_name") or "").strip().lower()
+        if not model_key:
+            continue
+        if lane and str(lane).strip().lower() != "path_c_bridge":
+            continue
+        pathc_by_model.setdefault(model_key, []).append(route)
 
     rows: list[dict[str, Any]] = []
     query = q.lower().strip()
@@ -718,8 +849,10 @@ async def _get_model_rows(
             continue
         model_key = str(m.get("id") or name).strip().lower()
         proofs = proofs_by_model.get(model_key) or []
+        model_pathc_routes = pathc_by_model.get(model_key) or []
         public_proofs = [proof for proof in proofs if proof.get("latest_public_tx_hash")]
-        if public_only and not public_proofs:
+        confirmed_pathc_routes = [route for route in model_pathc_routes if route.get("l2_verified")]
+        if public_only and not public_proofs and not confirmed_pathc_routes:
             continue
 
         latest_proof = max(
@@ -738,6 +871,22 @@ async def _get_model_rows(
             ),
             default={},
         )
+        latest_pathc_route = max(
+            model_pathc_routes,
+            key=lambda route: (
+                str(route.get("latest_public_timestamp") or ""),
+                str(route.get("tx_hash") or ""),
+            ),
+            default={},
+        )
+        latest_public_pathc_route = max(
+            confirmed_pathc_routes,
+            key=lambda route: (
+                str(route.get("latest_public_timestamp") or ""),
+                str(route.get("tx_hash") or ""),
+            ),
+            default={},
+        )
         lane_counts: dict[str, int] = {}
         binding_profiles: set[str] = set()
         for proof in proofs:
@@ -747,8 +896,36 @@ async def _get_model_rows(
             binding_profile = str(proof.get("binding_profile") or "").strip()
             if binding_profile:
                 binding_profiles.add(binding_profile)
+        if model_pathc_routes:
+            lane_counts["path_c_bridge"] = len(model_pathc_routes)
 
+        latest_public_proof_timestamp = str(latest_public_proof.get("latest_public_timestamp") or "")
+        latest_public_pathc_timestamp = str(latest_public_pathc_route.get("latest_public_timestamp") or "")
+        latest_public_tx_hash = latest_public_proof.get("latest_public_tx_hash")
+        latest_public_timestamp = latest_public_proof.get("latest_public_timestamp")
+        latest_public_lane = latest_public_proof.get("lane")
+        latest_public_binding_profile = latest_public_proof.get("binding_profile")
+        latest_public_match_scope = latest_public_proof.get("latest_public_match_scope")
+        latest_public_match_scope_label = latest_public_proof.get("latest_public_match_scope_label")
+        latest_public_source_kind = "proof" if latest_public_proof else None
+        if latest_public_pathc_timestamp and latest_public_pathc_timestamp >= latest_public_proof_timestamp:
+            latest_public_tx_hash = latest_public_pathc_route.get("latest_public_tx_hash")
+            latest_public_timestamp = latest_public_pathc_route.get("latest_public_timestamp")
+            latest_public_lane = "path_c_bridge"
+            latest_public_binding_profile = None
+            latest_public_match_scope = "exact_hash"
+            latest_public_match_scope_label = _match_scope_label("exact_hash")
+            latest_public_source_kind = "path_c"
+
+        graphs: list[dict[str, Any]] = []
         graph_source = latest_public_proof or latest_proof
+        if isinstance(graph_source.get("settlement_graph"), dict):
+            graphs.append(graph_source.get("settlement_graph"))
+        if latest_public_pathc_route:
+            graphs.append(_pathc_settlement_graph(latest_public_pathc_route))
+        elif latest_pathc_route:
+            graphs.append(_pathc_settlement_graph(latest_pathc_route))
+        settlement_graph = _merge_settlement_graphs(graphs, center_type="model", center_id=str(m["id"])) if graphs else None
         rows.append(
             {
                 "id": m["id"],
@@ -763,13 +940,22 @@ async def _get_model_rows(
                 "latest_binding_profile": latest_proof.get("binding_profile"),
                 "latest_activity_timestamp": latest_proof.get("latest_activity_timestamp"),
                 "latest_public_proof_hash": latest_public_proof.get("id"),
-                "latest_public_lane": latest_public_proof.get("lane"),
-                "latest_public_binding_profile": latest_public_proof.get("binding_profile"),
-                "latest_public_tx_hash": latest_public_proof.get("latest_public_tx_hash"),
-                "latest_public_timestamp": latest_public_proof.get("latest_public_timestamp"),
-                "latest_public_match_scope": latest_public_proof.get("latest_public_match_scope"),
-                "latest_public_match_scope_label": latest_public_proof.get("latest_public_match_scope_label"),
-                "settlement_graph": graph_source.get("settlement_graph"),
+                "latest_public_lane": latest_public_lane,
+                "latest_public_binding_profile": latest_public_binding_profile,
+                "latest_public_tx_hash": latest_public_tx_hash,
+                "latest_public_timestamp": latest_public_timestamp,
+                "latest_public_match_scope": latest_public_match_scope,
+                "latest_public_match_scope_label": latest_public_match_scope_label,
+                "latest_public_source_kind": latest_public_source_kind,
+                "pathc_route_count": len(model_pathc_routes),
+                "pathc_confirmed_count": len(confirmed_pathc_routes),
+                "latest_pathc_tx_hash": latest_pathc_route.get("tx_hash"),
+                "latest_pathc_timestamp": latest_pathc_route.get("latest_public_timestamp"),
+                "latest_pathc_route_key": latest_pathc_route.get("route_key"),
+                "latest_pathc_route_source": latest_pathc_route.get("route_source"),
+                "latest_confirmed_pathc_tx_hash": latest_public_pathc_route.get("latest_public_tx_hash"),
+                "latest_confirmed_pathc_timestamp": latest_public_pathc_route.get("latest_public_timestamp"),
+                "settlement_graph": settlement_graph,
                 "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
                 "graph_href": f"graph/model/{quote(str(m['id']), safe='')}",
             }
@@ -984,8 +1170,18 @@ async def forge_status() -> dict[str, Any]:
     health = await _get_system_health()
     proof_stats = await _get_proof_stats()
     lane_summary = await _get_lane_summary_rows()
+    pathc_routes = _get_pathc_route_rows()
     derived_total = sum(int(row.get("proof_count") or 0) for row in lane_summary)
     derived_public = sum(int(row.get("public_proof_count") or 0) for row in lane_summary)
+    confirmed_pathc = [row for row in pathc_routes if row.get("l2_verified")]
+    latest_confirmed_pathc = max(
+        confirmed_pathc,
+        key=lambda row: (
+            str(row.get("latest_public_timestamp") or ""),
+            str(row.get("tx_hash") or ""),
+        ),
+        default={},
+    )
 
     receipt_svc = await _get_receipt_service()
     receipt_count = 0
@@ -1015,6 +1211,14 @@ async def forge_status() -> dict[str, Any]:
             "verified": int((proof_stats or {}).get("verified_proofs") or derived_public),
             "pending": int((proof_stats or {}).get("pending_proofs") or max(derived_total - derived_public, 0)),
             "public_settled": derived_public,
+        },
+        "path_c_summary": {
+            "route_count": len(pathc_routes),
+            "confirmed_count": len(confirmed_pathc),
+            "model_count": len({str(row.get("model_name") or "") for row in pathc_routes if row.get("model_name")}),
+            "latest_confirmed_model": latest_confirmed_pathc.get("model_name"),
+            "latest_confirmed_tx_hash": latest_confirmed_pathc.get("latest_public_tx_hash"),
+            "latest_confirmed_timestamp": latest_confirmed_pathc.get("latest_public_timestamp"),
         },
         "lanes": lanes,
         "lane_summary": lane_summary,
@@ -1557,6 +1761,7 @@ async def forge_detail(
     elif obj_type in ("transaction", "tx"):
         tx_rec = await _get_tx_receipt(obj_id)
         proof_rec = await _find_proof_record_by_public_tx(obj_id)
+        pathc_route = _find_pathc_route_by_tx(obj_id)
         if tx_rec:
             status = (tx_rec.get("finality_status") or tx_rec.get("status") or "UNKNOWN")
             block_num = tx_rec.get("block_number")
@@ -1593,6 +1798,40 @@ async def forge_detail(
                         verb=str(rel.get("verb") or ""),
                         source=str(rel.get("source") or ""),
                     )
+            elif pathc_route:
+                settlement_graph = _pathc_settlement_graph(pathc_route)
+                summary.update(
+                    {
+                        "status": "public_settled" if pathc_route.get("l2_verified") else "pending",
+                        "source": "public",
+                        "model": pathc_route.get("model_name"),
+                        "latest_public_tx_hash": pathc_route.get("tx_hash"),
+                        "latest_public_match_scope": "exact_hash",
+                        "latest_public_match_scope_label": _match_scope_label("exact_hash"),
+                        "bridge_mode": pathc_route.get("mode"),
+                        "route_key": pathc_route.get("route_key"),
+                        "route_source": pathc_route.get("route_source"),
+                        "tx_status": status,
+                        "execution_status": tx_rec.get("execution_status", ""),
+                        "block_number": block_num,
+                    }
+                )
+                timeline.append(
+                    {
+                        "stage": "path_c_bridge",
+                        "status": "complete" if pathc_route.get("l2_verified") else "pending",
+                        "source": "public",
+                        "detail": str(pathc_route.get("tx_hash") or ""),
+                    }
+                )
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="model",
+                    rel_id=str(pathc_route.get("model_name") or ""),
+                    label="Model",
+                    verb="bridges_for",
+                    source="indexed",
+                )
             timeline.extend(
                 [
                     {"stage": "submitted", "status": "complete", "source": "rpc", "detail": "transaction"},
@@ -1626,6 +1865,38 @@ async def forge_detail(
                     verb=str(rel.get("verb") or ""),
                     source=str(rel.get("source") or ""),
                 )
+        elif pathc_route:
+            settlement_graph = _pathc_settlement_graph(pathc_route)
+            summary.update(
+                {
+                    "status": "public_settled" if pathc_route.get("l2_verified") else "pending",
+                    "source": "public",
+                    "model": pathc_route.get("model_name"),
+                    "latest_public_tx_hash": pathc_route.get("tx_hash"),
+                    "latest_public_match_scope": "exact_hash",
+                    "latest_public_match_scope_label": _match_scope_label("exact_hash"),
+                    "bridge_mode": pathc_route.get("mode"),
+                    "route_key": pathc_route.get("route_key"),
+                    "route_source": pathc_route.get("route_source"),
+                    "tx_hash": obj_id,
+                }
+            )
+            timeline = [
+                {
+                    "stage": "path_c_bridge",
+                    "status": "complete" if pathc_route.get("l2_verified") else "pending",
+                    "source": "public",
+                    "detail": str(pathc_route.get("tx_hash") or ""),
+                }
+            ]
+            _append_unique_relationship(
+                relationships,
+                rel_type="model",
+                rel_id=str(pathc_route.get("model_name") or ""),
+                label="Model",
+                verb="bridges_for",
+                source="indexed",
+            )
     elif obj_type == "block":
         block_id = obj_id if obj_id == "latest" else (int(obj_id) if str(obj_id).isdigit() else None)
         if block_id is not None:
@@ -1684,6 +1955,8 @@ async def forge_detail(
                 summary.update({
                     "proof_count": model_row.get("proof_count", 0),
                     "public_proof_count": model_row.get("public_proof_count", 0),
+                    "pathc_route_count": model_row.get("pathc_route_count", 0),
+                    "pathc_confirmed_count": model_row.get("pathc_confirmed_count", 0),
                     "lane_counts": model_row.get("lane_counts"),
                     "binding_profiles": model_row.get("binding_profiles"),
                     "latest_proof_hash": model_row.get("latest_proof_hash"),
@@ -1697,6 +1970,13 @@ async def forge_detail(
                     "latest_public_binding_profile_label": _binding_profile_label(model_row.get("latest_public_binding_profile")),
                     "latest_public_tx_hash": model_row.get("latest_public_tx_hash"),
                     "latest_public_timestamp": model_row.get("latest_public_timestamp"),
+                    "latest_public_source_kind": model_row.get("latest_public_source_kind"),
+                    "latest_pathc_tx_hash": model_row.get("latest_pathc_tx_hash"),
+                    "latest_pathc_timestamp": model_row.get("latest_pathc_timestamp"),
+                    "latest_pathc_route_key": model_row.get("latest_pathc_route_key"),
+                    "latest_pathc_route_source": model_row.get("latest_pathc_route_source"),
+                    "latest_confirmed_pathc_tx_hash": model_row.get("latest_confirmed_pathc_tx_hash"),
+                    "latest_confirmed_pathc_timestamp": model_row.get("latest_confirmed_pathc_timestamp"),
                 })
             timeline = [
                 {
@@ -1731,6 +2011,14 @@ async def forge_detail(
                         "detail": str(model_row.get("latest_public_tx_hash") or ""),
                     }
                 )
+                timeline.append(
+                    {
+                        "stage": "path_c_bridge",
+                        "status": "complete" if model_row.get("latest_confirmed_pathc_tx_hash") else ("pending" if model_row.get("pathc_route_count") else "not_present"),
+                        "source": "public" if model_row.get("latest_confirmed_pathc_tx_hash") else ("indexed" if model_row.get("pathc_route_count") else "not_present"),
+                        "detail": str(model_row.get("latest_confirmed_pathc_tx_hash") or model_row.get("latest_pathc_tx_hash") or ""),
+                    }
+                )
                 _append_unique_relationship(
                     relationships,
                     rel_type="proof_job",
@@ -1753,6 +2041,14 @@ async def forge_detail(
                     rel_id=str(model_row.get("latest_public_tx_hash") or ""),
                     label="Latest public settlement tx",
                     verb="settled_by",
+                    source="public",
+                )
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="transaction",
+                    rel_id=str(model_row.get("latest_confirmed_pathc_tx_hash") or ""),
+                    label="Latest Path C bridge tx",
+                    verb="bridged_by",
                     source="public",
                 )
             if isinstance(settlement_graph, dict):
@@ -2334,17 +2630,24 @@ async def forge_models_page(
         latest_public_label = " / ".join(latest_public_bits) if latest_public_bits else "-"
         latest_public_tx = str(item.get("latest_public_tx_hash") or "-")
         latest_public_ts = str(item.get("latest_public_timestamp") or "-")
+        latest_public_source_kind = str(item.get("latest_public_source_kind") or "")
 
         lane_counts = item.get("lane_counts") if isinstance(item.get("lane_counts"), dict) else {}
         lane_summary = ", ".join(
             f"{lane_name}={count}" for lane_name, count in sorted(lane_counts.items())
         ) or "-"
+        pathc_summary_bits = []
+        if int(item.get("pathc_route_count") or 0):
+            pathc_summary_bits.append(f"{int(item.get('pathc_route_count') or 0)} route(s)")
+        if int(item.get("pathc_confirmed_count") or 0):
+            pathc_summary_bits.append(f"{int(item.get('pathc_confirmed_count') or 0)} confirmed")
+        pathc_summary = " / ".join(pathc_summary_bits) or "no Path C routes"
         rows += f"""<tr>
   <td><a href="../detail/model/{quote(str(item.get("id", "")), safe='')}">{escape(name)}</a></td>
   <td>{'ready' if item.get('ready') else 'incomplete'}</td>
   <td><div>{escape(latest_activity_label)}</div><div class="muted"><code>{escape(latest_activity_hash)}</code></div><div class="muted">{escape(latest_activity_ts)}</div></td>
-  <td><div>{escape(latest_public_label)}</div><div class="muted"><code>{escape(latest_public_tx)}</code></div><div class="muted">{escape(latest_public_ts)}</div></td>
-  <td><div>{int(item.get("proof_count", 0) or 0)} proof(s) / {int(item.get("public_proof_count", 0) or 0)} public</div><div class="muted">{escape(lane_summary)}</div></td>
+  <td><div>{escape(latest_public_label)}</div><div class="muted"><code>{escape(latest_public_tx)}</code></div><div class="muted">{escape(latest_public_ts)}</div><div class="muted">{escape(latest_public_source_kind or 'proof')}</div></td>
+  <td><div>{int(item.get("proof_count", 0) or 0)} proof(s) / {int(item.get("public_proof_count", 0) or 0)} public</div><div class="muted">{escape(lane_summary)}</div><div class="muted">Path C: {escape(pathc_summary)}</div></td>
   <td>{_graph_chip_html(item)}</td>
 </tr>"""
     if not rows:
@@ -2376,7 +2679,7 @@ td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; ve
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../facts/page">Facts</a></nav>
 <h1>Dedicated Model Feed</h1>
-<p class="muted" style="margin-top:4px">Provable model inventory with separate latest activity vs latest public settlement, plus bridge-lane coverage.</p>
+<p class="muted" style="margin-top:4px">Provable model inventory with separate latest proof activity vs latest public settlement, plus bridge-lane and Path C route coverage.</p>
 <div class="toolbar">
   <label>Search <input id="model-query" type="text" value="{q_value}" placeholder="yield_forecast" /></label>
   <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="noir_v2 / modelbridge" /></label>
@@ -2567,6 +2870,23 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     </a>"""
     if not lane_summary_html:
         lane_summary_html = '<p class="muted">No indexed lane coverage yet.</p>'
+
+    path_c_summary = status.get("path_c_summary") if isinstance(status.get("path_c_summary"), dict) else {}
+    path_c_html = ""
+    if path_c_summary:
+        path_c_html = f"""<div class="lane-card">
+      <div class="lane-card-top">
+        <strong>path_c_bridge</strong>
+        <span class="badge {'badge-onchain' if int(path_c_summary.get('confirmed_count') or 0) else 'badge-runtime'}">{int(path_c_summary.get('confirmed_count') or 0)} confirmed</span>
+      </div>
+      <div class="lane-card-stats">
+        <span>{int(path_c_summary.get("route_count") or 0)} routes</span>
+        <span>{int(path_c_summary.get("model_count") or 0)} models</span>
+      </div>
+      <div class="lane-card-meta"><span class="muted">Latest Confirmed</span><span>{escape(str(path_c_summary.get("latest_confirmed_timestamp") or "not confirmed yet"))}</span></div>
+      <div class="lane-card-meta"><span class="muted">Model</span><span>{escape(str(path_c_summary.get("latest_confirmed_model") or "-"))}</span></div>
+      <div class="lane-card-meta"><span class="muted">Surface</span><span><a href="models/page">model explorer</a></span></div>
+    </div>"""
 
     html = f"""<!doctype html>
 <html lang="en">
@@ -3024,6 +3344,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
 	      <h2>Lane Coverage</h2>
 	      <div class="lane-summary-grid">
 	        {lane_summary_html}
+            {path_c_html}
 	      </div>
 	    </div>
 
