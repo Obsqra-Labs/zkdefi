@@ -364,6 +364,17 @@ def _bridge_statement_note_bits(statement: Any) -> list[str]:
     return bits
 
 
+def _public_match_scope_label(scope: Any) -> str | None:
+    value = str(scope or "").strip().lower()
+    if not value:
+        return None
+    if value == "exact_hash":
+        return "exact proof"
+    if value == "lane_model":
+        return "lane/model mirror"
+    return value.replace("_", " ")
+
+
 def _seeded_probe_value(
     seed: str,
     index: int,
@@ -6826,6 +6837,7 @@ class ShowcaseRunner:
                     "verification_policy": dual_live.get("l2_verification_policy"),
                     "obsqra_verified": dual_live.get("l2_obsqra_verified"),
                     "integrity_verified": dual_live.get("l2_integrity_verified"),
+                    "proof_match_scope": "exact_hash",
                     "note": "Primary proof runs on L3; this is the public Starknet mirror receipt.",
                 }
             )
@@ -6873,6 +6885,7 @@ class ShowcaseRunner:
                     "verification_policy": native_pick.get("verification_policy"),
                     "obsqra_verified": native_pick.get("obsqra_verified"),
                     "integrity_verified": native_pick.get("integrity_verified"),
+                    "proof_match_scope": "lane_model",
                     "note": "Primary verification runs on L3 native KZG; this is the public Starknet mirror receipt.",
                 }
             )
@@ -6911,6 +6924,7 @@ class ShowcaseRunner:
                     "l2_verified": bool(route_pick.get("l2_verified")),
                     "route_key": route_pick.get("route_key"),
                     "route_source": route_pick.get("route_source"),
+                    "proof_match_scope": "exact_hash",
                     "note": "Public Ethereum verifier tx with confirmed Starknet receiver consumption.",
                 }
             )
@@ -6940,6 +6954,7 @@ class ShowcaseRunner:
                     "verification_policy": noir_live.get("l2_verification_policy"),
                     "obsqra_verified": noir_live.get("l2_obsqra_verified"),
                     "integrity_verified": noir_live.get("l2_integrity_verified"),
+                    "proof_match_scope": "exact_hash",
                     "note": "Public Starknet mirror receipt for Noir HONK lane.",
                 }
             )
@@ -6969,6 +6984,7 @@ class ShowcaseRunner:
                     "verification_policy": noir_v2_live.get("l2_verification_policy"),
                     "obsqra_verified": noir_v2_live.get("l2_obsqra_verified"),
                     "integrity_verified": noir_v2_live.get("l2_integrity_verified"),
+                    "proof_match_scope": "exact_hash",
                     "note": "Public Starknet mirror receipt for Noir HONK V2 lane.",
                 }
             )
@@ -6998,6 +7014,7 @@ class ShowcaseRunner:
                     "verification_policy": heavy_l2.get("verification_policy"),
                     "obsqra_verified": heavy_l2.get("obsqra_verified"),
                     "integrity_verified": heavy_l2.get("integrity_verified"),
+                    "proof_match_scope": "exact_hash",
                     "note": "Primary STARK verification runs on L3; this is the public Starknet mirror receipt.",
                 }
             )
@@ -7107,6 +7124,9 @@ class ShowcaseRunner:
                 note_bits.append(f"strict_binding={str(bool(entry.get('strict_binding'))).lower()}")
             if entry.get("proof_hash"):
                 note_bits.append(f"proof_hash={_short_hex(str(entry.get('proof_hash')), 14)}")
+            scope_label = _public_match_scope_label(entry.get("proof_match_scope"))
+            if scope_label:
+                note_bits.append(f"scope={scope_label}")
             note_bits.extend(_bridge_statement_note_bits(bridge_statement))
             if entry.get("route_key"):
                 note_bits.append(f"route={entry.get('route_key')}")
@@ -7287,6 +7307,9 @@ class ShowcaseRunner:
                 note_bits.append(f"strict_binding={str(bool(row.get('strict_binding'))).lower()}")
             if row.get("route_key"):
                 note_bits.append(f"route={row.get('route_key')}")
+            scope_label = _public_match_scope_label(row.get("proof_match_scope"))
+            if scope_label:
+                note_bits.append(f"scope={scope_label}")
             note_bits.extend(_bridge_statement_note_bits(bridge_statement))
             public_dashboard_rows.append(
                 [
