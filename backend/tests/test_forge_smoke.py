@@ -366,6 +366,69 @@ def test_forge_search_scope_proofs_supports_lane_and_model_filters(client, monke
     assert payload["results"]["proofs"][0]["settlement_graph"]["nodes"][0]["type"] == "proof_job"
 
 
+def test_forge_search_scope_models_includes_settlement_graph(client, monkeypatch):
+    monkeypatch.setattr(
+        forge_routes,
+        "_list_models_for_search",
+        lambda limit=50: [
+            {"id": "anomaly_detector", "name": "anomaly_detector", "ready": True},
+            {"id": "yield_forecast", "name": "yield_forecast", "ready": True},
+        ],
+    )
+
+    async def fake_list_proofs_for_search(limit=50):
+        return [
+            {
+                "id": "0xproof_model",
+                "lane": "noir_v2",
+                "model_name": "yield_forecast",
+                "latest_public_tx_hash": "0xl2tx-model",
+                "settlement_graph": {
+                    "nodes": [{"type": "model", "id": "yield_forecast"}],
+                    "edges": [],
+                },
+            }
+        ]
+
+    monkeypatch.setattr(forge_routes, "_list_proofs_for_search", fake_list_proofs_for_search)
+
+    r = client.get(BASE + "/search", params={"scope": "models"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["results"]["models"][0]["id"] == "yield_forecast"
+    assert payload["results"]["models"][0]["latest_lane"] == "noir_v2"
+    assert payload["results"]["models"][0]["settlement_graph"]["nodes"][0]["type"] == "model"
+
+
+def test_forge_search_scope_facts_includes_settlement_graph(client, monkeypatch):
+    async def fake_get_indexed_proof_items(**kwargs):
+        return [
+            {
+                "id": "0xproof_fact",
+                "lane": "modelbridge",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact_search",
+                "latest_public_tx_hash": "0xl2tx-fact",
+                "settlement_graph": {
+                    "nodes": [{"type": "fact", "id": "0xfact_search"}],
+                    "edges": [],
+                },
+            }
+        ]
+
+    monkeypatch.setattr(forge_routes, "_get_indexed_proof_items", fake_get_indexed_proof_items)
+
+    r = client.get(BASE + "/search", params={"scope": "facts", "public_only": "true"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["results"]["facts"][0]["fact_hash"] == "0xfact_search"
+    assert payload["results"]["facts"][0]["settlement_graph"]["nodes"][0]["type"] == "fact"
+
+
 def test_forge_proofs_feed_returns_cursor_payload(client, monkeypatch):
     async def fake_get_indexed_proof_payload(**kwargs):
         return {
@@ -497,3 +560,24 @@ def test_forge_detail_proof_job_includes_settlement_graph(client, monkeypatch):
     assert payload["summary"]["status"] == "public_settled"
     assert payload["settlement_graph"]["nodes"][1]["type"] == "fact"
     assert payload["settlement_graph"]["edges"][2]["verb"] == "settles_with"
+
+
+def test_forge_graph_endpoint_returns_compact_neighborhood(client, monkeypatch):
+    async def fake_graph_neighborhood_for_object(obj_type: str, obj_id: str, **kwargs):
+        assert obj_type == "proof_job"
+        assert obj_id == "0xproof_graph"
+        return {
+            "center": {"type": "proof_job", "id": "0xproof_graph"},
+            "nodes": [{"type": "proof_job", "id": "0xproof_graph"}],
+            "edges": [],
+        }
+
+    monkeypatch.setattr(forge_routes, "_graph_neighborhood_for_object", fake_graph_neighborhood_for_object)
+
+    r = client.get(BASE + "/graph/proof_job/0xproof_graph")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["graph"]["center"]["type"] == "proof_job"
+    assert payload["graph"]["nodes"][0]["id"] == "0xproof_graph"

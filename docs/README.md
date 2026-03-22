@@ -80,8 +80,10 @@ Forge proof-scope search now passes through the same settlement cursor contract,
 Forge proof-scope search also accepts `lane=...`, `model_name=...`, and `public_only=true`, matching the dedicated proof feed contract.
 Forge `transaction` detail now resolves linked proof/fact/model provenance when the tx is a public settlement, instead of showing only raw RPC receipt data.
 Forge proof-backed detail responses now expose a top-level typed `settlement_graph` object in addition to `relationships`.
+Forge `facts` and `models` search scopes now include proof-derived `settlement_graph` context when indexed proof evidence exists.
 Dedicated Forge proof feed: `GET /api/v1/zkdefi/forge/proofs`
 Dedicated Forge proof page: `GET /api/v1/zkdefi/forge/proofs/page`
+Compact Forge graph endpoint: `GET /api/v1/zkdefi/forge/graph/{type}/{id}`
 Dedicated Forge proof feed filters: `lane=...`, `model_name=...`, `public_only=true`, plus settlement cursor params. `model_name` matches the canonical bridge statement model, not only the raw registry alias.
 Dedicated Forge proof feed items now include a typed `settlement_graph` (`nodes` + `edges`) so explorer clients can follow proof → fact/model/transaction relationships without reconstructing them locally.
 Public-only receipt feeds:

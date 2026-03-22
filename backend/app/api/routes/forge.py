@@ -99,6 +99,26 @@ async def _get_indexed_proofs(
     return proofs if isinstance(proofs, list) else []
 
 
+async def _get_indexed_proof_items(
+    *,
+    limit: int = 50,
+    model_name: str | None = None,
+    user_address: str | None = None,
+    public_only: bool = False,
+    cursor_timestamp: str | None = None,
+    cursor_proof_hash: str | None = None,
+) -> list[dict[str, Any]]:
+    payload = await _get_indexed_proof_payload(
+        limit=limit,
+        model_name=model_name,
+        user_address=user_address,
+        public_only=public_only,
+        cursor_timestamp=cursor_timestamp,
+        cursor_proof_hash=cursor_proof_hash,
+    )
+    return _proof_feed_items_from_payload(payload)
+
+
 async def _get_indexed_proof_payload(
     *,
     limit: int = 50,
@@ -206,6 +226,7 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
                 "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+                "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
             }
         )
     for item in out:
@@ -347,7 +368,7 @@ def _list_models_for_search(limit: int = 50) -> list[dict[str, Any]]:
     """List model names from ezkl_models dir for search results."""
     try:
         from pathlib import Path
-        base = Path(__file__).resolve().parents[3]
+        base = Path(__file__).resolve().parents[2]
         models_dir = base / "data" / "ezkl_models"
         if not models_dir.exists():
             return []
@@ -380,7 +401,7 @@ async def _get_model_info(model_id: str) -> dict[str, Any] | None:
     """Resolve model by name from ezkl_models dir."""
     try:
         from pathlib import Path
-        base = Path(__file__).resolve().parents[3]
+        base = Path(__file__).resolve().parents[2]
         models_dir = base / "data" / "ezkl_models"
         if not models_dir.exists():
             return None
@@ -491,12 +512,118 @@ def _proof_settlement_graph(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _merge_settlement_graphs(
+    graphs: list[dict[str, Any]],
+    *,
+    center_type: str | None = None,
+    center_id: str | None = None,
+) -> dict[str, Any]:
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    seen_nodes: set[tuple[str, str]] = set()
+    seen_edges: set[tuple[str, str, str]] = set()
+
+    def add_node(node: dict[str, Any]) -> None:
+        node_type = str(node.get("type") or "")
+        node_id = str(node.get("id") or "")
+        if not node_type or not node_id:
+            return
+        key = (node_type, node_id)
+        if key in seen_nodes:
+            return
+        seen_nodes.add(key)
+        nodes.append(node)
+
+    def add_edge(edge: dict[str, Any]) -> None:
+        src = str(edge.get("from") or "")
+        dst = str(edge.get("to") or "")
+        verb = str(edge.get("verb") or "")
+        if not src or not dst or not verb:
+            return
+        key = (src, dst, verb)
+        if key in seen_edges:
+            return
+        seen_edges.add(key)
+        edges.append(edge)
+
+    if center_type and center_id:
+        add_node(
+            {
+                "type": center_type,
+                "id": center_id,
+                "href": f"detail/{quote(center_type, safe='')}/{quote(center_id, safe='')}",
+            }
+        )
+
+    for graph in graphs:
+        if not isinstance(graph, dict):
+            continue
+        for node in graph.get("nodes") or []:
+            if isinstance(node, dict):
+                add_node(node)
+        for edge in graph.get("edges") or []:
+            if isinstance(edge, dict):
+                add_edge(edge)
+
+    return {
+        "center": {"type": center_type, "id": center_id} if center_type and center_id else None,
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
 def _settlement_graph_from_proof_record(proof_rec: dict[str, Any]) -> dict[str, Any] | None:
     items = _proof_feed_items_from_payload({"proofs": [proof_rec]})
     if not items:
         return None
     graph = items[0].get("settlement_graph")
     return graph if isinstance(graph, dict) else None
+
+
+async def _graph_neighborhood_for_model(
+    model_name: str,
+    *,
+    limit: int = 3,
+    public_only: bool = False,
+) -> dict[str, Any]:
+    items = await _get_indexed_proof_items(limit=limit, model_name=model_name, public_only=public_only)
+    graphs = [
+        graph
+        for graph in (item.get("settlement_graph") for item in items)
+        if isinstance(graph, dict)
+    ]
+    return _merge_settlement_graphs(graphs, center_type="model", center_id=model_name)
+
+
+async def _graph_neighborhood_for_object(
+    obj_type: str,
+    obj_id: str,
+    *,
+    limit: int = 3,
+    public_only: bool = False,
+) -> dict[str, Any] | None:
+    if obj_type == "model":
+        return await _graph_neighborhood_for_model(obj_id, limit=limit, public_only=public_only)
+
+    proof_rec: dict[str, Any] | None = None
+    if obj_type == "proof_job":
+        proof_rec = await _get_proof_record(obj_id)
+    elif obj_type == "fact":
+        proof_rec = await _get_proof_record(obj_id)
+    elif obj_type in ("transaction", "tx"):
+        proof_rec = await _find_proof_record_by_public_tx(obj_id)
+    elif obj_type == "receipt":
+        receipt_row = await _find_receipt_record(obj_id)
+        if receipt_row:
+            proof_lookup = receipt_row.get("proof_hash") or receipt_row.get("fact_hash")
+            proof_rec = await _get_proof_record(str(proof_lookup)) if proof_lookup else None
+        if proof_rec is None:
+            proof_rec = await _find_proof_record_by_public_tx(obj_id)
+
+    graph = _settlement_graph_from_proof_record(proof_rec) if proof_rec else None
+    if not isinstance(graph, dict):
+        return None
+    return _merge_settlement_graphs([graph], center_type=obj_type, center_id=obj_id)
 
 
 async def _get_filtered_proof_feed_payload(
@@ -789,11 +916,36 @@ async def forge_search(
             results["proofs"] = results["proofs"][offset: offset + limit]
 
     if scope in (None, "all", "models"):
+        model_proofs = await _list_proofs_for_search(200)
+        latest_by_model: dict[str, dict[str, Any]] = {}
+        for proof in model_proofs:
+            model_key = str(proof.get("model_name") or "").strip().lower()
+            if model_key and model_key not in latest_by_model:
+                latest_by_model[model_key] = proof
         for m in _list_models_for_search(50):
             s = (m.get("name") or m.get("id") or "").lower()
             if q and q.lower() not in s:
                 continue
-            results["models"].append({"id": m["id"], "name": m.get("name", m["id"]), "ready": m.get("ready", False), "detail_href": f"detail/model/{quote(str(m['id']), safe='')}"})
+            model_key = str(m.get("id") or m.get("name") or "").strip().lower()
+            proof = latest_by_model.get(model_key) or {}
+            results["models"].append(
+                {
+                    "id": m["id"],
+                    "name": m.get("name", m["id"]),
+                    "ready": m.get("ready", False),
+                    "latest_proof_hash": proof.get("id"),
+                    "latest_lane": proof.get("lane"),
+                    "latest_public_tx_hash": proof.get("latest_public_tx_hash"),
+                    "settlement_graph": proof.get("settlement_graph"),
+                    "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
+                }
+            )
+        results["models"].sort(
+            key=lambda row: (
+                0 if row.get("latest_proof_hash") else 1,
+                str(row.get("name") or row.get("id") or ""),
+            )
+        )
         results["models"] = results["models"][offset: offset + limit]
 
     if scope in (None, "all", "contracts") and q and re.fullmatch(r"0x[0-9a-fA-F]{40,}", q.strip()):
@@ -802,24 +954,30 @@ async def forge_search(
         results["contracts"] = results["contracts"][offset: offset + limit]
 
     if scope in (None, "all", "facts"):
-        rs = await _get_receipt_service()
-        if rs:
-            try:
-                raw_f = await rs.get_receipts()
-                seen_f = set()
-                for r in (raw_f or []):
-                    if not isinstance(r, dict):
-                        continue
-                    fh = r.get("fact_hash")
-                    if not fh or fh in seen_f:
-                        continue
-                    seen_f.add(fh)
-                    if q and q.lower() not in str(fh).lower():
-                        continue
-                    results["facts"].append({"id": str(fh), "fact_hash": str(fh), "detail_href": f"detail/fact/{quote(str(fh), safe='')}"})
-                results["facts"] = results["facts"][offset: offset + limit]
-            except Exception:
-                pass
+        try:
+            proof_items = await _get_indexed_proof_items(limit=200, public_only=public_only)
+            seen_facts: set[str] = set()
+            for item in proof_items:
+                fact_hash = str(item.get("fact_hash") or "").strip()
+                if not fact_hash or fact_hash in seen_facts:
+                    continue
+                if q and q.lower() not in fact_hash.lower():
+                    continue
+                seen_facts.add(fact_hash)
+                results["facts"].append(
+                    {
+                        "id": fact_hash,
+                        "fact_hash": fact_hash,
+                        "lane": item.get("lane"),
+                        "model_name": item.get("model_name"),
+                        "latest_public_tx_hash": item.get("latest_public_tx_hash"),
+                        "settlement_graph": item.get("settlement_graph"),
+                        "detail_href": f"detail/fact/{quote(fact_hash, safe='')}",
+                    }
+                )
+            results["facts"] = results["facts"][offset: offset + limit]
+        except Exception:
+            pass
 
     if scope and scope != "all":
         if scope == "txs":
@@ -1295,6 +1453,30 @@ async def forge_detail(
     return JSONResponse(payload)
 
 
+@router.get("/graph/{obj_type}/{obj_id}", summary="Compact typed graph neighborhood")
+async def forge_graph(
+    obj_type: str,
+    obj_id: str,
+    limit: int = Query(3, ge=1, le=20, description="Maximum recent proof neighborhoods to merge for model graphs"),
+    public_only: bool = Query(False, description="For model graphs, keep only publicly settled proof neighborhoods"),
+) -> dict[str, Any]:
+    graph = await _graph_neighborhood_for_object(obj_type, obj_id, limit=limit, public_only=public_only)
+    return {
+        "generated_at": _ts(),
+        "type": obj_type,
+        "id": obj_id,
+        "limit": limit,
+        "public_only": public_only,
+        "graph": graph,
+        "paths": {
+            "self": f"graph/{quote(obj_type, safe='')}/{quote(obj_id, safe='')}",
+            "detail": f"detail/{quote(obj_type, safe='')}/{quote(obj_id, safe='')}",
+            "search": "search",
+            "proofs": "proofs",
+        },
+    }
+
+
 @router.get("/paths", summary="Explorer API paths (self-description)")
 async def forge_paths() -> dict[str, Any]:
     """Returns the explorer surface: every path you can follow. Use these to traverse end-to-end."""
@@ -1307,6 +1489,7 @@ async def forge_paths() -> dict[str, Any]:
             "proofs": {"method": "GET", "path": "proofs", "description": "Dedicated proof feed with settlement cursors"},
             "proofs_page": {"method": "GET", "path": "proofs/page", "description": "Dedicated proofs page backed by the cursor feed"},
             "search": {"method": "GET", "path": "search", "description": "Unified search; results have detail_href per item"},
+            "graph": {"method": "GET", "path": "graph/{type}/{id}", "description": "Compact typed graph neighborhood for proof/fact/tx/model traversal"},
             "detail": {"method": "GET", "path": "detail/{type}/{id}", "description": "Any object; relationships include href to related objects"},
             "status": {"method": "GET", "path": "status", "description": "System status (receipts, proofs, lanes)"},
             "health": {"method": "GET", "path": "health", "description": "Health (HTML)"},
