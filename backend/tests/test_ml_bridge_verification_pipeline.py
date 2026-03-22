@@ -778,7 +778,9 @@ async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
     assert result["bridge_statement"]["lane"] == "modelbridge"
     assert result["bridge_statement"]["proof_type"] == "groth16"
-    assert result["bridge_statement"]["model_name"] == "yield_predictor"
+    assert result["bridge_statement"]["model_name"] == "yield_forecast"
+    assert result["bridge_statement"]["requested_model_name"] == "yield_predictor"
+    assert result["bridge_statement"]["model_name_alias_resolved"] is True
     assert result["bridge_statement"]["ezkl_proof_hash"] == "0x1234"
     assert result["bridge_statement"]["binding_profile"]["binds_timestamp"] is True
     assert len(stored) == 1
@@ -843,6 +845,9 @@ async def test_noir_bridge_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
     assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
     assert result["bridge_statement"]["lane"] == "noir"
+    assert result["bridge_statement"]["model_name"] == "yield_forecast"
+    assert result["bridge_statement"]["requested_model_name"] == "yield_predictor"
+    assert result["bridge_statement"]["model_name_alias_resolved"] is True
     assert result["bridge_statement"]["binding_profile"]["binds_ezkl_proof_hash"] is False
     assert result["bridge_statement"]["binding_profile"]["binds_timestamp"] is False
 
@@ -908,6 +913,9 @@ async def test_noir_bridge_v2_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_proof"]["bridge_proof_type"] == "noir_honk"
     assert result["bridge_statement"] == result["bridge_proof"]["bridge_statement"]
     assert result["bridge_statement"]["lane"] == "noir_v2"
+    assert result["bridge_statement"]["model_name"] == "yield_forecast"
+    assert result["bridge_statement"]["requested_model_name"] == "yield_predictor"
+    assert result["bridge_statement"]["model_name_alias_resolved"] is True
     assert result["bridge_statement"]["binding_profile"]["binds_ezkl_proof_hash"] is True
     assert captured["ezkl_proof_hash"] == int(_FakeEzklProof.proof_hash, 16)
     assert captured["model_output"] == [2, 3, 0, 0, 0, 0, 0, 0]

@@ -562,6 +562,7 @@ class ProofPipeline:
         *,
         lane: Any,
         model_name: str,
+        requested_model_name: str = "",
         effective_model_hash: int,
         effective_model_hash_raw: int,
         ezkl_proof_hash: str,
@@ -575,12 +576,20 @@ class ProofPipeline:
         is_compliant: bool,
     ) -> dict[str, Any]:
         binding_profile = self._lane_binding_profile(lane)
+        canonical_model_name = str(model_name or "").strip()
+        requested_model_name_value = str(requested_model_name or canonical_model_name).strip()
         return {
             "statement_version": binding_profile["statement_version"],
             "lane": lane.short_id,
             "circuit_name": lane.circuit_name_for_l3,
             "proof_type": lane.proof_type,
-            "model_name": model_name or "",
+            "model_name": canonical_model_name,
+            "requested_model_name": requested_model_name_value,
+            "model_name_alias_resolved": bool(
+                canonical_model_name
+                and requested_model_name_value
+                and canonical_model_name != requested_model_name_value
+            ),
             "model_hash": hex(effective_model_hash),
             "model_hash_raw": hex(int(effective_model_hash_raw)),
             "ezkl_proof_hash": self._felt_hex(ezkl_proof_hash),
@@ -791,9 +800,15 @@ class ProofPipeline:
             f"{output_lower_bound}:{output_upper_bound}:{ts}"
         )
         bridge_fact_hash = "0x" + hashlib.sha256(bridge_seed.encode()).hexdigest()
+        requested_model_name = str(model_name or "").strip()
+        resolved_model_name = str(getattr(ezkl_proof, "model_name", "") or requested_model_name).strip()
+        canonical_model_name = self._resolve_local_ezkl_model_name(resolved_model_name or requested_model_name)
+        if not canonical_model_name:
+            canonical_model_name = requested_model_name
         bridge_statement = self._build_bridge_statement(
             lane=lane,
-            model_name=model_name,
+            model_name=canonical_model_name,
+            requested_model_name=requested_model_name,
             effective_model_hash=effective_model_hash,
             effective_model_hash_raw=effective_model_hash_raw,
             ezkl_proof_hash=ezkl_proof_hash,

@@ -316,13 +316,14 @@ def _bridge_statement_table_rows(statement: Any) -> list[list[str]]:
         return []
     lane = str(payload.get("lane") or "-")
     proof_type = str(payload.get("proof_type") or "-")
-    model_name = str(payload.get("model_name") or "-")
+    model_name = _canonical_model_name(payload.get("model_name")) or "-"
+    requested_model_name = str(payload.get("requested_model_name") or "").strip()
     fact_hash = str(payload.get("fact_hash") or payload.get("bridge_fact_hash") or "-")
     ezkl_proof_hash = str(payload.get("ezkl_proof_hash") or "-")
     output_commitment = str(payload.get("output_commitment") or "-")
     timestamp = str(payload.get("timestamp") or "-")
     output_count = str(payload.get("output_count") or "-")
-    return [
+    rows = [
         ["Statement version", escape(str(payload.get("statement_version") or "-"))],
         ["Statement lane / proof type", escape(f"{lane} / {proof_type}")],
         ["Statement model", escape(model_name)],
@@ -333,6 +334,9 @@ def _bridge_statement_table_rows(statement: Any) -> list[list[str]]:
         ["Statement output count", escape(output_count)],
         ["Statement bindings", escape(_bridge_binding_summary(payload))],
     ]
+    if requested_model_name and _canonical_model_name(requested_model_name) != model_name:
+        rows.insert(3, ["Statement requested model", escape(requested_model_name)])
+    return rows
 
 
 def _bridge_statement_note_bits(statement: Any) -> list[str]:
@@ -344,8 +348,12 @@ def _bridge_statement_note_bits(statement: Any) -> list[str]:
     proof_type = str(payload.get("proof_type") or "").strip()
     if lane or proof_type:
         bits.append(f"statement={(lane or '-')}/{(proof_type or '-')}")
-    if payload.get("model_name"):
-        bits.append(f"model={payload.get('model_name')}")
+    canonical_model_name = _canonical_model_name(payload.get("model_name"))
+    requested_model_name = str(payload.get("requested_model_name") or "").strip()
+    if canonical_model_name:
+        bits.append(f"model={canonical_model_name}")
+    if requested_model_name and _canonical_model_name(requested_model_name) != canonical_model_name:
+        bits.append(f"requested_model={requested_model_name}")
     fact_hash = str(payload.get("fact_hash") or payload.get("bridge_fact_hash") or "").strip()
     if fact_hash:
         bits.append(f"fact_hash={_short_hex(fact_hash, 14)}")
