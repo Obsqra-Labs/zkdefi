@@ -265,6 +265,7 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
                 "verified": bool(summary.get("count")),
                 "lane": bridge_statement.get("lane"),
                 "binding_profile": bridge_statement.get("binding_profile"),
+                "binding_profile_label": _binding_profile_label(bridge_statement.get("binding_profile")),
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
                 "latest_public_timestamp": _normalize_timestamp(summary.get("latest_timestamp")),
@@ -497,6 +498,7 @@ def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, An
                 "proof_type": bridge_statement.get("proof_type") or row.get("proof_type", ""),
                 "lane": bridge_statement.get("lane"),
                 "binding_profile": bridge_statement.get("binding_profile"),
+                "binding_profile_label": _binding_profile_label(bridge_statement.get("binding_profile")),
                 "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
@@ -771,6 +773,82 @@ async def _get_model_row(model_id: str, *, public_only: bool = False, lane: str 
     return None
 
 
+async def _get_lane_summary_rows(limit: int = 5000) -> list[dict[str, Any]]:
+    proof_rows = await _list_proofs_for_search(limit=limit)
+    by_lane: dict[str, dict[str, Any]] = {}
+
+    for proof in proof_rows:
+        lane_name = str(proof.get("lane") or "").strip() or "unknown"
+        row = by_lane.setdefault(
+            lane_name,
+            {
+                "lane": lane_name,
+                "proof_count": 0,
+                "public_proof_count": 0,
+                "models": set(),
+                "proof_types": set(),
+                "binding_profiles": set(),
+                "latest_activity_timestamp": None,
+                "latest_activity_proof_hash": None,
+                "latest_public_timestamp": None,
+                "latest_public_proof_hash": None,
+                "latest_public_tx_hash": None,
+            },
+        )
+        row["proof_count"] += 1
+
+        model_name = str(proof.get("model_name") or "").strip()
+        if model_name:
+            row["models"].add(model_name)
+
+        proof_type = str(proof.get("proof_type") or "").strip()
+        if proof_type:
+            row["proof_types"].add(proof_type)
+
+        binding_label = str(proof.get("binding_profile_label") or "").strip()
+        if binding_label:
+            row["binding_profiles"].add(binding_label)
+
+        latest_activity_timestamp = str(proof.get("latest_activity_timestamp") or "")
+        if latest_activity_timestamp and latest_activity_timestamp >= str(row.get("latest_activity_timestamp") or ""):
+            row["latest_activity_timestamp"] = latest_activity_timestamp
+            row["latest_activity_proof_hash"] = proof.get("id")
+
+        latest_public_timestamp = str(proof.get("latest_public_timestamp") or "")
+        if latest_public_timestamp:
+            row["public_proof_count"] += 1
+            if latest_public_timestamp >= str(row.get("latest_public_timestamp") or ""):
+                row["latest_public_timestamp"] = latest_public_timestamp
+                row["latest_public_proof_hash"] = proof.get("id")
+                row["latest_public_tx_hash"] = proof.get("latest_public_tx_hash")
+
+    rows: list[dict[str, Any]] = []
+    for row in by_lane.values():
+        rows.append(
+            {
+                "lane": row["lane"],
+                "proof_count": row["proof_count"],
+                "public_proof_count": row["public_proof_count"],
+                "model_count": len(row["models"]),
+                "proof_types": sorted(row["proof_types"]),
+                "binding_profiles": sorted(row["binding_profiles"]),
+                "latest_activity_timestamp": row["latest_activity_timestamp"],
+                "latest_activity_proof_hash": row["latest_activity_proof_hash"],
+                "latest_public_timestamp": row["latest_public_timestamp"],
+                "latest_public_proof_hash": row["latest_public_proof_hash"],
+                "latest_public_tx_hash": row["latest_public_tx_hash"],
+            }
+        )
+
+    rows.sort(key=lambda item: str(item.get("lane") or ""))
+    rows.sort(key=lambda item: str(item.get("latest_activity_timestamp") or ""), reverse=True)
+    rows.sort(key=lambda item: str(item.get("latest_public_timestamp") or ""), reverse=True)
+    rows.sort(key=lambda item: int(item.get("model_count") or 0), reverse=True)
+    rows.sort(key=lambda item: int(item.get("proof_count") or 0), reverse=True)
+    rows.sort(key=lambda item: int(item.get("public_proof_count") or 0), reverse=True)
+    return rows
+
+
 async def _get_fact_rows(
     *,
     limit: int,
@@ -886,6 +964,7 @@ async def forge_status() -> dict[str, Any]:
     """Returns a compact status snapshot for the explorer status bar."""
     health = await _get_system_health()
     proof_stats = await _get_proof_stats()
+    lane_summary = await _get_lane_summary_rows()
 
     receipt_svc = await _get_receipt_service()
     receipt_count = 0
@@ -896,22 +975,27 @@ async def forge_status() -> dict[str, Any]:
         except Exception:
             pass
 
+    lanes = {str(row.get("lane") or ""): bool(row.get("proof_count")) for row in lane_summary if row.get("lane")}
+    if not lanes:
+        lanes = {
+            "groth16_modelbridge": True,
+            "noir_honk": True,
+            "native_kzg": True,
+            "stark_integrity": True,
+        }
+
     return {
         "generated_at": _ts(),
         "service": "starkforge-zksyslog",
         "health": health.get("status", "unknown") if isinstance(health, dict) else "unknown",
         "receipt_count": receipt_count,
         "proof_stats": {
-            "total": proof_stats.get("total_proofs", 0),
-            "verified": proof_stats.get("verified_proofs", 0),
-            "pending": proof_stats.get("pending_proofs", 0),
-        } if proof_stats else {},
-        "lanes": {
-            "groth16_modelbridge": True,
-            "noir_honk": True,
-            "native_kzg": True,
-            "stark_integrity": True,
+            "total": int((proof_stats or {}).get("total_proofs") or 0),
+            "verified": int((proof_stats or {}).get("verified_proofs") or 0),
+            "pending": int((proof_stats or {}).get("pending_proofs") or 0),
         },
+        "lanes": lanes,
+        "lane_summary": lane_summary,
     }
 
 
@@ -1904,16 +1988,33 @@ async def forge_proofs_page(
         proof_id = str(item.get("id", "-"))
         short_id = proof_id[:12] + "..." + proof_id[-8:] if len(proof_id) > 24 else proof_id
         detail_url = f"../detail/proof_job/{quote(proof_id, safe='')}"
+        latest_activity = str(item.get("latest_activity_timestamp") or "-")
+        latest_public_tx_hash = str(item.get("latest_public_tx_hash") or "")
+        latest_public_timestamp = str(item.get("latest_public_timestamp") or "-")
+        binding_label = str(item.get("binding_profile_label") or "-")
+        graph = item.get("settlement_graph") if isinstance(item.get("settlement_graph"), dict) else {}
+        node_count = len(graph.get("nodes") or []) if isinstance(graph.get("nodes"), list) else 0
+        edge_count = len(graph.get("edges") or []) if isinstance(graph.get("edges"), list) else 0
+        graph_url = f"../graph/proof_job/{quote(proof_id, safe='')}"
+        if latest_public_tx_hash:
+            short_tx = latest_public_tx_hash[:12] + "..." + latest_public_tx_hash[-8:] if len(latest_public_tx_hash) > 24 else latest_public_tx_hash
+            public_html = (
+                f'<a href="../detail/transaction/{quote(latest_public_tx_hash, safe="")}"><code>{escape(short_tx)}</code></a>'
+                f'<div class="muted">{escape(latest_public_timestamp)}</div>'
+            )
+        else:
+            public_html = '<span class="muted">not public yet</span>'
         rows += f"""<tr>
   <td><a href="{detail_url}"><code>{escape(short_id)}</code></a></td>
   <td>{escape(str(item.get("model_name", "-")))}</td>
-  <td>{escape(str(item.get("lane", "-")))}</td>
-  <td>{escape(str(item.get("proof_type", "-")))}</td>
-  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
-  <td class="muted">{escape(str(item.get("latest_public_timestamp", "-")))}</td>
+  <td><div>{escape(str(item.get("lane", "-")))}</div><div class="muted">{escape(str(item.get("proof_type", "-")))}</div></td>
+  <td>{escape(latest_activity)}</td>
+  <td>{public_html}</td>
+  <td>{escape(binding_label)}</td>
+  <td><a href="{graph_url}" class="muted-link">{node_count}n / {edge_count}e</a></td>
 </tr>"""
     if not rows:
-        rows = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">No proofs for this selection yet.</td></tr>'
+        rows = '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No proofs for this selection yet.</td></tr>'
 
     cursor_json = escape(str(next_cursor.get("timestamp", ""))) if next_cursor else ""
     cursor_proof = escape(str(next_cursor.get("proof_hash", ""))) if next_cursor else ""
@@ -1938,20 +2039,22 @@ nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
 .toolbar input[type=text] {{ min-width: 220px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
 .toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
 .toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
-.toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
-table {{ width:100%; border-collapse:collapse; }}
-.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
-th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
-td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; }}
-code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
-.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
+	.toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
+	table {{ width:100%; border-collapse:collapse; }}
+	.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
+	th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
+	td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; }}
+	code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
+	.muted-link {{ color: var(--muted); text-decoration:none; }}
+	.muted-link:hover {{ color: var(--link); text-decoration:underline; }}
+	.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
 </style>
 </head>
 <body>
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../search?scope=proofs">Search</a><a href="../facts/page">Facts</a><a href="../models/page">Models</a></nav>
 <h1>Dedicated Proof Feed</h1>
-<p class="muted" style="margin-top:4px">Indexed proof jobs ordered by latest public settlement, with stable settlement cursors.</p>
+<p class="muted" style="margin-top:4px">Indexed proof jobs ordered by latest public settlement, with runtime activity and public settlement shown separately.</p>
 
 <div class="toolbar">
   <label>User <input id="user-address" type="text" value="{user_value}" placeholder="0x... optional" /></label>
@@ -1963,7 +2066,7 @@ code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
 
 <div class="table-wrap">
 <table>
-<thead><tr><th>Proof</th><th>Model</th><th>Lane</th><th>Proof Type</th><th>Latest Public Tx</th><th>Settled At</th></tr></thead>
+<thead><tr><th>Proof</th><th>Model</th><th>Lane / Type</th><th>Latest Activity</th><th>Latest Public Settlement</th><th>Binding</th><th>Graph</th></tr></thead>
 <tbody id="proof-table-body">{rows}</tbody>
 </table>
 </div>
@@ -1983,6 +2086,14 @@ const publicOnlyInput = document.getElementById("public-only");
 let nextCursor = {{"timestamp": "{cursor_json}", "proof_hash": "{cursor_proof}" }};
 let shownCount = {len(items)};
 let totalResults = {int(payload.get("total_results", 0) or 0)};
+function escapeHtml(value) {{
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}}
 function buildUrl(useCursor) {{
   const params = new URLSearchParams();
   params.set("limit", {limit!r});
@@ -2001,12 +2112,19 @@ function renderRows(items) {{
     const tr = document.createElement("tr");
     const id = item.id || "-";
     const shortId = id.length > 24 ? id.slice(0, 12) + "..." + id.slice(-8) : id;
-    tr.innerHTML = '<td><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code>' + shortId + '</code></a></td>' +
-      '<td>' + (item.model_name || '-') + '</td>' +
-      '<td>' + (item.lane || '-') + '</td>' +
-      '<td>' + (item.proof_type || '-') + '</td>' +
-      '<td>' + (item.latest_public_tx_hash || '-') + '</td>' +
-      '<td class="muted">' + (item.latest_public_timestamp || '-') + '</td>';
+    const graph = item.settlement_graph || {{}};
+    const nodeCount = Array.isArray(graph.nodes) ? graph.nodes.length : 0;
+    const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
+    const publicCell = item.latest_public_tx_hash
+      ? '<a href="../detail/transaction/' + encodeURIComponent(item.latest_public_tx_hash) + '"><code>' + escapeHtml(item.latest_public_tx_hash.length > 24 ? item.latest_public_tx_hash.slice(0, 12) + '...' + item.latest_public_tx_hash.slice(-8) : item.latest_public_tx_hash) + '</code></a><div class="muted">' + escapeHtml(item.latest_public_timestamp || '-') + '</div>'
+      : '<span class="muted">not public yet</span>';
+    tr.innerHTML = '<td><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code>' + escapeHtml(shortId) + '</code></a></td>' +
+      '<td>' + escapeHtml(item.model_name || '-') + '</td>' +
+      '<td><div>' + escapeHtml(item.lane || '-') + '</div><div class="muted">' + escapeHtml(item.proof_type || '-') + '</div></td>' +
+      '<td>' + escapeHtml(item.latest_activity_timestamp || '-') + '</td>' +
+      '<td>' + publicCell + '</td>' +
+      '<td>' + escapeHtml(item.binding_profile_label || '-') + '</td>' +
+      '<td><a href="../graph/proof_job/' + encodeURIComponent(id) + '" class="muted-link">' + nodeCount + 'n / ' + edgeCount + 'e</a></td>';
     bodyEl.appendChild(tr);
   }}
 }}
@@ -2393,8 +2511,35 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     lanes_html = ""
     for lane, available in status.get("lanes", {}).items():
         cls = "badge-onchain" if available else "badge-runtime"
-        lane_param = quote(str(lane), safe="")
-        lanes_html += f'<a href="lane/{lane_param}" class="badge lane-badge {cls}" style="margin-right:6px;text-decoration:none;cursor:pointer">{escape(str(lane))}</a>'
+        lane_slug = quote(str(lane), safe="")
+        lanes_html += f'<a href="lane/{lane_slug}" class="badge lane-badge {cls}" style="margin-right:6px;text-decoration:none;cursor:pointer">{escape(str(lane))}</a>'
+
+    lane_summary_html = ""
+    for row in status.get("lane_summary", [])[:8]:
+        lane_name = str(row.get("lane") or "-")
+        lane_slug = quote(lane_name, safe="")
+        proof_types = row.get("proof_types") if isinstance(row.get("proof_types"), list) else []
+        binding_profiles = row.get("binding_profiles") if isinstance(row.get("binding_profiles"), list) else []
+        latest_activity = str(row.get("latest_activity_timestamp") or "-")
+        latest_public = str(row.get("latest_public_timestamp") or "not public yet")
+        binding_label = binding_profiles[0] if binding_profiles else "-"
+        type_label = ", ".join(str(item) for item in proof_types[:2]) if proof_types else "-"
+        lane_summary_html += f"""<a href="lane/{lane_slug}" class="lane-card">
+      <div class="lane-card-top">
+        <strong>{escape(lane_name)}</strong>
+        <span class="badge {'badge-onchain' if row.get('public_proof_count') else 'badge-runtime'}">{int(row.get('public_proof_count') or 0)} public</span>
+      </div>
+      <div class="lane-card-stats">
+        <span>{int(row.get("proof_count") or 0)} proofs</span>
+        <span>{int(row.get("model_count") or 0)} models</span>
+      </div>
+      <div class="lane-card-meta"><span class="muted">Type</span><span>{escape(type_label)}</span></div>
+      <div class="lane-card-meta"><span class="muted">Binding</span><span>{escape(binding_label)}</span></div>
+      <div class="lane-card-meta"><span class="muted">Latest Activity</span><span>{escape(latest_activity)}</span></div>
+      <div class="lane-card-meta"><span class="muted">Latest Public</span><span>{escape(latest_public)}</span></div>
+    </a>"""
+    if not lane_summary_html:
+        lane_summary_html = '<p class="muted">No indexed lane coverage yet.</p>'
 
     html = f"""<!doctype html>
 <html lang="en">
@@ -2579,10 +2724,66 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       padding: 12px 14px;
       background: var(--panel);
     }}
-    .stat-card .label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }}
-    .stat-card .value {{ font-size: 22px; font-weight: 700; margin-top: 4px; }}
+	    .stat-card .label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }}
+	    .stat-card .value {{ font-size: 22px; font-weight: 700; margin-top: 4px; }}
+	    .lane-summary-section {{
+	      margin-bottom: 28px;
+	      padding: 14px;
+	      border: 1px solid var(--line);
+	      border-radius: 10px;
+	      background: var(--panel);
+	    }}
+	    .lane-summary-section h2 {{
+	      font-size: 12px;
+	      text-transform: uppercase;
+	      letter-spacing: 0.4px;
+	      color: var(--muted);
+	      margin-bottom: 12px;
+	    }}
+	    .lane-summary-grid {{
+	      display: grid;
+	      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+	      gap: 10px;
+	    }}
+	    .lane-card {{
+	      display: block;
+	      border: 1px solid rgba(42,48,64,0.8);
+	      border-radius: 10px;
+	      padding: 12px;
+	      background: var(--panel-alt);
+	      color: var(--text);
+	      text-decoration: none;
+	    }}
+	    .lane-card:hover {{
+	      border-color: rgba(16,185,129,0.45);
+	      text-decoration: none;
+	    }}
+	    .lane-card-top {{
+	      display: flex;
+	      justify-content: space-between;
+	      gap: 10px;
+	      align-items: center;
+	      margin-bottom: 8px;
+	    }}
+	    .lane-card-stats {{
+	      display: flex;
+	      gap: 10px;
+	      flex-wrap: wrap;
+	      font-size: 12px;
+	      color: var(--text);
+	      margin-bottom: 10px;
+	    }}
+	    .lane-card-meta {{
+	      display: flex;
+	      justify-content: space-between;
+	      gap: 10px;
+	      font-size: 11px;
+	      padding-top: 6px;
+	      margin-top: 6px;
+	      border-top: 1px solid rgba(42,48,64,0.6);
+	    }}
 
-    /* ── Feed table ── */
+	    /* ── Feed table ── */
     .feed-section h2 {{
       font-size: 14px;
       font-weight: 600;
@@ -2750,9 +2951,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
         <button id="search-btn">Search</button>
         <button id="search-clear" type="button">Clear</button>
       </div>
-      <span class="scope-label">Filter by scope</span>
-      <span class="scope-label">Filter by scope</span>
-      <span class="scope-label">Filter by scope</span>
+	      <span class="scope-label">Filter by scope</span>
       <div class="scope-chips" id="scope-chips">
         <button type="button" class="scope-chip active" data-scope="all">All</button>
         <button type="button" class="scope-chip" data-scope="receipts">Receipts</button>
@@ -2775,9 +2974,9 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     </div>
 
     <!-- Stats strip -->
-    <div class="stat-strip">
-      <div class="stat-card">
-        <div class="label">Receipts</div>
+	    <div class="stat-strip">
+	      <div class="stat-card">
+	        <div class="label">Receipts</div>
         <div class="value">{receipt_count}</div>
       </div>
       <div class="stat-card">
@@ -2788,13 +2987,20 @@ async def forge_homepage(request: Request) -> HTMLResponse:
         <div class="label">Verified</div>
         <div class="value">{proof_verified}</div>
       </div>
-      <div class="stat-card">
-        <div class="label">Lanes</div>
-        <div class="value">{len(status.get("lanes", {}))}</div>
-      </div>
-    </div>
+	      <div class="stat-card">
+	        <div class="label">Lanes</div>
+	        <div class="value">{len(status.get("lanes", {}))}</div>
+	      </div>
+	    </div>
 
-    <!-- Evidence Feed -->
+	    <div class="lane-summary-section">
+	      <h2>Lane Coverage</h2>
+	      <div class="lane-summary-grid">
+	        {lane_summary_html}
+	      </div>
+	    </div>
+
+	    <!-- Evidence Feed -->
     <div class="feed-section">
       <h2>Latest Proof-Backed Events{f' <span class="muted">(lane: {escape(str(lane_param))})</span>' if lane_param else ''} <a href="feed" class="muted-link" style="font-size:0.85em;font-weight:normal;">Feed (JSON)</a></h2>
       <div class="table-wrap">

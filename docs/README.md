@@ -107,6 +107,8 @@ Dedicated Forge proof feed filters: `lane=...`, `model_name=...`, `public_only=t
 Dedicated Forge proof feed items now include a typed `settlement_graph` (`nodes` + `edges`) so explorer clients can follow proof → fact/model/transaction relationships without reconstructing them locally.
 Dedicated Forge model feed rows now separate `latest_activity_timestamp` from `latest_public_timestamp`, and expose `proof_count`, `public_proof_count`, `lane_counts`, and binding-profile metadata so ModelBridge coverage is not flattened into one misleading “latest” row.
 Forge model detail now uses that same aggregated proof/public-settlement view, instead of only raw local artifact readiness.
+Forge proofs page now shows `Latest Activity` and `Latest Public Settlement` side-by-side, so runtime freshness is not conflated with public settlement.
+Forge homepage now includes a `Lane Coverage` panel sourced from indexed proofs, with per-lane proof counts, public counts, model counts, and latest activity/public timestamps.
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`

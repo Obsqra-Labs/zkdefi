@@ -14,6 +14,8 @@ def test_forge_homepage(client):
     assert r.status_code == 200
     assert "zkSyslog" in r.text or "StarkForge" in r.text
     assert "Filter by scope" in r.text
+    assert "Lane Coverage" in r.text
+    assert "(lane:" not in r.text
     assert "scope-chip" in r.text
     assert "Receipts" in r.text and "Proof Jobs" in r.text and "Contracts" in r.text
 def test_forge_feed(client):
@@ -50,6 +52,9 @@ def test_forge_status(client):
     if r.status_code == 404:
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
+    data = r.json()
+    assert "lane_summary" in data
+    assert isinstance(data["lane_summary"], list)
 def test_forge_detail_entity(client):
     r = client.get(BASE + "/detail/entity/foo")
     if r.status_code == 404:
@@ -86,6 +91,9 @@ def test_forge_proofs_page(client):
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
     assert "Dedicated Proof Feed" in r.text
+    assert "Latest Activity" in r.text
+    assert "Latest Public Settlement" in r.text
+    assert "Binding" in r.text
     assert "Load more" in r.text
     assert 'id="model-name"' in r.text
     assert 'id="lane-name"' in r.text
