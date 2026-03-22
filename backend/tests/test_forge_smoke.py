@@ -303,6 +303,85 @@ def test_forge_detail_fact_uses_indexed_provenance(client, monkeypatch):
     assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])
 
 
+def test_forge_detail_model_uses_aggregated_bridge_state(client, monkeypatch):
+    async def fake_get_model_info(model_id: str):
+        assert model_id == "yield_forecast"
+        return {
+            "name": "yield_forecast",
+            "ready": True,
+            "accuracy": 0.99,
+            "proving_key": True,
+            "verification_key": True,
+        }
+
+    async def fake_get_model_row(model_id: str, *, public_only: bool = False, lane=None):
+        assert model_id == "yield_forecast"
+        return {
+            "id": "yield_forecast",
+            "proof_count": 4,
+            "public_proof_count": 2,
+            "lane_counts": {"modelbridge": 2, "noir_v2": 2},
+            "binding_profiles": ["full / obsqra_bridge_statement_v1"],
+            "latest_proof_hash": "0xproof_activity",
+            "latest_lane": "noir_v2",
+            "latest_binding_profile": {
+                "statement_version": "obsqra_bridge_statement_v1",
+                "binds_ezkl_proof_hash": True,
+                "binds_model_hash": True,
+                "binds_output_bounds": True,
+                "binds_output_commitment": True,
+                "binds_output_vector": True,
+                "binds_timestamp": True,
+            },
+            "latest_activity_timestamp": "2026-03-22T07:00:00Z",
+            "latest_public_proof_hash": "0xproof_public",
+            "latest_public_lane": "modelbridge",
+            "latest_public_binding_profile": {
+                "statement_version": "obsqra_bridge_statement_v1",
+                "binds_ezkl_proof_hash": True,
+                "binds_model_hash": True,
+                "binds_output_bounds": True,
+                "binds_output_commitment": True,
+                "binds_output_vector": True,
+                "binds_timestamp": True,
+            },
+            "latest_public_tx_hash": "0xl2tx-model",
+            "latest_public_timestamp": "2026-03-22T06:05:00Z",
+        }
+
+    async def fake_graph_neighborhood_for_model(model_name: str, *, limit: int = 3, public_only: bool = False):
+        assert model_name == "yield_forecast"
+        return {
+            "center": {"type": "model", "id": "yield_forecast"},
+            "nodes": [
+                {"type": "model", "id": "yield_forecast", "href": "detail/model/yield_forecast"},
+                {"type": "proof_job", "id": "0xproof_public", "href": "detail/proof_job/0xproof_public"},
+                {"type": "transaction", "id": "0xl2tx-model", "href": "detail/transaction/0xl2tx-model"},
+            ],
+            "edges": [
+                {"from": "0xproof_public", "to": "yield_forecast", "verb": "uses"},
+                {"from": "0xproof_public", "to": "0xl2tx-model", "verb": "settles_with"},
+            ],
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_model_info", fake_get_model_info)
+    monkeypatch.setattr(forge_routes, "_get_model_row", fake_get_model_row)
+    monkeypatch.setattr(forge_routes, "_graph_neighborhood_for_model", fake_graph_neighborhood_for_model)
+
+    r = client.get(BASE + "/detail/model/yield_forecast")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "ready"
+    assert payload["summary"]["proof_count"] == 4
+    assert payload["summary"]["public_proof_count"] == 2
+    assert payload["summary"]["latest_public_tx_hash"] == "0xl2tx-model"
+    assert payload["summary"]["latest_binding_profile_label"] == "full / obsqra_bridge_statement_v1"
+    assert any(rel["type"] == "transaction" and rel["id"] == "0xl2tx-model" for rel in payload["relationships"])
+    assert (payload.get("settlement_graph") or {}).get("center", {}).get("id") == "yield_forecast"
+
+
 def test_forge_detail_transaction_uses_indexed_provenance(client, monkeypatch):
     async def fake_get_tx_receipt(tx_hash: str):
         assert tx_hash == "0xl2tx"

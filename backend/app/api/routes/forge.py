@@ -762,6 +762,15 @@ async def _get_model_rows(
     return rows[offset: offset + limit], total
 
 
+async def _get_model_row(model_id: str, *, public_only: bool = False, lane: str | None = None) -> dict[str, Any] | None:
+    rows, _ = await _get_model_rows(limit=5000, offset=0, q="", public_only=public_only, lane=lane)
+    target = str(model_id or "").strip().lower()
+    for row in rows:
+        if str(row.get("id") or row.get("name") or "").strip().lower() == target:
+            return row
+    return None
+
+
 async def _get_fact_rows(
     *,
     limit: int,
@@ -1545,16 +1554,128 @@ async def forge_detail(
             relationships = proof_relationships
     elif obj_type == "model":
         model_info = await _get_model_info(obj_id)
-        if model_info:
+        model_row = await _get_model_row(obj_id)
+        settlement_graph = await _graph_neighborhood_for_model(obj_id, limit=5, public_only=False)
+        if model_info or model_row:
             summary.update({
-                "status": "ready" if model_info.get("ready") else "incomplete",
-                "source": "runtime",
-                "name": model_info.get("name"),
-                "accuracy": model_info.get("accuracy"),
-                "proving_key": model_info.get("proving_key"),
-                "verification_key": model_info.get("verification_key"),
+                "status": (
+                    "ready"
+                    if model_info and model_info.get("ready")
+                    else ("incomplete" if model_info else "indexed")
+                ),
+                "source": (
+                    "runtime+indexed" if model_info and model_row else
+                    ("runtime" if model_info else "indexed")
+                ),
+                "name": (model_info or {}).get("name") or (model_row or {}).get("name") or obj_id,
+                "accuracy": (model_info or {}).get("accuracy"),
+                "proving_key": (model_info or {}).get("proving_key"),
+                "verification_key": (model_info or {}).get("verification_key"),
             })
-            timeline = [{"stage": "model", "status": "complete" if model_info.get("ready") else "pending", "source": "runtime", "detail": model_info.get("name", "")}]
+            if model_row:
+                summary.update({
+                    "proof_count": model_row.get("proof_count", 0),
+                    "public_proof_count": model_row.get("public_proof_count", 0),
+                    "lane_counts": model_row.get("lane_counts"),
+                    "binding_profiles": model_row.get("binding_profiles"),
+                    "latest_proof_hash": model_row.get("latest_proof_hash"),
+                    "latest_lane": model_row.get("latest_lane"),
+                    "latest_binding_profile": model_row.get("latest_binding_profile"),
+                    "latest_binding_profile_label": _binding_profile_label(model_row.get("latest_binding_profile")),
+                    "latest_activity_timestamp": model_row.get("latest_activity_timestamp"),
+                    "latest_public_proof_hash": model_row.get("latest_public_proof_hash"),
+                    "latest_public_lane": model_row.get("latest_public_lane"),
+                    "latest_public_binding_profile": model_row.get("latest_public_binding_profile"),
+                    "latest_public_binding_profile_label": _binding_profile_label(model_row.get("latest_public_binding_profile")),
+                    "latest_public_tx_hash": model_row.get("latest_public_tx_hash"),
+                    "latest_public_timestamp": model_row.get("latest_public_timestamp"),
+                })
+            timeline = [
+                {
+                    "stage": "model_artifacts",
+                    "status": "complete" if model_info and model_info.get("ready") else ("pending" if model_info else "not_present"),
+                    "source": "runtime",
+                    "detail": str(((model_info or {}).get("name")) or obj_id),
+                }
+            ]
+            if model_row:
+                timeline.append(
+                    {
+                        "stage": "indexed_proofs",
+                        "status": "complete" if int(model_row.get("proof_count", 0) or 0) else "not_present",
+                        "source": "indexed",
+                        "detail": f"{int(model_row.get('proof_count', 0) or 0)} proof(s)",
+                    }
+                )
+                timeline.append(
+                    {
+                        "stage": "latest_activity",
+                        "status": "complete" if model_row.get("latest_proof_hash") else "not_present",
+                        "source": "indexed",
+                        "detail": str(model_row.get("latest_proof_hash") or ""),
+                    }
+                )
+                timeline.append(
+                    {
+                        "stage": "public_settlement",
+                        "status": "complete" if model_row.get("latest_public_tx_hash") else "pending",
+                        "source": "public" if model_row.get("latest_public_tx_hash") else "not_present",
+                        "detail": str(model_row.get("latest_public_tx_hash") or ""),
+                    }
+                )
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="proof_job",
+                    rel_id=str(model_row.get("latest_proof_hash") or ""),
+                    label="Latest proof job",
+                    verb="latest_activity",
+                    source="indexed",
+                )
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="proof_job",
+                    rel_id=str(model_row.get("latest_public_proof_hash") or ""),
+                    label="Latest public proof job",
+                    verb="latest_public_settlement",
+                    source="indexed",
+                )
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="transaction",
+                    rel_id=str(model_row.get("latest_public_tx_hash") or ""),
+                    label="Latest public settlement tx",
+                    verb="settled_by",
+                    source="public",
+                )
+            if isinstance(settlement_graph, dict):
+                for node in settlement_graph.get("nodes") or []:
+                    if not isinstance(node, dict):
+                        continue
+                    node_type = str(node.get("type") or "")
+                    node_id = str(node.get("id") or "")
+                    if not node_type or not node_id:
+                        continue
+                    if node_type == "model" and node_id == obj_id:
+                        continue
+                    label = {
+                        "proof_job": "Proof Job",
+                        "fact": "Fact",
+                        "transaction": "Transaction",
+                    }.get(node_type, node_type.title())
+                    verb = {
+                        "proof_job": "used_by",
+                        "fact": "commits",
+                        "transaction": "settled_by",
+                    }.get(node_type, "related")
+                    source = "public" if node_type == "transaction" else "indexed"
+                    _append_unique_relationship(
+                        relationships,
+                        rel_type=node_type,
+                        rel_id=node_id,
+                        label=label,
+                        verb=verb,
+                        source=source,
+                    )
     elif obj_type == "fact":
         summary["status"] = "known"
         summary["source"] = "on-chain"

@@ -106,6 +106,7 @@ Compact Forge graph endpoint: `GET /api/v1/zkdefi/forge/graph/{type}/{id}`
 Dedicated Forge proof feed filters: `lane=...`, `model_name=...`, `public_only=true`, plus settlement cursor params. `model_name` matches the canonical bridge statement model, not only the raw registry alias.
 Dedicated Forge proof feed items now include a typed `settlement_graph` (`nodes` + `edges`) so explorer clients can follow proof → fact/model/transaction relationships without reconstructing them locally.
 Dedicated Forge model feed rows now separate `latest_activity_timestamp` from `latest_public_timestamp`, and expose `proof_count`, `public_proof_count`, `lane_counts`, and binding-profile metadata so ModelBridge coverage is not flattened into one misleading “latest” row.
+Forge model detail now uses that same aggregated proof/public-settlement view, instead of only raw local artifact readiness.
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`
