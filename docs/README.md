@@ -83,6 +83,8 @@ Forge proof-backed detail responses now expose a top-level typed `settlement_gra
 Forge `facts` and `models` search scopes now include proof-derived `settlement_graph` context when indexed proof evidence exists.
 Dedicated Forge proof feed: `GET /api/v1/zkdefi/forge/proofs`
 Dedicated Forge proof page: `GET /api/v1/zkdefi/forge/proofs/page`
+Dedicated Forge fact feed/page: `GET /api/v1/zkdefi/forge/facts` and `GET /api/v1/zkdefi/forge/facts/page`
+Dedicated Forge model feed/page: `GET /api/v1/zkdefi/forge/models` and `GET /api/v1/zkdefi/forge/models/page`
 Compact Forge graph endpoint: `GET /api/v1/zkdefi/forge/graph/{type}/{id}`
 Dedicated Forge proof feed filters: `lane=...`, `model_name=...`, `public_only=true`, plus settlement cursor params. `model_name` matches the canonical bridge statement model, not only the raw registry alias.
 Dedicated Forge proof feed items now include a typed `settlement_graph` (`nodes` + `edges`) so explorer clients can follow proof → fact/model/transaction relationships without reconstructing them locally.

@@ -27,6 +27,18 @@ def test_forge_proofs_feed(client):
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
     assert "items" in r.json()
+def test_forge_facts_feed(client):
+    r = client.get(BASE + "/facts")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "items" in r.json()
+def test_forge_models_feed(client):
+    r = client.get(BASE + "/models")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "items" in r.json()
 def test_forge_search(client):
     r = client.get(BASE + "/search")
     if r.status_code == 404:
@@ -77,6 +89,23 @@ def test_forge_proofs_page(client):
     assert "Load more" in r.text
     assert 'id="model-name"' in r.text
     assert 'id="lane-name"' in r.text
+def test_forge_facts_page(client):
+    r = client.get(BASE + "/facts/page")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "Dedicated Fact Feed" in r.text
+    assert 'id="fact-query"' in r.text
+    assert 'id="model-name"' in r.text
+    assert 'id="lane-name"' in r.text
+def test_forge_models_page(client):
+    r = client.get(BASE + "/models/page")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "Dedicated Model Feed" in r.text
+    assert 'id="model-query"' in r.text
+    assert 'id="lane-name"' in r.text
 def test_forge_detail_receipt_html(client):
     r = client.get(BASE + "/detail/receipt/nonexistent-123", headers={"Accept": "text/html"})
     if r.status_code == 404:
@@ -97,6 +126,7 @@ def test_forge_paths(client):
     assert r.status_code == 200
     d = r.json()
     assert "paths" in d and "detail" in d["paths"]
+    assert "facts" in d["paths"] and "models" in d["paths"] and "graph" in d["paths"]
     assert "object_types" in d and "receipt" in d["object_types"]
 def test_forge_detail_fact(client):
     r = client.get(BASE + "/detail/fact/0xabc123")

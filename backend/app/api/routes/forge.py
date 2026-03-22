@@ -626,6 +626,104 @@ async def _graph_neighborhood_for_object(
     return _merge_settlement_graphs([graph], center_type=obj_type, center_id=obj_id)
 
 
+async def _get_model_rows(
+    *,
+    limit: int,
+    offset: int = 0,
+    q: str = "",
+    public_only: bool = False,
+    lane: str | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    model_proofs = await _list_proofs_for_search(200)
+    latest_by_model: dict[str, dict[str, Any]] = {}
+    for proof in model_proofs:
+        model_key = str(proof.get("model_name") or "").strip().lower()
+        if not model_key:
+            continue
+        if lane and str(proof.get("lane") or "").strip().lower() != str(lane).strip().lower():
+            continue
+        if public_only and not proof.get("latest_public_tx_hash"):
+            continue
+        if model_key not in latest_by_model:
+            latest_by_model[model_key] = proof
+
+    rows: list[dict[str, Any]] = []
+    query = q.lower().strip()
+    for m in _list_models_for_search(50):
+        name = str(m.get("name", m.get("id", "")))
+        if query and query not in name.lower():
+            continue
+        model_key = str(m.get("id") or name).strip().lower()
+        proof = latest_by_model.get(model_key) or {}
+        if public_only and not proof:
+            continue
+        rows.append(
+            {
+                "id": m["id"],
+                "name": name,
+                "ready": m.get("ready", False),
+                "latest_proof_hash": proof.get("id"),
+                "latest_lane": proof.get("lane"),
+                "latest_public_tx_hash": proof.get("latest_public_tx_hash"),
+                "latest_public_timestamp": proof.get("latest_public_timestamp"),
+                "settlement_graph": proof.get("settlement_graph"),
+                "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
+                "graph_href": f"graph/model/{quote(str(m['id']), safe='')}",
+            }
+        )
+    rows.sort(
+        key=lambda row: (
+            0 if row.get("latest_proof_hash") else 1,
+            str(row.get("name") or row.get("id") or ""),
+        )
+    )
+    total = len(rows)
+    return rows[offset: offset + limit], total
+
+
+async def _get_fact_rows(
+    *,
+    limit: int,
+    offset: int = 0,
+    q: str = "",
+    public_only: bool = False,
+    lane: str | None = None,
+    model_name: str | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    proof_items = await _get_indexed_proof_items(limit=200, public_only=public_only)
+    seen_facts: set[str] = set()
+    rows: list[dict[str, Any]] = []
+    query = q.lower().strip()
+    lane_filter = str(lane or "").strip().lower()
+    model_filter = str(model_name or "").strip().lower()
+    for item in proof_items:
+        fact_hash = str(item.get("fact_hash") or "").strip()
+        if not fact_hash or fact_hash in seen_facts:
+            continue
+        if query and query not in fact_hash.lower():
+            continue
+        if lane_filter and str(item.get("lane") or "").strip().lower() != lane_filter:
+            continue
+        if model_filter and str(item.get("model_name") or "").strip().lower() != model_filter:
+            continue
+        seen_facts.add(fact_hash)
+        rows.append(
+            {
+                "id": fact_hash,
+                "fact_hash": fact_hash,
+                "lane": item.get("lane"),
+                "model_name": item.get("model_name"),
+                "latest_public_tx_hash": item.get("latest_public_tx_hash"),
+                "latest_public_timestamp": item.get("latest_public_timestamp"),
+                "settlement_graph": item.get("settlement_graph"),
+                "detail_href": f"detail/fact/{quote(fact_hash, safe='')}",
+                "graph_href": f"graph/fact/{quote(fact_hash, safe='')}",
+            }
+        )
+    total = len(rows)
+    return rows[offset: offset + limit], total
+
+
 async def _get_filtered_proof_feed_payload(
     *,
     limit: int,
@@ -916,37 +1014,8 @@ async def forge_search(
             results["proofs"] = results["proofs"][offset: offset + limit]
 
     if scope in (None, "all", "models"):
-        model_proofs = await _list_proofs_for_search(200)
-        latest_by_model: dict[str, dict[str, Any]] = {}
-        for proof in model_proofs:
-            model_key = str(proof.get("model_name") or "").strip().lower()
-            if model_key and model_key not in latest_by_model:
-                latest_by_model[model_key] = proof
-        for m in _list_models_for_search(50):
-            s = (m.get("name") or m.get("id") or "").lower()
-            if q and q.lower() not in s:
-                continue
-            model_key = str(m.get("id") or m.get("name") or "").strip().lower()
-            proof = latest_by_model.get(model_key) or {}
-            results["models"].append(
-                {
-                    "id": m["id"],
-                    "name": m.get("name", m["id"]),
-                    "ready": m.get("ready", False),
-                    "latest_proof_hash": proof.get("id"),
-                    "latest_lane": proof.get("lane"),
-                    "latest_public_tx_hash": proof.get("latest_public_tx_hash"),
-                    "settlement_graph": proof.get("settlement_graph"),
-                    "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
-                }
-            )
-        results["models"].sort(
-            key=lambda row: (
-                0 if row.get("latest_proof_hash") else 1,
-                str(row.get("name") or row.get("id") or ""),
-            )
-        )
-        results["models"] = results["models"][offset: offset + limit]
+        rows, _ = await _get_model_rows(limit=limit, offset=offset, q=q, public_only=public_only, lane=lane)
+        results["models"] = rows
 
     if scope in (None, "all", "contracts") and q and re.fullmatch(r"0x[0-9a-fA-F]{40,}", q.strip()):
         addr = q.strip()
@@ -955,27 +1024,15 @@ async def forge_search(
 
     if scope in (None, "all", "facts"):
         try:
-            proof_items = await _get_indexed_proof_items(limit=200, public_only=public_only)
-            seen_facts: set[str] = set()
-            for item in proof_items:
-                fact_hash = str(item.get("fact_hash") or "").strip()
-                if not fact_hash or fact_hash in seen_facts:
-                    continue
-                if q and q.lower() not in fact_hash.lower():
-                    continue
-                seen_facts.add(fact_hash)
-                results["facts"].append(
-                    {
-                        "id": fact_hash,
-                        "fact_hash": fact_hash,
-                        "lane": item.get("lane"),
-                        "model_name": item.get("model_name"),
-                        "latest_public_tx_hash": item.get("latest_public_tx_hash"),
-                        "settlement_graph": item.get("settlement_graph"),
-                        "detail_href": f"detail/fact/{quote(fact_hash, safe='')}",
-                    }
-                )
-            results["facts"] = results["facts"][offset: offset + limit]
+            rows, _ = await _get_fact_rows(
+                limit=limit,
+                offset=offset,
+                q=q,
+                public_only=public_only,
+                lane=lane,
+                model_name=model_name,
+            )
+            results["facts"] = rows
         except Exception:
             pass
 
@@ -1066,6 +1123,7 @@ def _render_detail_html(
     summary = payload.get("summary") or {}
     timeline = payload.get("verification_timeline") or []
     relationships = payload.get("relationships") or []
+    settlement_graph = payload.get("settlement_graph") if isinstance(payload.get("settlement_graph"), dict) else None
 
     summary_rows = "".join(
         f'<div class="kv"><span>{escape(str(k))}</span><strong class="mono">{escape(str(v))}</strong></div>'
@@ -1089,6 +1147,20 @@ def _render_detail_html(
         return f'<div class="result-item"><code>{escape(rel_id)}</code> — {label}</div>'
 
     rel_rows = "".join(_rel_row(r) for r in relationships) if relationships else '<p class="muted">No linked items.</p>'
+    graph_nodes = settlement_graph.get("nodes") if settlement_graph else []
+    graph_edges = settlement_graph.get("edges") if settlement_graph else []
+    graph_rows = ""
+    if settlement_graph:
+        graph_rows += f'<div class="graph-meta muted">{len(graph_nodes)} node(s) · {len(graph_edges)} edge(s)</div>'
+        graph_rows += "".join(
+            f'<div class="result-item"><strong>{escape(str(node.get("type", "")))}</strong> '
+            f'<a href="{escape(str(node.get("href", "")))}"><code>{escape(str(node.get("id", ""))[:24])}{"…" if len(str(node.get("id", ""))) > 24 else ""}</code></a></div>'
+            if node.get("href") else
+            f'<div class="result-item"><strong>{escape(str(node.get("type", "")))}</strong> <code>{escape(str(node.get("id", "")))}</code></div>'
+            for node in graph_nodes[:10]
+        )
+    else:
+        graph_rows = '<p class="muted">No typed graph neighborhood.</p>'
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1115,6 +1187,7 @@ nav {{ margin-bottom: 16px; font-size: 13px; }}
 .kv {{ display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(42,48,64,0.6); font-size: 13px; }}
 .kv span {{ color: var(--muted); }}
 .result-item {{ padding: 6px 0; border-bottom: 1px solid rgba(42,48,64,0.5); font-size: 13px; }}
+.graph-meta {{ font-size: 12px; margin-bottom: 10px; }}
 .badge {{ font-size: 10px; padding: 2px 6px; border-radius: 4px; }}
 .badge-onchain {{ background: rgba(16,185,129,.2); color: var(--emerald); }}
 .badge-runtime {{ background: rgba(122,134,153,.2); color: var(--muted); }}
@@ -1137,6 +1210,10 @@ nav {{ margin-bottom: 16px; font-size: 13px; }}
   <div class="pane">
     <h3>Relationships</h3>
     <div>{rel_rows}</div>
+  </div>
+  <div class="pane">
+    <h3>Settlement Graph</h3>
+    <div>{graph_rows}</div>
   </div>
 </div>
 </div>
@@ -1477,6 +1554,81 @@ async def forge_graph(
     }
 
 
+@router.get("/facts", summary="Dedicated fact feed with proof-backed graph context")
+async def forge_facts_feed(
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    public_only: bool = Query(False),
+    q: str = Query(default="", description="Optional fact hash substring filter"),
+    lane: Optional[str] = Query(default=None, description="Optional proving-lane filter"),
+    model_name: Optional[str] = Query(default=None, description="Optional model filter"),
+) -> dict[str, Any]:
+    rows, total = await _get_fact_rows(
+        limit=limit,
+        offset=offset,
+        q=q,
+        public_only=public_only,
+        lane=lane,
+        model_name=model_name,
+    )
+    return {
+        "generated_at": _ts(),
+        "count": len(rows),
+        "total_results": total,
+        "limit": limit,
+        "offset": offset,
+        "query": q,
+        "public_only": public_only,
+        "lane": lane,
+        "model_name": model_name,
+        "has_more": total > offset + limit,
+        "items": rows,
+        "paths": {
+            "self": "facts",
+            "page": "facts/page",
+            "detail": "detail/fact/{id}",
+            "graph": "graph/fact/{id}",
+            "search": "search?scope=facts",
+        },
+    }
+
+
+@router.get("/models", summary="Dedicated model feed with proof-backed graph context")
+async def forge_models_feed(
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    public_only: bool = Query(False),
+    q: str = Query(default="", description="Optional model-name substring filter"),
+    lane: Optional[str] = Query(default=None, description="Optional latest-lane filter"),
+) -> dict[str, Any]:
+    rows, total = await _get_model_rows(
+        limit=limit,
+        offset=offset,
+        q=q,
+        public_only=public_only,
+        lane=lane,
+    )
+    return {
+        "generated_at": _ts(),
+        "count": len(rows),
+        "total_results": total,
+        "limit": limit,
+        "offset": offset,
+        "query": q,
+        "public_only": public_only,
+        "lane": lane,
+        "has_more": total > offset + limit,
+        "items": rows,
+        "paths": {
+            "self": "models",
+            "page": "models/page",
+            "detail": "detail/model/{id}",
+            "graph": "graph/model/{id}",
+            "search": "search?scope=models",
+        },
+    }
+
+
 @router.get("/paths", summary="Explorer API paths (self-description)")
 async def forge_paths() -> dict[str, Any]:
     """Returns the explorer surface: every path you can follow. Use these to traverse end-to-end."""
@@ -1488,6 +1640,10 @@ async def forge_paths() -> dict[str, Any]:
             "feed": {"method": "GET", "path": "feed", "description": "Latest proof-backed receipts; each item has detail_href"},
             "proofs": {"method": "GET", "path": "proofs", "description": "Dedicated proof feed with settlement cursors"},
             "proofs_page": {"method": "GET", "path": "proofs/page", "description": "Dedicated proofs page backed by the cursor feed"},
+            "facts": {"method": "GET", "path": "facts", "description": "Dedicated fact feed with proof-backed graph context"},
+            "facts_page": {"method": "GET", "path": "facts/page", "description": "Dedicated facts page backed by the fact feed"},
+            "models": {"method": "GET", "path": "models", "description": "Dedicated model feed with proof-backed graph context"},
+            "models_page": {"method": "GET", "path": "models/page", "description": "Dedicated models page backed by the model feed"},
             "search": {"method": "GET", "path": "search", "description": "Unified search; results have detail_href per item"},
             "graph": {"method": "GET", "path": "graph/{type}/{id}", "description": "Compact typed graph neighborhood for proof/fact/tx/model traversal"},
             "detail": {"method": "GET", "path": "detail/{type}/{id}", "description": "Any object; relationships include href to related objects"},
@@ -1571,7 +1727,7 @@ code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
 </head>
 <body>
 <div class="container">
-<nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../search?scope=proofs">Search</a></nav>
+<nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../search?scope=proofs">Search</a><a href="../facts/page">Facts</a><a href="../models/page">Models</a></nav>
 <h1>Dedicated Proof Feed</h1>
 <p class="muted" style="margin-top:4px">Indexed proof jobs ordered by latest public settlement, with stable settlement cursors.</p>
 
@@ -1653,6 +1809,210 @@ async function refresh(useCursor) {{
 document.getElementById("apply-filters").addEventListener("click", function() {{ refresh(false); }});
 loadMoreBtn.addEventListener("click", function() {{ refresh(true); }});
 </script>
+</body>
+</html>""")
+
+
+def _graph_chip_html(row: dict[str, Any]) -> str:
+    graph = row.get("settlement_graph") if isinstance(row.get("settlement_graph"), dict) else {}
+    nodes = graph.get("nodes") if isinstance(graph, dict) else []
+    edges = graph.get("edges") if isinstance(graph, dict) else []
+    if not isinstance(nodes, list):
+        nodes = []
+    if not isinstance(edges, list):
+        edges = []
+    graph_href = str(row.get("graph_href") or "")
+    detail_href = str(row.get("detail_href") or "")
+    graph_link = f'<a href="../{escape(graph_href)}">graph</a>' if graph_href else ""
+    detail_link = f'<a href="../{escape(detail_href)}">detail</a>' if detail_href else ""
+    links = " · ".join(part for part in (detail_link, graph_link) if part)
+    return f'<span class="muted">{len(nodes)}n / {len(edges)}e</span>' + (f"<br>{links}" if links else "")
+
+
+@router.get("/facts/page", response_class=HTMLResponse, summary="Dedicated facts page")
+async def forge_facts_page(
+    request: Request,
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    public_only: bool = Query(False),
+    q: str = Query(default=""),
+    lane: Optional[str] = Query(default=None),
+    model_name: Optional[str] = Query(default=None),
+) -> HTMLResponse:
+    payload = await forge_facts_feed(
+        limit=limit,
+        offset=offset,
+        public_only=public_only,
+        q=q,
+        lane=lane,
+        model_name=model_name,
+    )
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    next_offset = offset + limit
+    has_more = bool(payload.get("has_more"))
+    checked = "checked" if public_only else ""
+    q_value = escape(q or "")
+    lane_value = escape(lane or "")
+    model_value = escape(model_name or "")
+    rows = ""
+    for item in items:
+        fact_hash = str(item.get("fact_hash", "-"))
+        short_hash = fact_hash[:12] + "..." + fact_hash[-8:] if len(fact_hash) > 24 else fact_hash
+        rows += f"""<tr>
+  <td><a href="../detail/fact/{quote(fact_hash, safe='')}"><code>{escape(short_hash)}</code></a></td>
+  <td>{escape(str(item.get("model_name", "-")))}</td>
+  <td>{escape(str(item.get("lane", "-")))}</td>
+  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
+  <td>{_graph_chip_html(item)}</td>
+</tr>"""
+    if not rows:
+        rows = '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px">No facts for this selection yet.</td></tr>'
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Facts — zkSyslog</title>
+<style>
+:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
+a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
+.container {{ max-width: 1100px; margin: 0 auto; }}
+nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
+.muted {{ color: var(--muted); }}
+.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
+.toolbar input[type=text] {{ min-width: 180px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
+.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
+.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
+table {{ width:100%; border-collapse:collapse; }}
+.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
+th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
+td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; vertical-align:top; }}
+code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
+.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
+</style>
+</head>
+<body>
+<div class="container">
+<nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../models/page">Models</a></nav>
+<h1>Dedicated Fact Feed</h1>
+<p class="muted" style="margin-top:4px">Bridge facts with proof-backed graph context and direct navigation into proofs, models, and public settlement transactions.</p>
+<div class="toolbar">
+  <label>Search <input id="fact-query" type="text" value="{q_value}" placeholder="0x..." /></label>
+  <label>Model <input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
+  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
+  <label><input id="public-only" type="checkbox" {checked} /> public settled only</label>
+  <button id="apply-filters" type="button">Apply</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Fact</th><th>Model</th><th>Lane</th><th>Latest Public Tx</th><th>Graph</th></tr></thead>
+<tbody>{rows}</tbody>
+</table>
+</div>
+<div class="footer">
+  <span class="muted">Showing {len(items)} of {int(payload.get("total_results", 0) or 0)} fact(s)</span>
+  {"<a id=\"load-more\" href=\"?limit=" + str(limit) + "&offset=" + str(next_offset) + "&q=" + quote(q or "", safe='') + ("&public_only=true" if public_only else "") + ("&lane=" + quote(lane or "", safe='') if lane else "") + ("&model_name=" + quote(model_name or "", safe='') if model_name else "") + "\">Next page</a>" if has_more else ""}
+</div>
+<script>
+document.getElementById("apply-filters").addEventListener("click", function() {{
+  const params = new URLSearchParams();
+  params.set("limit", {limit!r});
+  if (document.getElementById("fact-query").value.trim()) params.set("q", document.getElementById("fact-query").value.trim());
+  if (document.getElementById("model-name").value.trim()) params.set("model_name", document.getElementById("model-name").value.trim());
+  if (document.getElementById("lane-name").value.trim()) params.set("lane", document.getElementById("lane-name").value.trim());
+  if (document.getElementById("public-only").checked) params.set("public_only", "true");
+  window.location.search = params.toString();
+}});
+</script>
+</div>
+</body>
+</html>""")
+
+
+@router.get("/models/page", response_class=HTMLResponse, summary="Dedicated models page")
+async def forge_models_page(
+    request: Request,
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    public_only: bool = Query(False),
+    q: str = Query(default=""),
+    lane: Optional[str] = Query(default=None),
+) -> HTMLResponse:
+    payload = await forge_models_feed(limit=limit, offset=offset, public_only=public_only, q=q, lane=lane)
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    next_offset = offset + limit
+    has_more = bool(payload.get("has_more"))
+    checked = "checked" if public_only else ""
+    q_value = escape(q or "")
+    lane_value = escape(lane or "")
+    rows = ""
+    for item in items:
+        name = str(item.get("name", item.get("id", "-")))
+        rows += f"""<tr>
+  <td><a href="../detail/model/{quote(str(item.get("id", "")), safe='')}">{escape(name)}</a></td>
+  <td>{'ready' if item.get('ready') else 'incomplete'}</td>
+  <td>{escape(str(item.get("latest_lane", "-")))}</td>
+  <td>{escape(str(item.get("latest_proof_hash", "-")))}</td>
+  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
+  <td>{_graph_chip_html(item)}</td>
+</tr>"""
+    if not rows:
+        rows = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">No models for this selection yet.</td></tr>'
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Models — zkSyslog</title>
+<style>
+:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
+a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
+.container {{ max-width: 1100px; margin: 0 auto; }}
+nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
+.muted {{ color: var(--muted); }}
+.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
+.toolbar input[type=text] {{ min-width: 220px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
+.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
+.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
+table {{ width:100%; border-collapse:collapse; }}
+.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
+th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
+td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; vertical-align:top; }}
+.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
+</style>
+</head>
+<body>
+<div class="container">
+<nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../facts/page">Facts</a></nav>
+<h1>Dedicated Model Feed</h1>
+<p class="muted" style="margin-top:4px">Provable model inventory with latest proof lane, public settlement, and graph-aware navigation.</p>
+<div class="toolbar">
+  <label>Search <input id="model-query" type="text" value="{q_value}" placeholder="yield_forecast" /></label>
+  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="noir_v2 / modelbridge" /></label>
+  <label><input id="public-only" type="checkbox" {checked} /> only models with public proof receipts</label>
+  <button id="apply-filters" type="button">Apply</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Model</th><th>Ready</th><th>Latest Lane</th><th>Latest Proof</th><th>Latest Public Tx</th><th>Graph</th></tr></thead>
+<tbody>{rows}</tbody>
+</table>
+</div>
+<div class="footer">
+  <span class="muted">Showing {len(items)} of {int(payload.get("total_results", 0) or 0)} model(s)</span>
+  {"<a id=\"load-more\" href=\"?limit=" + str(limit) + "&offset=" + str(next_offset) + "&q=" + quote(q or "", safe='') + ("&public_only=true" if public_only else "") + ("&lane=" + quote(lane or "", safe='') if lane else "") + "\">Next page</a>" if has_more else ""}
+</div>
+<script>
+document.getElementById("apply-filters").addEventListener("click", function() {{
+  const params = new URLSearchParams();
+  params.set("limit", {limit!r});
+  if (document.getElementById("model-query").value.trim()) params.set("q", document.getElementById("model-query").value.trim());
+  if (document.getElementById("lane-name").value.trim()) params.set("lane", document.getElementById("lane-name").value.trim());
+  if (document.getElementById("public-only").checked) params.set("public_only", "true");
+  window.location.search = params.toString();
+}});
+</script>
+</div>
 </body>
 </html>""")
 
@@ -2123,6 +2483,8 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       </div>
       <nav class="explorer-top-nav">
         <a href="proofs/page" class="explorer-top-link">Proofs</a>
+        <a href="facts/page" class="explorer-top-link">Facts</a>
+        <a href="models/page" class="explorer-top-link">Models</a>
         <a href="health" class="explorer-top-link">Health</a>
         <a href="proving" class="explorer-top-link">Proving</a>
       </nav>
@@ -2218,7 +2580,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       <h3>Explorer API</h3>
       <p class="paths-desc">This surface is proof-aware, not just L3. Follow <strong>Feed</strong> and <strong>Search</strong> into <strong>Detail</strong>; on each detail page use <strong>Relationships</strong> to go to linked facts, transactions, blocks, proof jobs, models. Every API response includes <code>detail_href</code> or <code>href</code> so you can traverse without constructing URLs.</p>
       <p class="paths-flow"><strong>Evidence flow:</strong> action → proof job → fact → L3 tx → block</p>
-      <p><a href="paths" class="muted-link">Paths (JSON)</a> · <a href="feed" class="muted-link">Feed</a> · <a href="proofs" class="muted-link">Proofs Feed</a> · <a href="proofs/page" class="muted-link">Proofs Page</a> · <a href="search" class="muted-link">Search</a> · <a href="status" class="muted-link">Status</a></p>
+      <p><a href="paths" class="muted-link">Paths (JSON)</a> · <a href="feed" class="muted-link">Feed</a> · <a href="proofs" class="muted-link">Proofs Feed</a> · <a href="proofs/page" class="muted-link">Proofs Page</a> · <a href="facts/page" class="muted-link">Facts Page</a> · <a href="models/page" class="muted-link">Models Page</a> · <a href="search" class="muted-link">Search</a> · <a href="status" class="muted-link">Status</a></p>
     </div>
 
     <footer class="explorer-footer">
