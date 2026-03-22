@@ -53,6 +53,8 @@ def test_forge_status(client):
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
     data = r.json()
+    assert "proof_stats" in data
+    assert "public_settled" in data["proof_stats"]
     assert "lane_summary" in data
     assert isinstance(data["lane_summary"], list)
 def test_forge_detail_entity(client):

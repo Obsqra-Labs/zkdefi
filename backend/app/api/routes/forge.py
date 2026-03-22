@@ -965,6 +965,8 @@ async def forge_status() -> dict[str, Any]:
     health = await _get_system_health()
     proof_stats = await _get_proof_stats()
     lane_summary = await _get_lane_summary_rows()
+    derived_total = sum(int(row.get("proof_count") or 0) for row in lane_summary)
+    derived_public = sum(int(row.get("public_proof_count") or 0) for row in lane_summary)
 
     receipt_svc = await _get_receipt_service()
     receipt_count = 0
@@ -990,9 +992,10 @@ async def forge_status() -> dict[str, Any]:
         "health": health.get("status", "unknown") if isinstance(health, dict) else "unknown",
         "receipt_count": receipt_count,
         "proof_stats": {
-            "total": int((proof_stats or {}).get("total_proofs") or 0),
-            "verified": int((proof_stats or {}).get("verified_proofs") or 0),
-            "pending": int((proof_stats or {}).get("pending_proofs") or 0),
+            "total": int((proof_stats or {}).get("total_proofs") or derived_total),
+            "verified": int((proof_stats or {}).get("verified_proofs") or derived_public),
+            "pending": int((proof_stats or {}).get("pending_proofs") or max(derived_total - derived_public, 0)),
+            "public_settled": derived_public,
         },
         "lanes": lanes,
         "lane_summary": lane_summary,
@@ -2486,7 +2489,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     receipt_count = status.get("receipt_count", 0)
     health = status.get("health", "unknown")
     proof_total = status.get("proof_stats", {}).get("total", 0)
-    proof_verified = status.get("proof_stats", {}).get("verified", 0)
+    proof_public = status.get("proof_stats", {}).get("public_settled", 0)
 
     # Build feed rows (link ID to detail page)
     feed_rows = ""
@@ -2938,7 +2941,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       <div class="status-strip">
         <span><span class="dot {"dot-ok" if health == "ok" else "dot-warn"}"></span> Backend: {health}</span>
         <span>{receipt_count} receipts</span>
-        <span>{proof_total} proofs ({proof_verified} verified)</span>
+        <span>{proof_total} proofs ({proof_public} public)</span>
       </div>
     </div>
   </header>
@@ -2983,10 +2986,10 @@ async def forge_homepage(request: Request) -> HTMLResponse:
         <div class="label">Proofs</div>
         <div class="value">{proof_total}</div>
       </div>
-      <div class="stat-card">
-        <div class="label">Verified</div>
-        <div class="value">{proof_verified}</div>
-      </div>
+	      <div class="stat-card">
+	        <div class="label">Public Settled</div>
+	        <div class="value">{proof_public}</div>
+	      </div>
 	      <div class="stat-card">
 	        <div class="label">Lanes</div>
 	        <div class="value">{len(status.get("lanes", {}))}</div>

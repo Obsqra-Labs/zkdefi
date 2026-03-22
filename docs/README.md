@@ -109,6 +109,7 @@ Dedicated Forge model feed rows now separate `latest_activity_timestamp` from `l
 Forge model detail now uses that same aggregated proof/public-settlement view, instead of only raw local artifact readiness.
 Forge proofs page now shows `Latest Activity` and `Latest Public Settlement` side-by-side, so runtime freshness is not conflated with public settlement.
 Forge homepage now includes a `Lane Coverage` panel sourced from indexed proofs, with per-lane proof counts, public counts, model counts, and latest activity/public timestamps.
+Forge homepage summary counters now derive from indexed/public-settlement coverage, so the explorer no longer shows misleading zero proof totals when the legacy proof-stats service is sparse.
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`
