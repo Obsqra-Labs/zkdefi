@@ -2,6 +2,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+import app.api.routes.forge as forge_routes
 BASE = "/api/v1/zkdefi/forge"
 @pytest.fixture
 def client():
@@ -109,3 +110,102 @@ def test_forge_search_scope_models(client):
     assert r.status_code == 200
     assert r.json()["scope"] == "models"
     assert "models" in r.json()["results"]
+
+
+def test_forge_detail_receipt_uses_indexed_provenance(client, monkeypatch):
+    class FakeReceiptService:
+        async def get_receipts(self, limit=None):
+            return [
+                {
+                    "receipt_id": "receipt-1",
+                    "tx_hash": "0xl2tx",
+                    "action": "bridge_verify",
+                    "proof_type": "groth16",
+                    "result": "ok",
+                    "timestamp": "2026-03-22T05:00:00Z",
+                    "fact_hash": "0xfact1",
+                    "proof_hash": "0xproof1",
+                }
+            ]
+
+    async def fake_get_receipt_service():
+        return FakeReceiptService()
+
+    async def fake_get_proof_record(proof_hash: str):
+        assert proof_hash in {"0xproof1", "0xfact1"}
+        return {
+            "proof_hash": "0xproof1",
+            "source": "proof_registry",
+            "model_name": "yield_forecast",
+            "proof_type": "groth16",
+            "bridge_statement": {
+                "lane": "modelbridge",
+                "proof_type": "groth16",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact1",
+            },
+            "public_receipts": [
+                {
+                    "tx_hash": "0xl2tx",
+                    "public_chain": "starknet_l2",
+                    "timestamp": "2026-03-22T05:00:00Z",
+                }
+            ],
+            "public_receipt_summary": {
+                "count": 1,
+                "latest_tx_hash": "0xl2tx",
+                "latest_timestamp": "2026-03-22T05:00:00Z",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_receipt_service", fake_get_receipt_service)
+    monkeypatch.setattr(forge_routes, "_get_proof_record", fake_get_proof_record)
+
+    r = client.get(BASE + "/detail/receipt/0xl2tx")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "public_settled"
+    assert payload["summary"]["latest_public_tx_hash"] == "0xl2tx"
+    assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])
+
+
+def test_forge_detail_fact_uses_indexed_provenance(client, monkeypatch):
+    async def fake_get_proof_record(proof_hash: str):
+        assert proof_hash == "0xfact1"
+        return {
+            "proof_hash": "0xproof1",
+            "source": "proof_registry",
+            "model_name": "yield_forecast",
+            "proof_type": "groth16",
+            "bridge_statement": {
+                "lane": "modelbridge",
+                "proof_type": "groth16",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact1",
+            },
+            "public_receipts": [
+                {
+                    "tx_hash": "0xl2tx",
+                    "public_chain": "starknet_l2",
+                    "timestamp": "2026-03-22T05:00:00Z",
+                }
+            ],
+            "public_receipt_summary": {
+                "count": 1,
+                "latest_tx_hash": "0xl2tx",
+                "latest_timestamp": "2026-03-22T05:00:00Z",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_proof_record", fake_get_proof_record)
+
+    r = client.get(BASE + "/detail/fact/0xfact1")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "public_settled"
+    assert payload["summary"]["proof_hash"] == "0xproof1"
+    assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])

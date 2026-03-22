@@ -117,3 +117,95 @@ async def test_list_proofs_indexed_can_sort_by_latest_public_settlement(monkeypa
 
     assert payload["sort_by"] == "latest_public_settlement"
     assert [row["proof_hash"] for row in payload["proofs"]] == ["0xnewer", "0xolder"]
+
+
+@pytest.mark.asyncio
+async def test_list_proofs_indexed_supports_settlement_cursor(monkeypatch):
+    class FakeRegistry:
+        def list_proofs(self, model_name=None, user_address=None, limit=5000, offset=0):
+            return [
+                SimpleNamespace(
+                    proof_hash="0xccc",
+                    model_name="yield_forecast",
+                    user_address="0xabc",
+                    proof_type="groth16",
+                    action_type="ml_inference",
+                    verified_locally=True,
+                    created_at=3.0,
+                    tx_hash=None,
+                    to_dict=lambda: {"metadata": {"bridge_statement": {"lane": "modelbridge"}}},
+                ),
+                SimpleNamespace(
+                    proof_hash="0xbbb",
+                    model_name="yield_forecast",
+                    user_address="0xabc",
+                    proof_type="groth16",
+                    action_type="ml_inference",
+                    verified_locally=True,
+                    created_at=2.0,
+                    tx_hash=None,
+                    to_dict=lambda: {"metadata": {"bridge_statement": {"lane": "modelbridge"}}},
+                ),
+                SimpleNamespace(
+                    proof_hash="0xaaa",
+                    model_name="yield_forecast",
+                    user_address="0xabc",
+                    proof_type="groth16",
+                    action_type="ml_inference",
+                    verified_locally=True,
+                    created_at=1.0,
+                    tx_hash=None,
+                    to_dict=lambda: {"metadata": {"bridge_statement": {"lane": "modelbridge"}}},
+                ),
+            ]
+
+    timestamps = {
+        "0xccc": "2026-03-22T05:00:00Z",
+        "0xbbb": "2026-03-22T04:00:00Z",
+        "0xaaa": "2026-03-22T03:00:00Z",
+    }
+
+    async def fake_attach_public_receipts(payload, requested_hash, **kwargs):
+        enriched = dict(payload)
+        ts = timestamps[requested_hash]
+        enriched["public_receipts"] = [{"tx_hash": requested_hash, "timestamp": ts}]
+        enriched["public_receipt_summary"] = {
+            "count": 1,
+            "starknet_l2": 1,
+            "ethereum_l1": 0,
+            "latest_tx_hash": requested_hash,
+            "latest_timestamp": ts,
+        }
+        return enriched
+
+    monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
+    monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+
+    first_page = await proofs_routes.list_proofs(
+        user_address="0xabc",
+        source="indexed",
+        public_only=True,
+        sort_by="latest_public_settlement",
+        limit=1,
+        offset=0,
+    )
+
+    assert [row["proof_hash"] for row in first_page["proofs"]] == ["0xccc"]
+    assert first_page["has_more"] is True
+    assert first_page["next_cursor"] == {
+        "timestamp": "2026-03-22T05:00:00Z",
+        "proof_hash": "0xccc",
+    }
+
+    second_page = await proofs_routes.list_proofs(
+        user_address="0xabc",
+        source="indexed",
+        public_only=True,
+        sort_by="latest_public_settlement",
+        limit=1,
+        offset=0,
+        cursor_timestamp=first_page["next_cursor"]["timestamp"],
+        cursor_proof_hash=first_page["next_cursor"]["proof_hash"],
+    )
+
+    assert [row["proof_hash"] for row in second_page["proofs"]] == ["0xbbb"]

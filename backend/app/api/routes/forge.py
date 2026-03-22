@@ -81,7 +81,28 @@ async def _get_indexed_proofs(
     limit: int = 50,
     user_address: str | None = None,
     public_only: bool = False,
+    cursor_timestamp: str | None = None,
+    cursor_proof_hash: str | None = None,
 ) -> list[dict[str, Any]]:
+    payload = await _get_indexed_proof_payload(
+        limit=limit,
+        user_address=user_address,
+        public_only=public_only,
+        cursor_timestamp=cursor_timestamp,
+        cursor_proof_hash=cursor_proof_hash,
+    )
+    proofs = payload.get("proofs")
+    return proofs if isinstance(proofs, list) else []
+
+
+async def _get_indexed_proof_payload(
+    *,
+    limit: int = 50,
+    user_address: str | None = None,
+    public_only: bool = False,
+    cursor_timestamp: str | None = None,
+    cursor_proof_hash: str | None = None,
+) -> dict[str, Any]:
     try:
         from app.api.routes import proofs as proofs_routes
 
@@ -93,12 +114,13 @@ async def _get_indexed_proofs(
             sort_by="latest_public_settlement",
             limit=limit,
             offset=0,
+            cursor_timestamp=cursor_timestamp,
+            cursor_proof_hash=cursor_proof_hash,
         )
-        proofs = payload.get("proofs")
-        return proofs if isinstance(proofs, list) else []
+        return payload if isinstance(payload, dict) else {"proofs": []}
     except Exception as e:
         logger.warning("forge indexed proof fetch: %s", e)
-        return []
+        return {"proofs": []}
 
 
 async def _get_proof_stats() -> dict[str, Any]:
@@ -182,6 +204,136 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
             }
         )
     return out[:limit]
+
+
+async def _find_receipt_record(obj_id: str) -> dict[str, Any] | None:
+    receipt_svc = await _get_receipt_service()
+    if not receipt_svc:
+        return None
+    try:
+        raw = await receipt_svc.get_receipts()
+    except Exception:
+        return None
+    for row in (raw or []):
+        if not isinstance(row, dict):
+            continue
+        if row.get("tx_hash") == obj_id or row.get("receipt_id") == obj_id or row.get("id") == obj_id:
+            return row
+    return None
+
+
+async def _find_proof_record_by_public_tx(tx_hash: str) -> dict[str, Any] | None:
+    try:
+        payload = await _get_indexed_proof_payload(limit=5000, public_only=True)
+        proofs = payload.get("proofs") if isinstance(payload.get("proofs"), list) else []
+    except Exception:
+        return None
+    target = str(tx_hash or "")
+    for row in proofs:
+        for receipt in (row.get("public_receipts") or []):
+            if str(receipt.get("tx_hash") or "") == target:
+                return row
+    return None
+
+
+def _append_unique_relationship(
+    relationships: list[dict[str, Any]],
+    *,
+    rel_type: str,
+    rel_id: str | None,
+    label: str,
+    verb: str,
+    source: str,
+) -> None:
+    rel_key = (rel_type, str(rel_id or ""))
+    if not rel_key[1]:
+        return
+    for row in relationships:
+        if (str(row.get("type") or ""), str(row.get("id") or "")) == rel_key:
+            return
+    relationships.append(
+        {
+            "type": rel_type,
+            "id": rel_key[1],
+            "label": label,
+            "verb": verb,
+            "source": source,
+        }
+    )
+
+
+def _proof_record_components(proof_rec: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    bridge_statement = proof_rec.get("bridge_statement") if isinstance(proof_rec.get("bridge_statement"), dict) else {}
+    settlement = proof_rec.get("public_receipt_summary") if isinstance(proof_rec.get("public_receipt_summary"), dict) else {}
+    proof_hash = proof_rec.get("proof_hash") or proof_rec.get("commitment_hash")
+    fact_hash = bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash")
+    model_name = bridge_statement.get("model_name") or proof_rec.get("model_name")
+
+    summary = {
+        "status": "public_settled" if settlement.get("count") else "indexed",
+        "source": proof_rec.get("source", "indexed"),
+        "proof_hash": proof_hash,
+        "fact_hash": fact_hash,
+        "proof_type": bridge_statement.get("proof_type") or proof_rec.get("proof_type"),
+        "lane": bridge_statement.get("lane"),
+        "model": model_name or "",
+        "latest_public_tx_hash": settlement.get("latest_tx_hash"),
+        "public_receipts": settlement.get("count", 0),
+    }
+    timeline = [
+        {
+            "stage": "proof_indexed",
+            "status": "complete",
+            "source": proof_rec.get("source", "indexed"),
+            "detail": str(proof_hash or "")[:16] + "…" if proof_hash else "",
+        },
+        {
+            "stage": "public_settlement",
+            "status": "complete" if settlement.get("count") else "pending",
+            "source": "public" if settlement.get("count") else "not_present",
+            "detail": settlement.get("latest_tx_hash", ""),
+        },
+    ]
+    if fact_hash:
+        timeline.insert(
+            1,
+            {
+                "stage": "bridge_fact",
+                "status": "complete",
+                "source": "indexed",
+                "detail": str(fact_hash),
+            },
+        )
+
+    relationships: list[dict[str, Any]] = []
+    _append_unique_relationship(
+        relationships,
+        rel_type="fact",
+        rel_id=str(fact_hash or ""),
+        label="Fact",
+        verb="commits",
+        source="indexed",
+    )
+    _append_unique_relationship(
+        relationships,
+        rel_type="model",
+        rel_id=str(model_name or ""),
+        label="Model",
+        verb="used_by",
+        source="indexed",
+    )
+    for row in (proof_rec.get("public_receipts") or [])[:10]:
+        tx_hash = row.get("tx_hash")
+        _append_unique_relationship(
+            relationships,
+            rel_type="transaction",
+            rel_id=str(tx_hash or ""),
+            label=f"{row.get('public_chain') or 'public'} transaction",
+            verb="settles",
+            source="public",
+        )
+
+    return summary, timeline, relationships
 
 
 def _list_models_for_search(limit: int = 50) -> list[dict[str, Any]]:
@@ -385,6 +537,8 @@ async def forge_search(
     scope: Optional[str] = Query(default=None, description="Filter by type: receipts, proofs, contracts, facts, models, txs, or all"),
     limit: int = Query(25, ge=1, le=100, description="Page size for results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
+    cursor_timestamp: Optional[str] = Query(default=None, description="Proof-scope cursor settlement timestamp"),
+    cursor_proof_hash: Optional[str] = Query(default=None, description="Proof-scope cursor proof hash tie-breaker"),
 ) -> dict[str, Any]:
     """
     Unified resolver across chain objects and proof/evidence objects.
@@ -438,21 +592,51 @@ async def forge_search(
     else:
         full_count = 0
 
+    proof_next_cursor: dict[str, str] | None = None
+    proof_total: int | None = None
     if scope in (None, "all", "proofs"):
-        for p in await _list_proofs_for_search(200):
-            s = " ".join(str(v) for v in p.values()).lower()
-            if q and q.lower() not in s:
-                continue
-            results["proofs"].append({
-                "id": p["id"],
-                "proof_type": p.get("proof_type", ""),
-                "model_name": p.get("model_name", ""),
-                "verified": p.get("verified", False),
-                "latest_public_tx_hash": p.get("latest_public_tx_hash"),
-                "latest_public_timestamp": p.get("latest_public_timestamp"),
-                "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}",
-            })
-        results["proofs"] = results["proofs"][offset: offset + limit]
+        if scope == "proofs" and not q:
+            payload = await _get_indexed_proof_payload(
+                limit=limit,
+                public_only=False,
+                cursor_timestamp=cursor_timestamp,
+                cursor_proof_hash=cursor_proof_hash,
+            )
+            proof_next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
+            proof_total = int(payload.get("total") or 0)
+            proof_rows = payload.get("proofs") if isinstance(payload.get("proofs"), list) else []
+            for row in proof_rows:
+                bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
+                summary = row.get("public_receipt_summary") if isinstance(row.get("public_receipt_summary"), dict) else {}
+                proof_hash = row.get("proof_hash") or row.get("commitment_hash")
+                if not proof_hash:
+                    continue
+                results["proofs"].append(
+                    {
+                        "id": str(proof_hash),
+                        "proof_type": bridge_statement.get("proof_type") or row.get("proof_type", ""),
+                        "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
+                        "verified": bool(summary.get("count")),
+                        "latest_public_tx_hash": summary.get("latest_tx_hash"),
+                        "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+                        "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
+                    }
+                )
+        else:
+            for p in await _list_proofs_for_search(200):
+                s = " ".join(str(v) for v in p.values()).lower()
+                if q and q.lower() not in s:
+                    continue
+                results["proofs"].append({
+                    "id": p["id"],
+                    "proof_type": p.get("proof_type", ""),
+                    "model_name": p.get("model_name", ""),
+                    "verified": p.get("verified", False),
+                    "latest_public_tx_hash": p.get("latest_public_tx_hash"),
+                    "latest_public_timestamp": p.get("latest_public_timestamp"),
+                    "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}",
+                })
+            results["proofs"] = results["proofs"][offset: offset + limit]
 
     if scope in (None, "all", "models"):
         for m in _list_models_for_search(50):
@@ -494,8 +678,10 @@ async def forge_search(
             allowed = {scope}
         results = {k: (v if k in allowed else []) for k, v in results.items()}
 
-    total = sum(len(v) for v in results.values())
+    total = proof_total if scope == "proofs" and not q and proof_total is not None else sum(len(v) for v in results.values())
     has_more = full_count > offset + limit if search_receipts and scope in (None, "all", "receipts", "txs") else False
+    if scope == "proofs" and not q and proof_next_cursor:
+        has_more = True
     return {
         "generated_at": _ts(),
         "query": q,
@@ -505,6 +691,7 @@ async def forge_search(
         "offset": offset,
         "limit": limit,
         "has_more": has_more,
+        "next_cursor": proof_next_cursor,
         "results": results,
         "paths": {
             "self": "search",
@@ -625,83 +812,101 @@ async def forge_detail(
     relationships: list[dict[str, Any]] = []
 
     if obj_type == "receipt":
-        receipt_svc = await _get_receipt_service()
-        if receipt_svc:
-            try:
-                raw = await receipt_svc.get_receipts()
-                if raw:
-                    for r in raw:
-                        if isinstance(r, dict) and (
-                            r.get("tx_hash") == obj_id or r.get("id") == obj_id
-                        ):
-                            summary.update({
-                                "action": r.get("action", ""),
-                                "proof_type": r.get("proof_type", ""),
-                                "result": r.get("result", ""),
-                                "timestamp": r.get("timestamp", ""),
-                                "fact_hash": r.get("fact_hash", ""),
-                                "status": "verified" if r.get("tx_hash") else "runtime",
-                                "source": "on-chain" if r.get("tx_hash") else "runtime",
-                            })
-                            # Build verification timeline
-                            timeline = [
-                                {
-                                    "stage": "action",
-                                    "status": "complete",
-                                    "source": "runtime",
-                                    "detail": r.get("action", ""),
-                                },
-                                {
-                                    "stage": "proof_generation",
-                                    "status": "complete" if r.get("proof_type") else "not_present",
-                                    "source": "runtime",
-                                    "detail": r.get("proof_type", ""),
-                                },
-                                {
-                                    "stage": "fact_registration",
-                                    "status": "complete" if r.get("fact_hash") else "not_present",
-                                    "source": "on-chain" if r.get("fact_hash") else "not_configured",
-                                    "detail": r.get("fact_hash", ""),
-                                },
-                                {
-                                    "stage": "l3_inclusion",
-                                    "status": "complete" if r.get("tx_hash") else "pending",
-                                    "source": "on-chain" if r.get("tx_hash") else "not_configured",
-                                    "detail": r.get("tx_hash", ""),
-                                },
-                                {
-                                    "stage": "l2_verification",
-                                    "status": "not_present",
-                                    "source": "not_configured",
-                                    "detail": "",
-                                },
-                                {
-                                    "stage": "l1_verification",
-                                    "status": "not_present",
-                                    "source": "not_configured",
-                                    "detail": "",
-                                },
-                            ]
-                            # Relationships: fact and tx links when present
-                            if r.get("fact_hash"):
-                                relationships.append({
-                                    "type": "fact",
-                                    "id": str(r["fact_hash"]),
-                                    "label": "Fact",
-                                    "verb": "registered",
-                                    "source": "on-chain",
-                                })
-                            if r.get("tx_hash"):
-                                relationships.append({
-                                    "type": "transaction",
-                                    "id": str(r["tx_hash"]),
-                                    "label": "L3 transaction",
-                                    "verb": "included",
-                                    "source": "rpc",
-                                })
-                            break
-            except Exception:
-                pass
+        receipt_row = await _find_receipt_record(obj_id)
+        proof_rec = None
+        if receipt_row:
+            proof_lookup = receipt_row.get("proof_hash") or receipt_row.get("fact_hash")
+            proof_rec = await _get_proof_record(str(proof_lookup)) if proof_lookup else None
+        else:
+            proof_rec = await _find_proof_record_by_public_tx(obj_id)
+        if receipt_row or proof_rec:
+            summary.update({
+                "action": receipt_row.get("action", "") if receipt_row else "",
+                "proof_type": receipt_row.get("proof_type", "") if receipt_row else "",
+                "result": receipt_row.get("result", "") if receipt_row else "",
+                "timestamp": receipt_row.get("timestamp", "") if receipt_row else "",
+                "fact_hash": receipt_row.get("fact_hash", "") if receipt_row else "",
+                "tx_hash": receipt_row.get("tx_hash") if receipt_row else obj_id,
+                "status": "verified" if receipt_row and receipt_row.get("tx_hash") else "runtime",
+                "source": "on-chain" if receipt_row and receipt_row.get("tx_hash") else "runtime",
+            })
+            timeline = [
+                {
+                    "stage": "receipt_observed",
+                    "status": "complete",
+                    "source": "public" if not receipt_row else "runtime",
+                    "detail": (
+                        (receipt_row.get("action", "") or receipt_row.get("proof_type", ""))
+                        if receipt_row
+                        else obj_id
+                    ),
+                }
+            ]
+            if proof_rec:
+                proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+                summary.update(proof_summary)
+                if not summary.get("action"):
+                    summary["action"] = str(proof_rec.get("action_type") or "proof_job")
+                if not summary.get("proof_type"):
+                    summary["proof_type"] = str(proof_summary.get("proof_type") or "")
+                if not summary.get("timestamp"):
+                    settlement = proof_rec.get("public_receipt_summary") if isinstance(proof_rec.get("public_receipt_summary"), dict) else {}
+                    summary["timestamp"] = settlement.get("latest_timestamp") or str(proof_rec.get("created_at") or "")
+                if receipt_row and receipt_row.get("tx_hash"):
+                    summary.setdefault("tx_hash", receipt_row.get("tx_hash"))
+                else:
+                    summary["tx_hash"] = obj_id
+                timeline.extend(proof_timeline)
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="proof_job",
+                    rel_id=str(proof_summary.get("proof_hash") or ""),
+                    label="Proof Job",
+                    verb="backs",
+                    source="indexed",
+                )
+                for rel in proof_relationships:
+                    _append_unique_relationship(
+                        relationships,
+                        rel_type=str(rel.get("type") or ""),
+                        rel_id=str(rel.get("id") or ""),
+                        label=str(rel.get("label") or ""),
+                        verb=str(rel.get("verb") or ""),
+                        source=str(rel.get("source") or ""),
+                    )
+            else:
+                timeline.extend(
+                    [
+                        {
+                            "stage": "proof_generation",
+                            "status": "complete" if receipt_row.get("proof_type") else "not_present",
+                            "source": "runtime",
+                            "detail": receipt_row.get("proof_type", ""),
+                        },
+                        {
+                            "stage": "fact_registration",
+                            "status": "complete" if receipt_row.get("fact_hash") else "not_present",
+                            "source": "on-chain" if receipt_row.get("fact_hash") else "not_configured",
+                            "detail": receipt_row.get("fact_hash", ""),
+                        },
+                    ]
+                )
+            _append_unique_relationship(
+                relationships,
+                rel_type="fact",
+                rel_id=str((receipt_row.get("fact_hash") if receipt_row else None) or summary.get("fact_hash") or ""),
+                label="Fact",
+                verb="registered",
+                source="on-chain",
+            )
+            _append_unique_relationship(
+                relationships,
+                rel_type="transaction",
+                rel_id=str((receipt_row.get("tx_hash") if receipt_row else None) or obj_id),
+                label="Receipt transaction",
+                verb="included",
+                source="rpc",
+            )
     elif obj_type == "entity":
         summary["status"] = "indexed"
         summary["source"] = "index"
@@ -754,59 +959,10 @@ async def forge_detail(
     elif obj_type == "proof_job":
         proof_rec = await _get_proof_record(obj_id)
         if proof_rec:
-            bridge_statement = proof_rec.get("bridge_statement") if isinstance(proof_rec.get("bridge_statement"), dict) else {}
-            settlement = proof_rec.get("public_receipt_summary") if isinstance(proof_rec.get("public_receipt_summary"), dict) else {}
-            proof_hash = proof_rec.get("proof_hash") or proof_rec.get("commitment_hash") or obj_id
-            fact_hash = bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash")
-            summary.update({
-                "status": "public_settled" if settlement.get("count") else "indexed",
-                "source": proof_rec.get("source", "indexed"),
-                "proof_hash": proof_hash,
-                "fact_hash": fact_hash,
-                "proof_type": bridge_statement.get("proof_type") or proof_rec.get("proof_type"),
-                "lane": bridge_statement.get("lane"),
-                "model": bridge_statement.get("model_name") or proof_rec.get("model_name", ""),
-                "latest_public_tx_hash": settlement.get("latest_tx_hash"),
-                "public_receipts": settlement.get("count", 0),
-            })
-            timeline = [
-                {
-                    "stage": "proof_indexed",
-                    "status": "complete",
-                    "source": proof_rec.get("source", "indexed"),
-                    "detail": str(proof_hash)[:16] + "…",
-                },
-                {
-                    "stage": "public_settlement",
-                    "status": "complete" if settlement.get("count") else "pending",
-                    "source": "public" if settlement.get("count") else "not_present",
-                    "detail": settlement.get("latest_tx_hash", ""),
-                },
-            ]
-            if fact_hash:
-                timeline.insert(
-                    1,
-                    {
-                        "stage": "bridge_fact",
-                        "status": "complete",
-                        "source": "indexed",
-                        "detail": str(fact_hash),
-                    },
-                )
-                relationships.append({"type": "fact", "id": str(fact_hash), "label": "Fact", "verb": "commits", "source": "indexed"})
-            model_name = bridge_statement.get("model_name") or proof_rec.get("model_name")
-            if model_name:
-                relationships.append({"type": "model", "id": model_name, "label": "Model", "verb": "used_by", "source": "indexed"})
-            for row in (proof_rec.get("public_receipts") or [])[:10]:
-                tx_hash = row.get("tx_hash")
-                if tx_hash:
-                    relationships.append({
-                        "type": "transaction",
-                        "id": str(tx_hash),
-                        "label": f"{row.get('public_chain') or 'public'} transaction",
-                        "verb": "settles",
-                        "source": "public",
-                    })
+            proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            summary.update(proof_summary)
+            timeline = proof_timeline
+            relationships = proof_relationships
     elif obj_type == "model":
         model_info = await _get_model_info(obj_id)
         if model_info:
@@ -823,20 +979,44 @@ async def forge_detail(
         summary["status"] = "known"
         summary["source"] = "on-chain"
         summary["fact_hash"] = obj_id
-        timeline = [{"stage": "fact", "status": "complete", "source": "on-chain", "detail": obj_id[:20] + "…" if len(obj_id) > 20 else obj_id}]
-        receipt_svc = await _get_receipt_service()
-        if receipt_svc:
-            try:
-                raw = await receipt_svc.get_receipts()
-                for r in (raw or []):
-                    if isinstance(r, dict) and r.get("fact_hash") == obj_id:
-                        rid = r.get("tx_hash") or r.get("id")
-                        if rid:
-                            relationships.append({"type": "receipt", "id": str(rid), "label": "Receipt", "verb": "references", "source": "runtime"})
-                            if len(relationships) >= 20:
-                                break
-            except Exception:
-                pass
+        proof_rec = await _get_proof_record(obj_id)
+        if proof_rec:
+            proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            summary.update(proof_summary)
+            summary["fact_hash"] = obj_id
+            timeline = proof_timeline
+            _append_unique_relationship(
+                relationships,
+                rel_type="proof_job",
+                rel_id=str(proof_summary.get("proof_hash") or ""),
+                label="Proof Job",
+                verb="commits",
+                source="indexed",
+            )
+            for rel in proof_relationships:
+                _append_unique_relationship(
+                    relationships,
+                    rel_type=str(rel.get("type") or ""),
+                    rel_id=str(rel.get("id") or ""),
+                    label=str(rel.get("label") or ""),
+                    verb=str(rel.get("verb") or ""),
+                    source=str(rel.get("source") or ""),
+                )
+        else:
+            timeline = [{"stage": "fact", "status": "complete", "source": "on-chain", "detail": obj_id[:20] + "…" if len(obj_id) > 20 else obj_id}]
+            receipt_svc = await _get_receipt_service()
+            if receipt_svc:
+                try:
+                    raw = await receipt_svc.get_receipts()
+                    for r in (raw or []):
+                        if isinstance(r, dict) and r.get("fact_hash") == obj_id:
+                            rid = r.get("tx_hash") or r.get("id")
+                            if rid:
+                                relationships.append({"type": "receipt", "id": str(rid), "label": "Receipt", "verb": "references", "source": "runtime"})
+                                if len(relationships) >= 20:
+                                    break
+                except Exception:
+                    pass
 
     for rel in relationships:
         rel["href"] = f"detail/{quote(str(rel.get('type', '')), safe='')}/{quote(str(rel.get('id', '')), safe='')}"

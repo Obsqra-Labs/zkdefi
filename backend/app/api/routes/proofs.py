@@ -85,6 +85,25 @@ async def _attach_public_receipts(
     return enriched
 
 
+def _indexed_public_settlement_sort_key(row: dict[str, Any]) -> tuple[str, str]:
+    summary = row.get("public_receipt_summary") if isinstance(row.get("public_receipt_summary"), dict) else {}
+    latest_timestamp = str(summary.get("latest_timestamp") or "")
+    proof_hash = str(row.get("proof_hash") or row.get("commitment_hash") or "")
+    return (latest_timestamp, proof_hash)
+
+
+def _next_indexed_cursor(items: list[dict[str, Any]], *, has_more: bool) -> dict[str, str] | None:
+    if not has_more or not items:
+        return None
+    latest_timestamp, proof_hash = _indexed_public_settlement_sort_key(items[-1])
+    if not latest_timestamp and not proof_hash:
+        return None
+    return {
+        "timestamp": latest_timestamp,
+        "proof_hash": proof_hash,
+    }
+
+
 # ── Request Models ──────────────────────────────────────────────────────
 
 
@@ -167,6 +186,14 @@ async def list_proofs(
     ),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    cursor_timestamp: str | None = Query(
+        None,
+        description="For indexed latest_public_settlement sorting, page after this settlement timestamp",
+    ),
+    cursor_proof_hash: str | None = Query(
+        None,
+        description="Tie-breaker for indexed latest_public_settlement cursor pagination",
+    ),
 ) -> dict[str, Any]:
     """List proof records with optional filters."""
     if source == "indexed":
@@ -213,22 +240,41 @@ async def list_proofs(
             if sort_by == "latest_public_settlement":
                 items.sort(
                     key=lambda row: (
-                        str((row.get("public_receipt_summary") or {}).get("latest_timestamp") or ""),
-                        str(row.get("created_at") or ""),
+                        _indexed_public_settlement_sort_key(row)[0],
+                        _indexed_public_settlement_sort_key(row)[1],
                     ),
                     reverse=True,
                 )
+                if cursor_timestamp or cursor_proof_hash:
+                    cursor_key = (str(cursor_timestamp or ""), str(cursor_proof_hash or ""))
+                    items = [row for row in items if _indexed_public_settlement_sort_key(row) < cursor_key]
             total = len(items)
+            page = items[offset: offset + limit]
+            has_more = total > offset + limit
             return {
-                "proofs": items[offset: offset + limit],
+                "proofs": page,
                 "total": total,
                 "limit": limit,
                 "offset": offset,
                 "source_mode": "indexed",
                 "sort_by": sort_by,
+                "cursor_timestamp": cursor_timestamp,
+                "cursor_proof_hash": cursor_proof_hash,
+                "has_more": has_more,
+                "next_cursor": _next_indexed_cursor(page, has_more=has_more) if sort_by == "latest_public_settlement" else None,
             }
         except Exception as exc:
-            return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "indexed", "sort_by": sort_by}
+            return {
+                "proofs": [],
+                "total": 0,
+                "error": str(exc),
+                "source_mode": "indexed",
+                "sort_by": sort_by,
+                "cursor_timestamp": cursor_timestamp,
+                "cursor_proof_hash": cursor_proof_hash,
+                "has_more": False,
+                "next_cursor": None,
+            }
     try:
         from app.services.proof_pipeline import get_proof_pipeline
         pipeline = get_proof_pipeline()
@@ -243,9 +289,23 @@ async def list_proofs(
             "offset": offset,
             "source_mode": "cache",
             "sort_by": "created_at",
+            "cursor_timestamp": None,
+            "cursor_proof_hash": None,
+            "has_more": len(items) > offset + limit,
+            "next_cursor": None,
         }
     except Exception as exc:
-        return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "cache", "sort_by": "created_at"}
+        return {
+            "proofs": [],
+            "total": 0,
+            "error": str(exc),
+            "source_mode": "cache",
+            "sort_by": "created_at",
+            "cursor_timestamp": None,
+            "cursor_proof_hash": None,
+            "has_more": False,
+            "next_cursor": None,
+        }
 
 
 @router.get("/stats")

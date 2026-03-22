@@ -73,7 +73,9 @@ Public proof dashboard API: `GET /api/v1/zkdefi/public-proof-dashboard`
 Public proof dashboard markdown: `GET /api/v1/zkdefi/public-proof-dashboard/markdown`
 Proof lookup with public settlement provenance: `GET /api/v1/zkdefi/proofs/{proof_hash}` (accepts full digest or felt-safe on-chain alias)
 Indexed public proof feed: `GET /api/v1/zkdefi/proofs/?source=indexed&public_only=true&user_address=...`
+Indexed public proof feed cursor mode: `GET /api/v1/zkdefi/proofs/?source=indexed&sort_by=latest_public_settlement&limit=...&cursor_timestamp=...&cursor_proof_hash=...` (returns `next_cursor`)
 Forge proof views now consume that indexed proof path for public-settled proof jobs.
+Forge `receipt`, `fact`, and `proof_job` detail views now resolve through the same indexed proof/public-settlement provenance path when a linked proof exists.
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`
