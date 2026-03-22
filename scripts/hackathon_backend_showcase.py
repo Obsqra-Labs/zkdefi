@@ -254,6 +254,107 @@ def _clip_text(raw: Any, limit: int = 160) -> str:
     return value[: max(0, limit - 3)] + "..."
 
 
+def _canonical_model_name(raw: Any) -> str:
+    value = str(raw or "").strip().lower()
+    alias_map = {
+        "yield_predictor": "yield_forecast",
+        "yield_forecaster": "yield_forecast",
+        "yield_model": "yield_forecast",
+        "credit_predictor": "creditworthiness",
+        "credit_model": "creditworthiness",
+        "anomaly_detect": "anomaly_detector",
+        "anomaly_detection": "anomaly_detector",
+    }
+    return alias_map.get(value, value)
+
+
+def _bridge_statement_payload(raw: Any) -> dict[str, Any]:
+    return raw if isinstance(raw, dict) else {}
+
+
+def _bridge_binding_mode(statement: Any) -> str:
+    payload = _bridge_statement_payload(statement)
+    profile = payload.get("binding_profile") if isinstance(payload.get("binding_profile"), dict) else {}
+    if not profile:
+        return "-"
+    bool_fields = [
+        "binds_model_hash",
+        "binds_output_bounds",
+        "binds_output_vector",
+        "binds_output_commitment",
+        "binds_timestamp",
+        "binds_ezkl_proof_hash",
+    ]
+    if all(profile.get(field) is True for field in bool_fields):
+        return "full"
+    return "partial"
+
+
+def _bridge_binding_summary(statement: Any) -> str:
+    payload = _bridge_statement_payload(statement)
+    profile = payload.get("binding_profile") if isinstance(payload.get("binding_profile"), dict) else {}
+    if not profile:
+        return "-"
+    labels = {
+        "binds_model_hash": "model_hash",
+        "binds_output_bounds": "bounds",
+        "binds_output_vector": "outputs",
+        "binds_output_commitment": "commitment",
+        "binds_timestamp": "timestamp",
+        "binds_ezkl_proof_hash": "ezkl_proof_hash",
+    }
+    bound = [label for key, label in labels.items() if profile.get(key) is True]
+    unbound = [label for key, label in labels.items() if profile.get(key) is False]
+    bound_text = ",".join(bound) if bound else "-"
+    unbound_text = ",".join(unbound) if unbound else "-"
+    return f"{_bridge_binding_mode(payload)} | bound={bound_text} | unbound={unbound_text}"
+
+
+def _bridge_statement_table_rows(statement: Any) -> list[list[str]]:
+    payload = _bridge_statement_payload(statement)
+    if not payload:
+        return []
+    lane = str(payload.get("lane") or "-")
+    proof_type = str(payload.get("proof_type") or "-")
+    model_name = str(payload.get("model_name") or "-")
+    fact_hash = str(payload.get("fact_hash") or payload.get("bridge_fact_hash") or "-")
+    ezkl_proof_hash = str(payload.get("ezkl_proof_hash") or "-")
+    output_commitment = str(payload.get("output_commitment") or "-")
+    timestamp = str(payload.get("timestamp") or "-")
+    output_count = str(payload.get("output_count") or "-")
+    return [
+        ["Statement version", escape(str(payload.get("statement_version") or "-"))],
+        ["Statement lane / proof type", escape(f"{lane} / {proof_type}")],
+        ["Statement model", escape(model_name)],
+        ["Statement fact hash", escape(_short_hex(fact_hash, 14))],
+        ["Statement EZKL proof hash", escape(_short_hex(ezkl_proof_hash, 14))],
+        ["Statement output commitment", escape(_short_hex(output_commitment, 14))],
+        ["Statement timestamp", escape(timestamp)],
+        ["Statement output count", escape(output_count)],
+        ["Statement bindings", escape(_bridge_binding_summary(payload))],
+    ]
+
+
+def _bridge_statement_note_bits(statement: Any) -> list[str]:
+    payload = _bridge_statement_payload(statement)
+    if not payload:
+        return []
+    bits: list[str] = []
+    lane = str(payload.get("lane") or "").strip()
+    proof_type = str(payload.get("proof_type") or "").strip()
+    if lane or proof_type:
+        bits.append(f"statement={(lane or '-')}/{(proof_type or '-')}")
+    if payload.get("model_name"):
+        bits.append(f"model={payload.get('model_name')}")
+    fact_hash = str(payload.get("fact_hash") or payload.get("bridge_fact_hash") or "").strip()
+    if fact_hash:
+        bits.append(f"fact_hash={_short_hex(fact_hash, 14)}")
+    binding_mode = _bridge_binding_mode(payload)
+    if binding_mode != "-":
+        bits.append(f"binding={binding_mode}")
+    return bits
+
+
 def _seeded_probe_value(
     seed: str,
     index: int,
@@ -2541,6 +2642,11 @@ class ShowcaseRunner:
             "primary_authority": verification.get("primary_authority"),
             "can_execute": payload.get("can_execute"),
             "bridge_proof_hash": bridge_proof.get("proof_hash"),
+            "bridge_statement": (
+                payload.get("bridge_statement")
+                if isinstance(payload.get("bridge_statement"), dict)
+                else (bridge_proof.get("bridge_statement") if isinstance(bridge_proof.get("bridge_statement"), dict) else None)
+            ),
             "bridge_compliant": bridge_proof.get("is_compliant"),
             "bridge_backend": bridge_proof.get("bridge_backend"),
             "model_bridge_calldata_words": len(combined.get("model_bridge_calldata") or []),
@@ -3269,6 +3375,7 @@ class ShowcaseRunner:
             "proof_mode_level": l3_run.get("proof_mode_level"),
             "requested_execution_chain": l3_run.get("requested_execution_chain"),
             "bridge_proof_hash": l3_run.get("bridge_proof_hash"),
+            "bridge_statement": l3_run.get("bridge_statement"),
             "bridge_compliant": l3_run.get("bridge_compliant"),
             "bridge_backend": l3_run.get("bridge_backend"),
             "calldata_words": l3_run.get("model_bridge_calldata_words"),
@@ -3352,6 +3459,7 @@ class ShowcaseRunner:
             "proof_mode_level": heavy_run.get("proof_mode_level"),
             "requested_execution_chain": heavy_run.get("requested_execution_chain"),
             "bridge_proof_hash": heavy_run.get("bridge_proof_hash"),
+            "bridge_statement": heavy_run.get("bridge_statement"),
             "bridge_compliant": heavy_run.get("bridge_compliant"),
             "bridge_backend": heavy_run.get("bridge_backend"),
             "calldata_words": heavy_run.get("model_bridge_calldata_words"),
@@ -3458,6 +3566,7 @@ class ShowcaseRunner:
             "proof_mode_level": native_kzg_run.get("proof_mode_level"),
             "requested_execution_chain": native_kzg_run.get("requested_execution_chain"),
             "bridge_proof_hash": native_kzg_run.get("bridge_proof_hash"),
+            "bridge_statement": native_kzg_run.get("bridge_statement"),
             "bridge_compliant": native_kzg_run.get("bridge_compliant"),
             "bridge_backend": native_kzg_run.get("bridge_backend"),
             "calldata_words": native_kzg_run.get("model_bridge_calldata_words"),
@@ -3578,6 +3687,7 @@ class ShowcaseRunner:
             "proof_mode_level": dual_run.get("proof_mode_level"),
             "requested_execution_chain": dual_run.get("requested_execution_chain"),
             "bridge_proof_hash": dual_run.get("bridge_proof_hash"),
+            "bridge_statement": dual_run.get("bridge_statement"),
             "bridge_compliant": dual_run.get("bridge_compliant"),
             "bridge_backend": dual_run.get("bridge_backend"),
             "calldata_words": dual_run.get("model_bridge_calldata_words"),
@@ -3669,6 +3779,7 @@ class ShowcaseRunner:
             "proof_mode_level": noir_run.get("proof_mode_level"),
             "requested_execution_chain": noir_run.get("requested_execution_chain"),
             "bridge_proof_hash": noir_run.get("bridge_proof_hash"),
+            "bridge_statement": noir_run.get("bridge_statement"),
             "bridge_compliant": noir_run.get("bridge_compliant"),
             "bridge_backend": noir_run.get("bridge_backend"),
             "calldata_words": noir_run.get("model_bridge_calldata_words"),
@@ -3774,6 +3885,7 @@ class ShowcaseRunner:
             "proof_mode_level": noir_v2_run.get("proof_mode_level"),
             "requested_execution_chain": noir_v2_run.get("requested_execution_chain"),
             "bridge_proof_hash": noir_v2_run.get("bridge_proof_hash"),
+            "bridge_statement": noir_v2_run.get("bridge_statement"),
             "bridge_compliant": noir_v2_run.get("bridge_compliant"),
             "bridge_backend": noir_v2_run.get("bridge_backend"),
             "calldata_words": noir_v2_run.get("model_bridge_calldata_words"),
@@ -6699,6 +6811,7 @@ class ShowcaseRunner:
                     "starkscan_url": _starkscan_tx_url(dual_l2_tx),
                     "verified_on_chain": True,
                     "proof_hash": dual_live.get("bridge_proof_hash"),
+                    "bridge_statement": dual_live.get("bridge_statement"),
                     "mode": dual_live.get("l2_mode"),
                     "verification_backend": dual_live.get("l2_verification_backend"),
                     "verification_policy": dual_live.get("l2_verification_policy"),
@@ -6729,6 +6842,9 @@ class ShowcaseRunner:
         )
         if isinstance(native_pick, dict):
             native_l2_tx = str(native_pick.get("l2_tx_hash") or "").strip()
+            native_statement = native_live.get("bridge_statement") if isinstance(native_live.get("bridge_statement"), dict) else {}
+            native_pick_model = _canonical_model_name(native_pick.get("model"))
+            native_statement_model = _canonical_model_name(native_statement.get("model_name"))
             entries.append(
                 {
                     "lane": "EzklNativeKzg",
@@ -6740,6 +6856,7 @@ class ShowcaseRunner:
                     "starkscan_url": _starkscan_tx_url(native_l2_tx),
                     "verified_on_chain": True,
                     "proof_hash": None,
+                    "bridge_statement": native_statement if native_statement_model and native_statement_model == native_pick_model else None,
                     "mode": native_pick.get("l2_mode"),
                     "strict_binding": bool(native_pick.get("l3_strict_binding_observed")),
                     "model": native_pick.get("model"),
@@ -6808,6 +6925,7 @@ class ShowcaseRunner:
                     "starkscan_url": _starkscan_tx_url(noir_l2_tx),
                     "verified_on_chain": bool(noir_live.get("l2_verified_on_chain")),
                     "proof_hash": noir_live.get("bridge_proof_hash"),
+                    "bridge_statement": noir_live.get("bridge_statement"),
                     "mode": noir_live.get("l2_mode"),
                     "verification_backend": noir_live.get("l2_verification_backend"),
                     "verification_policy": noir_live.get("l2_verification_policy"),
@@ -6836,6 +6954,7 @@ class ShowcaseRunner:
                     "starkscan_url": _starkscan_tx_url(noir_v2_l2_tx),
                     "verified_on_chain": bool(noir_v2_live.get("l2_verified_on_chain")),
                     "proof_hash": noir_v2_live.get("bridge_proof_hash"),
+                    "bridge_statement": noir_v2_live.get("bridge_statement"),
                     "mode": noir_v2_live.get("l2_mode"),
                     "verification_backend": noir_v2_live.get("l2_verification_backend"),
                     "verification_policy": noir_v2_live.get("l2_verification_policy"),
@@ -6941,6 +7060,7 @@ class ShowcaseRunner:
             title = str(entry.get("title") or entry.get("lane") or "Receipt")
             tx_hash = str(entry.get("tx_hash") or "")
             network = str(entry.get("network") or "")
+            bridge_statement = entry.get("bridge_statement") if isinstance(entry.get("bridge_statement"), dict) else {}
             note_bits: list[str] = []
             if entry.get("verified_on_chain") is not None:
                 note_bits.append(f"verified_on_chain={str(bool(entry.get('verified_on_chain'))).lower()}")
@@ -6963,6 +7083,7 @@ class ShowcaseRunner:
                 note_bits.append(f"strict_binding={str(bool(entry.get('strict_binding'))).lower()}")
             if entry.get("proof_hash"):
                 note_bits.append(f"proof_hash={_short_hex(str(entry.get('proof_hash')), 14)}")
+            note_bits.extend(_bridge_statement_note_bits(bridge_statement))
             if entry.get("route_key"):
                 note_bits.append(f"route={entry.get('route_key')}")
             if entry.get("model"):
@@ -7120,6 +7241,7 @@ class ShowcaseRunner:
             tx_hash = str(row.get("tx_hash") or "-")
             preferred_url = str(row.get("etherscan_url") or row.get("voyager_url") or row.get("starkscan_url") or "")
             fallback_url = str(row.get("starkscan_url") or "")
+            bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
             tx_html = (
                 f"<a href=\"{escape(preferred_url)}\" target=\"_blank\" rel=\"noreferrer\">{escape(_short_hex(tx_hash, 14))}</a>"
                 if preferred_url and tx_hash != "-"
@@ -7141,6 +7263,7 @@ class ShowcaseRunner:
                 note_bits.append(f"strict_binding={str(bool(row.get('strict_binding'))).lower()}")
             if row.get("route_key"):
                 note_bits.append(f"route={row.get('route_key')}")
+            note_bits.extend(_bridge_statement_note_bits(bridge_statement))
             public_dashboard_rows.append(
                 [
                     escape(str(row.get("title") or row.get("lane") or "-")),
@@ -7442,7 +7565,7 @@ class ShowcaseRunner:
             ["L3 execution steps", escape(str(path_a_live.get("l3_execution_steps") or "-"))],
             ["Failure reason", escape(_clip_text(path_a_live.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(path_a_live.get("generated_at") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(path_a_live.get("bridge_statement"))
         path_a_v2_live_tx = str(path_a_v2_live.get("tx_hash") or "")
         path_a_v2_live_tx_url = str(path_a_v2_live.get("tx_url") or "")
         path_a_v2_live_tx_html = (
@@ -7472,7 +7595,7 @@ class ShowcaseRunner:
             ["L3 execution steps", escape(str(path_a_v2_live.get("l3_execution_steps") or "-"))],
             ["Failure reason", escape(_clip_text(path_a_v2_live.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(path_a_v2_live.get("generated_at") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(path_a_v2_live.get("bridge_statement"))
         path_a_primary_live = (
             recursive_paths.get("path_a_primary_live")
             if isinstance(recursive_paths.get("path_a_primary_live"), dict)
@@ -7503,7 +7626,7 @@ class ShowcaseRunner:
             ["Mirror status", escape(str(path_a_primary_live.get("mirror_status") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(path_a_primary_live.get("bridge_proof_hash") or "-"), 14))],
             ["Generated at", escape(str(path_a_primary_live.get("generated_at") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(path_a_primary_live.get("bridge_statement"))
         recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
         recursive_env_rows = [
             ["Parent backend .env found", "<span class=\"pass\">yes</span>" if recursive_env.get("parent_env_found") else "<span class=\"fail\">no</span>"],
@@ -8029,7 +8152,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(live_receipt.get("bridge_statement"))
 
         dual_live_receipt = (
             bridge.get("dual_live_receipt", {})
@@ -8088,7 +8211,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(dual_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(dual_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(dual_live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(dual_live_receipt.get("bridge_statement"))
 
         heavy_live_receipt = (
             bridge.get("modelbridge_heavy_live_receipt", {})
@@ -8128,7 +8251,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(heavy_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(heavy_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(heavy_live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(heavy_live_receipt.get("bridge_statement"))
 
         noir_live_receipt = (
             bridge.get("noir_live_receipt", {})
@@ -8190,7 +8313,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(noir_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(noir_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(noir_live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(noir_live_receipt.get("bridge_statement"))
 
         noir_v2_live_receipt = (
             bridge.get("noir_v2_live_receipt", {})
@@ -8252,7 +8375,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(noir_v2_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(noir_v2_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(noir_v2_live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(noir_v2_live_receipt.get("bridge_statement"))
 
         native_kzg_live_receipt = (
             bridge.get("native_kzg_live_receipt", {})
@@ -8326,7 +8449,7 @@ class ShowcaseRunner:
             ["Failure reason", escape(_clip_text(native_kzg_live_receipt.get("failure_reason"), 180) or "-")],
             ["Generated at", escape(str(native_kzg_live_receipt.get("generated_at") or "-"))],
             ["Duration ms", escape(str(native_kzg_live_receipt.get("total_duration_ms") or "-"))],
-        ]
+        ] + _bridge_statement_table_rows(native_kzg_live_receipt.get("bridge_statement"))
         bridge_lane_story_rows = [
             [
                 "ModelBridge (Groth16/Garaga)",
