@@ -74,6 +74,18 @@ async def test_get_proof_falls_back_to_registry_when_pipeline_misses(monkeypatch
             return fake_record if proof_hash == "0xregistryproof" else None
 
     monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
+    async def fake_collect_public_receipts(*args, **kwargs):
+        return [
+            {
+                "tx_hash": "0xl2",
+                "public_receipt": True,
+                "network": "starknet_sepolia",
+                "public_chain": "starknet_l2",
+                "explorer_url": "https://sepolia.voyager.online/tx/0xl2",
+            }
+        ]
+
+    monkeypatch.setattr(proofs_routes, "collect_public_receipts_for_hashes", fake_collect_public_receipts)
 
     payload = await proofs_routes.get_proof("0xregistryproof")
 
@@ -83,3 +95,5 @@ async def test_get_proof_falls_back_to_registry_when_pipeline_misses(monkeypatch
     assert payload["model_name"] == "StrategyIntegrity"
     assert payload["action_type"] == "strategy_integrity"
     assert payload["bridge_statement"]["lane"] == "modelbridge"
+    assert payload["public_receipts"][0]["tx_hash"] == "0xl2"
+    assert payload["public_receipt_summary"]["count"] == 1

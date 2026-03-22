@@ -13,6 +13,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Query
 
 from app.db.decision_store import get_decision_store
+from app.services.receipt_provenance import tx_route_meta
 from app.services.receipt_service import get_receipt_service
 
 logger = logging.getLogger(__name__)
@@ -35,100 +36,6 @@ def _optional_query_text(value: Any) -> str | None:
         return None
     text = str(raw).strip()
     return text or None
-
-
-def _voyager_tx_url(tx_hash: str | None) -> str | None:
-    tx = str(tx_hash or "").strip()
-    return f"https://sepolia.voyager.online/tx/{tx}" if tx else None
-
-
-def _starkscan_tx_url(tx_hash: str | None) -> str | None:
-    tx = str(tx_hash or "").strip()
-    return f"https://sepolia.starkscan.co/tx/{tx}" if tx else None
-
-
-def _etherscan_tx_url(tx_hash: str | None) -> str | None:
-    tx = str(tx_hash or "").strip()
-    return f"https://sepolia.etherscan.io/tx/{tx}" if tx else None
-
-
-def _tx_route_meta(
-    tx_hash: str | None,
-    *,
-    tx_source: str | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    tx = str(tx_hash or "").strip()
-    meta = metadata if isinstance(metadata, dict) else {}
-    source = str(tx_source or meta.get("tx_source") or "").strip().lower()
-    network = str(meta.get("network") or "").strip().lower()
-    public_chain = str(meta.get("public_chain") or "").strip().lower()
-
-    if not tx:
-        return {
-            "tx_visibility": "missing",
-            "public_receipt": False,
-            "network": None,
-            "public_chain": None,
-            "explorer_url": None,
-            "voyager_url": None,
-            "starkscan_url": None,
-            "etherscan_url": None,
-        }
-
-    if source in {"l2", "starknet_l2", "mirror"} or (
-        network == "starknet_sepolia" and public_chain == "starknet_l2"
-    ):
-        voyager_url = _voyager_tx_url(tx)
-        starkscan_url = _starkscan_tx_url(tx)
-        return {
-            "tx_visibility": "public",
-            "public_receipt": True,
-            "network": "starknet_sepolia",
-            "public_chain": "starknet_l2",
-            "explorer_url": voyager_url,
-            "voyager_url": voyager_url,
-            "starkscan_url": starkscan_url,
-            "etherscan_url": None,
-        }
-
-    if source in {"l1", "ethereum", "ethereum_l1"} or (
-        network == "ethereum_sepolia" and public_chain == "ethereum_l1"
-    ):
-        etherscan_url = _etherscan_tx_url(tx)
-        return {
-            "tx_visibility": "public",
-            "public_receipt": True,
-            "network": "ethereum_sepolia",
-            "public_chain": "ethereum_l1",
-            "explorer_url": etherscan_url,
-            "voyager_url": None,
-            "starkscan_url": None,
-            "etherscan_url": etherscan_url,
-        }
-
-    if source in {"l3", "madara", "madara_l3", "local_l3"}:
-        return {
-            "tx_visibility": "internal",
-            "public_receipt": False,
-            "network": "madara_l3",
-            "public_chain": None,
-            "explorer_url": None,
-            "voyager_url": None,
-            "starkscan_url": None,
-            "etherscan_url": None,
-        }
-
-    return {
-        "tx_visibility": "unknown",
-        "public_receipt": False,
-        "network": None,
-        "public_chain": None,
-        "explorer_url": None,
-        "voyager_url": None,
-        "starkscan_url": None,
-        "etherscan_url": None,
-    }
 
 
 def _decision_fact_hash(row: dict[str, Any]) -> str | None:
@@ -199,7 +106,7 @@ async def list_receipts(
             "proof_hash": r.get("proof_hash"),
             "fact_hash": r.get("fact_hash") or r.get("proof_hash"),
         }
-        row.update(_tx_route_meta(row.get("tx_hash"), metadata=r.get("metadata")))
+        row.update(tx_route_meta(row.get("tx_hash"), metadata=r.get("metadata")))
         if public_only_enabled and not row.get("public_receipt"):
             continue
         out.append(row)
@@ -254,7 +161,7 @@ async def list_receipts(
                     "source": "decision_store",
                     "verified_on_chain": row.get("verified_on_chain"),
                     "tx_source": tx_source,
-                    **_tx_route_meta(tx_hash, tx_source=tx_source),
+                    **tx_route_meta(tx_hash, tx_source=tx_source),
                 }
             if public_only_enabled and not decision_row.get("public_receipt"):
                 continue
@@ -290,7 +197,7 @@ async def get_on_chain_receipts(address: str, public_only: bool = Query(False)):
                 if k not in ("tx_hash", "fact_hash", "proof_type", "result", "timestamp", "user")
             },
         }
-        row.update(_tx_route_meta(row.get("tx_hash"), metadata=row.get("meta")))
+        row.update(tx_route_meta(row.get("tx_hash"), metadata=row.get("meta")))
         if public_only_enabled and not row.get("public_receipt"):
             continue
         receipts.append(row)
@@ -336,7 +243,7 @@ async def get_on_chain_receipts(address: str, public_only: bool = Query(False)):
                     "result": row.get("outcome"),
                     "timestamp": timestamp,
                     "meta": _decision_meta(row, tx_source),
-                    **_tx_route_meta(tx_hash, tx_source=tx_source),
+                    **tx_route_meta(tx_hash, tx_source=tx_source),
                 }
             )
     if public_only_enabled:

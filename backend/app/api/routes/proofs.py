@@ -28,10 +28,52 @@ from app.services.bridge_lanes import (
     bridge_lane_payload,
     normalize_bridge_circuit,
 )
+from app.services.receipt_provenance import (
+    collect_public_receipts_for_hashes,
+    summarize_public_receipts,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _proof_lookup_hashes(payload: dict[str, Any], requested_hash: str) -> set[str]:
+    bridge_statement = payload.get("bridge_statement") if isinstance(payload.get("bridge_statement"), dict) else {}
+    bridge_proof = payload.get("bridge_proof") if isinstance(payload.get("bridge_proof"), dict) else {}
+    ezkl_proof = payload.get("ezkl_proof") if isinstance(payload.get("ezkl_proof"), dict) else {}
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    hashes = {
+        str(requested_hash or "").strip().lower(),
+        str(payload.get("commitment_hash") or "").strip().lower(),
+        str(bridge_proof.get("proof_hash") or "").strip().lower(),
+        str(ezkl_proof.get("proof_hash") or "").strip().lower(),
+        str(bridge_statement.get("fact_hash") or "").strip().lower(),
+        str(bridge_statement.get("bridge_fact_hash") or "").strip().lower(),
+        str(metadata.get("fact_hash") or "").strip().lower(),
+        str(metadata.get("bridge_fact_hash") or "").strip().lower(),
+    }
+    hashes.discard("")
+    return hashes
+
+
+async def _attach_public_receipts(payload: dict[str, Any], requested_hash: str) -> dict[str, Any]:
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    user_address = (
+        payload.get("user_address")
+        or payload.get("user")
+        or metadata.get("user_address")
+        or metadata.get("user")
+        or ""
+    )
+    public_receipts = await collect_public_receipts_for_hashes(
+        _proof_lookup_hashes(payload, requested_hash),
+        user_address=user_address,
+    )
+    enriched = dict(payload)
+    enriched["public_receipts"] = public_receipts
+    enriched["public_receipt_summary"] = summarize_public_receipts(public_receipts)
+    return enriched
 
 
 # ── Request Models ──────────────────────────────────────────────────────
@@ -262,13 +304,13 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
         pipeline = get_proof_pipeline()
         for v in pipeline._cache.values():
             if v.get("commitment_hash") == proof_hash:
-                return v
+                return await _attach_public_receipts(v, proof_hash)
             bp = v.get("bridge_proof") or {}
             if bp.get("proof_hash") == proof_hash:
-                return v
+                return await _attach_public_receipts(v, proof_hash)
             ep = v.get("ezkl_proof") or {}
             if ep.get("proof_hash") == proof_hash:
-                return v
+                return await _attach_public_receipts(v, proof_hash)
     except Exception:
         pass
 
@@ -279,7 +321,7 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
         if record is not None:
             record_dict = record.to_dict()
             metadata = record_dict.get("metadata") or {}
-            return {
+            return await _attach_public_receipts({
                 "proof_hash": record.proof_hash,
                 "status": "indexed",
                 "source": "proof_registry",
@@ -293,7 +335,7 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
                 "bridge_statement": metadata.get("bridge_statement"),
                 "metadata": metadata,
                 "registry_record": record_dict,
-            }
+            }, proof_hash)
     except Exception:
         pass
     raise HTTPException(status_code=404, detail="Proof not found")
