@@ -4,6 +4,8 @@ StarkForge / zkSyslog Explorer API Routes
 Search-first proof-aware explorer surface. Provides:
 - GET  /forge/                  Explorer homepage (HTML)
 - GET  /forge/feed              Latest proof-backed receipts/events (JSON)
+- GET  /forge/proofs            Dedicated proof feed with settlement cursors (JSON)
+- GET  /forge/proofs/page       Dedicated proofs page (HTML)
 - GET  /forge/search            Unified resolver across chain + proof objects (JSON)
 - GET  /forge/detail/{obj_type}/{obj_id}  Shared detail view (HTML or JSON)
 - GET  /forge/lane/{lane_id}    Lane-specific page (HTML, filtered feed)
@@ -408,6 +410,33 @@ async def _get_model_info(model_id: str) -> dict[str, Any] | None:
         return None
 
 
+def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    proof_rows = payload.get("proofs") if isinstance(payload.get("proofs"), list) else []
+    items: list[dict[str, Any]] = []
+    for row in proof_rows:
+        bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
+        summary = row.get("public_receipt_summary") if isinstance(row.get("public_receipt_summary"), dict) else {}
+        proof_hash = row.get("proof_hash") or row.get("commitment_hash")
+        if not proof_hash:
+            continue
+        items.append(
+            {
+                "type": "proof_job",
+                "id": str(proof_hash),
+                "proof_type": bridge_statement.get("proof_type") or row.get("proof_type", ""),
+                "lane": bridge_statement.get("lane"),
+                "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
+                "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
+                "latest_public_tx_hash": summary.get("latest_tx_hash"),
+                "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+                "public_receipts": summary.get("count", 0),
+                "source": "indexed_public" if summary.get("count") else "indexed",
+                "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
+            }
+        )
+    return items
+
+
 # ── Endpoints ───────────────────────────────────────────────────────────
 
 
@@ -698,6 +727,43 @@ async def forge_search(
             "feed": "feed",
             "detail": "detail/{type}/{id}",
             "status": "status",
+        },
+    }
+
+
+@router.get("/proofs", summary="Dedicated indexed proof feed with settlement cursors")
+async def forge_proofs_feed(
+    limit: int = Query(25, ge=1, le=100, description="Page size for proof rows"),
+    public_only: bool = Query(False, description="Keep only publicly settled proof rows"),
+    user_address: Optional[str] = Query(default=None, description="Optional user filter"),
+    cursor_timestamp: Optional[str] = Query(default=None, description="Settlement cursor timestamp"),
+    cursor_proof_hash: Optional[str] = Query(default=None, description="Settlement cursor proof hash tie-breaker"),
+) -> dict[str, Any]:
+    payload = await _get_indexed_proof_payload(
+        limit=limit,
+        user_address=user_address,
+        public_only=public_only,
+        cursor_timestamp=cursor_timestamp,
+        cursor_proof_hash=cursor_proof_hash,
+    )
+    items = _proof_feed_items_from_payload(payload)
+    return {
+        "generated_at": _ts(),
+        "count": len(items),
+        "total_results": int(payload.get("total") or 0),
+        "limit": limit,
+        "public_only": public_only,
+        "user_address": user_address,
+        "cursor_timestamp": cursor_timestamp,
+        "cursor_proof_hash": cursor_proof_hash,
+        "has_more": bool(payload.get("next_cursor")),
+        "next_cursor": payload.get("next_cursor"),
+        "items": items,
+        "paths": {
+            "self": "proofs",
+            "page": "proofs/page",
+            "detail": "detail/proof_job/{id}",
+            "search": "search?scope=proofs",
         },
     }
 
@@ -1100,6 +1166,8 @@ async def forge_paths() -> dict[str, Any]:
         "paths": {
             "home": {"method": "GET", "path": "", "description": "Explorer homepage (HTML)"},
             "feed": {"method": "GET", "path": "feed", "description": "Latest proof-backed receipts; each item has detail_href"},
+            "proofs": {"method": "GET", "path": "proofs", "description": "Dedicated proof feed with settlement cursors"},
+            "proofs_page": {"method": "GET", "path": "proofs/page", "description": "Dedicated proofs page backed by the cursor feed"},
             "search": {"method": "GET", "path": "search", "description": "Unified search; results have detail_href per item"},
             "detail": {"method": "GET", "path": "detail/{type}/{id}", "description": "Any object; relationships include href to related objects"},
             "status": {"method": "GET", "path": "status", "description": "System status (receipts, proofs, lanes)"},
@@ -1110,6 +1178,146 @@ async def forge_paths() -> dict[str, Any]:
         "object_types": ["receipt", "fact", "proof_job", "model", "transaction", "block", "contract", "entity"],
         "evidence_flow": "action → proof job → fact → L3 tx → block (follow Relationships on each detail page)",
     }
+
+
+@router.get("/proofs/page", response_class=HTMLResponse, summary="Dedicated proofs page")
+async def forge_proofs_page(
+    request: Request,
+    limit: int = Query(25, ge=1, le=100),
+    public_only: bool = Query(False),
+    user_address: Optional[str] = Query(default=None),
+) -> HTMLResponse:
+    status = await forge_status()
+    payload = await forge_proofs_feed(limit=limit, public_only=public_only, user_address=user_address)
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
+
+    rows = ""
+    for item in items:
+        proof_id = str(item.get("id", "-"))
+        short_id = proof_id[:12] + "..." + proof_id[-8:] if len(proof_id) > 24 else proof_id
+        detail_url = f"../detail/proof_job/{quote(proof_id, safe='')}"
+        rows += f"""<tr>
+  <td><a href="{detail_url}"><code>{escape(short_id)}</code></a></td>
+  <td>{escape(str(item.get("model_name", "-")))}</td>
+  <td>{escape(str(item.get("lane", "-")))}</td>
+  <td>{escape(str(item.get("proof_type", "-")))}</td>
+  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
+  <td class="muted">{escape(str(item.get("latest_public_timestamp", "-")))}</td>
+</tr>"""
+    if not rows:
+        rows = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">No proofs for this selection yet.</td></tr>'
+
+    cursor_json = escape(str(next_cursor.get("timestamp", ""))) if next_cursor else ""
+    cursor_proof = escape(str(next_cursor.get("proof_hash", ""))) if next_cursor else ""
+    checked = "checked" if public_only else ""
+    user_value = escape(user_address or "")
+
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proofs — zkSyslog</title>
+<style>
+:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
+a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
+.container {{ max-width: 1100px; margin: 0 auto; }}
+nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
+.muted {{ color: var(--muted); }}
+.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
+.toolbar input[type=text] {{ min-width: 380px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
+.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
+.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
+.toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
+table {{ width:100%; border-collapse:collapse; }}
+.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
+th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
+td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; }}
+code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
+.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
+</style>
+</head>
+<body>
+<div class="container">
+<nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../search?scope=proofs">Search</a></nav>
+<h1>Dedicated Proof Feed</h1>
+<p class="muted" style="margin-top:4px">Indexed proof jobs ordered by latest public settlement, with stable settlement cursors.</p>
+
+<div class="toolbar">
+  <label>User <input id="user-address" type="text" value="{user_value}" placeholder="0x... optional" /></label>
+  <label><input id="public-only" type="checkbox" {checked} /> public settled only</label>
+  <button id="apply-filters" type="button">Apply</button>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Proof</th><th>Model</th><th>Lane</th><th>Proof Type</th><th>Latest Public Tx</th><th>Settled At</th></tr></thead>
+<tbody id="proof-table-body">{rows}</tbody>
+</table>
+</div>
+<div class="footer">
+  <span class="muted" id="proof-summary">Showing {len(items)} of {payload.get("total_results", 0)} proof(s)</span>
+  <button id="load-more" type="button" {'style="display:none"' if not next_cursor else ''}>Load more</button>
+</div>
+</div>
+<script>
+const bodyEl = document.getElementById("proof-table-body");
+const loadMoreBtn = document.getElementById("load-more");
+const summaryEl = document.getElementById("proof-summary");
+const userInput = document.getElementById("user-address");
+const publicOnlyInput = document.getElementById("public-only");
+let nextCursor = {{"timestamp": "{cursor_json}", "proof_hash": "{cursor_proof}" }};
+let shownCount = {len(items)};
+let totalResults = {int(payload.get("total_results", 0) or 0)};
+function buildUrl(useCursor) {{
+  const params = new URLSearchParams();
+  params.set("limit", {limit!r});
+  if (publicOnlyInput.checked) params.set("public_only", "true");
+  if (userInput.value.trim()) params.set("user_address", userInput.value.trim());
+  if (useCursor && nextCursor && nextCursor.timestamp) {{
+    params.set("cursor_timestamp", nextCursor.timestamp);
+    params.set("cursor_proof_hash", nextCursor.proof_hash || "");
+  }}
+  return "../proofs?" + params.toString();
+}}
+function renderRows(items) {{
+  for (const item of items) {{
+    const tr = document.createElement("tr");
+    const id = item.id || "-";
+    const shortId = id.length > 24 ? id.slice(0, 12) + "..." + id.slice(-8) : id;
+    tr.innerHTML = '<td><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code>' + shortId + '</code></a></td>' +
+      '<td>' + (item.model_name || '-') + '</td>' +
+      '<td>' + (item.lane || '-') + '</td>' +
+      '<td>' + (item.proof_type || '-') + '</td>' +
+      '<td>' + (item.latest_public_tx_hash || '-') + '</td>' +
+      '<td class="muted">' + (item.latest_public_timestamp || '-') + '</td>';
+    bodyEl.appendChild(tr);
+  }}
+}}
+function updateSummary() {{
+  summaryEl.textContent = 'Showing ' + shownCount + ' of ' + totalResults + ' proof(s)';
+}}
+async function refresh(useCursor) {{
+  const resp = await fetch(buildUrl(useCursor));
+  const data = await resp.json();
+  const items = data.items || [];
+  if (!useCursor) {{
+    bodyEl.innerHTML = '';
+    shownCount = 0;
+    totalResults = data.total_results || 0;
+  }}
+  renderRows(items);
+  shownCount += items.length;
+  nextCursor = data.next_cursor || null;
+  loadMoreBtn.style.display = nextCursor ? 'inline-block' : 'none';
+  updateSummary();
+}}
+document.getElementById("apply-filters").addEventListener("click", function() {{ refresh(false); }});
+loadMoreBtn.addEventListener("click", function() {{ refresh(true); }});
+</script>
+</body>
+</html>""")
 
 
 @router.get("/lane/{lane_id}", response_class=HTMLResponse, summary="Lane-specific explorer page")
@@ -1577,6 +1785,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
         <span class="sub">zkSyslog Explorer</span>
       </div>
       <nav class="explorer-top-nav">
+        <a href="proofs/page" class="explorer-top-link">Proofs</a>
         <a href="health" class="explorer-top-link">Health</a>
         <a href="proving" class="explorer-top-link">Proving</a>
       </nav>
@@ -1672,7 +1881,7 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       <h3>Explorer API</h3>
       <p class="paths-desc">This surface is proof-aware, not just L3. Follow <strong>Feed</strong> and <strong>Search</strong> into <strong>Detail</strong>; on each detail page use <strong>Relationships</strong> to go to linked facts, transactions, blocks, proof jobs, models. Every API response includes <code>detail_href</code> or <code>href</code> so you can traverse without constructing URLs.</p>
       <p class="paths-flow"><strong>Evidence flow:</strong> action → proof job → fact → L3 tx → block</p>
-      <p><a href="paths" class="muted-link">Paths (JSON)</a> · <a href="feed" class="muted-link">Feed</a> · <a href="search" class="muted-link">Search</a> · <a href="status" class="muted-link">Status</a></p>
+      <p><a href="paths" class="muted-link">Paths (JSON)</a> · <a href="feed" class="muted-link">Feed</a> · <a href="proofs" class="muted-link">Proofs Feed</a> · <a href="proofs/page" class="muted-link">Proofs Page</a> · <a href="search" class="muted-link">Search</a> · <a href="status" class="muted-link">Status</a></p>
     </div>
 
     <footer class="explorer-footer">

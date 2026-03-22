@@ -21,6 +21,12 @@ def test_forge_feed(client):
     if r.status_code == 404:
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
+def test_forge_proofs_feed(client):
+    r = client.get(BASE + "/proofs")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "items" in r.json()
 def test_forge_search(client):
     r = client.get(BASE + "/search")
     if r.status_code == 404:
@@ -62,6 +68,13 @@ def test_forge_proving(client):
     if r.status_code == 404:
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
+def test_forge_proofs_page(client):
+    r = client.get(BASE + "/proofs/page")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "Dedicated Proof Feed" in r.text
+    assert "Load more" in r.text
 def test_forge_detail_receipt_html(client):
     r = client.get(BASE + "/detail/receipt/nonexistent-123", headers={"Accept": "text/html"})
     if r.status_code == 404:
@@ -298,3 +311,45 @@ def test_forge_search_scope_proofs_returns_cursor(client, monkeypatch):
         "proof_hash": "0xproof1",
     }
     assert payload["results"]["proofs"][0]["id"] == "0xproof1"
+
+
+def test_forge_proofs_feed_returns_cursor_payload(client, monkeypatch):
+    async def fake_get_indexed_proof_payload(**kwargs):
+        return {
+            "proofs": [
+                {
+                    "proof_hash": "0xproof1",
+                    "proof_type": "groth16",
+                    "model_name": "yield_forecast",
+                    "bridge_statement": {
+                        "proof_type": "groth16",
+                        "lane": "modelbridge",
+                        "model_name": "yield_forecast",
+                        "fact_hash": "0xfact1",
+                    },
+                    "public_receipt_summary": {
+                        "count": 1,
+                        "latest_tx_hash": "0xl2tx",
+                        "latest_timestamp": "2026-03-22T05:00:00Z",
+                    },
+                }
+            ],
+            "total": 10,
+            "next_cursor": {
+                "timestamp": "2026-03-22T05:00:00Z",
+                "proof_hash": "0xproof1",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_indexed_proof_payload", fake_get_indexed_proof_payload)
+
+    r = client.get(BASE + "/proofs", params={"limit": 1})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["next_cursor"] == {
+        "timestamp": "2026-03-22T05:00:00Z",
+        "proof_hash": "0xproof1",
+    }
+    assert payload["items"][0]["id"] == "0xproof1"
