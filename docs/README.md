@@ -71,7 +71,7 @@ Public report: [zkde.fi/test](https://zkde.fi/test)
 Backend bridge lane metadata: `GET /api/v1/zkdefi/proofs/bridge-lanes`
 Public proof dashboard API: `GET /api/v1/zkdefi/public-proof-dashboard`
 Public proof dashboard markdown: `GET /api/v1/zkdefi/public-proof-dashboard/markdown`
-Proof lookup with public settlement provenance: `GET /api/v1/zkdefi/proofs/{proof_hash}`
+Proof lookup with public settlement provenance: `GET /api/v1/zkdefi/proofs/{proof_hash}` (accepts full digest or felt-safe on-chain alias)
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`

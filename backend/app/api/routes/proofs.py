@@ -317,7 +317,8 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
     try:
         from app.services.proof_registry import get_proof_registry
 
-        record = get_proof_registry().get_proof(proof_hash)
+        registry = get_proof_registry()
+        record = registry.get_proof_by_alias(proof_hash) if hasattr(registry, "get_proof_by_alias") else registry.get_proof(proof_hash)
         if record is not None:
             record_dict = record.to_dict()
             metadata = record_dict.get("metadata") or {}

@@ -38,6 +38,18 @@ ACCOUNT_PATH = os.getenv("EXECUTOR_ACCOUNT_PATH", "/root/.starkli-wallets/deploy
 AGENT_ID = int.from_bytes(b"zkdefi", "big")
 
 
+def _normalize_proof_lookup_hash(value: object) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    if text.startswith("0x"):
+        try:
+            return hex(int(text, 16) & ((1 << 252) - 1))
+        except ValueError:
+            return f"0x{text[2:].lstrip('0') or '0'}"
+    return text
+
+
 # ── Data model ──────────────────────────────────────────────────────────
 
 @dataclass
@@ -188,6 +200,36 @@ class ProofRegistryService:
                 "SELECT * FROM proofs WHERE proof_hash = ?", (proof_hash,)
             ).fetchone()
             return self._row_to_record(row) if row else None
+        finally:
+            conn.close()
+
+    def get_proof_by_alias(self, proof_hash: str) -> ProofRecord | None:
+        record = self.get_proof(proof_hash)
+        if record is not None:
+            return record
+
+        normalized = _normalize_proof_lookup_hash(proof_hash)
+        if not normalized:
+            return None
+
+        conn = self._conn()
+        try:
+            rows = conn.execute("SELECT * FROM proofs ORDER BY created_at DESC").fetchall()
+            for row in rows:
+                record = self._row_to_record(row)
+                metadata = record.to_dict().get("metadata") or {}
+                bridge_statement = metadata.get("bridge_statement") if isinstance(metadata.get("bridge_statement"), dict) else {}
+                aliases = {
+                    _normalize_proof_lookup_hash(record.proof_hash),
+                    _normalize_proof_lookup_hash(metadata.get("fact_hash")),
+                    _normalize_proof_lookup_hash(metadata.get("bridge_fact_hash")),
+                    _normalize_proof_lookup_hash(bridge_statement.get("fact_hash")),
+                    _normalize_proof_lookup_hash(bridge_statement.get("bridge_fact_hash")),
+                }
+                aliases.discard("")
+                if normalized in aliases:
+                    return record
+            return None
         finally:
             conn.close()
 
