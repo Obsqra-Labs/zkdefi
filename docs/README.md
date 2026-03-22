@@ -76,6 +76,8 @@ Indexed public proof feed: `GET /api/v1/zkdefi/proofs/?source=indexed&public_onl
 Indexed public proof feed cursor mode: `GET /api/v1/zkdefi/proofs/?source=indexed&sort_by=latest_public_settlement&limit=...&cursor_timestamp=...&cursor_proof_hash=...` (returns `next_cursor`)
 Forge proof views now consume that indexed proof path for public-settled proof jobs.
 Forge `receipt`, `fact`, and `proof_job` detail views now resolve through the same indexed proof/public-settlement provenance path when a linked proof exists.
+Forge proof-scope search now passes through the same settlement cursor contract, so paging no longer depends on proof-feed offsets.
+Forge `transaction` detail now resolves linked proof/fact/model provenance when the tx is a public settlement, instead of showing only raw RPC receipt data.
 Public-only receipt feeds:
 - `GET /api/v1/zkdefi/receipts?address=...&public_only=true`
 - `GET /api/v1/zkdefi/receipts/on-chain/{address}?public_only=true`

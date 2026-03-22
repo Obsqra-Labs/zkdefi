@@ -209,3 +209,92 @@ def test_forge_detail_fact_uses_indexed_provenance(client, monkeypatch):
     assert payload["summary"]["status"] == "public_settled"
     assert payload["summary"]["proof_hash"] == "0xproof1"
     assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])
+
+
+def test_forge_detail_transaction_uses_indexed_provenance(client, monkeypatch):
+    async def fake_get_tx_receipt(tx_hash: str):
+        assert tx_hash == "0xl2tx"
+        return {
+            "finality_status": "ACCEPTED_ON_L2",
+            "execution_status": "SUCCEEDED",
+            "block_number": 123,
+        }
+
+    async def fake_find_proof_record_by_public_tx(tx_hash: str):
+        assert tx_hash == "0xl2tx"
+        return {
+            "proof_hash": "0xproof1",
+            "source": "proof_registry",
+            "model_name": "yield_forecast",
+            "proof_type": "groth16",
+            "bridge_statement": {
+                "lane": "modelbridge",
+                "proof_type": "groth16",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact1",
+            },
+            "public_receipts": [
+                {
+                    "tx_hash": "0xl2tx",
+                    "public_chain": "starknet_l2",
+                    "timestamp": "2026-03-22T05:00:00Z",
+                }
+            ],
+            "public_receipt_summary": {
+                "count": 1,
+                "latest_tx_hash": "0xl2tx",
+                "latest_timestamp": "2026-03-22T05:00:00Z",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_tx_receipt", fake_get_tx_receipt)
+    monkeypatch.setattr(forge_routes, "_find_proof_record_by_public_tx", fake_find_proof_record_by_public_tx)
+
+    r = client.get(BASE + "/detail/transaction/0xl2tx")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "public_settled"
+    assert payload["summary"]["tx_status"] == "ACCEPTED_ON_L2"
+    assert any(rel["type"] == "proof_job" and rel["id"] == "0xproof1" for rel in payload["relationships"])
+
+
+def test_forge_search_scope_proofs_returns_cursor(client, monkeypatch):
+    async def fake_get_indexed_proof_payload(**kwargs):
+        return {
+            "proofs": [
+                {
+                    "proof_hash": "0xproof1",
+                    "proof_type": "groth16",
+                    "model_name": "yield_forecast",
+                    "bridge_statement": {
+                        "proof_type": "groth16",
+                        "model_name": "yield_forecast",
+                    },
+                    "public_receipt_summary": {
+                        "count": 1,
+                        "latest_tx_hash": "0xl2tx",
+                        "latest_timestamp": "2026-03-22T05:00:00Z",
+                    },
+                }
+            ],
+            "total": 10,
+            "next_cursor": {
+                "timestamp": "2026-03-22T05:00:00Z",
+                "proof_hash": "0xproof1",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_indexed_proof_payload", fake_get_indexed_proof_payload)
+
+    r = client.get(BASE + "/search", params={"scope": "proofs", "limit": 1})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["next_cursor"] == {
+        "timestamp": "2026-03-22T05:00:00Z",
+        "proof_hash": "0xproof1",
+    }
+    assert payload["results"]["proofs"][0]["id"] == "0xproof1"

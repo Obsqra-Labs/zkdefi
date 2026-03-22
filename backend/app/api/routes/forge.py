@@ -914,6 +914,7 @@ async def forge_detail(
         timeline = [{"stage": "indexed", "status": "complete", "source": "index", "detail": obj_id}]
     elif obj_type in ("transaction", "tx"):
         tx_rec = await _get_tx_receipt(obj_id)
+        proof_rec = await _find_proof_record_by_public_tx(obj_id)
         if tx_rec:
             status = (tx_rec.get("finality_status") or tx_rec.get("status") or "UNKNOWN")
             block_num = tx_rec.get("block_number")
@@ -923,13 +924,64 @@ async def forge_detail(
                 "block_number": block_num,
                 "execution_status": tx_rec.get("execution_status", ""),
             })
-            timeline = [
-                {"stage": "submitted", "status": "complete", "source": "rpc", "detail": "transaction"},
-                {"stage": "accepted_l2", "status": "complete" if status in ("ACCEPTED_ON_L2", "ACCEPTED_ON_L1") else "pending", "source": "rpc", "detail": status},
-                {"stage": "accepted_l1", "status": "complete" if status == "ACCEPTED_ON_L1" else "pending", "source": "rpc", "detail": status},
-            ]
+            timeline = []
+            if proof_rec:
+                proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+                summary.update(proof_summary)
+                summary["tx_status"] = status
+                summary["execution_status"] = tx_rec.get("execution_status", "")
+                summary["block_number"] = block_num
+                summary["source"] = "public"
+                timeline.extend([row for row in proof_timeline if row.get("stage") != "public_settlement"])
+                _append_unique_relationship(
+                    relationships,
+                    rel_type="proof_job",
+                    rel_id=str(proof_summary.get("proof_hash") or ""),
+                    label="Proof Job",
+                    verb="settles_with",
+                    source="indexed",
+                )
+                for rel in proof_relationships:
+                    _append_unique_relationship(
+                        relationships,
+                        rel_type=str(rel.get("type") or ""),
+                        rel_id=str(rel.get("id") or ""),
+                        label=str(rel.get("label") or ""),
+                        verb=str(rel.get("verb") or ""),
+                        source=str(rel.get("source") or ""),
+                    )
+            timeline.extend(
+                [
+                    {"stage": "submitted", "status": "complete", "source": "rpc", "detail": "transaction"},
+                    {"stage": "accepted_l2", "status": "complete" if status in ("ACCEPTED_ON_L2", "ACCEPTED_ON_L1") else "pending", "source": "rpc", "detail": status},
+                    {"stage": "accepted_l1", "status": "complete" if status == "ACCEPTED_ON_L1" else "pending", "source": "rpc", "detail": status},
+                ]
+            )
             if block_num is not None:
                 relationships.append({"type": "block", "id": str(block_num), "label": "Block", "verb": "included_in", "source": "rpc"})
+        elif proof_rec:
+            proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            summary.update(proof_summary)
+            summary["source"] = "public"
+            summary["tx_hash"] = obj_id
+            timeline = proof_timeline
+            _append_unique_relationship(
+                relationships,
+                rel_type="proof_job",
+                rel_id=str(proof_summary.get("proof_hash") or ""),
+                label="Proof Job",
+                verb="settles_with",
+                source="indexed",
+            )
+            for rel in proof_relationships:
+                _append_unique_relationship(
+                    relationships,
+                    rel_type=str(rel.get("type") or ""),
+                    rel_id=str(rel.get("id") or ""),
+                    label=str(rel.get("label") or ""),
+                    verb=str(rel.get("verb") or ""),
+                    source=str(rel.get("source") or ""),
+                )
     elif obj_type == "block":
         block_id = obj_id if obj_id == "latest" else (int(obj_id) if str(obj_id).isdigit() else None)
         if block_id is not None:
@@ -1652,33 +1704,98 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     }});
 
     const groupToType = {{ receipts: "receipt", proofs: "proof_job", contracts: "contract", facts: "fact", models: "model", entities: "entity" }};
-    async function doSearch() {{
+    function isProofCursorMode(q) {{
+      return activeScope === "proofs" && !q;
+    }}
+    function resetSearchPagination() {{
       window._searchOffset = 0;
+      window._searchCursor = null;
+      window._searchTotalShown = 0;
+    }}
+    function buildSearchUrl(q, append) {{
+      const params = new URLSearchParams();
+      params.set("q", q);
+      if (activeScope && activeScope !== "all") params.set("scope", activeScope);
+      params.set("limit", "25");
+      if (isProofCursorMode(q)) {{
+        if (append && window._searchCursor) {{
+          if (window._searchCursor.timestamp) params.set("cursor_timestamp", window._searchCursor.timestamp);
+          if (window._searchCursor.proof_hash) params.set("cursor_proof_hash", window._searchCursor.proof_hash);
+        }}
+      }} else {{
+        params.set("offset", String(append ? (window._searchOffset || 0) : 0));
+      }}
+      return "/api/v1/zkdefi/forge/search?" + params.toString();
+    }}
+    function ensureResultGroup(group, itemsLength) {{
+      var groupEl = document.getElementById("result-group-" + group);
+      if (!groupEl) {{
+        groupEl = document.createElement("div");
+        groupEl.className = "result-group";
+        groupEl.id = "result-group-" + group;
+        groupEl.innerHTML = '<h4>' + group + ' (' + itemsLength + ')</h4>';
+        searchBody.appendChild(groupEl);
+      }} else {{
+        var header = groupEl.querySelector("h4");
+        if (header) {{
+          var currentCount = groupEl.querySelectorAll(".result-item").length + itemsLength;
+          header.textContent = group + " (" + currentCount + ")";
+        }}
+      }}
+      return groupEl;
+    }}
+    function appendResultItems(group, items) {{
+      if (!items || items.length === 0) return 0;
+      const objType = groupToType[group] || "receipt";
+      const groupEl = ensureResultGroup(group, items.length);
+      for (const item of items) {{
+        const id = (item.id || "-").replace(/"/g, "&quot;");
+        const href = "detail/" + objType + "/" + encodeURIComponent(item.id || "");
+        const div = document.createElement("div");
+        div.className = "result-item";
+        div.innerHTML = '<a href="' + href + '"><code>' + id + '</code></a> &mdash; ' + (item.action || item.proof_type || group) + ' <span class="muted">' + (item.timestamp || item.latest_public_timestamp || "") + '</span>';
+        groupEl.appendChild(div);
+      }}
+      return items.length;
+    }}
+    function renderSearchResults(data, q, append) {{
+      var scopeLabel = data.scope || "all";
+      var queryLabel = q ? ' for "' + q.replace(/"/g, "&quot;") + '"' : "";
+      if (!append) {{
+        searchBody.innerHTML = '<p class="muted">Found ' + (data.total_results || 0) + ' result(s)' + queryLabel + ' (scope: ' + scopeLabel + ')</p>';
+      }}
+      let appendedCount = 0;
+      for (const [group, items] of Object.entries(data.results || {{}})) {{
+        appendedCount += appendResultItems(group, items || []);
+      }}
+      if (!append && (data.total_results || 0) === 0) {{
+        searchBody.innerHTML += '<p class="muted">No matches. Try a different scope or query.</p>';
+      }}
+      window._searchTotalShown = append ? ((window._searchTotalShown || 0) + appendedCount) : appendedCount;
+      if (!isProofCursorMode(q)) {{
+        window._searchOffset = (data.offset || 0) + (data.limit || 25);
+        window._searchCursor = null;
+      }} else {{
+        window._searchOffset = 0;
+        window._searchCursor = data.next_cursor || null;
+      }}
+      var loadMoreWrap = document.getElementById("search-load-more-wrap");
+      var hasMore = isProofCursorMode(q) ? !!data.next_cursor : !!data.has_more;
+      if (loadMoreWrap) loadMoreWrap.style.display = hasMore ? "block" : "none";
+      var firstP = searchBody.querySelector("p.muted");
+      if (firstP) {{
+        var shown = window._searchTotalShown || 0;
+        var total = data.total_results || shown;
+        firstP.textContent = "Showing " + shown + " of " + total + " result(s)" + queryLabel + " (scope: " + scopeLabel + ")";
+      }}
+    }}
+    async function doSearch() {{
+      resetSearchPagination();
       const q = searchInput.value.trim();
       try {{
-        const url = "/api/v1/zkdefi/forge/search?q=" + encodeURIComponent(q) + (activeScope && activeScope !== "all" ? "&scope=" + encodeURIComponent(activeScope) : "") + "&limit=25&offset=" + (window._searchOffset || 0);
-        const resp = await fetch(url);
+        const resp = await fetch(buildSearchUrl(q, false));
         const data = await resp.json();
-        var scopeLabel = data.scope || "all";
-        var queryLabel = q ? ' for "' + q.replace(/"/g, "&quot;") + '"' : "";
-        let html = '<p class="muted">Found ' + data.total_results + ' result(s)' + queryLabel + ' (scope: ' + scopeLabel + ')</p>';
-        for (const [group, items] of Object.entries(data.results || {{}})) {{
-          if (items.length === 0) continue;
-          const objType = groupToType[group] || "receipt";
-          html += '<div class="result-group" id="result-group-' + group + '"><h4>' + group + ' (' + items.length + ')</h4>';
-          for (const item of items) {{
-            const id = (item.id || "-").replace(/"/g, "&quot;");
-            const href = "detail/" + objType + "/" + encodeURIComponent(item.id || "");
-            html += '<div class="result-item"><a href="' + href + '"><code>' + id + '</code></a> &mdash; ' + (item.action || item.proof_type || group) + ' <span class="muted">' + (item.timestamp || "") + '</span></div>';
-          }}
-          html += '</div>';
-        }}
-        if (data.total_results === 0) html += '<p class="muted">No matches. Try a different scope or query.</p>';
-        searchBody.innerHTML = html;
-        window._searchOffset = (data.offset || 0) + (data.limit || 25);
-        window._searchTotalShown = data.total_results || 0;
-        var loadMoreWrap = document.getElementById("search-load-more-wrap");
-        if (loadMoreWrap) loadMoreWrap.style.display = (data.has_more && data.total_results > 0) ? "block" : "none";
+        renderSearchResults(data, q, false);
         searchResults.style.display = "block";
         searchResults.scrollIntoView({{ behavior: "smooth", block: "nearest" }});
         if (q || (activeScope && activeScope !== "all")) {{
@@ -1698,32 +1815,10 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     searchInput.addEventListener("keydown", (e) => {{ if (e.key === "Enter") doSearch(); }});
     async function loadMore() {{
       const q = searchInput.value.trim();
-      const offset = window._searchOffset || 0;
-      const url = "/api/v1/zkdefi/forge/search?q=" + encodeURIComponent(q) + (activeScope && activeScope !== "all" ? "&scope=" + encodeURIComponent(activeScope) : "") + "&limit=25&offset=" + offset;
       try {{
-        const resp = await fetch(url);
+        const resp = await fetch(buildSearchUrl(q, true));
         const data = await resp.json();
-        const receipts = (data.results && data.results.receipts) ? data.results.receipts : [];
-        var groupEl = document.getElementById("result-group-receipts");
-        if (groupEl && receipts.length > 0) {{
-          for (var i = 0; i < receipts.length; i++) {{
-            var item = receipts[i];
-            var id = (item.id || "-").replace(/"/g, "&quot;");
-            var href = "detail/receipt/" + encodeURIComponent(item.id || "");
-            var div = document.createElement("div");
-            div.className = "result-item";
-            div.innerHTML = '<a href="' + href + '"><code>' + id + '</code></a> &mdash; ' + (item.action || item.proof_type || "receipt") + ' <span class="muted">' + (item.timestamp || "") + '</span>';
-            groupEl.appendChild(div);
-          }}
-          window._searchTotalShown = (window._searchTotalShown || 0) + receipts.length;
-          var firstP = searchBody.querySelector("p.muted");
-          var scopeLabel = data.scope || "all";
-          var queryLabel = q ? ' for "' + q.replace(/"/g, "&quot;") + '"' : "";
-          if (firstP) firstP.textContent = "Found " + window._searchTotalShown + " result(s)" + queryLabel + " (scope: " + scopeLabel + ")";
-        }}
-        window._searchOffset = (data.offset || 0) + (data.limit || 25);
-        var loadMoreWrap = document.getElementById("search-load-more-wrap");
-        if (loadMoreWrap) loadMoreWrap.style.display = data.has_more ? "block" : "none";
+        renderSearchResults(data, q, true);
       }} catch (e) {{
         var w = document.getElementById("search-load-more-wrap");
         if (w) w.style.display = "none";
