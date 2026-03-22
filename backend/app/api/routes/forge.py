@@ -51,6 +51,47 @@ def _ts() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _normalize_timestamp(value: object) -> str | None:
+    from datetime import datetime, timezone
+
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(float(value), timezone.utc).isoformat()
+    text = str(value).strip()
+    if not text:
+        return None
+    if re.fullmatch(r"\d+(?:\.\d+)?", text):
+        try:
+            return datetime.fromtimestamp(float(text), timezone.utc).isoformat()
+        except Exception:
+            return text
+    return text
+
+
+def _binding_profile_label(profile: object) -> str | None:
+    if isinstance(profile, dict):
+        version = str(profile.get("statement_version") or "").strip()
+        keys = (
+            "binds_ezkl_proof_hash",
+            "binds_model_hash",
+            "binds_output_bounds",
+            "binds_output_commitment",
+            "binds_output_vector",
+            "binds_timestamp",
+        )
+        flags = [bool(profile.get(key)) for key in keys]
+        if flags and all(flags):
+            base = "full"
+        elif any(flags):
+            base = "partial"
+        else:
+            base = "minimal"
+        return f"{base} / {version}" if version else base
+    text = str(profile or "").strip()
+    return text or None
+
+
 def _classify_query(q: str) -> str:
     """Heuristic classifier for search queries."""
     q = q.strip()
@@ -223,9 +264,11 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
                 "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
                 "verified": bool(summary.get("count")),
                 "lane": bridge_statement.get("lane"),
+                "binding_profile": bridge_statement.get("binding_profile"),
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
-                "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+                "latest_public_timestamp": _normalize_timestamp(summary.get("latest_timestamp")),
+                "latest_activity_timestamp": _normalize_timestamp(row.get("created_at")),
                 "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
             }
         )
@@ -304,6 +347,8 @@ def _proof_record_components(proof_rec: dict[str, Any]) -> tuple[dict[str, Any],
         "fact_hash": fact_hash,
         "proof_type": bridge_statement.get("proof_type") or proof_rec.get("proof_type"),
         "lane": bridge_statement.get("lane"),
+        "binding_profile": bridge_statement.get("binding_profile"),
+        "binding_profile_label": _binding_profile_label(bridge_statement.get("binding_profile")),
         "model": model_name or "",
         "latest_public_tx_hash": settlement.get("latest_tx_hash"),
         "public_receipts": settlement.get("count", 0),
@@ -451,10 +496,12 @@ def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, An
                 "id": str(proof_hash),
                 "proof_type": bridge_statement.get("proof_type") or row.get("proof_type", ""),
                 "lane": bridge_statement.get("lane"),
+                "binding_profile": bridge_statement.get("binding_profile"),
                 "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
                 "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
                 "latest_public_tx_hash": summary.get("latest_tx_hash"),
-                "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+                "latest_public_timestamp": _normalize_timestamp(summary.get("latest_timestamp")),
+                "latest_activity_timestamp": _normalize_timestamp(row.get("created_at")),
                 "public_receipts": summary.get("count", 0),
                 "source": "indexed_public" if summary.get("count") else "indexed",
                 "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
@@ -634,18 +681,15 @@ async def _get_model_rows(
     public_only: bool = False,
     lane: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
-    model_proofs = await _list_proofs_for_search(200)
-    latest_by_model: dict[str, dict[str, Any]] = {}
+    model_proofs = await _list_proofs_for_search(5000)
+    proofs_by_model: dict[str, list[dict[str, Any]]] = {}
     for proof in model_proofs:
         model_key = str(proof.get("model_name") or "").strip().lower()
         if not model_key:
             continue
         if lane and str(proof.get("lane") or "").strip().lower() != str(lane).strip().lower():
             continue
-        if public_only and not proof.get("latest_public_tx_hash"):
-            continue
-        if model_key not in latest_by_model:
-            latest_by_model[model_key] = proof
+        proofs_by_model.setdefault(model_key, []).append(proof)
 
     rows: list[dict[str, Any]] = []
     query = q.lower().strip()
@@ -654,29 +698,66 @@ async def _get_model_rows(
         if query and query not in name.lower():
             continue
         model_key = str(m.get("id") or name).strip().lower()
-        proof = latest_by_model.get(model_key) or {}
-        if public_only and not proof:
+        proofs = proofs_by_model.get(model_key) or []
+        public_proofs = [proof for proof in proofs if proof.get("latest_public_tx_hash")]
+        if public_only and not public_proofs:
             continue
+
+        latest_proof = max(
+            proofs,
+            key=lambda proof: (
+                str(proof.get("latest_activity_timestamp") or ""),
+                str(proof.get("id") or ""),
+            ),
+            default={},
+        )
+        latest_public_proof = max(
+            public_proofs,
+            key=lambda proof: (
+                str(proof.get("latest_public_timestamp") or ""),
+                str(proof.get("id") or ""),
+            ),
+            default={},
+        )
+        lane_counts: dict[str, int] = {}
+        binding_profiles: set[str] = set()
+        for proof in proofs:
+            lane_name = str(proof.get("lane") or "").strip()
+            if lane_name:
+                lane_counts[lane_name] = lane_counts.get(lane_name, 0) + 1
+            binding_profile = str(proof.get("binding_profile") or "").strip()
+            if binding_profile:
+                binding_profiles.add(binding_profile)
+
+        graph_source = latest_public_proof or latest_proof
         rows.append(
             {
                 "id": m["id"],
                 "name": name,
                 "ready": m.get("ready", False),
-                "latest_proof_hash": proof.get("id"),
-                "latest_lane": proof.get("lane"),
-                "latest_public_tx_hash": proof.get("latest_public_tx_hash"),
-                "latest_public_timestamp": proof.get("latest_public_timestamp"),
-                "settlement_graph": proof.get("settlement_graph"),
+                "proof_count": len(proofs),
+                "public_proof_count": len(public_proofs),
+                "lane_counts": lane_counts,
+                "binding_profiles": sorted(binding_profiles),
+                "latest_proof_hash": latest_proof.get("id"),
+                "latest_lane": latest_proof.get("lane"),
+                "latest_binding_profile": latest_proof.get("binding_profile"),
+                "latest_activity_timestamp": latest_proof.get("latest_activity_timestamp"),
+                "latest_public_proof_hash": latest_public_proof.get("id"),
+                "latest_public_lane": latest_public_proof.get("lane"),
+                "latest_public_binding_profile": latest_public_proof.get("binding_profile"),
+                "latest_public_tx_hash": latest_public_proof.get("latest_public_tx_hash"),
+                "latest_public_timestamp": latest_public_proof.get("latest_public_timestamp"),
+                "settlement_graph": graph_source.get("settlement_graph"),
                 "detail_href": f"detail/model/{quote(str(m['id']), safe='')}",
                 "graph_href": f"graph/model/{quote(str(m['id']), safe='')}",
             }
         )
-    rows.sort(
-        key=lambda row: (
-            0 if row.get("latest_proof_hash") else 1,
-            str(row.get("name") or row.get("id") or ""),
-        )
-    )
+    rows.sort(key=lambda row: str(row.get("name") or row.get("id") or ""))
+    rows.sort(key=lambda row: str(row.get("latest_activity_timestamp") or ""), reverse=True)
+    rows.sort(key=lambda row: str(row.get("latest_public_timestamp") or ""), reverse=True)
+    rows.sort(key=lambda row: 0 if row.get("latest_proof_hash") else 1)
+    rows.sort(key=lambda row: 0 if row.get("latest_public_proof_hash") else 1)
     total = len(rows)
     return rows[offset: offset + limit], total
 
@@ -1142,7 +1223,7 @@ def _render_detail_html(
         label = escape(str(r.get("label", rel_id)))
         if rel_id and r.get("type"):
             rel_type = str(r.get("type", ""))
-            href = f"detail/{quote(rel_type, safe='')}/{quote(rel_id, safe='')}"
+            href = f"../{quote(rel_type, safe='')}/{quote(rel_id, safe='')}"
             return f'<div class="result-item"><a href="{href}"><code>{escape(rel_id[:20])}{"…" if len(rel_id) > 20 else ""}</code></a> — {label}</div>'
         return f'<div class="result-item"><code>{escape(rel_id)}</code> — {label}</div>'
 
@@ -1152,13 +1233,23 @@ def _render_detail_html(
     graph_rows = ""
     if settlement_graph:
         graph_rows += f'<div class="graph-meta muted">{len(graph_nodes)} node(s) · {len(graph_edges)} edge(s)</div>'
-        graph_rows += "".join(
-            f'<div class="result-item"><strong>{escape(str(node.get("type", "")))}</strong> '
-            f'<a href="{escape(str(node.get("href", "")))}"><code>{escape(str(node.get("id", ""))[:24])}{"…" if len(str(node.get("id", ""))) > 24 else ""}</code></a></div>'
-            if node.get("href") else
-            f'<div class="result-item"><strong>{escape(str(node.get("type", "")))}</strong> <code>{escape(str(node.get("id", "")))}</code></div>'
-            for node in graph_nodes[:10]
-        )
+        parts: list[str] = []
+        for node in graph_nodes[:10]:
+            node_type = escape(str(node.get("type", "")))
+            node_id = str(node.get("id", ""))
+            node_href = str(node.get("href", ""))
+            if node_href.startswith("detail/"):
+                node_href = "../" + node_href[len("detail/"):]
+            if node_href:
+                parts.append(
+                    f'<div class="result-item"><strong>{node_type}</strong> '
+                    f'<a href="{escape(node_href)}"><code>{escape(node_id[:24])}{"…" if len(node_id) > 24 else ""}</code></a></div>'
+                )
+            else:
+                parts.append(
+                    f'<div class="result-item"><strong>{node_type}</strong> <code>{escape(node_id)}</code></div>'
+                )
+        graph_rows += "".join(parts)
     else:
         graph_rows = '<p class="muted">No typed graph neighborhood.</p>'
 
@@ -1958,12 +2049,36 @@ async def forge_models_page(
     rows = ""
     for item in items:
         name = str(item.get("name", item.get("id", "-")))
+        latest_activity_bits = []
+        if item.get("latest_lane"):
+            latest_activity_bits.append(str(item.get("latest_lane")))
+        activity_binding_label = _binding_profile_label(item.get("latest_binding_profile"))
+        if activity_binding_label:
+            latest_activity_bits.append(activity_binding_label)
+        latest_activity_label = " / ".join(latest_activity_bits) if latest_activity_bits else "-"
+        latest_activity_hash = str(item.get("latest_proof_hash") or "-")
+        latest_activity_ts = str(item.get("latest_activity_timestamp") or "-")
+
+        latest_public_bits = []
+        if item.get("latest_public_lane"):
+            latest_public_bits.append(str(item.get("latest_public_lane")))
+        public_binding_label = _binding_profile_label(item.get("latest_public_binding_profile"))
+        if public_binding_label:
+            latest_public_bits.append(public_binding_label)
+        latest_public_label = " / ".join(latest_public_bits) if latest_public_bits else "-"
+        latest_public_tx = str(item.get("latest_public_tx_hash") or "-")
+        latest_public_ts = str(item.get("latest_public_timestamp") or "-")
+
+        lane_counts = item.get("lane_counts") if isinstance(item.get("lane_counts"), dict) else {}
+        lane_summary = ", ".join(
+            f"{lane_name}={count}" for lane_name, count in sorted(lane_counts.items())
+        ) or "-"
         rows += f"""<tr>
   <td><a href="../detail/model/{quote(str(item.get("id", "")), safe='')}">{escape(name)}</a></td>
   <td>{'ready' if item.get('ready') else 'incomplete'}</td>
-  <td>{escape(str(item.get("latest_lane", "-")))}</td>
-  <td>{escape(str(item.get("latest_proof_hash", "-")))}</td>
-  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
+  <td><div>{escape(latest_activity_label)}</div><div class="muted"><code>{escape(latest_activity_hash)}</code></div><div class="muted">{escape(latest_activity_ts)}</div></td>
+  <td><div>{escape(latest_public_label)}</div><div class="muted"><code>{escape(latest_public_tx)}</code></div><div class="muted">{escape(latest_public_ts)}</div></td>
+  <td><div>{int(item.get("proof_count", 0) or 0)} proof(s) / {int(item.get("public_proof_count", 0) or 0)} public</div><div class="muted">{escape(lane_summary)}</div></td>
   <td>{_graph_chip_html(item)}</td>
 </tr>"""
     if not rows:
@@ -1995,7 +2110,7 @@ td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; ve
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../facts/page">Facts</a></nav>
 <h1>Dedicated Model Feed</h1>
-<p class="muted" style="margin-top:4px">Provable model inventory with latest proof lane, public settlement, and graph-aware navigation.</p>
+<p class="muted" style="margin-top:4px">Provable model inventory with separate latest activity vs latest public settlement, plus bridge-lane coverage.</p>
 <div class="toolbar">
   <label>Search <input id="model-query" type="text" value="{q_value}" placeholder="yield_forecast" /></label>
   <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="noir_v2 / modelbridge" /></label>
@@ -2004,7 +2119,7 @@ td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; ve
 </div>
 <div class="table-wrap">
 <table>
-<thead><tr><th>Model</th><th>Ready</th><th>Latest Lane</th><th>Latest Proof</th><th>Latest Public Tx</th><th>Graph</th></tr></thead>
+<thead><tr><th>Model</th><th>Ready</th><th>Latest Activity</th><th>Latest Public Settlement</th><th>Coverage</th><th>Graph</th></tr></thead>
 <tbody>{rows}</tbody>
 </table>
 </div>

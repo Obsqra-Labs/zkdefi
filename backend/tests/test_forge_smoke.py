@@ -112,6 +112,53 @@ def test_forge_detail_receipt_html(client):
         pytest.skip("forge router not mounted")
     assert r.status_code == 200
     assert "zkSyslog" in r.text or "detail" in r.text.lower()
+
+
+def test_forge_detail_fact_html_uses_sibling_detail_links(client, monkeypatch):
+    async def fake_get_proof_record(proof_hash: str):
+        assert proof_hash == "0xfact1"
+        return {
+            "proof_hash": "0xproof1",
+            "source": "proof_registry",
+            "model_name": "yield_forecast",
+            "proof_type": "groth16",
+            "bridge_statement": {
+                "lane": "modelbridge",
+                "proof_type": "groth16",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact1",
+                "binding_profile": {
+                    "statement_version": "obsqra_bridge_statement_v1",
+                    "binds_ezkl_proof_hash": True,
+                    "binds_model_hash": True,
+                    "binds_output_bounds": True,
+                    "binds_output_commitment": True,
+                    "binds_output_vector": True,
+                    "binds_timestamp": True,
+                },
+            },
+            "public_receipts": [
+                {
+                    "tx_hash": "0xl2tx",
+                    "public_chain": "starknet_l2",
+                    "timestamp": "2026-03-22T05:00:00Z",
+                }
+            ],
+            "public_receipt_summary": {
+                "count": 1,
+                "latest_tx_hash": "0xl2tx",
+                "latest_timestamp": "2026-03-22T05:00:00Z",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_proof_record", fake_get_proof_record)
+
+    r = client.get(BASE + "/detail/fact/0xfact1", headers={"Accept": "text/html"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    assert "../proof_job/0xproof1" in r.text
+    assert "../transaction/0xl2tx" in r.text
 def test_forge_search_pagination(client):
     r = client.get(BASE + "/search", params={"limit": 5, "offset": 0})
     if r.status_code == 404:
@@ -430,6 +477,114 @@ def test_forge_search_scope_models_includes_settlement_graph(client, monkeypatch
     assert payload["results"]["models"][0]["id"] == "yield_forecast"
     assert payload["results"]["models"][0]["latest_lane"] == "noir_v2"
     assert payload["results"]["models"][0]["settlement_graph"]["nodes"][0]["type"] == "model"
+
+
+def test_forge_model_rows_separate_activity_from_public_settlement(client, monkeypatch):
+    monkeypatch.setattr(
+        forge_routes,
+        "_list_models_for_search",
+        lambda limit=50: [
+            {"id": "yield_forecast", "name": "yield_forecast", "ready": True},
+        ],
+    )
+
+    async def fake_list_proofs_for_search(limit=5000):
+        return [
+            {
+                "id": "0xproof_activity",
+                "lane": "noir_v2",
+                "binding_profile": "full",
+                "model_name": "yield_forecast",
+                "latest_activity_timestamp": "2026-03-22T07:00:00Z",
+                "latest_public_tx_hash": None,
+                "latest_public_timestamp": None,
+                "settlement_graph": {
+                    "nodes": [{"type": "proof_job", "id": "0xproof_activity"}],
+                    "edges": [],
+                },
+            },
+            {
+                "id": "0xproof_public",
+                "lane": "modelbridge",
+                "binding_profile": "full",
+                "model_name": "yield_forecast",
+                "latest_activity_timestamp": "2026-03-22T06:00:00Z",
+                "latest_public_tx_hash": "0xl2tx-model",
+                "latest_public_timestamp": "2026-03-22T06:05:00Z",
+                "settlement_graph": {
+                    "nodes": [{"type": "transaction", "id": "0xl2tx-model"}],
+                    "edges": [],
+                },
+            },
+        ]
+
+    monkeypatch.setattr(forge_routes, "_list_proofs_for_search", fake_list_proofs_for_search)
+
+    r = client.get(BASE + "/models")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    row = r.json()["items"][0]
+    assert row["latest_proof_hash"] == "0xproof_activity"
+    assert row["latest_activity_timestamp"] == "2026-03-22T07:00:00Z"
+    assert row["latest_public_proof_hash"] == "0xproof_public"
+    assert row["latest_public_tx_hash"] == "0xl2tx-model"
+    assert row["latest_public_timestamp"] == "2026-03-22T06:05:00Z"
+    assert row["proof_count"] == 2
+    assert row["public_proof_count"] == 1
+    assert row["lane_counts"] == {"modelbridge": 1, "noir_v2": 1}
+    assert row["settlement_graph"]["nodes"][0]["type"] == "transaction"
+
+
+def test_forge_model_rows_public_only_filters_without_public_receipts(client, monkeypatch):
+    monkeypatch.setattr(
+        forge_routes,
+        "_list_models_for_search",
+        lambda limit=50: [
+            {"id": "anomaly_detector", "name": "anomaly_detector", "ready": True},
+            {"id": "yield_forecast", "name": "yield_forecast", "ready": True},
+        ],
+    )
+
+    async def fake_list_proofs_for_search(limit=5000):
+        return [
+            {
+                "id": "0xproof_public",
+                "lane": "modelbridge",
+                "binding_profile": "full",
+                "model_name": "yield_forecast",
+                "latest_activity_timestamp": "2026-03-22T06:00:00Z",
+                "latest_public_tx_hash": "0xl2tx-model",
+                "latest_public_timestamp": "2026-03-22T06:05:00Z",
+                "settlement_graph": {
+                    "nodes": [{"type": "transaction", "id": "0xl2tx-model"}],
+                    "edges": [],
+                },
+            },
+            {
+                "id": "0xproof_internal",
+                "lane": "noir_v2",
+                "binding_profile": "full",
+                "model_name": "anomaly_detector",
+                "latest_activity_timestamp": "2026-03-22T07:00:00Z",
+                "latest_public_tx_hash": None,
+                "latest_public_timestamp": None,
+                "settlement_graph": {
+                    "nodes": [{"type": "proof_job", "id": "0xproof_internal"}],
+                    "edges": [],
+                },
+            },
+        ]
+
+    monkeypatch.setattr(forge_routes, "_list_proofs_for_search", fake_list_proofs_for_search)
+
+    r = client.get(BASE + "/models", params={"public_only": "true"})
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    rows = r.json()["items"]
+    assert len(rows) == 1
+    assert rows[0]["id"] == "yield_forecast"
 
 
 def test_forge_search_scope_facts_includes_settlement_graph(client, monkeypatch):
