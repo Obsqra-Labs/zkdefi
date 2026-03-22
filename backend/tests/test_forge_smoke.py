@@ -315,6 +315,57 @@ def test_forge_search_scope_proofs_returns_cursor(client, monkeypatch):
     assert payload["results"]["proofs"][0]["id"] == "0xproof1"
 
 
+def test_forge_search_scope_proofs_supports_lane_and_model_filters(client, monkeypatch):
+    async def fake_get_filtered_proof_feed_payload(**kwargs):
+        assert kwargs["lane"] == "noir_v2"
+        assert kwargs["model_name"] == "yield_forecast"
+        assert kwargs["public_only"] is True
+        return {
+            "items": [
+                {
+                    "id": "0xproof_search",
+                    "proof_type": "noir_honk",
+                    "lane": "noir_v2",
+                    "model_name": "yield_forecast",
+                    "verified": True,
+                    "latest_public_tx_hash": "0xl2tx-search",
+                    "latest_public_timestamp": "2026-03-22T07:00:00Z",
+                    "settlement_graph": {
+                        "nodes": [{"type": "proof_job", "id": "0xproof_search"}],
+                        "edges": [],
+                    },
+                    "detail_href": "detail/proof_job/0xproof_search",
+                }
+            ],
+            "total_results": 1,
+            "next_cursor": {
+                "timestamp": "2026-03-22T07:00:00Z",
+                "proof_hash": "0xproof_search",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_filtered_proof_feed_payload", fake_get_filtered_proof_feed_payload)
+
+    r = client.get(
+        BASE + "/search",
+        params={
+            "scope": "proofs",
+            "limit": 1,
+            "lane": "noir_v2",
+            "model_name": "yield_forecast",
+            "public_only": "true",
+        },
+    )
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["lane"] == "noir_v2"
+    assert payload["model_name"] == "yield_forecast"
+    assert payload["public_only"] is True
+    assert payload["results"]["proofs"][0]["settlement_graph"]["nodes"][0]["type"] == "proof_job"
+
+
 def test_forge_proofs_feed_returns_cursor_payload(client, monkeypatch):
     async def fake_get_indexed_proof_payload(**kwargs):
         return {
@@ -406,3 +457,43 @@ def test_forge_proofs_feed_supports_lane_and_model_filters(client, monkeypatch):
     assert payload["model_name"] == "yield_forecast"
     assert payload["items"][0]["settlement_graph"]["nodes"][1]["type"] == "fact"
     assert payload["items"][0]["settlement_graph"]["edges"][1]["verb"] == "settles_with"
+
+
+def test_forge_detail_proof_job_includes_settlement_graph(client, monkeypatch):
+    async def fake_get_proof_record(proof_hash: str):
+        assert proof_hash == "0xproof_graph"
+        return {
+            "proof_hash": "0xproof_graph",
+            "source": "proof_registry",
+            "model_name": "yield_forecast",
+            "proof_type": "noir_honk",
+            "bridge_statement": {
+                "lane": "noir_v2",
+                "proof_type": "noir_honk",
+                "model_name": "yield_forecast",
+                "fact_hash": "0xfact_graph",
+            },
+            "public_receipts": [
+                {
+                    "tx_hash": "0xl2tx-graph",
+                    "public_chain": "starknet_l2",
+                    "timestamp": "2026-03-22T07:15:00Z",
+                }
+            ],
+            "public_receipt_summary": {
+                "count": 1,
+                "latest_tx_hash": "0xl2tx-graph",
+                "latest_timestamp": "2026-03-22T07:15:00Z",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_proof_record", fake_get_proof_record)
+
+    r = client.get(BASE + "/detail/proof_job/0xproof_graph")
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["summary"]["status"] == "public_settled"
+    assert payload["settlement_graph"]["nodes"][1]["type"] == "fact"
+    assert payload["settlement_graph"]["edges"][2]["verb"] == "settles_with"

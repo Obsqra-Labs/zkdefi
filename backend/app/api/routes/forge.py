@@ -208,6 +208,8 @@ async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
                 "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
             }
         )
+    for item in out:
+        item["settlement_graph"] = _proof_settlement_graph(item)
     return out[:limit]
 
 
@@ -489,6 +491,14 @@ def _proof_settlement_graph(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _settlement_graph_from_proof_record(proof_rec: dict[str, Any]) -> dict[str, Any] | None:
+    items = _proof_feed_items_from_payload({"proofs": [proof_rec]})
+    if not items:
+        return None
+    graph = items[0].get("settlement_graph")
+    return graph if isinstance(graph, dict) else None
+
+
 async def _get_filtered_proof_feed_payload(
     *,
     limit: int,
@@ -682,6 +692,9 @@ async def forge_search(
     scope: Optional[str] = Query(default=None, description="Filter by type: receipts, proofs, contracts, facts, models, txs, or all"),
     limit: int = Query(25, ge=1, le=100, description="Page size for results"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
+    public_only: bool = Query(False, description="For proof-scope search, keep only publicly settled rows"),
+    model_name: Optional[str] = Query(default=None, description="For proof-scope search, filter by canonical model name"),
+    lane: Optional[str] = Query(default=None, description="For proof-scope search, filter by proving lane"),
     cursor_timestamp: Optional[str] = Query(default=None, description="Proof-scope cursor settlement timestamp"),
     cursor_proof_hash: Optional[str] = Query(default=None, description="Proof-scope cursor proof hash tie-breaker"),
 ) -> dict[str, Any]:
@@ -741,44 +754,36 @@ async def forge_search(
     proof_total: int | None = None
     if scope in (None, "all", "proofs"):
         if scope == "proofs" and not q:
-            payload = await _get_indexed_proof_payload(
+            payload = await _get_filtered_proof_feed_payload(
                 limit=limit,
-                public_only=False,
+                model_name=model_name,
+                lane=lane,
+                user_address=None,
+                public_only=public_only,
                 cursor_timestamp=cursor_timestamp,
                 cursor_proof_hash=cursor_proof_hash,
             )
             proof_next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
-            proof_total = int(payload.get("total") or 0)
-            proof_rows = payload.get("proofs") if isinstance(payload.get("proofs"), list) else []
-            for row in proof_rows:
-                bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
-                summary = row.get("public_receipt_summary") if isinstance(row.get("public_receipt_summary"), dict) else {}
-                proof_hash = row.get("proof_hash") or row.get("commitment_hash")
-                if not proof_hash:
-                    continue
-                results["proofs"].append(
-                    {
-                        "id": str(proof_hash),
-                        "proof_type": bridge_statement.get("proof_type") or row.get("proof_type", ""),
-                        "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
-                        "verified": bool(summary.get("count")),
-                        "latest_public_tx_hash": summary.get("latest_tx_hash"),
-                        "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
-                        "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
-                    }
-                )
+            proof_total = int(payload.get("total_results") or 0)
+            results["proofs"] = payload.get("items") if isinstance(payload.get("items"), list) else []
         else:
             for p in await _list_proofs_for_search(200):
                 s = " ".join(str(v) for v in p.values()).lower()
                 if q and q.lower() not in s:
+                    continue
+                if public_only and not p.get("verified"):
+                    continue
+                if not _proof_matches_filters(p, lane=lane, model_name=model_name):
                     continue
                 results["proofs"].append({
                     "id": p["id"],
                     "proof_type": p.get("proof_type", ""),
                     "model_name": p.get("model_name", ""),
                     "verified": p.get("verified", False),
+                    "lane": p.get("lane"),
                     "latest_public_tx_hash": p.get("latest_public_tx_hash"),
                     "latest_public_timestamp": p.get("latest_public_timestamp"),
+                    "settlement_graph": p.get("settlement_graph"),
                     "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}",
                 })
             results["proofs"] = results["proofs"][offset: offset + limit]
@@ -835,6 +840,9 @@ async def forge_search(
         "total_results": total,
         "offset": offset,
         "limit": limit,
+        "public_only": public_only,
+        "model_name": model_name,
+        "lane": lane,
         "has_more": has_more,
         "next_cursor": proof_next_cursor,
         "results": results,
@@ -999,6 +1007,7 @@ async def forge_detail(
     }
     timeline: list[dict[str, Any]] = []
     relationships: list[dict[str, Any]] = []
+    settlement_graph: dict[str, Any] | None = None
 
     if obj_type == "receipt":
         receipt_row = await _find_receipt_record(obj_id)
@@ -1033,6 +1042,7 @@ async def forge_detail(
             ]
             if proof_rec:
                 proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+                settlement_graph = _settlement_graph_from_proof_record(proof_rec)
                 summary.update(proof_summary)
                 if not summary.get("action"):
                     summary["action"] = str(proof_rec.get("action_type") or "proof_job")
@@ -1116,6 +1126,7 @@ async def forge_detail(
             timeline = []
             if proof_rec:
                 proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+                settlement_graph = _settlement_graph_from_proof_record(proof_rec)
                 summary.update(proof_summary)
                 summary["tx_status"] = status
                 summary["execution_status"] = tx_rec.get("execution_status", "")
@@ -1150,6 +1161,7 @@ async def forge_detail(
                 relationships.append({"type": "block", "id": str(block_num), "label": "Block", "verb": "included_in", "source": "rpc"})
         elif proof_rec:
             proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            settlement_graph = _settlement_graph_from_proof_record(proof_rec)
             summary.update(proof_summary)
             summary["source"] = "public"
             summary["tx_hash"] = obj_id
@@ -1201,6 +1213,7 @@ async def forge_detail(
         proof_rec = await _get_proof_record(obj_id)
         if proof_rec:
             proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            settlement_graph = _settlement_graph_from_proof_record(proof_rec)
             summary.update(proof_summary)
             timeline = proof_timeline
             relationships = proof_relationships
@@ -1223,6 +1236,7 @@ async def forge_detail(
         proof_rec = await _get_proof_record(obj_id)
         if proof_rec:
             proof_summary, proof_timeline, proof_relationships = _proof_record_components(proof_rec)
+            settlement_graph = _settlement_graph_from_proof_record(proof_rec)
             summary.update(proof_summary)
             summary["fact_hash"] = obj_id
             timeline = proof_timeline
@@ -1266,6 +1280,7 @@ async def forge_detail(
         "summary": summary,
         "verification_timeline": timeline,
         "relationships": relationships,
+        "settlement_graph": settlement_graph,
         "self_href": f"detail/{quote(obj_type, safe='')}/{quote(obj_id, safe='')}",
         "paths": {
             "home": "..",
