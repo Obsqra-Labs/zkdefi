@@ -177,6 +177,22 @@ class ReceiptService:
 
         return await asyncio.to_thread(_fetch)
 
+    async def get_receipts(self, limit: int | None = None) -> list[dict[str, Any]]:
+        """Get all receipts across users, newest first."""
+        import asyncio
+
+        def _fetch() -> list[dict[str, Any]]:
+            sql = "SELECT * FROM receipts ORDER BY timestamp DESC"
+            params: tuple[Any, ...] = ()
+            if isinstance(limit, int) and limit > 0:
+                sql += " LIMIT ?"
+                params = (limit,)
+            with self._db_lock, self._db_connect() as conn:
+                rows = conn.execute(sql, params).fetchall()
+            return [self._row_to_dict(r) for r in rows]
+
+        return await asyncio.to_thread(_fetch)
+
     def append_proof_receipt(
         self,
         user_address: str,

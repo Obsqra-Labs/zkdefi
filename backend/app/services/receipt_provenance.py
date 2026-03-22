@@ -124,6 +124,7 @@ def summarize_public_receipts(receipts: list[dict[str, Any]]) -> dict[str, Any]:
         "starknet_l2": l2,
         "latest_tx_hash": latest.get("tx_hash") if latest else None,
         "latest_network": latest.get("network") if latest else None,
+        "latest_timestamp": latest.get("timestamp") if latest else None,
     }
 
 

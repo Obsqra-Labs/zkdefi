@@ -161,6 +161,10 @@ async def list_proofs(
     user_address: str = Query(None, description="Filter by user address"),
     source: Literal["cache", "indexed"] = Query("cache", description="Proof source to query"),
     public_only: bool = Query(False, description="For indexed proofs, keep only rows with public L1/L2 settlements"),
+    sort_by: Literal["created_at", "latest_public_settlement"] = Query(
+        "created_at",
+        description="Sort mode for indexed proof feeds",
+    ),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
@@ -206,6 +210,14 @@ async def list_proofs(
                 if public_only and not (payload.get("public_receipt_summary") or {}).get("count"):
                     continue
                 items.append(payload)
+            if sort_by == "latest_public_settlement":
+                items.sort(
+                    key=lambda row: (
+                        str((row.get("public_receipt_summary") or {}).get("latest_timestamp") or ""),
+                        str(row.get("created_at") or ""),
+                    ),
+                    reverse=True,
+                )
             total = len(items)
             return {
                 "proofs": items[offset: offset + limit],
@@ -213,9 +225,10 @@ async def list_proofs(
                 "limit": limit,
                 "offset": offset,
                 "source_mode": "indexed",
+                "sort_by": sort_by,
             }
         except Exception as exc:
-            return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "indexed"}
+            return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "indexed", "sort_by": sort_by}
     try:
         from app.services.proof_pipeline import get_proof_pipeline
         pipeline = get_proof_pipeline()
@@ -229,9 +242,10 @@ async def list_proofs(
             "limit": limit,
             "offset": offset,
             "source_mode": "cache",
+            "sort_by": "created_at",
         }
     except Exception as exc:
-        return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "cache"}
+        return {"proofs": [], "total": 0, "error": str(exc), "source_mode": "cache", "sort_by": "created_at"}
 
 
 @router.get("/stats")

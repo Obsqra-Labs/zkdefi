@@ -76,6 +76,31 @@ async def _get_receipt_service():
         return None
 
 
+async def _get_indexed_proofs(
+    *,
+    limit: int = 50,
+    user_address: str | None = None,
+    public_only: bool = False,
+) -> list[dict[str, Any]]:
+    try:
+        from app.api.routes import proofs as proofs_routes
+
+        payload = await proofs_routes.list_proofs(
+            model_name=None,
+            user_address=user_address,
+            source="indexed",
+            public_only=public_only,
+            sort_by="latest_public_settlement",
+            limit=limit,
+            offset=0,
+        )
+        proofs = payload.get("proofs")
+        return proofs if isinstance(proofs, list) else []
+    except Exception as e:
+        logger.warning("forge indexed proof fetch: %s", e)
+        return []
+
+
 async def _get_proof_stats() -> dict[str, Any]:
     """Fetch proof stats from the proofs service."""
     try:
@@ -134,28 +159,29 @@ async def _get_block(block_id: Any) -> dict[str, Any] | None:
     return result if isinstance(result, dict) else None
 
 
-def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
-    """List proof records from pipeline cache for search results."""
-    try:
-        from app.services.proof_pipeline import get_proof_pipeline
-        pipeline = get_proof_pipeline()
-        out: list[dict[str, Any]] = []
-        for v in pipeline._cache.values():
-            c_hash = v.get("commitment_hash") or (v.get("bridge_proof") or {}).get("proof_hash") or (v.get("ezkl_proof") or {}).get("proof_hash")
-            if not c_hash:
-                continue
-            ep = v.get("ezkl_proof") or {}
-            out.append({
-                "id": str(c_hash),
-                "proof_type": ep.get("model_name") or "proof",
-                "model_name": ep.get("model_name", ""),
-                "verified": bool((v.get("verification") or {}).get("l3", {}).get("verified_on_chain")),
-            })
-            if len(out) >= limit:
-                break
-        return out
-    except Exception:
-        return []
+async def _list_proofs_for_search(limit: int = 50) -> list[dict[str, Any]]:
+    """List indexed proof records with public-settlement summaries for search results."""
+    proofs = await _get_indexed_proofs(limit=limit, public_only=False)
+    out: list[dict[str, Any]] = []
+    for row in proofs:
+        bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
+        summary = row.get("public_receipt_summary") if isinstance(row.get("public_receipt_summary"), dict) else {}
+        proof_hash = row.get("proof_hash") or row.get("commitment_hash")
+        if not proof_hash:
+            continue
+        out.append(
+            {
+                "id": str(proof_hash),
+                "proof_type": bridge_statement.get("proof_type") or row.get("proof_type") or "proof",
+                "model_name": bridge_statement.get("model_name") or row.get("model_name", ""),
+                "verified": bool(summary.get("count")),
+                "lane": bridge_statement.get("lane"),
+                "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash"),
+                "latest_public_tx_hash": summary.get("latest_tx_hash"),
+                "latest_public_timestamp": summary.get("latest_timestamp") or row.get("created_at"),
+            }
+        )
+    return out[:limit]
 
 
 def _list_models_for_search(limit: int = 50) -> list[dict[str, Any]]:
@@ -178,19 +204,16 @@ def _list_models_for_search(limit: int = 50) -> list[dict[str, Any]]:
 
 
 async def _get_proof_record(proof_hash: str) -> dict[str, Any] | None:
-    """Fetch proof record by commitment/bridge/ezkl proof hash from proof pipeline."""
+    """Fetch proof record by commitment/bridge/ezkl proof hash from proof API."""
     try:
-        from app.services.proof_pipeline import get_proof_pipeline
-        pipeline = get_proof_pipeline()
-        for v in pipeline._cache.values():
-            if v.get("commitment_hash") == proof_hash:
-                return v
-            for key in ("bridge_proof", "ezkl_proof"):
-                sub = v.get(key) or {}
-                if isinstance(sub, dict) and sub.get("proof_hash") == proof_hash:
-                    return v
+        from fastapi import HTTPException
+        from app.api.routes import proofs as proofs_routes
+
+        return await proofs_routes.get_proof(proof_hash)
+    except HTTPException:
         return None
-    except Exception:
+    except Exception as e:
+        logger.warning("forge proof lookup failed: %s", e)
         return None
 
 
@@ -282,9 +305,9 @@ async def forge_feed(
     receipt_svc = await _get_receipt_service()
     if receipt_svc and scope in (None, "all", "receipts"):
         try:
-            raw = await receipt_svc.get_receipts()
+            raw = await receipt_svc.get_receipts(limit=limit * 4)
             if raw:
-                for r in raw[-limit * 2]:  # fetch extra if filtering by lane
+                for r in raw[: limit * 2]:
                     if not isinstance(r, dict):
                         continue
                     proof_type = str(r.get("proof_type", "") or "").lower()
@@ -305,8 +328,38 @@ async def forge_feed(
         except Exception as e:
             logger.warning("forge feed receipt fetch: %s", e)
 
+    if scope in (None, "all", "proofs"):
+        try:
+            indexed_proofs = await _get_indexed_proofs(limit=limit * 2, public_only=False)
+            for proof in indexed_proofs:
+                bridge_statement = proof.get("bridge_statement") if isinstance(proof.get("bridge_statement"), dict) else {}
+                summary = proof.get("public_receipt_summary") if isinstance(proof.get("public_receipt_summary"), dict) else {}
+                lane_name = str(bridge_statement.get("lane") or "")
+                proof_type = str(bridge_statement.get("proof_type") or proof.get("proof_type") or "")
+                lane_filter = (lane or "").lower()
+                if lane_filter and lane_filter not in proof_type.lower() and lane_filter not in lane_name.lower():
+                    continue
+                proof_hash = proof.get("proof_hash") or proof.get("commitment_hash")
+                if not proof_hash:
+                    continue
+                items.append(
+                    {
+                        "type": "proof_job",
+                        "id": str(proof_hash),
+                        "action": proof.get("action_type", "proof_job"),
+                        "proof_type": proof_type,
+                        "result": "public_settled" if summary.get("count") else "indexed",
+                        "timestamp": str(summary.get("latest_timestamp") or proof.get("created_at", "")),
+                        "fact_hash": bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash") or "",
+                        "source": "indexed_public" if summary.get("count") else "indexed",
+                        "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
+                    }
+                )
+        except Exception as e:
+            logger.warning("forge feed proof fetch: %s", e)
+
     # Sort by timestamp desc, take limit
-    items.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    items.sort(key=lambda x: str(x.get("timestamp", "") or ""), reverse=True)
     items = items[:limit]
 
     return {
@@ -386,11 +439,19 @@ async def forge_search(
         full_count = 0
 
     if scope in (None, "all", "proofs"):
-        for p in _list_proofs_for_search(50):
+        for p in await _list_proofs_for_search(200):
             s = " ".join(str(v) for v in p.values()).lower()
             if q and q.lower() not in s:
                 continue
-            results["proofs"].append({"id": p["id"], "proof_type": p.get("proof_type", ""), "model_name": p.get("model_name", ""), "verified": p.get("verified", False), "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}"})
+            results["proofs"].append({
+                "id": p["id"],
+                "proof_type": p.get("proof_type", ""),
+                "model_name": p.get("model_name", ""),
+                "verified": p.get("verified", False),
+                "latest_public_tx_hash": p.get("latest_public_tx_hash"),
+                "latest_public_timestamp": p.get("latest_public_timestamp"),
+                "detail_href": f"detail/proof_job/{quote(str(p['id']), safe='')}",
+            })
         results["proofs"] = results["proofs"][offset: offset + limit]
 
     if scope in (None, "all", "models"):
@@ -693,19 +754,59 @@ async def forge_detail(
     elif obj_type == "proof_job":
         proof_rec = await _get_proof_record(obj_id)
         if proof_rec:
+            bridge_statement = proof_rec.get("bridge_statement") if isinstance(proof_rec.get("bridge_statement"), dict) else {}
+            settlement = proof_rec.get("public_receipt_summary") if isinstance(proof_rec.get("public_receipt_summary"), dict) else {}
+            proof_hash = proof_rec.get("proof_hash") or proof_rec.get("commitment_hash") or obj_id
+            fact_hash = bridge_statement.get("fact_hash") or bridge_statement.get("bridge_fact_hash")
             summary.update({
-                "status": "verified" if (proof_rec.get("verification") or {}).get("l3", {}).get("verified_on_chain") else "pending",
-                "source": "runtime",
-                "commitment_hash": proof_rec.get("commitment_hash"),
-                "model": (proof_rec.get("ezkl_proof") or {}).get("model_name", ""),
+                "status": "public_settled" if settlement.get("count") else "indexed",
+                "source": proof_rec.get("source", "indexed"),
+                "proof_hash": proof_hash,
+                "fact_hash": fact_hash,
+                "proof_type": bridge_statement.get("proof_type") or proof_rec.get("proof_type"),
+                "lane": bridge_statement.get("lane"),
+                "model": bridge_statement.get("model_name") or proof_rec.get("model_name", ""),
+                "latest_public_tx_hash": settlement.get("latest_tx_hash"),
+                "public_receipts": settlement.get("count", 0),
             })
             timeline = [
-                {"stage": "proof_generated", "status": "complete", "source": "runtime", "detail": proof_rec.get("commitment_hash", "")[:16] + "…"},
-                {"stage": "l3_verified", "status": "complete" if (proof_rec.get("verification") or {}).get("l3", {}).get("verified_on_chain") else "pending", "source": "runtime", "detail": ""},
+                {
+                    "stage": "proof_indexed",
+                    "status": "complete",
+                    "source": proof_rec.get("source", "indexed"),
+                    "detail": str(proof_hash)[:16] + "…",
+                },
+                {
+                    "stage": "public_settlement",
+                    "status": "complete" if settlement.get("count") else "pending",
+                    "source": "public" if settlement.get("count") else "not_present",
+                    "detail": settlement.get("latest_tx_hash", ""),
+                },
             ]
-            model_name = (proof_rec.get("ezkl_proof") or {}).get("model_name")
+            if fact_hash:
+                timeline.insert(
+                    1,
+                    {
+                        "stage": "bridge_fact",
+                        "status": "complete",
+                        "source": "indexed",
+                        "detail": str(fact_hash),
+                    },
+                )
+                relationships.append({"type": "fact", "id": str(fact_hash), "label": "Fact", "verb": "commits", "source": "indexed"})
+            model_name = bridge_statement.get("model_name") or proof_rec.get("model_name")
             if model_name:
-                relationships.append({"type": "model", "id": model_name, "label": "Model", "verb": "used_by", "source": "runtime"})
+                relationships.append({"type": "model", "id": model_name, "label": "Model", "verb": "used_by", "source": "indexed"})
+            for row in (proof_rec.get("public_receipts") or [])[:10]:
+                tx_hash = row.get("tx_hash")
+                if tx_hash:
+                    relationships.append({
+                        "type": "transaction",
+                        "id": str(tx_hash),
+                        "label": f"{row.get('public_chain') or 'public'} transaction",
+                        "verb": "settles",
+                        "source": "public",
+                    })
     elif obj_type == "model":
         model_info = await _get_model_info(obj_id)
         if model_info:
