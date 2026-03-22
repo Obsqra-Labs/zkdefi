@@ -7234,13 +7234,13 @@ class ShowcaseRunner:
     def _html_table(self, headers: list[str], rows: list[list[str]]) -> str:
         if not rows:
             return "<p class=\"muted\">No rows.</p>"
-        thead = "".join(f"<th>{escape(h)}</th>" for h in headers)
+        thead = "".join(f"<th><span>{escape(h)}</span></th>" for h in headers)
         body_rows = []
         for row in rows:
-            cols = "".join(f"<td>{col}</td>" for col in row)
+            cols = "".join(f"<td><div class=\"table-cell\">{col}</div></td>" for col in row)
             body_rows.append(f"<tr>{cols}</tr>")
         tbody = "\n".join(body_rows)
-        return f"<div class=\"table-wrap\"><table><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table></div>"
+        return f"<div class=\"table-wrap\"><table class=\"report-table\"><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table></div>"
 
     def _render_html_report(self, payload: dict[str, Any]) -> str:
         claims = payload.get("core_claims", [])
@@ -9969,27 +9969,81 @@ class ShowcaseRunner:
     .table-wrap {{
       margin-top: 8px;
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: auto;
-      background: rgba(8, 12, 20, 0.55);
+      background: linear-gradient(180deg, rgba(8, 12, 20, 0.72), rgba(11, 16, 27, 0.94));
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
     }}
-    table {{
+    .report-table {{
       width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
+      min-width: 860px;
+      border-collapse: separate;
+      border-spacing: 0;
       margin-top: 0;
     }}
-    th, td {{
+    .report-table th, .report-table td {{
       text-align: left;
-      padding: 8px 9px;
-      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      border-bottom: 1px solid rgba(48, 62, 82, 0.85);
       vertical-align: top;
       font-size: 13px;
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;
     }}
-    th {{ color: var(--muted); font-weight: 600; }}
+    .report-table thead th {{
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(10, 14, 22, 0.96);
+      backdrop-filter: blur(10px);
+    }}
+    .report-table thead th span {{
+      display: inline-flex;
+      align-items: center;
+    }}
+    .report-table tbody tr:nth-child(odd) td {{
+      background: rgba(255, 255, 255, 0.015);
+    }}
+    .report-table tbody tr:hover td {{
+      background: rgba(24, 36, 55, 0.68);
+    }}
+    .report-table tbody tr:last-child td {{
+      border-bottom: none;
+    }}
+    .table-cell {{
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }}
+    .table-wrap code {{
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 3px 7px;
+      border-radius: 7px;
+      border: 1px solid rgba(57, 73, 97, 0.85);
+      background: #09111b;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+    }}
+    .table-wrap .pass,
+    .table-wrap .fail,
+    .table-wrap .warn {{
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      line-height: 1.3;
+    }}
     a {{ color: var(--link); text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     .pass {{ color: var(--good); font-weight: 700; }}
@@ -10014,7 +10068,8 @@ class ShowcaseRunner:
       .hero-meta-grid {{ grid-template-columns: 1fr; }}
       .summary-panels {{ grid-template-columns: 1fr; }}
       .executive {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-      th, td {{ font-size: 12px; padding: 7px 6px; }}
+      .report-table {{ min-width: 720px; }}
+      .report-table th, .report-table td {{ font-size: 12px; padding: 9px 8px; }}
     }}
     @media (max-width: 520px) {{
       .executive {{ grid-template-columns: 1fr; }}

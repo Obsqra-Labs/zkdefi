@@ -103,6 +103,207 @@ def _match_scope_label(scope: object) -> str | None:
     return value.replace("_", " ")
 
 
+def _short_id(value: object, head: int = 12, tail: int = 8) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "-"
+    if len(text) <= head + tail + 3:
+        return text
+    return f"{text[:head]}...{text[-tail:]}"
+
+
+def _binding_tone(label: object) -> str:
+    value = str(label or "").strip().lower()
+    if value.startswith("full"):
+        return "good"
+    if value.startswith("partial"):
+        return "warn"
+    return "neutral"
+
+
+def _chip_html(label: object, tone: str = "neutral") -> str:
+    text = str(label or "").strip()
+    if not text:
+        return ""
+    tone_class = tone if tone in {"good", "warn", "neutral", "exact", "mirror"} else "neutral"
+    return f'<span class="mini-chip {tone_class}">{escape(text)}</span>'
+
+
+def _code_ref_html(value: object, href: str | None = None, *, shorten: bool = True) -> str:
+    text = str(value or "").strip() or "-"
+    label = _short_id(text) if shorten and text != "-" else text
+    code_html = f'<code class="code-chip" title="{escape(text)}">{escape(label)}</code>'
+    if href:
+        return f'<a href="{escape(href)}">{code_html}</a>'
+    return code_html
+
+
+def _cell_stack_html(primary_html: str, *, meta_lines: list[str] | None = None, chips: list[str] | None = None) -> str:
+    parts = ['<div class="cell-stack">', f'<div class="cell-title">{primary_html}</div>']
+    visible_chips = [chip for chip in (chips or []) if chip]
+    if visible_chips:
+        parts.append(f'<div class="cell-chip-row">{"".join(visible_chips)}</div>')
+    for line in meta_lines or []:
+        if line:
+            parts.append(f'<div class="cell-meta">{line}</div>')
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def _forge_list_page_styles(max_width_px: int = 1180) -> str:
+    return f"""
+:root {{ --bg:#090b12; --panel:#0f131d; --panel-alt:#121826; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; --warn:#fb923c; }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
+a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
+.container {{ max-width: {max_width_px}px; margin: 0 auto; }}
+nav {{ margin-bottom: 16px; display:flex; gap:14px; flex-wrap:wrap; font-size:13px; }}
+.muted {{ color: var(--muted); }}
+.page-intro {{ margin-top: 6px; color: var(--muted); max-width: 84ch; }}
+.toolbar {{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
+  align-items:end;
+  margin: 16px 0;
+  padding: 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:linear-gradient(180deg, rgba(15,19,29,.96), rgba(18,24,38,.88));
+}}
+.toolbar label {{
+  font-size:13px;
+  color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}}
+.toolbar label span {{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}}
+.toolbar .toolbar-check {{
+  flex-direction:row;
+  align-items:center;
+  gap:8px;
+  min-height: 42px;
+}}
+.toolbar input[type=text] {{
+  width:100%;
+  min-width: 0;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:#0b1019;
+  color:var(--text);
+}}
+.toolbar button {{
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}}
+.toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
+.table-wrap {{
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:auto;
+  background:linear-gradient(180deg, rgba(12,16,25,.98), rgba(15,19,29,.92));
+  box-shadow: 0 12px 32px rgba(0,0,0,.22);
+}}
+table {{
+  width:100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+}}
+th, td {{
+  text-align:left;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(42,48,64,.72);
+  font-size:13px;
+  vertical-align:top;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}}
+thead th {{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(9,12,20,.96);
+  backdrop-filter: blur(10px);
+  color:var(--muted);
+  font-weight:600;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}}
+tbody tr:nth-child(odd) td {{ background: rgba(255,255,255,.015); }}
+tbody tr:hover td {{ background: rgba(28,39,58,.68); }}
+tbody tr:last-child td {{ border-bottom:none; }}
+.cell-stack {{ display:flex; flex-direction:column; gap:5px; min-width:0; }}
+.cell-title {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:600; color:var(--text); }}
+.cell-meta {{ font-size:12px; color:var(--muted); }}
+.cell-chip-row {{ display:flex; flex-wrap:wrap; gap:6px; }}
+.mini-chip {{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid rgba(122,134,153,.28);
+  background:rgba(122,134,153,.08);
+  color:#cdd7e7;
+  font-size:11px;
+  font-weight:600;
+}}
+.mini-chip.good {{
+  border-color: rgba(16,185,129,.36);
+  background: rgba(16,185,129,.12);
+  color: #b7f7dc;
+}}
+.mini-chip.warn {{
+  border-color: rgba(251,146,60,.36);
+  background: rgba(251,146,60,.12);
+  color: #ffd8b3;
+}}
+.mini-chip.exact {{
+  border-color: rgba(34,211,238,.3);
+  background: rgba(34,211,238,.1);
+  color: #c7fbff;
+}}
+.mini-chip.mirror {{
+  border-color: rgba(147,197,253,.3);
+  background: rgba(147,197,253,.1);
+  color: #dbeafe;
+}}
+.code-chip {{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 7px;
+  border-radius:7px;
+  border:1px solid rgba(42,48,64,.85);
+  background:#09111b;
+  font-family: "JetBrains Mono", monospace;
+  font-size:12px;
+  max-width:100%;
+}}
+.graph-metric {{ font-weight:600; }}
+.muted-link {{ color: var(--muted); text-decoration:none; }}
+.muted-link:hover {{ color: var(--link); text-decoration:underline; }}
+.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }}
+@media (max-width: 760px) {{
+  body {{ padding: 16px; }}
+  .toolbar {{ grid-template-columns: 1fr; }}
+  table {{ min-width: 760px; }}
+  th, td {{ padding: 10px 11px; font-size: 12px; }}
+}}
+"""
+
+
 def _load_pathc_artifacts() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     try:
         from app.services.showcase_artifacts import load_pathc_history, load_pathc_latest_report
@@ -2386,34 +2587,63 @@ async def forge_proofs_page(
     rows = ""
     for item in items:
         proof_id = str(item.get("id", "-"))
-        short_id = proof_id[:12] + "..." + proof_id[-8:] if len(proof_id) > 24 else proof_id
         detail_url = f"../detail/proof_job/{quote(proof_id, safe='')}"
         latest_activity = str(item.get("latest_activity_timestamp") or "-")
         latest_public_tx_hash = str(item.get("latest_public_tx_hash") or "")
         latest_public_timestamp = str(item.get("latest_public_timestamp") or "-")
         latest_public_match_scope = str(item.get("latest_public_match_scope_label") or "exact proof")
         binding_label = str(item.get("binding_profile_label") or "-")
+        binding_tone = _binding_tone(binding_label)
         graph = item.get("settlement_graph") if isinstance(item.get("settlement_graph"), dict) else {}
         node_count = len(graph.get("nodes") or []) if isinstance(graph.get("nodes"), list) else 0
         edge_count = len(graph.get("edges") or []) if isinstance(graph.get("edges"), list) else 0
         graph_url = f"../graph/proof_job/{quote(proof_id, safe='')}"
+        proof_cell = _cell_stack_html(
+            _code_ref_html(proof_id, detail_url),
+            meta_lines=[f'<a class="muted-link" href="{detail_url}">open proof detail</a>'],
+        )
+        model_cell = _cell_stack_html(escape(str(item.get("model_name", "-"))))
+        lane_cell = _cell_stack_html(
+            escape(str(item.get("lane", "-"))),
+            chips=[_chip_html(str(item.get("proof_type", "-")), "neutral")],
+        )
+        activity_cell = _cell_stack_html(
+            escape(latest_activity),
+            meta_lines=[f'proof={_code_ref_html(proof_id, detail_url)}'],
+        )
         if latest_public_tx_hash:
-            short_tx = latest_public_tx_hash[:12] + "..." + latest_public_tx_hash[-8:] if len(latest_public_tx_hash) > 24 else latest_public_tx_hash
-            public_html = (
-                f'<a href="../detail/transaction/{quote(latest_public_tx_hash, safe="")}"><code>{escape(short_tx)}</code></a>'
-                f'<div class="muted">{escape(latest_public_timestamp)}</div>'
-                f'<div class="muted">{escape(latest_public_match_scope)}</div>'
+            public_tx_href = f"../detail/transaction/{quote(latest_public_tx_hash, safe='')}"
+            public_html = _cell_stack_html(
+                _code_ref_html(latest_public_tx_hash, public_tx_href),
+                chips=[
+                    _chip_html(
+                        latest_public_match_scope,
+                        "mirror" if "mirror" in latest_public_match_scope.lower() else "exact",
+                    )
+                ],
+                meta_lines=[escape(latest_public_timestamp)],
             )
         else:
-            public_html = '<span class="muted">not public yet</span>'
+            public_html = _cell_stack_html(
+                '<span class="muted">not public yet</span>',
+                chips=[_chip_html("runtime only", "warn")],
+            )
+        binding_html = _cell_stack_html(
+            escape(binding_label),
+            chips=[_chip_html(binding_label.split("/", 1)[0].strip() or binding_label, binding_tone)],
+        )
+        graph_html = _cell_stack_html(
+            f'<a href="{graph_url}" class="muted-link graph-metric">{node_count} node(s) · {edge_count} edge(s)</a>',
+            meta_lines=[f'<a class="muted-link" href="{graph_url}">open graph</a>'],
+        )
         rows += f"""<tr>
-  <td><a href="{detail_url}"><code>{escape(short_id)}</code></a></td>
-  <td>{escape(str(item.get("model_name", "-")))}</td>
-  <td><div>{escape(str(item.get("lane", "-")))}</div><div class="muted">{escape(str(item.get("proof_type", "-")))}</div></td>
-  <td>{escape(latest_activity)}</td>
+  <td>{proof_cell}</td>
+  <td>{model_cell}</td>
+  <td>{lane_cell}</td>
+  <td>{activity_cell}</td>
   <td>{public_html}</td>
-  <td>{escape(binding_label)}</td>
-  <td><a href="{graph_url}" class="muted-link">{node_count}n / {edge_count}e</a></td>
+  <td>{binding_html}</td>
+  <td>{graph_html}</td>
 </tr>"""
     if not rows:
         rows = '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No proofs for this selection yet.</td></tr>'
@@ -2429,40 +2659,19 @@ async def forge_proofs_page(
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Proofs — zkSyslog</title>
-<style>
-:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
-* {{ box-sizing:border-box; margin:0; padding:0; }}
-body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
-a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
-.container {{ max-width: 1100px; margin: 0 auto; }}
-nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
-.muted {{ color: var(--muted); }}
-.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
-.toolbar input[type=text] {{ min-width: 220px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
-.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
-.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
-	.toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
-	table {{ width:100%; border-collapse:collapse; }}
-	.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
-	th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
-	td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; }}
-	code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
-	.muted-link {{ color: var(--muted); text-decoration:none; }}
-	.muted-link:hover {{ color: var(--link); text-decoration:underline; }}
-	.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
-</style>
+<style>{_forge_list_page_styles(1220)}</style>
 </head>
 <body>
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../search?scope=proofs">Search</a><a href="../facts/page">Facts</a><a href="../models/page">Models</a></nav>
 <h1>Dedicated Proof Feed</h1>
-<p class="muted" style="margin-top:4px">Indexed proof jobs ordered by latest public settlement, with runtime activity and public settlement shown separately.</p>
+<p class="page-intro">Indexed proof jobs ordered by latest public settlement. Each row separates runtime activity from public settlement and makes binding strength/provenance explicit instead of compressing it into one line.</p>
 
 <div class="toolbar">
-  <label>User <input id="user-address" type="text" value="{user_value}" placeholder="0x... optional" /></label>
-  <label>Model <input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
-  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
-  <label><input id="public-only" type="checkbox" {checked} /> public settled only</label>
+  <label><span>User</span><input id="user-address" type="text" value="{user_value}" placeholder="0x... optional" /></label>
+  <label><span>Model</span><input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
+  <label><span>Lane</span><input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
+  <label class="toolbar-check"><input id="public-only" type="checkbox" {checked} /> public settled only</label>
   <button id="apply-filters" type="button">Apply</button>
 </div>
 
@@ -2518,16 +2727,19 @@ function renderRows(items) {{
     const nodeCount = Array.isArray(graph.nodes) ? graph.nodes.length : 0;
     const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
     const matchScope = item.latest_public_match_scope_label || 'exact proof';
+    const binding = item.binding_profile_label || '-';
+    const bindingTone = binding.startsWith('full') ? 'good' : (binding.startsWith('partial') ? 'warn' : 'neutral');
+    const matchTone = matchScope.includes('mirror') ? 'mirror' : 'exact';
     const publicCell = item.latest_public_tx_hash
-      ? '<a href="../detail/transaction/' + encodeURIComponent(item.latest_public_tx_hash) + '"><code>' + escapeHtml(item.latest_public_tx_hash.length > 24 ? item.latest_public_tx_hash.slice(0, 12) + '...' + item.latest_public_tx_hash.slice(-8) : item.latest_public_tx_hash) + '</code></a><div class="muted">' + escapeHtml(item.latest_public_timestamp || '-') + '</div><div class="muted">' + escapeHtml(matchScope) + '</div>'
-      : '<span class="muted">not public yet</span>';
-    tr.innerHTML = '<td><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code>' + escapeHtml(shortId) + '</code></a></td>' +
-      '<td>' + escapeHtml(item.model_name || '-') + '</td>' +
-      '<td><div>' + escapeHtml(item.lane || '-') + '</div><div class="muted">' + escapeHtml(item.proof_type || '-') + '</div></td>' +
-      '<td>' + escapeHtml(item.latest_activity_timestamp || '-') + '</td>' +
+      ? '<div class="cell-stack"><div class="cell-title"><a href="../detail/transaction/' + encodeURIComponent(item.latest_public_tx_hash) + '"><code class="code-chip" title="' + escapeHtml(item.latest_public_tx_hash) + '">' + escapeHtml(item.latest_public_tx_hash.length > 24 ? item.latest_public_tx_hash.slice(0, 12) + '...' + item.latest_public_tx_hash.slice(-8) : item.latest_public_tx_hash) + '</code></a></div><div class="cell-chip-row"><span class="mini-chip ' + matchTone + '">' + escapeHtml(matchScope) + '</span></div><div class="cell-meta">' + escapeHtml(item.latest_public_timestamp || '-') + '</div></div>'
+      : '<div class="cell-stack"><div class="cell-title"><span class="muted">not public yet</span></div><div class="cell-chip-row"><span class="mini-chip warn">runtime only</span></div></div>';
+    tr.innerHTML = '<td><div class="cell-stack"><div class="cell-title"><a href="../detail/proof_job/' + encodeURIComponent(id) + '"><code class="code-chip" title="' + escapeHtml(id) + '">' + escapeHtml(shortId) + '</code></a></div><div class="cell-meta"><a class="muted-link" href="../detail/proof_job/' + encodeURIComponent(id) + '">open proof detail</a></div></div></td>' +
+      '<td><div class="cell-stack"><div class="cell-title">' + escapeHtml(item.model_name || '-') + '</div></div></td>' +
+      '<td><div class="cell-stack"><div class="cell-title">' + escapeHtml(item.lane || '-') + '</div><div class="cell-chip-row"><span class="mini-chip neutral">' + escapeHtml(item.proof_type || '-') + '</span></div></div></td>' +
+      '<td><div class="cell-stack"><div class="cell-title">' + escapeHtml(item.latest_activity_timestamp || '-') + '</div><div class="cell-meta">proof=<a href="../detail/proof_job/' + encodeURIComponent(id) + '">' + '<code class="code-chip" title="' + escapeHtml(id) + '">' + escapeHtml(shortId) + '</code></a></div></div></td>' +
       '<td>' + publicCell + '</td>' +
-      '<td>' + escapeHtml(item.binding_profile_label || '-') + '</td>' +
-      '<td><a href="../graph/proof_job/' + encodeURIComponent(id) + '" class="muted-link">' + nodeCount + 'n / ' + edgeCount + 'e</a></td>';
+      '<td><div class="cell-stack"><div class="cell-title">' + escapeHtml(binding) + '</div><div class="cell-chip-row"><span class="mini-chip ' + bindingTone + '">' + escapeHtml(binding.split('/')[0].trim() || binding) + '</span></div></div></td>' +
+      '<td><div class="cell-stack"><div class="cell-title"><a href="../graph/proof_job/' + encodeURIComponent(id) + '" class="muted-link graph-metric">' + nodeCount + ' node(s) · ' + edgeCount + ' edge(s)</a></div><div class="cell-meta"><a class="muted-link" href="../graph/proof_job/' + encodeURIComponent(id) + '">open graph</a></div></div></td>';
     bodyEl.appendChild(tr);
   }}
 }}
@@ -2569,7 +2781,10 @@ def _graph_chip_html(row: dict[str, Any]) -> str:
     graph_link = f'<a href="../{escape(graph_href)}">graph</a>' if graph_href else ""
     detail_link = f'<a href="../{escape(detail_href)}">detail</a>' if detail_href else ""
     links = " · ".join(part for part in (detail_link, graph_link) if part)
-    return f'<span class="muted">{len(nodes)}n / {len(edges)}e</span>' + (f"<br>{links}" if links else "")
+    return _cell_stack_html(
+        f'<span class="graph-metric">{len(nodes)} node(s) · {len(edges)} edge(s)</span>',
+        meta_lines=[links] if links else None,
+    )
 
 
 @router.get("/facts/page", response_class=HTMLResponse, summary="Dedicated facts page")
@@ -2600,12 +2815,34 @@ async def forge_facts_page(
     rows = ""
     for item in items:
         fact_hash = str(item.get("fact_hash", "-"))
-        short_hash = fact_hash[:12] + "..." + fact_hash[-8:] if len(fact_hash) > 24 else fact_hash
+        fact_href = f"../detail/fact/{quote(fact_hash, safe='')}"
+        latest_public_tx_hash = str(item.get("latest_public_tx_hash") or "").strip()
+        latest_public_tx_html = (
+            _cell_stack_html(
+                _code_ref_html(
+                    latest_public_tx_hash,
+                    f"../detail/transaction/{quote(latest_public_tx_hash, safe='')}",
+                ),
+                chips=[
+                    _chip_html(
+                        str(item.get("latest_public_match_scope_label") or "exact proof"),
+                        "mirror"
+                        if "mirror" in str(item.get("latest_public_match_scope_label") or "").lower()
+                        else "exact",
+                    )
+                ]
+                if latest_public_tx_hash
+                else [_chip_html("runtime only", "warn")],
+                meta_lines=[escape(str(item.get("latest_public_timestamp") or "-"))] if latest_public_tx_hash else None,
+            )
+            if latest_public_tx_hash
+            else _cell_stack_html('<span class="muted">not public yet</span>', chips=[_chip_html("runtime only", "warn")])
+        )
         rows += f"""<tr>
-  <td><a href="../detail/fact/{quote(fact_hash, safe='')}"><code>{escape(short_hash)}</code></a></td>
-  <td>{escape(str(item.get("model_name", "-")))}</td>
-  <td>{escape(str(item.get("lane", "-")))}</td>
-  <td>{escape(str(item.get("latest_public_tx_hash", "-")))}</td>
+  <td>{_cell_stack_html(_code_ref_html(fact_hash, fact_href), meta_lines=[f'<a class="muted-link" href="{fact_href}">open fact detail</a>'])}</td>
+  <td>{_cell_stack_html(escape(str(item.get("model_name", "-"))))}</td>
+  <td>{_cell_stack_html(escape(str(item.get("lane", "-"))), chips=[_chip_html(str(item.get("proof_type") or "").strip() or "proof-backed", "neutral")])}</td>
+  <td>{latest_public_tx_html}</td>
   <td>{_graph_chip_html(item)}</td>
 </tr>"""
     if not rows:
@@ -2614,36 +2851,18 @@ async def forge_facts_page(
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Facts — zkSyslog</title>
-<style>
-:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
-* {{ box-sizing:border-box; margin:0; padding:0; }}
-body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
-a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
-.container {{ max-width: 1100px; margin: 0 auto; }}
-nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
-.muted {{ color: var(--muted); }}
-.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
-.toolbar input[type=text] {{ min-width: 180px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
-.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
-.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
-table {{ width:100%; border-collapse:collapse; }}
-.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
-th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
-td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; vertical-align:top; }}
-code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
-.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
-</style>
+<style>{_forge_list_page_styles(1180)}</style>
 </head>
 <body>
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../models/page">Models</a></nav>
 <h1>Dedicated Fact Feed</h1>
-<p class="muted" style="margin-top:4px">Bridge facts with proof-backed graph context and direct navigation into proofs, models, and public settlement transactions.</p>
+<p class="page-intro">Bridge facts with proof-backed graph context and direct navigation into proofs, models, and public settlement transactions. Public settlement is separated from runtime-only fact rows so missing public receipts are obvious.</p>
 <div class="toolbar">
-  <label>Search <input id="fact-query" type="text" value="{q_value}" placeholder="0x..." /></label>
-  <label>Model <input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
-  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
-  <label><input id="public-only" type="checkbox" {checked} /> public settled only</label>
+  <label><span>Search</span><input id="fact-query" type="text" value="{q_value}" placeholder="0x..." /></label>
+  <label><span>Model</span><input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
+  <label><span>Lane</span><input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
+  <label class="toolbar-check"><input id="public-only" type="checkbox" {checked} /> public settled only</label>
   <button id="apply-filters" type="button">Apply</button>
 </div>
 <div class="table-wrap">
@@ -2722,12 +2941,54 @@ async def forge_models_page(
         if int(item.get("pathc_confirmed_count") or 0):
             pathc_summary_bits.append(f"{int(item.get('pathc_confirmed_count') or 0)} confirmed")
         pathc_summary = " / ".join(pathc_summary_bits) or "no Path C routes"
+        latest_activity_href = (
+            f"../detail/proof_job/{quote(latest_activity_hash, safe='')}" if latest_activity_hash and latest_activity_hash != "-" else ""
+        )
+        latest_public_href = (
+            f"../detail/transaction/{quote(latest_public_tx, safe='')}" if latest_public_tx and latest_public_tx != "-" else ""
+        )
+        activity_chips = []
+        if item.get("latest_lane"):
+            activity_chips.append(_chip_html(str(item.get("latest_lane")), "neutral"))
+        if activity_binding_label:
+            activity_chips.append(_chip_html(activity_binding_label, _binding_tone(activity_binding_label)))
+        public_chips = []
+        if item.get("latest_public_lane"):
+            public_chips.append(_chip_html(str(item.get("latest_public_lane")), "neutral"))
+        if public_binding_label:
+            public_chips.append(_chip_html(public_binding_label, _binding_tone(public_binding_label)))
+        public_source_label = "exact proof" if (latest_public_source_kind or "proof") == "proof" else "Path C bridge"
+        if latest_public_tx and latest_public_tx != "-":
+            public_chips.append(_chip_html(public_source_label, "exact" if public_source_label == "exact proof" else "mirror"))
+        elif public_source_label:
+            public_chips.append(_chip_html("not public yet", "warn"))
+        coverage_chips = []
+        if int(item.get("pathc_route_count") or 0):
+            coverage_chips.append(_chip_html(f"Path C {int(item.get('pathc_route_count') or 0)} route(s)", "neutral"))
+        if int(item.get("pathc_confirmed_count") or 0):
+            coverage_chips.append(_chip_html(f"{int(item.get('pathc_confirmed_count') or 0)} confirmed", "good"))
         rows += f"""<tr>
-  <td><a href="../detail/model/{quote(str(item.get("id", "")), safe='')}">{escape(name)}</a></td>
-  <td>{'ready' if item.get('ready') else 'incomplete'}</td>
-  <td><div>{escape(latest_activity_label)}</div><div class="muted"><code>{escape(latest_activity_hash)}</code></div><div class="muted">{escape(latest_activity_ts)}</div></td>
-  <td><div>{escape(latest_public_label)}</div><div class="muted"><code>{escape(latest_public_tx)}</code></div><div class="muted">{escape(latest_public_ts)}</div><div class="muted">{escape(latest_public_source_kind or 'proof')}</div></td>
-  <td><div>{int(item.get("proof_count", 0) or 0)} proof(s) / {int(item.get("public_proof_count", 0) or 0)} public</div><div class="muted">{escape(lane_summary)}</div><div class="muted">Path C: {escape(pathc_summary)}</div></td>
+  <td>{_cell_stack_html(escape(name), meta_lines=[f'<a class="muted-link" href="../detail/model/{quote(str(item.get("id", "")), safe="")}">open model detail</a>'])}</td>
+  <td>{_cell_stack_html(_chip_html('ready' if item.get('ready') else 'incomplete', 'good' if item.get('ready') else 'warn'))}</td>
+  <td>{_cell_stack_html(
+      escape(latest_activity_ts),
+      chips=activity_chips,
+      meta_lines=[
+          f'proof={_code_ref_html(latest_activity_hash, latest_activity_href)}' if latest_activity_href else f'proof={_code_ref_html(latest_activity_hash, shorten=False)}',
+      ],
+  )}</td>
+  <td>{_cell_stack_html(
+      escape(latest_public_ts if latest_public_tx != '-' else 'not public yet'),
+      chips=public_chips,
+      meta_lines=[
+          f'tx={_code_ref_html(latest_public_tx, latest_public_href)}' if latest_public_href else 'no public settlement receipt',
+      ],
+  )}</td>
+  <td>{_cell_stack_html(
+      f'{int(item.get("proof_count", 0) or 0)} proof(s) · {int(item.get("public_proof_count", 0) or 0)} public',
+      chips=coverage_chips,
+      meta_lines=[escape(lane_summary)] + ([] if coverage_chips else [f'Path C: {escape(pathc_summary)}']),
+  )}</td>
   <td>{_graph_chip_html(item)}</td>
 </tr>"""
     if not rows:
@@ -2736,34 +2997,17 @@ async def forge_models_page(
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Models — zkSyslog</title>
-<style>
-:root {{ --bg:#090b12; --panel:#0f131d; --line:#2a3040; --text:#f4f7ff; --muted:#7a8699; --emerald:#10b981; --link:#67e8f9; }}
-* {{ box-sizing:border-box; margin:0; padding:0; }}
-body {{ font-family: Inter, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }}
-a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:underline; }}
-.container {{ max-width: 1100px; margin: 0 auto; }}
-nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
-.muted {{ color: var(--muted); }}
-.toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
-.toolbar input[type=text] {{ min-width: 220px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
-.toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
-.toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
-table {{ width:100%; border-collapse:collapse; }}
-.table-wrap {{ border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel); }}
-th {{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }}
-td {{ padding:8px; border-bottom:1px solid rgba(42,48,64,.5); font-size:13px; vertical-align:top; }}
-.footer {{ margin-top: 12px; display:flex; justify-content:space-between; gap:12px; align-items:center; }}
-</style>
+<style>{_forge_list_page_styles(1240)}</style>
 </head>
 <body>
 <div class="container">
 <nav><a href="..">← zkSyslog</a><a href="../">Home</a><a href="../proofs/page">Proofs</a><a href="../facts/page">Facts</a></nav>
 <h1>Dedicated Model Feed</h1>
-<p class="muted" style="margin-top:4px">Provable model inventory with separate latest proof activity vs latest public settlement, plus bridge-lane and Path C route coverage.</p>
+<p class="page-intro">Provable model inventory with separate latest proof activity and latest public settlement, plus bridge-lane density and Path C route coverage. Activity and settlement are shown independently so stale public receipts do not hide fresh runtime movement.</p>
 <div class="toolbar">
-  <label>Search <input id="model-query" type="text" value="{q_value}" placeholder="yield_forecast" /></label>
-  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="noir_v2 / modelbridge" /></label>
-  <label><input id="public-only" type="checkbox" {checked} /> only models with public proof receipts</label>
+  <label><span>Search</span><input id="model-query" type="text" value="{q_value}" placeholder="yield_forecast" /></label>
+  <label><span>Lane</span><input id="lane-name" type="text" value="{lane_value}" placeholder="noir_v2 / modelbridge" /></label>
+  <label class="toolbar-check"><input id="public-only" type="checkbox" {checked} /> only models with public proof receipts</label>
   <button id="apply-filters" type="button">Apply</button>
 </div>
 <div class="table-wrap">
@@ -2902,17 +3146,16 @@ async def forge_homepage(request: Request) -> HTMLResponse:
     feed_rows = ""
     for item in feed_data.get("items", []):
         item_id = str(item.get("id", "-"))
-        short_id = item_id[:12] + "..." + item_id[-8:] if len(item_id) > 24 else item_id
         detail_type = item.get("type", "receipt")
         detail_url = f"detail/{detail_type}/{quote(str(item_id), safe='')}"
         badge_cls = "badge-onchain" if item.get("source") == "on-chain" else "badge-runtime"
         badge_label = item.get("source", "runtime")
         feed_rows += f"""<tr>
-  <td><a href="{detail_url}"><code>{escape(short_id)}</code></a></td>
-  <td>{escape(str(item.get("action", "-")))}</td>
-  <td>{escape(str(item.get("proof_type", "-")))}</td>
+  <td>{_cell_stack_html(_code_ref_html(item_id, detail_url), meta_lines=[f'<a class="muted-link" href="{detail_url}">open detail</a>'])}</td>
+  <td>{_cell_stack_html(escape(str(item.get("action", "-"))))}</td>
+  <td>{_cell_stack_html(escape(str(item.get("proof_type", "-"))), chips=[_chip_html(str(item.get("source", "runtime")), "good" if item.get("source") == "on-chain" else "neutral")])}</td>
   <td><span class="badge {badge_cls}">{escape(badge_label)}</span></td>
-  <td class="muted">{escape(str(item.get("timestamp", "-")))}</td>
+  <td>{_cell_stack_html(escape(str(item.get("timestamp", "-"))))}</td>
 </tr>"""
 
     if not feed_rows:
@@ -3224,21 +3467,68 @@ async def forge_homepage(request: Request) -> HTMLResponse:
       border-radius: 10px;
       overflow: auto;
       background: var(--panel);
+      box-shadow: 0 12px 30px rgba(0,0,0,.18);
     }}
     table {{
       width: 100%;
-      border-collapse: collapse;
+      min-width: 760px;
+      border-collapse: separate;
+      border-spacing: 0;
     }}
     th, td {{
       text-align: left;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(42,48,64,.7);
       font-size: 13px;
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }}
-    th {{ color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }}
+    th {{
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      background: rgba(9,12,20,.96);
+      backdrop-filter: blur(10px);
+    }}
+    tbody tr:nth-child(odd) td {{ background: rgba(255,255,255,.015); }}
     tr:last-child td {{ border-bottom: none; }}
-    tr:hover td {{ background: rgba(255,255,255,0.02); }}
+    tr:hover td {{ background: rgba(28,39,58,.68); }}
+    .cell-stack {{ display:flex; flex-direction:column; gap:5px; min-width:0; }}
+    .cell-title {{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-weight:600; }}
+    .cell-meta {{ font-size:12px; color:var(--muted); }}
+    .cell-chip-row {{ display:flex; flex-wrap:wrap; gap:6px; }}
+    .mini-chip {{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(122,134,153,.28);
+      background:rgba(122,134,153,.08);
+      color:#cdd7e7;
+      font-size:11px;
+      font-weight:600;
+    }}
+    .mini-chip.good {{
+      border-color: rgba(16,185,129,.36);
+      background: rgba(16,185,129,.12);
+      color: #b7f7dc;
+    }}
+    .code-chip {{
+      display:inline-flex;
+      align-items:center;
+      padding:3px 7px;
+      border-radius:7px;
+      border:1px solid rgba(42,48,64,.85);
+      background:#09111b;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size:12px;
+      max-width:100%;
+    }}
 
     /* ── Badges ── */
     .badge {{
