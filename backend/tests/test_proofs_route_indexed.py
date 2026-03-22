@@ -7,6 +7,10 @@ import pytest
 import app.api.routes.proofs as proofs_routes
 
 
+async def _empty_public_receipt_index(_addr: str):
+    return {}
+
+
 @pytest.mark.asyncio
 async def test_list_proofs_indexed_public_only_filters(monkeypatch):
     class FakeRegistry:
@@ -45,6 +49,7 @@ async def test_list_proofs_indexed_public_only_filters(monkeypatch):
 
     monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
     monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+    monkeypatch.setattr(proofs_routes, "build_public_receipt_index_for_user", _empty_public_receipt_index)
 
     payload = await proofs_routes.list_proofs(
         model_name="yield_forecast",
@@ -59,6 +64,57 @@ async def test_list_proofs_indexed_public_only_filters(monkeypatch):
     assert payload["total"] == 1
     assert len(payload["proofs"]) == 1
     assert payload["proofs"][0]["proof_hash"] == "0xproof_public"
+
+
+@pytest.mark.asyncio
+async def test_list_proofs_indexed_filters_by_canonical_bridge_statement_model_name(monkeypatch):
+    class FakeRegistry:
+        def list_proofs(self, model_name=None, user_address=None, limit=5000, offset=0):
+            return [
+                SimpleNamespace(
+                    proof_hash="0xalias_record",
+                    model_name="yield_predictor",
+                    user_address="0xabc",
+                    proof_type="noir_honk",
+                    action_type="ml_inference",
+                    verified_locally=True,
+                    created_at=1.0,
+                    tx_hash=None,
+                    to_dict=lambda: {
+                        "model_name": "yield_predictor",
+                        "metadata": {
+                            "bridge_statement": {
+                                "lane": "noir_v2",
+                                "model_name": "yield_forecast",
+                                "requested_model_name": "yield_predictor",
+                            }
+                        },
+                    },
+                )
+            ]
+
+    async def fake_attach_public_receipts(payload, requested_hash, **kwargs):
+        enriched = dict(payload)
+        enriched["public_receipts"] = [{"tx_hash": "0xl2"}]
+        enriched["public_receipt_summary"] = {"count": 1, "starknet_l2": 1, "ethereum_l1": 0}
+        return enriched
+
+    monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
+    monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+    monkeypatch.setattr(proofs_routes, "build_public_receipt_index_for_user", _empty_public_receipt_index)
+
+    payload = await proofs_routes.list_proofs(
+        model_name="yield_forecast",
+        user_address="0xabc",
+        source="indexed",
+        public_only=True,
+        limit=50,
+        offset=0,
+    )
+
+    assert payload["total"] == 1
+    assert payload["proofs"][0]["proof_hash"] == "0xalias_record"
+    assert payload["proofs"][0]["bridge_statement"]["model_name"] == "yield_forecast"
 
 
 @pytest.mark.asyncio
@@ -105,6 +161,7 @@ async def test_list_proofs_indexed_can_sort_by_latest_public_settlement(monkeypa
 
     monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
     monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+    monkeypatch.setattr(proofs_routes, "build_public_receipt_index_for_user", _empty_public_receipt_index)
 
     payload = await proofs_routes.list_proofs(
         user_address="0xabc",
@@ -180,6 +237,7 @@ async def test_list_proofs_indexed_supports_settlement_cursor(monkeypatch):
 
     monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
     monkeypatch.setattr(proofs_routes, "_attach_public_receipts", fake_attach_public_receipts)
+    monkeypatch.setattr(proofs_routes, "build_public_receipt_index_for_user", _empty_public_receipt_index)
 
     first_page = await proofs_routes.list_proofs(
         user_address="0xabc",

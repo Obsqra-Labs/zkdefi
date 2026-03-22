@@ -81,6 +81,7 @@ async def _get_receipt_service():
 async def _get_indexed_proofs(
     *,
     limit: int = 50,
+    model_name: str | None = None,
     user_address: str | None = None,
     public_only: bool = False,
     cursor_timestamp: str | None = None,
@@ -88,6 +89,7 @@ async def _get_indexed_proofs(
 ) -> list[dict[str, Any]]:
     payload = await _get_indexed_proof_payload(
         limit=limit,
+        model_name=model_name,
         user_address=user_address,
         public_only=public_only,
         cursor_timestamp=cursor_timestamp,
@@ -100,6 +102,7 @@ async def _get_indexed_proofs(
 async def _get_indexed_proof_payload(
     *,
     limit: int = 50,
+    model_name: str | None = None,
     user_address: str | None = None,
     public_only: bool = False,
     cursor_timestamp: str | None = None,
@@ -109,7 +112,7 @@ async def _get_indexed_proof_payload(
         from app.api.routes import proofs as proofs_routes
 
         payload = await proofs_routes.list_proofs(
-            model_name=None,
+            model_name=model_name,
             user_address=user_address,
             source="indexed",
             public_only=public_only,
@@ -434,7 +437,120 @@ def _proof_feed_items_from_payload(payload: dict[str, Any]) -> list[dict[str, An
                 "detail_href": f"detail/proof_job/{quote(str(proof_hash), safe='')}",
             }
         )
+    for item in items:
+        item["settlement_graph"] = _proof_settlement_graph(item)
     return items
+
+
+def _proof_matches_filters(item: dict[str, Any], *, lane: str | None = None, model_name: str | None = None) -> bool:
+    lane_filter = str(lane or "").strip().lower()
+    model_filter = str(model_name or "").strip().lower()
+    item_lane = str(item.get("lane") or "").strip().lower()
+    item_model = str(item.get("model_name") or "").strip().lower()
+    if lane_filter and item_lane != lane_filter:
+        return False
+    if model_filter and item_model != model_filter:
+        return False
+    return True
+
+
+def _proof_cursor_from_item(item: dict[str, Any]) -> dict[str, str] | None:
+    timestamp = str(item.get("latest_public_timestamp") or "")
+    proof_hash = str(item.get("id") or "")
+    if not timestamp and not proof_hash:
+        return None
+    return {
+        "timestamp": timestamp,
+        "proof_hash": proof_hash,
+    }
+
+
+def _proof_settlement_graph(item: dict[str, Any]) -> dict[str, Any]:
+    proof_id = str(item.get("id") or "")
+    fact_hash = str(item.get("fact_hash") or "")
+    model_name = str(item.get("model_name") or "")
+    tx_hash = str(item.get("latest_public_tx_hash") or "")
+    nodes = [
+        {"type": "proof_job", "id": proof_id, "href": item.get("detail_href")},
+    ]
+    edges: list[dict[str, Any]] = []
+    if fact_hash:
+        nodes.append({"type": "fact", "id": fact_hash, "href": f"detail/fact/{quote(fact_hash, safe='')}"})
+        edges.append({"from": proof_id, "to": fact_hash, "verb": "commits"})
+    if model_name:
+        nodes.append({"type": "model", "id": model_name, "href": f"detail/model/{quote(model_name, safe='')}"})
+        edges.append({"from": proof_id, "to": model_name, "verb": "uses"})
+    if tx_hash:
+        nodes.append({"type": "transaction", "id": tx_hash, "href": f"detail/transaction/{quote(tx_hash, safe='')}"})
+        edges.append({"from": proof_id, "to": tx_hash, "verb": "settles_with"})
+    return {
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
+async def _get_filtered_proof_feed_payload(
+    *,
+    limit: int,
+    model_name: str | None,
+    lane: str | None,
+    user_address: str | None,
+    public_only: bool,
+    cursor_timestamp: str | None,
+    cursor_proof_hash: str | None,
+) -> dict[str, Any]:
+    if not lane and not model_name:
+        payload = await _get_indexed_proof_payload(
+            limit=limit,
+            model_name=model_name,
+            user_address=user_address,
+            public_only=public_only,
+            cursor_timestamp=cursor_timestamp,
+            cursor_proof_hash=cursor_proof_hash,
+        )
+        return {
+            "items": _proof_feed_items_from_payload(payload),
+            "total_results": int(payload.get("total") or 0),
+            "next_cursor": payload.get("next_cursor"),
+        }
+
+    collected: list[dict[str, Any]] = []
+    matched_total = 0
+    next_ts = cursor_timestamp
+    next_hash = cursor_proof_hash
+    batch_limit = max(limit * 4, 100)
+
+    while True:
+        payload = await _get_indexed_proof_payload(
+            limit=batch_limit,
+            model_name=model_name,
+            user_address=user_address,
+            public_only=public_only,
+            cursor_timestamp=next_ts,
+            cursor_proof_hash=next_hash,
+        )
+        items = _proof_feed_items_from_payload(payload)
+        matching = [item for item in items if _proof_matches_filters(item, lane=lane, model_name=model_name)]
+        matched_total += len(matching)
+        if len(collected) < limit + 1:
+            collected.extend(matching[: max(0, (limit + 1) - len(collected))])
+        next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
+        if not next_cursor:
+            break
+        next_ts = str(next_cursor.get("timestamp") or "")
+        next_hash = str(next_cursor.get("proof_hash") or "")
+        if len(collected) > limit and not next_cursor:
+            break
+        if not next_ts and not next_hash:
+            break
+
+    has_more = len(collected) > limit
+    page_items = collected[:limit]
+    return {
+        "items": page_items,
+        "total_results": matched_total,
+        "next_cursor": _proof_cursor_from_item(page_items[-1]) if has_more and page_items else None,
+    }
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────
@@ -736,28 +852,35 @@ async def forge_proofs_feed(
     limit: int = Query(25, ge=1, le=100, description="Page size for proof rows"),
     public_only: bool = Query(False, description="Keep only publicly settled proof rows"),
     user_address: Optional[str] = Query(default=None, description="Optional user filter"),
+    model_name: Optional[str] = Query(default=None, description="Optional canonical model-name filter"),
+    lane: Optional[str] = Query(default=None, description="Optional proving-lane filter"),
     cursor_timestamp: Optional[str] = Query(default=None, description="Settlement cursor timestamp"),
     cursor_proof_hash: Optional[str] = Query(default=None, description="Settlement cursor proof hash tie-breaker"),
 ) -> dict[str, Any]:
-    payload = await _get_indexed_proof_payload(
+    payload = await _get_filtered_proof_feed_payload(
         limit=limit,
+        model_name=model_name,
+        lane=lane,
         user_address=user_address,
         public_only=public_only,
         cursor_timestamp=cursor_timestamp,
         cursor_proof_hash=cursor_proof_hash,
     )
-    items = _proof_feed_items_from_payload(payload)
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
     return {
         "generated_at": _ts(),
         "count": len(items),
-        "total_results": int(payload.get("total") or 0),
+        "total_results": int(payload.get("total_results") or 0),
         "limit": limit,
         "public_only": public_only,
         "user_address": user_address,
+        "model_name": model_name,
+        "lane": lane,
         "cursor_timestamp": cursor_timestamp,
         "cursor_proof_hash": cursor_proof_hash,
-        "has_more": bool(payload.get("next_cursor")),
-        "next_cursor": payload.get("next_cursor"),
+        "has_more": bool(next_cursor),
+        "next_cursor": next_cursor,
         "items": items,
         "paths": {
             "self": "proofs",
@@ -1186,9 +1309,17 @@ async def forge_proofs_page(
     limit: int = Query(25, ge=1, le=100),
     public_only: bool = Query(False),
     user_address: Optional[str] = Query(default=None),
+    model_name: Optional[str] = Query(default=None),
+    lane: Optional[str] = Query(default=None),
 ) -> HTMLResponse:
     status = await forge_status()
-    payload = await forge_proofs_feed(limit=limit, public_only=public_only, user_address=user_address)
+    payload = await forge_proofs_feed(
+        limit=limit,
+        public_only=public_only,
+        user_address=user_address,
+        model_name=model_name,
+        lane=lane,
+    )
     items = payload.get("items") if isinstance(payload.get("items"), list) else []
     next_cursor = payload.get("next_cursor") if isinstance(payload.get("next_cursor"), dict) else None
 
@@ -1212,6 +1343,8 @@ async def forge_proofs_page(
     cursor_proof = escape(str(next_cursor.get("proof_hash", ""))) if next_cursor else ""
     checked = "checked" if public_only else ""
     user_value = escape(user_address or "")
+    model_value = escape(model_name or "")
+    lane_value = escape(lane or "")
 
     return HTMLResponse(f"""<!DOCTYPE html>
 <html lang="en">
@@ -1226,7 +1359,7 @@ a {{ color: var(--link); text-decoration:none; }} a:hover {{ text-decoration:und
 nav {{ margin-bottom: 16px; display:flex; gap:14px; font-size:13px; }}
 .muted {{ color: var(--muted); }}
 .toolbar {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin: 16px 0; padding: 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }}
-.toolbar input[type=text] {{ min-width: 380px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
+.toolbar input[type=text] {{ min-width: 220px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#0b1019; color:var(--text); }}
 .toolbar label {{ font-size:13px; color:var(--muted); display:flex; gap:8px; align-items:center; }}
 .toolbar button {{ background: var(--panel); color: var(--muted); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; cursor: pointer; }}
 .toolbar button:hover {{ color: var(--emerald); border-color: var(--emerald); }}
@@ -1246,6 +1379,8 @@ code {{ font-family: "JetBrains Mono", monospace; font-size:12px; }}
 
 <div class="toolbar">
   <label>User <input id="user-address" type="text" value="{user_value}" placeholder="0x... optional" /></label>
+  <label>Model <input id="model-name" type="text" value="{model_value}" placeholder="yield_forecast" /></label>
+  <label>Lane <input id="lane-name" type="text" value="{lane_value}" placeholder="modelbridge / noir_v2" /></label>
   <label><input id="public-only" type="checkbox" {checked} /> public settled only</label>
   <button id="apply-filters" type="button">Apply</button>
 </div>
@@ -1266,6 +1401,8 @@ const bodyEl = document.getElementById("proof-table-body");
 const loadMoreBtn = document.getElementById("load-more");
 const summaryEl = document.getElementById("proof-summary");
 const userInput = document.getElementById("user-address");
+const modelInput = document.getElementById("model-name");
+const laneInput = document.getElementById("lane-name");
 const publicOnlyInput = document.getElementById("public-only");
 let nextCursor = {{"timestamp": "{cursor_json}", "proof_hash": "{cursor_proof}" }};
 let shownCount = {len(items)};
@@ -1275,6 +1412,8 @@ function buildUrl(useCursor) {{
   params.set("limit", {limit!r});
   if (publicOnlyInput.checked) params.set("public_only", "true");
   if (userInput.value.trim()) params.set("user_address", userInput.value.trim());
+  if (modelInput.value.trim()) params.set("model_name", modelInput.value.trim());
+  if (laneInput.value.trim()) params.set("lane", laneInput.value.trim());
   if (useCursor && nextCursor && nextCursor.timestamp) {{
     params.set("cursor_timestamp", nextCursor.timestamp);
     params.set("cursor_proof_hash", nextCursor.proof_hash || "");

@@ -75,6 +75,8 @@ def test_forge_proofs_page(client):
     assert r.status_code == 200
     assert "Dedicated Proof Feed" in r.text
     assert "Load more" in r.text
+    assert 'id="model-name"' in r.text
+    assert 'id="lane-name"' in r.text
 def test_forge_detail_receipt_html(client):
     r = client.get(BASE + "/detail/receipt/nonexistent-123", headers={"Accept": "text/html"})
     if r.status_code == 404:
@@ -353,3 +355,54 @@ def test_forge_proofs_feed_returns_cursor_payload(client, monkeypatch):
         "proof_hash": "0xproof1",
     }
     assert payload["items"][0]["id"] == "0xproof1"
+    assert payload["items"][0]["settlement_graph"]["edges"][0]["verb"] == "commits"
+
+
+def test_forge_proofs_feed_supports_lane_and_model_filters(client, monkeypatch):
+    async def fake_get_filtered_proof_feed_payload(**kwargs):
+        assert kwargs["lane"] == "noir_v2"
+        assert kwargs["model_name"] == "yield_forecast"
+        return {
+            "items": [
+                {
+                    "id": "0xproof2",
+                    "model_name": "yield_forecast",
+                    "lane": "noir_v2",
+                    "proof_type": "noir_honk",
+                    "latest_public_tx_hash": "0xl2tx2",
+                    "latest_public_timestamp": "2026-03-22T06:00:00Z",
+                    "detail_href": "detail/proof_job/0xproof2",
+                    "settlement_graph": {
+                        "nodes": [
+                            {"type": "proof_job", "id": "0xproof2"},
+                            {"type": "fact", "id": "0xfact2"},
+                            {"type": "transaction", "id": "0xl2tx2"},
+                        ],
+                        "edges": [
+                            {"from": "0xproof2", "to": "0xfact2", "verb": "commits"},
+                            {"from": "0xproof2", "to": "0xl2tx2", "verb": "settles_with"},
+                        ],
+                    },
+                }
+            ],
+            "total_results": 1,
+            "next_cursor": {
+                "timestamp": "2026-03-22T06:00:00Z",
+                "proof_hash": "0xproof2",
+            },
+        }
+
+    monkeypatch.setattr(forge_routes, "_get_filtered_proof_feed_payload", fake_get_filtered_proof_feed_payload)
+
+    r = client.get(
+        BASE + "/proofs",
+        params={"limit": 1, "lane": "noir_v2", "model_name": "yield_forecast", "public_only": "true"},
+    )
+    if r.status_code == 404:
+        pytest.skip("forge router not mounted")
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["lane"] == "noir_v2"
+    assert payload["model_name"] == "yield_forecast"
+    assert payload["items"][0]["settlement_graph"]["nodes"][1]["type"] == "fact"
+    assert payload["items"][0]["settlement_graph"]["edges"][1]["verb"] == "settles_with"

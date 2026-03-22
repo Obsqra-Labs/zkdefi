@@ -104,6 +104,21 @@ def _next_indexed_cursor(items: list[dict[str, Any]], *, has_more: bool) -> dict
     }
 
 
+def _indexed_row_model_names(row: dict[str, Any]) -> set[str]:
+    bridge_statement = row.get("bridge_statement") if isinstance(row.get("bridge_statement"), dict) else {}
+    registry_record = row.get("registry_record") if isinstance(row.get("registry_record"), dict) else {}
+    metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    names = {
+        str(row.get("model_name") or "").strip().lower(),
+        str(bridge_statement.get("model_name") or "").strip().lower(),
+        str(bridge_statement.get("requested_model_name") or "").strip().lower(),
+        str(registry_record.get("model_name") or "").strip().lower(),
+        str(metadata.get("model_name") or "").strip().lower(),
+    }
+    names.discard("")
+    return names
+
+
 # ── Request Models ──────────────────────────────────────────────────────
 
 
@@ -196,13 +211,17 @@ async def list_proofs(
     ),
 ) -> dict[str, Any]:
     """List proof records with optional filters."""
+    model_name = model_name if isinstance(model_name, str) else None
+    user_address = user_address if isinstance(user_address, str) else None
+    cursor_timestamp = cursor_timestamp if isinstance(cursor_timestamp, str) else None
+    cursor_proof_hash = cursor_proof_hash if isinstance(cursor_proof_hash, str) else None
     if source == "indexed":
         try:
             from app.services.proof_registry import get_proof_registry
 
             registry = get_proof_registry()
             records = registry.list_proofs(
-                model_name=model_name,
+                model_name=None,
                 user_address=user_address,
                 limit=5000,
                 offset=0,
@@ -237,6 +256,9 @@ async def list_proofs(
                 if public_only and not (payload.get("public_receipt_summary") or {}).get("count"):
                     continue
                 items.append(payload)
+            if model_name:
+                model_filter = str(model_name).strip().lower()
+                items = [row for row in items if model_filter in _indexed_row_model_names(row)]
             if sort_by == "latest_public_settlement":
                 items.sort(
                     key=lambda row: (
