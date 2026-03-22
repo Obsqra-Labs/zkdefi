@@ -41,6 +41,7 @@ PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
 VOYAGER_SEPOLIA_BASE = "https://sepolia.voyager.online"
 STARKSCAN_SEPOLIA_BASE = "https://sepolia.starkscan.co"
 ETHERSCAN_SEPOLIA_BASE = "https://sepolia.etherscan.io"
+PUBLIC_EXPLORER_BASE = "https://zkde.fi/explorer/"
 PATHA_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_latest.json"
 PATHA_V2_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "patha_v2_latest.json"
 PATHC_LIVE_RECEIPT_FILE = DEFAULT_ARTIFACT_DIR / "pathc_latest.json"
@@ -7027,6 +7028,12 @@ class ShowcaseRunner:
         return {
             "generated_at": payload.get("generated_at"),
             "status": "ok" if public_lane_count > 0 else "empty",
+            "public_explorer": {
+                "home": PUBLIC_EXPLORER_BASE,
+                "proofs": PUBLIC_EXPLORER_BASE + "proofs/page",
+                "facts": PUBLIC_EXPLORER_BASE + "facts/page",
+                "models": PUBLIC_EXPLORER_BASE + "models/page",
+            },
             "summary": {
                 "public_entries_total": public_lane_count,
                 "excluded_entries_total": len(exclusions),
@@ -7054,12 +7061,21 @@ class ShowcaseRunner:
         summary = dashboard.get("summary") if isinstance(dashboard.get("summary"), dict) else {}
         entries = dashboard.get("entries") if isinstance(dashboard.get("entries"), list) else []
         exclusions = dashboard.get("excluded_lanes") if isinstance(dashboard.get("excluded_lanes"), list) else []
+        public_explorer = dashboard.get("public_explorer") if isinstance(dashboard.get("public_explorer"), dict) else {}
+        explorer_home = str(public_explorer.get("home") or PUBLIC_EXPLORER_BASE)
+        explorer_proofs = str(public_explorer.get("proofs") or f"{PUBLIC_EXPLORER_BASE}proofs/page")
+        explorer_facts = str(public_explorer.get("facts") or f"{PUBLIC_EXPLORER_BASE}facts/page")
+        explorer_models = str(public_explorer.get("models") or f"{PUBLIC_EXPLORER_BASE}models/page")
         lines = [
             "This is not a whitepaper. The system is running. The public receipts below are RPC-audited and resolve to real public explorer transactions. Internal Madara/L3 hashes are intentionally excluded from this block.",
             "",
             "Live proof dashboard",
             "[zkde.fi/test](https://zkde.fi/test)",
             "— regenerates fresh receipts on demand",
+            "",
+            "Proof explorer",
+            f"[zkde.fi/explorer/]({explorer_home})",
+            f"— browse [Proofs]({explorer_proofs}), [Facts]({explorer_facts}), and [Models]({explorer_models})",
             "",
         ]
         for entry in entries:
@@ -10075,6 +10091,12 @@ class ShowcaseRunner:
         Path C confirmed routes: {escape(str(public_dashboard_summary.get('path_c_confirmed_routes') or '-'))}
       </p>
       {self._html_table(["Receipt", "Public Chain", "Verified", "Preferred Explorer", "Fallback", "Signal"], public_dashboard_rows)}
+      <p class="meta">
+        Public explorer: <a href="{escape(PUBLIC_EXPLORER_BASE)}" target="_blank" rel="noreferrer">zkde.fi/explorer/</a> |
+        Proofs: <a href="{escape(PUBLIC_EXPLORER_BASE + 'proofs/page')}" target="_blank" rel="noreferrer">page</a> |
+        Facts: <a href="{escape(PUBLIC_EXPLORER_BASE + 'facts/page')}" target="_blank" rel="noreferrer">page</a> |
+        Models: <a href="{escape(PUBLIC_EXPLORER_BASE + 'models/page')}" target="_blank" rel="noreferrer">page</a>
+      </p>
       <p class="meta">Reusable snippet source: <code>artifacts/hackathon_showcase/public_proof_dashboard.md</code></p>
       <h3>Excluded From Public Dashboard</h3>
       {self._html_table(["Lane", "Reason", "Detail"], public_dashboard_exclusion_rows)}
