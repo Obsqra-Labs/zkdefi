@@ -725,6 +725,7 @@ async def test_native_kzg_alias_model_resolves_trace_sidecar(monkeypatch, tmp_pa
 async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
     pipeline = ProofPipeline()
     _disable_event_log(monkeypatch, pipeline)
+    stored: list[dict] = []
 
     class _FakeEzklProof:
         proof_hash = "0x1234"
@@ -753,8 +754,13 @@ async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
             "error": None,
         }
 
+    class FakeRegistry:
+        def store_proof(self, **kwargs):
+            stored.append(kwargs)
+
     monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
     monkeypatch.setattr(pipeline, "_verify_l3_bridge", fake_l3)
+    monkeypatch.setattr("app.services.proof_registry.get_proof_registry", lambda: FakeRegistry())
 
     result = await pipeline.generate_ml_proofs(
         user_address="0x1",
@@ -775,6 +781,11 @@ async def test_modelbridge_prefers_real_ezkl_when_available(monkeypatch):
     assert result["bridge_statement"]["model_name"] == "yield_predictor"
     assert result["bridge_statement"]["ezkl_proof_hash"] == "0x1234"
     assert result["bridge_statement"]["binding_profile"]["binds_timestamp"] is True
+    assert len(stored) == 1
+    assert stored[0]["proof_hash"] == result["bridge_proof"]["proof_hash"]
+    assert stored[0]["proof_type"] == "groth16"
+    assert stored[0]["metadata"]["bridge_statement"] == result["bridge_statement"]
+    assert stored[0]["metadata"]["bridge_circuit"] == "ModelBridge"
 
 
 @pytest.mark.asyncio

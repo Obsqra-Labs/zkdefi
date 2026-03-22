@@ -277,6 +277,8 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
 
         record = get_proof_registry().get_proof(proof_hash)
         if record is not None:
+            record_dict = record.to_dict()
+            metadata = record_dict.get("metadata") or {}
             return {
                 "proof_hash": record.proof_hash,
                 "status": "indexed",
@@ -288,7 +290,9 @@ async def get_proof(proof_hash: str) -> dict[str, Any]:
                 "verified_locally": record.verified_locally,
                 "created_at": record.created_at,
                 "tx_hash": record.tx_hash,
-                "registry_record": record.to_dict(),
+                "bridge_statement": metadata.get("bridge_statement"),
+                "metadata": metadata,
+                "registry_record": record_dict,
             }
     except Exception:
         pass

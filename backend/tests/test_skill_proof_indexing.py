@@ -60,10 +60,12 @@ async def test_get_proof_falls_back_to_registry_when_pipeline_misses(monkeypatch
         verified_locally=True,
         created_at=123.0,
         tx_hash=None,
+        metadata_json='{"bridge_statement":{"lane":"modelbridge"}}',
         to_dict=lambda: {
             "proof_hash": "0xregistryproof",
             "model_name": "StrategyIntegrity",
             "user_address": "0xabc",
+            "metadata": {"bridge_statement": {"lane": "modelbridge"}},
         },
     )
 
@@ -80,3 +82,4 @@ async def test_get_proof_falls_back_to_registry_when_pipeline_misses(monkeypatch
     assert payload["source"] == "proof_registry"
     assert payload["model_name"] == "StrategyIntegrity"
     assert payload["action_type"] == "strategy_integrity"
+    assert payload["bridge_statement"]["lane"] == "modelbridge"

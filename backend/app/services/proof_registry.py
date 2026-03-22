@@ -53,6 +53,7 @@ class ProofRecord:
     inference_output: str      # JSON array of output values
     verified_locally: bool     # Whether we verified before storing
     created_at: float          # Unix timestamp
+    metadata_json: str = "{}"  # JSON object with bridge/runtime metadata
     # On-chain fields
     tx_hash: str | None = None       # Starknet tx hash if submitted
     on_chain_proof_id: int | None = None
@@ -60,6 +61,10 @@ class ProofRecord:
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
+        try:
+            d["metadata"] = json.loads(self.metadata_json or "{}")
+        except Exception:
+            d["metadata"] = {}
         d["created_at_iso"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(d["created_at"]))
         if d["submitted_at"]:
             d["submitted_at_iso"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(d["submitted_at"]))
@@ -80,6 +85,7 @@ CREATE TABLE IF NOT EXISTS proofs (
     inference_output TEXT NOT NULL DEFAULT '[]',
     verified_locally INTEGER NOT NULL DEFAULT 0,
     created_at      REAL NOT NULL,
+    metadata_json   TEXT NOT NULL DEFAULT '{}',
     tx_hash         TEXT,
     on_chain_proof_id INTEGER,
     submitted_at    REAL
@@ -114,6 +120,9 @@ class ProofRegistryService:
     def _init_db(self) -> None:
         conn = sqlite3.connect(self._db_path)
         conn.executescript(_CREATE_TABLE)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(proofs)").fetchall()}
+        if "metadata_json" not in columns:
+            conn.execute("ALTER TABLE proofs ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'")
         conn.close()
 
     def _conn(self) -> sqlite3.Connection:
@@ -133,10 +142,12 @@ class ProofRegistryService:
         proof_size_bytes: int = 0,
         inference_output: list[float] | None = None,
         verified_locally: bool = False,
+        metadata: dict[str, Any] | None = None,
     ) -> ProofRecord:
         """Store a proof record. Returns existing if proof_hash already stored."""
         now = time.time()
         output_json = json.dumps(inference_output or [])
+        metadata_json = json.dumps(metadata or {}, sort_keys=True)
 
         conn = self._conn()
         try:
@@ -150,10 +161,10 @@ class ProofRegistryService:
             conn.execute(
                 """INSERT INTO proofs
                    (proof_hash, model_name, user_address, proof_type, action_type,
-                    proof_size_bytes, inference_output, verified_locally, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    proof_size_bytes, inference_output, verified_locally, created_at, metadata_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (proof_hash, model_name, user_address, proof_type, action_type,
-                 proof_size_bytes, output_json, int(verified_locally), now),
+                 proof_size_bytes, output_json, int(verified_locally), now, metadata_json),
             )
             conn.commit()
             row = conn.execute(
@@ -369,6 +380,7 @@ class ProofRegistryService:
             inference_output=row["inference_output"],
             verified_locally=bool(row["verified_locally"]),
             created_at=row["created_at"],
+            metadata_json=row["metadata_json"] or "{}",
             tx_hash=row["tx_hash"],
             on_chain_proof_id=row["on_chain_proof_id"],
             submitted_at=row["submitted_at"],

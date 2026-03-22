@@ -1218,6 +1218,31 @@ class ProofPipeline:
             result["bridge_statement"] = bridge_proof.get("bridge_statement")
             result["bridge_circuit_used"] = bridge_circuit_used
 
+            try:
+                from app.services.proof_registry import get_proof_registry
+
+                registry_metadata = {
+                    "bridge_statement": result.get("bridge_statement") or {},
+                    "bridge_backend": bridge_proof.get("bridge_backend"),
+                    "bridge_circuit": bridge_circuit_used,
+                    "bridge_lane": bridge_proof.get("bridge_lane"),
+                    "bridge_proof_type": bridge_proof.get("bridge_proof_type"),
+                    "trust_mode": trust_mode,
+                }
+                get_proof_registry().store_proof(
+                    proof_hash=str(bridge_fact_hash or bridge_proof.get("proof_hash") or ""),
+                    model_name=model_name,
+                    user_address=user_address,
+                    proof_type=str(bridge_proof.get("bridge_proof_type") or ""),
+                    action_type=action_type or "ml_bridge",
+                    proof_size_bytes=len(model_bridge_calldata or []),
+                    inference_output=list((result.get("bridge_statement") or {}).get("outputs_int") or []),
+                    verified_locally=bool(bridge_proof.get("success")),
+                    metadata=registry_metadata,
+                )
+            except Exception as exc:
+                logger.warning("Failed to register bridge proof in registry: %s", exc)
+
             if bridge_proof.get("success") and bridge_proof.get("is_compliant"):
                 result["combined_calldata"] = {
                     "model_bridge_calldata": model_bridge_calldata,
