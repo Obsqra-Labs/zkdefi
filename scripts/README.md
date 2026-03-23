@@ -50,10 +50,41 @@ Artifact-backed API surfaces:
 | **test_dao_proposal.sh** | End-to-end test: create DAO proposal, cast vote (`POST /api/v1/dao/vote/cast`). |
 | **test_emergency_controls.sh** | Test emergency pause/unpause DAO; requires RPC and keystore. |
 | **smoke_test_reputation_proofs.sh** | Smoke test all 5 reputation proof endpoints. Usage: `./scripts/smoke_test_reputation_proofs.sh [BASE_URL]` (default `http://127.0.0.1:8003`). Uses `test_data/*_test.json`. |
+| **smoke_oracle_execute.py** | Smoke test proof-gated `POST /api/v1/zkdefi/oracle/execute` and validate `wallet_sign_required` calldata output for `proof_gated_yield_agent`. |
 | **import_grafana_dashboard.sh** | Import the reputation Grafana dashboard via API. Set `GRAFANA_URL` and `GRAFANA_API_KEY` (or `GRAFANA_USER`/`GRAFANA_PASSWORD`). |
 | **rewrite_history_single_commit.sh** | (Maintainer) Rewrite repo to a single commit; used for history squash. |
 
 Run from repo root. Ensure backend is up for smoke tests; for deploy/register scripts, Starknet RPC and keystore must be configured.
+
+### Proof pipeline regression tests
+
+Run the focused regression/smoke suite (no running backend needed for unit tests):
+
+```bash
+cd backend && python3 -m pytest -q --tb=short \
+  tests/test_parser_regressions.py \
+  tests/test_ml_bridge_verification_pipeline.py \
+  tests/test_snapshot_forecaster_api.py \
+  tests/test_snapshot_forecaster_service.py
+```
+
+Or via Make (requires backend running on :8003 for smoke):
+
+```bash
+make test-proof-regression
+```
+
+The `test_parser_regressions.py` suite covers the EZKL reshape normalization fix (`_normalize_ezkl_input_data` metadata-driven feature width fallback).
+
+Oracle execute smoke test:
+
+```bash
+python3 scripts/smoke_oracle_execute.py \
+  --base-url http://127.0.0.1:8003 \
+  --address 0x04422220537D26e01FA07fB8Bf7B50A6D87176cD47f4f8416Ed7e2576f1aecdb
+```
+
+If `ADMIN_API_KEY` is configured in backend env, pass `--admin-key <value>`.
 
 ### Hackathon showcase quick start
 

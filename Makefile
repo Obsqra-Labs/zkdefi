@@ -59,6 +59,15 @@ test-backend-all: ## Run all backend tests including known-failing (debug)
 	$(ACTIVATE) && cd backend && \
 	  $(PYTHON) -m pytest tests/ -v --tb=short $(BACKEND_IGNORE)
 
+test-proof-regression: ## Proof pipeline regressions + oracle smoke (~8s)
+	$(ACTIVATE) && cd backend && \
+	  $(PYTHON) -m pytest -q --tb=short \
+	    tests/test_parser_regressions.py \
+	    tests/test_ml_bridge_verification_pipeline.py \
+	    tests/test_snapshot_forecaster_api.py \
+	    tests/test_snapshot_forecaster_service.py
+	$(ACTIVATE) && $(PYTHON) scripts/smoke_oracle_execute.py --base-url http://127.0.0.1:8003
+
 # ── E2E / Integration Tests ─────────────────────────────────────────────
 
 test-e2e: ## Run E2E proof-pipeline tests (needs running services)

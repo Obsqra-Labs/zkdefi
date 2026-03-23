@@ -95,7 +95,7 @@ async def require_admin(
 
     # No key configured
     if APP_ENV == "development":
-        logger.warning("Admin endpoint accessed without ADMIN_API_KEY set (dev mode)")
+        logger.debug("Admin endpoint accessed without ADMIN_API_KEY set (dev mode)")
         return "admin-dev"
 
     raise HTTPException(

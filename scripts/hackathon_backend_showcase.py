@@ -7231,6 +7231,35 @@ class ShowcaseRunner:
         payload["public_proof_dashboard"] = self._build_public_proof_dashboard(payload)
         return payload
 
+    # -- Badge / icon helpers ------------------------------------------------
+
+    _ICON_CHECK = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    _ICON_X = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+    _ICON_WARN = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 3.5V7M6 8.5V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+
+    @staticmethod
+    def _badge(ok: bool | None, label_pass: str = "PASS", label_fail: str = "FAIL", *, warn: bool = False) -> str:
+        """Return an HTML badge span with inline SVG icon."""
+        if warn:
+            return f'<span class="warn">{ShowcaseRunner._ICON_WARN} {escape(label_pass)}</span>'
+        if ok:
+            return f'<span class="pass">{ShowcaseRunner._ICON_CHECK} {escape(label_pass)}</span>'
+        return f'<span class="fail">{ShowcaseRunner._ICON_X} {escape(label_fail)}</span>'
+
+    @staticmethod
+    def _signal_tags(bits: list[str], fallback: str = "-") -> str:
+        """Render a list of key=value strings as structured tag chips."""
+        if not bits:
+            return escape(fallback)
+        parts = []
+        for bit in bits:
+            if "=" in bit:
+                key, _, val = bit.partition("=")
+                parts.append(f'<span class="signal-tag"><span class="st-key">{escape(key)}</span>={escape(val)}</span>')
+            else:
+                parts.append(f'<span class="signal-tag">{escape(bit)}</span>')
+        return " ".join(parts)
+
     def _html_table(self, headers: list[str], rows: list[list[str]]) -> str:
         if not rows:
             return "<p class=\"muted\">No rows.</p>"
@@ -7248,7 +7277,7 @@ class ShowcaseRunner:
         claim_rows = [
             [
                 escape(str(c.get("label"))),
-                "<span class=\"pass\">PASS</span>" if c.get("ok") else "<span class=\"fail\">FAIL</span>",
+                self._badge(c.get("ok")),
             ]
             for c in claims
             if isinstance(c, dict)
@@ -7263,7 +7292,7 @@ class ShowcaseRunner:
             step_rows.append(
                 [
                     escape(str(step.get("name"))),
-                    "<span class=\"pass\">PASS</span>" if step.get("ok") else "<span class=\"fail\">FAIL</span>",
+                    self._badge(step.get("ok")),
                     escape(compact),
                 ]
             )
@@ -7315,10 +7344,10 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("title") or row.get("lane") or "-")),
                     escape(str(row.get("public_chain") or row.get("network") or "-")),
-                    "<span class=\"pass\">true</span>" if row.get("verified_on_chain") else "<span class=\"fail\">false</span>",
+                    self._badge(row.get("verified_on_chain"), "Verified", "Unverified"),
                     tx_html,
                     fallback_html,
-                    escape(", ".join(note_bits) if note_bits else str(row.get("note") or "-")),
+                    self._signal_tags(note_bits, fallback=str(row.get("note") or "-")),
                 ]
             )
 
@@ -7393,7 +7422,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("label") or "-")),
                     f"<code>{escape(str(row.get('path') or '-'))}</code>",
-                    "<span class=\"pass\">present</span>" if row.get("exists") else "<span class=\"fail\">missing</span>",
+                    self._badge(row.get("exists"), "Present", "Missing"),
                 ]
             )
 
@@ -7415,7 +7444,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("id") or "-")),
                     escape(str(row.get("name") or "-")),
-                    "<span class=\"pass\">yes</span>" if row.get("available") else "<span class=\"fail\">no</span>",
+                    self._badge(row.get("available"), "Yes", "No"),
                     contract_html,
                     escape(str(row.get("trust_model") or "-")),
                 ]
@@ -7434,7 +7463,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("label") or "-")),
                     f"<code>{escape(str(row.get('path') or '-'))}</code>",
-                    "<span class=\"pass\">present</span>" if row.get("exists") else "<span class=\"fail\">missing</span>",
+                    self._badge(row.get("exists"), "Present", "Missing"),
                 ]
             )
         recursive_path_rows = []
@@ -7456,17 +7485,17 @@ class ShowcaseRunner:
                 runtime_contract_html = f"{runtime_contract_html}<div class=\"meta\">class {escape(_short_hex(runtime_class_hash, 14))}</div>"
             status_raw = str(row.get("status") or "partial")
             status_html = (
-                f"<span class=\"pass\">{escape(status_raw)}</span>"
+                self._badge(True, escape(status_raw))
                 if status_raw.startswith("implemented")
-                else f"<span class=\"fail\">{escape(status_raw)}</span>"
+                else self._badge(False, label_fail=escape(status_raw))
             )
             recursive_path_rows.append(
                 [
                     escape(str(row.get("path") or "-")),
                     status_html,
                     escape(str(row.get("runtime_lane_id") or "-")),
-                    "<span class=\"pass\">yes</span>" if row.get("runtime_lane_listed") else "<span class=\"fail\">no</span>",
-                    "<span class=\"pass\">yes</span>" if row.get("runtime_lane_available") else "<span class=\"fail\">no</span>",
+                    self._badge(row.get("runtime_lane_listed"), "Yes", "No"),
+                    self._badge(row.get("runtime_lane_available"), "Yes", "No"),
                     runtime_contract_html,
                     escape(_clip_text(row.get("doc_signal"), 140) or "-"),
                 ]
@@ -7489,23 +7518,23 @@ class ShowcaseRunner:
         )
         recursive_signal_rows = [
             ["Path A primary lane id", escape(str(recursive_signals.get("path_a_primary_lane_id") or "-"))],
-            ["Path A primary prefers V2", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_primary_prefers_v2") else "<span class=\"fail\">no</span>"],
-            ["Path A primary live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_primary_live_verified") else "<span class=\"fail\">no</span>"],
-            ["Path A status in roadmap", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_status_doc") else "<span class=\"fail\">no</span>"],
-            ["Path A live receipt artifact found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_receipt_found") else "<span class=\"fail\">no</span>"],
-            ["Path A live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_live_verified") else "<span class=\"fail\">no</span>"],
-            ["Path A V2 live receipt artifact found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_v2_live_receipt_found") else "<span class=\"fail\">no</span>"],
-            ["Path A V2 live receipt verified", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_a_v2_live_verified") else "<span class=\"fail\">no</span>"],
-            ["Phase 2 status marked complete", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase2_status_done") else "<span class=\"fail\">no</span>"],
-            ["Phase 3 tasks expanded (3.1-3.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase3_plan_expanded") else "<span class=\"fail\">no</span>"],
-            ["Phase 4 tasks expanded (4.1-4.5)", "<span class=\"pass\">yes</span>" if recursive_signals.get("phase4_plan_expanded") else "<span class=\"fail\">no</span>"],
-            ["Parent backend Phase 3 config keys", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_config_keys") else "<span class=\"fail\">no</span>"],
-            ["Parent backend Phase 3 service stub", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase3_service_stub") else "<span class=\"fail\">no</span>"],
-            ["Parent backend Phase 4 config key", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_config_key") else "<span class=\"fail\">no</span>"],
-            ["Parent backend Phase 4 route (native_kzg)", "<span class=\"pass\">yes</span>" if recursive_signals.get("parent_phase4_route") else "<span class=\"fail\">no</span>"],
-            ["Path B verifier re-verified on L3 RPC", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_verifier_rpc_verified") else "<span class=\"fail\">no</span>"],
-            ["Path B strict ABI selector present", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_verifier_has_strict_selector") else "<span class=\"fail\">no</span>"],
-            ["Path B warm report found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_b_warm_report_found") else "<span class=\"fail\">no</span>"],
+            ["Path A primary prefers V2", self._badge(recursive_signals.get("path_a_primary_prefers_v2"), "Yes", "No")],
+            ["Path A primary live receipt verified", self._badge(recursive_signals.get("path_a_primary_live_verified"), "Yes", "No")],
+            ["Path A status in roadmap", self._badge(recursive_signals.get("path_a_status_doc"), "Yes", "No")],
+            ["Path A live receipt artifact found", self._badge(recursive_signals.get("path_a_live_receipt_found"), "Yes", "No")],
+            ["Path A live receipt verified", self._badge(recursive_signals.get("path_a_live_verified"), "Yes", "No")],
+            ["Path A V2 live receipt artifact found", self._badge(recursive_signals.get("path_a_v2_live_receipt_found"), "Yes", "No")],
+            ["Path A V2 live receipt verified", self._badge(recursive_signals.get("path_a_v2_live_verified"), "Yes", "No")],
+            ["Phase 2 status marked complete", self._badge(recursive_signals.get("phase2_status_done"), "Yes", "No")],
+            ["Phase 3 tasks expanded (3.1-3.5)", self._badge(recursive_signals.get("phase3_plan_expanded"), "Yes", "No")],
+            ["Phase 4 tasks expanded (4.1-4.5)", self._badge(recursive_signals.get("phase4_plan_expanded"), "Yes", "No")],
+            ["Parent backend Phase 3 config keys", self._badge(recursive_signals.get("parent_phase3_config_keys"), "Yes", "No")],
+            ["Parent backend Phase 3 service stub", self._badge(recursive_signals.get("parent_phase3_service_stub"), "Yes", "No")],
+            ["Parent backend Phase 4 config key", self._badge(recursive_signals.get("parent_phase4_config_key"), "Yes", "No")],
+            ["Parent backend Phase 4 route (native_kzg)", self._badge(recursive_signals.get("parent_phase4_route"), "Yes", "No")],
+            ["Path B verifier re-verified on L3 RPC", self._badge(recursive_signals.get("path_b_verifier_rpc_verified"), "Yes", "No")],
+            ["Path B strict ABI selector present", self._badge(recursive_signals.get("path_b_verifier_has_strict_selector"), "Yes", "No")],
+            ["Path B warm report found", self._badge(recursive_signals.get("path_b_warm_report_found"), "Yes", "No")],
             [
                 "Path B warm coverage",
                 escape(
@@ -7514,7 +7543,7 @@ class ShowcaseRunner:
             ],
             [
                 "Path B warm gate (strict)",
-                "<span class=\"pass\">pass</span>" if recursive_signals.get("path_b_warm_gate_pass") else "<span class=\"fail\">fail</span>",
+                self._badge(recursive_signals.get("path_b_warm_gate_pass")),
             ],
             [
                 "Path B min coverage target",
@@ -7554,9 +7583,9 @@ class ShowcaseRunner:
                     f"{recursive_signals.get('path_b_native_kzg_daily_regressed_count') or 0}"
                 ),
             ],
-            ["Path C live receipt file found", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_live_receipt_found") else "<span class=\"fail\">no</span>"],
-            ["Path C L1 receipt status == 1", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l1_status_ok") else "<span class=\"fail\">no</span>"],
-            ["Path C L2 confirmation", "<span class=\"pass\">yes</span>" if recursive_signals.get("path_c_l2_verified") else "<span class=\"fail\">no</span>"],
+            ["Path C live receipt file found", self._badge(recursive_signals.get("path_c_live_receipt_found"), "Yes", "No")],
+            ["Path C L1 receipt status == 1", self._badge(recursive_signals.get("path_c_l1_status_ok"), "Yes", "No")],
+            ["Path C L2 confirmation", self._badge(recursive_signals.get("path_c_l2_verified"), "Yes", "No")],
         ]
         path_b_verifier_address = str(path_b_runtime_verifier.get("address") or "-")
         path_b_verifier_address_url = path_b_runtime_verifier.get("address_url")
@@ -7576,11 +7605,11 @@ class ShowcaseRunner:
             ["Network", escape(str(path_b_runtime_verifier.get("network_label") or "-"))],
             ["RPC URL", f"<code>{escape(str(path_b_runtime_verifier.get('rpc_url') or '-'))}</code>"],
             ["Address", path_b_verifier_address_html],
-            ["RPC deployment check", "<span class=\"pass\">present</span>" if path_b_runtime_verifier.get("rpc_verified") else "<span class=\"fail\">missing</span>"],
+            ["RPC deployment check", self._badge(path_b_runtime_verifier.get("rpc_verified"), "Present", "Missing")],
             ["Class hash", path_b_verifier_class_hash_html],
             ["Required ABI methods", escape(", ".join(path_b_runtime_verifier.get("required_methods") or []) or "-")],
             ["ABI methods found", escape(", ".join(path_b_runtime_verifier.get("abi_methods") or []) or "-")],
-            ["Strict selector readiness", "<span class=\"pass\">ready</span>" if path_b_runtime_verifier.get("required_methods_ok") else "<span class=\"fail\">missing ABI method</span>"],
+            ["Strict selector readiness", self._badge(path_b_runtime_verifier.get("required_methods_ok"), "Ready", "Missing ABI method")],
             ["Public explorer", escape("not available for local Madara L3") if _is_local_rpc_url(path_b_runtime_verifier.get("rpc_url")) else escape("Starkscan")],
         ]
         path_a_live_tx = str(path_a_live.get("tx_hash") or "")
@@ -7592,8 +7621,8 @@ class ShowcaseRunner:
         )
         path_a_live_rows = [
             ["Artifact path", f"<code>{escape(str(path_a_live.get('artifact_path') or '-'))}</code>"],
-            ["Artifact present", "<span class=\"pass\">yes</span>" if path_a_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
-            ["Live verified (L3)", "<span class=\"pass\">true</span>" if path_a_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Artifact present", self._badge(path_a_live.get("artifact_found"), "Yes", "No")],
+            ["Live verified (L3)", self._badge(path_a_live.get("live_verified"), "Verified", "Unverified")],
             ["Mode", escape(str(path_a_live.get("mode") or "-"))],
             ["Bridge backend", escape(str(path_a_live.get("bridge_backend") or "-"))],
             ["Proof mode", escape(str(path_a_live.get("proof_mode") or "-"))],
@@ -7604,7 +7633,7 @@ class ShowcaseRunner:
                 else escape(_short_hex(str(path_a_live.get("l2_tx_hash") or "-"), 14))
             )],
             ["L3 status", escape(str(path_a_live.get("status") or "-"))],
-            ["Can execute", "<span class=\"pass\">true</span>" if path_a_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", self._badge(path_a_live.get("can_execute"), "Yes", "No")],
             ["Mirror status", escape(str(path_a_live.get("mirror_status") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(path_a_live.get("bridge_proof_hash") or "-"), 14))],
             ["Calldata words", escape(str(path_a_live.get("calldata_words") or "-"))],
@@ -7622,8 +7651,8 @@ class ShowcaseRunner:
         )
         path_a_v2_live_rows = [
             ["Artifact path", f"<code>{escape(str(path_a_v2_live.get('artifact_path') or '-'))}</code>"],
-            ["Artifact present", "<span class=\"pass\">yes</span>" if path_a_v2_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
-            ["Live verified (L3)", "<span class=\"pass\">true</span>" if path_a_v2_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Artifact present", self._badge(path_a_v2_live.get("artifact_found"), "Yes", "No")],
+            ["Live verified (L3)", self._badge(path_a_v2_live.get("live_verified"), "Verified", "Unverified")],
             ["Mode", escape(str(path_a_v2_live.get("mode") or "-"))],
             ["Bridge backend", escape(str(path_a_v2_live.get("bridge_backend") or "-"))],
             ["Proof mode", escape(str(path_a_v2_live.get("proof_mode") or "-"))],
@@ -7634,7 +7663,7 @@ class ShowcaseRunner:
                 else escape(_short_hex(str(path_a_v2_live.get("l2_tx_hash") or "-"), 14))
             )],
             ["L3 status", escape(str(path_a_v2_live.get("status") or "-"))],
-            ["Can execute", "<span class=\"pass\">true</span>" if path_a_v2_live.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", self._badge(path_a_v2_live.get("can_execute"), "Yes", "No")],
             ["Mirror status", escape(str(path_a_v2_live.get("mirror_status") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(path_a_v2_live.get("bridge_proof_hash") or "-"), 14))],
             ["Calldata words", escape(str(path_a_v2_live.get("calldata_words") or "-"))],
@@ -7656,11 +7685,11 @@ class ShowcaseRunner:
             else escape(_short_hex(path_a_primary_live_tx, 14) if path_a_primary_live_tx else "-")
         )
         path_a_primary_live_rows = [
-            ["Preferred V2", "<span class=\"pass\">true</span>" if path_a_primary_live.get("preferred_v2") else "<span class=\"fail\">false</span>"],
+            ["Preferred V2", self._badge(path_a_primary_live.get("preferred_v2"), "Yes", "No")],
             ["Lane id", escape(str(path_a_primary_live.get("lane_id") or "-"))],
             ["Artifact path", f"<code>{escape(str(path_a_primary_live.get('artifact_path') or '-'))}</code>"],
-            ["Artifact present", "<span class=\"pass\">yes</span>" if path_a_primary_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
-            ["Live verified (L3)", "<span class=\"pass\">true</span>" if path_a_primary_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Artifact present", self._badge(path_a_primary_live.get("artifact_found"), "Yes", "No")],
+            ["Live verified (L3)", self._badge(path_a_primary_live.get("live_verified"), "Verified", "Unverified")],
             ["Mode", escape(str(path_a_primary_live.get("mode") or "-"))],
             ["Bridge backend", escape(str(path_a_primary_live.get("bridge_backend") or "-"))],
             ["Proof mode", escape(str(path_a_primary_live.get("proof_mode") or "-"))],
@@ -7676,20 +7705,20 @@ class ShowcaseRunner:
         ] + _bridge_statement_table_rows(path_a_primary_live.get("bridge_statement"))
         recursive_env = recursive_paths.get("env_snapshot") if isinstance(recursive_paths.get("env_snapshot"), dict) else {}
         recursive_env_rows = [
-            ["Parent backend .env found", "<span class=\"pass\">yes</span>" if recursive_env.get("parent_env_found") else "<span class=\"fail\">no</span>"],
-            ["L1_SEPOLIA_RPC set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_sepolia_rpc_set") else "<span class=\"fail\">no</span>"],
-            ["L1_EZKL_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_ezkl_verifier_set") else "<span class=\"fail\">no</span>"],
-            ["L1_EZKL_BRIDGE_SENDER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_bridge_sender_set") else "<span class=\"fail\">no</span>"],
-            ["L1_BRIDGE_RECEIVER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_bridge_receiver_set") else "<span class=\"fail\">no</span>"],
-            ["SHOWCASE_PREFER_NOIR_V2", "<span class=\"pass\">true</span>" if recursive_env.get("showcase_prefer_noir_v2") else "<span class=\"fail\">false</span>"],
-            ["L1 signer configured", "<span class=\"pass\">yes</span>" if recursive_env.get("l1_signer_set") else "<span class=\"fail\">no</span>"],
-            ["L3_KZG_VERIFIER_ADDRESS set", "<span class=\"pass\">yes</span>" if recursive_env.get("l3_kzg_verifier_set") else "<span class=\"fail\">no</span>"],
-            ["zkdefi backend .env found", "<span class=\"pass\">yes</span>" if recursive_env.get("zkdefi_backend_env_found") else "<span class=\"fail\">no</span>"],
-            ["MODELBRIDGE_REQUIRE_REAL_GROTH16", "<span class=\"pass\">true</span>" if recursive_env.get("modelbridge_require_real_groth16") else "<span class=\"warn\">false</span>"],
-            ["MODELBRIDGE_REQUIRE_REAL_EZKL", "<span class=\"pass\">true</span>" if recursive_env.get("modelbridge_require_real_ezkl") else "<span class=\"warn\">false</span>"],
-            ["NATIVE_KZG_REQUIRE_REAL_EZKL", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_require_real_ezkl") else "<span class=\"warn\">false</span>"],
-            ["NATIVE_KZG_REQUIRE_MPCHECK", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_require_mpcheck") else "<span class=\"warn\">false</span>"],
-            ["NATIVE_KZG_WARM_ON_REAL_PROVE", "<span class=\"pass\">true</span>" if recursive_env.get("native_kzg_warm_on_real_prove") else "<span class=\"warn\">false</span>"],
+            ["Parent backend .env found", self._badge(recursive_env.get("parent_env_found"), "Yes", "No")],
+            ["L1_SEPOLIA_RPC set", self._badge(recursive_env.get("l1_sepolia_rpc_set"), "Yes", "No")],
+            ["L1_EZKL_VERIFIER_ADDRESS set", self._badge(recursive_env.get("l1_ezkl_verifier_set"), "Yes", "No")],
+            ["L1_EZKL_BRIDGE_SENDER_ADDRESS set", self._badge(recursive_env.get("l1_bridge_sender_set"), "Yes", "No")],
+            ["L1_BRIDGE_RECEIVER_ADDRESS set", self._badge(recursive_env.get("l1_bridge_receiver_set"), "Yes", "No")],
+            ["SHOWCASE_PREFER_NOIR_V2", self._badge(recursive_env.get("showcase_prefer_noir_v2"), "True", "False")],
+            ["L1 signer configured", self._badge(recursive_env.get("l1_signer_set"), "Yes", "No")],
+            ["L3_KZG_VERIFIER_ADDRESS set", self._badge(recursive_env.get("l3_kzg_verifier_set"), "Yes", "No")],
+            ["zkdefi backend .env found", self._badge(recursive_env.get("zkdefi_backend_env_found"), "Yes", "No")],
+            ["MODELBRIDGE_REQUIRE_REAL_GROTH16", self._badge(recursive_env.get("modelbridge_require_real_groth16"), "True", label_fail="False", warn=not recursive_env.get("modelbridge_require_real_groth16"))],
+            ["MODELBRIDGE_REQUIRE_REAL_EZKL", self._badge(recursive_env.get("modelbridge_require_real_ezkl"), "True", label_fail="False", warn=not recursive_env.get("modelbridge_require_real_ezkl"))],
+            ["NATIVE_KZG_REQUIRE_REAL_EZKL", self._badge(recursive_env.get("native_kzg_require_real_ezkl"), "True", label_fail="False", warn=not recursive_env.get("native_kzg_require_real_ezkl"))],
+            ["NATIVE_KZG_REQUIRE_MPCHECK", self._badge(recursive_env.get("native_kzg_require_mpcheck"), "True", label_fail="False", warn=not recursive_env.get("native_kzg_require_mpcheck"))],
+            ["NATIVE_KZG_WARM_ON_REAL_PROVE", self._badge(recursive_env.get("native_kzg_warm_on_real_prove"), "True", label_fail="False", warn=not recursive_env.get("native_kzg_warm_on_real_prove"))],
         ]
         path_b_warm = (
             recursive_paths.get("path_b_warm_report")
@@ -7698,7 +7727,7 @@ class ShowcaseRunner:
         )
         path_b_warm_rows = [
             ["Artifact path", f"<code>{escape(str(path_b_warm.get('artifact_path') or '-'))}</code>"],
-            ["Artifact present", "<span class=\"pass\">yes</span>" if path_b_warm.get("artifact_found") else "<span class=\"fail\">no</span>"],
+            ["Artifact present", self._badge(path_b_warm.get("artifact_found"), "Yes", "No")],
             ["Generated at", escape(str(path_b_warm.get("generated_at") or "-"))],
             ["Coverage scope", escape(str(path_b_warm.get("coverage_scope") or "-"))],
             ["Catalog models", escape(str(path_b_warm.get("catalog_models_total") or "-"))],
@@ -7706,7 +7735,7 @@ class ShowcaseRunner:
             ["Selected model names", escape(_clip_text(", ".join(path_b_warm.get("selected_model_names") or []), 220) or "-")],
             ["Proving-ready catalog models", escape(str(path_b_warm.get("proving_ready_models_catalog_total") or "-"))],
             ["Excluded non-EZKL models", escape(str(path_b_warm.get("excluded_models_total") or "-"))],
-            ["Bootstrap known models", "<span class=\"pass\">enabled</span>" if path_b_warm.get("bootstrap_known_models_enabled") else "<span class=\"warn\">disabled</span>"],
+            ["Bootstrap known models", self._badge(path_b_warm.get("bootstrap_known_models_enabled"), "Enabled", label_fail="Disabled", warn=not path_b_warm.get("bootstrap_known_models_enabled"))],
             ["Bootstrap supported models", escape(_clip_text(", ".join(path_b_warm.get("bootstrap_supported_models") or []), 180) or "-")],
             [
                 "Bootstrap attempted / ready / failed",
@@ -7724,14 +7753,14 @@ class ShowcaseRunner:
             ["Models with bundle", escape(str(path_b_warm.get("models_with_bundle") or "-"))],
             ["Coverage", escape(f"{_safe_float(path_b_warm.get('coverage_ratio'), 0.0) * 100.0:.2f}%")],
             ["Strict target", escape(f"{_safe_float(path_b_warm.get('target_ratio'), 0.0) * 100.0:.2f}%")],
-            ["Gate result", "<span class=\"pass\">pass</span>" if path_b_warm.get("gate_pass") else "<span class=\"fail\">fail</span>"],
+            ["Gate result", self._badge(path_b_warm.get("gate_pass"))],
             ["Gate reason", escape(str(path_b_warm.get("gate_reason") or "-"))],
             ["History file", f"<code>{escape(str(path_b_warm.get('history_file') or '-'))}</code>"],
             ["History entries", escape(str(path_b_warm.get("history_entries") or "-"))],
             ["Daily delta window (hours)", escape(str(path_b_warm.get("daily_delta_window_hours") or "-"))],
             ["Previous-run delta (pct points)", escape(str(path_b_warm.get("previous_run_delta_pct_points") or "-"))],
             ["Daily delta (pct points)", escape(str(path_b_warm.get("daily_delta_pct_points") or "-"))],
-            ["Native KZG onchain probe enabled", "<span class=\"pass\">yes</span>" if path_b_warm.get("native_kzg_onchain_enabled") else "<span class=\"warn\">no</span>"],
+            ["Native KZG onchain probe enabled", self._badge(path_b_warm.get("native_kzg_onchain_enabled"), "Yes", label_fail="No", warn=not path_b_warm.get("native_kzg_onchain_enabled"))],
             ["Native KZG base URL", escape(str(path_b_warm.get("native_kzg_onchain_base_url") or "-"))],
             ["Native KZG execution chain", escape(str(path_b_warm.get("native_kzg_onchain_execution_chain") or "-"))],
             [
@@ -7821,9 +7850,9 @@ class ShowcaseRunner:
             path_b_bootstrap_rows.append(
                 [
                     escape(str(item.get("model") or "-")),
-                    "<span class=\"pass\">yes</span>" if item.get("attempted") else "<span class=\"warn\">no</span>",
-                    "<span class=\"pass\">yes</span>" if item.get("ready") else "<span class=\"fail\">no</span>",
-                    "<span class=\"pass\">yes</span>" if item.get("train_ran") else "<span class=\"warn\">no</span>",
+                    self._badge(item.get("attempted"), "Yes", label_fail="No", warn=not item.get("attempted")),
+                    self._badge(item.get("ready"), "Yes", "No"),
+                    self._badge(item.get("train_ran"), "Yes", label_fail="No", warn=not item.get("train_ran")),
                     escape(str(item.get("train_status") or "-")),
                     escape(str(item.get("setup_status") or "-")),
                     escape(_clip_text(", ".join(item.get("missing_before") or []), 120) or "-"),
@@ -7836,7 +7865,7 @@ class ShowcaseRunner:
             path_b_bootstrap_rows.append(
                 [
                     "-",
-                    "<span class=\"warn\">no</span>",
+                    self._badge(None, label_fail="No", warn=True),
                     "-",
                     "-",
                     "-",
@@ -7875,13 +7904,13 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("model") or "-")),
                     escape(str(row.get("status") or "-")),
-                    "<span class=\"pass\">true</span>" if row.get("verified_on_chain") else "<span class=\"fail\">false</span>",
-                    "<span class=\"pass\">true</span>" if row.get("can_execute") else "<span class=\"fail\">false</span>",
+                    self._badge(row.get("verified_on_chain"), "Verified", "Unverified"),
+                    self._badge(row.get("can_execute"), "Yes", "No"),
                     escape(str(row.get("execution_chain") or "-")),
                     escape(str(row.get("mirror_status") or "-")),
                     escape(str(row.get("l3_mode") or "-")),
                     escape(str(row.get("l3_abi_used") or "-")),
-                    "<span class=\"pass\">true</span>" if row.get("l3_strict_binding_observed") else "<span class=\"warn\">false</span>",
+                    self._badge(row.get("l3_strict_binding_observed"), "Yes", label_fail="No", warn=not row.get("l3_strict_binding_observed")),
                     escape(str(row.get("l2_mode") or "-")),
                     escape(str(row.get("bridge_backend") or "-")),
                     l3_tx_html,
@@ -7930,10 +7959,10 @@ class ShowcaseRunner:
         path_c_recent_models = path_c_capture_history.get("recent_models") if isinstance(path_c_capture_history.get("recent_models"), list) else []
         path_c_live_rows = [
             ["Artifact path", f"<code>{escape(str(path_c_live.get('artifact_path') or '-'))}</code>"],
-            ["Artifact present", "<span class=\"pass\">yes</span>" if path_c_live.get("artifact_found") else "<span class=\"fail\">no</span>"],
-            ["Live verified (L1 + L2)", "<span class=\"pass\">true</span>" if path_c_live.get("live_verified") else "<span class=\"fail\">false</span>"],
+            ["Artifact present", self._badge(path_c_live.get("artifact_found"), "Yes", "No")],
+            ["Live verified (L1 + L2)", self._badge(path_c_live.get("live_verified"), "Verified", "Unverified")],
             ["Runtime stage", escape(str(path_c_live.get("runtime_stage") or "-"))],
-            ["Monitor freshness", "<span class=\"pass\">fresh</span>" if path_c_live.get("checked_recently") else "<span class=\"warn\">stale</span>"],
+            ["Monitor freshness", self._badge(path_c_live.get("checked_recently"), "Fresh", label_fail="Stale", warn=not path_c_live.get("checked_recently"))],
             ["Mode", escape(str(path_c_live.get("mode") or "-"))],
             ["Source model", escape(str(path_c_live.get("source_model_name") or path_c_live.get("resolved_model_name") or "-"))],
             ["Resolved model", escape(str(path_c_live.get("resolved_model_name") or "-"))],
@@ -7950,7 +7979,7 @@ class ShowcaseRunner:
             ["L1 sender", path_c_sender_html],
             ["L1 verifier", path_c_verifier_html],
             ["L2 receiver", escape(str(path_c_live.get("receiver_address") or "-"))],
-            ["L1 core message pending", "<span class=\"warn\">true</span>" if path_c_live.get("l1_core_pending") else "<span class=\"fail\">false</span>"],
+            ["L1 core message pending", ShowcaseRunner._badge(path_c_live.get("l1_core_pending"), warn=True)],
             ["L1 core queue value", escape(str(path_c_live.get("l1_core_slot_value") or "-"))],
             ["L1 core address", escape(str(path_c_live.get("l1_core_address") or "-"))],
             ["Model hash", escape(_short_hex(str(path_c_live.get("model_hash") or "-"), 14))],
@@ -7959,7 +7988,7 @@ class ShowcaseRunner:
             ["Raw output commitment", escape(_short_hex(str(path_c_live.get("raw_output_commitment") or "-"), 14))],
             ["Bridge output commitment", escape(_short_hex(str(path_c_live.get("bridge_output_commitment") or "-"), 14))],
             ["Nonce used", escape(str(path_c_live.get("used_nonce") if path_c_live.get("used_nonce") is not None else "-"))],
-            ["L2 verified_on_l2", "<span class=\"pass\">true</span>" if path_c_live.get("l2_verified_on_l2") else "<span class=\"fail\">false</span>"],
+            ["L2 verified_on_l2", self._badge(path_c_live.get("l2_verified_on_l2"), "Verified", "Unverified")],
             ["L2 output commitment", escape(_short_hex(str(path_c_live.get("l2_output_commitment") or "-"), 14))],
             ["L2 block timestamp (UTC)", escape(str(path_c_live.get("l2_block_timestamp_iso") or "-"))],
             ["Poll attempts until confirm", escape(str(path_c_live.get("l2_poll_count") or "-"))],
@@ -7996,13 +8025,13 @@ class ShowcaseRunner:
                 else escape(_short_hex(sender, 14) if sender else "-")
             )
             status_html = (
-                "<span class=\"pass\">confirmed</span>"
+                self._badge(True, "Confirmed")
                 if row.get("l2_verified")
-                else "<span class=\"warn\">l1 mined / pending l2</span>"
+                else self._badge(None, "L1 mined / pending L2", warn=True)
                 if row.get("latest_tx_hash")
-                else "<span class=\"warn\">configured</span>"
+                else self._badge(None, "Configured", warn=True)
             )
-            primary_html = "<span class=\"pass\">yes</span>" if row.get("is_primary") else "-"
+            primary_html = self._badge(True, "Yes") if row.get("is_primary") else "-"
             path_c_route_rows.append(
                 [
                     escape(str(row.get("resolved_model_name") or row.get("route_key") or "-")),
@@ -8025,7 +8054,7 @@ class ShowcaseRunner:
                     if tx_url
                     else escape(_short_hex(tx_hash, 14) if tx_hash else "-")
                 )
-                verified_html = "<span class=\"pass\">true</span>" if row.get("l2_verified_on_l2") else "<span class=\"fail\">false</span>"
+                verified_html = self._badge(row.get("l2_verified_on_l2"), "Verified", "Unverified")
                 path_c_history_rows.append(
                     [
                         escape(str(row.get("resolved_model_name") or row.get("source_model_name") or "-")),
@@ -8070,7 +8099,7 @@ class ShowcaseRunner:
                     escape(str(l2.get("mode") or "-")),
                     escape(str(run.get("bridge_backend") or "-")),
                     escape(str(run.get("mirror_status") or "-")),
-                    "<span class=\"pass\">true</span>" if run.get("can_execute") else "<span class=\"fail\">false</span>",
+                    ShowcaseRunner._badge(run.get("can_execute")),
                     escape(_clip_text(run.get("failure_reason"), 110) or "-"),
                 ]
             )
@@ -8091,18 +8120,18 @@ class ShowcaseRunner:
             verified = bool(l3.get("verified_on_chain"))
             expected_mode = lane_expected_modes.get(run_name, "-")
             failure_reason = _clip_text(run.get("failure_reason"), 140) or "-"
-            verdict_html = "<span class=\"fail\">degraded</span>"
+            verdict_html = self._badge(False, label_fail="Degraded")
             note = "investigate runtime logs"
             mode_l = mode.strip().lower()
             expected_l = str(expected_mode).strip().lower()
             if status == 200 and mode_l == expected_l and verified:
-                verdict_html = "<span class=\"pass\">healthy</span>"
+                verdict_html = self._badge(True, "Healthy")
                 note = "lane is receipt-backed"
             elif run_name == "l3_noir_request" and mode_l == "missing_calldata":
-                verdict_html = "<span class=\"warn\">degraded (tracked)</span>"
+                verdict_html = self._badge(None, "Degraded (tracked)", warn=True)
                 note = "Noir calldata generation flaky; tracked for follow-up while core lanes continue"
             elif run_name == "l3_noir_v2_request" and mode_l == "missing_calldata":
-                verdict_html = "<span class=\"warn\">degraded (tracked)</span>"
+                verdict_html = self._badge(None, "Degraded (tracked)", warn=True)
                 note = "Noir V2 calldata generation failed; investigate versioned HONK workspace/toolchain path"
             elif status == 0:
                 note = "timeout or transport issue; retry/run gate again"
@@ -8115,7 +8144,7 @@ class ShowcaseRunner:
                     escape(str(status)),
                     escape(mode),
                     escape(str(expected_mode)),
-                    "<span class=\"pass\">true</span>" if verified else "<span class=\"fail\">false</span>",
+                    self._badge(verified, "Verified", "Unverified"),
                     verdict_html,
                     escape(str(failure_reason)),
                     escape(note),
@@ -8155,7 +8184,7 @@ class ShowcaseRunner:
                         escape(str(attempt.get("bridge_backend") or "-")),
                         l3_tx_html,
                         l2_tx_html,
-                        "<span class=\"pass\">true</span>" if attempt.get("can_execute") else "<span class=\"fail\">false</span>",
+                        ShowcaseRunner._badge(attempt.get("can_execute")),
                         escape(_clip_text(attempt.get("failure_text"), 160) or "-"),
                     ]
                 )
@@ -8181,19 +8210,19 @@ class ShowcaseRunner:
             ["Requested chain", escape(str(live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", live_receipt_bridge_hash],
             ["Bridge backend", escape(str(live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(live_receipt.get("bridge_compliant"))],
             ["ModelBridge calldata words", escape(str(live_receipt.get("calldata_words") or "-"))],
-            ["L3 attempted", "<span class=\"pass\">true</span>" if live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
-            ["L3 success", "<span class=\"pass\">true</span>" if live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 attempted", ShowcaseRunner._badge(live_receipt.get("l3_attempted"))],
+            ["L3 success", ShowcaseRunner._badge(live_receipt.get("l3_success"))],
             ["L3 verifier mode", escape(str(live_receipt.get("l3_mode") or "-"))],
-            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 verified_on_chain", ShowcaseRunner._badge(live_receipt.get("l3_verified_on_chain"))],
             ["L3 actual fee", escape(str(live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(live_receipt.get("l3_execution_steps") or "-"))],
             ["L1 gas / data gas / L2 gas", escape(
                 f"{live_receipt.get('l3_l1_gas') or '-'} / {live_receipt.get('l3_l1_data_gas') or '-'} / {live_receipt.get('l3_l2_gas') or '-'}"
             )],
             ["L3 tx hash", live_receipt_tx_html],
-            ["Can execute", "<span class=\"pass\">true</span>" if live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", ShowcaseRunner._badge(live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(live_receipt.get("mirror_status") or "-"))],
             ["Trust mode", escape(str(live_receipt.get("trust_mode") or "-"))],
             ["Failure reason", escape(_clip_text(live_receipt.get("failure_reason"), 180) or "-")],
@@ -8228,8 +8257,8 @@ class ShowcaseRunner:
             ["Requested chain", escape(str(dual_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(dual_live_receipt.get("bridge_proof_hash") or "-"), 14))],
             ["Bridge backend", escape(str(dual_live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if dual_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
-            ["Can execute", "<span class=\"pass\">true</span>" if dual_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(dual_live_receipt.get("bridge_compliant"))],
+            ["Can execute", ShowcaseRunner._badge(dual_live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(dual_live_receipt.get("mirror_status") or "-"))],
             ["L3 attempted / success / verified", escape(
                 f"{dual_live_receipt.get('l3_attempted') or False} / {dual_live_receipt.get('l3_success') or False} / {dual_live_receipt.get('l3_verified_on_chain') or False}"
@@ -8280,19 +8309,19 @@ class ShowcaseRunner:
             ["Requested chain", escape(str(heavy_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(heavy_live_receipt.get("bridge_proof_hash") or "-"), 14))],
             ["Bridge backend", escape(str(heavy_live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(heavy_live_receipt.get("bridge_compliant"))],
             ["ModelBridgeHeavy calldata words", escape(str(heavy_live_receipt.get("calldata_words") or "-"))],
-            ["L3 attempted", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
-            ["L3 success", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 attempted", ShowcaseRunner._badge(heavy_live_receipt.get("l3_attempted"))],
+            ["L3 success", ShowcaseRunner._badge(heavy_live_receipt.get("l3_success"))],
             ["L3 verifier mode", escape(str(heavy_live_receipt.get("l3_mode") or "-"))],
-            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 verified_on_chain", ShowcaseRunner._badge(heavy_live_receipt.get("l3_verified_on_chain"))],
             ["L3 actual fee", escape(str(heavy_live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(heavy_live_receipt.get("l3_execution_steps") or "-"))],
             ["L1 gas / data gas / L2 gas", escape(
                 f"{heavy_live_receipt.get('l3_l1_gas') or '-'} / {heavy_live_receipt.get('l3_l1_data_gas') or '-'} / {heavy_live_receipt.get('l3_l2_gas') or '-'}"
             )],
             ["L3 tx hash", heavy_live_receipt_tx_html],
-            ["Can execute", "<span class=\"pass\">true</span>" if heavy_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", ShowcaseRunner._badge(heavy_live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(heavy_live_receipt.get("mirror_status") or "-"))],
             ["Trust mode", escape(str(heavy_live_receipt.get("trust_mode") or "-"))],
             ["Failure reason", escape(_clip_text(heavy_live_receipt.get("failure_reason"), 180) or "-")],
@@ -8321,19 +8350,19 @@ class ShowcaseRunner:
         )
         noir_live_receipt_rows = [
             ["API status", escape(str(noir_live_receipt.get("status") or "-"))],
-            ["Lane available", "<span class=\"pass\">true</span>" if noir_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
+            ["Lane available", ShowcaseRunner._badge(noir_live_receipt.get("lane_available"))],
             ["Probe seed", escape(str(noir_live_receipt.get("probe_seed") or "-"))],
             ["Probe fingerprint", escape(_short_hex(str(noir_live_receipt.get("probe_fingerprint") or "-"), 14))],
             ["Proof mode", escape(str(noir_live_receipt.get("proof_mode") or "-"))],
             ["Requested chain", escape(str(noir_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(noir_live_receipt.get("bridge_proof_hash") or "-"), 14))],
             ["Bridge backend", escape(str(noir_live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if noir_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(noir_live_receipt.get("bridge_compliant"))],
             ["Noir calldata words", escape(str(noir_live_receipt.get("calldata_words") or "-"))],
-            ["L3 attempted", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
-            ["L3 success", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 attempted", ShowcaseRunner._badge(noir_live_receipt.get("l3_attempted"))],
+            ["L3 success", ShowcaseRunner._badge(noir_live_receipt.get("l3_success"))],
             ["L3 verifier mode", escape(str(noir_live_receipt.get("l3_mode") or "-"))],
-            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if noir_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 verified_on_chain", ShowcaseRunner._badge(noir_live_receipt.get("l3_verified_on_chain"))],
             ["L3 actual fee", escape(str(noir_live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(noir_live_receipt.get("l3_execution_steps") or "-"))],
             ["L1 gas / data gas / L2 gas", escape(
@@ -8341,7 +8370,7 @@ class ShowcaseRunner:
             )],
             ["L3 tx hash", noir_live_receipt_tx_html],
             ["L2 tx hash", noir_live_receipt_l2_tx_html],
-            ["Can execute", "<span class=\"pass\">true</span>" if noir_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", ShowcaseRunner._badge(noir_live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(noir_live_receipt.get("mirror_status") or "-"))],
             [
                 "L2 verification backend",
@@ -8383,19 +8412,19 @@ class ShowcaseRunner:
         )
         noir_v2_live_receipt_rows = [
             ["API status", escape(str(noir_v2_live_receipt.get("status") or "-"))],
-            ["Lane available", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("lane_available") else "<span class=\"fail\">false</span>"],
+            ["Lane available", ShowcaseRunner._badge(noir_v2_live_receipt.get("lane_available"))],
             ["Probe seed", escape(str(noir_v2_live_receipt.get("probe_seed") or "-"))],
             ["Probe fingerprint", escape(_short_hex(str(noir_v2_live_receipt.get("probe_fingerprint") or "-"), 14))],
             ["Proof mode", escape(str(noir_v2_live_receipt.get("proof_mode") or "-"))],
             ["Requested chain", escape(str(noir_v2_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(noir_v2_live_receipt.get("bridge_proof_hash") or "-"), 14))],
             ["Bridge backend", escape(str(noir_v2_live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(noir_v2_live_receipt.get("bridge_compliant"))],
             ["Noir V2 calldata words", escape(str(noir_v2_live_receipt.get("calldata_words") or "-"))],
-            ["L3 attempted", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
-            ["L3 success", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 attempted", ShowcaseRunner._badge(noir_v2_live_receipt.get("l3_attempted"))],
+            ["L3 success", ShowcaseRunner._badge(noir_v2_live_receipt.get("l3_success"))],
             ["L3 verifier mode", escape(str(noir_v2_live_receipt.get("l3_mode") or "-"))],
-            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 verified_on_chain", ShowcaseRunner._badge(noir_v2_live_receipt.get("l3_verified_on_chain"))],
             ["L3 actual fee", escape(str(noir_v2_live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(noir_v2_live_receipt.get("l3_execution_steps") or "-"))],
             ["L1 gas / data gas / L2 gas", escape(
@@ -8403,7 +8432,7 @@ class ShowcaseRunner:
             )],
             ["L3 tx hash", noir_v2_live_receipt_tx_html],
             ["L2 tx hash", noir_v2_live_receipt_l2_tx_html],
-            ["Can execute", "<span class=\"pass\">true</span>" if noir_v2_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", ShowcaseRunner._badge(noir_v2_live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(noir_v2_live_receipt.get("mirror_status") or "-"))],
             [
                 "L2 verification backend",
@@ -8444,36 +8473,34 @@ class ShowcaseRunner:
             ["Requested chain", escape(str(native_kzg_live_receipt.get("requested_execution_chain") or "-"))],
             ["Bridge proof hash", escape(_short_hex(str(native_kzg_live_receipt.get("bridge_proof_hash") or "-"), 14))],
             ["Bridge backend", escape(str(native_kzg_live_receipt.get("bridge_backend") or "-"))],
-            ["Bridge compliant", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("bridge_compliant") else "<span class=\"fail\">false</span>"],
+            ["Bridge compliant", ShowcaseRunner._badge(native_kzg_live_receipt.get("bridge_compliant"))],
             ["KZG calldata words", escape(str(native_kzg_live_receipt.get("calldata_words") or "-"))],
-            ["KZG bundle present", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_bundle_present") else "<span class=\"fail\">false</span>"],
+            ["KZG bundle present", ShowcaseRunner._badge(native_kzg_live_receipt.get("kzg_bundle_present"))],
             ["KZG hint felts", escape(str(native_kzg_live_receipt.get("kzg_hint_felts") or "-"))],
             ["KZG trailer marker", escape(str(native_kzg_live_receipt.get("kzg_trailer_marker") or "-"))],
             ["KZG line source", escape(str(native_kzg_live_receipt.get("kzg_line_source") or "-"))],
             ["KZG precomputed lines", escape(str(native_kzg_live_receipt.get("kzg_precomputed_lines") or "-"))],
             ["Payload semantics", escape(str(native_kzg_live_receipt.get("kzg_payload_semantics") or "-"))],
             ["Bundle source", escape(_clip_text(native_kzg_live_receipt.get("kzg_bundle_source"), 160) or "-")],
-            ["Extractor attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("kzg_extractor_attempted") else "<span class=\"warn\">false</span>"],
+            ["Extractor attempted", ShowcaseRunner._badge(native_kzg_live_receipt.get("kzg_extractor_attempted"), label_fail="Pending")],
             ["Extractor error", escape(_clip_text(native_kzg_live_receipt.get("kzg_extractor_error"), 160) or "-")],
             ["Cached bundle path", escape(_clip_text(native_kzg_live_receipt.get("kzg_bundle_cached_path"), 180) or "-")],
-            ["L3 attempted", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_attempted") else "<span class=\"fail\">false</span>"],
-            ["L3 success", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_success") else "<span class=\"fail\">false</span>"],
+            ["L3 attempted", ShowcaseRunner._badge(native_kzg_live_receipt.get("l3_attempted"))],
+            ["L3 success", ShowcaseRunner._badge(native_kzg_live_receipt.get("l3_success"))],
             ["L3 verifier mode", escape(str(native_kzg_live_receipt.get("l3_mode") or "-"))],
             ["L3 ABI used", escape(str(native_kzg_live_receipt.get("l3_abi_used") or "-"))],
             [
                 "L3 strict binding observed",
-                "<span class=\"pass\">true</span>"
-                if ((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("strict_binding_observed"))
-                else "<span class=\"warn\">false</span>",
+                ShowcaseRunner._badge(((native_kzg_live_receipt.get("l3_verifier_state") or {}).get("strict_binding_observed")), "Pending", warn=True),
             ],
-            ["L3 verified_on_chain", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("l3_verified_on_chain") else "<span class=\"fail\">false</span>"],
+            ["L3 verified_on_chain", ShowcaseRunner._badge(native_kzg_live_receipt.get("l3_verified_on_chain"))],
             ["L3 actual fee", escape(str(native_kzg_live_receipt.get("l3_actual_fee_display") or "-"))],
             ["L3 execution steps", escape(str(native_kzg_live_receipt.get("l3_execution_steps") or "-"))],
             ["L1 gas / data gas / L2 gas", escape(
                 f"{native_kzg_live_receipt.get('l3_l1_gas') or '-'} / {native_kzg_live_receipt.get('l3_l1_data_gas') or '-'} / {native_kzg_live_receipt.get('l3_l2_gas') or '-'}"
             )],
             ["L3 tx hash", native_kzg_live_receipt_tx_html],
-            ["Can execute", "<span class=\"pass\">true</span>" if native_kzg_live_receipt.get("can_execute") else "<span class=\"fail\">false</span>"],
+            ["Can execute", ShowcaseRunner._badge(native_kzg_live_receipt.get("can_execute"))],
             ["Mirror status", escape(str(native_kzg_live_receipt.get("mirror_status") or "-"))],
             [
                 "L2 verification backend",
@@ -8547,12 +8574,10 @@ class ShowcaseRunner:
                 else escape(_short_hex(tx_hash, 14))
             )
             verified = row.get("verified_on_chain")
-            if verified is True:
-                verified_html = "<span class=\"pass\">true</span>"
-            elif verified is False:
-                verified_html = "<span class=\"fail\">false</span>"
+            if verified is None:
+                verified_html = ShowcaseRunner._badge(False, label_fail="N/A", warn=True)
             else:
-                verified_html = "<span class=\"warn\">n/a</span>"
+                verified_html = ShowcaseRunner._badge(verified)
             lane_label = str(row.get("lane") or "-")
             if row.get("lane_available") is False:
                 lane_label = f"{lane_label} (not enabled)"
@@ -8590,12 +8615,10 @@ class ShowcaseRunner:
                 else escape(_short_hex(tx_hash, 14))
             )
             latest_verified = row.get("latest_verified")
-            if latest_verified is True:
-                latest_verified_html = "<span class=\"pass\">true</span>"
-            elif latest_verified is False:
-                latest_verified_html = "<span class=\"fail\">false</span>"
+            if latest_verified is None:
+                latest_verified_html = ShowcaseRunner._badge(False, label_fail="N/A", warn=True)
             else:
-                latest_verified_html = "<span class=\"warn\">n/a</span>"
+                latest_verified_html = ShowcaseRunner._badge(latest_verified)
             benchmark_trend_rows.append(
                 [
                     escape(str(row.get("lane") or "-")),
@@ -8677,22 +8700,20 @@ class ShowcaseRunner:
         heavy_stark_rows = [
             ["API status", escape(str(heavy_stark.get("status") or "-"))],
             ["Circuit name", escape(str(heavy_stark.get("circuit_name") or "-"))],
-            ["Proof success", "<span class=\"pass\">true</span>" if heavy_stark.get("success") else "<span class=\"fail\">false</span>"],
+            ["Proof success", ShowcaseRunner._badge(heavy_stark.get("success"))],
             ["Proof hash", escape(_short_hex(str(heavy_stark.get("proof_hash") or "-"), 14))],
             ["Fact hash", escape(_short_hex(str(heavy_stark.get("fact_hash") or "-"), 14))],
             ["L3 mode", escape(str(heavy_stark_l3.get("mode") or "-"))],
-            ["L3 success", "<span class=\"pass\">true</span>" if heavy_stark_l3.get("success") else "<span class=\"fail\">false</span>"],
+            ["L3 success", ShowcaseRunner._badge(heavy_stark_l3.get("success"))],
             [
                 "L3 verified_on_chain",
-                "<span class=\"pass\">true</span>" if heavy_stark_l3.get("verified_on_chain") else "<span class=\"fail\">false</span>",
+                ShowcaseRunner._badge(heavy_stark_l3.get("verified_on_chain")),
             ],
             ["L3 tx hash", heavy_stark_tx_html],
             ["L2 mode", escape(str((heavy_stark.get("l2") or {}).get("mode") or "-"))],
             [
                 "L2 verified_on_chain",
-                "<span class=\"pass\">true</span>"
-                if (heavy_stark.get("l2") or {}).get("verified_on_chain")
-                else "<span class=\"fail\">false</span>",
+                ShowcaseRunner._badge((heavy_stark.get("l2") or {}).get("verified_on_chain")),
             ],
             [
                 "L2 verification backend",
@@ -8758,31 +8779,29 @@ class ShowcaseRunner:
         verifier_support_rows = [
             [
                 "ZkmlVerifier has model_bridge_verifier storage",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("has_storage_slot") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("has_storage_slot"), "Yes", "No"),
             ],
             [
                 "ZkmlVerifier constructor accepts 3 args",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("has_constructor_3arg") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("has_constructor_3arg"), "Yes", "No"),
             ],
             [
                 "Getter/setter for model bridge verifier",
                 (
-                    "<span class=\"pass\">yes</span>"
-                    if verifier_support.get("has_getter") and verifier_support.get("has_setter")
-                    else "<span class=\"fail\">no</span>"
+                    ShowcaseRunner._badge(verifier_support.get("has_getter") and verifier_support.get("has_setter"), "Yes", "No")
                 ),
             ],
             [
                 "verify_model_bridge_proof entrypoint",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("has_verify_entrypoint") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("has_verify_entrypoint"), "Yes", "No"),
             ],
             [
                 "Fallback logic (dedicated verifier else garaga)",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("uses_fallback_logic") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("uses_fallback_logic"), "Yes", "No"),
             ],
             [
                 "Generated ModelBridge verifier project present",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("verifier_project_exists") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("verifier_project_exists"), "Yes", "No"),
             ],
             [
                 "Generated contract classes",
@@ -8790,7 +8809,7 @@ class ShowcaseRunner:
             ],
             [
                 "Generated ModelBridgeHeavy verifier project present",
-                "<span class=\"pass\">yes</span>" if verifier_support.get("heavy_verifier_project_exists") else "<span class=\"fail\">no</span>",
+                ShowcaseRunner._badge(verifier_support.get("heavy_verifier_project_exists"), "Yes", "No"),
             ],
             [
                 "Generated ModelBridgeHeavy contract classes",
@@ -8798,15 +8817,15 @@ class ShowcaseRunner:
             ],
             [
                 "Deployment marker (.model_bridge_verifier.deployed)",
-                "<span class=\"pass\">found</span>" if verifier_support.get("deployed_marker_found") else "<span class=\"fail\">missing</span>",
+                ShowcaseRunner._badge(verifier_support.get("deployed_marker_found"), "Found", "Missing"),
             ],
             [
                 "Deployment marker (.model_bridge_heavy_verifier.deployed)",
-                "<span class=\"pass\">found</span>" if verifier_support.get("heavy_deployed_marker_found") else "<span class=\"fail\">missing</span>",
+                ShowcaseRunner._badge(verifier_support.get("heavy_deployed_marker_found"), "Found", "Missing"),
             ],
             [
                 "Deployment marker (.zkml_verifier_model_bridge.deployed)",
-                "<span class=\"pass\">found</span>" if verifier_support.get("zkml_marker_found") else "<span class=\"fail\">missing</span>",
+                ShowcaseRunner._badge(verifier_support.get("zkml_marker_found"), "Found", "Missing"),
             ],
             [
                 "Deployed ModelBridge verifier address",
@@ -8861,7 +8880,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("name") or "-")),
                     escape(str(row.get("category") or "-")),
-                    "<span class=\"pass\">ready</span>" if row.get("ready") else "<span class=\"fail\">missing</span>",
+                    ShowcaseRunner._badge(row.get("ready"), "Ready", "Missing"),
                     escape(str(row.get("wasm") or "-")),
                     escape(str(row.get("zkey") or "-")),
                 ]
@@ -8918,7 +8937,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("opp_id") or "-")),
                     escape(str(row.get("proof_status") or "-")),
-                    "<span class=\"pass\">true</span>" if row.get("is_proved") else "<span class=\"fail\">false</span>",
+                    ShowcaseRunner._badge(row.get("is_proved")),
                     escape(_short_hex(str(row.get("yield_proof_hash") or "-"), 10)),
                     escape(_short_hex(str(row.get("strategy_proof_hash") or "-"), 10)),
                     escape(str(row.get("yield_error") or row.get("integrity_error") or ""))[:180],
@@ -8950,7 +8969,7 @@ class ShowcaseRunner:
                     [
                         escape(str(row.get("opp_id") or "-")),
                         escape(str(skill.get("skill_id") or "-")),
-                        "<span class=\"pass\">pass</span>" if skill.get("success") else "<span class=\"fail\">fail</span>",
+                        ShowcaseRunner._badge(skill.get("success"), "Pass", "Fail"),
                         escape(str(skill.get("duration_ms") or "-")),
                         escape(_short_hex(str(skill.get("proof_hash") or "-"), 10)),
                         escape(_clip_text(skill.get("error"), 90) or "-"),
@@ -9079,7 +9098,7 @@ class ShowcaseRunner:
                 [
                     escape(str(row.get("tier") or "-")),
                     escape(str(row.get("tier_name") or "-")),
-                    "<span class=\"pass\">yes</span>" if row.get("relayer_access") else "<span class=\"fail\">no</span>",
+                    ShowcaseRunner._badge(row.get("relayer_access"), "Yes", "No"),
                     escape(str(row.get("relayer_delay_hours") or "-")),
                     escape(str(row.get("proof_requirement") or "-")),
                     escape(str(row.get("max_position_eth") or "-")),
@@ -9097,7 +9116,7 @@ class ShowcaseRunner:
                     escape(str(row.get("claim_status") or "-")),
                     escape(_short_hex(str(row.get("nullifier") or "-"), 10)),
                     escape(_short_hex(str(row.get("claim_hash") or "-"), 10)),
-                    "<span class=\"pass\">ready</span>" if row.get("relayer_ready") else "<span class=\"fail\">flagged</span>",
+                    ShowcaseRunner._badge(row.get("relayer_ready"), "Ready", "Flagged"),
                 ]
             )
         ledger = privacy.get("ledger", {}) if isinstance(privacy.get("ledger"), dict) else {}
@@ -9216,13 +9235,13 @@ class ShowcaseRunner:
         poseidon_rows = [
             [
                 "Optional: batch skill proof runtime",
-                ("<span class=\"pass\">PASS</span>" if (poseidon_batch or {}).get("ok") else "<span class=\"fail\">FAIL</span>"),
+                (ShowcaseRunner._badge((poseidon_batch or {}).get("ok"), "PASS", "FAIL")),
                 escape(str(poseidon_batch_details.get("batch_status") or "-")),
                 escape(str(poseidon_batch_details.get("succeeded") or "-")),
             ],
             [
                 "Optional: credit eligibility proof",
-                ("<span class=\"pass\">PASS</span>" if (poseidon_credit or {}).get("ok") else "<span class=\"fail\">FAIL</span>"),
+                (ShowcaseRunner._badge((poseidon_credit or {}).get("ok"), "PASS", "FAIL")),
                 escape(str(poseidon_credit_details.get("status") or "-")),
                 escape(_short_hex(str(poseidon_credit_details.get("proof_hash") or "-"), 10)),
             ],
@@ -9515,7 +9534,7 @@ class ShowcaseRunner:
                 if tx_hash and tx_url
                 else (escape(_short_hex(tx_hash, 12)) if tx_hash else "-")
             )
-            status_html = "<span class=\"pass\">complete</span>" if row.get("ok") else "<span class=\"fail\">in_progress</span>"
+            status_html = self._badge(row.get("ok"), "Complete", "In Progress")
             checkin_note = (
                 "Document E2E receipt + promote tag in GitHub release notes."
                 if row.get("ok")
@@ -9595,6 +9614,7 @@ class ShowcaseRunner:
       --muted: #98a2b5;
       --good: #34d399;
       --bad: #fb923c;
+      --warn: #facc15;
       --link: #67e8f9;
       --emerald: #10b981;
       --cyan: #22d3ee;
@@ -10038,11 +10058,51 @@ class ShowcaseRunner:
     .table-wrap .warn {{
       display: inline-flex;
       align-items: center;
+      gap: 5px;
       width: fit-content;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid currentColor;
-      line-height: 1.3;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      line-height: 1.4;
+      white-space: nowrap;
+    }}
+    .table-wrap .pass {{
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }}
+    .table-wrap .fail {{
+      background: rgba(251, 146, 60, 0.13);
+      border: 1px solid rgba(251, 146, 60, 0.38);
+      color: #fdba74;
+    }}
+    .table-wrap .warn {{
+      background: rgba(250, 204, 21, 0.10);
+      border: 1px solid rgba(250, 204, 21, 0.32);
+      color: #fde68a;
+    }}
+    .table-wrap .pass svg,
+    .table-wrap .fail svg,
+    .table-wrap .warn svg {{
+      flex-shrink: 0;
+    }}
+    .signal-tag {{
+      display: inline-block;
+      padding: 2px 7px;
+      margin: 2px 3px 2px 0;
+      border: 1px solid rgba(57, 73, 97, 0.65);
+      border-radius: 4px;
+      background: rgba(9, 17, 27, 0.8);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: #b4c8e0;
+      white-space: nowrap;
+    }}
+    .signal-tag .st-key {{
+      color: #7a93b4;
     }}
     a {{ color: var(--link); text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
@@ -10311,8 +10371,8 @@ class ShowcaseRunner:
       <h3>Live Proving Lanes (STARK vs SNARK)</h3>
       <p class="meta">
         Proving-path endpoint status: {escape(str(bridge.get('proving_paths_status') or '-'))} |
-        Dual lanes ready: {("<span class=\"pass\">yes</span>" if bridge.get("dual_lanes_ready") else "<span class=\"fail\">no</span>")} |
-        ModelBridgeHeavy lane available: {("<span class=\"pass\">yes</span>" if bridge.get("model_bridge_heavy_lane_available") else "<span class=\"fail\">no</span>")} |
+        Dual lanes ready: {self._badge(bridge.get("dual_lanes_ready"), "Yes", "No")} |
+        ModelBridgeHeavy lane available: {self._badge(bridge.get("model_bridge_heavy_lane_available"), "Yes", "No")} |
         SNOS proving: {escape(snos_status_text)}
       </p>
       {self._html_table(["Lane ID", "Lane Name", "Available", "Contract", "Trust Model"], proving_rows)}
@@ -10326,7 +10386,7 @@ class ShowcaseRunner:
       {self._html_table(["Lane", "What It Proves", "Current Evidence"], bridge_lane_story_rows)}
       <p class="meta">
         EZKL runtime probe status: {escape(str(((bridge.get('ezkl_runtime_probe') or {}).get('status') if isinstance(bridge.get('ezkl_runtime_probe'), dict) else '-')))} |
-        Real proof detected: {("<span class=\"pass\">yes</span>" if ((bridge.get("ezkl_runtime_probe") or {}).get("has_real_proof")) else "<span class=\"fail\">no</span>")}
+        Real proof detected: {self._badge(((bridge.get("ezkl_runtime_probe") or {}).get("has_real_proof")), "Yes", "No")}
       </p>
       <h3>Why This Bridge Is An Unlock</h3>
       {self._html_table(["Unlock", "Design Signal", "Why It Matters"], bridge_unlock_rows)}
@@ -10526,7 +10586,7 @@ class ShowcaseRunner:
         <strong>Why Obsqra Labs wanted this:</strong> If this is unhealthy, proof badges and eligibility cards should degrade gracefully.<br/>
         <strong>Unlocks:</strong> Stable commitment generation across private strategy and trust workflows.
       </div>
-      <p class="meta">Current status: {("<span class=\"pass\">PASS</span>" if poseidon_ok else "<span class=\"fail\">FAIL</span>")} ({poseidon_summary})</p>
+      <p class="meta">Current status: {self._badge(poseidon_ok)} ({poseidon_summary})</p>
       <p class="meta">{escape(poseidon_note)}</p>
       {self._html_table(["Step", "Status", "API Status", "Signal"], poseidon_rows)}
     </section>

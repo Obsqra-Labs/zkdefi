@@ -139,11 +139,34 @@ class ProofPipeline:
 
         return requested
 
+    @staticmethod
+    def _coerce_input_rows(
+        input_data: list[float] | list[list[float]] | None,
+    ) -> list[list[float]]:
+        if not input_data:
+            return []
+
+        first = input_data[0]
+        if isinstance(first, (list, tuple)):
+            rows = input_data
+        else:
+            rows = [input_data]
+
+        coerced: list[list[float]] = []
+        for row in rows:
+            if row is None:
+                coerced.append([])
+            elif isinstance(row, (list, tuple)):
+                coerced.append([float(v) for v in row])
+            else:
+                coerced.append([float(row)])
+        return coerced
+
     def _normalize_ezkl_input_data(
         self,
         *,
         resolved_model_name: str,
-        input_data: list[list[float]],
+        input_data: list[float] | list[list[float]],
     ) -> list[list[float]]:
         """
         Normalize request input rows to the model's expected feature width when known.
@@ -152,6 +175,7 @@ class ProofPipeline:
         model_dir = root / resolved_model_name
         meta_path = model_dir / "training_metadata.json"
         expected_features: int | None = None
+        meta: dict[str, Any] = {}
 
         if meta_path.exists():
             try:
@@ -160,14 +184,47 @@ class ProofPipeline:
                 raw_n = meta.get("n_features")
                 if raw_n is not None:
                     expected_features = int(raw_n)
+                if not expected_features:
+                    feature_names = meta.get("feature_names")
+                    if isinstance(feature_names, list) and feature_names:
+                        expected_features = len(feature_names)
+                if not expected_features:
+                    for key in ("feature_count", "input_dim", "input_size"):
+                        raw_alt = meta.get(key)
+                        if raw_alt is not None:
+                            expected_features = int(raw_alt)
+                            break
             except Exception:
                 expected_features = None
+                meta = {}
+
+        rows = self._coerce_input_rows(input_data)
 
         if not expected_features or expected_features <= 0:
-            return input_data
+            return rows
 
         norm_params: dict[str, Any] = {}
         norm_path = model_dir / "norm_params.json"
+        if not norm_path.exists():
+            raw_norm_path = meta.get("norm_params_path") if isinstance(meta, dict) else None
+            if isinstance(raw_norm_path, str) and raw_norm_path.strip():
+                raw_path = Path(raw_norm_path.strip())
+                backend_root = Path(__file__).resolve().parents[2]
+                repo_root = Path(__file__).resolve().parents[3]
+                candidates = [
+                    raw_path,
+                    model_dir / raw_path,
+                    model_dir / raw_path.name,
+                    Path.cwd() / raw_path,
+                    repo_root / raw_path,
+                ]
+                if raw_path.parts and raw_path.parts[0] == "backend":
+                    candidates.append(backend_root / Path(*raw_path.parts[1:]))
+                for candidate in candidates:
+                    if candidate.exists():
+                        norm_path = candidate
+                        break
+
         if norm_path.exists():
             try:
                 import json
@@ -186,8 +243,8 @@ class ProofPipeline:
         normalized: list[list[float]] = []
         adjusted_width = False
         adjusted_scale = False
-        for row in input_data:
-            vals = [float(v) for v in (row or [])]
+        for row in rows:
+            vals = list(row)
             if len(vals) < expected_features:
                 vals = vals + [0.0] * (expected_features - len(vals))
                 adjusted_width = True
@@ -610,9 +667,10 @@ class ProofPipeline:
         self,
         *,
         model_name: str,
-        input_data: list[list[float]],
+        input_data: list[float] | list[list[float]],
     ) -> SyntheticEzklProof:
-        flattened = [float(v) for row in input_data for v in row]
+        rows = self._coerce_input_rows(input_data)
+        flattened = [float(v) for row in rows for v in row]
         if not flattened:
             flattened = [0.0]
 
@@ -676,7 +734,7 @@ class ProofPipeline:
         self,
         *,
         model_name: str,
-        input_data: list[list[float]],
+        input_data: list[float] | list[list[float]],
     ) -> tuple[Any | None, bool]:
         """
         Try generating and verifying a real EZKL proof from local artifacts.
@@ -1029,7 +1087,7 @@ class ProofPipeline:
         self,
         user_address: str,
         model_name: str,
-        input_data: list[list[float]],
+        input_data: list[float] | list[list[float]],
         *,
         proof_mode: ProofMode | str | int | None = None,
         tier: int = 0,

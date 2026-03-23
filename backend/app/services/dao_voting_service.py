@@ -163,7 +163,7 @@ class DAOVotingService:
                 )
             except Exception as exc:
                 if self._allow_mock_fallback:
-                    logger.warning("Groth16 proof failed, falling back to mock: %s", exc)
+                    logger.debug("Groth16 proof failed, falling back to mock: %s", exc)
                 else:
                     raise RuntimeError(
                         f"Groth16 proof generation failed and fallback is disabled: {exc}"
@@ -244,7 +244,7 @@ const circomlib = require("circomlibjs");
         )
         if result.returncode != 0:
             if self._allow_mock_fallback:
-                logger.warning(
+                logger.debug(
                     "Pedersen helper failed (code=%s), using deterministic fallback hash for demo mode: %s",
                     result.returncode,
                     (result.stderr or result.stdout),
@@ -255,7 +255,7 @@ const circomlib = require("circomlibjs");
             return int((result.stdout or "").strip())
         except Exception as exc:
             if self._allow_mock_fallback:
-                logger.warning(
+                logger.debug(
                     "Pedersen helper returned invalid output, using deterministic fallback hash for demo mode: %s",
                     result.stdout,
                 )
