@@ -10,7 +10,7 @@ Autonomous agent rebalancing gated by zkML proofs.
 import os
 import asyncio
 from typing import Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from app.services.zkml_risk_service import get_risk_service
@@ -21,6 +21,10 @@ from app.services.receipt_service import get_receipt_service
 from app.services.pool_passport_store import save as save_pool_passport
 from app.services.mainnet_oracle import get_oracle
 from app.services.policy_engine import check as policy_check
+from app.services.agent_performance_service import (
+    get_performance_service,
+    PeriodPerformance,
+)
 
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7")
 
@@ -386,11 +390,27 @@ class AgentRebalancer:
             if not tx_hash and execution_error:
                 proposal.error = execution_error
             if not tx_hash:
-                # Fallback: simulated tx_hash when relayer/signer not configured (e.g. dev)
-                import hashlib
-                tx_hash = "0x" + hashlib.sha256(
-                    f"tx_{proposal_id}_{datetime.now(timezone.utc).isoformat()}".encode()
-                ).hexdigest()[:64]
+                # No relayer/signer configured — return calldata for wallet signing
+                proposal.status = RebalanceStatus.READY_TO_EXECUTE
+                return {
+                    "proposal_id": proposal_id,
+                    "status": "wallet_sign_required",
+                    "tx_hash": None,
+                    "from_protocol": proposal.from_protocol,
+                    "to_protocol": proposal.to_protocol,
+                    "amount": proposal.amount,
+                    "wallet_calldata": {
+                        "zkml_risk_calldata": (proposal.risk_proof or {}).get("proof_calldata"),
+                        "zkml_anomaly_calldata": (proposal.anomaly_proof or {}).get("proof_calldata"),
+                        "execution_proof_hash": proposal.execution_proof_hash or "0x0",
+                        "intent_commitment": proposal.commitment_hash or "0x0",
+                    },
+                    "zkml_proofs": {
+                        "risk": proposal.risk_proof,
+                        "anomaly": proposal.anomaly_proof,
+                    },
+                    "execution_error": execution_error,
+                }
 
             proposal.tx_hash = tx_hash
             proposal.status = RebalanceStatus.COMPLETED
@@ -419,6 +439,30 @@ class AgentRebalancer:
             }
             if execution_error:
                 out["execution_error"] = execution_error
+
+            # Record performance period
+            try:
+                perf_svc = get_performance_service()
+                proof_count = sum(
+                    1 for p in [proposal.risk_proof, proposal.anomaly_proof]
+                    if p and p.get("proof_calldata")
+                )
+                perf_svc.record_period(PeriodPerformance(
+                    period_id=proposal_id,
+                    agent_id=proposal.user_address,
+                    return_bps=0,
+                    volume=proposal.amount,
+                    proof_count=proof_count,
+                    successful_actions=1,
+                    failed_actions=0,
+                    max_drawdown_bps=0,
+                ))
+            except Exception as perf_err:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Failed to record rebalance performance: %s", perf_err
+                )
+
             return out
         except Exception as e:
             proposal.status = RebalanceStatus.FAILED

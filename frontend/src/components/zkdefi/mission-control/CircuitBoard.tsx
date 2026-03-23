@@ -416,6 +416,7 @@ export function CircuitBoard({ address, onClose, onOpenAgentBuilder }: CircuitBo
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [lastSavedHash, setLastSavedHash] = useState<string>("");
   const [isDirty, setIsDirty] = useState(false);
   const hydratedRef = useRef(false);
@@ -494,7 +495,12 @@ export function CircuitBoard({ address, onClose, onOpenAgentBuilder }: CircuitBo
         setIsDirty(false);
         hydratedRef.current = true;
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : "Unknown error";
+          setLoadError(`Failed to load policy: ${msg}`);
+        }
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -696,6 +702,12 @@ export function CircuitBoard({ address, onClose, onOpenAgentBuilder }: CircuitBo
 
   return (
     <div className="flex h-full flex-col bg-zinc-950 text-zinc-100">
+      {loadError && (
+        <div className="flex items-center gap-2 border-b border-red-800 bg-red-950/60 px-4 py-2 text-xs text-red-300">
+          <span>⚠ {loadError}</span>
+          <button onClick={() => setLoadError(null)} className="ml-auto text-red-400 hover:text-red-200">✕</button>
+        </div>
+      )}
       {/* Header */}
       <header className="flex h-10 flex-shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-4">
         <div className="flex items-center gap-4">

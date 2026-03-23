@@ -313,7 +313,10 @@ async def prepare_execution(req: PrepareRequest, _caller: str = WalletOwner):
     calldata: list[str] = []
     contract_address = ""
     entry_point = ""
-    estimated_gas = 50_000
+    # Live gas estimate with fallback
+    from app.services.gas_oracle import get_gas_oracle
+    _gas = get_gas_oracle()
+    estimated_gas = await _gas.estimate_fee(opp.type)
 
     if opp.type == "swap":
         try:

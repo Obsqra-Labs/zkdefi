@@ -18,8 +18,13 @@ import {
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { DEMO_AGENT } from "@/lib/demoCapitalOS";
+import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
+import { useAccount } from "@starknet-react/core";
 
 const POLL_MS = 15_000;
+
+const SESSION_KEY_MANAGER_ADDRESS =
+  process.env.NEXT_PUBLIC_SESSION_KEY_MANAGER_ADDRESS || "";
 
 type RebalanceMode = "user" | "oracle";
 
@@ -73,6 +78,8 @@ function timeRemaining(expiresAt: string): string {
 }
 
 export function AgentControls({ address, isDemo }: AgentControlsProps) {
+  const { prices } = useTokenPrices();
+  const { account } = useAccount();
   const [status, setStatus] = useState<AgentStatus | null>(
     isDemo ? DEMO_AGENT.status : null
   );
@@ -181,8 +188,7 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
       }>(`/api/v1/zkdefi/vault/status?user_address=${address}`, { signal });
       const deployed = Number(d.deployed_wei ?? "0") / 1e18;
       const yld = Number(d.total_yield_wei ?? "0") / 1e18;
-      // Approximate USD using STRK price
-      const price = 0.04;
+      const price = priceOf(prices, "STRK");
       setPortfolio({
         deployed_usd: deployed * price,
         yield_usd: yld * price,
@@ -193,7 +199,7 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     } catch {
       // Non-critical — keep existing state
     }
-  }, [address]);
+  }, [address, prices]);
 
   useEffect(() => {
     if (isDemo) {
@@ -224,7 +230,12 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
   const grantSessionKey = async (): Promise<string | null> => {
     setGrantLoading(true);
     try {
-      const res = await apiFetchAuth<{ session_id: string; calldata?: unknown }>(
+      const res = await apiFetchAuth<{
+        session_id: string;
+        calldata?: Record<string, string>;
+        contract_address?: string;
+        entrypoint?: string;
+      }>(
         `/api/v1/zkdefi/session_keys/grant`,
         address,
         {
@@ -240,14 +251,37 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
       );
       const sid = res?.session_id;
       if (sid) {
-        // Auto-confirm (in production the wallet would sign the calldata first)
+        let txHash: string;
+        const contractAddr = res.contract_address || SESSION_KEY_MANAGER_ADDRESS;
+        if (account && contractAddr && res.calldata) {
+          // Sign and submit on-chain via the user's wallet
+          const cd = res.calldata;
+          const result = await account.execute([{
+            contractAddress: contractAddr,
+            entrypoint: res.entrypoint || "grant_session",
+            calldata: [
+              cd.session_key ?? address,
+              cd.max_position ?? "5",
+              String(cd.allowed_protocols ?? 0),
+              String(cd.duration_seconds ?? 86400),
+            ],
+          }]);
+          txHash = result.transaction_hash;
+        } else {
+          // Wallet or contract address unavailable — cannot grant on-chain
+          toastError("Wallet not connected or contract address missing");
+          setSessionLine("Grant failed: wallet unavailable");
+          setGrantLoading(false);
+          return null;
+        }
         await apiFetch(`/api/v1/zkdefi/session_keys/grant/confirm`, {
           method: "POST",
-          body: JSON.stringify({ session_id: sid, tx_hash: `0x${Date.now().toString(16)}` }),
+          body: JSON.stringify({ session_id: sid, tx_hash: txHash }),
         });
         setActiveSessionId(sid);
         setSessionExpired(false);
         setSessionLine("Active · 24h remaining");
+        toastSuccess("Session key granted");
         return sid;
       }
     } catch (err: any) {

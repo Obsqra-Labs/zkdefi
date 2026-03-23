@@ -231,8 +231,8 @@ class AgentService:
                 "error": pr.error,
                 "execution_time_ms": pr.execution_time_ms
             })
-        
-        return {
+
+        response = {
             "agent_id": agent_id,
             "agent_name": agent["name"],
             "should_execute": result.should_execute,
@@ -241,6 +241,22 @@ class AgentService:
             "execution_calldata": result.execution_calldata,
             "total_time_ms": result.total_time_ms
         }
+
+        # Run LLM decision if agent has a non-deterministic LLM provider
+        llm_config = agent.get("llm", {})
+        if llm_config.get("provider", "deterministic") != "deterministic":
+            try:
+                llm_result = await self.orchestrator.run_llm_decision(
+                    llm_config=llm_config,
+                    processor_results=result.processor_results,
+                    portfolio=portfolio,
+                    agent_skills=agent.get("processors"),
+                )
+                response["llm_decision"] = llm_result
+            except Exception as e:
+                logger.warning(f"LLM decision step failed for agent {agent_id}: {e}")
+
+        return response
     
     async def deactivate_agent(self, agent_id: str, user_address: str) -> bool:
         """Deactivate an agent."""

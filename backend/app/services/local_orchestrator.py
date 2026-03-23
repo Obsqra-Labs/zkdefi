@@ -24,6 +24,12 @@ from app.services.zkml_diversification_service import get_diversification_servic
 from app.services.obsqra_prover_client import get_obsqra_prover
 from app.services.risc_zero_credit_service import get_risc_zero_credit_service
 from app.services.double_entry_ledger import DoubleEntryLedger
+from app.services.zkml.circuit_scanner import (
+    build_anomaly_detector_inputs,
+    build_il_predictor_inputs,
+    build_yield_optimality_inputs,
+    build_slippage_bound_inputs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -273,6 +279,136 @@ MODELS = {
 }
 
 
+def _le(score, threshold):
+    """score <= threshold (lower is better)."""
+    return score <= threshold
+
+
+def _ge(score, threshold):
+    """score >= threshold (higher is better)."""
+    return score >= threshold
+
+
+def _anomaly_inputs(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> list[float]:
+    """Build anomaly detection input vector from portfolio."""
+    return [
+        float(portfolio.get("tvl_volatility", 10)),
+        float(portfolio.get("liquidity_concentration", 20)),
+        float(portfolio.get("price_impact", 5)),
+        float(portfolio.get("deployer_age_days", 365)),
+        float(portfolio.get("volume_anomaly", 3)),
+        float(portfolio.get("contract_risk", 15)),
+    ]
+
+
+def _anomaly_local(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> int:
+    inputs = _anomaly_inputs(portfolio, constraints)
+    weights = [10, 10, 10, 10, 10, 10]
+    return sum(int(v * w) for v, w in zip(inputs, weights)) // max(1, len(inputs))
+
+
+def _yield_inputs(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> list[float]:
+    """Build yield-forecast input vector."""
+    allocs = portfolio.get("allocations", [25, 20, 15, 15, 10, 10, 3, 2])[:8]
+    yields = portfolio.get("predicted_yields", [800, 600, 500, 450, 400, 350, 300, 250])[:8]
+    return [float(v) for v in allocs + yields]
+
+
+def _yield_local(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> int:
+    allocs = portfolio.get("allocations", [25, 20, 15, 15, 10, 10, 3, 2])[:8]
+    yields = portfolio.get("predicted_yields", [800, 600, 500, 450, 400, 350, 300, 250])[:8]
+    total = sum(allocs) or 1
+    return sum(a * y for a, y in zip(allocs, yields)) // total
+
+
+def _il_inputs(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> list[float]:
+    """Build impermanent-loss input vector."""
+    return [
+        float(portfolio.get("position_size", 10000)),
+        float(portfolio.get("entry_price", 2000)),
+        float(portfolio.get("current_price", 2200)),
+        float(portfolio.get("fee_earned_bps", 150)),
+    ]
+
+
+def _il_local(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> int:
+    entry = portfolio.get("entry_price", 2000)
+    current = portfolio.get("current_price", 2200)
+    if entry == 0:
+        return 0
+    import math
+    ratio = current / entry
+    il = 2 * math.sqrt(ratio) / (1 + ratio) - 1
+    return int(abs(il) * 10000)  # basis points
+
+
+def _optimality_inputs(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> list[float]:
+    """Build yield-optimality input vector."""
+    allocs = portfolio.get("allocations", [25, 20, 15, 15, 10, 10, 3, 2])[:8]
+    yields = portfolio.get("predicted_yields", [800, 600, 500, 450, 400, 350, 300, 250])[:8]
+    return [float(v) for v in allocs + yields]
+
+
+def _optimality_local(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> int:
+    allocs = portfolio.get("allocations", [25, 20, 15, 15, 10, 10, 3, 2])[:8]
+    yields = portfolio.get("predicted_yields", [800, 600, 500, 450, 400, 350, 300, 250])[:8]
+    total = sum(allocs) or 1
+    weighted = sum(a * y for a, y in zip(allocs, yields)) // total
+    max_y = max(yields) if yields else 1
+    return (weighted * 100) // max_y if max_y else 0
+
+
+def _slippage_inputs(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> list[float]:
+    """Build slippage-bound input vector."""
+    return [
+        float(portfolio.get("trade_amount", 50000)),
+        float(portfolio.get("current_liquidity", 5000000)),
+        float(portfolio.get("price_impact_coefficient", 100)),
+    ]
+
+
+def _slippage_local(portfolio: Dict[str, Any], constraints: Dict[str, Any]) -> int:
+    amount = portfolio.get("trade_amount", 50000)
+    liquidity = portfolio.get("current_liquidity", 5000000)
+    coeff = portfolio.get("price_impact_coefficient", 100)
+    return (amount * coeff) // max(1, liquidity)
+
+
+# Map of EZKL-wired processor IDs → config dicts used by _run_ezkl_processor
+_EZKL_PROCESSORS: Dict[str, Dict[str, Any]] = {
+    "anomaly_detection": {
+        "constraint_key": "max_anomaly",
+        "input_builder": _anomaly_inputs,
+        "local_scorer": _anomaly_local,
+        "comparator": _le,
+    },
+    "yield_forecast": {
+        "constraint_key": "min_yield",
+        "input_builder": _yield_inputs,
+        "local_scorer": _yield_local,
+        "comparator": _ge,
+    },
+    "impermanent_loss": {
+        "constraint_key": "max_il_bps",
+        "input_builder": _il_inputs,
+        "local_scorer": _il_local,
+        "comparator": _le,
+    },
+    "yield_optimality": {
+        "constraint_key": "min_optimality",
+        "input_builder": _optimality_inputs,
+        "local_scorer": _optimality_local,
+        "comparator": _ge,
+    },
+    "slippage_bound": {
+        "constraint_key": "max_slippage_bps",
+        "input_builder": _slippage_inputs,
+        "local_scorer": _slippage_local,
+        "comparator": _le,
+    },
+}
+
+
 _LEDGER_DB = os.path.join(
     os.path.dirname(__file__), "..", "data", "vault_v2.db"
 )
@@ -372,6 +508,14 @@ class LocalOrchestrator:
             logger.warning(f"RISC Zero credit service not available: {e}")
         
         self.obsqra_prover = get_obsqra_prover()
+
+        self.proof_pipeline = None
+        try:
+            from app.services.proof_pipeline import ProofPipeline
+            self.proof_pipeline = ProofPipeline()
+        except Exception as e:
+            logger.warning(f"ProofPipeline not available: {e}")
+
         self._initialized = True
     
     def list_models(self) -> List[Dict[str, Any]]:
@@ -488,11 +632,13 @@ class LocalOrchestrator:
                 result = await self._run_diversification(user_address, portfolio, constraints)
             elif processor_id == "credit_scoring":
                 result = await self._run_credit_scoring(user_address, portfolio, constraints)
+            elif processor_id in _EZKL_PROCESSORS:
+                result = await self._run_ezkl_processor(processor_id, user_address, portfolio, constraints)
             else:
                 return ProcessorResult(
                     processor_id=processor_id,
                     passed=False,
-                    error=f"Processor not implemented: {processor_id}"
+                    error=f"Circuit artifacts not available for {processor_id}"
                 )
             
             result.execution_time_ms = int((time.time() - start_time) * 1000)
@@ -753,6 +899,182 @@ class LocalOrchestrator:
         
         return positions
     
+    async def _run_ezkl_processor(
+        self,
+        processor_id: str,
+        user_address: str,
+        portfolio: Dict[str, Any],
+        constraints: Dict[str, Any],
+    ) -> ProcessorResult:
+        """Run a processor backed by EZKL proof via proof_pipeline.generate_ml_proofs()."""
+        cfg = _EZKL_PROCESSORS.get(processor_id)
+        if not cfg:
+            return ProcessorResult(
+                processor_id=processor_id,
+                passed=False,
+                error=f"No EZKL config for {processor_id}",
+            )
+
+        model = MODELS.get(processor_id, {})
+        threshold = constraints.get(cfg["constraint_key"], model.get("default_threshold", 50))
+
+        # Build input features from portfolio
+        input_data = cfg["input_builder"](portfolio, constraints)
+
+        if self.proof_pipeline:
+            try:
+                proof_result = await self.proof_pipeline.generate_ml_proofs(
+                    user_address=user_address,
+                    model_name=processor_id,
+                    input_data=input_data,
+                )
+                can_execute = proof_result.get("can_execute", False)
+                ezkl_proof = proof_result.get("ezkl_proof") or {}
+                public_signals = ezkl_proof.get("public_signals")
+                # Extract score from first public signal when available
+                score = None
+                if public_signals and len(public_signals) > 0:
+                    try:
+                        score = int(public_signals[0])
+                    except (ValueError, TypeError):
+                        pass
+
+                passed = can_execute if score is None else cfg["comparator"](score, threshold)
+
+                return ProcessorResult(
+                    processor_id=processor_id,
+                    passed=passed,
+                    score=score,
+                    threshold=threshold,
+                    proof_calldata=proof_result.get("combined_calldata"),
+                    public_signals=[str(s) for s in public_signals] if public_signals else None,
+                )
+            except Exception as e:
+                logger.warning(f"EZKL proof for {processor_id} failed, running scoreless: {e}")
+
+        # Fallback: compute a local estimate without proof
+        score = cfg["local_scorer"](portfolio, constraints)
+        passed = cfg["comparator"](score, threshold)
+
+        return ProcessorResult(
+            processor_id=processor_id,
+            passed=passed,
+            score=score,
+            threshold=threshold,
+        )
+
+    async def run_llm_decision(
+        self,
+        llm_config: Dict[str, Any],
+        processor_results: List[ProcessorResult],
+        portfolio: Dict[str, Any],
+        agent_skills: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Run an LLM decision step using the agent's bound provider.
+
+        Returns a dict with keys: llm_decision, reasoning, tool_calls, model, provider, latency_ms.
+        If the provider is deterministic or unavailable, returns a deterministic decision
+        based on processor results only.
+        """
+        import json as _json
+
+        provider = (llm_config.get("provider") or "deterministic").lower()
+        if provider == "deterministic":
+            return self._deterministic_decision(processor_results)
+
+        try:
+            from app.services.llm_provider_registry import get_llm_registry
+            from app.services.agent_skill_service import AgentSkillService
+
+            registry = get_llm_registry()
+            skill_svc = AgentSkillService()
+
+            # Build a concise summary of processor results for the LLM
+            summary_lines = []
+            for pr in processor_results:
+                status = "PASS" if pr.passed else "FAIL"
+                score_str = f" score={pr.score}" if pr.score is not None else ""
+                thresh_str = f" threshold={pr.threshold}" if pr.threshold is not None else ""
+                err_str = f" error={pr.error}" if pr.error else ""
+                summary_lines.append(f"  {pr.processor_id}: {status}{score_str}{thresh_str}{err_str}")
+
+            # Build messages
+            system_msg = (
+                "You are a DeFi risk agent operating on Starknet. "
+                "Given ZK-verified processor results and portfolio context, "
+                "decide whether to execute, hold, or rebalance. "
+                "Respond with a JSON object: "
+                '{\"decision\": \"execute\"|\"hold\"|\"rebalance\", \"reasoning\": \"...\"}. '
+                "Only output valid JSON."
+            )
+            user_msg = (
+                f"Processor results:\n"
+                + "\n".join(summary_lines)
+                + f"\n\nPortfolio summary: {_json.dumps({k: v for k, v in portfolio.items() if k in ('assets', 'total_value', 'positions')}, default=str)}"
+            )
+
+            messages = [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ]
+
+            # Map agent_service provider ids to llm_provider_registry ids
+            provider_map = {"openai": "openai_gpt", "local": "local_llm"}
+            registry_provider = provider_map.get(provider, provider)
+
+            llm_response = await registry.chat_completion(
+                provider_id=registry_provider,
+                messages=messages,
+                model=llm_config.get("model"),
+                temperature=llm_config.get("temperature"),
+                max_tokens=llm_config.get("max_tokens"),
+            )
+
+            # Parse LLM response
+            try:
+                parsed = _json.loads(llm_response.content)
+                decision = parsed.get("decision", "hold")
+                reasoning = parsed.get("reasoning", "")
+            except (_json.JSONDecodeError, TypeError):
+                decision = "hold"
+                reasoning = llm_response.content or "LLM returned non-JSON response"
+
+            return {
+                "llm_decision": decision,
+                "reasoning": reasoning,
+                "model": llm_response.model,
+                "provider": llm_response.provider_id,
+                "latency_ms": llm_response.latency_ms,
+                "fallback_from": llm_response.fallback_from,
+                "tool_calls": [],
+            }
+
+        except Exception as e:
+            logger.warning(f"LLM decision failed, falling back to deterministic: {e}")
+            result = self._deterministic_decision(processor_results)
+            result["fallback_from"] = provider
+            result["fallback_reason"] = str(e)
+            return result
+
+    @staticmethod
+    def _deterministic_decision(processor_results: List[ProcessorResult]) -> Dict[str, Any]:
+        """Deterministic decision based purely on processor pass/fail."""
+        all_passed = all(pr.passed for pr in processor_results)
+        any_failed = any(not pr.passed for pr in processor_results)
+        return {
+            "llm_decision": "execute" if all_passed else "hold",
+            "reasoning": (
+                "All processors passed — safe to execute."
+                if all_passed
+                else f"{sum(1 for p in processor_results if not p.passed)} processor(s) failed — holding."
+            ),
+            "model": "deterministic-v1",
+            "provider": "deterministic",
+            "latency_ms": 0,
+            "fallback_from": None,
+            "tool_calls": [],
+        }
+
     def _combine_calldata(self, results: List[ProcessorResult]) -> List[str]:
         """Combine all proof calldata for on-chain verification."""
         combined = []

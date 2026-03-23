@@ -162,7 +162,7 @@ class AgentOrchestrator:
             "lending": {
                 "adapter": "lending",
                 "method": "supply" if "supply" in signal.get("name", "").lower() else "borrow",
-                "estimated_gas": 180000,
+                "estimated_gas": 180000,  # TODO: live via gas_oracle when async context available
             },
             "staking": {
                 "adapter": "staking",
@@ -170,7 +170,12 @@ class AgentOrchestrator:
                 "estimated_gas": 150000,
             },
             "dex": {
-                "adapter": "ekubo",  # DEX defaults to Ekubo
+                "adapter": "ekubo",
+                "method": "swap",
+                "estimated_gas": 250000,
+            },
+            "swap": {
+                "adapter": "ekubo",
                 "method": "swap",
                 "estimated_gas": 250000,
             },

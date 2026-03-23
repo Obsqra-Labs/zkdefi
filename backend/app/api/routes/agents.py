@@ -9,6 +9,7 @@ from app.middleware.auth import WalletOwner
 from typing import Dict, Any, List, Optional
 
 from app.services.agent_service import get_agent_service
+from app.services.agent_performance_service import get_performance_service, PeriodPerformance
 
 router = APIRouter()
 
@@ -166,4 +167,36 @@ async def get_featured_models():
     return {
         "featured": featured,
         "message": "These models are recommended for getting started with zkde.fi agents"
+    }
+
+
+class SettleRequest(BaseModel):
+    period_id: str
+    return_bps: int
+
+
+@router.post("/{agent_id}/performance/settle")
+async def settle_performance(agent_id: str, req: SettleRequest):
+    """Record settlement P&L for an execution period."""
+    perf_service = get_performance_service()
+    period = PeriodPerformance(
+        period_id=f"{req.period_id}_settle",
+        agent_id=agent_id,
+        return_bps=req.return_bps,
+        volume=0,
+        proof_count=0,
+        successful_actions=0,
+        failed_actions=0,
+        max_drawdown_bps=0,
+    )
+    summary = perf_service.record_period(period)
+    return {
+        "agent_id": agent_id,
+        "settled_period": req.period_id,
+        "return_bps": req.return_bps,
+        "updated_summary": {
+            "cumulative_return_bps": summary.cumulative_return_bps,
+            "mean_return_bps": summary.mean_return_bps,
+            "win_rate": summary.win_rate,
+        },
     }

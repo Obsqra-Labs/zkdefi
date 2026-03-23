@@ -14,12 +14,42 @@ from fastapi import APIRouter, Query, HTTPException, Body
 from app.middleware.auth import AdminOnly
 from app.services.agent_orchestrator import get_agent_orchestrator
 from app.services.execution_policy_service import get_execution_policy_service
+from app.services.zkdefi_agent_service import ZkdefiAgentService
+from app.services.gas_oracle import get_gas_oracle
+from app.services.agent_performance_service import (
+    get_performance_service,
+    PeriodPerformance,
+)
 
 router = APIRouter(tags=["agent-execution"])
 logger = logging.getLogger(__name__)
 
 orchestrator = get_agent_orchestrator()
 policy_service = get_execution_policy_service()
+proof_gated_service = ZkdefiAgentService()
+
+
+def _record_execution_perf(
+    address: str,
+    call_id: str,
+    estimated_gas: int,
+    proof_count: int = 0,
+) -> None:
+    """Best-effort performance recording after a signal execution."""
+    try:
+        svc = get_performance_service()
+        svc.record_period(PeriodPerformance(
+            period_id=call_id,
+            agent_id=address,
+            return_bps=0,          # settled later via /settle
+            volume=estimated_gas,  # gas as proxy for volume
+            proof_count=proof_count,
+            successful_actions=1,
+            failed_actions=0,
+            max_drawdown_bps=0,
+        ))
+    except Exception as exc:
+        logger.warning("Failed to record execution perf: %s", exc)
 
 
 @router.post("/api/v1/zkdefi/oracle/execute")
@@ -62,22 +92,96 @@ async def execute_signal(
                 status_code=403,
                 detail=f"Signal rejected: {gate_result['reason']}"
             )
+
+        if execution_params.get("adapterId") == "proof_gated_yield_agent":
+            model_name = execution_params.get("modelName")
+            input_data = execution_params.get("inputData")
+            if not model_name or not isinstance(input_data, list) or not input_data:
+                raise HTTPException(
+                    status_code=400,
+                    detail="proof_gated_yield_agent requires execution_params.modelName and execution_params.inputData"
+                )
+
+            prepared = await proof_gated_service.prepare_execute_with_ml_proof(
+                user_address=address,
+                model_name=str(model_name),
+                input_data=input_data,
+                protocol_id=int(execution_params.get("protocolId", 1)),
+                amount=int(execution_params.get("amount", 0)),
+                action_type=str(execution_params.get("actionType", "deposit")),
+                proof_mode=execution_params.get("proofMode", 2),
+                tier=int(execution_params.get("tier", 0)),
+                value_eth=float(execution_params.get("valueEth", 0.0)),
+                expected_model_hash=int(execution_params.get("expectedModelHash", 0)),
+                output_lower_bound=int(execution_params.get("outputLowerBound", 0)),
+                output_upper_bound=int(execution_params.get("outputUpperBound", 10000)),
+                execution_chain=str(execution_params.get("executionChain", "l3")),
+                bridge_circuit=str(execution_params.get("bridgeCircuit", "ModelBridge")),
+                execution_proof_hash=str(execution_params.get("executionProofHash", "0x0")),
+                intent_commitment=(
+                    str(execution_params.get("intentCommitment"))
+                    if execution_params.get("intentCommitment") is not None
+                    else None
+                ),
+            )
+            if prepared.get("error"):
+                raise HTTPException(status_code=400, detail=str(prepared["error"]))
+
+            call_id = orchestrator._generate_call_id(address, signal.get("id", "unknown"))
+            return {
+                "success": True,
+                "call_id": call_id,
+                "tx_hash": None,
+                "status": "wallet_sign_required",
+                "address": address,
+                "signal_id": signal.get("id"),
+                "wallet_calldata": {
+                    "contract": prepared["contract"],
+                    "function": prepared["function"],
+                    "calldata": prepared["calldata"],
+                },
+                "proof_context": prepared.get("proof_context"),
+            }
         
         # Prepare execution
         call = orchestrator.prepare_execution(signal, address, execution_params)
         
-        # Submit to relayer
-        submission = orchestrator.submit_execution(call)
-        
-        return {
-            "success": True,
-            "call_id": call.id,
-            "tx_hash": submission["tx_hash"],
-            "status": submission["status"],
-            "submitted_at": submission["submitted_at"],
-            "address": address,
-            "signal_id": signal.get("id"),
-        }
+        # Try relayer; if unavailable, return calldata for direct wallet signing
+        try:
+            submission = await orchestrator.submit_execution(call)
+            if submission.get("status") == "rejected" or not submission.get("tx_hash"):
+                raise RuntimeError(submission.get("error", "relayer rejected"))
+
+            _record_execution_perf(address, call.id, call.estimated_gas)
+
+            return {
+                "success": True,
+                "call_id": call.id,
+                "tx_hash": submission["tx_hash"],
+                "status": submission["status"],
+                "submitted_at": submission["submitted_at"],
+                "address": address,
+                "signal_id": signal.get("id"),
+            }
+        except Exception as relay_err:
+            logger.warning(f"Relayer unavailable ({relay_err}), returning calldata for wallet signing")
+
+            _record_execution_perf(address, call.id, call.estimated_gas)
+
+            return {
+                "success": True,
+                "call_id": call.id,
+                "tx_hash": None,
+                "status": "wallet_sign_required",
+                "address": address,
+                "signal_id": signal.get("id"),
+                "wallet_calldata": {
+                    "adapter": call.adapter,
+                    "method": call.method,
+                    "calldata": call.calldata,
+                    "estimated_gas": call.estimated_gas,
+                },
+            }
         
     except HTTPException:
         raise
@@ -179,6 +283,9 @@ async def simulate_execution(
         
         call = orchestrator.prepare_execution(signal, address, execution_params)
         
+        gas_oracle = get_gas_oracle()
+        estimated_cost_eth = await gas_oracle.estimate_cost_eth(call.estimated_gas)
+
         return {
             "success": True,
             "simulation": {
@@ -187,7 +294,7 @@ async def simulate_execution(
                 "method": call.method,
                 "calldata": call.calldata,
                 "estimated_gas": call.estimated_gas,
-                "estimated_cost_eth": call.estimated_gas * 1e-9 * 50,  # Mock: 50 Gwei
+                "estimated_cost_eth": estimated_cost_eth,
             },
             "note": "Simulation only - not submitted",
         }
