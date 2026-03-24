@@ -111,7 +111,7 @@ export interface ExecutionStatus {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const V2_PREFIX = "/api/v1/zkdefi/v2";
+const V2_PREFIX = "/api/v1/zkdefi/trade-desk/v2";
 
 const RETRY_CONFIG = { maxRetries: 2, baseDelay: 800, timeoutMs: 15_000 };
 const EXECUTE_RETRY_CONFIG = { maxRetries: 1, baseDelay: 500, timeoutMs: 30_000 };

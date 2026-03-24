@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -1112,27 +1113,44 @@ async def _fetch_live_opportunities(limit: int = 15) -> list[dict]:
     except Exception as exc:
         logger.debug("stream: zkd sim pools: %s", exc)
 
-    # Native Starknet staking — always show
+    # Native Starknet staking — fetch live APY from staking service
+    try:
+        async with httpx.AsyncClient(timeout=5) as _cl:
+            _sr = await _cl.get("http://127.0.0.1:8003/api/v1/zkdefi/staking/apy")
+            _sr.raise_for_status()
+            _sd = _sr.json()
+            staking_apy_bps = int(float(_sd.get("apy", _sd.get("APR", 4.8))) * 100)
+    except Exception:
+        staking_apy_bps = 480  # fallback
     opportunities.append({
         "id": "starknet_native_staking",
         "venue": "staking", "pair": "STRK Native Staking",
-        "apy_bps": 480,
+        "apy_bps": staking_apy_bps,
         "tvl": 3_200_000,
         "volume_24h": 128_000,
         "risk_level": "low",
-        "composite_score": _composite_score(480, 50),
+        "composite_score": _composite_score(staking_apy_bps, 50),
         "source": "native_staking", "snapshot_ts": now,
     })
 
-    # Native lending pool — always show
+    # Native lending pool — fetch live rate from lending service
+    try:
+        async with httpx.AsyncClient(timeout=5) as _cl:
+            _lr = await _cl.get("http://127.0.0.1:8003/api/v1/zkdefi/lending/pool")
+            _lr.raise_for_status()
+            _ld = _lr.json()
+            pools = _ld if isinstance(_ld, list) else _ld.get("pools", [_ld] if isinstance(_ld, dict) else [])
+            lending_apy_bps = int(float(pools[0].get("supply_apy", pools[0].get("supplyApy", 3.2))) * 100) if pools else 320
+    except Exception:
+        lending_apy_bps = 320  # fallback
     opportunities.append({
         "id": "native_lending_strk",
         "venue": "lending", "pair": "STRK Lending Pool",
-        "apy_bps": 320,
+        "apy_bps": lending_apy_bps,
         "tvl": 2_100_000,
         "volume_24h": 84_000,
         "risk_level": "low",
-        "composite_score": _composite_score(320, 100),
+        "composite_score": _composite_score(lending_apy_bps, 100),
         "source": "lending_oracle", "snapshot_ts": now,
     })
 

@@ -15,8 +15,8 @@ import type { PrivacyMethod, VaultCommitment } from "@/hooks/usePrivacyVault";
 /** V2 2-pill center stage modes */
 export type CenterModeV2 = "intelligence" | "vault";
 
-/** Inner tabs of the Vault center stage — five-lane layout */
-export type VaultTab = "overview" | "capital" | "lend" | "govern" | "activity";
+/** Inner tabs of the Vault center stage — six-lane layout */
+export type VaultTab = "overview" | "markets" | "capital" | "lend" | "govern" | "activity";
 
 /** Overlay modes — full-screen panels that replace center stage */
 export type OverlayModeV2 =
@@ -130,13 +130,13 @@ function resolveVaultTab(vLower: string, tLower: string): VaultTab {
   if (tLower === "lending" || tLower === "lend") return "lend";
   if (tLower === "governance" || tLower === "govern") return "govern";
   if (tLower === "activity" || tLower === "history") return "activity";
-  if (tLower === "oracle" || tLower === "marketplace") return "overview";
+  if (tLower === "oracle" || tLower === "marketplace" || tLower === "markets" || tLower === "opportunities") return "markets";
   if (tLower === "overview") return "overview";
 
   // Infer from ?v= when ?t= is absent
   if (vLower === "pools" || vLower === "pool" || vLower === "pool_intelligence" || vLower === "ekubo" || vLower === "capital") return "capital";
   if (vLower === "execution" || vLower === "execution_flow" || vLower === "trade") return "capital";
-  if (vLower === "oracle" || vLower === "marketplace") return "overview";
+  if (vLower === "oracle" || vLower === "marketplace") return "markets";
 
   return "overview";
 }

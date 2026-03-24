@@ -56,8 +56,9 @@ interface SimulationResult {
   call_id: string;
   adapter: string;
   method: string;
-  estimated_gas: number;
-  estimated_cost_eth: number;
+  estimated_gas: number | null;
+  estimated_cost_eth: number | null;
+  estimation_unavailable?: boolean;
 }
 
 interface ExecutionResult {
@@ -163,13 +164,14 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
       );
       setSimulation(res.simulation);
     } catch {
-      // Provide a sensible fallback simulation
+      // Mark simulation as unavailable rather than faking gas numbers
       setSimulation({
         call_id: "sim-preview",
         adapter: signal.type ?? "unknown",
         method: "execute",
-        estimated_gas: 250000,
-        estimated_cost_eth: 0.000025,
+        estimated_gas: null,
+        estimated_cost_eth: null,
+        estimation_unavailable: true,
       });
     } finally {
       setSimulating(false);
@@ -480,11 +482,11 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
             </div>
             <div>
               <span className="text-zinc-500">Est. Gas</span>
-              <p className="text-zinc-200">{simulation.estimated_gas.toLocaleString()}</p>
+              <p className="text-zinc-200">{simulation.estimated_gas != null ? simulation.estimated_gas.toLocaleString() : <span className="text-amber-400 text-[10px]">unavailable</span>}</p>
             </div>
             <div>
               <span className="text-zinc-500">Est. Cost</span>
-              <p className="text-zinc-200">{simulation.estimated_cost_eth.toFixed(6)} ETH</p>
+              <p className="text-zinc-200">{simulation.estimated_cost_eth != null ? `${simulation.estimated_cost_eth.toFixed(6)} ETH` : <span className="text-amber-400 text-[10px]">unavailable</span>}</p>
             </div>
           </div>
           {amountNum > 0 && apy > 0 && (

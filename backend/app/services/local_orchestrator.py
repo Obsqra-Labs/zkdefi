@@ -518,8 +518,16 @@ class LocalOrchestrator:
 
         self._initialized = True
     
+    # Processor IDs with working implementations
+    _IMPLEMENTED = {
+        "risk_scoring", "anomaly_detection", "correlation_risk",
+        "twap_position", "safety_diversification", "credit_scoring",
+        "yield_forecast", "impermanent_loss", "yield_optimality",
+        "slippage_bound",
+    }
+
     def list_models(self) -> List[Dict[str, Any]]:
-        """Return all available models."""
+        """Return all available models with readiness status."""
         return [
             {
                 "id": m["id"],
@@ -527,6 +535,7 @@ class LocalOrchestrator:
                 "description": m["description"],
                 "type": m["type"],
                 "timeout": m["timeout"],
+                "ready": m["id"] in self._IMPLEMENTED,
             }
             for m in MODELS.values()
         ]

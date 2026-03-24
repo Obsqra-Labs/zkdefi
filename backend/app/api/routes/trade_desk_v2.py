@@ -178,7 +178,7 @@ async def market_context():
         from app.services.ekubo.oracle_adapter import get_live_prices
         prices = await get_live_prices()
     except Exception:
-        prices = {"eth_usd": 1800, "strk_usd": 0.45}
+        prices = {"eth_usd": 2100, "strk_usd": 0.04}
 
     # Normalize for frontend (TradeDeskHeader expects ETH, STRK or eth, strk)
     eth = prices.get("eth_usd") or prices.get("ETH") or prices.get("eth")

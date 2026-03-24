@@ -32,10 +32,9 @@ export class MarketDataService {
     if (filters?.maxRisk !== undefined) params.append('maxRisk', String(filters.maxRisk));
     if (filters?.privacyMode) params.append('privacyMode', filters.privacyMode);
 
-    // Try live endpoint first, fallback to list endpoint.
+    // Use the active V2 trade desk endpoint
     const urls = [
-      this.buildPath('/api/v1/zkdefi/opportunities/live', params),
-      this.buildPath('/api/v1/zkdefi/opportunities/list', params),
+      this.buildPath('/api/v1/zkdefi/trade-desk/v2/opportunities', params),
     ];
     
     let opportunities: Opportunity[] = [];
@@ -45,7 +44,8 @@ export class MarketDataService {
         const data = await apiFetch<Opportunity[] | { opportunities?: Opportunity[] }>(url, {
           method: 'GET',
         });
-        opportunities = Array.isArray(data) ? data : (data.opportunities || []);
+        const raw = Array.isArray(data) ? data : (data.opportunities || []);
+        opportunities = raw;
         if (opportunities.length > 0) break;
       } catch (e) {
         console.warn(`Fetch from ${url} failed, trying next...`);

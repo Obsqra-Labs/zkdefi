@@ -6,11 +6,13 @@ import {
   Landmark,
   Vote,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { VaultTab } from "@/lib/agentState";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OverviewTab } from "@/components/zkdefi/tabs/OverviewTab";
+import { MarketsTab } from "@/components/zkdefi/tabs/MarketsTab";
 import { CapitalTab } from "@/components/zkdefi/tabs/CapitalTab";
 import { LendTab } from "@/components/zkdefi/tabs/LendTab";
 import { GovernTab } from "@/components/zkdefi/tabs/GovernTab";
@@ -30,6 +32,7 @@ export interface VaultCenterStageProps {
 
 const TABS = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
+  { id: "markets" as const, label: "Markets", icon: TrendingUp },
   { id: "capital" as const, label: "Capital", icon: Droplets },
   { id: "lend" as const, label: "Lend", icon: Landmark },
   { id: "govern" as const, label: "Govern", icon: Vote },
@@ -83,6 +86,11 @@ export function VaultCenterStage({
             {activeTab === "overview" && (
               <ErrorBoundary>
                 <OverviewTab address={address} isDemo={isDemo} commitments={commitments} walletBalance={walletBalance} onDeploy={onDeploy} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "markets" && (
+              <ErrorBoundary>
+                <MarketsTab onDeploy={onDeploy} />
               </ErrorBoundary>
             )}
             {activeTab === "capital" && (
