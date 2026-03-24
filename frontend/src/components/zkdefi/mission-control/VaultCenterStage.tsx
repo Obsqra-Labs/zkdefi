@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import type { VaultTab } from "@/lib/agentState";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import type { SignalForExecution } from "@/components/zkdefi/mission-control/SignalExecutionDrawer";
 import { OverviewTab } from "@/components/zkdefi/tabs/OverviewTab";
 import { MarketsTab } from "@/components/zkdefi/tabs/MarketsTab";
 import { CapitalTab } from "@/components/zkdefi/tabs/CapitalTab";
@@ -24,7 +25,7 @@ export interface VaultCenterStageProps {
   activeTab: VaultTab;
   onTabChange: (tab: VaultTab) => void;
   onSlideout: (mode: string, poolId?: string) => void;
-  onDeploy?: (signal: any) => void;
+  onDeploy?: (signal: SignalForExecution) => void;
   isDemo?: boolean;
   commitments?: VaultCommitment[];
   walletBalance?: string;

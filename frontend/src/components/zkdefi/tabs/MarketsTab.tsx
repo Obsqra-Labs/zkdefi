@@ -4,13 +4,14 @@ import { useState, useCallback } from "react";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { OpportunityExplorer } from "@/components/zkdefi/TradeDesk/OpportunityExplorer";
 import type { UnifiedOpportunity } from "@/services/TradeDeskApiService";
+import type { SignalForExecution } from "@/components/zkdefi/mission-control/SignalExecutionDrawer";
 
 interface MarketsTabProps {
-  onDeploy?: (signal: any) => void;
+  onDeploy?: (signal: SignalForExecution) => void;
 }
 
 export function MarketsTab({ onDeploy }: MarketsTabProps) {
-  const { opportunities, loading } = useOpportunities(50);
+  const { opportunities, loading, error } = useOpportunities(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleSelect = useCallback(
@@ -19,18 +20,25 @@ export function MarketsTab({ onDeploy }: MarketsTabProps) {
       if (onDeploy) {
         onDeploy({
           id: opp.id,
+          name: opp.title ?? `${opp.type} ${opp.pair}`,
           type: opp.type,
-          pair: opp.pair,
-          protocol: opp.protocol,
-          title: opp.title,
-          yield: opp.currentYield,
-          risk: opp.riskScore,
-          executionMode: opp.executionMode,
+          venue: opp.protocol,
+          currentYield: opp.currentYield,
+          apy_bps: Math.round((opp.currentYield ?? 0) * 100),
+          riskScore: opp.riskScore,
         });
       }
     },
     [onDeploy],
   );
+
+  if (error && opportunities.length === 0) {
+    return (
+      <div className="h-full p-3 flex items-center justify-center">
+        <p className="text-[11px] text-red-400">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full p-3">

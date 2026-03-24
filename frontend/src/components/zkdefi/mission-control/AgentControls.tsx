@@ -224,7 +224,7 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     fetchSession(ac.signal);
     fetchRebalanceMode(ac.signal);
     fetchPortfolio(ac.signal);
-    apiFetch<{ leaderboard: typeof leaderboard }>("/api/v1/agents/leaderboard?limit=5")
+    apiFetch<{ leaderboard: typeof leaderboard }>("/api/v1/agent-builder/leaderboard?limit=5")
       .then((d) => setLeaderboard(d?.leaderboard ?? []))
       .catch((e) => console.warn("Leaderboard fetch failed:", e));
     const t = setInterval(() => { fetchStatus(); fetchSession(); fetchPortfolio(); }, POLL_MS);

@@ -1,7 +1,7 @@
 {
-  "0xa4bf67012a7d40b11faa3700d77bc89f8c95eb8bb18cfc6fc27d44075d8ab31d": {
-    "score_receipt_id": "0xa4bf67012a7d40b11faa3700d77bc89f8c95eb8bb18cfc6fc27d44075d8ab31d",
-    "forecast_id": "0xade8d11c1c2ea765a4e3c3edd9c361937597e1f375a0c0ed7021ded2f7133d72",
+  "0x03c74158ad891cc85d13d161794c7a94ec446f3059409cdaeede431e8b811167": {
+    "score_receipt_id": "0x03c74158ad891cc85d13d161794c7a94ec446f3059409cdaeede431e8b811167",
+    "forecast_id": "0xf9ad1d2ead98a9c7a5d02abac83d02d494bec47baa0d56c1aad40452c8b5c87c",
     "window_id": "0x4e6f36ea15a932b137983d31209cbb723c3c57220cbaee95122596e347e2dca7",
     "subject_id": "0xanalytics",
     "pair_id": "ETH/USDC",
@@ -61,6 +61,6 @@
         "brier": 0.07840000000000001
       }
     },
-    "scored_at_ts": 1774313694
+    "scored_at_ts": 1774353050
   }
 }
