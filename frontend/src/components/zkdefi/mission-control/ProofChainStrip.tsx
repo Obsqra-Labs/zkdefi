@@ -53,16 +53,16 @@ export function ProofChainStrip() {
 
     apiFetch<L3Capabilities>("/api/v1/zkdefi/risk_passport/l3/capabilities")
       .then((d) => setPaths(d?.proving_paths?.paths ?? []))
-      .catch(() => {});
+      .catch((e) => console.warn("L3 capabilities fetch failed:", e));
 
     apiFetch<L3Stats>("/api/v1/zkdefi/risk_passport/l3/stats")
       .then(setStats)
-      .catch(() => {});
+      .catch((e) => console.warn("L3 stats fetch failed:", e));
 
     const interval = setInterval(() => {
       apiFetch<L3Health>("/api/v1/zkdefi/risk_passport/settlement/madara/health")
         .then(setHealth)
-        .catch(() => {});
+        .catch(() => { /* polling — silent */ });
     }, 15_000);
 
     return () => clearInterval(interval);

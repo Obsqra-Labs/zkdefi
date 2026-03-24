@@ -70,7 +70,7 @@ export function FullPrivacyPoolPanel() {
         setSavedCommitments([]);
       }
       
-      fetch(`${API_BASE}/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch(() => {});
+      fetch(`${API_BASE}/v1/zkdefi/full_privacy/merkle/root`).then(r => r.json()).then(d => setMerkleRoot(d.root)).catch((e) => console.warn("Merkle root fetch failed:", e));
     }
   }, [mounted, address]);
 

@@ -229,6 +229,24 @@ export function FundVaultPanel({
   const amountNum = parseFloat(amount);
   const showPreview = amountNum > 0;
 
+  // Fetch user's risk tolerance to personalize strategy recommendations
+  const [riskProfile, setRiskProfile] = useState<"conservative" | "balanced" | "aggressive">("balanced");
+  useEffect(() => {
+    if (!address) return;
+    let dead = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/v1/zkdefi/mc/constraints/${address}`);
+        if (res.ok && !dead) {
+          const data = await res.json();
+          const tol = typeof data.risk_tolerance === "number" ? data.risk_tolerance : 50;
+          setRiskProfile(tol <= 33 ? "conservative" : tol <= 66 ? "balanced" : "aggressive");
+        }
+      } catch { /* keep default */ }
+    })();
+    return () => { dead = true; };
+  }, [address]);
+
   // Fetch wallet balance
   useEffect(() => {
     if (!address || typeof window === "undefined") {
@@ -287,7 +305,7 @@ export function FundVaultPanel({
           headers: { "Content-Type": "application/json", ...(address ? { "X-Wallet-Address": address } : {}) },
           body: JSON.stringify({
             user_address: address || "anonymous",
-            risk_profile: "balanced", // default — could be wired to user's profile
+            risk_profile: riskProfile,
             amount: amountNum,
             asset: selectedAsset,
           }),
@@ -476,7 +494,7 @@ export function FundVaultPanel({
         allocation_source: "ai_recommended",
       });
 
-      onRecordDeposit?.(amountWei, selectedAsset, "HASHED_PROOF", txHash, commitmentHash).catch(() => {});
+      onRecordDeposit?.(amountWei, selectedAsset, "HASHED_PROOF", txHash, commitmentHash).catch((e) => console.warn("recordDeposit failed:", e));
 
       addActivityEvent(setActivityFeed, {
         type: "deposit",

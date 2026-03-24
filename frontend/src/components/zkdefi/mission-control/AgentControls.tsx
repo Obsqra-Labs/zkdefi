@@ -14,6 +14,7 @@ import {
   BarChart3,
   Gauge,
   ArrowRightLeft,
+  Trophy,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -114,6 +115,8 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
   const [portfolio, setPortfolio] = useState<PortfolioPerf | null>(
     isDemo ? DEMO_AGENT.portfolio : null
   );
+
+  const [leaderboard, setLeaderboard] = useState<Array<{ agent_id: string; name?: string; cumulative_return_bps: number; win_rate: number; total_proofs: number }>>([]);
 
   // --- Fetchers ---
 
@@ -221,6 +224,9 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     fetchSession(ac.signal);
     fetchRebalanceMode(ac.signal);
     fetchPortfolio(ac.signal);
+    apiFetch<{ leaderboard: typeof leaderboard }>("/api/v1/agents/leaderboard?limit=5")
+      .then((d) => setLeaderboard(d?.leaderboard ?? []))
+      .catch((e) => console.warn("Leaderboard fetch failed:", e));
     const t = setInterval(() => { fetchStatus(); fetchSession(); fetchPortfolio(); }, POLL_MS);
     return () => { clearInterval(t); ac.abort(); };
   }, [fetchStatus, fetchConstraints, fetchSession, fetchRebalanceMode, fetchPortfolio, isDemo]);
@@ -523,6 +529,28 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
                 style={{ width: `${portfolio.risk_pct}%` }}
               />
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* 1c — Agent Leaderboard */}
+      {leaderboard.length > 0 && (
+        <section className="rounded-lg border border-zinc-800 p-3 space-y-2">
+          <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Trophy className="w-3 h-3" /> Leaderboard
+          </h3>
+          <div className="space-y-1">
+            {leaderboard.map((entry, i) => (
+              <div key={entry.agent_id} className="flex items-center justify-between text-[11px]">
+                <span className="text-zinc-400">
+                  <span className={i === 0 ? "text-amber-400 font-semibold" : i === 1 ? "text-zinc-300" : "text-zinc-500"}>#{i + 1}</span>{" "}
+                  {entry.name || entry.agent_id.slice(0, 8)}
+                </span>
+                <span className={`font-medium ${entry.cumulative_return_bps >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {entry.cumulative_return_bps >= 0 ? "+" : ""}{(entry.cumulative_return_bps / 100).toFixed(1)}%
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       )}

@@ -34,7 +34,7 @@ export function AllocationPools({ currentPool, onSelectPool }: AllocationPoolsPr
           setPools(pools.map((p) => ({ ...p, projectedApy: (data[p.type] || p.projectedApy * 100) / 100 })));
         }
       })
-      .catch(() => {});
+      .catch((e) => console.warn("Pool APY fetch failed:", e));
   }, []);
 
   const getIcon = (type: string) => {

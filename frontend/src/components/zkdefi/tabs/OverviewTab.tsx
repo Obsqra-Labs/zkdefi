@@ -144,7 +144,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
         setSignals(mapped);
         setRawOpps(opps.slice(0, 6));
       })
-      .catch(() => {});
+      .catch((e) => console.warn("Opportunity fetch failed:", e));
 
     apiFetch<any>(`/api/v1/zkdefi/mc/stream/${address}?limit=5`)
       .then((res) => {

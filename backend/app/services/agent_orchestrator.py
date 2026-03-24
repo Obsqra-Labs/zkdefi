@@ -35,12 +35,25 @@ class ContractCall:
     created_at: str
 
 
+@dataclass
+class AgentConfig:
+    """Configuration for a registered agent (used by agent_builder)."""
+    agent_id: str
+    owner_address: str
+    name: str
+    identity_commitment: str = ""
+    bound_skills: list[str] | None = None
+    llm_provider_id: str = "deterministic"
+    llm_model: str = "deterministic-v1"
+
+
 class AgentOrchestrator:
     """Orchestrates signal execution through adapters."""
     
     def __init__(self):
         self._execution_store = JsonStore("execution_queue")
         self._execution_history = JsonStore("execution_history")
+        self._agent_store = JsonStore("builder_agents")
         self._relayer = get_relayer_client()  # ← NEW: Real relayer
     
     def prepare_execution(
@@ -268,6 +281,88 @@ class AgentOrchestrator:
             "created_at": call.created_at,
         }
 
+    # ── Agent CRUD (used by agent_builder.py) ────────────────────────────
+
+    def register_agent(self, config: AgentConfig) -> dict[str, Any]:
+        """Register a new agent in the builder store."""
+        import hashlib, json
+        data = {
+            "agent_id": config.agent_id,
+            "owner_address": config.owner_address,
+            "name": config.name,
+            "identity_commitment": config.identity_commitment,
+            "bound_skills": config.bound_skills or [],
+            "llm_provider_id": config.llm_provider_id,
+            "llm_model": config.llm_model,
+            "active": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._agent_store.set(config.agent_id, data)
+        config_hash = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
+        return {"config_hash": config_hash}
+
+    def list_agents(self, owner: str | None = None) -> list[dict]:
+        """List all registered agents, optionally filtered by owner."""
+        all_agents = self._agent_store.values()
+        if owner:
+            return [a for a in all_agents if a.get("owner_address") == owner]
+        return all_agents
+
+    def get_agent(self, agent_id: str) -> Optional[Any]:
+        """Get agent by ID. Returns a namespace-like object or None."""
+        data = self._agent_store.get(agent_id)
+        if not data:
+            return None
+        # Return a simple namespace so attribute access works
+        from types import SimpleNamespace
+        return SimpleNamespace(**data)
+
+    def update_agent(self, agent_id: str, updates: dict) -> bool:
+        """Update agent fields."""
+        data = self._agent_store.get(agent_id)
+        if not data:
+            return False
+        data.update(updates)
+        self._agent_store.set(agent_id, data)
+        return True
+
+    def delete_agent(self, agent_id: str) -> bool:
+        """Delete an agent. Returns True if it existed."""
+        data = self._agent_store.get(agent_id)
+        if not data:
+            return False
+        self._agent_store.delete(agent_id)
+        return True
+
+    async def execute_goal(self, agent_id: str, goal: str, context: dict | None = None):
+        """Execute a goal using the agent's LLM + ZK skills pipeline."""
+        from app.services.local_orchestrator import get_orchestrator as get_local
+        from app.services.agent_service import get_agent_service
+        from types import SimpleNamespace
+
+        agent_data = self._agent_store.get(agent_id)
+        if not agent_data:
+            raise ValueError(f"Agent not found: {agent_id}")
+
+        local = get_local()
+        svc = get_agent_service()
+        result = await svc.execute_agent(agent_id, context or {})
+
+        return SimpleNamespace(
+            agent_id=agent_id,
+            goal=goal,
+            steps=[],
+            final_decision=result.get("should_execute", False),
+            all_proofs_pass=all(
+                p.get("has_proof") for p in result.get("processor_results", [])
+            ),
+            total_duration_ms=result.get("total_time_ms", 0),
+            llm_tokens_used=0,
+            llm_provider_used=agent_data.get("llm_provider_id", "deterministic"),
+            llm_fallback_reason=None,
+            error=None,
+        )
+
 
 def get_agent_orchestrator() -> AgentOrchestrator:
     """Singleton getter for orchestrator."""
@@ -275,3 +370,7 @@ def get_agent_orchestrator() -> AgentOrchestrator:
     if not hasattr(get_agent_orchestrator, "_orchestrator"):
         get_agent_orchestrator._orchestrator = AgentOrchestrator()
     return get_agent_orchestrator._orchestrator
+
+
+# Alias used by agent_builder.py
+get_orchestrator = get_agent_orchestrator

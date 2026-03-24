@@ -171,7 +171,7 @@ export default function PositionsOverview({
           setDeployment(built);
         }
       })
-      .catch(() => {});
+      .catch((e) => console.warn("Deployment positions fetch failed:", e));
     return () => controller.abort();
   }, [address]);
 
@@ -191,7 +191,7 @@ export default function PositionsOverview({
         }
         setPoolApys(apys);
       })
-      .catch(() => {});
+      .catch((e) => console.warn("Pool APY fetch failed:", e));
     return () => controller.abort();
   }, []);
 

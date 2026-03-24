@@ -166,7 +166,7 @@ export function LendTab({ address }: LendTabProps) {
           });
         }
       })
-      .catch(() => {});
+      .catch((e) => console.warn("Lending opportunities fetch failed:", e));
     return () => ac.abort();
   }, []);
 
