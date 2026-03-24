@@ -57,7 +57,7 @@
     "execution_policy": {
       "allowed_strategies": [],
       "cooldown_seconds": 300,
-      "emergency_pause": false,
+      "emergency_pause": true,
       "max_daily_notional_wei": 0,
       "max_oracle_age_sec": 120,
       "max_trade_notional_wei": 0,
@@ -91,7 +91,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-11T16:59:17.015235+00:00",
+    "updated_at": "2026-03-23T00:07:10.957159+00:00",
     "user_address": "0x199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
     "venue_allowlist": [
       "ekubo",
@@ -141,7 +141,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-15T18:07:00.982748+00:00",
+    "updated_at": "2026-03-23T23:32:34.085994+00:00",
     "user_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "venue_allowlist": [
       "ekubo",
@@ -589,7 +589,7 @@
       "enable_rotation": true
     },
     "token_allowlist": [],
-    "updated_at": "2026-03-12T07:45:49.012198+00:00",
+    "updated_at": "2026-03-23T04:28:55.559436+00:00",
     "user_address": "0x5fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
     "venue_allowlist": [
       "ekubo",

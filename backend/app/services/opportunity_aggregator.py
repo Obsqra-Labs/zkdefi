@@ -437,9 +437,15 @@ class OpportunityAggregator:
             from app.services.privacy_vault_service import get_privacy_vault_service
 
             svc = get_privacy_vault_service()
-            deposit_count = sum(
-                len(commitments) for commitments in svc.nullifier_store.values()
-            )
+            # Count unspent commitments from the nullifier DB
+            try:
+                with svc._nullifier_db_connect() as conn:
+                    row = conn.execute(
+                        "SELECT COUNT(*) FROM nullifiers WHERE spent = 0"
+                    ).fetchone()
+                    deposit_count = row[0] if row else 0
+            except Exception:
+                deposit_count = 0
             return [
                 UnifiedOpportunity(
                     id=_stable_id("privacy", "shielded-pool"),

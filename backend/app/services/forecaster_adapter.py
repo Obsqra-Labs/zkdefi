@@ -32,7 +32,7 @@ class ForecasterAdapter:
         self._cache_ttl = 300  # 5 minutes
         self._last_cache_time: dict[str, float] = {}
     
-    def get_market_forecast(
+    async def get_market_forecast(
         self,
         pair_id: str,
         network_id: str = "starknet_sepolia",
@@ -71,7 +71,7 @@ class ForecasterAdapter:
             window = self._forecaster.get_window(window_id)
             if not window:
                 # Create minimal window for forecasting
-                window = self._forecaster.create_window(
+                window = await self._forecaster.create_window(
                     pair_id=pair_id,
                     window_open_ts=now,
                     window_close_ts=now + 14400,  # 4 hours ahead
@@ -80,6 +80,8 @@ class ForecasterAdapter:
                     network_id=network_id,
                     data_source_id="signals_adapter",
                 )
+                # Service can canonicalize fields, so use the actual stored id.
+                window_id = str(window.get("window_id", window_id))
             
             # Get suggested outputs (forecaster's predictions)
             outputs = self._forecaster.suggest_outputs(
@@ -127,18 +129,26 @@ class ForecasterAdapter:
     
     def _transform_outputs_to_signals(self, outputs: dict[str, Any]) -> dict[str, Any]:
         """Transform forecaster outputs to signals prediction format."""
+        def _safe_int(value: Any, default: int) -> int:
+            try:
+                if value is None:
+                    return default
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+
         outputs_scaled = outputs.get("outputs_scaled", {})
         signals_meta = outputs.get("signals", {})
         
         # Extract probability predictions (scaled 0-10000)
-        p5 = int(outputs_scaled.get("p5", 5000)) / 10000.0
-        p30 = int(outputs_scaled.get("p30", 5000)) / 10000.0
-        p240 = int(outputs_scaled.get("p240", 5000)) / 10000.0
+        p5 = _safe_int(outputs_scaled.get("p5", 5000), 5000) / 10000.0
+        p30 = _safe_int(outputs_scaled.get("p30", 5000), 5000) / 10000.0
+        p240 = _safe_int(outputs_scaled.get("p240", 5000), 5000) / 10000.0
         
         # Extract return predictions (in basis points)
-        r5_bps = int(outputs_scaled.get("r5", 0))
-        r30_bps = int(outputs_scaled.get("r30", 0))
-        r240_bps = int(outputs_scaled.get("r240", 0))
+        r5_bps = _safe_int(outputs_scaled.get("r5", 0), 0)
+        r30_bps = _safe_int(outputs_scaled.get("r30", 0), 0)
+        r240_bps = _safe_int(outputs_scaled.get("r240", 0), 0)
         
         # Convert return predictions to APY equivalent (approximate)
         # Basis points / horizon_mins * 525600 minutes/year / 10000
@@ -179,7 +189,7 @@ class ForecasterAdapter:
             "return_30m_bps": r30_bps,
             "return_240m_bps": r240_bps,
             "signal_strength": round(signal_strength, 4),
-            "trend_bps": int(outputs.get("recent_trend_bps", 0)),
+            "trend_bps": _safe_int(outputs.get("recent_trend_bps", 0), 0),
             "horizon": "7d",
         }
     

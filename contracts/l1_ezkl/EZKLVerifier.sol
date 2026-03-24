@@ -212,8 +212,8 @@ contract Halo2Verifier {
 
             {
                 // Load vk_digest and num_instances of vk into memory
-                mstore(0x0620, 0x0e40bb3ebf038901e8808ade1950fdc62e3a800d9864bd11460a6a0572f651df) // vk_digest
-                mstore(0x0640, 0x0000000000000000000000000000000000000000000000000000000000000017) // num_instances
+                mstore(0x0620, 0x271b0f7b45752c60376f875e0f315546167f3c05d58fa9a382de972112412bd7) // vk_digest
+                mstore(0x0640, 0x000000000000000000000000000000000000000000000000000000000000000d) // num_instances
 
                 // Check valid length of proof
                 success := and(success, eq(0x0c00, proof.length))
@@ -312,8 +312,8 @@ contract Halo2Verifier {
                 success, proof_cptr, hash_mptr := read_ec_point(success, proof_cptr, hash_mptr, q) // W'
 
                 // Load full vk into memory
-                mstore(0x0620, 0x0e40bb3ebf038901e8808ade1950fdc62e3a800d9864bd11460a6a0572f651df) // vk_digest
-                mstore(0x0640, 0x0000000000000000000000000000000000000000000000000000000000000017) // num_instances
+                mstore(0x0620, 0x271b0f7b45752c60376f875e0f315546167f3c05d58fa9a382de972112412bd7) // vk_digest
+                mstore(0x0640, 0x000000000000000000000000000000000000000000000000000000000000000d) // num_instances
                 mstore(0x0660, 0x000000000000000000000000000000000000000000000000000000000000000f) // k
                 mstore(0x0680, 0x3063edaa444bddc677fcd515f614555a777997e0a9287d1e62bf6dd004d82001) // n_inv
                 mstore(0x06a0, 0x2b7ddfe4383c8d806530b94d3120ce6fcb511871e4d44a65f0acd0b96a8a942e) // omega
@@ -333,46 +333,46 @@ contract Halo2Verifier {
                 mstore(0x0860, 0x17944351223333f260ddc3b4af45191b856689eda9eab5cbcddbbe570ce860d2) // neg_s_g2_x_2
                 mstore(0x0880, 0x06d971ff4a7467c3ec596ed6efc674572e32fd6f52b721f97e35b0b3d3546753) // neg_s_g2_y_1
                 mstore(0x08a0, 0x06ecdb9f9567f59ed2eee36e1e1d58797fd13cc97fafc2910f5e8a12f202fa9a) // neg_s_g2_y_2
-                mstore(0x08c0, 0x2545b714e127eaf19e4f8a26077039fa750607f016c74113effe57f1fcaef32b) // fixed_comms[0].x
-                mstore(0x08e0, 0x2bc75ca34d0692e3c67cc770bc6ba94ef1b9cec2b82a06f061d0d194489cd90b) // fixed_comms[0].y
+                mstore(0x08c0, 0x19b3a2568372d58cfdf2f0b183c47c1b54c3ee39c8430af1826ca3405fd94300) // fixed_comms[0].x
+                mstore(0x08e0, 0x1e8f6f2d0ab112b8a7d07357c8f553ee24ecb96eb4a01e50a47ba6d93c8914cd) // fixed_comms[0].y
                 mstore(0x0900, 0x15a51539aff2087850cd2d7a60e8c87d1f9a8ef180c289d96294e328767e4ba2) // fixed_comms[1].x
                 mstore(0x0920, 0x24886af2f62be3465d54a10798576d26eca16de4af6d40eb3df1f89f58e4b2aa) // fixed_comms[1].y
                 mstore(0x0940, 0x2b50655bb4560d7529bf4070e81524fb13b859ecaa13aaed24a594441ad71918) // fixed_comms[2].x
                 mstore(0x0960, 0x0eeb09447c8dc370c352e005bd887ed783b4ec37a76e462a3aae7de6fbdde0d1) // fixed_comms[2].y
-                mstore(0x0980, 0x0525988bae3cd10c624aebe6f3a474c0dbcb03cb59672d7f0b15ef58a310a52b) // fixed_comms[3].x
-                mstore(0x09a0, 0x078f0732f7cb9f0c5e31f8fdd25f2b045f6e76e75ee86d38f1adf44a5b492d80) // fixed_comms[3].y
-                mstore(0x09c0, 0x0ec013322bc6cc18d39babf7dddd023c5c72f25266d009e3ab2768e1ec2b96e4) // fixed_comms[4].x
-                mstore(0x09e0, 0x2c2ca8339978287f3cc05cf625af1bc5d0d7edbd9b6ecb703ba7fb094ba9648a) // fixed_comms[4].y
-                mstore(0x0a00, 0x280168f54e4632600b76fcfbf7fd8253b27625052788e8af707f2fc8da9f1fd6) // fixed_comms[5].x
-                mstore(0x0a20, 0x2291325578872e9d524bc383cf57818a6358a8562fd4c21307328b4e804c3f45) // fixed_comms[5].y
-                mstore(0x0a40, 0x22679b7dee91202d557462c8b35f5c47aa70b37edce2b8de605c17bfa2076d64) // fixed_comms[6].x
-                mstore(0x0a60, 0x02829bf612a9aae1d77b3a2ba34ecf2462501dded4dbde515c4fd451f2c13a6b) // fixed_comms[6].y
-                mstore(0x0a80, 0x022ee1a5bb171f254b8ca5bf96bd2cd06eed6ce6c7013f9215e96483e3c932d8) // fixed_comms[7].x
-                mstore(0x0aa0, 0x2fedc8fbb9a7740079b0941dc243a733d1f742aaf5ece2092dc0d88c455c11af) // fixed_comms[7].y
-                mstore(0x0ac0, 0x09bf88ebf81acfaf364e8ac84e57dfb5f00312a749b2f0bf59f6e031dc764147) // fixed_comms[8].x
-                mstore(0x0ae0, 0x0393b7c2e9b323a4b8a6e762fd8a47a12151778cc0b49c89bcf64c6c0495956e) // fixed_comms[8].y
-                mstore(0x0b00, 0x1784bd09a2a0ca46a2cc915696485d20620c6eacc3ee41bb5e1b17af6cb328dd) // fixed_comms[9].x
-                mstore(0x0b20, 0x1c3d2d311abae2a4533d2177c87933d364c609bdf73140d2b28120a77bfc65c1) // fixed_comms[9].y
+                mstore(0x0980, 0x1d90bf630631ea441e2b4e68a8492d7b647100e58ad683c2c5347054d1d1efc9) // fixed_comms[3].x
+                mstore(0x09a0, 0x1fdf8cbc00dfdb1623d829387e55be0f758a6fa99d4c1c4d7ad33a27ff1ad8cf) // fixed_comms[3].y
+                mstore(0x09c0, 0x2a51a1efd78bd81531c5e0e69bc5ae48958795a1ba4a9f616a225674b9e1d0a7) // fixed_comms[4].x
+                mstore(0x09e0, 0x27f9f796ee45fe27787fff3222aaa094403f3fc607627177fa68910675ec3338) // fixed_comms[4].y
+                mstore(0x0a00, 0x074d61492234ed639afd25c833894dc4697f98fb4c125b3c0fdc110f7db9c069) // fixed_comms[5].x
+                mstore(0x0a20, 0x265f7f142b01fc32a03ba5cfd666ce3b4bd1ae87048b906c52140cca3f444b95) // fixed_comms[5].y
+                mstore(0x0a40, 0x194455c404b748fb83627445f4f41bc3248f185726e4e39a953aaa207c7eb504) // fixed_comms[6].x
+                mstore(0x0a60, 0x183542bf44f4c255c056e7dd999009bf78eaaf124af4865c60551aeab12a89dc) // fixed_comms[6].y
+                mstore(0x0a80, 0x082f0de775804018ae4479b99c79f79d003030a68401e49a7835febadd7fd09a) // fixed_comms[7].x
+                mstore(0x0aa0, 0x1684b51a0c136b72d7471496cdc3cdce675d108eaf36d0b8fbaa841e1f74025f) // fixed_comms[7].y
+                mstore(0x0ac0, 0x1d737a543a15d418330c06bd2a63123c9ee9aad7b5b2c42c777e45748025d4ec) // fixed_comms[8].x
+                mstore(0x0ae0, 0x1cfed3bf1d5535215f7fcf69786f5ae3e61f4d1eb9dde97d1536efcd05d9c2d7) // fixed_comms[8].y
+                mstore(0x0b00, 0x0d08f60c50e16c8ec7e5086bf03349de77a0e7558a785c9b0d8a1fc66494322d) // fixed_comms[9].x
+                mstore(0x0b20, 0x10926cf0c40d4e7baf82af95c24d7fbfbd7401a4b4c3c256a79c3dabf6e7dd01) // fixed_comms[9].y
                 mstore(0x0b40, 0x0000000000000000000000000000000000000000000000000000000000000000) // fixed_comms[10].x
                 mstore(0x0b60, 0x0000000000000000000000000000000000000000000000000000000000000000) // fixed_comms[10].y
                 mstore(0x0b80, 0x0000000000000000000000000000000000000000000000000000000000000000) // fixed_comms[11].x
                 mstore(0x0ba0, 0x0000000000000000000000000000000000000000000000000000000000000000) // fixed_comms[11].y
-                mstore(0x0bc0, 0x06599c97edbbae1a15397f1535cdf29bc1c577dbf42a1d905a827893211bcb1d) // permutation_comms[0].x
-                mstore(0x0be0, 0x21b1e318230a88990e26b73e30401cfa40a8319babff83a4b6bfc20954df94b1) // permutation_comms[0].y
-                mstore(0x0c00, 0x1e7a651f6a2fb6007a942a452466bdf1f1bf1ae749b5e35d63af18296f2222b9) // permutation_comms[1].x
-                mstore(0x0c20, 0x08dfef19d83dd244d079bd455df9fec0f44b909fc519948f13df2a809e69623d) // permutation_comms[1].y
-                mstore(0x0c40, 0x0ce520dc232547054855a31967849e10be94c204c2962de88eb5b9f6fde95ca4) // permutation_comms[2].x
-                mstore(0x0c60, 0x2ce383a8aba43c45200e0aee46e2f4ee001af980cef1d5cc137223ca52024c03) // permutation_comms[2].y
-                mstore(0x0c80, 0x0834acaf4ed56f7c9fcfec2125e7a97937e1f94de0832fdc5a132e68a4f9dd85) // permutation_comms[3].x
-                mstore(0x0ca0, 0x1a813eacbfdf416b6ea435d8888043dfd610b88c0abcb28c1906ed1c08b98e78) // permutation_comms[3].y
-                mstore(0x0cc0, 0x1b5d8fde08779aca5aea6535cc908123dddd67e30cb559ddae703c955b2626a5) // permutation_comms[4].x
-                mstore(0x0ce0, 0x219af4b905200854c6ae9d560dc45e92cfe59ed518f244bc574de072445983b0) // permutation_comms[4].y
-                mstore(0x0d00, 0x17c5768892e3a480ba3040b81567c0698fce05df51570ee6f67c19add4ca6722) // permutation_comms[5].x
-                mstore(0x0d20, 0x24adc4062dc36dc35c787fd19b4c3cabc181246890c6d3d0f2689f383dd047a2) // permutation_comms[5].y
-                mstore(0x0d40, 0x2a92b7a6c330dcd0be1a6f7f68824eb1f1004994d21833c17c59afaba5a6d599) // permutation_comms[6].x
-                mstore(0x0d60, 0x1cd69f2b2ad2c884cafd95a802dbab38877ab14e94a93e28188405cf494422c0) // permutation_comms[6].y
-                mstore(0x0d80, 0x215362f7b206899b72129f6b17096166447aabbdeb8a437196d36f65e1dd6810) // permutation_comms[7].x
-                mstore(0x0da0, 0x2d53c30b6229e1de4f738d4892a1c9d1280aee80f46a9a2f6f06177e9b28c6f5) // permutation_comms[7].y
+                mstore(0x0bc0, 0x20b00794de3eef7be19efb0c9f49677a35fe0877b3f247f663db306969a7882d) // permutation_comms[0].x
+                mstore(0x0be0, 0x00251bd8647b69abfb23734f771902b64472f75f4c84f2e06727e52a17d10487) // permutation_comms[0].y
+                mstore(0x0c00, 0x226d09f330cd4386b532552fea4f7190a1f72dad5eb24ea4e74fc32fd9075e4e) // permutation_comms[1].x
+                mstore(0x0c20, 0x0ef88a31998180ecfb105796bd0e5e299e13cc70e1a1b7c4f844df897c0e6cdc) // permutation_comms[1].y
+                mstore(0x0c40, 0x0f1411923d7d6221ff789973bbfaf113d6b2ec543c47c25fc568176a18d4943c) // permutation_comms[2].x
+                mstore(0x0c60, 0x0e293905faa01f7d9336485ae7a6ac878b564ef298ca21e693d1bb04d7f185e3) // permutation_comms[2].y
+                mstore(0x0c80, 0x2f53ffb64a1a9d5dff816cff43e75d9022f369c3f236298c0332f1ebc79a5cc6) // permutation_comms[3].x
+                mstore(0x0ca0, 0x26035db195d29251cb865f426e8d34754e2cccb1fba768f1bc9fa75db5f5d2d5) // permutation_comms[3].y
+                mstore(0x0cc0, 0x2799d31cf4076700be5c8c185ed529e668486cd3471cfcf599ddb20a2e6f0ea5) // permutation_comms[4].x
+                mstore(0x0ce0, 0x01c7423f6260a3a54ef3da08574d90fc5f23e72a3f8887617218b7de1712f8f5) // permutation_comms[4].y
+                mstore(0x0d00, 0x01fa4e0d1465093b094862c32722af8e7548f2621d4108218ef41f8dbfe701f2) // permutation_comms[5].x
+                mstore(0x0d20, 0x0d4863ccc0a0ae1b09c361d13c89031e6cdfbf6b9eaf84ed41e552ad2d16fa99) // permutation_comms[5].y
+                mstore(0x0d40, 0x1fce2d799e0def1f986d5ec1d97f14e249bdcf77516a4641219412d84eca264f) // permutation_comms[6].x
+                mstore(0x0d60, 0x12d7eb17c4e06a418177ae5cb9f5529a91749d111ea091453feb116e71b78e85) // permutation_comms[6].y
+                mstore(0x0d80, 0x1a2b0b4f2caa8c4456da05a50aaed77a9b1c7d55277afc0b2782994957b84e99) // permutation_comms[7].x
+                mstore(0x0da0, 0x0c45419f3f83a840d7ccf500e8ca127c44b8a1a21ccef1f40f2d39d556faf478) // permutation_comms[7].y
 
                 // Read accumulator from instances
                 if mload(HAS_ACCUMULATOR_MPTR) {

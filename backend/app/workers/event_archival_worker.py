@@ -116,11 +116,16 @@ class EventArchivalWorker:
                         event_type TEXT NOT NULL,
                         data TEXT,
                         created_at TEXT NOT NULL,
-                        archived_at TEXT NOT NULL,
-                        
-                        INDEX idx_created_at (created_at),
-                        INDEX idx_archived_at (archived_at)
+                        archived_at TEXT NOT NULL
                     )
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_archive_created_at
+                    ON execution_events_archive (created_at)
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_archive_archived_at
+                    ON execution_events_archive (archived_at)
                 """)
                 
                 cutoff_iso = cutoff_date.isoformat()

@@ -133,17 +133,35 @@ export function MyAgents({
     setExecutingId(agentId);
     setExecutionResult(null);
     try {
-      // Use path-based execute endpoint (new local orchestrator API)
+      // Fetch real portfolio from vault status API
+      let portfolio: Record<string, unknown> = {
+        assets: { eth: 0, usdc: 0, strk: 0 },
+        daily_positions: [],
+        volatility: 0,
+        liquidity: 0,
+      };
+      try {
+        const vaultData = await apiFetch<{
+          deployed_wei?: string;
+          total_yield_wei?: string;
+          allocations?: Array<{ protocol?: string; amount_wei?: string }>;
+        }>(`/api/v1/zkdefi/vault/status?user_address=${userAddress}`);
+        const deployedStrk = Number(vaultData.deployed_wei ?? "0") / 1e18;
+        portfolio = {
+          assets: { strk: Math.round(deployedStrk), eth: 0, usdc: 0 },
+          daily_positions: [],
+          volatility: 30,
+          liquidity: 70,
+        };
+      } catch {
+        // Use empty portfolio if vault data unavailable
+      }
+
       const result = await apiFetch<ExecutionResult>(`/api/v1/agents/${agentId}/execute`, {
         method: "POST",
         body: JSON.stringify({
           user_address: userAddress,
-          portfolio: {
-            assets: { eth: 50000, usdc: 30000, strk: 20000 },
-            daily_positions: [10000, 11000, 10500, 12000, 11500, 13000, 12500],
-            volatility: 30,
-            liquidity: 70,
-          },
+          portfolio,
           constraints: {
             max_risk: 100,
             max_correlation: 90,

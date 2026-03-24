@@ -1,10 +1,10 @@
 {
   "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d": {
-    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "address": "unknown",
     "gateRules": {
       "minReputationScore": 30,
       "maxRiskScore": 80,
-      "requireCircuitVerified": true,
+      "requireCircuitVerified": false,
       "preferPrivacyMode": null
     },
     "executionRules": {
@@ -14,7 +14,7 @@
     },
     "isActive": true,
     "createdAt": "2026-03-08T12:37:21.505223+00:00",
-    "updatedAt": "2026-03-09T20:25:15.297298+00:00"
+    "updatedAt": "2026-03-23T03:21:27.995183+00:00"
   },
   "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777": {
     "address": "0x0199f1c59ffb4403e543b384f8bc77cf390a8671fbbc0f6f7eae0d462b39b777",
@@ -32,5 +32,22 @@
     "isActive": true,
     "createdAt": "2026-03-11T17:03:40.681874+00:00",
     "updatedAt": "2026-03-11T17:03:40.681874+00:00"
+  },
+  "0x04422220537d26e01fa07fb8bf7b50a6d87176cd47f4f8416ed7e2576f1aecdb": {
+    "address": "0x04422220537d26e01fa07fb8bf7b50a6d87176cd47f4f8416ed7e2576f1aecdb",
+    "gateRules": {
+      "minReputationScore": 0,
+      "maxRiskScore": 80,
+      "requireCircuitVerified": false,
+      "preferPrivacyMode": null
+    },
+    "executionRules": {
+      "maxAllocationPct": 20.0,
+      "dailyLimitUSD": 10000.0,
+      "autoExecute": false
+    },
+    "isActive": true,
+    "createdAt": "2026-03-23T12:47:13.623881+00:00",
+    "updatedAt": "2026-03-23T12:47:13.623881+00:00"
   }
 }

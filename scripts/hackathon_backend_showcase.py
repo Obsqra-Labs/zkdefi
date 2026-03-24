@@ -9621,18 +9621,20 @@ class ShowcaseRunner:
     }}
     body {{
       margin: 0;
-      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.18), transparent 32%),
-        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, 0.14), transparent 28%),
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.10), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, 0.06), transparent 28%),
         var(--bg);
       color: var(--text);
-      line-height: 1.5;
+      line-height: 1.6;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
     }}
     main {{
-      max-width: 1240px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 28px 18px 56px;
+      padding: 20px 18px 48px;
     }}
     .stack {{
       display: grid;
@@ -9644,47 +9646,43 @@ class ShowcaseRunner:
       letter-spacing: 0.15px;
     }}
     h1 {{
-      font-size: 34px;
-      background: linear-gradient(90deg, #ffffff 0%, #a7f3d0 48%, #67e8f9 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      font-size: 26px;
+      color: #f0f6ff;
     }}
-    h2 {{ font-size: 22px; margin-top: 2px; }}
-    h3 {{ font-size: 16px; margin-top: 14px; color: #d2d8e5; }}
-    p {{ margin: 8px 0; }}
-    .meta {{ color: var(--muted); font-size: 14px; }}
+    h2 {{ font-size: 19px; margin-top: 2px; color: #e4ecf8; }}
+    h3 {{ font-size: 15px; margin-top: 12px; color: #d2d8e5; }}
+    p {{ margin: 6px 0; }}
+    .meta {{ color: var(--muted); font-size: 13px; }}
     .hero {{
       position: relative;
       overflow: hidden;
-      border: 1px solid #2a3142;
-      border-radius: 16px;
-      background:
-        linear-gradient(155deg, rgba(16, 185, 129, 0.16), rgba(34, 211, 238, 0.06) 38%, rgba(10, 14, 22, 0.96) 78%),
-        #0b1019;
-      padding: 18px;
-      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+      border: 1px solid #232b3a;
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 10px 14px;
     }}
     .hero-top {{
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 10px;
       align-items: start;
     }}
+    .hero h1 {{ font-size: 22px; margin-bottom: 4px; }}
     .subline {{
-      margin-top: 8px;
-      color: #b7c2d7;
-      max-width: 930px;
+      margin: 2px 0 0;
+      color: #9eacbf;
+      font-size: 13px;
+      max-width: 800px;
     }}
     .hero-side-panel {{
       display: grid;
-      gap: 10px;
+      gap: 6px;
     }}
     .report-status {{
-      border: 1px solid #2f3a50;
-      border-radius: 12px;
-      padding: 12px;
-      background: rgba(12, 18, 30, 0.82);
+      border: 1px solid #2a3346;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(12, 18, 30, 0.72);
     }}
     .report-status.good {{
       border-color: rgba(16, 185, 129, 0.45);
@@ -9696,9 +9694,9 @@ class ShowcaseRunner:
     }}
     .report-status-pills {{
       display: grid;
-      gap: 8px;
+      gap: 6px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }}
     .status-pill {{
       border: 1px solid #344861;
@@ -9728,14 +9726,14 @@ class ShowcaseRunner:
     }}
     .report-status-title {{
       margin: 0;
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
       color: #ecf5ff;
     }}
     .report-status-copy {{
-      margin: 6px 0 0;
-      color: #b7c2d7;
-      font-size: 13px;
+      margin: 3px 0 0;
+      color: #9eacbf;
+      font-size: 12px;
     }}
     .report-status-meta {{
       display: flex;
@@ -9758,40 +9756,41 @@ class ShowcaseRunner:
       overflow-wrap: anywhere;
     }}
     .hero-meta-grid {{
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 1fr;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
     }}
     .hero-meta-item {{
-      border: 1px solid #2f3a50;
-      border-radius: 10px;
-      padding: 8px 10px;
-      background: rgba(12, 18, 30, 0.72);
-      min-height: auto;
+      border: 1px solid #262f40;
+      border-radius: 6px;
+      padding: 3px 8px;
+      background: rgba(12, 18, 30, 0.5);
+      display: inline-flex;
+      gap: 4px;
+      align-items: baseline;
+      font-size: 12px;
     }}
     .hero-meta-item .k {{
-      display: block;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.4px;
-      color: #97a7c3;
-      margin-bottom: 3px;
+      color: #7a8ba5;
     }}
     .hero-meta-item .v {{
-      display: block;
-      font-size: 13px;
-      color: #dce6fa;
+      font-size: 12px;
+      color: #c8d4e8;
       overflow-wrap: anywhere;
       word-break: break-word;
     }}
     .score {{
-      display: inline-block;
-      margin-top: 10px;
-      padding: 7px 12px;
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
       border: 1px solid #2f3a50;
-      border-radius: 999px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.04);
       font-weight: 700;
+      font-size: 13px;
     }}
     .chips {{
       display: flex;
@@ -9814,24 +9813,24 @@ class ShowcaseRunner:
     }}
     .hero-cta-row {{
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
-      margin-top: 12px;
+      margin-top: 8px;
+      align-items: center;
     }}
     .hero-cta {{
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 38px;
-      padding: 9px 13px;
-      border-radius: 999px;
+      min-height: 32px;
+      padding: 5px 10px;
+      border-radius: 6px;
       border: 1px solid #31455f;
       background: rgba(12, 18, 30, 0.84);
       color: #dff6ff;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 600;
       text-decoration: none;
-      transition: transform .12s ease-in-out, border-color .12s ease-in-out;
     }}
     .hero-cta:hover {{
       border-color: #67e8f9;
@@ -9889,9 +9888,9 @@ class ShowcaseRunner:
       box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18) inset;
     }}
     .executive {{
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
     }}
     .summary-panels {{
       display: grid;
@@ -9899,10 +9898,10 @@ class ShowcaseRunner:
       gap: 10px;
     }}
     .summary-panel {{
-      border: 1px solid #2f3b54;
-      border-radius: 12px;
-      background: rgba(12, 18, 29, 0.8);
-      padding: 12px;
+      border: 1px solid #2a3346;
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 10px;
     }}
     .summary-panel h3 {{
       margin-top: 0;
@@ -9911,52 +9910,53 @@ class ShowcaseRunner:
       font-size: 12px;
     }}
     .exec-card {{
-      border: 1px solid #2f3b54;
-      border-radius: 12px;
-      background: rgba(12, 18, 29, 0.8);
-      padding: 11px;
-      min-height: 108px;
-      position: relative;
+      flex: 1 1 auto;
+      min-width: 120px;
+      border: 1px solid #2a3346;
+      border-radius: 6px;
+      background: var(--panel);
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }}
     .exec-label {{
       margin: 0;
-      color: #99aac7;
+      color: #8a9bb5;
       font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
     }}
     .exec-value {{
-      margin: 6px 0 0;
-      font-size: 22px;
+      margin: 0;
+      font-size: 14px;
       font-weight: 700;
       color: #ecf5ff;
     }}
     .exec-detail {{
-      margin: 4px 0 0;
-      color: #b4c2da;
-      font-size: 12px;
+      margin: 0;
+      color: #8a9bb5;
+      font-size: 11px;
       overflow-wrap: anywhere;
+      display: none;
     }}
     .exec-state {{
-      position: absolute;
-      right: 10px;
-      top: 10px;
+      margin-left: auto;
       font-size: 11px;
       padding: 2px 7px;
-      border-radius: 999px;
+      border-radius: 4px;
       border: 1px solid #344861;
       color: #c8d8ef;
       background: rgba(26, 38, 57, 0.8);
+      white-space: nowrap;
     }}
     .exec-state.ok {{
-      border-color: rgba(16, 185, 129, 0.62);
+      border-color: rgba(16, 185, 129, 0.5);
       color: #b8ffe2;
-      background: rgba(16, 185, 129, 0.14);
+      background: rgba(16, 185, 129, 0.12);
     }}
     .exec-state.warn {{
-      border-color: rgba(251, 146, 60, 0.62);
+      border-color: rgba(251, 146, 60, 0.5);
       color: #ffd8b3;
-      background: rgba(251, 146, 60, 0.14);
+      background: rgba(251, 146, 60, 0.12);
     }}
     .report-section {{
       display: none;
@@ -9967,12 +9967,11 @@ class ShowcaseRunner:
       to {{ opacity: 1; transform: translateY(0); }}
     }}
     section {{
-      margin-top: 16px;
-      background: linear-gradient(180deg, var(--panel), var(--panel-alt));
+      margin-top: 12px;
+      background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
+      border-radius: 10px;
+      padding: 14px;
     }}
     .intent {{
       margin: 8px 0 12px;
@@ -9989,27 +9988,29 @@ class ShowcaseRunner:
     .table-wrap {{
       margin-top: 8px;
       border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: auto;
-      background: linear-gradient(180deg, rgba(8, 12, 20, 0.72), rgba(11, 16, 27, 0.94));
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      overflow-x: auto;
+      overflow-y: visible;
+      background: rgba(8, 12, 20, 0.72);
     }}
     .report-table {{
       width: 100%;
-      min-width: 860px;
+      min-width: 0;
+      table-layout: auto;
       border-collapse: separate;
       border-spacing: 0;
       margin-top: 0;
     }}
     .report-table th, .report-table td {{
       text-align: left;
-      padding: 11px 12px;
-      border-bottom: 1px solid rgba(48, 62, 82, 0.85);
+      padding: 8px 8px;
+      border-bottom: 1px solid rgba(48, 62, 82, 0.7);
       vertical-align: top;
       font-size: 13px;
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;
+      max-width: 280px;
     }}
     .report-table thead th {{
       position: sticky;
@@ -10122,17 +10123,14 @@ class ShowcaseRunner:
     details {{ margin-top: 8px; }}
     summary {{ cursor: pointer; color: var(--link); }}
     @media (max-width: 700px) {{
-      h1 {{ font-size: 26px; }}
-      h2 {{ font-size: 18px; }}
+      h1 {{ font-size: 20px; }}
+      h2 {{ font-size: 16px; }}
       .hero-top {{ grid-template-columns: 1fr; }}
-      .hero-meta-grid {{ grid-template-columns: 1fr; }}
       .summary-panels {{ grid-template-columns: 1fr; }}
-      .executive {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-      .report-table {{ min-width: 720px; }}
-      .report-table th, .report-table td {{ font-size: 12px; padding: 9px 8px; }}
+      .report-table th, .report-table td {{ font-size: 12px; padding: 6px 5px; }}
     }}
     @media (max-width: 520px) {{
-      .executive {{ grid-template-columns: 1fr; }}
+      .executive {{ flex-direction: column; }}
     }}
   </style>
 </head>
@@ -10142,22 +10140,11 @@ class ShowcaseRunner:
       <div class="hero">
         <div class="hero-top">
           <div>
-            <h1>Obsqra Labs Live Research: zkde.fi Verifiable AI Stack</h1>
-            <p class="subline">
-              Research-first readout for the Obsqra Labs thesis: trustless agentic execution requires cryptographic policy gates,
-              portable proof lanes, and transparent receipts that anyone can audit without trusting hidden backend logic.
-            </p>
-            <p class="score">Core claims: {escape(str((payload.get('core_score') or {}).get('validated', 0)))} / {escape(str((payload.get('core_score') or {}).get('total', 0)))} validated</p>
-            <div class="chips">
-              <span class="chip">Obsqra Labs research readout</span>
-              <span class="chip">zkde.fi open-source implementation</span>
-              <span class="chip">Proof + policy + receipts</span>
-              <span class="chip">STARK + SNARK + L1 bridge roadmap</span>
-              <span class="chip novel">Novel: open-source ModelBridge (zkML -> circuit proof gate)</span>
-              <span class="chip novel">Novel: LLM recommendations gated by ZK badge circuits</span>
-            </div>
+            <h1>Obsqra Labs &mdash; zkde.fi Verifiable AI Stack</h1>
+            <p class="subline">Live research readout: proof lanes, policy gates, and auditable receipts.</p>
             <div class="hero-cta-row">
-              <a class="hero-cta primary" href="{escape(PUBLIC_EXPLORER_BASE)}" target="_blank" rel="noreferrer">Open Explorer</a>
+              <span class="score">Claims: {escape(str((payload.get('core_score') or {}).get('validated', 0)))}/{escape(str((payload.get('core_score') or {}).get('total', 0)))}</span>
+              <a class="hero-cta primary" href="{escape(PUBLIC_EXPLORER_BASE)}" target="_blank" rel="noreferrer">Explorer</a>
               <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'proofs/page')}" target="_blank" rel="noreferrer">Proofs</a>
               <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'facts/page')}" target="_blank" rel="noreferrer">Facts</a>
               <a class="hero-cta" href="{escape(PUBLIC_EXPLORER_BASE + 'models/page')}" target="_blank" rel="noreferrer">Models</a>

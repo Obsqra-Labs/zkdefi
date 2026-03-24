@@ -13,6 +13,7 @@ import {
   Clock,
   Bot,
   Fingerprint,
+  Mail,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/SiteHeader";
@@ -20,12 +21,13 @@ import { CapitalOSSection } from "@/components/marketing/CapitalOSSection";
 import { LiveStatsBanner } from "@/components/marketing/LiveStatsBanner";
 import { ProofFlowSteps } from "@/components/marketing/ProofFlowSteps";
 import { Reveal, RevealStagger } from "@/components/marketing/Reveal";
+import { STARKNET_CONTRACTS, voyagerContractUrl } from "@/content/deployedContracts";
 
 /* ─── data ─────────────────────────────────────────────────────────── */
 
 const TRUST_MODES = [
   {
-    mode: "Trustless",
+    mode: "Full Proof",
     desc: "Both proofs verified on-chain. No intermediary. The contract won't execute unless the math checks out.",
     color: "text-emerald-400",
     border: "border-emerald-500/30",
@@ -33,7 +35,7 @@ const TRUST_MODES = [
     examples: "Vault deposits, privacy pool entries, on-chain settlement",
   },
   {
-    mode: "Trust-minimized",
+    mode: "Batched",
     desc: "Proof generated off-chain, receipt committed on-chain. You can verify it anytime — it's batched for speed.",
     color: "text-cyan-400",
     border: "border-cyan-500/30",
@@ -41,23 +43,13 @@ const TRUST_MODES = [
     examples: "Agent trades, risk scoring, strategy analysis",
   },
   {
-    mode: "Delegated",
+    mode: "Autopilot",
     desc: "You set the rules, the agent acts within them. Like a session key — but proof-gated.",
     color: "text-amber-400",
     border: "border-amber-500/30",
     bg: "bg-amber-500/10",
     examples: "Auto-rebalancing, LP management, yield harvesting",
   },
-] as const;
-
-const STARKNET_CONTRACTS = [
-  { name: "ReputationRegistry", hash: "0x03a1…3f8a" },
-  { name: "FullPrivacyPoolV2", hash: "0xce55…f117" },
-  { name: "ReceiptRegistry", hash: "0x02db…9e01" },
-  { name: "VaultController", hash: "0x04e7…9061" },
-  { name: "GaragaVerifier", hash: "0x04e7…9061" },
-  { name: "ModelBridgeVerifier", hash: "0x037c…626f" },
-  { name: "ZkmlVerifier", hash: "0x068a…8923" },
 ] as const;
 
 const ETHEREUM_CONTRACTS = [
@@ -130,7 +122,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-5xl">
           <Reveal delay={100}>
             <p className="mb-8 font-mono text-xs font-medium uppercase tracking-[0.25em] text-zinc-500">
-              DeFi makes you choose: be private or be trusted.
+              The only ZK system where AI proves its work before capital moves.
             </p>
           </Reveal>
 
@@ -169,30 +161,36 @@ export default function LandingPage() {
 
           {/* Stats — editorial data display with breakdowns */}
           <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 sm:gap-x-12 md:gap-x-16">
-            {[
-              {
-                value: "11",
-                label: "contracts",
-                breakdown: "7 Cairo · 4 Solidity",
-              },
-              {
-                value: "31+",
-                label: "circuits",
-                breakdown: "31 Groth16 · 5 EZKL · 1 Noir",
-              },
-              {
-                value: "3",
-                label: "chains",
-                breakdown: "L3 → L2 → L1",
-              },
-              {
-                value: "136+",
-                label: "receipts",
-                breakdown: "users · agents · wallets · protocols",
-              },
-            ].map((s, i) => (
-              <Reveal key={s.label} delay={550 + i * 100}>
-                <div className="flex flex-col">
+            {(
+              [
+                {
+                  value: "11",
+                  label: "contracts",
+                  breakdown: "7 Cairo · 4 Solidity",
+                  href: undefined as string | undefined,
+                },
+                {
+                  value: "31+",
+                  label: "circuits",
+                  breakdown: "31 Groth16 · 5 EZKL · 1 Noir",
+                  href: undefined as string | undefined,
+                },
+                {
+                  value: "3",
+                  label: "chains",
+                  breakdown: "L3 → L2 → L1",
+                  href: undefined as string | undefined,
+                },
+                {
+                  value: "316+",
+                  label: "receipts",
+                  breakdown: "verified execution receipts on-chain",
+                  href: "/test",
+                },
+              ] as const
+            ).map((s, i) => {
+              const inner = (
+                <div className={`flex flex-col ${s.href ? "transition-opacity hover:opacity-90" : ""}`}>
                   <span className="stat-gradient font-serif text-3xl font-black tabular-nums tracking-tight sm:text-4xl md:text-5xl">
                     {s.value}
                   </span>
@@ -203,8 +201,19 @@ export default function LandingPage() {
                     {s.breakdown}
                   </span>
                 </div>
-              </Reveal>
-            ))}
+              );
+              return (
+                <Reveal key={s.label} delay={550 + i * 100}>
+                  {s.href ? (
+                    <Link href={s.href} className="block rounded-lg outline-none ring-emerald-500/40 focus-visible:ring-2">
+                      {inner}
+                    </Link>
+                  ) : (
+                    inner
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
 
           {/* CTAs */}
@@ -391,8 +400,8 @@ receipt         →  on-chain evidence`}
                   body: "Every major L2 is shipping privacy features. The question isn't if DeFi goes private — it's who builds the proof layer first.",
                 },
                 {
-                  title: "Proving costs dropped 100×.",
-                  body: "S-two prover replaced Stone. Verifiable execution at scale is economically viable.",
+                  title: "Proving economics keep improving.",
+                  body: "Recursive STARKs run on Stone in production today. S-two is Starknet's next proving milestone—we're building toward it, not claiming it yet.",
                 },
                 {
                   title: "Agents are moving real money.",
@@ -499,12 +508,13 @@ receipt         →  on-chain evidence`}
                     The execution proof
                   </h3>
                   <p className="mt-1 font-mono text-xs text-blue-400">
-                    Stone wraps everything in a STARK
+                    Stone wraps execution in a STARK today — S-two next
                   </p>
                   <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">
-                    The same prover that secures Starknet blocks wraps your
+                    The same class of prover that secures Starknet blocks can wrap your
                     entire execution in a second proof. The first proof lives
-                    inside this one. Both pass or nothing happens.
+                    inside this one. Both pass or nothing happens. S-two will take this
+                    further when it ships; we&apos;re aligned with that path.
                   </p>
                 </div>
               </div>
@@ -525,7 +535,7 @@ receipt         →  on-chain evidence`}
                 <span className="text-violet-400">Ethereum L1</span>
               </p>
               <p className="mt-2 text-sm text-zinc-600">
-                136+ receipts on-chain. Every hash queryable via RPC.{" "}
+                316+ verified execution receipts on-chain. Every hash queryable via RPC.{" "}
                 <a href="/test" className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-2 hover:decoration-emerald-400">
                   Verify every claim →
                 </a>
@@ -550,7 +560,8 @@ receipt         →  on-chain evidence`}
               What&apos;s Live
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
-              11 contracts, 3 chains, 136+ receipts — everything below is deployed and queryable right now.
+              11 contracts, 3 chains, 316+ verified execution receipts on-chain — everything below is deployed and
+              queryable right now.
             </p>
           </Reveal>
 
@@ -613,7 +624,7 @@ receipt         →  on-chain evidence`}
                 },
                 {
                   title: "Real computation",
-                  desc: "ML models settle on-chain through the same proofs that secure Starknet blocks. S-two prover: 100× more efficient.",
+                  desc: "ML models settle on-chain through the same STARK stack that secures Starknet. Stone proves that path today; S-two is the next efficiency step on the roadmap.",
                 },
               ].map((item, i) => (
                 <Reveal key={item.title} delay={i * 100}>
@@ -646,9 +657,21 @@ receipt         →  on-chain evidence`}
                 </div>
                 <div className="divide-y divide-zinc-800/50">
                   {STARKNET_CONTRACTS.map((c) => (
-                    <div key={c.name} className="flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
-                      <span className="text-xs font-medium text-zinc-300 truncate">{c.name}</span>
-                      <span className="shrink-0 rounded bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-600">{c.hash}</span>
+                    <div
+                      key={c.name}
+                      className="flex flex-col gap-1 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-5"
+                    >
+                      <span className="text-xs font-medium text-zinc-300 sm:truncate">{c.name}</span>
+                      <a
+                        href={voyagerContractUrl(c.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={c.address}
+                        className="shrink-0 break-all rounded bg-zinc-900 px-2 py-0.5 font-mono text-[9px] text-emerald-500/90 transition-colors hover:bg-zinc-800 hover:text-emerald-400 sm:text-[10px]"
+                      >
+                        {c.address}
+                        <span className="sr-only"> (opens on Starknet Sepolia Voyager)</span>
+                      </a>
                     </div>
                   ))}
                 </div>
@@ -791,6 +814,161 @@ receipt         →  on-chain evidence`}
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          7b. ABOUT + CONNECT — protocol, founder, links
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="section-sep" aria-hidden="true" />
+      <section
+        id="about"
+        aria-labelledby="about-heading"
+        className="section-dark border-t border-zinc-800/80 px-6 py-24 sm:py-28"
+      >
+        <div className="mx-auto max-w-5xl">
+          <Reveal>
+            <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+              Protocol
+            </p>
+            <h2 id="about-heading" className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+              About zkde.fi
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-500">
+              zkde.fi is building private DeFi infrastructure for a world that should not have to choose between
+              privacy and verifiability.
+            </p>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
+              zkde.fi is a privacy-first DeFi protocol on Starknet focused on proof-gated execution, compliant
+              privacy, and portable reputation—so users and agents can act privately while still proving behavior met
+              policy and protocol constraints.
+            </p>
+          </Reveal>
+
+          <Reveal delay={80}>
+            <h3 className="mt-12 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+              Founder
+            </h3>
+            <p className="mt-4 font-serif text-lg font-semibold text-zinc-200">Aaron Faulkner</p>
+            <p className="mt-1 text-sm text-zinc-500">Founder, zkde.fi</p>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-500">
+              Web3 marketer-turned-builder with a decade-plus across blockchain, community, content, and protocol
+              growth. zkde.fi grew out of a frustration with trust-heavy systems that asked users to believe what they
+              could not verify—privacy-first infrastructure where execution can be proven, not merely promised.
+            </p>
+            <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+              <li>
+                <a
+                  href="https://www.linkedin.com/in/amfaulkner/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-emerald-400"
+                >
+                  LinkedIn
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  <span className="sr-only"> (opens in new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://x.com/a_m_faulkner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-emerald-400"
+                >
+                  @a_m_faulkner
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  <span className="sr-only"> on X (opens in new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://t.me/a_m_faulkner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-emerald-400"
+                >
+                  Telegram
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  <span className="sr-only"> (opens in new tab)</span>
+                </a>
+              </li>
+            </ul>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <h3 className="mt-14 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
+              Connect
+            </h3>
+            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <li>
+                <a
+                  href="https://obsqra.xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/40"
+                >
+                  <span className="font-serif text-lg font-semibold text-zinc-200 group-hover:text-white">
+                    Obsqra Labs
+                  </span>
+                  <span className="mt-1 text-sm text-zinc-500">Company site, narrative, and contact paths.</span>
+                  <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-emerald-500/90">
+                    obsqra.xyz
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/Obsqra-Labs/zkdefi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/40"
+                >
+                  <span className="font-serif text-lg font-semibold text-zinc-200 group-hover:text-white">
+                    Source & issues
+                  </span>
+                  <span className="mt-1 text-sm text-zinc-500">Circuits, contracts, and technical discussion.</span>
+                  <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-emerald-500/90">
+                    GitHub
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://starknet.obsqra.fi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-950/50 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/40"
+                >
+                  <span className="font-serif text-lg font-semibold text-zinc-200 group-hover:text-white">
+                    StarkForge console
+                  </span>
+                  <span className="mt-1 text-sm text-zinc-500">Composable proving stack and platform APIs.</span>
+                  <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-emerald-500/90">
+                    starknet.obsqra.fi
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                </a>
+              </li>
+            </ul>
+            <p className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] text-zinc-600">
+              <a
+                href="mailto:privacy@obsqra.xyz"
+                className="inline-flex items-center gap-1.5 text-zinc-500 transition-colors hover:text-emerald-400"
+              >
+                <Mail className="h-3 w-3 shrink-0" aria-hidden="true" />
+                privacy@obsqra.xyz
+              </a>
+              <span className="hidden sm:inline text-zinc-800" aria-hidden="true">
+                ·
+              </span>
+              <Link href="/privacy" className="text-zinc-500 transition-colors hover:text-emerald-400">
+                Privacy policy
+              </Link>
+            </p>
+          </Reveal>
         </div>
       </section>
 

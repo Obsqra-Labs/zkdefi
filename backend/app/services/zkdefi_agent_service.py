@@ -4,6 +4,8 @@ Hybrid approach:
 - obsqra.fi proving API for execution proofs (proof-gated deposits/withdrawals)
 - Groth16 (snarkjs) for privacy proofs (private deposits/withdrawals)
 """
+import hashlib
+import logging
 import os
 from typing import Any
 
@@ -26,6 +28,42 @@ REBALANCER_SIGNER_ADDRESS = os.getenv("REBALANCER_SIGNER_ADDRESS", "")
 
 # Starknet felt252: 0 <= x < 2^251 + 17*2^192
 _FELT252_MAX = (1 << 251) + 17 * (1 << 192)
+logger = logging.getLogger(__name__)
+
+
+def _felt_int(value: Any) -> int:
+    """Normalize strings and ints to a Starknet felt252 integer."""
+    if value is None:
+        return 0
+    if isinstance(value, (bytes, bytearray)):
+        return int.from_bytes(value, "big") % _FELT252_MAX
+    if isinstance(value, (list, tuple)):
+        if len(value) == 1:
+            return _felt_int(value[0])
+        # Unknown sequence shape for a felt field: fail soft.
+        return 0
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return 0
+        # Accept decimal, 0x-prefixed hex, and bare hex strings from upstream services.
+        try:
+            if raw.startswith(("0x", "0X")):
+                number = int(raw, 16)
+            elif any(ch in "abcdefABCDEF" for ch in raw):
+                number = int(raw, 16)
+            else:
+                number = int(raw)
+        except (TypeError, ValueError):
+            logger.warning("Unable to parse felt value '%s'; defaulting to 0", raw)
+            return 0
+    else:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            logger.warning("Unable to coerce felt value of type %s; defaulting to 0", type(value).__name__)
+            return 0
+    return number % _FELT252_MAX
 
 
 def _validate_execute_with_proofs_calldata(calldata: list[int]) -> str | None:
@@ -51,6 +89,38 @@ def _validate_execute_with_proofs_calldata(calldata: list[int]) -> str | None:
     for i, v in enumerate(calldata):
         if not isinstance(v, int) or v < 0 or v >= _FELT252_MAX:
             return f"execute_with_proofs calldata: element {i} must be felt252 (0 <= x < P)"
+    return None
+
+
+def _validate_execute_with_ml_proof_calldata(calldata: list[int]) -> str | None:
+    """Validate calldata shape and felt252 bounds for execute_with_ml_proof."""
+    if not isinstance(calldata, list) or len(calldata) < 13:
+        return (
+            "execute_with_ml_proof calldata: expected at least 13 elements "
+            "(protocol_id, amount_low, amount_high, action_type, model_hash, "
+            "output_commitment, bridge_commitment, ezkl_proof_hash, bridge_timestamp, "
+            "zkml_len, ..., execution_proof_hash, intent_commitment)"
+        )
+    protocol_id = calldata[0]
+    amount_low = calldata[1]
+    amount_high = calldata[2]
+    action_type = calldata[3]
+    zkml_len = calldata[9]
+    if not (0 <= protocol_id <= 0xFF):
+        return "execute_with_ml_proof calldata: protocol_id must be u8 (0-255)"
+    if not (0 <= amount_low < _FELT252_MAX and 0 <= amount_high < _FELT252_MAX):
+        return "execute_with_ml_proof calldata: amount (u256) must be within felt252 bounds"
+    if not (0 <= action_type < _FELT252_MAX):
+        return "execute_with_ml_proof calldata: action_type must be a valid felt252"
+    expected_len = 12 + zkml_len
+    if len(calldata) != expected_len:
+        return (
+            f"execute_with_ml_proof calldata: length mismatch (got {len(calldata)}, "
+            f"expected {expected_len} for zkml_len={zkml_len})"
+        )
+    for index, value in enumerate(calldata):
+        if not isinstance(value, int) or value < 0 or value >= _FELT252_MAX:
+            return f"execute_with_ml_proof calldata: element {index} must be felt252 (0 <= x < P)"
     return None
 
 
@@ -387,6 +457,139 @@ class ZkdefiAgentService:
             if "revert" in msg.lower() or "assert" in msg.lower() or "invalid" in msg.lower():
                 msg = f"Execution reverted: {msg}"
             return {"tx_hash": None, "error": msg}
+
+    async def prepare_execute_with_ml_proof(
+        self,
+        *,
+        user_address: str,
+        model_name: str,
+        input_data: list[list[float]],
+        protocol_id: int,
+        amount: int,
+        action_type: str = "deposit",
+        proof_mode: str | int | None = None,
+        tier: int = 0,
+        value_eth: float = 0.0,
+        expected_model_hash: int = 0,
+        output_lower_bound: int = 0,
+        output_upper_bound: int = 10000,
+        execution_chain: str = "l3",
+        bridge_circuit: str = "ModelBridge",
+        execution_proof_hash: str = "0x0",
+        intent_commitment: str | None = None,
+    ) -> dict[str, Any]:
+        """Prepare wallet calldata for ProofGatedYieldAgent.execute_with_ml_proof."""
+        from app.services.proof_pipeline import get_proof_pipeline
+
+        try:
+            from starkware.cairo.common.poseidon_hash import poseidon_hash_many
+        except Exception:
+            from poseidon_py.poseidon_hash import poseidon_hash_many
+
+        proof_result = await get_proof_pipeline().generate_ml_proofs(
+            user_address=user_address,
+            model_name=model_name,
+            input_data=input_data,
+            proof_mode=proof_mode,
+            tier=tier,
+            action_type=action_type,
+            value_eth=value_eth,
+            expected_model_hash=expected_model_hash,
+            output_lower_bound=output_lower_bound,
+            output_upper_bound=output_upper_bound,
+            execution_chain=execution_chain,
+            bridge_circuit=bridge_circuit,
+        )
+
+        bridge_proof = proof_result.get("bridge_proof") or {}
+        bridge_statement = proof_result.get("bridge_statement") or {}
+        combined = proof_result.get("combined_calldata") or {}
+        zkml_raw = combined.get("model_bridge_calldata") or []
+
+        if not bridge_proof.get("success"):
+            return {
+                "error": bridge_proof.get("error") or bridge_proof.get("warning") or "Bridge proof generation failed",
+                "proof_result": proof_result,
+            }
+        if not zkml_raw:
+            return {
+                "error": "ModelBridge proof calldata unavailable",
+                "proof_result": proof_result,
+            }
+
+        model_hash_int = _felt_int(bridge_statement.get("model_hash"))
+        output_commitment_int = _felt_int(bridge_statement.get("output_commitment"))
+        ezkl_proof_hash_int = _felt_int(bridge_statement.get("ezkl_proof_hash"))
+        bridge_timestamp_int = int(bridge_statement.get("timestamp") or 0)
+        bridge_commitment_int = poseidon_hash_many([
+            model_hash_int,
+            output_commitment_int,
+            ezkl_proof_hash_int,
+            bridge_timestamp_int,
+        ])
+
+        if not execution_proof_hash or execution_proof_hash == "0x0":
+            execution_proof_hash = str((proof_result.get("execution_proof") or {}).get("proof_hash") or "0x0")
+        execution_proof_hash_int = _felt_int(execution_proof_hash)
+        if execution_proof_hash_int == 0:
+            return {
+                "error": "A valid execution_proof_hash is required for execute_with_ml_proof",
+                "proof_result": proof_result,
+            }
+
+        if intent_commitment:
+            intent_commitment_int = _felt_int(intent_commitment)
+        else:
+            seed = hashlib.sha256(
+                f"{user_address}:{protocol_id}:{amount}:{action_type}:{bridge_timestamp_int}:{proof_result.get('commitment_hash')}".encode()
+            ).hexdigest()
+            intent_commitment_int = _felt_int(f"0x{seed}")
+
+        action_type_int = int.from_bytes(action_type.encode(), "big")
+        amount_low = amount & ((1 << 128) - 1)
+        amount_high = amount >> 128
+        zkml_calldata = [_felt_int(value) for value in zkml_raw]
+
+        calldata = [
+            protocol_id & 0xFF,
+            amount_low,
+            amount_high,
+            action_type_int,
+            model_hash_int,
+            output_commitment_int,
+            bridge_commitment_int,
+            ezkl_proof_hash_int,
+            bridge_timestamp_int,
+            len(zkml_calldata),
+            *zkml_calldata,
+            execution_proof_hash_int,
+            intent_commitment_int,
+        ]
+
+        err = _validate_execute_with_ml_proof_calldata(calldata)
+        if err:
+            return {"error": err, "proof_result": proof_result}
+
+        return {
+            "contract": self.agent_address,
+            "function": "execute_with_ml_proof",
+            "calldata": [hex(value) for value in calldata],
+            "proof_context": {
+                "model_name": model_name,
+                "bridge_backend": bridge_proof.get("bridge_backend"),
+                "bridge_circuit": proof_result.get("bridge_circuit_used"),
+                "model_hash": hex(model_hash_int),
+                "output_commitment": hex(output_commitment_int),
+                "bridge_commitment": hex(bridge_commitment_int),
+                "ezkl_proof_hash": hex(ezkl_proof_hash_int),
+                "bridge_timestamp": bridge_timestamp_int,
+                "execution_proof_hash": hex(execution_proof_hash_int),
+                "intent_commitment": hex(intent_commitment_int),
+                "bridge_fact_hash": str(bridge_statement.get("bridge_fact_hash") or bridge_statement.get("fact_hash") or ""),
+            },
+            "proof_result": proof_result,
+            "error": None,
+        }
 
     def _u256_to_int(self, val: Any) -> int:
         """Normalize Cairo u256 (low/high or single int) to Python int."""

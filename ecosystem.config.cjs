@@ -29,6 +29,7 @@ module.exports = {
       watch: false,
       max_restarts: 10,
       min_uptime: "2s",
+      max_memory_restart: "2G",
       env: {
         ZKDEFI_REQUIRE_REAL_PROOFS: "1",
         DATABASE_URL: "postgresql://zkdefi:zkdefi@localhost:5432/zkdefi",

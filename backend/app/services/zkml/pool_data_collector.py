@@ -16,6 +16,7 @@ execution stays on Sepolia.
 from __future__ import annotations
 
 import math
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -354,8 +355,14 @@ class PoolDataCollector:
     Falls back to mock data only if live sources are completely unreachable.
     """
 
+    # TTL cache: avoid re-fetching DefiLlama (~50 MB) on every request
+    _CACHE_TTL = 60  # seconds
+
     def __init__(self, rpc_url: str = "unused"):
-        self._http = httpx.AsyncClient(timeout=15.0)
+        limits = httpx.Limits(max_connections=10, max_keepalive_connections=5)
+        self._http = httpx.AsyncClient(timeout=15.0, limits=limits)
+        self._cache: tuple[List[PoolMetrics], dict] | None = None
+        self._cache_at: float = 0.0
 
     # ── Live fetchers ────────────────────────────────────────────────────
 
@@ -395,8 +402,13 @@ class PoolDataCollector:
     async def get_all_pools(self) -> tuple[List[PoolMetrics], dict]:
         """
         Fetch all available pools and rates from live Starknet Mainnet sources.
-        Returns: (all_pool_metrics, vesu_rates_dict)
+        Returns cached result for up to 60 seconds to avoid fetching the
+        ~50 MB DefiLlama response on every API request.
         """
+        now = time.monotonic()
+        if self._cache is not None and (now - self._cache_at) < self._CACHE_TTL:
+            return self._cache
+
         import asyncio
 
         ekubo_task = asyncio.create_task(self.get_ekubo_pools())
@@ -457,7 +469,10 @@ class PoolDataCollector:
             troves_count,
             len(all_pools),
         )
-        return all_pools, vesu_rates
+        result = (all_pools, vesu_rates)
+        self._cache = result
+        self._cache_at = time.monotonic()
+        return result
 
     async def get_pool_metrics_by_amount(
         self,

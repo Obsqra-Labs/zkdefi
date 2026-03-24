@@ -23,6 +23,7 @@ from typing import Optional, List
 from app.services.forecaster_adapter import ForecasterAdapter
 from app.services.reputation_adapter import ReputationAdapter
 from app.services.agent_event_tracker import get_event_tracker
+from app.services.opportunity_aggregator import get_aggregator
 
 router = APIRouter(tags=["signals"])
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 tracker = get_event_tracker()
 
 BACKEND_BASE = "http://localhost:8003"
-AGGREGATION_TIMEOUT = 10.0
+AGGREGATION_TIMEOUT = 30.0
 
 # Initialize adapters
 _forecaster_adapter = ForecasterAdapter()
@@ -40,13 +41,12 @@ _reputation_adapter = ReputationAdapter()
 async def fetch_opportunities() -> List[dict]:
     """Fetch real opportunities from TradeDesk V2 or legacy list."""
     try:
+        agg = get_aggregator()
+        opps = await agg.fetch_all(limit=50, offset=0)
+        if opps:
+            return [opp.to_dict() for opp in opps]
+
         async with httpx.AsyncClient(timeout=AGGREGATION_TIMEOUT) as client:
-            response = await client.get(f"{BACKEND_BASE}/api/v1/zkdefi/v2/opportunities?limit=50")
-            if response.status_code == 200:
-                data = response.json()
-                opps = data.get("opportunities", [])
-                if opps:
-                    return opps
             response = await client.get(f"{BACKEND_BASE}/api/v1/zkdefi/opportunities/list")
             if response.status_code == 200:
                 data = response.json()
@@ -57,7 +57,7 @@ async def fetch_opportunities() -> List[dict]:
     return []
 
 
-def opportunity_to_signal(opportunity: dict, index: int) -> dict:
+async def opportunity_to_signal(opportunity: dict, index: int) -> dict:
     """Transform an opportunity into a signal with real predictions from adapters."""
     
     opp_type = opportunity.get("type", "unknown")
@@ -94,7 +94,7 @@ def opportunity_to_signal(opportunity: dict, index: int) -> dict:
     pair_id = f"{token_a}/{token_b}" if token_b else token_a
     entity = constitution.get("entity", f"zkdefi-{opp_type}")
     try:
-        market_forecast = _forecaster_adapter.get_market_forecast(pair_id)
+        market_forecast = await _forecaster_adapter.get_market_forecast(pair_id)
     except Exception as e:
         logger.warning(f"Forecaster failed for {pair_id}: {e}")
         market_forecast = _forecaster_adapter._fallback_forecast(pair_id)
@@ -187,7 +187,7 @@ async def get_signals_top(
     # Transform to signals
     signals = []
     for idx, opp in enumerate(opportunities):
-        signal = opportunity_to_signal(opp, idx)
+        signal = await opportunity_to_signal(opp, idx)
         
         # Apply filters
         if type and signal["type"] != type:

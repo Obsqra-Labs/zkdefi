@@ -66,6 +66,10 @@ class JsonStore:
         with self._lock:
             return list(self._cache.keys())
 
+    def items(self):
+        with self._lock:
+            return list(self._cache.items())
+
     def clear(self) -> None:
         with self._lock:
             self._cache.clear()

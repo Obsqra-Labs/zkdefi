@@ -549,6 +549,10 @@ reputation_export_router = _optional_router("app.api.routes.reputation_export")
 if reputation_export_router:
     app.include_router(reputation_export_router, prefix="/api/v1/zkdefi", tags=["reputation-export"])
 
+agent_builder_router = _optional_router("app.api.agent_builder")
+if agent_builder_router:
+    app.include_router(agent_builder_router, prefix="/api/v1/agent-builder", tags=["agent-builder"])
+
 marketplace_router = _optional_router("app.api.routes.marketplace")
 if marketplace_router:
     app.include_router(marketplace_router, prefix="/api/v1/agents", tags=["marketplace"])

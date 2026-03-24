@@ -432,6 +432,45 @@ async def get_leaderboard(sort_by: str = "cumulative_return_bps", limit: int = 2
     return {"leaderboard": entries, "sort_by": sort_by, "count": len(entries)}
 
 
+# ── Settle ───────────────────────────────────────────────────────────────────
+
+class SettleRequest(BaseModel):
+    period_id: str
+    return_bps: int
+
+
+@router.post("/agents/{agent_id}/performance/settle")
+async def settle_performance(agent_id: str, req: SettleRequest):
+    """Settle the P&L for a previously recorded execution period.
+
+    Called after a transaction confirms and return is known.
+    Updates cumulative_return_bps on the leaderboard.
+    """
+    perf_service = get_performance_service()
+    # Record a settlement adjustment as a new period with the return delta
+    period = PeriodPerformance(
+        period_id=f"{req.period_id}_settle",
+        agent_id=agent_id,
+        return_bps=req.return_bps,
+        volume=0,
+        proof_count=0,
+        successful_actions=0,
+        failed_actions=0,
+        max_drawdown_bps=0,
+    )
+    summary = perf_service.record_period(period)
+    return {
+        "agent_id": agent_id,
+        "settled_period": req.period_id,
+        "return_bps": req.return_bps,
+        "updated_summary": {
+            "cumulative_return_bps": summary.cumulative_return_bps,
+            "mean_return_bps": summary.mean_return_bps,
+            "win_rate": summary.win_rate,
+        },
+    }
+
+
 # ── Witness Data (for circuits) ──────────────────────────────────────────────
 
 @router.get("/agents/{agent_id}/reputation-witness")

@@ -34,7 +34,7 @@
         "actual_up": 1,
         "maturity_ts": 1710600300,
         "source_id": "analytics_feed",
-        "recorded_at_ts": 1773173455
+        "recorded_at_ts": 1774313694
       },
       "30": {
         "horizon_min": 30,
@@ -42,7 +42,7 @@
         "actual_up": 1,
         "maturity_ts": 1710601800,
         "source_id": "analytics_feed",
-        "recorded_at_ts": 1773173455
+        "recorded_at_ts": 1774313694
       },
       "240": {
         "horizon_min": 240,
@@ -50,12 +50,12 @@
         "actual_up": 1,
         "maturity_ts": 1710614400,
         "source_id": "analytics_feed",
-        "recorded_at_ts": 1773173455
+        "recorded_at_ts": 1774313694
       }
     },
     "prediction_ids": [
-      "0x77ee47ac19081853843ff4a1d3574494841925ca08d03f4a923c70175ebb31ef"
+      "0xade8d11c1c2ea765a4e3c3edd9c361937597e1f375a0c0ed7021ded2f7133d72"
     ],
-    "created_at_ts": 1773173455
+    "created_at_ts": 1774313694
   }
 }

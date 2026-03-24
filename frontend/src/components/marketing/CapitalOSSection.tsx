@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useAccount } from "@starknet-react/core";
 import {
   Fingerprint,
-  Loader2,
   ArrowRight,
   Activity,
   Lock,
@@ -17,6 +17,7 @@ import { ExecutionBlock } from "./ExecutionBlock";
 import { IntelligentStream } from "./IntelligentStream";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
 import { apiFetch } from "@/lib/api/client";
+import { WalletModal } from "@/components/zkdefi/WalletModal";
 import { Reveal } from "./Reveal";
 import type { AnalysisResult } from "./TrustDemo";
 
@@ -103,6 +104,8 @@ export function CapitalOSSection() {
   /* ── identity ── */
   const [identityAddress, setIdentityAddress] = useState<string | null>(null);
   const [identitySource, setIdentitySource] = useState<"connected" | "demo" | null>(null);
+  const { address: connectedAddress, isConnected } = useAccount();
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   /* ── Step 1: reputation ── */
   const [onboarded, setOnboarded] = useState(false);
@@ -164,6 +167,34 @@ export function CapitalOSSection() {
       setOnboarded(true);
     }
   }, []);
+
+  const handleConnectedOnboard = useCallback(
+    async (walletAddress: string) => {
+      setRepLoading(true);
+      setIdentitySource("connected");
+      setIdentityAddress(walletAddress);
+      try {
+        const rep = await apiFetch<ReputationData>(
+          `/api/v1/demo/reputation/${walletAddress}`,
+        );
+        setReputation(rep);
+      } catch {
+        // Preserve the reveal UX even if fetch fails; bind wallet_address to the connected address.
+        setReputation({ ...GUEST_REPUTATION, wallet_address: walletAddress });
+      } finally {
+        setRepLoading(false);
+        setOnboarded(true);
+      }
+    },
+    [],
+  );
+
+  // Auto-onboard when a wallet is already connected (provider uses `autoConnect`).
+  useEffect(() => {
+    if (!onboarded && isConnected && connectedAddress) {
+      void handleConnectedOnboard(connectedAddress);
+    }
+  }, [onboarded, isConnected, connectedAddress, handleConnectedOnboard]);
 
   return (
     <div className="space-y-20">
@@ -285,31 +316,19 @@ export function CapitalOSSection() {
               disabled={repLoading}
               className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-7 py-4 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:from-fuchsia-500 hover:to-violet-500 hover:shadow-fuchsia-500/30 disabled:opacity-50"
             >
-              {repLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Discovering identity…
-                </>
-              ) : (
-                <>
-                  <Fingerprint className="h-5 w-5" />
-                  Try the loop as guest
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
+              <Fingerprint className="h-5 w-5" />
+              {repLoading ? "Preparing identity…" : "Try the loop as guest"}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
 
             {/* Secondary — Connect wallet (smaller, stubbed) */}
             <button
-              disabled
+              disabled={repLoading}
+              onClick={() => setWalletModalOpen(true)}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Wallet connect coming soon"
             >
               <Wallet className="h-4 w-4" />
               Connect wallet
-              <span className="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500">
-                soon
-              </span>
             </button>
 
             <p className="text-center text-[10px] text-zinc-600">
@@ -320,6 +339,11 @@ export function CapitalOSSection() {
           reputation && <IdentityCard data={reputation} />
         )}
         </Reveal>
+
+        <WalletModal
+          isOpen={walletModalOpen}
+          onClose={() => setWalletModalOpen(false)}
+        />
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}

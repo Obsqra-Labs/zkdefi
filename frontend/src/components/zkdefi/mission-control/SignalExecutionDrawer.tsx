@@ -30,6 +30,7 @@ import {
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { useAccount } from "@starknet-react/core";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,10 +63,16 @@ interface SimulationResult {
 interface ExecutionResult {
   success: boolean;
   call_id: string;
-  tx_hash: string;
+  tx_hash: string | null;
   status: string;
-  submitted_at: string;
+  submitted_at?: string;
   signal_id: string;
+  wallet_calldata?: {
+    adapter: string;
+    method: string;
+    calldata: Record<string, unknown>;
+    estimated_gas?: number;
+  };
 }
 
 interface Props {
@@ -111,6 +118,7 @@ function apyFromSignal(s: SignalForExecution): number {
 // ---------------------------------------------------------------------------
 
 export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
+  const { account } = useAccount();
   const [amount, setAmount] = useState("100");
   const [slippage, setSlippage] = useState("50");
   const [privacyLevel, setPrivacyLevel] = useState<string>("public");
@@ -194,15 +202,34 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
           }),
         },
       );
-      setResult(res);
-      toastSuccess(`Execution submitted — ${res.tx_hash?.slice(0, 12) ?? res.call_id?.slice(0, 12)}…`);
+
+      // If relayer unavailable, sign with wallet directly
+      if (res.status === "wallet_sign_required" && res.wallet_calldata && account) {
+        const cd = res.wallet_calldata;
+        const PROOF_GATED_AGENT = process.env.NEXT_PUBLIC_PROOF_GATED_AGENT_ADDRESS || "";
+        const walletResult = await account.execute([{
+          contractAddress: PROOF_GATED_AGENT,
+          entrypoint: cd.method,
+          calldata: Object.values(cd.calldata).map(String),
+        }]);
+        const finalResult: ExecutionResult = {
+          ...res,
+          tx_hash: walletResult.transaction_hash,
+          status: "pending",
+        };
+        setResult(finalResult);
+        toastSuccess(`Execution submitted — ${walletResult.transaction_hash.slice(0, 12)}…`);
+      } else {
+        setResult(res);
+        toastSuccess(`Execution submitted — ${res.tx_hash?.slice(0, 12) ?? res.call_id?.slice(0, 12)}…`);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       toastError(`Execution failed: ${msg}`);
     } finally {
       setExecuting(false);
     }
-  }, [signal, address, amount, slippage, privacyLevel]);
+  }, [signal, address, amount, slippage, privacyLevel, account]);
 
   // ---- Poll status after execution ----
   useEffect(() => {

@@ -40,6 +40,12 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
             The Loop
           </a>
           <a
+            href="/#about"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            About
+          </a>
+          <a
             href="/test"
             className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
           >
@@ -94,6 +100,13 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
             className="block rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-white"
           >
             The Loop
+          </a>
+          <a
+            href="/#about"
+            onClick={() => setMobileOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-900 hover:text-white"
+          >
+            About
           </a>
           <a
             href="/test"
