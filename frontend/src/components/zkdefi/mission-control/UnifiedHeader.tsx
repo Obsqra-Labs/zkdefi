@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Lock,
   Menu,
+  Shield,
   Store,
   TrendingUp,
   User,
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { href: "/oracle", label: "Oracle", icon: Eye },
   { href: "/vault", label: "Vault", icon: Lock },
   { href: "/zkdefi/forecaster", label: "Forecaster", icon: TrendingUp },
+  { href: "/passport", label: "Passport", icon: Shield },
   { href: "/profile", label: "Profile", icon: User },
 ] as const;
 
