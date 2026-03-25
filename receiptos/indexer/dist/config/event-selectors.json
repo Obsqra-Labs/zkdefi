@@ -1,0 +1,38 @@
+{
+    "starkgate_eth_bridge": {
+        "deposit": {
+            "selector": "unresolved",
+            "data_layout": [],
+            "verified_at_block": 0,
+            "sample_tx": ""
+        },
+        "withdrawal": {
+            "selector": "unresolved",
+            "data_layout": [],
+            "verified_at_block": 0,
+            "sample_tx": ""
+        }
+    },
+    "ekubo_core": {
+        "swap": {
+            "selector": "unresolved",
+            "data_layout": [],
+            "verified_at_block": 0,
+            "sample_tx": ""
+        }
+    },
+    "vesu_core": {
+        "supply": {
+            "selector": "unresolved",
+            "data_layout": [],
+            "verified_at_block": 0,
+            "sample_tx": ""
+        },
+        "liquidation": {
+            "selector": "unresolved",
+            "data_layout": [],
+            "verified_at_block": 0,
+            "sample_tx": ""
+        }
+    }
+}

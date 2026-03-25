@@ -1,0 +1,56 @@
+{
+    "starkgate_eth_bridge": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "starkgate_token_bridge": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "layerswap_contract": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "ekubo_core": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "vesu_core": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "nostra_lending": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "endur_staking": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    },
+    "mist_cash_contract": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": "best effort in v0.1"
+    },
+    "starknet_id": {
+        "address": "unresolved",
+        "verified": false,
+        "source": "",
+        "notes": ""
+    }
+}

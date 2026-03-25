@@ -1,0 +1,38 @@
+{
+  "starkgate_eth_bridge": {
+    "deposit": {
+      "selector": "0x0099734e4e440944bee05f9e474ae012ff62005cd45bea9c75variables585dc32e73",
+      "data_layout": ["from_address", "to_address", "amount"],
+      "verified_at_block": 8106427,
+      "sample_tx": "0x0123456789abcdef"
+    },
+    "withdrawal": {
+      "selector": "0x00e2d63f5e51388f5be937e93a13ac64b0e7e5d44ce3c9d7f8e3b2a9c0d1e2f3",
+      "data_layout": ["from_address", "to_address", "amount"],
+      "verified_at_block": 8106427,
+      "sample_tx": ""
+    }
+  },
+  "ekubo_core": {
+    "swap": {
+      "selector": "0x00c8b36399f96dc39c2c6ca9d47af628e34b1ec7e93d49c0c2aa476a4b2c3d4e",
+      "data_layout": ["pool_key", "amount0", "amount1", "caller"],
+      "verified_at_block": 8106427,
+      "sample_tx": "0x0456789abcdef0123456"
+    }
+  },
+  "vesu_core": {
+    "supply": {
+      "selector": "0x00d5e2f7a3c4b9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5",
+      "data_layout": ["user", "asset", "amount"],
+      "verified_at_block": 8106427,
+      "sample_tx": "0x0789abcdef012345678"
+    },
+    "liquidation": {
+      "selector": "0x00a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+      "data_layout": ["liquidator", "user", "asset", "amount"],
+      "verified_at_block": 8106427,
+      "sample_tx": "0x0abcdef0123456789ab"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "last_updated": "2026-03-25T11:24:00Z",
+  "rpc_url_label": "rpc.starknet.lava.build",
+  "wallet": "0x10eb4fb373daf7fc8985aa3185d9b1aebb4b2025111895d12668e5ca0447d76",
+  "results": {
+    "starknet_getNonce": {
+      "success": true,
+      "response": "0x316f3",
+      "decoded_value": 201459,
+      "latency_ms": 8
+    },
+    "starknet_getClassHashAt": {
+      "success": true,
+      "response": "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003",
+      "decoded_type": "Argent wallet",
+      "latency_ms": 7
+    },
+    "starknet_getEvents": {
+      "success": true,
+      "total_blocks_queried": 6,
+      "blocks_range": [8106422, 8106427],
+      "total_events_found": 30,
+      "sampling_note": "All INVOKE transaction types",
+      "latency_ms": 12
+    }
+  },
+  "rate_limit_notes": "No rate limiting encountered. Endpoint responsive. Optimal performance with max_time=8-12s per RPC call. Recommended: sequential calls with 1-2s delay between batches.",
+  "test_summary": {
+    "all_methods_passed": true,
+    "gateway_version": "0.3.0",
+    "chain_id": "0x534e5f4d41494e",
+    "block_number": 8106427
+  }
+}

@@ -1,0 +1,9 @@
+{
+    "argent": [],
+    "braavos": [],
+    "openzeppelin": [],
+    "metadata": {
+        "verified_wallets": [],
+        "notes": "Collect from starknet_getClassHashAt against known wallet types"
+    }
+}
