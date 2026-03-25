@@ -66,3 +66,42 @@ export interface ActivityEntry {
     proof: string;
   };
 }
+
+/* ── Builder Profile ─────────────────────────────────────────────── */
+
+export interface ProofFacet {
+  total: number;
+  completed: number;
+  onChainVerified: number;
+  types: { name: string; status: string; onChain: boolean }[];
+}
+
+export interface AgentFacet {
+  count: number;
+  agents: { id: string; name: string; skills: number }[];
+}
+
+export interface IdentityFacet {
+  links: number;
+  verified: number;
+  sessions: number;
+  hasCommitment: boolean;
+}
+
+export interface GovernanceFacet {
+  votingPower: number;
+  capitalUsd: number;
+  tierMultiplier: number;
+}
+
+export interface ReceiptFacet {
+  total: number;
+}
+
+export interface BuilderProfile {
+  proofs: ProofFacet;
+  agents: AgentFacet;
+  identity: IdentityFacet;
+  governance: GovernanceFacet;
+  receipts: ReceiptFacet;
+}

@@ -9,13 +9,15 @@ import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
 import { GateGrid } from "@/components/zkdefi/passport/GateGrid";
 import { TierProgress } from "@/components/zkdefi/passport/TierProgress";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
-import { fetchProfile, fetchActivity } from "@/lib/receiptos/vector";
-import type { ReputationProfile, ActivityEntry } from "@/lib/receiptos/types";
+import { BuilderProfileCard } from "@/components/zkdefi/passport/BuilderProfileCard";
+import { fetchProfile, fetchActivity, fetchBuilderProfile } from "@/lib/receiptos/vector";
+import type { ReputationProfile, ActivityEntry, BuilderProfile } from "@/lib/receiptos/types";
 
 export default function PassportPage() {
   const { address, status: walletStatus } = useAccount();
   const [profile, setProfile] = useState<ReputationProfile | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [builder, setBuilder] = useState<BuilderProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +26,16 @@ export default function PassportPage() {
     setError(null);
     setProfile(null);
     setActivity([]);
+    setBuilder(null);
     try {
-      const [p, act] = await Promise.all([
+      const [p, act, b] = await Promise.all([
         fetchProfile(addr),
         fetchActivity(addr),
+        fetchBuilderProfile(addr),
       ]);
       setProfile(p);
       setActivity(act);
+      setBuilder(b);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile");
     } finally {
@@ -44,6 +49,7 @@ export default function PassportPage() {
     } else {
       setProfile(null);
       setActivity([]);
+      setBuilder(null);
       setError(null);
     }
   }, [walletStatus, address, scan]);
@@ -90,6 +96,7 @@ export default function PassportPage() {
           <>
             <ScoreBanner profile={profile} />
             <GateGrid gates={profile.gates} activity={activity} />
+            {builder && <BuilderProfileCard builder={builder} />}
             <TierProgress profile={profile} />
             <VectorDisplay vector={profile} />
             <ClaimButton walletAddress={profile.wallet_address} />
