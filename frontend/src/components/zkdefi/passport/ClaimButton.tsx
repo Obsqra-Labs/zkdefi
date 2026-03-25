@@ -69,7 +69,7 @@ export function ClaimButton({ walletAddress, disabled }: ClaimButtonProps) {
       <button
         onClick={handleClaim}
         disabled={disabled || state === "claiming"}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-6 py-3 text-sm font-semibold text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:opacity-50"
+        className="cta-glow inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-6 py-3 text-sm font-semibold text-cyan-400 transition-all hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/10 disabled:opacity-50"
       >
         {state === "claiming" ? (
           <>

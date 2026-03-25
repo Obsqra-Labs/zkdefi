@@ -29,7 +29,7 @@ export function SignalCard({ signal }: { signal: SignalEntry }) {
   const isNull = signal.value == null;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4 transition-colors hover:border-zinc-700">
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4 transition-all hover:border-zinc-700 hover:bg-zinc-900/70 hover:shadow-lg hover:shadow-black/10">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-zinc-500" />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">

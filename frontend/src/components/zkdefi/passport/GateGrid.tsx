@@ -147,10 +147,10 @@ export function GateGrid({ gates, activity = [] }: GateGridProps) {
           return (
             <div
               key={key}
-              className={`relative rounded-xl border px-4 py-3 transition-colors ${
+              className={`relative rounded-xl border px-4 py-3 transition-all ${
                 enabled
-                  ? "border-emerald-500/20 bg-emerald-500/5"
-                  : "border-zinc-800 bg-zinc-900/30 opacity-60"
+                  ? "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/5"
+                  : "border-zinc-800 bg-zinc-900/30 opacity-60 hover:opacity-80"
               }`}
             >
               {/* Row 1: icon + label + status */}

@@ -87,10 +87,10 @@ function FacetCard({ facet, data }: { facet: FacetDef; data: unknown }) {
 
   return (
     <div
-      className={`rounded-xl border px-4 py-3 transition-colors ${
+      className={`rounded-xl border px-4 py-3 transition-all ${
         active
-          ? "border-zinc-700/60 bg-zinc-900/60"
-          : "border-zinc-800/40 bg-zinc-900/30 opacity-60"
+          ? "border-zinc-700/60 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-900/80 hover:shadow-lg hover:shadow-black/10"
+          : "border-zinc-800/40 bg-zinc-900/30 opacity-60 hover:opacity-80"
       }`}
     >
       {/* Row 1: icon + label */}

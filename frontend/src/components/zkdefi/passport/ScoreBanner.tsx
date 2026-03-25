@@ -31,7 +31,7 @@ export function ScoreBanner({ profile }: { profile: ReputationProfile }) {
   const offset = circ - (pct / 100) * circ;
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-6">
+    <div className="glass rounded-2xl px-6 py-6">
       <div className="flex items-center gap-6">
         {/* Score ring */}
         <div className="relative flex-shrink-0">
@@ -53,7 +53,7 @@ export function ScoreBanner({ profile }: { profile: ReputationProfile }) {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-2xl font-bold ${scoreColor(pct)}`}>{pct}</span>
+            <span className={`stat-gradient text-2xl font-bold font-serif`}>{pct}</span>
             <span className="text-[9px] uppercase tracking-widest text-zinc-500">score</span>
           </div>
         </div>
@@ -84,7 +84,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between">
       <span className="text-zinc-500">{label}</span>
-      <span className="font-medium text-zinc-300">{value}</span>
+      <span className="font-mono font-medium text-zinc-300">{value}</span>
     </div>
   );
 }
