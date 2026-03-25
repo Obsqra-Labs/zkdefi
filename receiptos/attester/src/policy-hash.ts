@@ -13,7 +13,7 @@ export interface VectorForPolicyHash {
   timestamp: number;
   signals: {
     wallet_age_days: number | null;
-    account_type: "argent" | "braavos" | "openzeppelin" | "unknown";
+    account_type: "argent" | "braavos" | "openzeppelin" | "unknown" | null;
     transaction_count: number;
     protocol_category_count: number;
     liquidation_count: number | null;
@@ -25,7 +25,7 @@ export function computePolicyHash(vector: VectorForPolicyHash): string {
   const fields = [
     BigInt(vector.wallet),
     BigInt(vector.signals.wallet_age_days ?? 0),
-    ACCOUNT_TYPE_MAP[vector.signals.account_type],
+    ACCOUNT_TYPE_MAP[vector.signals.account_type ?? "unknown"],
     BigInt(vector.signals.transaction_count),
     BigInt(vector.signals.protocol_category_count),
     vector.signals.liquidation_count === null ? FELT_MAX : BigInt(vector.signals.liquidation_count),

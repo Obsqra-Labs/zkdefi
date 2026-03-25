@@ -10,7 +10,7 @@ export function computePolicyHash(vector) {
     const fields = [
         BigInt(vector.wallet),
         BigInt(vector.signals.wallet_age_days ?? 0),
-        ACCOUNT_TYPE_MAP[vector.signals.account_type],
+        ACCOUNT_TYPE_MAP[vector.signals.account_type ?? "unknown"],
         BigInt(vector.signals.transaction_count),
         BigInt(vector.signals.protocol_category_count),
         vector.signals.liquidation_count === null ? FELT_MAX : BigInt(vector.signals.liquidation_count),
