@@ -1,2 +1,2 @@
-mod receipt_registry;
-mod reputation_accumulator;
+pub mod receipt_registry;
+pub mod reputation_accumulator;
