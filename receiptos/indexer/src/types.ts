@@ -7,7 +7,7 @@ export interface ReputationVector {
   signals: {
     wallet_age_days: number | null;
     wallet_age_source: "deploy_account_tx" | "first_invoke_tx" | null;
-    account_type: "argent" | "braavos" | "openzeppelin" | "unknown";
+    account_type: "argent" | "braavos" | "openzeppelin" | "unknown" | null;
     transaction_count: number;
     transaction_count_note: "outbound_only_getNonce";
     protocol_categories: string[];

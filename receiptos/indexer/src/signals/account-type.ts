@@ -15,8 +15,18 @@ type ClassHashEntry = {
 export async function getAccountType(
   rpc: StarknetRPC,
   wallet: string
-): Promise<SignalResult<AccountType>> {
-  const classHash = await rpc.getClassHashAt(wallet);
+): Promise<SignalResult<AccountType | null>> {
+  let classHash: string;
+  try {
+    classHash = await rpc.getClassHashAt(wallet);
+  } catch {
+    return {
+      value: null,
+      source: "starknet_getClassHashAt_failed",
+      blockRange: [0, 0],
+      requestCount: 1,
+    };
+  }
   const config = classHashConfig as unknown as Record<string, ClassHashEntry>;
   
   let value: AccountType = "unknown";
