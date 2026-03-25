@@ -74,6 +74,12 @@ npm run build
 ```
 Gate: policy hash deterministic, signature verify passes in JS.
 
+Status (2026-03-25): COMPLETE.
+- `receiptos/attester` builds and type-checks cleanly.
+- Vitest: 6/6 tests passing.
+- Deterministic policy hash confirmed.
+- Local Stark key sign + verify confirmed in JS.
+
 2. Implement Cairo contract in `receiptos/contracts/receipt_registry_v01/src/`.
 Command snippet:
 ```bash
@@ -83,11 +89,24 @@ scarb test
 ```
 Gate: minimum 20 tests pass including invalid signature and replay/nullifier checks.
 
+Status (2026-03-25): COMPLETE.
+- `receiptos/contracts/receipt_registry_v01`: `scarb build` passes.
+- `scarb test` passes via `snforge test` script wiring.
+- Snforge: 23/23 tests passing.
+- Coverage includes invalid signature, policy-hash replay, nullifier reuse, receipt verify semantics, and admin-only upgrade.
+
 3. Cross-language key compatibility test (JS sign, Cairo verify).
 Gate: same key/hash/signature verify in Cairo.
 
+Status (2026-03-25): COMPLETE.
+- TypeScript-generated Stark signature fixture verifies in Cairo with `check_ecdsa_signature`.
+- Fixture documented in attester tests and receipt registry snforge tests.
+
 4. Deploy to Sepolia and record deployment metadata in `receiptos/docs/DEPLOYMENTS.md`.
 Gate: `issue_attested_receipt` + `verify_receipt` pass on live contract.
+
+Status (2026-03-25): PENDING.
+- Blocked on deployer account/private key, funded Sepolia address, and target RPC/env configuration in this workspace.
 
 ## Phase 3: Passport
 
