@@ -105,10 +105,11 @@ Status (2026-03-25): COMPLETE.
 4. Deploy to Sepolia and record deployment metadata in `receiptos/docs/DEPLOYMENTS.md`.
 Gate: `issue_attested_receipt` + `verify_receipt` pass on live contract.
 
-Status (2026-03-25): IN PROGRESS.
+Status (2026-03-25): COMPLETE ✅
 - ReceiptRegistry declared and deployed on Starknet Sepolia.
 - Deployment metadata recorded in `receiptos/docs/DEPLOYMENTS.md`.
-- Remaining gate: live `issue_attested_receipt` + `verify_receipt` transaction path.
+- Live `issue_attested_receipt` tx: `0x0111dea9b11048e000bcdc583bbeae1e5646ac5ad5f8f9f457f7fc6799f2b2c6` (receipt ID 1).
+- `verify_receipt(1)` returns `true` on-chain. Phase 2 live E2E gate passes.
 
 ## Phase 3: Passport
 
