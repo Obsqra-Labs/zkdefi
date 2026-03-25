@@ -1,14 +1,14 @@
 {
   "starkgate_eth_bridge": {
-    "address": "0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0",
+    "address": "0x073314940630fd6dcda0d772d4c972c4e0a9946bef9dabf4ef84eda8ef542b82",
     "verified": true,
-    "source": "Starknet Bridge documentation, verified block 8106427",
-    "notes": "Primary ETH bridge contract for Starknet mainnet"
+    "source": "live chain scan: getClassHashAt confirmed deployed, deposit event observed at block 7917715, sample tx 0x643f992c6800c4923f033141fc6ba5124d9b2f81bba632e6f3f1d5ce27d2869",
+    "notes": "Primary ETH bridge contract for Starknet mainnet. deposit event: keys=[selector, token_name, l1_sender, l2_recipient], data=[amount_low, amount_high]"
   },
   "starkgate_token_bridge": {
-    "address": "0x052e50e3e9d3b8fbb5952bc0f61872edf1b3eca34329ccfc26e0e4cc66a08af",
-    "verified": true,
-    "source": "Starknet Bridge documentation",
+    "address": "unresolved",
+    "verified": false,
+    "source": "prior address 0x052e50e3e9d3b8fbb5952bc0f61872edf1b3eca34329ccfc26e0e4cc66a08af failed getClassHashAt - unverified",
     "notes": "Token bridge for non-ETH assets"
   },
   "layerswap_contract": {

@@ -4,9 +4,9 @@ Fill this table only with live-verified Starknet mainnet data.
 
 | Protocol | Category | Mainnet Contract Address | Event Selector | Event Name | Verified? | Sample Tx Hash | Last Verified Block | Notes |
 |---|---|---|---|---|---|---|---|---|
-| StarkGate (ETH Bridge) | bridge | 0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0 | unresolved | Deposit | [ ] |  | 8106427 | required for Signal 6, selector must be re-verified |
-| StarkGate (ETH Bridge) | bridge | 0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0 | 0x00e2d63f5e51388f5be937e93a13ac64b0e7e5d44ce3c9d7f8e3b2a9c0d1e2f3 | Withdrawal | [ ] | | 8106427 | optional for v0.1 analytics |
-| StarkGate (Token Bridge) | bridge | 0x052e50e3e9d3b8fbb5952bc0f61872edf1b3eca34329ccfc26e0e4cc66a08af | unresolved | Deposit | [ ] |  |  | required if separate contract |
+| StarkGate (ETH Bridge) | bridge | 0x073314940630fd6dcda0d772d4c972c4e0a9946bef9dabf4ef84eda8ef542b82 | 0x282f521c69b2bc696552b9e141009d3c84f2df75e2e7b7716644d31e60f23b1 | Deposit | [x] | 0x643f992c6800c4923f033141fc6ba5124d9b2f81bba632e6f3f1d5ce27d2869 | 7917715 | keys=[selector,token_name,l1_sender,l2_recipient] data=[amount_low,amount_high] |
+| StarkGate (ETH Bridge) | bridge | 0x073314940630fd6dcda0d772d4c972c4e0a9946bef9dabf4ef84eda8ef542b82 | unresolved | Withdrawal | [ ] | | | optional for v0.1 analytics |
+| StarkGate (Token Bridge) | bridge | unresolved | unresolved | Deposit | [ ] |  |  | prior address failed getClassHashAt; re-verify needed |
 | LayerSwap | bridge | unresolved | unresolved | Deposit/BridgeIn | [ ] |  |  | best effort |
 | Ekubo Core | dex | 0x0280d63e837e70ebdee7f7f2b314c6f24b4bbe6dd59dbfcc5038d07cdbe2e0f2 | 0x00c8b36399f96dc39c2c6ca9d47af628e34b1ec7e93d49c0c2aa476a4b2c3d4e | Swap | [x] | 0x0456789abcdef0123456 | 8106427 | required for Signal 4, verified on mainnet |
 | Ekubo Positions | dex | unresolved | unresolved | PositionUpdated/LiquidityAdded | [ ] |  |  | optional if on separate contract |
@@ -24,7 +24,7 @@ Fill this table only with live-verified Starknet mainnet data.
 
 - Minimum gate pass: 6 rows fully verified.
 - Mandatory rows for gate pass (all [x]):
-  - [ ] StarkGate Deposit
+  - [x] StarkGate Deposit
   - [x] Ekubo Swap
   - [x] Vesu Supply
   - [x] Vesu Liquidation

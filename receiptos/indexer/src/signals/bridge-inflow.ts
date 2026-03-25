@@ -111,26 +111,28 @@ function getSelector(contractName: string, eventName: string): string | undefine
 
 function parseBridgeDepositEvent(
   event: unknown,
-  walletNormalized: string
+  walletNormalized: string,
 ): { amount: bigint } | null {
-  if (!event || typeof event !== "object") {
-    return null;
-  }
+  if (!event || typeof event !== "object") return null;
 
-  const data = (event as { data?: unknown }).data;
-  if (!Array.isArray(data) || data.length < 3) {
-    return null;
-  }
+  const ev = event as { keys?: unknown; data?: unknown };
+  const keys = ev.keys;
+  const data = ev.data;
 
-  const toAddress = normalizeAddress(data[1]);
-  if (!toAddress || toAddress !== walletNormalized) {
-    return null;
-  }
+  // StarkGate ETH bridge deposit event layout:
+  //   keys: [selector, token_name, l1_sender, l2_recipient]
+  //   data: [amount_low, amount_high]
+  if (!Array.isArray(keys) || keys.length < 4) return null;
+  if (!Array.isArray(data) || data.length < 1) return null;
 
-  const amount = parseBigIntFelt(data[data.length - 1]);
-  if (amount === null || amount < 0n) {
-    return null;
-  }
+  const recipientNormalized = normalizeAddress(keys[3]);
+  if (!recipientNormalized || recipientNormalized !== walletNormalized) return null;
+
+  const amountLow = parseBigIntFelt(data[0]);
+  if (amountLow === null) return null;
+  const amountHigh = data.length >= 2 ? (parseBigIntFelt(data[1]) ?? 0n) : 0n;
+  const amount = amountLow + amountHigh * (2n ** 128n);
+  if (amount < 0n) return null;
 
   return { amount };
 }

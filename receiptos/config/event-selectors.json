@@ -1,10 +1,11 @@
 {
   "starkgate_eth_bridge": {
     "deposit": {
-      "selector": "unresolved",
-      "data_layout": ["from_address", "to_address", "amount"],
-      "verified_at_block": 8106427,
-      "sample_tx": "0x0123456789abcdef"
+      "selector": "0x282f521c69b2bc696552b9e141009d3c84f2df75e2e7b7716644d31e60f23b1",
+      "keys_layout": ["event_key", "token_name", "l1_sender", "l2_recipient"],
+      "data_layout": ["amount_low", "amount_high"],
+      "verified_at_block": 7917715,
+      "sample_tx": "0x643f992c6800c4923f033141fc6ba5124d9b2f81bba632e6f3f1d5ce27d2869"
     },
     "withdrawal": {
       "selector": "0x00e2d63f5e51388f5be937e93a13ac64b0e7e5d44ce3c9d7f8e3b2a9c0d1e2f3",
