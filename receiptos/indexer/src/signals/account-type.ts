@@ -1,12 +1,15 @@
 import type { SignalResult } from "../types";
 import { StarknetRPC } from "../rpc-client";
-import classHashes from "../../../config/account-class-hashes.json";
+import classHashConfig from "../../../config/account-class-hashes.json";
 
 type AccountType = "argent" | "braavos" | "openzeppelin" | "unknown";
-type ClassHashConfig = {
-  argent: string[];
-  braavos: string[];
-  openzeppelin: string[];
+
+type ClassHashEntry = {
+  class_hash: string;
+  verified: boolean;
+  verified_wallets?: string[];
+  source?: string;
+  notes?: string;
 };
 
 export async function getAccountType(
@@ -14,16 +17,17 @@ export async function getAccountType(
   wallet: string
 ): Promise<SignalResult<AccountType>> {
   const classHash = await rpc.getClassHashAt(wallet);
-  const knownClassHashes = classHashes as unknown as ClassHashConfig;
+  const config = classHashConfig as unknown as Record<string, ClassHashEntry>;
+  
   let value: AccountType = "unknown";
 
-  if (knownClassHashes.argent.includes(classHash)) value = "argent";
-  else if (knownClassHashes.braavos.includes(classHash)) value = "braavos";
-  else if (knownClassHashes.openzeppelin.includes(classHash)) value = "openzeppelin";
+  if (config.argent?.class_hash === classHash) value = "argent";
+  else if (config.braavos?.class_hash === classHash) value = "braavos";
+  else if (config.openzeppelin?.class_hash === classHash && config.openzeppelin?.class_hash !== "unresolved") value = "openzeppelin";
 
   return {
     value,
-    source: "starknet_getClassHashAt",
+    source: "starknet_getClassHashAt + account-class-hashes.json",
     blockRange: [0, 0],
     requestCount: 1,
   };

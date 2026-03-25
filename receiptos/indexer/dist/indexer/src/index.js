@@ -1,21 +1,32 @@
+import { getTransactionCount } from "./signals/tx-count";
+import { getAccountType } from "./signals/account-type";
+import { getWalletAge } from "./signals/wallet-age";
+import { getBridgeInflow } from "./signals/bridge-inflow";
 export async function computeVector(rpc, wallet, config) {
     const currentBlock = await rpc.getBlockNumber();
+    // Fetch signals in parallel where possible
+    const [txCountResult, accountTypeResult, walletAgeResult, bridgeInflowResult] = await Promise.all([
+        getTransactionCount(rpc, wallet),
+        getAccountType(rpc, wallet),
+        getWalletAge(rpc, wallet),
+        getBridgeInflow(rpc, wallet),
+    ]);
     return {
         version: "0.1",
         wallet,
         timestamp: Math.floor(Date.now() / 1000),
         chain: config.chain,
         signals: {
-            wallet_age_days: null,
-            wallet_age_source: null,
-            account_type: "unknown",
-            transaction_count: 0,
+            wallet_age_days: walletAgeResult.value,
+            wallet_age_source: walletAgeResult.source !== "unresolved_wallet_age_strategy" ? "deploy_account_tx" : null,
+            account_type: accountTypeResult.value,
+            transaction_count: txCountResult.value,
             transaction_count_note: "outbound_only_getNonce",
             protocol_categories: [],
             protocol_category_count: 0,
             liquidation_count: null,
             liquidation_predicate: "no_lending_activity",
-            bridge_inflow: null,
+            bridge_inflow: bridgeInflowResult.value,
         },
         privacy_behavior_profile: null,
         deferred_signals: [
@@ -31,7 +42,7 @@ export async function computeVector(rpc, wallet, config) {
             blocks_scanned_from: 0,
             blocks_scanned_to: currentBlock,
             indexer_version: "0.1.0",
-            known_gaps: "Phase 0 unresolved contracts/selectors pending",
+            known_gaps: "wallet-age, bridge-inflow, liquidations, protocol-breadth pending v0.2",
         },
     };
 }

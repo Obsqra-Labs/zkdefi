@@ -1,1 +1,82 @@
-[]
+[
+    {
+        "address": "0x10eb4fb373daf7fc8985aa3185d9b1aebb4b2025111895d12668e5ca0447d76",
+        "profile": "heavy_defi",
+        "notes": "Argent wallet, nonce=0x316f3 (201459 tx), active mainnet user",
+        "source": "Starknet mainnet block 8106427, class hash 0x1a736d...",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC starknet_getNonce + starknet_getClassHashAt"
+    },
+    {
+        "address": "0x1f3b4f37dd9d6cb4423aa6e9e7d477215a2ad4f9fd41934acf8e2f24b7465e7",
+        "profile": "fresh_wallet",
+        "notes": "Unknown class hash 0xe2eb8f56..., nonce=0x5e63b (388667 tx), moderate activity",
+        "source": "Starknet mainnet block 8106427",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC starknet_getNonce + starknet_getClassHashAt"
+    },
+    {
+        "address": "0x205fe66935c8ce87d84e5a7c4f6da5858bc8d8a8086876ddb56d29804e9eb7a",
+        "profile": "bridge_heavy",
+        "notes": "Argent wallet, nonce=0x312c1 (200385 tx), active mainnet user",
+        "source": "Starknet mainnet block 8106426, class hash 0x1a736d...",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC starknet_getNonce + starknet_getClassHashAt"
+    },
+    {
+        "address": "0x229ddac578c4d3d108e1f621097387a0a56f34a2c8886c37126e1c28393f3b3",
+        "profile": "lending_no_liquidations",
+        "notes": "Argent wallet, nonce=0x311c5 (200133 tx), regular activity",
+        "source": "Starknet mainnet block 8106426, class hash 0x1a736d...",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC starknet_getNonce + starknet_getClassHashAt"
+    },
+    {
+        "address": "0x264f256e0ee684d72601cf5cb03ac9b664e48322e2664b16e6081673345ca34",
+        "profile": "lending_with_liquidations",
+        "notes": "active mainnet wallet, pending nonce/class hash verification",
+        "source": "Starknet mainnet block 8106425",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC sender extraction from block tx history"
+    },
+    {
+        "address": "0x2a3c3ca257e1ab251cdf73bbefde48ebcc7baf73f9fdb065853b9dc5b07b217",
+        "profile": "privacy_user",
+        "notes": "active mainnet wallet, pending nonce/class hash verification",
+        "source": "Starknet mainnet block 8106424",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC sender extraction from block tx history"
+    },
+    {
+        "address": "0x3235745f167c21fdc2cc2b17f54b55b73d7f2a399cc10df06d5c7f2a5dd6515",
+        "profile": "single_protocol_bot",
+        "notes": "active mainnet wallet, pending nonce/class hash verification",
+        "source": "Starknet mainnet block 8106423",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC sender extraction from block tx history"
+    },
+    {
+        "address": "0x3d32ff88ae403d370819f6fc28ad46adbe95fc1532bfe9f305c96ed44a9c268",
+        "profile": "staker",
+        "notes": "active mainnet wallet, pending nonce/class hash verification",
+        "source": "Starknet mainnet block 8106422",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC sender extraction from block tx history"
+    },
+    {
+        "address": "0x3f239d7344cf4e5e93fbc31da0ec6682d6087fe3a4cde4617dc4a55fb4db0b1",
+        "profile": "argent_wallet",
+        "notes": "active mainnet wallet, pending nonce/class hash verification",
+        "source": "Starknet mainnet block 8106421",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC sender extraction from block tx history"
+    },
+    {
+        "address": "0x4455355f7be746bc4214c5deba662fc0256b3493c9fc068d329c85c8dee43b5",
+        "profile": "braavos_wallet",
+        "notes": "Argent wallet, nonce not yet fetched, class hash 0x1a736d..., active mainnet user",
+        "source": "Starknet mainnet block 8106427, class hash 0x1a736d...",
+        "verified_on": "2026-03-25",
+        "verified_by": "RPC starknet_getClassHashAt"
+    }
+]

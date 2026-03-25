@@ -1,9 +1,42 @@
 {
-    "argent": [],
-    "braavos": [],
-    "openzeppelin": [],
-    "metadata": {
+    "argent": {
+        "class_hash": "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003",
+        "verified": true,
+        "verified_wallets": [
+            "0x10eb4fb373daf7fc8985aa3185d9b1aebb4b2025111895d12668e5ca0447d76",
+            "0x205fe66935c8ce87d84e5a7c4f6da5858bc8d8a8086876ddb56d29804e9eb7a",
+            "0x229ddac578c4d3d108e1f621097387a0a56f34a2c8886c37126e1c28393f3b3",
+            "0x4455355f7be746bc4214c5deba662fc0256b3493c9fc068d329c85c8dee43b5"
+        ],
+        "source": "Reddio documentation + RPC starknet_getClassHashAt verified block 8106427",
+        "notes": "OpenZeppelin Cairo 1 standard wallet implementation"
+    },
+    "braavos": {
+        "class_hash": "0xe2eb8f5672af4e6a4e8a8f1b44989685e668489b0a25437733756c5a34a1d6",
+        "verified": false,
+        "verified_wallets": [
+            "0x1f3b4f37dd9d6cb4423aa6e9e7d477215a2ad4f9fd41934acf8e2f24b7465e7"
+        ],
+        "source": "Candidate from mainnet block 8106427, pending secondary verification",
+        "notes": "Braavos wallet implementation class hash (needs confirmation)"
+    },
+    "openzeppelin": {
+        "class_hash": "unresolved",
+        "verified": false,
         "verified_wallets": [],
-        "notes": "Collect from starknet_getClassHashAt against known wallet types"
+        "source": "",
+        "notes": "Standard OpenZeppelin account contract (if different from Argent)"
+    },
+    "metadata": {
+        "verified_wallets": [
+            "0x10eb4fb373daf7fc8985aa3185d9b1aebb4b2025111895d12668e5ca0447d76",
+            "0x205fe66935c8ce87d84e5a7c4f6da5858bc8d8a8086876ddb56d29804e9eb7a",
+            "0x229ddac578c4d3d108e1f621097387a0a56f34a2c8886c37126e1c28393f3b3",
+            "0x4455355f7be746bc4214c5deba662fc0256b3493c9fc068d329c85c8dee43b5",
+            "0x1f3b4f37dd9d6cb4423aa6e9e7d477215a2ad4f9fd41934acf8e2f24b7465e7"
+        ],
+        "rpc_method": "starknet_getClassHashAt",
+        "verified_block": 8106427,
+        "notes": "All 5 wallets queried via RPC 2026-03-25, Argent confirmed x4, Braavos candidate x1"
     }
 }
