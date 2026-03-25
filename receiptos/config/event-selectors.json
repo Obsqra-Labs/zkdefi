@@ -1,7 +1,7 @@
 {
   "starkgate_eth_bridge": {
     "deposit": {
-      "selector": "0x0099734e4e440944bee05f9e474ae012ff62005cd45bea9c75variables585dc32e73",
+      "selector": "unresolved",
       "data_layout": ["from_address", "to_address", "amount"],
       "verified_at_block": 8106427,
       "sample_tx": "0x0123456789abcdef"

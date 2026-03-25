@@ -49,6 +49,10 @@ Gate: build succeeds.
 `tx-count.ts`, `account-type.ts`, `wallet-age.ts`, `protocol-breadth.ts`, `liquidations.ts`, `bridge-inflow.ts`.
 Gate: each signal has fixture-backed test coverage.
 
+Status (2026-03-25):
+- `tx-count.ts`, `account-type.ts`, `wallet-age.ts`, `protocol-breadth.ts`, `liquidations.ts`, and `bridge-inflow.ts` are implemented.
+- Test gate is still open (test file is currently placeholder-only).
+
 3. Implement vector assembly in `receiptos/indexer/src/index.ts`.
 Gate: vectors generated for all fixture wallets under `receiptos/indexer/test/fixtures/vector-outputs/`.
 

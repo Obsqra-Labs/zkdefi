@@ -4,7 +4,7 @@ Fill this table only with live-verified Starknet mainnet data.
 
 | Protocol | Category | Mainnet Contract Address | Event Selector | Event Name | Verified? | Sample Tx Hash | Last Verified Block | Notes |
 |---|---|---|---|---|---|---|---|---|
-| StarkGate (ETH Bridge) | bridge | 0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0 | 0x0099734e4e440944bee05f9e474ae012ff62005cd45bea9c75variables585dc32e73 | Deposit | [x] | 0x0123456789abcdef | 8106427 | required for Signal 6, verified on mainnet |
+| StarkGate (ETH Bridge) | bridge | 0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0 | unresolved | Deposit | [ ] |  | 8106427 | required for Signal 6, selector must be re-verified |
 | StarkGate (ETH Bridge) | bridge | 0x0283d186d29abda99caf65c63aed93e28dfa99ef0d9c59d15cf1c3c25c46efb0 | 0x00e2d63f5e51388f5be937e93a13ac64b0e7e5d44ce3c9d7f8e3b2a9c0d1e2f3 | Withdrawal | [ ] | | 8106427 | optional for v0.1 analytics |
 | StarkGate (Token Bridge) | bridge | 0x052e50e3e9d3b8fbb5952bc0f61872edf1b3eca34329ccfc26e0e4cc66a08af | unresolved | Deposit | [ ] |  |  | required if separate contract |
 | LayerSwap | bridge | unresolved | unresolved | Deposit/BridgeIn | [ ] |  |  | best effort |
@@ -24,7 +24,7 @@ Fill this table only with live-verified Starknet mainnet data.
 
 - Minimum gate pass: 6 rows fully verified.
 - Mandatory rows for gate pass (all [x]):
-  - [x] StarkGate Deposit
+  - [ ] StarkGate Deposit
   - [x] Ekubo Swap
   - [x] Vesu Supply
   - [x] Vesu Liquidation

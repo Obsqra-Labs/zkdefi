@@ -76,3 +76,12 @@ No-Go if any condition below is true:
 - 10-wallet benchmark has any wallet over 30s without mitigation plan.
 
 Go when all above are green and Sepolia end-to-end claim succeeds.
+
+## Current Status (2026-03-25)
+
+- Resolved this cycle:
+	- `wallet-age` signal implemented as best-effort (`first_invoke_tx` source) with bounded lookback scan.
+	- `bridge-inflow` signal implemented with bounded bridge event scans and safe null fallback.
+- Active blockers:
+	- StarkGate deposit selector is unresolved and must be re-verified before claiming full bridge coverage.
+	- Signal tests remain placeholder-only; fixture-backed tests are still required for gate confidence.
