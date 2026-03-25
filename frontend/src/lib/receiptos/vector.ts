@@ -8,7 +8,7 @@
  */
 
 import { apiFetch } from "@/lib/api/client";
-import type { ReputationVector, SignalEntry } from "./types";
+import type { ReputationVector, ReputationProfile, SignalEntry, UpgradeRequirements } from "./types";
 
 interface ReputationUser {
   address: string;
@@ -21,6 +21,8 @@ interface ReputationUser {
   failed_txns: number;
   collateral_eth: number;
   reputation_score: number;
+  upgrade_eligible: boolean;
+  upgrade_requirements: UpgradeRequirements | null;
   gates: Record<string, boolean>;
 }
 
@@ -30,6 +32,29 @@ export async function fetchVector(walletAddress: string): Promise<ReputationVect
     { timeoutMs: 30_000 }
   );
   return normalize(walletAddress, raw);
+}
+
+export async function fetchProfile(walletAddress: string): Promise<ReputationProfile> {
+  const raw = await apiFetch<ReputationUser>(
+    `/api/v1/zkdefi/reputation/user/${walletAddress}`,
+    { timeoutMs: 30_000 }
+  );
+  const base = normalize(walletAddress, raw);
+  return {
+    ...base,
+    reputation_score: raw.reputation_score ?? 0,
+    tier: raw.tier ?? 0,
+    tier_name: raw.tier_name ?? "Strict",
+    gates: raw.gates ?? {},
+    upgrade_eligible: raw.upgrade_eligible ?? false,
+    upgrade_requirements: raw.upgrade_requirements ?? null,
+    transaction_count: raw.transaction_count ?? 0,
+    successful_txns: raw.successful_txns ?? 0,
+    failed_txns: raw.failed_txns ?? 0,
+    total_volume_eth: raw.total_volume_eth ?? 0,
+    tenure_days: raw.tenure_days ?? 0,
+    collateral_eth: raw.collateral_eth ?? 0,
+  };
 }
 
 function normalize(

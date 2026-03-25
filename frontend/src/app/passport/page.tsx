@@ -4,26 +4,29 @@ import { useState, useCallback, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { Shield, Loader2 } from "lucide-react";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
+import { ScoreBanner } from "@/components/zkdefi/passport/ScoreBanner";
 import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
+import { GateGrid } from "@/components/zkdefi/passport/GateGrid";
+import { TierProgress } from "@/components/zkdefi/passport/TierProgress";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
-import { fetchVector } from "@/lib/receiptos/vector";
-import type { ReputationVector } from "@/lib/receiptos/types";
+import { fetchProfile } from "@/lib/receiptos/vector";
+import type { ReputationProfile } from "@/lib/receiptos/types";
 
 export default function PassportPage() {
   const { address, status: walletStatus } = useAccount();
-  const [vector, setVector] = useState<ReputationVector | null>(null);
+  const [profile, setProfile] = useState<ReputationProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const scan = useCallback(async (addr: string) => {
     setLoading(true);
     setError(null);
-    setVector(null);
+    setProfile(null);
     try {
-      const v = await fetchVector(addr);
-      setVector(v);
+      const p = await fetchProfile(addr);
+      setProfile(p);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load vector");
+      setError(err instanceof Error ? err.message : "Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -33,7 +36,7 @@ export default function PassportPage() {
     if (walletStatus === "connected" && address) {
       scan(address);
     } else {
-      setVector(null);
+      setProfile(null);
       setError(null);
     }
   }, [walletStatus, address, scan]);
@@ -48,7 +51,7 @@ export default function PassportPage() {
         </h1>
       </div>
       <p className="mt-1 text-xs text-zinc-500">
-        View your on-chain reputation vector and claim a receipt on Sepolia.
+        Your on-chain reputation profile — score, tier, gates, and receipt claims.
       </p>
 
       <div className="mt-8 space-y-6">
@@ -75,11 +78,14 @@ export default function PassportPage() {
           </div>
         )}
 
-        {/* Vector + Claim */}
-        {vector && !loading && (
+        {/* Full Profile */}
+        {profile && !loading && (
           <>
-            <VectorDisplay vector={vector} />
-            <ClaimButton walletAddress={vector.wallet_address} />
+            <ScoreBanner profile={profile} />
+            <GateGrid gates={profile.gates} />
+            <TierProgress profile={profile} />
+            <VectorDisplay vector={profile} />
+            <ClaimButton walletAddress={profile.wallet_address} />
           </>
         )}
 
