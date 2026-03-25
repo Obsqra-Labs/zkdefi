@@ -9,12 +9,13 @@ import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
 import { GateGrid } from "@/components/zkdefi/passport/GateGrid";
 import { TierProgress } from "@/components/zkdefi/passport/TierProgress";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
-import { fetchProfile } from "@/lib/receiptos/vector";
-import type { ReputationProfile } from "@/lib/receiptos/types";
+import { fetchProfile, fetchActivity } from "@/lib/receiptos/vector";
+import type { ReputationProfile, ActivityEntry } from "@/lib/receiptos/types";
 
 export default function PassportPage() {
   const { address, status: walletStatus } = useAccount();
   const [profile, setProfile] = useState<ReputationProfile | null>(null);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,9 +23,14 @@ export default function PassportPage() {
     setLoading(true);
     setError(null);
     setProfile(null);
+    setActivity([]);
     try {
-      const p = await fetchProfile(addr);
+      const [p, act] = await Promise.all([
+        fetchProfile(addr),
+        fetchActivity(addr),
+      ]);
       setProfile(p);
+      setActivity(act);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile");
     } finally {
@@ -37,6 +43,7 @@ export default function PassportPage() {
       scan(address);
     } else {
       setProfile(null);
+      setActivity([]);
       setError(null);
     }
   }, [walletStatus, address, scan]);
@@ -82,7 +89,7 @@ export default function PassportPage() {
         {profile && !loading && (
           <>
             <ScoreBanner profile={profile} />
-            <GateGrid gates={profile.gates} />
+            <GateGrid gates={profile.gates} activity={activity} />
             <TierProgress profile={profile} />
             <VectorDisplay vector={profile} />
             <ClaimButton walletAddress={profile.wallet_address} />

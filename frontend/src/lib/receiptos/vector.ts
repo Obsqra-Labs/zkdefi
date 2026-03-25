@@ -8,7 +8,7 @@
  */
 
 import { apiFetch } from "@/lib/api/client";
-import type { ReputationVector, ReputationProfile, SignalEntry, UpgradeRequirements } from "./types";
+import type { ReputationVector, ReputationProfile, SignalEntry, UpgradeRequirements, ActivityEntry } from "./types";
 
 interface ReputationUser {
   address: string;
@@ -110,4 +110,17 @@ function normalize(
     scanned_at: new Date().toISOString(),
     signals: entries,
   };
+}
+
+/** Fetch recent activity from the vault activity aggregator. */
+export async function fetchActivity(walletAddress: string): Promise<ActivityEntry[]> {
+  try {
+    const data = await apiFetch<{ activity: ActivityEntry[] }>(
+      `/api/v1/zkdefi/vault/activity/${walletAddress}`,
+      { timeoutMs: 10_000 }
+    );
+    return data.activity ?? [];
+  } catch {
+    return [];
+  }
 }

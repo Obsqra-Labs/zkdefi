@@ -50,3 +50,19 @@ export interface UpgradeRequirements {
   needs_successful_txns?: number;
   needs_collateral_eth?: number;
 }
+
+/** A single normalized activity entry from the vault activity feed */
+export interface ActivityEntry {
+  type: string;        // ledger | receipt | rebalance | yield
+  description: string;
+  method: string;
+  timestamp: string;
+  asset: string;
+  amount: string;
+  hashes: {
+    tx: string;
+    commitment: string;
+    nullifier: string;
+    proof: string;
+  };
+}
