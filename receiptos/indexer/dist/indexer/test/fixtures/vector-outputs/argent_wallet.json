@@ -1,0 +1,40 @@
+{
+    "version": "0.1",
+    "wallet": "0x3f239d7344cf4e5e93fbc31da0ec6682d6087fe3a4cde4617dc4a55fb4db0b1",
+    "timestamp": 1774445704,
+    "chain": "starknet-mainnet",
+    "signals": {
+        "wallet_age_days": 27,
+        "wallet_age_source": "first_invoke_tx",
+        "account_type": "argent",
+        "transaction_count": 201782,
+        "transaction_count_note": "outbound_only_getNonce",
+        "protocol_categories": [],
+        "protocol_category_count": 0,
+        "liquidation_count": null,
+        "liquidation_predicate": "no_lending_activity",
+        "bridge_inflow": null
+    },
+    "privacy_behavior_profile": null,
+    "deferred_signals": [
+        "transparency_willingness",
+        "capital_origin_legibility",
+        "privacy_tool_pattern",
+        "cross_protocol_consistency",
+        "behavioral_continuity"
+    ],
+    "coverage": {
+        "protocols_indexed": [
+            "starkgate_eth_bridge",
+            "ekubo_core",
+            "vesu_core"
+        ],
+        "protocols_attempted_no_events": [
+            "starkgate_token_bridge"
+        ],
+        "blocks_scanned_from": 0,
+        "blocks_scanned_to": 8109424,
+        "indexer_version": "0.1.0",
+        "known_gaps": "selector verification gaps remain; all implemented signals are best-effort in bounded lookback windows"
+    }
+}

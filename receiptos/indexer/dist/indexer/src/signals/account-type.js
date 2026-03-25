@@ -1,6 +1,17 @@
 import classHashConfig from "../../../config/account-class-hashes.json";
 export async function getAccountType(rpc, wallet) {
-    const classHash = await rpc.getClassHashAt(wallet);
+    let classHash;
+    try {
+        classHash = await rpc.getClassHashAt(wallet);
+    }
+    catch {
+        return {
+            value: null,
+            source: "starknet_getClassHashAt_failed",
+            blockRange: [0, 0],
+            requestCount: 1,
+        };
+    }
     const config = classHashConfig;
     let value = "unknown";
     if (config.argent?.class_hash === classHash)
