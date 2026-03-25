@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { Shield, Loader2 } from "lucide-react";
+import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
 import { fetchVector } from "@/lib/receiptos/vector";
@@ -89,6 +90,9 @@ export default function PassportPage() {
             <p className="mt-4 text-sm text-zinc-500">
               Connect your wallet to get started
             </p>
+            <div className="mt-6 flex justify-center">
+              <ConnectButton />
+            </div>
           </div>
         )}
       </div>

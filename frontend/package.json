@@ -22,7 +22,7 @@
     "react-dom": "^18.0.0",
     "reactflow": "^11.11.4",
     "recharts": "^3.7.0",
-    "starknet": "^6.11.0"
+    "starknet": "^6.24.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

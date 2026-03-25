@@ -1,50 +1,32 @@
 import { NextResponse } from "next/server";
-import { RpcProvider, Account, Contract, ec, hash } from "starknet";
+import { ec, hash } from "starknet";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 /**
  * POST /api/receiptos/claim
  * Body: { "wallet_address": "0x..." }
  *
  * Server-side claim: re-fetches vector, signs policy hash, submits
- * issue_attested_receipt to the ReceiptRegistry on Starknet Sepolia.
+ * issue_attested_receipt to the ReceiptRegistry on Starknet Sepolia via starkli.
  */
 
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:8003";
+const BACKEND_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8003";
 const STARKNET_RPC =
-  process.env.NEXT_PUBLIC_STARKNET_RPC ||
-  "https://free-rpc.nethermind.io/sepolia-juno";
+  process.env.RECEIPTOS_STARKNET_RPC ||
+  "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_8/EvhYN6geLrdvbYHVRgPJ7";
 const REGISTRY_ADDRESS =
   process.env.NEXT_PUBLIC_RECEIPTOS_CONTRACT ||
   "0x0544ef8cbf8bf1ac7987bc0d2bb211434d515fbe10bab65f36e0f761c79bbdff";
 
 const ATTESTER_SK = process.env.RECEIPTOS_ATTESTER_SK ?? "";
-const SUBMITTER_ADDRESS = process.env.RECEIPTOS_SUBMITTER_ADDRESS ?? "";
 const SUBMITTER_PK = process.env.RECEIPTOS_SUBMITTER_PK ?? "";
-
-const REGISTRY_ABI = [
-  {
-    name: "issue_attested_receipt",
-    type: "function",
-    inputs: [
-      { name: "policy_hash", type: "core::felt252" },
-      { name: "sig_r", type: "core::felt252" },
-      { name: "sig_s", type: "core::felt252" },
-      { name: "weight", type: "core::integer::u128" },
-    ],
-    outputs: [{ type: "core::integer::u64" }],
-    state_mutability: "external",
-  },
-  {
-    name: "get_next_receipt_id",
-    type: "function",
-    inputs: [],
-    outputs: [{ type: "core::integer::u64" }],
-    state_mutability: "view",
-  },
-] as const;
+const STARKLI_ACCOUNT = process.env.STARKNET_ACCOUNT || "/root/.starkli-wallets/deployer/account.json";
 
 export async function POST(request: Request) {
-  if (!ATTESTER_SK || !SUBMITTER_ADDRESS || !SUBMITTER_PK) {
+  if (!ATTESTER_SK || !SUBMITTER_PK) {
     return NextResponse.json(
       { error: "Claim service not configured (missing server env)" },
       { status: 503 }
@@ -69,62 +51,64 @@ export async function POST(request: Request) {
   try {
     // 1. Fetch reputation from backend
     const scanRes = await fetch(
-      `${BACKEND_URL}/api/v1/zkdefi/reputation/scan/${address}`,
-      { method: "POST", headers: { "Content-Type": "application/json" } }
+      `${BACKEND_URL}/api/v1/zkdefi/reputation/user/${address}`,
     );
-    if (!scanRes.ok) throw new Error(`Reputation scan failed: ${scanRes.status}`);
+    if (!scanRes.ok) throw new Error(`Reputation fetch failed: ${scanRes.status}`);
     const raw = await scanRes.json();
 
-    // 2. Compute deterministic policy hash from signal values
-    const signals = Array.isArray(raw.signals) ? raw.signals : [];
-    const nonce = Number(raw.nonce ?? 0);
-    const protocolCount = Number(raw.protocol_count ?? 0);
+    // 2. Compute deterministic policy hash from signal values + timestamp nonce
+    const walletAgeDays = Number(raw.tenure_days ?? 0);
+    const accountType = raw.tier_name ? 1 : 0;
+    const txCount = Number(raw.transaction_count ?? 0);
+    const gates = raw.gates ?? {};
+    const protocolCount = Object.values(gates).filter(Boolean).length;
+    const liquidationCount = Number(raw.failed_txns ?? 0);
+    const bridgeInflow = Math.round(Number(raw.collateral_eth ?? 0) * 1e18);
+    const timestamp = Math.floor(Date.now() / 1000);
     const hashInputs = [
-      BigInt(findVal(signals, "wallet_age_days")),
-      BigInt(raw.account_type ? 1 : 0),
-      BigInt(nonce),
+      BigInt(walletAgeDays),
+      BigInt(accountType),
+      BigInt(txCount),
       BigInt(protocolCount),
-      BigInt(findVal(signals, "liquidation_count")),
-      BigInt(findVal(signals, "bridge_inflow")),
+      BigInt(liquidationCount),
+      BigInt(bridgeInflow),
+      BigInt(timestamp),
     ];
     const policyHash = hash.computePoseidonHashOnElements(hashInputs);
 
     // 3. Sign with attester key
     const signature = ec.starkCurve.sign(policyHash.toString(), ATTESTER_SK);
+    const sigR = "0x" + signature.r.toString(16);
+    const sigS = "0x" + signature.s.toString(16);
 
-    // 4. Submit to chain
-    const provider = new RpcProvider({ nodeUrl: STARKNET_RPC });
-    const account = new Account(provider, SUBMITTER_ADDRESS, SUBMITTER_PK);
-    const contract = new Contract(REGISTRY_ABI as any, REGISTRY_ADDRESS, account);
+    // 4. Submit to chain via starkli (V3 transactions with l1_data_gas)
+    const args = [
+      "starkli", "invoke",
+      REGISTRY_ADDRESS,
+      "issue_attested_receipt",
+      policyHash.toString(), sigR, sigS, "0x64",
+      "--rpc", STARKNET_RPC,
+      "--account", STARKLI_ACCOUNT,
+      "--private-key", SUBMITTER_PK,
+      "--watch",
+    ];
+    const cmd = args.map(a => `'${a}'`).join(" ");
 
-    const tx = await contract.invoke("issue_attested_receipt", [
-      policyHash,
-      "0x" + signature.r.toString(16),
-      "0x" + signature.s.toString(16),
-      100, // weight
-    ]);
+    const { stdout, stderr } = await execAsync(cmd + " 2>&1", { timeout: 120_000 });
+    const combined = stdout + "\n" + stderr;
+    // Check for errors
+    if (combined.includes("Error:") || combined.includes("error:")) {
+      const errorLine = combined.split("\n").find(l => l.includes("Error:") || l.includes("error:")) ?? combined;
+      throw new Error(errorLine.trim());
+    }
+    // starkli --watch prints the tx hash as a 0x... hex string
+    const txMatch = combined.match(/(0x[0-9a-fA-F]{50,})/);
+    const txHash = txMatch?.[1] ?? "";
 
-    await provider.waitForTransaction(tx.transaction_hash);
-
-    const nextId = await contract.call("get_next_receipt_id");
-    const receiptId = Number(nextId) - 1;
-
-    return NextResponse.json({
-      receipt_id: receiptId,
-      tx_hash: tx.transaction_hash,
-    });
+    return NextResponse.json({ tx_hash: txHash });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Claim failed";
     console.error("Claim error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
-
-function findVal(signals: Array<Record<string, unknown>>, key: string): number {
-  const match = signals.find(
-    (s) => s.signal === key || s.label === key || s.category === key
-  );
-  if (!match) return 0;
-  const v = Number(match.value);
-  return Number.isFinite(v) ? v : 0;
 }

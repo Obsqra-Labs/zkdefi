@@ -1,7 +1,7 @@
 /**
  * Reputation vector builder for the passport.
  *
- * Calls the existing zkdefi backend reputation scan endpoint and normalizes
+ * Calls the zkdefi backend reputation user endpoint and normalizes
  * the response into the six ReceiptOS signals:
  *   wallet_age_days, account_type, transaction_count,
  *   protocol_categories, liquidation_count, bridge_inflow
@@ -10,57 +10,72 @@
 import { apiFetch } from "@/lib/api/client";
 import type { ReputationVector, SignalEntry } from "./types";
 
+interface ReputationUser {
+  address: string;
+  tier: number;
+  tier_name: string;
+  transaction_count: number;
+  total_volume_eth: number;
+  tenure_days: number;
+  successful_txns: number;
+  failed_txns: number;
+  collateral_eth: number;
+  reputation_score: number;
+  gates: Record<string, boolean>;
+}
+
 export async function fetchVector(walletAddress: string): Promise<ReputationVector> {
-  const raw = await apiFetch<Record<string, unknown>>(
-    `/api/v1/zkdefi/reputation/scan/${walletAddress}`,
-    { method: "POST", timeoutMs: 30_000 }
+  const raw = await apiFetch<ReputationUser>(
+    `/api/v1/zkdefi/reputation/user/${walletAddress}`,
+    { timeoutMs: 30_000 }
   );
   return normalize(walletAddress, raw);
 }
 
 function normalize(
   walletAddress: string,
-  raw: Record<string, unknown>
+  raw: ReputationUser
 ): ReputationVector {
-  const nonce = Number(raw.nonce ?? 0);
-  const accountType = String(raw.account_type ?? "");
-  const signals = Array.isArray(raw.signals) ? raw.signals : [];
+  // Count how many protocol gates are enabled
+  const protocolCount = raw.gates
+    ? Object.values(raw.gates).filter(Boolean).length
+    : null;
 
   const entries: SignalEntry[] = [
     {
       key: "wallet_age_days",
       label: "Wallet Age",
-      value: findSignalValue(signals, "wallet_age_days"),
+      value: raw.tenure_days > 0 ? raw.tenure_days : null,
       unit: "days",
     },
     {
       key: "account_type",
       label: "Account Type",
-      value: accountType ? 1 : null,
-      unit: accountType || "unknown",
+      value: raw.tier_name ? 1 : null,
+      unit: raw.tier_name || "unknown",
     },
     {
       key: "transaction_count",
       label: "Transactions",
-      value: nonce > 0 ? nonce : null,
+      value: raw.transaction_count > 0 ? raw.transaction_count : null,
       unit: "txns",
     },
     {
       key: "protocol_categories",
       label: "Protocols Used",
-      value: raw.protocol_count != null ? Number(raw.protocol_count) : null,
+      value: protocolCount,
       unit: "protocols",
     },
     {
       key: "liquidation_count",
       label: "Liquidations",
-      value: findSignalValue(signals, "liquidation_count"),
+      value: raw.failed_txns > 0 ? raw.failed_txns : 0,
       unit: "events",
     },
     {
       key: "bridge_inflow",
-      label: "Bridge Inflow",
-      value: findSignalValue(signals, "bridge_inflow"),
+      label: "Collateral",
+      value: raw.collateral_eth > 0 ? raw.collateral_eth : null,
       unit: "ETH",
     },
   ];
@@ -70,16 +85,4 @@ function normalize(
     scanned_at: new Date().toISOString(),
     signals: entries,
   };
-}
-
-function findSignalValue(
-  signals: Array<Record<string, unknown>>,
-  key: string
-): number | null {
-  const match = signals.find(
-    (s) => s.signal === key || s.label === key || s.category === key
-  );
-  if (!match) return null;
-  const v = Number(match.value);
-  return Number.isFinite(v) ? v : null;
 }
