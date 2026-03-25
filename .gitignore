@@ -119,3 +119,5 @@ artifacts/
 
 # Figma files
 *.fig
+receiptos/passport/node_modules/
+receiptos/passport/.next/
