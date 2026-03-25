@@ -228,6 +228,8 @@ Record deployment details:
 Gate:
 - live call to issue and verify receipt succeeds.
 
+Status note (2026-03-25): ReceiptRegistry v0.1 is deployed on Sepolia. Remaining work is the live issuance and verification transaction path.
+
 ### Step 2.6: End-to-End Sepolia Test
 
 Flow:
