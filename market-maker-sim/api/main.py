@@ -187,8 +187,10 @@ async def get_pools() -> dict[str, Any]:
 
 @app.get("/public/positions")
 async def get_positions() -> dict[str, Any]:
-    """Return known LP positions from local state."""
-    pos_file = Path(__file__).parent.parent.parent / "backend" / "data" / "ekubo_positions.json"
+    """Return known LP positions from local state (see MM_SIM_EKUBO_POSITIONS_PATH)."""
+    pos_file = Path(settings.ekubo_positions_path).expanduser()
+    if not pos_file.is_file():
+        pos_file = Path(__file__).resolve().parent.parent / "data" / "ekubo_positions.json"
     if pos_file.is_file():
         data = json.loads(pos_file.read_text())
         positions = data.get("positions", [])

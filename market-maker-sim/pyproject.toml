@@ -1,2 +1,36 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "obsqra-sepolia-mm"
+version = "0.1.0"
+description = "Starknet Sepolia Ekubo market-maker-sim API server + sepolia-mm CLI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "pydantic==2.11.7",
+  "python-dotenv==1.1.1",
+  "httpx==0.28.1",
+  "starknet-py>=0.24.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+sepolia-mm = "sepolia_mm.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "api*",
+  "bots*",
+  "config*",
+  "sepolia_mm*",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

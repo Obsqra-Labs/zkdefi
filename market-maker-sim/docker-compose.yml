@@ -1,0 +1,41 @@
+# Sepolia Ekubo tooling — public HTTP API + optional on-chain bots
+#
+# Read-only (no wallet):
+#   docker compose up --build
+#
+# With bots (set secrets in .env — testnet only):
+#   cp .env.example .env
+#   # edit BOT_ACCOUNT_ADDRESS, BOT_PRIVATE_KEY, FLEET_ENABLED=true
+#   docker compose up --build
+
+services:
+  market-maker-sim:
+    build: .
+    image: obsqra/market-maker-sim:local
+    ports:
+      - "${MM_SIM_PORT:-8099}:8099"
+    environment:
+      MM_SIM_HOST: "0.0.0.0"
+      MM_SIM_PORT: "8099"
+      MM_SIM_ADMIN_KEY: "${MM_SIM_ADMIN_KEY:-dev-admin-key}"
+      MM_SIM_CORS: "${MM_SIM_CORS:-http://localhost:3000,http://localhost:3001,http://127.0.0.1:3001}"
+      MM_SIM_POLL_INTERVAL_SEC: "${MM_SIM_POLL_INTERVAL_SEC:-10.0}"
+      MM_SIM_EKUBO_POSITIONS_PATH: "${MM_SIM_EKUBO_POSITIONS_PATH:-}"
+      # Safe default: no fleet until a funded Sepolia wallet is configured
+      FLEET_ENABLED: "${FLEET_ENABLED:-false}"
+      STARKNET_RPC_URL: "${STARKNET_RPC_URL:-https://api.cartridge.gg/x/starknet/sepolia}"
+      BOT_ACCOUNT_ADDRESS: "${BOT_ACCOUNT_ADDRESS:-}"
+      BOT_PRIVATE_KEY: "${BOT_PRIVATE_KEY:-}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped

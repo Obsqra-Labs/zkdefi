@@ -139,7 +139,7 @@ zkdefi/
 ├── credit-scoring/    Credit scoring model + EZKL compilation
 ├── monitoring/        Prometheus alerts, Grafana dashboards
 ├── tests/             Integration + unit tests
-└── market-maker-sim/  LP simulation data
+└── market-maker-sim/  Sepolia Ekubo API + optional bots (`docker compose up`, see README)
 ```
 
 ---

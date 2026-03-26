@@ -55,6 +55,14 @@ class Settings:
     )
     poll_interval_sec: float = float(os.getenv("MM_SIM_POLL_INTERVAL_SEC", "10.0"))
 
+    # Optional JSON file for /public/positions (Ekubo LP NFT state). Default: local data dir.
+    # In the zkdefi monorepo you can set this to ../backend/data/ekubo_positions.json
+    ekubo_positions_path: str = (
+        p.strip()
+        if (p := os.getenv("MM_SIM_EKUBO_POSITIONS_PATH", "").strip())
+        else str(Path(__file__).resolve().parent.parent / "data" / "ekubo_positions.json")
+    )
+
     # ── Bot wallet(s) ────────────────────────────────────────────────────────
     # Primary bot account (executes swaps, LP, limit orders on Sepolia)
     bot_account_address: str = os.getenv(

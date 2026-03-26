@@ -6,7 +6,6 @@ import { Shield, Loader2, Download } from "lucide-react";
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ScoreBanner } from "@/components/zkdefi/passport/ScoreBanner";
-import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
 import { GateGrid } from "@/components/zkdefi/passport/GateGrid";
 import { TierProgress } from "@/components/zkdefi/passport/TierProgress";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
@@ -74,7 +73,7 @@ export default function PassportPage() {
           </h1>
         </div>
         <p className="mt-1.5 text-xs text-zinc-500">
-          Score, tier, protocol gates, builder facets, and on-chain receipt claims.
+          Score breakdown, protocol gates, tier progression, and on-chain receipt claims.
         </p>
       </Reveal>
 
@@ -139,7 +138,7 @@ export default function PassportPage() {
             <div className="section-sep" />
 
             <Reveal delay={200}>
-              <GateGrid gates={profile.gates} activity={activity} />
+              <GateGrid gates={profile.gates} currentTier={profile.tier} activity={activity} />
             </Reveal>
 
             {builder && (
@@ -155,12 +154,6 @@ export default function PassportPage() {
 
             <Reveal delay={400}>
               <TierProgress profile={profile} />
-            </Reveal>
-
-            <div className="section-sep" />
-
-            <Reveal delay={500}>
-              <VectorDisplay vector={profile} />
             </Reveal>
 
             <div className="section-sep" />

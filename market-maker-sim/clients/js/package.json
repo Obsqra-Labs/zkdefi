@@ -1,0 +1,29 @@
+{
+  "name": "@obsqra/sepolia-mm-client",
+  "version": "0.1.0",
+  "description": "Minimal fetch client for zkdefi market-maker-sim (Starknet Sepolia Ekubo API)",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js"
+  },
+  "keywords": [
+    "starknet",
+    "sepolia",
+    "ekubo",
+    "defi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Obsqra-Labs/zkdefi",
+    "directory": "market-maker-sim/clients/js"
+  }
+}
