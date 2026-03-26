@@ -10,15 +10,15 @@ import { VectorDisplay } from "@/components/zkdefi/passport/VectorDisplay";
 import { GateGrid } from "@/components/zkdefi/passport/GateGrid";
 import { TierProgress } from "@/components/zkdefi/passport/TierProgress";
 import { ClaimButton } from "@/components/zkdefi/passport/ClaimButton";
-import { BuilderProfileCard } from "@/components/zkdefi/passport/BuilderProfileCard";
-import { fetchProfile, fetchActivity, fetchBuilderProfile } from "@/lib/receiptos/vector";
-import type { ReputationProfile, ActivityEntry, BuilderProfile } from "@/lib/receiptos/types";
+import { BuilderActivityCard } from "@/components/zkdefi/passport/BuilderProfileCard";
+import { fetchProfile, fetchActivity, fetchBuilderActivity } from "@/lib/receiptos/vector";
+import type { ReputationProfile, ActivityEntry, BuilderActivity } from "@/lib/receiptos/types";
 
 export default function PassportPage() {
   const { address, status: walletStatus } = useAccount();
   const [profile, setProfile] = useState<ReputationProfile | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
-  const [builder, setBuilder] = useState<BuilderProfile | null>(null);
+  const [builder, setBuilder] = useState<BuilderActivity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +32,7 @@ export default function PassportPage() {
       const [p, act, b] = await Promise.all([
         fetchProfile(addr),
         fetchActivity(addr),
-        fetchBuilderProfile(addr),
+        fetchBuilderActivity(addr),
       ]);
       setProfile(p);
       setActivity(act);
@@ -93,11 +93,11 @@ export default function PassportPage() {
             <span>
               <span className="font-semibold text-zinc-300">{gatesUnlocked}</span>/{totalGates} gates
             </span>
-            {builder && builder.proofs.completed > 0 && (
+            {builder && builder.totalReceipts > 0 && (
               <>
                 <span className="text-zinc-700">·</span>
                 <span>
-                  <span className="font-semibold text-zinc-300">{builder.proofs.completed}</span> proofs
+                  <span className="font-semibold text-zinc-300">{builder.totalReceipts}</span> receipts
                 </span>
               </>
             )}
@@ -146,7 +146,7 @@ export default function PassportPage() {
               <>
                 <div className="section-sep" />
                 <Reveal delay={300}>
-                  <BuilderProfileCard builder={builder} />
+                  <BuilderActivityCard profile={profile} activity={builder} />
                 </Reveal>
               </>
             )}

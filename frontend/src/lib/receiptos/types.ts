@@ -67,41 +67,26 @@ export interface ActivityEntry {
   };
 }
 
-/* ── Builder Profile ─────────────────────────────────────────────── */
+/* ── Builder Activity (on-chain, receipt-backed) ─────────────────── */
 
-export interface ProofFacet {
-  total: number;
-  completed: number;
-  onChainVerified: number;
-  types: { name: string; status: string; onChain: boolean }[];
+/** A single receipt from the ReceiptOS timeline. */
+export interface ReceiptEntry {
+  receiptId: string;
+  timestamp: string;
+  type: string;           // gate | execute | deposit | warning
+  intentSummary: string;
+  gateStatus: string;     // pass | pending | failed
+  hashes: {
+    intent: string;
+    policy: string;
+    execution: string;
+    receipt: string;
+  };
+  source: string;         // receipt_service | orchestration | decision_event
 }
 
-export interface AgentFacet {
-  count: number;
-  agents: { id: string; name: string; skills: number }[];
-}
-
-export interface IdentityFacet {
-  links: number;
-  verified: number;
-  sessions: number;
-  hasCommitment: boolean;
-}
-
-export interface GovernanceFacet {
-  votingPower: number;
-  capitalUsd: number;
-  tierMultiplier: number;
-}
-
-export interface ReceiptFacet {
-  total: number;
-}
-
-export interface BuilderProfile {
-  proofs: ProofFacet;
-  agents: AgentFacet;
-  identity: IdentityFacet;
-  governance: GovernanceFacet;
-  receipts: ReceiptFacet;
+/** On-chain activity backed by ReceiptOS attestations. */
+export interface BuilderActivity {
+  receipts: ReceiptEntry[];
+  totalReceipts: number;
 }

@@ -1,265 +1,205 @@
 "use client";
 
 import {
-  ShieldCheck,
-  Bot,
-  Fingerprint,
-  Vote,
-  FileCheck,
-  Globe,
-  Check,
-  Minus,
-  Link2,
-  Key,
+  ArrowUpRight,
+  ArrowDownToLine,
+  ArrowLeftRight,
+  Landmark,
+  FileCode2,
+  Receipt,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
-import type { BuilderProfile } from "@/lib/receiptos/types";
+import type { ReputationProfile, BuilderActivity } from "@/lib/receiptos/types";
 
-type Provenance = "zkdefi" | "portable";
+/* ── Verified protocol sources (COVERAGE_TABLE) ───────────────────── */
 
-interface FacetDef {
-  key: keyof BuilderProfile;
+const SOURCES = {
+  rpc: "Starknet RPC · getNonce",
+  starkgate: "StarkGate · 0x0733…9d82",
+  ekubo: "Ekubo Core · 0x0280…e0f2",
+  vesu: "Vesu Core · 0x00a8…a87e",
+  deploys: "Starknet tx-type scanner",
+  registry: "ReceiptRegistry · 0x0544…bdff",
+} as const;
+
+/* ── Row model ────────────────────────────────────────────────────── */
+
+interface Row {
+  id: string;
   label: string;
-  icon: typeof ShieldCheck;
-  provenance: Provenance;
-  protocol: string;
+  icon: typeof ArrowUpRight;
+  value: string;
+  detail: string;
+  attestation: "attested" | "indexed" | "on-chain" | "pending";
+  source: string;
+  active: boolean;
 }
 
-const FACETS: FacetDef[] = [
-  {
-    key: "proofs",
-    label: "ZK Proofs",
-    icon: ShieldCheck,
-    provenance: "zkdefi",
-    protocol: "zkFICO Circuit Pack",
-  },
-  {
-    key: "agents",
-    label: "Agents",
-    icon: Bot,
-    provenance: "zkdefi",
-    protocol: "Agent Builder",
-  },
-  {
-    key: "identity",
-    label: "Identity",
-    icon: Fingerprint,
-    provenance: "portable",
-    protocol: "Portable Identity v3",
-  },
-  {
-    key: "governance",
-    label: "Governance",
-    icon: Vote,
-    provenance: "zkdefi",
-    protocol: "DAO Voting Power",
-  },
-  {
-    key: "receipts",
-    label: "Receipts",
-    icon: FileCheck,
-    provenance: "zkdefi",
-    protocol: "Mission Control",
-  },
-];
+function buildRows(profile: ReputationProfile, activity: BuilderActivity): Row[] {
+  const gates = profile.gates ?? {};
+  const verified = activity.receipts.filter((r) => r.gateStatus === "pass").length;
 
-export function BuilderProfileCard({ builder }: { builder: BuilderProfile }) {
+  return [
+    {
+      id: "transactions",
+      label: "Transactions",
+      icon: ArrowUpRight,
+      value: profile.transaction_count > 0 ? `${profile.transaction_count} txns` : "—",
+      detail:
+        profile.transaction_count > 0
+          ? `${profile.successful_txns} successful · ${profile.failed_txns} failed · ${profile.total_volume_eth.toFixed(2)} ETH vol`
+          : "no outbound transactions detected",
+      attestation: profile.transaction_count > 0 ? "attested" : "pending",
+      source: SOURCES.rpc,
+      active: profile.transaction_count > 0,
+    },
+    {
+      id: "bridge",
+      label: "Bridge Deposits",
+      icon: ArrowDownToLine,
+      value: profile.collateral_eth > 0 ? `${profile.collateral_eth} ETH` : "—",
+      detail: gates.collateral_deposit
+        ? "collateral gate open · deposit events indexed"
+        : "no bridge deposits detected",
+      attestation: profile.collateral_eth > 0 ? "indexed" : "pending",
+      source: SOURCES.starkgate,
+      active: profile.collateral_eth > 0,
+    },
+    {
+      id: "dex",
+      label: "DEX Swaps",
+      icon: ArrowLeftRight,
+      value: gates.swap ? "active" : "—",
+      detail: gates.swap
+        ? "swap events detected via Ekubo indexer"
+        : "no swap events detected",
+      attestation: gates.swap ? "indexed" : "pending",
+      source: SOURCES.ekubo,
+      active: !!gates.swap,
+    },
+    {
+      id: "lending",
+      label: "Lending",
+      icon: Landmark,
+      value: gates.lending ? "active" : "—",
+      detail: gates.lending
+        ? "supply events detected via Vesu indexer"
+        : "no lending activity detected",
+      attestation: gates.lending ? "indexed" : "pending",
+      source: SOURCES.vesu,
+      active: !!gates.lending,
+    },
+    {
+      id: "deploys",
+      label: "Contract Deploys",
+      icon: FileCode2,
+      value: "—",
+      detail: "deploy transaction indexing not yet live",
+      attestation: "pending",
+      source: SOURCES.deploys,
+      active: false,
+    },
+    {
+      id: "receipts",
+      label: "Attested Receipts",
+      icon: Receipt,
+      value: activity.totalReceipts > 0 ? `${activity.totalReceipts} total` : "—",
+      detail:
+        activity.totalReceipts > 0
+          ? `${verified} verified on-chain via ReceiptRegistry`
+          : "no receipts issued yet",
+      attestation: activity.totalReceipts > 0 ? "on-chain" : "pending",
+      source: SOURCES.registry,
+      active: activity.totalReceipts > 0,
+    },
+  ];
+}
+
+/* ── Attestation badge styles ─────────────────────────────────────── */
+
+const ATT_STYLE: Record<string, { label: string; color: string }> = {
+  attested: { label: "attested", color: "text-emerald-500" },
+  indexed: { label: "indexed", color: "text-emerald-500" },
+  "on-chain": { label: "on-chain", color: "text-cyan-400" },
+  pending: { label: "pending", color: "text-zinc-600" },
+};
+
+/* ── Component ────────────────────────────────────────────────────── */
+
+export function BuilderActivityCard({
+  profile,
+  activity,
+}: {
+  profile: ReputationProfile;
+  activity: BuilderActivity;
+}) {
+  const rows = buildRows(profile, activity);
+  const activeCount = rows.filter((r) => r.active).length;
+
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-zinc-300">Builder Profile</h2>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {FACETS.map((facet) => (
-          <FacetCard
-            key={facet.key}
-            facet={facet}
-            data={builder[facet.key]}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FacetCard({ facet, data }: { facet: FacetDef; data: unknown }) {
-  const Icon = facet.icon;
-  const isZkdefi = facet.provenance === "zkdefi";
-  const { headline, details } = renderFacet(facet.key, data);
-  const active = headline !== "—";
-
-  return (
-    <div
-      className={`rounded-xl border px-4 py-3 transition-all ${
-        active
-          ? "border-zinc-700/60 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-900/80 hover:shadow-lg hover:shadow-black/10"
-          : "border-zinc-800/40 bg-zinc-900/30 opacity-60 hover:opacity-80"
-      }`}
-    >
-      {/* Row 1: icon + label */}
-      <div className="flex items-center gap-2">
-        <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-zinc-300" : "text-zinc-600"}`} />
-        <span className={`text-xs font-semibold ${active ? "text-zinc-200" : "text-zinc-500"}`}>
-          {facet.label}
-        </span>
+      <div>
+        <h2 className="text-sm font-semibold text-zinc-300">On-Chain Activity</h2>
+        <p className="mt-0.5 text-[10px] text-zinc-600">
+          {activeCount}/{rows.length} categories active · indexed from Starknet · backed by ReceiptOS
+        </p>
       </div>
 
-      {/* Row 2: headline metric */}
-      <p className={`mt-1.5 text-lg font-bold ${active ? "text-zinc-100" : "text-zinc-600"}`}>
-        {headline}
-      </p>
-
-      {/* Row 3: detail chips */}
-      {details.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {details.map((d, i) => (
-            <span
-              key={i}
-              className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[8px] font-medium ${d.color}`}
+      <div className="divide-y divide-zinc-800/60 rounded-xl border border-zinc-800/60 bg-zinc-900/40">
+        {rows.map((row) => {
+          const Icon = row.icon;
+          const att = ATT_STYLE[row.attestation];
+          return (
+            <div
+              key={row.id}
+              className={`px-4 py-3 transition-all ${
+                row.active ? "hover:bg-zinc-900/80" : "opacity-50"
+              }`}
             >
-              {d.icon && <d.icon className="h-2 w-2" />}
-              {d.text}
-            </span>
-          ))}
-        </div>
-      )}
+              {/* Line 1: icon + label + value */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon
+                    className={`h-3.5 w-3.5 ${
+                      row.active ? "text-zinc-300" : "text-zinc-600"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs font-semibold ${
+                      row.active ? "text-zinc-200" : "text-zinc-500"
+                    }`}
+                  >
+                    {row.label}
+                  </span>
+                </div>
+                <span
+                  className={`font-mono text-xs font-bold ${
+                    row.active ? "text-zinc-100" : "text-zinc-600"
+                  }`}
+                >
+                  {row.value}
+                </span>
+              </div>
 
-      {/* Row 4: provenance + protocol */}
-      <div className="mt-2 flex items-center gap-1.5">
-        {isZkdefi ? (
-          <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-px text-[8px] font-medium text-cyan-400">
-            <Fingerprint className="h-2 w-2" />
-            native
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-0.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-1.5 py-px text-[8px] font-medium text-violet-400">
-            <Globe className="h-2 w-2" />
-            portable
-          </span>
-        )}
-        <span className="truncate text-[9px] text-zinc-500">{facet.protocol}</span>
+              {/* Line 2: detail */}
+              <p className="ml-[22px] mt-1 text-[10px] text-zinc-500">{row.detail}</p>
+
+              {/* Line 3: attestation + source */}
+              <div className="ml-[22px] mt-1 flex items-center gap-1.5">
+                {row.attestation !== "pending" ? (
+                  <CheckCircle2 className={`h-2.5 w-2.5 ${att.color}`} />
+                ) : (
+                  <Circle className="h-2.5 w-2.5 text-zinc-700" />
+                )}
+                <span className="text-[9px] text-zinc-600">
+                  {att.label} · {row.source}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-/* ── Render helpers per facet ─────────────────────────────────────── */
-
-interface Chip {
-  text: string;
-  color: string;
-  icon?: typeof Check;
-}
-
-function renderFacet(
-  key: string,
-  data: unknown,
-): { headline: string; details: Chip[] } {
-  switch (key) {
-    case "proofs": {
-      const p = data as BuilderProfile["proofs"];
-      if (p.total === 0) return { headline: "—", details: [] };
-      const chips: Chip[] = [];
-      if (p.completed > 0)
-        chips.push({
-          text: `${p.completed}/${p.total} complete`,
-          color: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-          icon: Check,
-        });
-      if (p.onChainVerified > 0)
-        chips.push({
-          text: `${p.onChainVerified} on-chain`,
-          color: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400",
-          icon: ShieldCheck,
-        });
-      // Show individual proof types
-      p.types
-        .filter((t) => t.status === "complete")
-        .forEach((t) =>
-          chips.push({
-            text: t.name.replace(/_/g, " "),
-            color: t.onChain
-              ? "border-cyan-500/20 bg-cyan-500/5 text-cyan-500"
-              : "border-zinc-700 bg-zinc-800 text-zinc-400",
-          }),
-        );
-      return { headline: `${p.completed} proofs`, details: chips };
-    }
-
-    case "agents": {
-      const a = data as BuilderProfile["agents"];
-      if (a.count === 0) return { headline: "—", details: [] };
-      const chips: Chip[] = a.agents.map((ag) => ({
-        text: `${ag.name} (${ag.skills} skills)`,
-        color: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-        icon: Bot,
-      }));
-      return { headline: `${a.count} agent${a.count > 1 ? "s" : ""}`, details: chips };
-    }
-
-    case "identity": {
-      const id = data as BuilderProfile["identity"];
-      if (id.links === 0 && !id.hasCommitment) return { headline: "—", details: [] };
-      const chips: Chip[] = [];
-      if (id.hasCommitment)
-        chips.push({
-          text: "commitment",
-          color: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-          icon: Fingerprint,
-        });
-      if (id.verified > 0)
-        chips.push({
-          text: `${id.verified} verified`,
-          color: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-          icon: Check,
-        });
-      if (id.links > id.verified)
-        chips.push({
-          text: `${id.links - id.verified} unverified`,
-          color: "border-zinc-700 bg-zinc-800 text-zinc-400",
-          icon: Minus,
-        });
-      if (id.sessions > 0)
-        chips.push({
-          text: `${id.sessions} session${id.sessions > 1 ? "s" : ""}`,
-          color: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-          icon: Key,
-        });
-      return {
-        headline: `${id.links} link${id.links !== 1 ? "s" : ""}`,
-        details: chips,
-      };
-    }
-
-    case "governance": {
-      const g = data as BuilderProfile["governance"];
-      if (g.votingPower === 0) return { headline: "—", details: [] };
-      const chips: Chip[] = [
-        {
-          text: `$${g.capitalUsd.toFixed(0)} capital`,
-          color: "border-zinc-700 bg-zinc-800 text-zinc-400",
-        },
-        {
-          text: `${g.tierMultiplier}x tier`,
-          color: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-        },
-      ];
-      return { headline: `${g.votingPower.toFixed(2)} VP`, details: chips };
-    }
-
-    case "receipts": {
-      const r = data as BuilderProfile["receipts"];
-      if (r.total === 0) return { headline: "—", details: [] };
-      return {
-        headline: `${r.total} receipt${r.total > 1 ? "s" : ""}`,
-        details: [
-          {
-            text: "audit trail",
-            color: "border-zinc-700 bg-zinc-800 text-zinc-400",
-            icon: FileCheck,
-          },
-        ],
-      };
-    }
-
-    default:
-      return { headline: "—", details: [] };
-  }
 }

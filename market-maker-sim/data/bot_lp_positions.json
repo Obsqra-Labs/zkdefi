@@ -86480,7 +86480,24 @@
       "tx_hash": "0x7323cd8b5d27a5ec8a5c62555a3aaa06c43208548fe7771859d77e69c14e97b",
       "created_at": 1774446233.5774956,
       "status": "active"
+    },
+    {
+      "pair": "STRK/ETH",
+      "pool_key": {
+        "token0": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+        "token1": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+        "fee": 1020847100762815411640772995208708096,
+        "tick_spacing": 1000,
+        "extension": "0x0"
+      },
+      "lower_tick": -88722883,
+      "upper_tick": -88712000,
+      "amount0_wei": 5000000000000000,
+      "amount1_wei": 52515520440003,
+      "tx_hash": "0x1cc676012b56d7b911e396bfa6904cda117c869f779c0642787918c89bed9af",
+      "created_at": 1774483363.3525739,
+      "status": "active"
     }
   ],
-  "updated_at": 1774446233.5775995
+  "updated_at": 1774483363.3526576
 }

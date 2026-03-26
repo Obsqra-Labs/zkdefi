@@ -14,12 +14,8 @@ import type {
   SignalEntry,
   UpgradeRequirements,
   ActivityEntry,
-  BuilderProfile,
-  ProofFacet,
-  AgentFacet,
-  IdentityFacet,
-  GovernanceFacet,
-  ReceiptFacet,
+  BuilderActivity,
+  ReceiptEntry,
 } from "./types";
 
 interface ReputationUser {
@@ -137,109 +133,49 @@ export async function fetchActivity(walletAddress: string): Promise<ActivityEntr
   }
 }
 
-/* ── Builder Profile fetcher ─────────────────────────────────────── */
+/* ── Builder Activity fetcher (receipt-backed) ───────────────────── */
 
-async function fetchProofs(addr: string): Promise<ProofFacet> {
-  try {
-    const data = await apiFetch<{
-      proofs: { proof_type: string; status: string; on_chain_verified?: boolean }[];
-      total_proofs_complete: number;
-    }>(`/api/v1/zkdefi/reputation/proofs/${addr}`, { timeoutMs: 8_000 });
-    const proofs = data.proofs ?? [];
-    return {
-      total: proofs.length,
-      completed: data.total_proofs_complete ?? 0,
-      onChainVerified: proofs.filter((p) => p.on_chain_verified).length,
-      types: proofs.map((p) => ({
-        name: p.proof_type,
-        status: p.status,
-        onChain: !!p.on_chain_verified,
-      })),
-    };
-  } catch {
-    return { total: 0, completed: 0, onChainVerified: 0, types: [] };
-  }
-}
-
-async function fetchAgents(addr: string): Promise<AgentFacet> {
-  try {
-    const data = await apiFetch<{
-      agents: { agent_id: string; name: string; bound_skills?: string[] }[];
-      count: number;
-    }>(`/api/v1/agents/list?owner=${addr}`, { timeoutMs: 8_000 });
-    const agents = data.agents ?? [];
-    return {
-      count: agents.length,
-      agents: agents.map((a) => ({
-        id: a.agent_id,
-        name: a.name,
-        skills: a.bound_skills?.length ?? 0,
-      })),
-    };
-  } catch {
-    return { count: 0, agents: [] };
-  }
-}
-
-async function fetchIdentity(addr: string): Promise<IdentityFacet> {
-  try {
-    const data = await apiFetch<{
-      identity_commitment: string | null;
-      links: { verified?: boolean }[];
-      sessions: { active?: boolean }[];
-    }>(`/api/v1/zkdefi/identity/graph/${addr}`, { timeoutMs: 8_000 });
-    const links = data.links ?? [];
-    return {
-      links: links.length,
-      verified: links.filter((l) => l.verified).length,
-      sessions: (data.sessions ?? []).filter((s) => s.active).length,
-      hasCommitment: !!data.identity_commitment,
-    };
-  } catch {
-    return { links: 0, verified: 0, sessions: 0, hasCommitment: false };
-  }
-}
-
-async function fetchGovernance(addr: string): Promise<GovernanceFacet> {
-  try {
-    const data = await apiFetch<{
-      voting_power: number;
-      base_capital_usd: number;
-      tier_multiplier: number;
-    }>(`/api/v1/zkdefi/dao/voting_power/${addr}`, { timeoutMs: 8_000 });
-    return {
-      votingPower: data.voting_power ?? 0,
-      capitalUsd: data.base_capital_usd ?? 0,
-      tierMultiplier: data.tier_multiplier ?? 1,
-    };
-  } catch {
-    return { votingPower: 0, capitalUsd: 0, tierMultiplier: 1 };
-  }
-}
-
-async function fetchReceipts(addr: string): Promise<ReceiptFacet> {
-  try {
-    const data = await apiFetch<{ total: number }>(
-      `/api/v1/zkdefi/mission_control/receipts/timeline/${addr}?limit=1`,
-      { timeoutMs: 8_000 },
-    );
-    return { total: data.total ?? 0 };
-  } catch {
-    return { total: 0 };
-  }
+interface TimelineResponse {
+  total: number;
+  timeline: {
+    date: string;
+    receipts: {
+      receipt_id: string;
+      timestamp: string;
+      type: string;
+      intent_summary: string;
+      gate_status: string;
+      hashes: { intent: string; policy: string; execution: string; receipt: string };
+      source: string;
+    }[];
+  }[];
 }
 
 /**
- * Fetch the full builder profile — proofs, agents, identity, governance,
- * receipts — all in parallel. Every sub-fetch is fault-tolerant.
+ * Fetch on-chain builder activity — attested receipts from the
+ * ReceiptOS mission-control timeline. Single endpoint, fault-tolerant.
  */
-export async function fetchBuilderProfile(walletAddress: string): Promise<BuilderProfile> {
-  const [proofs, agents, identity, governance, receipts] = await Promise.all([
-    fetchProofs(walletAddress),
-    fetchAgents(walletAddress),
-    fetchIdentity(walletAddress),
-    fetchGovernance(walletAddress),
-    fetchReceipts(walletAddress),
-  ]);
-  return { proofs, agents, identity, governance, receipts };
+export async function fetchBuilderActivity(
+  walletAddress: string,
+): Promise<BuilderActivity> {
+  try {
+    const data = await apiFetch<TimelineResponse>(
+      `/api/v1/zkdefi/mission_control/receipts/timeline/${walletAddress}?limit=50`,
+      { timeoutMs: 10_000 },
+    );
+    const receipts: ReceiptEntry[] = (data.timeline ?? []).flatMap((day) =>
+      (day.receipts ?? []).map((r) => ({
+        receiptId: r.receipt_id ?? "",
+        timestamp: r.timestamp ?? "",
+        type: r.type ?? "unknown",
+        intentSummary: r.intent_summary ?? "",
+        gateStatus: r.gate_status ?? "pending",
+        hashes: r.hashes ?? { intent: "", policy: "", execution: "", receipt: "" },
+        source: r.source ?? "unknown",
+      })),
+    );
+    return { totalReceipts: data.total ?? 0, receipts };
+  } catch {
+    return { totalReceipts: 0, receipts: [] };
+  }
 }
