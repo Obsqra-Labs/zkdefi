@@ -105,11 +105,13 @@ export default function PassportPage() {
       )}
 
       <div className="mt-8 space-y-8">
-        {/* Loading */}
-        {loading && (
+        {/* Wallet connecting / loading data */}
+        {(loading || walletStatus === "connecting" || walletStatus === "reconnecting" || (walletStatus === "connected" && !profile && !error)) && (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Scanning wallet…
+            {walletStatus === "connecting" || walletStatus === "reconnecting"
+              ? "Connecting wallet…"
+              : "Scanning wallet…"}
           </div>
         )}
 

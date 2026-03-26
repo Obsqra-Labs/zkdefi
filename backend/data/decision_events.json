@@ -571761,5 +571761,116 @@
       "proof_hash": null
     },
     "created_at": "2026-03-24T00:35:05.282951+00:00"
+  },
+  {
+    "id": 22500,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "execution_gate_updated",
+    "gate": "execution",
+    "outcome": "updated",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "mode": "advisory",
+      "reason_codes": [
+        "no_active_session"
+      ],
+      "active_sessions": 0,
+      "state_key": "execution.gate_state",
+      "previous": {
+        "mode": "allow",
+        "reason_codes": [],
+        "active_sessions": 2
+      },
+      "current": {
+        "mode": "advisory",
+        "reason_codes": [
+          "no_active_session"
+        ],
+        "active_sessions": 0
+      }
+    },
+    "created_at": "2026-03-26T11:36:11.073070+00:00"
+  },
+  {
+    "id": 22501,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_allow",
+    "gate": "relayer",
+    "outcome": "allow",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": []
+    },
+    "created_at": "2026-03-26T11:36:11.645879+00:00"
+  },
+  {
+    "id": 22502,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_advisory",
+    "gate": "execution",
+    "outcome": "advisory",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": [
+        "no_active_session"
+      ]
+    },
+    "created_at": "2026-03-26T11:36:12.097881+00:00"
+  },
+  {
+    "id": 22503,
+    "user_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "event_type": "gate_allow",
+    "gate": "lending",
+    "outcome": "allow",
+    "value_eth": 0.0,
+    "proof_mode": null,
+    "model_name": null,
+    "model_hash": null,
+    "execution_chain": null,
+    "primary_chain": null,
+    "verification_mode": null,
+    "verified_on_chain": null,
+    "l3_tx_hash": null,
+    "l2_tx_hash": null,
+    "mirror_status": null,
+    "failure_reason": null,
+    "metadata": {
+      "reason_codes": []
+    },
+    "created_at": "2026-03-26T11:36:12.612530+00:00"
   }
 ]

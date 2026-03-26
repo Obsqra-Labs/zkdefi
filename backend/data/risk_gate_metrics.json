@@ -427,5 +427,30 @@
     },
     "updated_at": "2026-03-23T23:04:07.256642+00:00",
     "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
+  },
+  "2026-03-26": {
+    "total": 1,
+    "by_gate": {
+      "relayer": {
+        "allow": 1,
+        "advisory": 0,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 1,
+        "block": 0
+      },
+      "lending": {
+        "allow": 1,
+        "advisory": 0,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "no_active_session": 1
+    },
+    "updated_at": "2026-03-26T11:35:59.686143+00:00",
+    "last_address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d"
   }
 }

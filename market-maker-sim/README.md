@@ -60,6 +60,9 @@ export SEPOLIA_MM_URL=http://127.0.0.1:8099   # optional
 sepolia-mm health
 sepolia-mm get public/pools --pretty
 sepolia-mm urls
+sepolia-mm watch              # live Δ tvl / pool prices (color if tty)
+sepolia-mm watch --jsonl | jq .state.block_number
+sepolia-mm watch --raw        # full payload each tick
 ```
 
 Without install: `PYTHONPATH=. python3 -m sepolia_mm health`

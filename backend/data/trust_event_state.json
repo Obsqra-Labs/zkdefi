@@ -175,9 +175,11 @@
       "linked_verified_count": 1
     },
     "execution.gate_state": {
-      "mode": "allow",
-      "reason_codes": [],
-      "active_sessions": 2
+      "mode": "advisory",
+      "reason_codes": [
+        "no_active_session"
+      ],
+      "active_sessions": 0
     }
   },
   "0x2b43b57d4e6a492692136c81f23230263c513f683d0048d8a47b532d": {

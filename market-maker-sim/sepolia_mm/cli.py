@@ -5,6 +5,7 @@ sepolia-mm — talk to the market-maker-sim API from your terminal.
   sepolia-mm get public/state
   sepolia-mm get public/pools --pretty
   sepolia-mm urls
+  sepolia-mm watch              # live WebSocket + Δ tvl / pool prices
 """
 from __future__ import annotations
 
@@ -102,6 +103,33 @@ def main(argv: list[str] | None = None) -> int:
 
     p_ver = sub.add_parser("version", help="Print CLI version")
     p_ver.set_defaults(func=cmd_version)
+
+    p_watch = sub.add_parser(
+        "watch",
+        help="Stream WebSocket /ws/public (default: summary + colored deltas)",
+    )
+    p_watch.add_argument(
+        "--path",
+        default="/ws/public",
+        help="WebSocket path (default: /ws/public)",
+    )
+    _wgrp = p_watch.add_mutually_exclusive_group()
+    _wgrp.add_argument(
+        "--raw",
+        action="store_true",
+        help="Print full JSON payload each tick (pretty on tty)",
+    )
+    _wgrp.add_argument(
+        "--jsonl",
+        action="store_true",
+        help="One compact JSON line per message (for piping to jq)",
+    )
+    p_watch.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI colors",
+    )
+    p_watch.set_defaults(func=cmd_watch)
 
     args = parser.parse_args(argv)
     return int(args.func(args))
