@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Loader2, CheckCircle2, FileCheck } from "lucide-react";
+import { Loader2, CheckCircle2, FileCheck, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api/client";
 import type { ClaimResponse } from "@/lib/receiptos/types";
 
@@ -44,21 +45,31 @@ export function ClaimButton({ walletAddress, disabled }: ClaimButtonProps) {
           </span>
         </div>
         <div className="mt-2 space-y-1 text-[10px] text-zinc-400">
-          <p>
-            Receipt ID:{" "}
-            <span className="font-mono text-zinc-200">{result.receipt_id}</span>
-          </p>
-          <p>
-            Tx:{" "}
-            <a
-              href={`https://sepolia.voyager.online/tx/${result.tx_hash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-cyan-400 underline"
-            >
-              {result.tx_hash.slice(0, 14)}…
-            </a>
-          </p>
+          {result.receipt_id != null && result.receipt_id > 0 && (
+            <p>
+              Receipt:{" "}
+              <Link
+                href={`/passport/receipt/${result.receipt_id}`}
+                className="font-mono text-cyan-400 underline"
+              >
+                #{result.receipt_id}
+              </Link>
+            </p>
+          )}
+          {result.tx_hash && (
+            <p>
+              Tx:{" "}
+              <a
+                href={`https://sepolia.voyager.online/tx/${result.tx_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 font-mono text-cyan-400 underline"
+              >
+                {result.tx_hash.slice(0, 14)}…
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            </p>
+          )}
         </div>
       </div>
     );

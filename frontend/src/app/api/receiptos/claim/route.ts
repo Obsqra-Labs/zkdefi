@@ -9,8 +9,9 @@ const execAsync = promisify(exec);
  * POST /api/receiptos/claim
  * Body: { "wallet_address": "0x..." }
  *
- * Server-side claim: re-fetches vector, signs policy hash, submits
- * issue_attested_receipt to the ReceiptRegistry on Starknet Sepolia via starkli.
+ * Server-side claim: re-fetches vector, computes deterministic policy hash
+ * from signal values, signs with attester key, reads next_receipt_id, then
+ * submits issue_attested_receipt to the ReceiptRegistry on Starknet Sepolia.
  */
 
 const BACKEND_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8003";
@@ -24,6 +25,21 @@ const REGISTRY_ADDRESS =
 const ATTESTER_SK = process.env.RECEIPTOS_ATTESTER_SK ?? "";
 const SUBMITTER_PK = process.env.RECEIPTOS_SUBMITTER_PK ?? "";
 const STARKLI_ACCOUNT = process.env.STARKNET_ACCOUNT || "/root/.starkli-wallets/deployer/account.json";
+
+/** Read next_receipt_id from the contract so we can return it with the tx. */
+async function readNextReceiptId(): Promise<number> {
+  try {
+    const { stdout } = await execAsync(
+      `starkli call '${REGISTRY_ADDRESS}' 'get_next_receipt_id' --rpc '${STARKNET_RPC}' 2>&1`,
+      { timeout: 15_000 },
+    );
+    // starkli call returns a hex or decimal value on a line
+    const match = stdout.trim().match(/(0x[0-9a-fA-F]+|\d+)/);
+    return match ? Number(match[1]) : 0;
+  } catch {
+    return 0;
+  }
+}
 
 export async function POST(request: Request) {
   if (!ATTESTER_SK || !SUBMITTER_PK) {
@@ -56,7 +72,9 @@ export async function POST(request: Request) {
     if (!scanRes.ok) throw new Error(`Reputation fetch failed: ${scanRes.status}`);
     const raw = await scanRes.json();
 
-    // 2. Compute deterministic policy hash from signal values + timestamp nonce
+    // 2. Compute deterministic policy hash from signal values only.
+    //    No timestamp — same signals always produce the same hash.
+    //    The contract enforces replay protection via used_policy_hashes.
     const walletAgeDays = Number(raw.tenure_days ?? 0);
     const accountType = raw.tier_name ? 1 : 0;
     const txCount = Number(raw.transaction_count ?? 0);
@@ -64,7 +82,6 @@ export async function POST(request: Request) {
     const protocolCount = Object.values(gates).filter(Boolean).length;
     const liquidationCount = Number(raw.failed_txns ?? 0);
     const bridgeInflow = Math.round(Number(raw.collateral_eth ?? 0) * 1e18);
-    const timestamp = Math.floor(Date.now() / 1000);
     const hashInputs = [
       BigInt(walletAgeDays),
       BigInt(accountType),
@@ -72,7 +89,6 @@ export async function POST(request: Request) {
       BigInt(protocolCount),
       BigInt(liquidationCount),
       BigInt(bridgeInflow),
-      BigInt(timestamp),
     ];
     const policyHash = hash.computePoseidonHashOnElements(hashInputs);
 
@@ -81,7 +97,10 @@ export async function POST(request: Request) {
     const sigR = "0x" + signature.r.toString(16);
     const sigS = "0x" + signature.s.toString(16);
 
-    // 4. Submit to chain via starkli (V3 transactions with l1_data_gas)
+    // 4. Read next_receipt_id before submitting so we know what ID gets assigned
+    const receiptId = await readNextReceiptId();
+
+    // 5. Submit to chain via starkli (V3 transactions with l1_data_gas)
     const args = [
       "starkli", "invoke",
       REGISTRY_ADDRESS,
@@ -105,7 +124,7 @@ export async function POST(request: Request) {
     const txMatch = combined.match(/(0x[0-9a-fA-F]{50,})/);
     const txHash = txMatch?.[1] ?? "";
 
-    return NextResponse.json({ tx_hash: txHash });
+    return NextResponse.json({ receipt_id: receiptId, tx_hash: txHash });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Claim failed";
     console.error("Claim error:", err);

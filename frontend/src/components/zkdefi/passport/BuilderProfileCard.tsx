@@ -9,8 +9,11 @@ import {
   Receipt,
   CheckCircle2,
   Circle,
+  ChevronDown,
 } from "lucide-react";
-import type { ReputationProfile, BuilderActivity } from "@/lib/receiptos/types";
+import Link from "next/link";
+import { useState } from "react";
+import type { ReputationProfile, BuilderActivity, ReceiptEntry } from "@/lib/receiptos/types";
 
 /* ── Verified protocol sources (COVERAGE_TABLE) ───────────────────── */
 
@@ -34,6 +37,7 @@ interface Row {
   attestation: "attested" | "indexed" | "on-chain" | "pending";
   source: string;
   active: boolean;
+  receipts?: ReceiptEntry[];
 }
 
 function buildRows(profile: ReputationProfile, activity: BuilderActivity): Row[] {
@@ -112,6 +116,7 @@ function buildRows(profile: ReputationProfile, activity: BuilderActivity): Row[]
       attestation: activity.totalReceipts > 0 ? "on-chain" : "pending",
       source: SOURCES.registry,
       active: activity.totalReceipts > 0,
+      receipts: activity.receipts.length > 0 ? activity.receipts : undefined,
     },
   ];
 }
@@ -136,6 +141,7 @@ export function BuilderActivityCard({
 }) {
   const rows = buildRows(profile, activity);
   const activeCount = rows.filter((r) => r.active).length;
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <div className="space-y-3">
@@ -150,52 +156,96 @@ export function BuilderActivityCard({
         {rows.map((row) => {
           const Icon = row.icon;
           const att = ATT_STYLE[row.attestation];
+          const hasReceipts = row.receipts && row.receipts.length > 0;
+          const isExpanded = expanded === row.id;
           return (
-            <div
-              key={row.id}
-              className={`px-4 py-3 transition-all ${
-                row.active ? "hover:bg-zinc-900/80" : "opacity-50"
-              }`}
-            >
-              {/* Line 1: icon + label + value */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon
-                    className={`h-3.5 w-3.5 ${
-                      row.active ? "text-zinc-300" : "text-zinc-600"
-                    }`}
-                  />
+            <div key={row.id}>
+              <div
+                className={`px-4 py-3 transition-all ${
+                  row.active ? "hover:bg-zinc-900/80" : "opacity-50"
+                } ${hasReceipts ? "cursor-pointer" : ""}`}
+                onClick={hasReceipts ? () => setExpanded(isExpanded ? null : row.id) : undefined}
+              >
+                {/* Line 1: icon + label + value */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      className={`h-3.5 w-3.5 ${
+                        row.active ? "text-zinc-300" : "text-zinc-600"
+                      }`}
+                    />
+                    <span
+                      className={`text-xs font-semibold ${
+                        row.active ? "text-zinc-200" : "text-zinc-500"
+                      }`}
+                    >
+                      {row.label}
+                    </span>
+                    {hasReceipts && (
+                      <ChevronDown
+                        className={`h-3 w-3 text-zinc-600 transition-transform ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                  </div>
                   <span
-                    className={`text-xs font-semibold ${
-                      row.active ? "text-zinc-200" : "text-zinc-500"
+                    className={`font-mono text-xs font-bold ${
+                      row.active ? "text-zinc-100" : "text-zinc-600"
                     }`}
                   >
-                    {row.label}
+                    {row.value}
                   </span>
                 </div>
-                <span
-                  className={`font-mono text-xs font-bold ${
-                    row.active ? "text-zinc-100" : "text-zinc-600"
-                  }`}
-                >
-                  {row.value}
-                </span>
+
+                {/* Line 2: detail */}
+                <p className="ml-[22px] mt-1 text-[10px] text-zinc-500">{row.detail}</p>
+
+                {/* Line 3: attestation + source */}
+                <div className="ml-[22px] mt-1 flex items-center gap-1.5">
+                  {row.attestation !== "pending" ? (
+                    <CheckCircle2 className={`h-2.5 w-2.5 ${att.color}`} />
+                  ) : (
+                    <Circle className="h-2.5 w-2.5 text-zinc-700" />
+                  )}
+                  <span className="text-[9px] text-zinc-600">
+                    {att.label} · {row.source}
+                  </span>
+                </div>
               </div>
 
-              {/* Line 2: detail */}
-              <p className="ml-[22px] mt-1 text-[10px] text-zinc-500">{row.detail}</p>
-
-              {/* Line 3: attestation + source */}
-              <div className="ml-[22px] mt-1 flex items-center gap-1.5">
-                {row.attestation !== "pending" ? (
-                  <CheckCircle2 className={`h-2.5 w-2.5 ${att.color}`} />
-                ) : (
-                  <Circle className="h-2.5 w-2.5 text-zinc-700" />
-                )}
-                <span className="text-[9px] text-zinc-600">
-                  {att.label} · {row.source}
-                </span>
-              </div>
+              {/* Expandable receipt list */}
+              {hasReceipts && isExpanded && (
+                <div className="border-t border-zinc-800/40 bg-zinc-950/40 px-4 py-2">
+                  <div className="space-y-1">
+                    {row.receipts!.slice(0, 10).map((r) => (
+                      <Link
+                        key={r.receiptId}
+                        href={`/passport/receipt/${r.receiptId}`}
+                        className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[10px] transition-colors hover:bg-zinc-800/60"
+                      >
+                        <div className="flex items-center gap-2">
+                          {r.gateStatus === "pass" ? (
+                            <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                          ) : (
+                            <Circle className="h-2.5 w-2.5 text-zinc-600" />
+                          )}
+                          <span className="font-mono text-zinc-400">#{r.receiptId}</span>
+                          <span className="text-zinc-500">{r.intentSummary || r.type}</span>
+                        </div>
+                        <span className="font-mono text-zinc-600">
+                          {r.timestamp ? r.timestamp.slice(0, 10) : ""}
+                        </span>
+                      </Link>
+                    ))}
+                    {row.receipts!.length > 10 && (
+                      <p className="px-2 py-1 text-[9px] text-zinc-600">
+                        + {row.receipts!.length - 10} more receipts
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
