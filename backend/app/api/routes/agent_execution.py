@@ -10,12 +10,17 @@ Provides endpoints for:
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Query, HTTPException, Body
+from fastapi import APIRouter, Query, HTTPException, Body, Request
 from app.middleware.auth import AdminOnly
 from app.services.agent_orchestrator import get_agent_orchestrator
 from app.services.execution_policy_service import get_execution_policy_service
 from app.services.zkdefi_agent_service import ZkdefiAgentService
 from app.services.gas_oracle import get_gas_oracle
+from app.services.canonical_gate_service import (
+    is_blocked,
+    is_lending_intent,
+    resolve_canonical_decisions,
+)
 from app.services.agent_performance_service import (
     get_performance_service,
     PeriodPerformance,
@@ -56,6 +61,7 @@ def _record_execution_perf(
 async def execute_signal(
     address: str = Query(..., description="User address"),
     request_body: dict = Body(...),
+    request: Request = None,
     _admin: str = AdminOnly,
 ):
     """
@@ -83,6 +89,34 @@ async def execute_signal(
             raise HTTPException(
                 status_code=400,
                 detail="Missing 'signal' or 'execution_params' in request body"
+            )
+
+        base = str(request.base_url).rstrip("/") if request else ""
+        gate_ctx = await resolve_canonical_decisions(address, base)
+        execution_gate = gate_ctx.get("execution") if isinstance(gate_ctx, dict) else {}
+
+        if is_blocked(execution_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical trust gate",
+                    "gate": "execution",
+                    "decision": execution_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
+            )
+
+        requires_lending_gate = is_lending_intent(signal=signal, execution_params=execution_params)
+        lending_gate = gate_ctx.get("lending") if isinstance(gate_ctx, dict) else {}
+        if requires_lending_gate and is_blocked(lending_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical lending gate",
+                    "gate": "lending",
+                    "decision": lending_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
             )
         
         # Re-gate the signal against current policy
@@ -135,6 +169,12 @@ async def execute_signal(
                 "status": "wallet_sign_required",
                 "address": address,
                 "signal_id": signal.get("id"),
+                "gate_context": {
+                    "source": gate_ctx.get("source"),
+                    "execution": execution_gate,
+                    "lending": lending_gate if requires_lending_gate else None,
+                    "requires_lending_gate": requires_lending_gate,
+                },
                 "wallet_calldata": {
                     "contract": prepared["contract"],
                     "function": prepared["function"],
@@ -162,6 +202,12 @@ async def execute_signal(
                 "submitted_at": submission["submitted_at"],
                 "address": address,
                 "signal_id": signal.get("id"),
+                "gate_context": {
+                    "source": gate_ctx.get("source"),
+                    "execution": execution_gate,
+                    "lending": lending_gate if requires_lending_gate else None,
+                    "requires_lending_gate": requires_lending_gate,
+                },
             }
         except Exception as relay_err:
             logger.warning(f"Relayer unavailable ({relay_err}), returning calldata for wallet signing")
@@ -175,6 +221,12 @@ async def execute_signal(
                 "status": "wallet_sign_required",
                 "address": address,
                 "signal_id": signal.get("id"),
+                "gate_context": {
+                    "source": gate_ctx.get("source"),
+                    "execution": execution_gate,
+                    "lending": lending_gate if requires_lending_gate else None,
+                    "requires_lending_gate": requires_lending_gate,
+                },
                 "wallet_calldata": {
                     "adapter": call.adapter,
                     "method": call.method,

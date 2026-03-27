@@ -2,7 +2,7 @@
 Agent API Routes for zkde.fi - Create and execute composed agents.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.middleware.auth import WalletOwner
@@ -10,6 +10,11 @@ from typing import Dict, Any, List, Optional
 
 from app.services.agent_service import get_agent_service
 from app.services.agent_performance_service import get_performance_service, PeriodPerformance
+from app.services.canonical_gate_service import (
+    is_blocked,
+    is_lending_intent,
+    resolve_canonical_decisions,
+)
 
 router = APIRouter()
 
@@ -46,16 +51,56 @@ async def list_llm_providers():
 
 
 @router.post("/{agent_id}/execute")
-async def execute_agent_path(agent_id: str, request: ExecuteAgentRequest, _caller: str = WalletOwner):
+async def execute_agent_path(
+    agent_id: str,
+    request: ExecuteAgentRequest,
+    http_request: Request,
+    _caller: str = WalletOwner,
+):
     """Execute agent by path ID - must be before /{agent_id} to avoid path conflict."""
     service = get_agent_service()
     try:
+        base = str(http_request.base_url).rstrip("/")
+        gate_ctx = await resolve_canonical_decisions(request.user_address, base)
+        execution_gate = gate_ctx.get("execution") if isinstance(gate_ctx, dict) else {}
+        requires_lending_gate = is_lending_intent(constraints=request.constraints)
+        lending_gate = gate_ctx.get("lending") if isinstance(gate_ctx, dict) else {}
+
+        if is_blocked(execution_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical trust gate",
+                    "gate": "execution",
+                    "decision": execution_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
+            )
+
+        if requires_lending_gate and is_blocked(lending_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical lending gate",
+                    "gate": "lending",
+                    "decision": lending_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
+            )
+
         result = await service.execute_agent(
             agent_id=agent_id,
             user_address=request.user_address,
             portfolio=request.portfolio,
             constraints=request.constraints
         )
+        if isinstance(result, dict):
+            result["gate_context"] = {
+                "source": gate_ctx.get("source"),
+                "execution": execution_gate,
+                "lending": lending_gate if requires_lending_gate else None,
+                "requires_lending_gate": requires_lending_gate,
+            }
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -98,15 +143,54 @@ async def get_user_agents(user_address: str):
 
 
 @router.post("/execute")
-async def execute_agent(request: ExecuteAgentRequest, _caller: str = WalletOwner):
+async def execute_agent(
+    request: ExecuteAgentRequest,
+    http_request: Request,
+    _caller: str = WalletOwner,
+):
     service = get_agent_service()
     try:
+        base = str(http_request.base_url).rstrip("/")
+        gate_ctx = await resolve_canonical_decisions(request.user_address, base)
+        execution_gate = gate_ctx.get("execution") if isinstance(gate_ctx, dict) else {}
+        requires_lending_gate = is_lending_intent(constraints=request.constraints)
+        lending_gate = gate_ctx.get("lending") if isinstance(gate_ctx, dict) else {}
+
+        if is_blocked(execution_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical trust gate",
+                    "gate": "execution",
+                    "decision": execution_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
+            )
+
+        if requires_lending_gate and is_blocked(lending_gate):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Execution blocked by canonical lending gate",
+                    "gate": "lending",
+                    "decision": lending_gate,
+                    "source": gate_ctx.get("source") if isinstance(gate_ctx, dict) else "unknown",
+                },
+            )
+
         result = await service.execute_agent(
             agent_id=request.agent_id,
             user_address=request.user_address,
             portfolio=request.portfolio,
             constraints=request.constraints
         )
+        if isinstance(result, dict):
+            result["gate_context"] = {
+                "source": gate_ctx.get("source"),
+                "execution": execution_gate,
+                "lending": lending_gate if requires_lending_gate else None,
+                "requires_lending_gate": requires_lending_gate,
+            }
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
