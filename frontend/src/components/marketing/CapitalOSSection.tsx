@@ -16,10 +16,13 @@ import { OracleResults } from "./OracleResults";
 import { ExecutionBlock } from "./ExecutionBlock";
 import { IntelligentStream } from "./IntelligentStream";
 import { useOracleAnalysis } from "@/hooks/useOracleAnalysis";
-import { apiFetch } from "@/lib/api/client";
 import { WalletModal } from "@/components/zkdefi/WalletModal";
 import { Reveal } from "./Reveal";
 import type { AnalysisResult } from "./TrustDemo";
+import {
+  fetchCanonicalRiskProfileV2,
+  toLandingReputationData,
+} from "@/lib/trust/canonicalProfile";
 
 /* ── default skill set (inlined from CapitalBrain) ── */
 const DEFAULT_ENABLED = [
@@ -156,10 +159,8 @@ export function CapitalOSSection() {
     setIdentitySource("demo");
     setIdentityAddress(DEMO_ADDRESS);
     try {
-      const rep = await apiFetch<ReputationData>(
-        `/api/v1/demo/reputation/${DEMO_ADDRESS}`,
-      );
-      setReputation(rep);
+      const profile = await fetchCanonicalRiskProfileV2(DEMO_ADDRESS);
+      setReputation(toLandingReputationData(profile));
     } catch {
       setReputation(GUEST_REPUTATION);
     } finally {
@@ -174,10 +175,8 @@ export function CapitalOSSection() {
       setIdentitySource("connected");
       setIdentityAddress(walletAddress);
       try {
-        const rep = await apiFetch<ReputationData>(
-          `/api/v1/demo/reputation/${walletAddress}`,
-        );
-        setReputation(rep);
+        const profile = await fetchCanonicalRiskProfileV2(walletAddress);
+        setReputation(toLandingReputationData(profile));
       } catch {
         // Preserve the reveal UX even if fetch fails; bind wallet_address to the connected address.
         setReputation({ ...GUEST_REPUTATION, wallet_address: walletAddress });

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiUrl } from "@/lib/api/client";
+import { fetchCanonicalRiskProfileV2 } from "@/lib/trust/canonicalProfile";
 
 export interface RiskProfileBundle {
   address: string;
@@ -509,13 +510,8 @@ export function useRiskProfileV2(address: string | undefined) {
     setLoading(true);
     setError(false);
     try {
-      const response = await fetch(apiUrl(`/api/v1/zkdefi/risk_profile/v2/${address}`), { signal });
-      if (!response.ok) {
-        setError(true);
-        setProfile(null);
-        return;
-      }
-      setProfile((await response.json()) as RiskProfileV2);
+      const payload = await fetchCanonicalRiskProfileV2(address, signal);
+      setProfile(payload);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setError(true);
