@@ -25,6 +25,59 @@ export interface ApiFetchOptions extends RequestInit {
   timeoutMs?: number;
 }
 
+export class ApiError extends Error {
+  status: number;
+  detail: unknown;
+  body: unknown;
+
+  constructor(message: string, status: number, detail: unknown, body: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+    this.body = body;
+  }
+}
+
+export interface TrustGateErrorDetail {
+  error?: string;
+  gate?: string;
+  decision?: {
+    mode?: string;
+    reason_codes?: string[];
+    reason_hints?: string[];
+  };
+  source?: string;
+}
+
+export function getTrustGateErrorDetail(error: unknown): TrustGateErrorDetail | null {
+  if (!(error instanceof ApiError)) return null;
+  const detail = error.detail;
+  if (!detail || typeof detail !== "object" || Array.isArray(detail)) return null;
+  const record = detail as Record<string, unknown>;
+  if (typeof record.error !== "string" && typeof record.gate !== "string") return null;
+  return record as unknown as TrustGateErrorDetail;
+}
+
+export function getApiErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function extractErrorMessage(status: number, body: unknown): string {
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    const record = body as Record<string, unknown>;
+    if (typeof record.detail === "string") return record.detail;
+    if (record.detail && typeof record.detail === "object" && !Array.isArray(record.detail)) {
+      const detailRecord = record.detail as Record<string, unknown>;
+      if (typeof detailRecord.error === "string") return detailRecord.error;
+    }
+    if (typeof record.message === "string") return record.message;
+  }
+  return `API error ${status}`;
+}
+
 /** Generic typed fetch wrapper for API calls */
 export async function apiFetch<T = unknown>(path: string, init?: ApiFetchOptions): Promise<T> {
   const url = apiUrl(path);
@@ -53,7 +106,10 @@ export async function apiFetch<T = unknown>(path: string, init?: ApiFetchOptions
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body?.detail ?? `API error ${res.status}`);
+      const detail = body && typeof body === "object" && !Array.isArray(body)
+        ? (body as Record<string, unknown>).detail
+        : undefined;
+      throw new ApiError(extractErrorMessage(res.status, body), res.status, detail, body);
     }
     return res.json() as Promise<T>;
   } finally {

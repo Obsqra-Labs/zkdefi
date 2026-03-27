@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Brain, Play, Trash2, Check, X, Clock, Zap } from "lucide-react";
-import { apiFetch } from "@/lib/api/client";
+import {
+  apiFetch,
+  getApiErrorMessage,
+  getTrustGateErrorDetail,
+} from "@/lib/api/client";
 
 interface Agent {
   id: string;
@@ -92,6 +96,20 @@ interface ExecutionResult {
   processor_results: ProcessorResult[];
   execution_calldata: string[] | null;
   total_time_ms: number;
+  gate_context?: {
+    source?: string;
+    requires_lending_gate?: boolean;
+    execution?: {
+      mode?: string;
+      reason_codes?: string[];
+      reason_hints?: string[];
+    };
+    lending?: {
+      mode?: string;
+      reason_codes?: string[];
+      reason_hints?: string[];
+    } | null;
+  };
 }
 
 export function MyAgents({
@@ -108,6 +126,8 @@ export function MyAgents({
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+  const [gateError, setGateError] = useState<ReturnType<typeof getTrustGateErrorDetail>>(null);
 
   useEffect(() => {
     fetchAgents();
@@ -132,6 +152,8 @@ export function MyAgents({
   const executeAgent = async (agentId: string) => {
     setExecutingId(agentId);
     setExecutionResult(null);
+    setExecutionError(null);
+    setGateError(null);
     try {
       // Fetch real portfolio from vault status API
       let portfolio: Record<string, unknown> = {
@@ -173,7 +195,9 @@ export function MyAgents({
       });
       setExecutionResult(result);
     } catch (e) {
-      console.error("Network error:", e);
+      console.error("Execution error:", e);
+      setGateError(getTrustGateErrorDetail(e));
+      setExecutionError(getApiErrorMessage(e));
     }
     setExecutingId(null);
   };
@@ -383,6 +407,41 @@ export function MyAgents({
             <Zap className="w-3 h-3" />
             Total time: {executionResult.total_time_ms}ms
           </p>
+        </div>
+      )}
+
+      {!executionResult && executionError && (
+        <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-red-500/10">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-medium text-sm text-red-200">Execution blocked</h4>
+            <button onClick={() => { setExecutionError(null); setGateError(null); }} className="text-zinc-500 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-sm text-red-100">{executionError}</p>
+          {gateError?.gate && (
+            <p className="mt-1 text-xs text-red-200/80">
+              Gate: {gateError.gate}{gateError.source ? ` · ${gateError.source}` : ""}
+            </p>
+          )}
+          {Array.isArray(gateError?.decision?.reason_hints) && gateError.decision.reason_hints.length > 0 ? (
+            <div className="mt-3 space-y-1">
+              {gateError.decision.reason_hints.map((hint) => (
+                <p key={hint} className="text-xs text-red-100/90">• {hint}</p>
+              ))}
+            </div>
+          ) : Array.isArray(gateError?.decision?.reason_codes) && gateError.decision.reason_codes.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {gateError.decision.reason_codes.map((code) => (
+                <span
+                  key={code}
+                  className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] text-red-100"
+                >
+                  {code}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

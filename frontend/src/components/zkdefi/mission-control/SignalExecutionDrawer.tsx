@@ -27,7 +27,13 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { apiFetch, apiFetchAuth } from "@/lib/api/client";
+import {
+  apiFetch,
+  apiFetchAuth,
+  getApiErrorMessage,
+  getTrustGateErrorDetail,
+  type TrustGateErrorDetail,
+} from "@/lib/api/client";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { useAccount } from "@starknet-react/core";
@@ -73,6 +79,20 @@ interface ExecutionResult {
     method: string;
     calldata: Record<string, unknown>;
     estimated_gas?: number;
+  };
+  gate_context?: {
+    source?: string;
+    requires_lending_gate?: boolean;
+    execution?: {
+      mode?: string;
+      reason_codes?: string[];
+      reason_hints?: string[];
+    };
+    lending?: {
+      mode?: string;
+      reason_codes?: string[];
+      reason_hints?: string[];
+    } | null;
   };
 }
 
@@ -131,12 +151,14 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
+  const [gateError, setGateError] = useState<TrustGateErrorDetail | null>(null);
 
   // Reset state when signal changes
   useEffect(() => {
     setSimulation(null);
     setResult(null);
     setPollStatus(null);
+    setGateError(null);
     setAmount("100");
   }, [signal?.id]);
 
@@ -187,6 +209,7 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
   const handleExecute = useCallback(async () => {
     if (!signal || !address) return;
     setExecuting(true);
+    setGateError(null);
     try {
       const res = await apiFetchAuth<ExecutionResult>(
         `/api/v1/zkdefi/oracle/execute?address=${encodeURIComponent(address)}`,
@@ -226,7 +249,11 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
         toastSuccess(`Execution submitted — ${res.tx_hash?.slice(0, 12) ?? res.call_id?.slice(0, 12)}…`);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const detail = getTrustGateErrorDetail(err);
+      if (detail) {
+        setGateError(detail);
+      }
+      const msg = getApiErrorMessage(err);
       toastError(`Execution failed: ${msg}`);
     } finally {
       setExecuting(false);
@@ -512,6 +539,39 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
         <div className="flex items-start gap-2 text-xs text-amber-400 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>Large execution — policy gating may require additional verification.</span>
+        </div>
+      )}
+
+      {gateError && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-3 space-y-2">
+          <div className="flex items-start gap-2 text-red-300">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">{gateError.error ?? "Blocked by trust gate"}</p>
+              <p className="text-[11px] text-red-200/80">
+                {gateError.gate ? `Gate: ${gateError.gate}` : "Gate decision unavailable"}
+                {gateError.source ? ` · ${gateError.source}` : ""}
+              </p>
+            </div>
+          </div>
+          {Array.isArray(gateError.decision?.reason_hints) && gateError.decision.reason_hints.length > 0 ? (
+            <div className="space-y-1">
+              {gateError.decision.reason_hints.map((hint) => (
+                <p key={hint} className="text-xs text-red-100/90">• {hint}</p>
+              ))}
+            </div>
+          ) : Array.isArray(gateError.decision?.reason_codes) && gateError.decision.reason_codes.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {gateError.decision.reason_codes.map((code) => (
+                <span
+                  key={code}
+                  className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] text-red-100"
+                >
+                  {code}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
 
