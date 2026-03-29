@@ -274,6 +274,11 @@ type Props = {
       value: string;
     }>;
   } | null;
+  suggestedSwapFallback?: {
+    label: string;
+    detail: string;
+  } | null;
+  onUseSuggestedSwap?: () => void;
 };
 
 export function TargetEditor(props: Props) {
@@ -303,6 +308,8 @@ export function TargetEditor(props: Props) {
     onTargetChange,
     targetWeightSum,
     draftGuidance,
+    suggestedSwapFallback,
+    onUseSuggestedSwap,
   } = props;
 
   return (
@@ -466,6 +473,21 @@ export function TargetEditor(props: Props) {
                         <p className="mt-1 text-sm font-medium text-white">{stat.value}</p>
                       </div>
                     ))}
+                  </div>
+                ) : null}
+                {suggestedSwapFallback && onUseSuggestedSwap ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-950/45 px-3 py-2.5">
+                    <div>
+                      <p className="text-xs font-medium text-white">{suggestedSwapFallback.label}</p>
+                      <p className="mt-0.5 text-[11px] text-zinc-400">{suggestedSwapFallback.detail}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onUseSuggestedSwap}
+                      className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+                    >
+                      Use simpler swap
+                    </button>
                   </div>
                 ) : null}
               </div>

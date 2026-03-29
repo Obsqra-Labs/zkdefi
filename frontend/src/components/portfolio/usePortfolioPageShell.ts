@@ -228,6 +228,17 @@ export function usePortfolioPageShell() {
     return "Manual target";
   }, [actionType, aiProposalApplied, aiProposalKey, currentProposalKey]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
+  const suggestedSwapFallback = useMemo(() => {
+    if (actionType !== "rebalance") return null;
+    const step = gateResult?.swap_steps?.[0];
+    if (!step || (gateResult?.swap_steps?.length ?? 0) !== 1) return null;
+    const totalValue = portfolio?.total_value_usd ?? totalTrackedValue;
+    if (totalValue > 25 && gateResult?.allowed) return null;
+    return {
+      label: `${step.from_asset} → ${step.to_asset} may clear more cleanly`,
+      detail: `Instead of shopping percentage targets, switch this draft to one direct ${formatAssetAmount(step.amount, step.from_asset)} ${step.from_asset} swap.`,
+    };
+  }, [actionType, gateResult, portfolio?.total_value_usd, totalTrackedValue]);
   const deskState = useMemo(() => {
     if (executionTxHash) {
       return {
@@ -455,6 +466,19 @@ export function usePortfolioPageShell() {
   const applyAiTargets = () => {
     if (!aiTargetAllocations) return;
     applyTargetAllocationMap(normalizeAllocationMap(aiTargetAllocations));
+  };
+
+  const applySuggestedSwapFallback = () => {
+    const step = gateResult?.swap_steps?.[0];
+    if (!step) return;
+    setActionType("swap");
+    setSwapAssetIn(step.from_asset);
+    setSwapAssetOut(step.to_asset);
+    setSwapAmount(formatEditableAmount(step.amount, step.from_asset));
+    setAiProposalApplied(false);
+    setExecutionNote(
+      `Switched to the simpler ${step.from_asset} → ${step.to_asset} swap so the desk can check one direct path instead of a full rebalance.`,
+    );
   };
 
   const signPreparedRebalance = async () => {
@@ -893,6 +917,8 @@ export function usePortfolioPageShell() {
     pendingRouteLabel,
     lastPreparedAdapter,
     fromWei,
+    suggestedSwapFallback,
+    onUseSuggestedSwap: applySuggestedSwapFallback,
   };
 
   const rightRailProps = {

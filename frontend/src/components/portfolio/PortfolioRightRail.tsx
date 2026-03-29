@@ -99,7 +99,7 @@ function RailSection({
       <div
         className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
           open ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-3 grid-rows-[0fr] opacity-70"
-        } xl:mt-4 xl:grid-rows-[1fr] xl:opacity-100`}
+        }`}
       >
         <div className="min-h-0 overflow-hidden">{children}</div>
       </div>

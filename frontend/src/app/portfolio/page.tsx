@@ -1,6 +1,5 @@
 "use client";
 
-import { PortfolioCapitalOverview } from "@/components/portfolio/PortfolioCapitalOverview";
 import { PortfolioDisconnectedState } from "@/components/portfolio/PortfolioDisconnectedState";
 import { PortfolioErrorBanner } from "@/components/portfolio/PortfolioErrorBanner";
 import { PortfolioHeaderStrip } from "@/components/portfolio/PortfolioHeaderStrip";
@@ -13,9 +12,6 @@ export default function PortfolioPage() {
     address,
     isConnected,
     error,
-    supportedAssets,
-    assetSummary,
-    currentAllocations,
     hasSupportedCapital,
     unsupportedAssets,
     headerProps,
@@ -35,13 +31,26 @@ export default function PortfolioPage() {
 
         {error ? <PortfolioErrorBanner message={error} /> : null}
 
-        <PortfolioCapitalOverview
-          supportedAssets={supportedAssets}
-          assetSummary={assetSummary}
-          currentAllocations={currentAllocations}
-          hasSupportedCapital={hasSupportedCapital}
-          unsupportedAssets={unsupportedAssets}
-        />
+        {!hasSupportedCapital ? (
+          <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.3)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Current allocation</p>
+                <h2 className="mt-1 text-xl font-semibold text-white">
+                  {unsupportedAssets.length ? "Unsupported wallet mix" : "No portfolio yet"}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+                  {unsupportedAssets.length
+                    ? "/portfolio mainnet-v1 currently supports ETH, STRK, and USDC only. Unsupported holdings stay outside the main execution path for now."
+                    : "Wallet balances will appear here after the next scan. The desk stays visible so the flow still makes sense before funds land."}
+                </p>
+              </div>
+              <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-300">
+                ETH · STRK · USDC
+              </span>
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
           <PortfolioMainDesk {...mainDeskProps} />

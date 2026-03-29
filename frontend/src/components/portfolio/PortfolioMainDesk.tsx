@@ -136,6 +136,11 @@ type Props = {
   pendingRouteLabel: string | null;
   lastPreparedAdapter: string | null;
   fromWei: (amountWei: number, asset: SupportedAsset) => number;
+  suggestedSwapFallback: {
+    label: string;
+    detail: string;
+  } | null;
+  onUseSuggestedSwap: () => void;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -207,6 +212,8 @@ export function PortfolioMainDesk(props: Props) {
     pendingRouteLabel,
     lastPreparedAdapter,
     fromWei,
+    suggestedSwapFallback,
+    onUseSuggestedSwap,
   } = props;
 
   const actionValueUsd = gateResult?.swap_steps?.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0) ?? 0;
@@ -563,6 +570,8 @@ export function PortfolioMainDesk(props: Props) {
           onTargetChange={onTargetChange}
           targetWeightSum={targetWeightSum}
           draftGuidance={draftGuidance}
+          suggestedSwapFallback={suggestedSwapFallback}
+          onUseSuggestedSwap={onUseSuggestedSwap}
         />
       </section>
 
