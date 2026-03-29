@@ -98,25 +98,44 @@ export function PrimaryActionTray({
 
   return (
     <div className="mt-3.5 rounded-[20px] border border-zinc-800/80 bg-zinc-900/45 p-3.5 transition-[border-color,background-color,transform,box-shadow] duration-300 ease-out">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          <button
-            onClick={onRunGateCheck}
-            disabled={checking || executing}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Check now
-          </button>
-          <button
-            type="button"
-            onClick={onToggleSafetyDetails}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
-          >
-            <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-300 ${showSafetyDetails ? "rotate-90" : ""}`} />
-            {showSafetyDetails ? "Hide details" : "Safety details"}
-          </button>
-          <StatusPill tone={statusTone}>{statusTitle}</StatusPill>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 text-sm text-zinc-100">
+              {statusIcon}
+              <span className="font-medium">{statusTitle}</span>
+            </div>
+            <StatusPill tone={statusTone}>{label}</StatusPill>
+          </div>
+          <p className="mt-2 text-sm text-zinc-400">{statusBody}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+            <button
+              onClick={onRunGateCheck}
+              disabled={checking || executing}
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Recheck
+            </button>
+            <button
+              type="button"
+              onClick={onToggleSafetyDetails}
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
+            >
+              <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-300 ${showSafetyDetails ? "rotate-90" : ""}`} />
+              {showSafetyDetails ? "Hide report" : "Gate report"}
+            </button>
+            {executionLink ? (
+              <a
+                href={executionLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
+              >
+                View on Voyager
+              </a>
+            ) : null}
+          </div>
         </div>
         <button
           onClick={onPrimaryAction}
@@ -138,41 +157,6 @@ export function PrimaryActionTray({
           )}
           {primaryActionLabel}
         </button>
-      </div>
-
-      <div
-        className={`mt-3 rounded-2xl border px-3.5 py-3 ${
-          walletMismatch || proposalOutdated
-            ? "border-amber-500/20 bg-amber-500/10 text-amber-100"
-            : overridePrimaryAction
-              ? "border-amber-500/20 bg-amber-500/10 text-amber-100"
-            : executionNote
-              ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-100"
-              : tone === "good"
-                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
-                : "border-zinc-800 bg-zinc-900/60 text-zinc-200"
-        } transition-[border-color,background-color,opacity,transform] duration-300 ease-out`}
-        aria-live="polite"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            {statusIcon}
-            <div>
-              <p className="text-sm font-medium">{statusTitle}</p>
-              <p className="mt-0.5 text-sm opacity-90">{statusBody}</p>
-            </div>
-          </div>
-          {executionLink ? (
-            <a
-              href={executionLink}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 text-xs underline underline-offset-4 transition-opacity duration-200 hover:opacity-80"
-            >
-              View on Voyager
-            </a>
-          ) : null}
-        </div>
       </div>
     </div>
   );

@@ -551,28 +551,38 @@ export function PortfolioMainDesk(props: Props) {
               : "border-cyan-500/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),rgba(9,9,11,0.92)_45%)]"
         }`}
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_340px] xl:items-start">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{gateHero.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
-              <StatusPill tone={deskTone}>{deskLabel}</StatusPill>
-              <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                Confidence {gateConfidence}
-              </span>
-              <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} network cost
-              </span>
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
-            <MetricTile label="Checks run" value={`${passedGateCount + warningGateConstraints.length + failedGateConstraints.length}`} tone="default" />
-            <MetricTile label="Blockers" value={`${failedGateConstraints.length}`} tone={failedGateConstraints.length ? "warning" : "good"} />
-            <MetricTile label="Warnings" value={`${warningGateConstraints.length}`} tone={warningGateConstraints.length ? "warning" : "default"} />
-            <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{gateHero.title}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
+            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {passedGateCount} passed
+            </span>
+            <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+              warningGateConstraints.length
+                ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                : "border-zinc-700/80 bg-zinc-950/70 text-zinc-300"
+            }`}>
+              {warningGateConstraints.length} warnings
+            </span>
+            <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+              failedGateConstraints.length
+                ? "border-red-500/20 bg-red-500/10 text-red-200"
+                : "border-zinc-700/80 bg-zinc-950/70 text-zinc-300"
+            }`}>
+              {failedGateConstraints.length} blockers
+            </span>
+            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {gateConfidence} confidence
+            </span>
+            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {formatUsd(actionValueUsd)} moved
+            </span>
+            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} cost
+            </span>
           </div>
         </div>
 
