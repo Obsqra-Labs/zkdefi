@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { assetAccentClasses, formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import type { SupportedAsset } from "./types";
@@ -311,6 +311,13 @@ export function TargetEditor(props: Props) {
     suggestedSwapFallback,
     onUseSuggestedSwap,
   } = props;
+  const [showAllocationOverview, setShowAllocationOverview] = useState(false);
+  const allocationDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => ({
+    asset,
+    delta: userTargetAllocations[asset] - currentAllocations[asset],
+  }));
+  const largestAdd = allocationDeltas.filter((item) => item.delta > 0).sort((a, b) => b.delta - a.delta)[0] ?? null;
+  const largestTrim = allocationDeltas.filter((item) => item.delta < 0).sort((a, b) => a.delta - b.delta)[0] ?? null;
 
   return (
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -416,28 +423,32 @@ export function TargetEditor(props: Props) {
         </>
       ) : (
         <>
-          <AllocationOverviewCard
-            currentAllocations={currentAllocations}
-            userTargetAllocations={userTargetAllocations}
-            aiTargetAllocations={aiTargetAllocations}
-          />
-
           <div className="sm:col-span-2 rounded-[24px] border border-zinc-800 bg-zinc-900/70 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Target editor</p>
-                <p className="mt-1 text-sm text-zinc-300">Edit your owned target directly, or start from a preset.</p>
+                <p className="mt-1 text-sm text-zinc-300">Edit your owned target directly, or start from a preset. Open the full comparison only when you need it.</p>
               </div>
-              <div
-                className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                  Math.abs(targetWeightSum - 100) <= 1
-                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                    : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-                }`}
-              >
-                Target total {targetWeightSum.toFixed(1)}%
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                    Math.abs(targetWeightSum - 100) <= 1
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                      : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                  }`}
+                >
+                  Target total {targetWeightSum.toFixed(1)}%
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllocationOverview((current) => !current)}
+                  className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                >
+                  {showAllocationOverview ? "Hide comparison" : "Show comparison"}
+                </button>
               </div>
             </div>
+
             <div className="mt-3 flex flex-wrap gap-2">
               {rebalancePresets.map((preset) => (
                 <button
@@ -450,6 +461,37 @@ export function TargetEditor(props: Props) {
                 </button>
               ))}
             </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {largestAdd ? (
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
+                  Largest add {largestAdd.asset} {formatPercent(largestAdd.delta, 1)}
+                </span>
+              ) : null}
+              {largestTrim ? (
+                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200">
+                  Largest trim {largestTrim.asset} {formatPercent(Math.abs(largestTrim.delta), 1)}
+                </span>
+              ) : null}
+              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] text-zinc-300">
+                {(["ETH", "STRK", "USDC"] as SupportedAsset[]).length} tracked assets
+              </span>
+            </div>
+
+            <div
+              className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+                showAllocationOverview ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <AllocationOverviewCard
+                  currentAllocations={currentAllocations}
+                  userTargetAllocations={userTargetAllocations}
+                  aiTargetAllocations={aiTargetAllocations}
+                />
+              </div>
+            </div>
+
             {draftGuidance ? (
               <div
                 className={`mt-3 rounded-2xl border px-3.5 py-3 text-sm ${
@@ -463,15 +505,14 @@ export function TargetEditor(props: Props) {
                 <p className="font-medium text-white">{draftGuidance.title}</p>
                 <p className="mt-1 text-xs text-zinc-300/85">{draftGuidance.body}</p>
                 {draftGuidance.stats?.length ? (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {draftGuidance.stats.map((stat) => (
-                      <div
+                      <span
                         key={`${stat.label}-${stat.value}`}
-                        className="rounded-xl border border-white/10 bg-zinc-950/45 px-3 py-2"
+                        className="rounded-full border border-white/10 bg-zinc-950/45 px-3 py-1.5 text-[11px] text-zinc-100"
                       >
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{stat.label}</p>
-                        <p className="mt-1 text-sm font-medium text-white">{stat.value}</p>
-                      </div>
+                        <span className="text-zinc-400">{stat.label}</span> {stat.value}
+                      </span>
                     ))}
                   </div>
                 ) : null}
