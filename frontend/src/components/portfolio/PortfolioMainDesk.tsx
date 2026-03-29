@@ -68,33 +68,6 @@ function StatusPill({
   );
 }
 
-function GateCheckStat({
-  label,
-  value,
-  tone,
-  detail,
-}: {
-  label: string;
-  value: number;
-  tone: "good" | "neutral" | "warning";
-  detail: string;
-}) {
-  const className =
-    tone === "good"
-      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
-      : tone === "warning"
-        ? "border-amber-500/20 bg-amber-500/10 text-amber-100"
-        : "border-cyan-500/20 bg-cyan-500/10 text-cyan-100";
-
-  return (
-    <div className={`rounded-xl border px-3 py-3 ${className}`}>
-      <p className="text-[10px] uppercase tracking-[0.18em] opacity-80">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
-      <p className="mt-1 text-xs text-zinc-300/80">{detail}</p>
-    </div>
-  );
-}
-
 type Props = {
   checking: boolean;
   executing: boolean;
@@ -380,13 +353,6 @@ export function PortfolioMainDesk(props: Props) {
       delta: feeGuardResult?.passed ? (feeGuardResult.warning ? "Expensive" : "Normal") : "Pressured",
       body: "Estimated fee and how much of the moved value it consumes.",
     },
-    {
-      label: "Gas reserve",
-      current: gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? "Reserve active" : "Clear",
-      projected: gateResult?.allowed ? "Signing lane open" : "Needs adjustment",
-      delta: gasReserveResult?.passed ? "Protected" : "Tight",
-      body: "Whether STRK reserve handling still leaves a clean path for wallet signing.",
-    },
   ];
 
   return (
@@ -418,14 +384,37 @@ export function PortfolioMainDesk(props: Props) {
               </div>
             </div>
 
-            <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-[360px]">
-              <GateCheckStat label="Passed" value={passedGateCount} tone="good" detail="Cleared checks" />
-              <GateCheckStat label="Warnings" value={warningGateConstraints.length} tone="neutral" detail="Review items" />
-              <GateCheckStat label="Blockers" value={failedGateConstraints.length} tone="warning" detail="Execution stops" />
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/65 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Value moved</p>
-                <p className="mt-2 text-lg font-semibold text-white">{formatUsd(actionValueUsd)}</p>
-                <p className="mt-1 text-xs text-zinc-500">{gateResult?.swap_steps.length ?? 0} trade{(gateResult?.swap_steps.length ?? 0) === 1 ? "" : "s"}</p>
+            <div className="w-full rounded-[24px] border border-zinc-800/80 bg-zinc-950/60 p-4 xl:w-[360px]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Gate snapshot</p>
+                  <p className="mt-1 text-sm font-medium text-white">What the Gate saw on this exact draft</p>
+                </div>
+                <span className="rounded-full border border-zinc-700/80 bg-zinc-950/80 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                  {gateResult?.swap_steps.length ?? 0} trade{(gateResult?.swap_steps.length ?? 0) === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  { label: "Passed", value: passedGateCount, tone: "text-emerald-200" },
+                  { label: "Warnings", value: warningGateConstraints.length, tone: "text-cyan-200" },
+                  { label: "Blockers", value: failedGateConstraints.length, tone: "text-amber-200" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{item.label}</p>
+                    <p className={`mt-1.5 text-lg font-semibold ${item.tone}`}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Value moved</p>
+                  <p className="mt-1.5 text-base font-semibold text-white">{formatUsd(actionValueUsd)}</p>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Confidence</p>
+                  <p className="mt-1.5 text-base font-semibold text-white">{gateConfidence}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -440,23 +429,22 @@ export function PortfolioMainDesk(props: Props) {
                 <Bot className="h-5 w-5 text-amber-300" />
               </div>
               <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current lead</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Before → after</p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    {currentLeader ? `${currentLeader[0]} ${formatPercent(currentLeader[1], 0)}` : "n/a"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Target lead</p>
-                  <p className="mt-1 text-sm font-medium text-white">
+                    {currentLeader ? `${currentLeader[0]} ${formatPercent(currentLeader[1], 0)}` : "n/a"} →{" "}
                     {targetLeader ? `${targetLeader[0]} ${formatPercent(targetLeader[1], 0)}` : "n/a"}
                   </p>
                 </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Expected shift</p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    {recommendation?.drift_monitor?.largest_gap_asset ?? "ETH"} {formatPercent(recommendation?.drift_monitor?.largest_gap_pct ?? 0, 0)}
+                    {recommendation?.drift_monitor?.largest_gap_asset ?? "ETH"}{" "}
+                    {formatPercent(recommendation?.drift_monitor?.largest_gap_pct ?? 0, 0)}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Turnover {formatPercent(recommendation?.drift_monitor?.total_turnover_pct ?? 0, 0)}
                   </p>
                 </div>
               </div>
@@ -464,17 +452,26 @@ export function PortfolioMainDesk(props: Props) {
 
             <div className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/55 p-4">
               <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why the Gate decided this</p>
-              <div className="mt-3 grid gap-2">
+              <div className="mt-3 grid gap-1.5">
                 {decisiveChecks.length ? (
                   decisiveChecks.map((item) => (
-                    <div key={`${item.tone}-${item.title}`} className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-white">{item.title}</p>
-                        <StatusPill tone={item.tone === "blocked" ? "warning" : "neutral"}>
-                          {item.tone === "blocked" ? "Blocker" : "Warning"}
-                        </StatusPill>
+                    <div key={`${item.tone}-${item.title}`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                            item.tone === "blocked" ? "bg-amber-400" : "bg-cyan-400"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium text-white">{item.title}</p>
+                            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                              {item.tone === "blocked" ? "Blocker" : "Warning"}
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-xs leading-5 text-zinc-400">{item.reason}</p>
+                        </div>
                       </div>
-                      <p className="mt-1.5 text-xs leading-5 text-zinc-400">{item.reason}</p>
                     </div>
                   ))
                 ) : (
@@ -588,7 +585,7 @@ export function PortfolioMainDesk(props: Props) {
             <p className="text-xs text-zinc-500">A compact read of the before-and-after effect on this wallet.</p>
           </div>
 
-          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-3">
             {impactCards.map((card) => (
               <div key={card.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">{card.label}</p>
