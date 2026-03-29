@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiUrl } from "@/lib/api/client";
+import { ApiError, apiUrl } from "@/lib/api/client";
 import { fetchCanonicalRiskProfileV2 } from "@/lib/trust/canonicalProfile";
+
+const RISK_PROFILE_V2_MISSING_SESSION_KEY = "zkdefi:risk_profile_v2_missing";
+const RISK_PROFILE_V2_MISSING_TTL_MS = 60_000;
 
 export interface RiskProfileBundle {
   address: string;
@@ -141,6 +144,14 @@ export interface RiskProfileV2 {
     formula_version: string;
     basis?: string;
   };
+  portfolio?: {
+    total_value_usd: number;
+    protocol_count: number;
+    position_count: number;
+    protocols_found: string[];
+    snapshot_hash?: string | null;
+    scanned_at?: string | null;
+  };
   trust_tuple?: {
     reputation?: Record<string, unknown>;
     credit?: Record<string, unknown>;
@@ -166,6 +177,9 @@ export interface RiskProfileV2 {
     credit_line_eth: number;
     collaborative_multiplier: number;
     model_name: string;
+    model_hash?: string | null;
+    proof_hash?: string | null;
+    proof_hex?: string | null;
   } | null;
   feature_flags?: Record<string, unknown>;
   generated_at?: string;
@@ -254,6 +268,154 @@ async function fetchLegacyBundle(address: string): Promise<RiskProfileBundle> {
     session_summary,
     governance,
     dual_wallet_session,
+  };
+}
+
+function toRiskProfileV2FromLegacy(bundle: RiskProfileBundle): RiskProfileV2 {
+  const reputation = bundle.reputation ?? {
+    tier: 0,
+    tier_name: "Strict",
+    tenure_days: 0,
+    successful_txns: 0,
+    collateral_eth: 0,
+    total_volume_eth: 0,
+    transaction_count: 0,
+  };
+  const passport = bundle.risk_passport ?? {
+    composite_score: 0,
+    letter_rating: "D",
+    tier: 0,
+    tier_name: "Strict",
+    credit_tier: null,
+    credit_score: null,
+    proof_receipts: [],
+  };
+  const linked = bundle.linked_addresses ?? {};
+  const verification =
+    linked && typeof linked === "object" && "verification" in linked
+      ? ((linked as unknown as { verification?: Record<string, { verified?: boolean; verified_at?: string | null }> })
+          .verification ?? {})
+      : {};
+
+  const linkedEntries = ([
+    ["eth", "ethereum"],
+    ["arb", "arbitrum"],
+    ["base", "base"],
+    ["opt", "optimism"],
+  ] as const)
+    .map(([key, chain]) => {
+      const value = linked[key];
+      if (!value) return null;
+      return {
+        chain,
+        address: value,
+        verified: Boolean(verification?.[key]?.verified),
+        verified_at: verification?.[key]?.verified_at ?? null,
+      };
+    })
+    .filter(Boolean) as RiskProfileV2["identity"]["linked_addresses"];
+
+  const proofReceipts = Array.isArray(passport.proof_receipts) ? passport.proof_receipts : [];
+  const byType = proofReceipts.reduce<Record<string, number>>((acc, row) => {
+    const proofType =
+      row && typeof row === "object" && typeof row.proof_type === "string"
+        ? row.proof_type
+        : "unknown";
+    acc[proofType] = (acc[proofType] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const repGates =
+    bundle.reputation && typeof (bundle.reputation as Record<string, unknown>).gates === "object"
+      ? ((bundle.reputation as Record<string, unknown>).gates as Record<string, unknown>)
+      : {};
+
+  const executionAllowed = Boolean(repGates.canSwap);
+  const lendingAllowed = Boolean(repGates.canLend) || Boolean(repGates.canBorrow);
+
+  return {
+    profile_version: "2.0-fallback",
+    address: bundle.address,
+    identity: {
+      has_agent: Boolean(bundle.onboarding?.has_agent),
+      identity_commitment: bundle.onboarding?.identity_commitment ?? null,
+      linked_addresses: linkedEntries,
+      session_summary: {
+        count: bundle.session_summary?.count ?? 0,
+        active_count: bundle.session_summary?.active_count ?? 0,
+      },
+      dual_wallet_session: bundle.dual_wallet_session ?? {
+        active: false,
+        status: "missing",
+      },
+    },
+    reputation: {
+      tier: reputation.tier ?? 0,
+      tier_name: reputation.tier_name ?? "Strict",
+      tenure_days: reputation.tenure_days ?? 0,
+      transaction_count: reputation.transaction_count ?? reputation.successful_txns ?? 0,
+      successful_txns: reputation.successful_txns ?? 0,
+      collateral_eth: reputation.collateral_eth ?? 0,
+      total_volume_eth: reputation.total_volume_eth ?? 0,
+    },
+    passport: {
+      composite_score: passport.composite_score ?? 0,
+      letter_rating: passport.letter_rating ?? "D",
+      tier: passport.tier ?? 0,
+      tier_name: passport.tier_name ?? "Strict",
+      credit_tier: passport.credit_tier ?? null,
+      credit_score: passport.credit_score ?? null,
+      receipt_summary: {
+        count: proofReceipts.length,
+        by_type: byType,
+      },
+    },
+    governance: bundle.governance
+      ? {
+          voting_power: bundle.governance.voting_power ?? 0,
+          lp_usd: bundle.governance.lp_usd ?? 0,
+          lending_usd: bundle.governance.lending_usd ?? 0,
+          staking_usd: bundle.governance.staking_usd ?? 0,
+          tier_multiplier: bundle.governance.tier_multiplier ?? 1,
+          formula_version: bundle.governance.formula_version ?? "legacy",
+          basis: bundle.governance.basis,
+        }
+      : undefined,
+    decisions: {
+      execution: {
+        mode: executionAllowed ? "allow" : "advisory",
+        reason_codes: executionAllowed ? ["legacy_gate_allow_swap"] : ["legacy_gate_no_swap_allowance"],
+        reason_hints: executionAllowed
+          ? ["Legacy reputation gate allows spot execution."]
+          : ["Legacy reputation gate does not currently allow spot execution."],
+      },
+      relayer: {
+        mode: executionAllowed ? "allow" : "advisory",
+        reason_codes: executionAllowed ? ["legacy_gate_allow_relayer"] : ["legacy_gate_review_relayer"],
+        reason_hints: executionAllowed
+          ? ["Legacy profile is sufficient for relayer review."]
+          : ["Relayer posture is being inferred from the legacy profile surface."],
+      },
+      lending: {
+        mode: lendingAllowed ? "allow" : "advisory",
+        reason_codes: lendingAllowed ? ["legacy_gate_allow_lending"] : ["legacy_gate_no_lending_allowance"],
+        reason_hints: lendingAllowed
+          ? ["Legacy reputation gate allows lending review."]
+          : ["Legacy reputation gate does not currently allow lending."],
+      },
+    },
+    predictive_credit: passport.letter_rating
+      ? {
+          grade: passport.letter_rating,
+          grade_confidence: 0,
+          max_ltv: 0,
+          rate_bps: 0,
+          credit_line_eth: 0,
+          collaborative_multiplier: 1,
+          model_name: "legacy risk passport",
+        }
+      : null,
+    generated_at: new Date().toISOString(),
   };
 }
 
@@ -510,12 +672,42 @@ export function useRiskProfileV2(address: string | undefined) {
     setLoading(true);
     setError(false);
     try {
+      const skipCanonical =
+        typeof window !== "undefined" &&
+        (() => {
+          const raw = window.sessionStorage.getItem(RISK_PROFILE_V2_MISSING_SESSION_KEY);
+          if (!raw) return false;
+          const seenAt = Number.parseInt(raw, 10);
+          if (!Number.isFinite(seenAt)) return false;
+          return Date.now() - seenAt < RISK_PROFILE_V2_MISSING_TTL_MS;
+        })();
+      if (skipCanonical) {
+        const legacy = await fetchLegacyBundle(address);
+        setProfile(toRiskProfileV2FromLegacy(legacy));
+        setError(false);
+        return;
+      }
       const payload = await fetchCanonicalRiskProfileV2(address, signal);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(RISK_PROFILE_V2_MISSING_SESSION_KEY);
+      }
       setProfile(payload);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setError(true);
-      setProfile(null);
+      try {
+        if (err instanceof ApiError && err.status === 404 && typeof window !== "undefined") {
+          window.sessionStorage.setItem(RISK_PROFILE_V2_MISSING_SESSION_KEY, String(Date.now()));
+        }
+        if (err instanceof ApiError && err.status !== 404) {
+          throw err;
+        }
+        const legacy = await fetchLegacyBundle(address);
+        setProfile(toRiskProfileV2FromLegacy(legacy));
+        setError(false);
+      } catch {
+        setError(true);
+        setProfile(null);
+      }
     } finally {
       setLoading(false);
     }

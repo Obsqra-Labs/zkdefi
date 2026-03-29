@@ -29,7 +29,11 @@ class PortfolioSummary(BaseModel):
     total_value_usd: float
     protocol_count: int
     position_count: int
+    wallet_token_count: int
+    wallet_positions_value_usd: float
+    defi_positions_value_usd: float
     protocols_found: list[str]
+    wallet_assets_found: list[str]
     snapshot_hash: str
     scanned_at: str
 
@@ -78,7 +82,11 @@ async def get_portfolio_summary(address: str) -> PortfolioSummary:
         total_value_usd=snapshot.total_value_usd,
         protocol_count=snapshot.protocol_count,
         position_count=snapshot.position_count,
+        wallet_token_count=snapshot.wallet_token_count,
+        wallet_positions_value_usd=snapshot.wallet_positions_value_usd,
+        defi_positions_value_usd=snapshot.defi_positions_value_usd,
         protocols_found=snapshot.protocols_found,
+        wallet_assets_found=snapshot.wallet_assets_found,
         snapshot_hash=snapshot.snapshot_hash,
         scanned_at=snapshot.scanned_at,
     )

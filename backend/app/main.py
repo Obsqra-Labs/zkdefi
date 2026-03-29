@@ -72,6 +72,29 @@ async def _lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Transaction confirmation worker startup skipped: %s", exc)
         worker_task = None
+
+    # Start portfolio tx status worker (mainnet-v1 receipts)
+    try:
+        import asyncio
+        from app.workers.portfolio_tx_status_worker import get_portfolio_tx_status_worker
+
+        portfolio_worker = get_portfolio_tx_status_worker()
+        portfolio_task = asyncio.create_task(portfolio_worker.start())
+        logger.info("Portfolio tx status worker started")
+    except Exception as exc:
+        logger.warning("Portfolio tx status worker startup skipped: %s", exc)
+        portfolio_task = None
+
+    try:
+        import asyncio
+        from app.workers.portfolio_monitor_worker import get_portfolio_monitor_worker
+
+        portfolio_monitor_worker = get_portfolio_monitor_worker()
+        portfolio_monitor_task = asyncio.create_task(portfolio_monitor_worker.start())
+        logger.info("Portfolio monitor worker started")
+    except Exception as exc:
+        logger.warning("Portfolio monitor worker startup skipped: %s", exc)
+        portfolio_monitor_task = None
     
     # Activate WebSocket event bridge (Phase 2 - Gap 25)
     try:
@@ -108,6 +131,30 @@ async def _lifespan(app: FastAPI):
                 logger.info("Event archival worker stopped")
         except Exception as exc:
             logger.warning("Event archival worker shutdown warning: %s", exc)
+
+        try:
+            if portfolio_monitor_task:
+                await portfolio_monitor_worker.stop()
+                portfolio_monitor_task.cancel()
+                try:
+                    await portfolio_monitor_task
+                except asyncio.CancelledError:
+                    pass
+                logger.info("Portfolio monitor worker stopped")
+        except Exception as exc:
+            logger.warning("Portfolio monitor worker shutdown warning: %s", exc)
+
+        try:
+            if portfolio_task:
+                await portfolio_worker.stop()
+                portfolio_task.cancel()
+                try:
+                    await portfolio_task
+                except asyncio.CancelledError:
+                    pass
+                logger.info("Portfolio tx status worker stopped")
+        except Exception as exc:
+            logger.warning("Portfolio tx status worker shutdown warning: %s", exc)
         
         # Stop confirmation worker
         try:
@@ -230,6 +277,7 @@ system_metrics_router = _optional_router("app.api.routes.system_metrics")
 landing_router = _optional_router("app.api.routes.landing")
 public_proof_dashboard_router = _optional_router("app.api.routes.public_proof_dashboard")
 portfolio_router = _optional_router("app.api.routes.portfolio")
+execution_gate_router = _optional_router("app.api.routes.execution_gate")
 demo_router = _optional_router("app.api.routes.demo")
 forge_router = _optional_router("app.api.routes.forge")
 
@@ -353,6 +401,12 @@ if portfolio_router:
         portfolio_router,
         prefix="/api/v1",
         tags=["portfolio"],
+    )
+if execution_gate_router:
+    app.include_router(
+        execution_gate_router,
+        prefix="/api/v1/execution_gate",
+        tags=["execution-gate"],
     )
 if demo_router:
     app.include_router(

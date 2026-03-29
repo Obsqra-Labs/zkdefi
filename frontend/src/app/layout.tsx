@@ -7,6 +7,7 @@ import { ToastContainer } from "@/components/zkdefi/Toast";
 import { CookieConsent } from "@/components/CookieConsent";
 import { RiskDisclosure } from "@/components/RiskDisclosure";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ChunkRecovery } from "@/components/ChunkRecovery";
 
 const serif = Source_Serif_4({
   subsets: ["latin"],
@@ -68,6 +69,7 @@ export default function RootLayout({
         className="min-h-screen bg-zinc-950 text-zinc-100 font-sans"
       >
         <a href="#main-content" className="skip-link">Skip to main content</a>
+        <ChunkRecovery />
         <ErrorBoundary>
           <StarknetProvider>
             <AppProvider>

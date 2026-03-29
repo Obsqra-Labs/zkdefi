@@ -59,6 +59,13 @@ const nextConfig = {
         ],
       },
       {
+        source: '/portfolio',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          ...securityHeaders,
+        ],
+      },
+      {
         source: '/trade',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
