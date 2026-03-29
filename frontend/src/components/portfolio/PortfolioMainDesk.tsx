@@ -589,7 +589,7 @@ export function PortfolioMainDesk(props: Props) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Impact</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">What changes if you accept</h2>
+              <h2 className="mt-1 text-lg font-semibold text-white">Expected portfolio impact</h2>
             </div>
             <p className="text-xs text-zinc-500">A compact read of the before-and-after effect on this wallet.</p>
           </div>
@@ -641,24 +641,14 @@ export function PortfolioMainDesk(props: Props) {
       </div>
 
       {gateResult ? (
-        <div
-          className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-            showSafetyDetails || failedGateConstraints.length > 0 || warningGateConstraints.length > 0
-              ? "mt-0 grid-rows-[1fr] opacity-100"
-              : "mt-0 grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="min-h-0 overflow-hidden">
-            <SafetyDrawer
-              gateResult={gateResult}
-              passedGateCount={passedGateCount}
-              failedGateConstraints={failedGateConstraints}
-              warningGateConstraints={warningGateConstraints}
-              showFullGateMatrix={showFullGateMatrix}
-              onToggleFullMatrix={onToggleFullMatrix}
-            />
-          </div>
-        </div>
+        <SafetyDrawer
+          gateResult={gateResult}
+          passedGateCount={passedGateCount}
+          failedGateConstraints={failedGateConstraints}
+          warningGateConstraints={warningGateConstraints}
+          showFullGateMatrix={showFullGateMatrix}
+          onToggleFullMatrix={onToggleFullMatrix}
+        />
       ) : null}
 
     </section>
