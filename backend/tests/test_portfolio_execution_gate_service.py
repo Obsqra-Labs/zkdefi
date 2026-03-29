@@ -893,6 +893,83 @@ async def test_execute_blocks_when_session_key_invalid(monkeypatch, gate_service
 
 
 @pytest.mark.asyncio
+async def test_execute_allows_fee_only_manual_override(monkeypatch, gate_service):
+    async def fake_check_intent(*args, **kwargs):
+        return {
+            "allowed": False,
+            "policy_hash": "0xpolicy",
+            "intent_hash": "0xintent",
+            "route_hash": "0xroute",
+            "estimated_gas": 4_500_000,
+            "estimated_cost_usd": 0.54,
+            "reason_codes": ["fee_inefficient"],
+            "current_allocations": {"ETH": 45.0, "STRK": 20.0, "USDC": 35.0},
+            "swap_steps": [
+                {
+                    "from_asset": "ETH",
+                    "to_asset": "USDC",
+                    "amount": 0.0003,
+                    "amount_wei": 300000000000000,
+                    "value_usd": 0.96,
+                }
+            ],
+            "constraint_results": [
+                {"name": "PauseGuard", "kind": "policy", "passed": True, "success": True, "reason": "Portfolio is active."},
+                {"name": "FeeEfficiencyGuard", "kind": "policy", "passed": False, "success": True, "reason": "Estimated fee is too large for the action value.", "warning": False, "severity": "blocked", "estimated_fee_usd": 0.54, "fee_share_pct": 56.3},
+            ],
+        }
+
+    async def fake_execute_rebalance_intent(*args, **kwargs):
+        return {
+            "status": "prepared",
+            "tx_hash": None,
+            "execution_chain": "starknet_mainnet",
+            "live_submission_allowed": False,
+            "prepared_calls": [
+                {
+                    "step": {
+                        "from_asset": "ETH",
+                        "to_asset": "USDC",
+                        "amount": 0.0003,
+                        "amount_wei": 300000000000000,
+                        "value_usd": 0.96,
+                    },
+                    "status": "ready",
+                    "wallet_calls": [
+                        {"contract_address": "0x123", "entrypoint": "multi_route_swap", "calldata": ["0x1", "0x2"]}
+                    ],
+                    "execution_adapter": "avnu",
+                    "route": ["AVNU"],
+                }
+            ],
+            "warning": None,
+        }
+
+    monkeypatch.setattr(gate_service, "check_intent", fake_check_intent)
+    monkeypatch.setattr(gate_service, "_execute_rebalance_intent", fake_execute_rebalance_intent)
+
+    result = await gate_service.execute_intent(
+        "0xabc123",
+        {
+            "type": "rebalance",
+            "target_allocations": {"ETH": 45.0, "STRK": 20.0, "USDC": 35.0},
+            "deadline": 100500,
+            "nonce": 21,
+            "block_number": 100000,
+            "max_slippage_bps": 50,
+            "adapter_target": "best",
+            "network_id": "starknet_mainnet",
+            "allow_advisory_override": True,
+        },
+        execute_live=False,
+    )
+
+    assert result["status"] == "prepared"
+    assert result["prepared_calls"]
+    assert result["gate"]["allowed"] is False
+
+
+@pytest.mark.asyncio
 async def test_record_policy_update_receipt_persists_diff(gate_service):
     receipt = await gate_service.record_policy_update_receipt(
         "0xabc123",

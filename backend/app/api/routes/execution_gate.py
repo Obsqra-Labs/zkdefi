@@ -38,6 +38,7 @@ class ActionIntentRequest(BaseModel):
     target_allocations: dict[str, float] | None = None
     delta_list: list[RebalanceDelta] | None = None
     execute_live: bool = False
+    allow_advisory_override: bool = False
     session_key_id: str | None = None
 
 

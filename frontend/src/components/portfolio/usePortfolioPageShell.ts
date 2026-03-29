@@ -257,6 +257,14 @@ export function usePortfolioPageShell() {
       };
     }
     if (hasFreshGateCheck) {
+      if (!gateResult?.allowed && failedGateConstraints.length === 1 && failedGateConstraints[0]?.name === "FeeEfficiencyGuard") {
+        return {
+          label: "Needs adjustment",
+          tone: "warning" as const,
+          headline: "The route exists, but the fee is heavy for the size.",
+          detail: "You can still prepare the wallet path and inspect the exact cost yourself, or edit the target to improve the economics.",
+        };
+      }
       return {
         label: gateResult?.allowed ? "Safe to sign" : "Needs adjustment",
         tone: gateResult?.allowed ? ("good" as const) : ("warning" as const),
@@ -280,26 +288,35 @@ export function usePortfolioPageShell() {
       headline: "Shape the target mix first.",
       detail: "The desk will run the safety check automatically as you update the proposal.",
     };
-  }, [actionType, pendingWalletCalls, hasFreshGateCheck, gateResult, checking, executionTxHash]);
+  }, [actionType, pendingWalletCalls, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
   const hasPreparedRebalance = actionType === "rebalance" && Boolean(pendingWalletCalls?.length);
   const canSignPreparedRebalance = hasPreparedRebalance && Boolean(account && address);
+  const canAdvisoryOverride = useMemo(() => {
+    if (pendingWalletCalls?.length) return false;
+    if (!hasFreshGateCheck || gateResult?.allowed) return false;
+    if (!gateResult?.swap_steps?.length) return false;
+    const failedNames = failedGateConstraints.map((item) => item.name);
+    return failedNames.length === 1 && failedNames[0] === "FeeEfficiencyGuard";
+  }, [hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
 
   const primaryActionLabel = useMemo(() => {
     if (hasPreparedRebalance) return "Sign rebalance";
     if (executing) return "Preparing";
     if (checking && !hasFreshGateCheck) return "Checking Safety";
+    if (canAdvisoryOverride) return actionType === "rebalance" ? "Sign anyway" : "Swap anyway";
     if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
     if (!hasFreshGateCheck) return actionType === "rebalance" ? "Review rebalance" : "Review swap";
     if (actionType === "rebalance") return "Review Rebalance";
     return "Sign swap";
-  }, [actionType, hasPreparedRebalance, executing, checking, hasFreshGateCheck, gateResult]);
+  }, [actionType, hasPreparedRebalance, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
     if (hasPreparedRebalance) return !canSignPreparedRebalance;
+    if (canAdvisoryOverride) return checking;
     if (hasFreshGateCheck && !gateResult?.allowed) return true;
     if (!hasFreshGateCheck) return true;
     return checking;
-  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, hasFreshGateCheck, gateResult, checking]);
+  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
   const safetySummaryLine = useMemo(() => {
     if (!gateResult) return "No fresh safety result yet.";
     if (failedGateConstraints.length) return `${failedGateConstraints.length} check${failedGateConstraints.length === 1 ? "" : "s"} need attention.`;
@@ -552,7 +569,7 @@ export function usePortfolioPageShell() {
     }
   };
 
-  const executeIntent = async () => {
+  const executeIntent = async (options?: { allowAdvisoryOverride?: boolean }) => {
     if (!address) return;
     if (!hasFreshGateCheck) {
       setExecutionNote("Run Gate Check on the current proposal before executing.");
@@ -577,7 +594,7 @@ export function usePortfolioPageShell() {
         setExecutionNote("Wallet is connected on Sepolia. Switch Argent to Starknet mainnet first.");
         return;
       }
-      const payload = await executePortfolioIntent(address, currentIntent, actionType);
+      const payload = await executePortfolioIntent(address, currentIntent, actionType, options);
       setGateResult(payload.gate);
       setLastPreparedAdapter(payload.execution_adapter ?? null);
       setPendingRouteLabel(payload.execution_adapter ?? null);
@@ -618,9 +635,11 @@ export function usePortfolioPageShell() {
             setPendingRouteLabel(payload.execution_adapter ?? null);
             setPendingPreparedAt(Date.now());
             setExecutionNote(
-              optimized.skippedApprovals
-                ? `Prepared rebalance steps. Skipped ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Review below, then click Sign Rebalance.`
-                : "Prepared rebalance steps. Review below, then click Sign Rebalance.",
+              options?.allowAdvisoryOverride
+                ? "Prepared despite the fee warning. Review the exact cost and route below, then sign only if you still want it."
+                : optimized.skippedApprovals
+                  ? `Prepared rebalance steps. Skipped ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Review below, then click Sign Rebalance.`
+                  : "Prepared rebalance steps. Review below, then click Sign Rebalance.",
             );
             return;
           }
@@ -637,7 +656,11 @@ export function usePortfolioPageShell() {
           const result = await account.execute(optimized.calls);
           setExecutionTxHash(result.transaction_hash);
           await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
-          setExecutionNote(`Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`);
+          setExecutionNote(
+            options?.allowAdvisoryOverride
+              ? `Submitted via wallet after fee-warning override. Tx ${result.transaction_hash.slice(0, 12)}...`
+              : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
+          );
           await refreshData(address);
           return;
         }
@@ -723,6 +746,10 @@ export function usePortfolioPageShell() {
   const handlePrimaryAction = async () => {
     if (hasPreparedRebalance) {
       await signPreparedRebalance();
+      return;
+    }
+    if (canAdvisoryOverride) {
+      await executeIntent({ allowAdvisoryOverride: true });
       return;
     }
     if (hasFreshGateCheck && !gateResult?.allowed) {
@@ -918,6 +945,7 @@ export function usePortfolioPageShell() {
     lastPreparedAdapter,
     fromWei,
     suggestedSwapFallback,
+    overridePrimaryAction: canAdvisoryOverride,
     onUseSuggestedSwap: applySuggestedSwapFallback,
   };
 

@@ -44,6 +44,7 @@ type Props = {
   proposalOutdated: boolean;
   executionNote: string | null;
   executionLink?: string | null;
+  overridePrimaryAction: boolean;
 };
 
 export function PrimaryActionTray({
@@ -65,6 +66,7 @@ export function PrimaryActionTray({
   proposalOutdated,
   executionNote,
   executionLink,
+  overridePrimaryAction,
 }: Props) {
   const statusTone = walletMismatch || proposalOutdated ? "warning" : tone;
   const statusIcon = walletMismatch ? (
@@ -87,6 +89,8 @@ export function PrimaryActionTray({
     ? "Switch to Starknet mainnet before signing."
     : proposalOutdated
       ? "The proposal changed, so the desk is checking the latest version."
+      : overridePrimaryAction
+        ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
       : executionNote ??
         (label === "Needs adjustment"
           ? "The latest gate result is blocking this draft. Adjust the target and the desk will re-check automatically."
@@ -117,7 +121,11 @@ export function PrimaryActionTray({
         <button
           onClick={onPrimaryAction}
           disabled={primaryActionDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-[background-color,transform,box-shadow,opacity] duration-300 ease-out hover:bg-emerald-400 hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)] disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[184px]"
+          className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-[background-color,transform,box-shadow,opacity] duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[184px] ${
+            overridePrimaryAction
+              ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 hover:shadow-[0_16px_40px_rgba(245,158,11,0.24)]"
+              : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)]"
+          }`}
         >
           {executing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -136,6 +144,8 @@ export function PrimaryActionTray({
         className={`mt-3 rounded-2xl border px-3.5 py-3 ${
           walletMismatch || proposalOutdated
             ? "border-amber-500/20 bg-amber-500/10 text-amber-100"
+            : overridePrimaryAction
+              ? "border-amber-500/20 bg-amber-500/10 text-amber-100"
             : executionNote
               ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-100"
               : tone === "good"

@@ -100,6 +100,9 @@ export async function executePortfolioIntent(
   ownerAddress: string,
   intent: Record<string, unknown>,
   actionType: ActionType,
+  options?: {
+    allowAdvisoryOverride?: boolean;
+  },
 ): Promise<ExecutionResponse> {
   return apiFetch<ExecutionResponse>("/api/v1/execution_gate/execute", {
     method: "POST",
@@ -109,6 +112,7 @@ export async function executePortfolioIntent(
       intent: {
         ...intent,
         execute_live: false,
+        allow_advisory_override: Boolean(options?.allowAdvisoryOverride),
       },
     }),
   });

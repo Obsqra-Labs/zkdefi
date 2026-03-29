@@ -882,7 +882,14 @@ class PortfolioExecutionGateService:
                 "gate": gate_result,
             }
 
-        if not gate_result["allowed"]:
+        allow_advisory_override = bool(normalized_intent.get("allow_advisory_override"))
+        can_override_gate = self._can_override_blocked_gate(
+            normalized_intent,
+            gate_result,
+            execute_live=execute_live,
+        )
+
+        if not gate_result["allowed"] and not (allow_advisory_override and can_override_gate):
             receipt = await self.receipt_service.create_receipt(
                 user_address=normalized,
                 constraints_hash=gate_result["policy_hash"],
@@ -929,6 +936,7 @@ class PortfolioExecutionGateService:
                 if normalized_intent["type"] == "swap"
                 else normalized_intent.get("target_allocations"),
                 "swap_steps": gate_result.get("swap_steps", []),
+                "override_used": allow_advisory_override and can_override_gate,
             },
             "execution": {
                 **execution,
@@ -972,6 +980,48 @@ class PortfolioExecutionGateService:
             "receipt_id": receipt["receipt_id"],
             "gate": gate_result,
         }
+
+    def _can_override_blocked_gate(
+        self,
+        intent: dict[str, Any],
+        gate_result: dict[str, Any],
+        *,
+        execute_live: bool,
+    ) -> bool:
+        if execute_live:
+            return False
+        if gate_result.get("allowed"):
+            return False
+        if not gate_result.get("swap_steps"):
+            return False
+
+        failed_constraints = [
+            item
+            for item in gate_result.get("constraint_results", [])
+            if not item.get("passed")
+        ]
+        if not failed_constraints:
+            return False
+
+        failed_names = {str(item.get("name") or "") for item in failed_constraints}
+        if failed_names != {"FeeEfficiencyGuard"}:
+            return False
+
+        fee_guard = next(
+            (
+                item
+                for item in gate_result.get("constraint_results", [])
+                if str(item.get("name") or "") == "FeeEfficiencyGuard"
+            ),
+            None,
+        )
+        if not fee_guard:
+            return False
+
+        if str(fee_guard.get("severity") or "") != "blocked":
+            return False
+
+        return True
 
     async def _execute_swap_intent(
         self,
@@ -1276,6 +1326,7 @@ class PortfolioExecutionGateService:
         normalized["max_slippage_bps"] = _safe_int(normalized.get("max_slippage_bps"), 50)
         normalized["adapter_target"] = str(normalized.get("adapter_target") or "best").strip().lower()
         normalized["route_hash"] = normalized.get("route_hash")
+        normalized["allow_advisory_override"] = bool(normalized.get("allow_advisory_override"))
         normalized["session_key_id"] = str(normalized.get("session_key_id") or "").strip() or None
         normalized["target_allocations"] = self._normalize_target_allocations(normalized.get("target_allocations"))
         normalized["delta_list"] = normalized.get("delta_list") if isinstance(normalized.get("delta_list"), list) else []

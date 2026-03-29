@@ -140,6 +140,7 @@ type Props = {
     label: string;
     detail: string;
   } | null;
+  overridePrimaryAction: boolean;
   onUseSuggestedSwap: () => void;
 };
 
@@ -213,6 +214,7 @@ export function PortfolioMainDesk(props: Props) {
     lastPreparedAdapter,
     fromWei,
     suggestedSwapFallback,
+    overridePrimaryAction,
     onUseSuggestedSwap,
   } = props;
 
@@ -509,6 +511,7 @@ export function PortfolioMainDesk(props: Props) {
             proposalOutdated={proposalOutdated}
             executionNote={executionNote}
             executionLink={executionLink}
+            overridePrimaryAction={overridePrimaryAction}
           />
         </div>
       </section>
