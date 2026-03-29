@@ -269,6 +269,10 @@ type Props = {
     tone: "good" | "neutral" | "warning";
     title: string;
     body: string;
+    stats?: Array<{
+      label: string;
+      value: string;
+    }>;
   } | null;
 };
 
@@ -451,6 +455,19 @@ export function TargetEditor(props: Props) {
               >
                 <p className="font-medium text-white">{draftGuidance.title}</p>
                 <p className="mt-1 text-xs text-zinc-300/85">{draftGuidance.body}</p>
+                {draftGuidance.stats?.length ? (
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    {draftGuidance.stats.map((stat) => (
+                      <div
+                        key={`${stat.label}-${stat.value}`}
+                        className="rounded-xl border border-white/10 bg-zinc-950/45 px-3 py-2"
+                      >
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{stat.label}</p>
+                        <p className="mt-1 text-sm font-medium text-white">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="mt-4 space-y-3">

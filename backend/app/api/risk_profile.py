@@ -9,6 +9,7 @@ GET /risk_profile/{address} composes:
 - compliance profiles (summary)
 - session_keys list (summary)
 - governance voting power snapshot
+- portfolio summary snapshot
 
 GET /risk_profile/v2/{address} adds canonical trust decisions used by relayer,
 policy preview, lending, and UI explainability.
@@ -24,6 +25,7 @@ from fastapi import APIRouter, Request
 
 from app.services.profile_decision_service import get_profile_decision_service
 from app.services.credit_line_service import compute_predictive_credit_line
+from app.services.position_scanner import get_portfolio_summary_best_effort
 from app.services.portable_identity_service import get_portable_identity_service
 from app.services.trust_event_service import log_trust_event_if_changed
 from app.services.trust_version_matrix import get_backend_trust_flags, get_trust_version_matrix
@@ -35,11 +37,13 @@ async def _fetch(
     client: httpx.AsyncClient,
     base: str,
     path: str,
+    *,
+    timeout: float = 12.0,
 ) -> tuple[dict[str, Any] | list[Any] | None, bool]:
     """GET path under base; return (parsed json or None, ok)."""
     url = f"{base}{path}"
     try:
-        r = await client.get(url, timeout=12.0)
+        r = await client.get(url, timeout=timeout)
         if r.status_code != 200:
             return None, False
         return r.json(), True
@@ -58,19 +62,21 @@ def _resolve_base(request: Request) -> str:
 
 async def _build_bundle(address: str, request: Request) -> dict[str, Any]:
     base = _resolve_base(request)
+    portfolio_task = asyncio.create_task(get_portfolio_summary_best_effort(address))
 
     async with httpx.AsyncClient(timeout=15.0) as client:
-        paths = [
-            f"/api/v1/zkdefi/reputation/user/{address}",
-            f"/api/v1/zkdefi/risk_passport/user/{address}",
-            f"/api/v1/zkdefi/onboarding/status/{address}",
-            f"/api/v1/zkdefi/linked_addresses/{address}",
-            f"/api/v1/zkdefi/compliance/profiles/{address}",
-            f"/api/v1/zkdefi/session_keys/list/{address}",
-            f"/api/v1/zkdefi/auth/session/{address}",
-            f"/api/v1/dao/voting_power/{address}",
+        fetch_specs = [
+            (f"/api/v1/zkdefi/reputation/user/{address}", 12.0),
+            (f"/api/v1/zkdefi/risk_passport/user/{address}", 12.0),
+            (f"/api/v1/zkdefi/onboarding/status/{address}", 12.0),
+            (f"/api/v1/zkdefi/linked_addresses/{address}", 12.0),
+            (f"/api/v1/zkdefi/compliance/profiles/{address}", 12.0),
+            (f"/api/v1/zkdefi/session_keys/list/{address}", 12.0),
+            (f"/api/v1/zkdefi/auth/session/{address}", 12.0),
+            (f"/api/v1/dao/voting_power/{address}", 1.5),
         ]
-        results = await asyncio.gather(*[_fetch(client, base, p) for p in paths])
+        results = await asyncio.gather(*[_fetch(client, base, path, timeout=timeout) for path, timeout in fetch_specs])
+        portfolio_res = await portfolio_task
 
         rep, rep_ok = results[0]
         passport, passport_ok = results[1]
@@ -140,6 +146,7 @@ async def _build_bundle(address: str, request: Request) -> dict[str, Any]:
         "session_summary": session_summary,
         "dual_wallet_session": dual_wallet_session,
         "governance": governance_res if (gov_ok and isinstance(governance_res, dict)) else None,
+        "portfolio_summary": portfolio_res if isinstance(portfolio_res, dict) else None,
     }
 
 
@@ -172,10 +179,13 @@ async def get_risk_profile_v2(address: str, request: Request):
     sessions = bundle.get("session_summary") or {}
     dual_session = bundle.get("dual_wallet_session") or {}
     governance = bundle.get("governance") or {}
+    portfolio_summary = bundle.get("portfolio_summary") or {}
     if not isinstance(dual_session, dict):
         dual_session = {}
     if not isinstance(governance, dict):
         governance = {}
+    if not isinstance(portfolio_summary, dict):
+        portfolio_summary = {}
 
     verification = linked.get("verification") if isinstance(linked, dict) else None
     if not isinstance(verification, dict):
@@ -218,7 +228,10 @@ async def get_risk_profile_v2(address: str, request: Request):
     try:
         from app.ml.creditworthiness.predictor import get_creditworthiness_predictor
         predictor = get_creditworthiness_predictor()
-        pred_result = await predictor.predict(address, generate_proof=True)
+        pred_result = await asyncio.wait_for(
+            predictor.predict(address, generate_proof=False),
+            timeout=2.5,
+        )
         collateral_eth = float(rep.get("collateral_eth", 0.0) or 0.0)
         pred_credit_line = await compute_predictive_credit_line(
             user_address=address,
@@ -226,6 +239,7 @@ async def get_risk_profile_v2(address: str, request: Request):
             tier=int(rep.get("tier", 0) or 0),
             linked_address_count=len(linked_entries),
             cross_chain_verified=len(linked_entries) > 0,
+            generate_proof=False,
         )
         pred_terms = pred_result.get("terms") or {}
         pred_grade = pred_result.get("credit_class", "C")
@@ -337,6 +351,14 @@ async def get_risk_profile_v2(address: str, request: Request):
             ),
             "basis": governance.get("basis"),
         },
+        "portfolio": {
+            "total_value_usd": portfolio_summary.get("total_value_usd", 0.0),
+            "protocol_count": portfolio_summary.get("protocol_count", 0),
+            "position_count": portfolio_summary.get("position_count", 0),
+            "protocols_found": portfolio_summary.get("protocols_found", []),
+            "snapshot_hash": portfolio_summary.get("snapshot_hash"),
+            "scanned_at": portfolio_summary.get("scanned_at"),
+        },
         "predictive_credit": predictive_credit,
         "decisions": decision_payload.get("decisions", {}),
         "disclosures": decision_payload.get("disclosures", {}),
@@ -378,6 +400,7 @@ async def get_risk_profile_v2(address: str, request: Request):
             "subject_id": out["identity"].get("subject_id"),
             "attribution_event_count": int(attribution_summary.get("event_count", 0) or 0),
             "credential_active_count": int(credential_summary.get("active_count", 0) or 0),
+            "portfolio_snapshot_hash": out["portfolio"].get("snapshot_hash"),
         },
     }
     try:

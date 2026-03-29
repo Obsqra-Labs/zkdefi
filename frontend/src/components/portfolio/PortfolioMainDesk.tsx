@@ -244,6 +244,8 @@ export function PortfolioMainDesk(props: Props) {
       : actionValueUsd > 0
         ? (estimatedFeeUsd / actionValueUsd) * 100
         : null;
+  const minimumNormalMoveUsd = estimatedFeeUsd > 0 ? estimatedFeeUsd / 0.35 : null;
+  const minimumFeeGateMoveUsd = estimatedFeeUsd > 0 ? estimatedFeeUsd / 0.85 : null;
   const draftGuidance =
     actionType !== "rebalance" || !gateResult
       ? null
@@ -257,18 +259,40 @@ export function PortfolioMainDesk(props: Props) {
           ? {
               tone: "warning" as const,
               title: "Aim for one stronger move",
-              body: `The current draft moves ${formatUsd(actionValueUsd)} across ${gateResult?.swap_steps.length ?? 0} trade${gateResult?.swap_steps.length === 1 ? "" : "s"}. On a wallet this size, one larger move clears more reliably than several small trims.`,
+              body: `The current draft moves ${formatUsd(actionValueUsd)} across ${gateResult?.swap_steps.length ?? 0} trade${gateResult?.swap_steps.length === 1 ? "" : "s"}. At the current fee estimate, this needs a larger move before wallet review makes sense.`,
+              stats: [
+                { label: "Current move", value: formatUsd(actionValueUsd) },
+                ...(minimumFeeGateMoveUsd
+                  ? [{ label: "Clears fee gate", value: formatUsd(minimumFeeGateMoveUsd) }]
+                  : []),
+                ...(minimumNormalMoveUsd
+                  ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }]
+                  : []),
+              ],
             }
           : feeGuardResult?.warning
             ? {
                 tone: "neutral" as const,
                 title: "This clears, but size still matters",
                 body: "The draft is signable, but the fee is still high for the amount moved. Keeping the target focused on the biggest gap will usually feel better in wallet.",
+                stats: [
+                  { label: "Current move", value: formatUsd(actionValueUsd) },
+                  ...(minimumNormalMoveUsd
+                    ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }]
+                    : []),
+                  ...(feeSharePct != null
+                    ? [{ label: "Current fee share", value: `${Math.round(feeSharePct)}%` }]
+                    : []),
+                ],
               }
             : {
                 tone: "good" as const,
                 title: "Target shape looks signable",
                 body: "The current draft is concentrated enough to route without obvious small-size friction.",
+                stats: [
+                  { label: "Current move", value: formatUsd(actionValueUsd) },
+                  ...(feeSharePct != null ? [{ label: "Current fee share", value: `${Math.round(feeSharePct)}%` }] : []),
+                ],
               };
   const economicsHelper =
     gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."

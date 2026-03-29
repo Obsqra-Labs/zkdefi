@@ -846,6 +846,44 @@ export default function ProfilePage() {
               </button>
             </Panel>
 
+            <Panel title="Portfolio Snapshot" icon={<Eye className="h-4 w-4" />}>
+              <MetricRow
+                label="TVL"
+                value={formatUsdSafe(profileV2?.portfolio?.total_value_usd ?? 0)}
+              />
+              <MetricRow
+                label="Protocols"
+                value={String(profileV2?.portfolio?.protocol_count ?? 0)}
+              />
+              <MetricRow
+                label="Positions"
+                value={String(profileV2?.portfolio?.position_count ?? 0)}
+              />
+              <MetricRow
+                label="Scanned at"
+                value={String(profileV2?.portfolio?.scanned_at ?? "n/a")}
+                compact
+              />
+              <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-300">
+                <div className="mb-1 text-zinc-200">Snapshot hash</div>
+                <div className="break-all font-mono text-zinc-400">
+                  {profileV2?.portfolio?.snapshot_hash ?? "n/a"}
+                </div>
+              </div>
+              {!!profileV2?.portfolio?.protocols_found?.length && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {profileV2.portfolio.protocols_found.map((protocol) => (
+                    <span
+                      key={protocol}
+                      className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-300"
+                    >
+                      {protocol}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Panel>
+
             <Panel title="Smart Wallet Sessions" icon={<KeyRound className="h-4 w-4" />}>
               <div className="space-y-3">
                 <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">

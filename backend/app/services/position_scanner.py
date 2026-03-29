@@ -517,6 +517,61 @@ async def _scan_wallet_tokens(wallet: str, rpc: _RpcClient) -> tuple[List[Positi
 # ─── Main scanner ─────────────────────────────────────────────────────────────
 
 _snapshot_cache: Dict[str, tuple] = {}  # wallet -> (PortfolioSnapshot, timestamp)
+_summary_refresh_tasks: Dict[str, asyncio.Task] = {}
+
+
+def _snapshot_to_summary(snapshot: PortfolioSnapshot) -> Dict[str, Any]:
+    return {
+        "wallet_address": snapshot.wallet_address,
+        "total_value_usd": snapshot.total_value_usd,
+        "protocol_count": snapshot.protocol_count,
+        "position_count": snapshot.position_count,
+        "protocols_found": snapshot.protocols_found,
+        "snapshot_hash": snapshot.snapshot_hash,
+        "scanned_at": snapshot.scanned_at,
+    }
+
+
+def get_cached_portfolio_summary(wallet_address: str) -> Optional[Dict[str, Any]]:
+    wallet = wallet_address.strip().lower()
+    cached_entry = _snapshot_cache.get(wallet)
+    if not cached_entry:
+        return None
+    snapshot, _ = cached_entry
+    return _snapshot_to_summary(snapshot)
+
+
+async def get_portfolio_summary_best_effort(
+    wallet_address: str,
+    *,
+    timeout_s: float = 0.75,
+) -> Optional[Dict[str, Any]]:
+    wallet = wallet_address.strip().lower()
+    cached_summary = get_cached_portfolio_summary(wallet)
+    if cached_summary is not None:
+        return cached_summary
+
+    try:
+        snapshot = await asyncio.wait_for(scan_portfolio(wallet), timeout=timeout_s)
+        return _snapshot_to_summary(snapshot)
+    except asyncio.TimeoutError:
+        existing_task = _summary_refresh_tasks.get(wallet)
+        if existing_task is None or existing_task.done():
+            _summary_refresh_tasks[wallet] = asyncio.create_task(_refresh_portfolio_summary(wallet))
+        logger.info("Portfolio summary timed out for %s; returning without snapshot", wallet[:20])
+        return None
+    except Exception:
+        logger.exception("Portfolio summary fetch failed for %s", wallet[:20])
+        return None
+
+
+async def _refresh_portfolio_summary(wallet_address: str) -> None:
+    try:
+        await scan_portfolio(wallet_address)
+    except Exception:
+        logger.exception("Background portfolio refresh failed for %s", wallet_address[:20])
+    finally:
+        _summary_refresh_tasks.pop(wallet_address, None)
 
 
 async def scan_portfolio(wallet_address: str, *, skip_cache: bool = False) -> PortfolioSnapshot:
