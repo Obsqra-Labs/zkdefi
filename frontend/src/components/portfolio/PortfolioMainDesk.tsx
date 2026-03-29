@@ -1,11 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Bot } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Bot, ChevronDown } from "lucide-react";
 
-import { AIRecommendationCard } from "./AIRecommendationCard";
-import { ExecutionPlanCard } from "./ExecutionPlanCard";
-import { formatPercent, formatUsd } from "./formatters";
+import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
 import { SafetyDrawer } from "./SafetyDrawer";
 import { TargetEditor } from "./TargetEditor";
@@ -65,6 +63,139 @@ function StatusPill({
     <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${className}`}>
       {children}
     </span>
+  );
+}
+
+function SectionCard({
+  eyebrow,
+  title,
+  actions,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
+        </div>
+        {actions}
+      </div>
+      <div className="mt-3.5">{children}</div>
+    </section>
+  );
+}
+
+function MixBar({
+  label,
+  allocations,
+  emphasis,
+}: {
+  label: string;
+  allocations: Record<SupportedAsset, number>;
+  emphasis: "current" | "target";
+}) {
+  return (
+    <div className={`rounded-2xl border px-3.5 py-3 ${emphasis === "target" ? "border-cyan-500/20 bg-cyan-500/5" : "border-zinc-800 bg-zinc-900/55"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-[11px] uppercase tracking-[0.18em] ${emphasis === "target" ? "text-cyan-200" : "text-zinc-400"}`}>
+          {label}
+        </p>
+        <div className="flex flex-wrap gap-3 text-xs text-zinc-400">
+          {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+            <span key={`${label}-${asset}`}>
+              {asset} {formatPercent(allocations[asset] ?? 0, 0)}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-zinc-950">
+        {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+          <div
+            key={`${label}-${asset}-segment`}
+            className={
+              asset === "ETH"
+                ? "bg-cyan-400"
+                : asset === "STRK"
+                  ? "bg-amber-400"
+                  : "bg-emerald-400"
+            }
+            style={{ width: `${Math.max(0, Math.min(100, allocations[asset] ?? 0))}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "good" | "warning";
+}) {
+  const toneClass =
+    tone === "good" ? "text-emerald-200" : tone === "warning" ? "text-amber-200" : "text-white";
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-3">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
+      <p className={`mt-1.5 text-base font-semibold ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function ImpactCard({
+  label,
+  value,
+  body,
+}: {
+  label: string;
+  value: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+      <p className="mt-1.5 text-xs leading-5 text-zinc-400">{body}</p>
+    </div>
+  );
+}
+
+function PlanStep({
+  index,
+  title,
+  meta,
+  value,
+}: {
+  index: number;
+  title: string;
+  meta: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-[10px] text-zinc-400">
+            {index}
+          </span>
+          <div>
+            <p className="text-sm font-medium text-white">{title}</p>
+            <p className="mt-1 text-xs text-zinc-500">{meta}</p>
+          </div>
+        </div>
+        <span className="text-sm text-zinc-300">{value}</span>
+      </div>
+    </div>
   );
 }
 
@@ -218,6 +349,8 @@ export function PortfolioMainDesk(props: Props) {
     onUseSuggestedSwap,
   } = props;
 
+  const [showEditor, setShowEditor] = useState(false);
+
   const actionValueUsd = gateResult?.swap_steps?.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0) ?? 0;
   const estimatedFeeUsd = feeGuardResult?.estimated_fee_usd ?? gateResult?.estimated_cost_usd ?? 0;
   const feeSharePct =
@@ -244,12 +377,8 @@ export function PortfolioMainDesk(props: Props) {
               body: `The current draft moves ${formatUsd(actionValueUsd)} across ${gateResult?.swap_steps.length ?? 0} trade${gateResult?.swap_steps.length === 1 ? "" : "s"}. At the current fee estimate, this needs a larger move before wallet review makes sense.`,
               stats: [
                 { label: "Current move", value: formatUsd(actionValueUsd) },
-                ...(minimumFeeGateMoveUsd
-                  ? [{ label: "Clears fee gate", value: formatUsd(minimumFeeGateMoveUsd) }]
-                  : []),
-                ...(minimumNormalMoveUsd
-                  ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }]
-                  : []),
+                ...(minimumFeeGateMoveUsd ? [{ label: "Clears fee gate", value: formatUsd(minimumFeeGateMoveUsd) }] : []),
+                ...(minimumNormalMoveUsd ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }] : []),
               ],
             }
           : feeGuardResult?.warning
@@ -259,12 +388,8 @@ export function PortfolioMainDesk(props: Props) {
                 body: "The draft is signable, but the fee is still high for the amount moved. Keeping the target focused on the biggest gap will usually feel better in wallet.",
                 stats: [
                   { label: "Current move", value: formatUsd(actionValueUsd) },
-                  ...(minimumNormalMoveUsd
-                    ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }]
-                    : []),
-                  ...(feeSharePct != null
-                    ? [{ label: "Current fee share", value: `${Math.round(feeSharePct)}%` }]
-                    : []),
+                  ...(minimumNormalMoveUsd ? [{ label: "Normal fee band", value: formatUsd(minimumNormalMoveUsd) }] : []),
+                  ...(feeSharePct != null ? [{ label: "Current fee share", value: `${Math.round(feeSharePct)}%` }] : []),
                 ],
               }
             : {
@@ -276,6 +401,7 @@ export function PortfolioMainDesk(props: Props) {
                   ...(feeSharePct != null ? [{ label: "Current fee share", value: `${Math.round(feeSharePct)}%` }] : []),
                 ],
               };
+
   const economicsHelper =
     gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
       ? "Keep more STRK free for fees before selling it."
@@ -284,10 +410,7 @@ export function PortfolioMainDesk(props: Props) {
         : feeGuardResult?.warning
           ? "The draft is signable, but the fee is still high for the size."
           : "The fee profile is in a normal range for the current draft.";
-  const decisiveChecks = [
-    ...failedGateConstraints.map((item) => ({ title: item.name, reason: item.reason, tone: "blocked" as const })),
-    ...warningGateConstraints.map((item) => ({ title: item.name, reason: item.reason, tone: "warning" as const })),
-  ].slice(0, 4);
+
   const gateHero = (() => {
     if (executionLink) {
       return {
@@ -301,7 +424,7 @@ export function PortfolioMainDesk(props: Props) {
       return {
         eyebrow: "Recheck needed",
         title: "Target edits invalidated the prior Gate result",
-        summary: "The previous review is stale. Any meaningful target change now requires a fresh Gate decision.",
+        summary: "The last review is stale. Edit freely, then run a fresh Gate decision before signing.",
         tone: "warning" as const,
       };
     }
@@ -309,22 +432,24 @@ export function PortfolioMainDesk(props: Props) {
       return {
         eyebrow: "Gate pending",
         title: "The Gate has not evaluated this draft yet",
-        summary: "Shape the target and the desk will trigger a fresh review before anything reaches wallet signing.",
+        summary: "Shape the proposal first. The desk will re-check before anything reaches wallet signing.",
         tone: "neutral" as const,
       };
     }
     if (!gateResult.allowed) {
       return {
-        eyebrow: "Gate blocked execution",
-        title: "Execution is not currently permitted",
-        summary: `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
+        eyebrow: overridePrimaryAction ? "Fee warning override available" : "Gate blocked execution",
+        title: overridePrimaryAction ? "A route exists, but the economics are weak" : "Execution is not currently permitted",
+        summary: overridePrimaryAction
+          ? "The only failed check is fee efficiency. You can still prepare the wallet route and judge the cost yourself."
+          : `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
         tone: "warning" as const,
       };
     }
     if (warningGateConstraints.length) {
       return {
-        eyebrow: "Gate passed with review",
-        title: "Execution is permitted with warnings",
+        eyebrow: "Gate passed with warnings",
+        title: "Execution is permitted",
         summary: `${warningGateConstraints.length} warning${warningGateConstraints.length === 1 ? "" : "s"} remain, but the Gate still allows this path.`,
         tone: "neutral" as const,
       };
@@ -336,31 +461,43 @@ export function PortfolioMainDesk(props: Props) {
       tone: "good" as const,
     };
   })();
+
   const gateConfidence =
     !gateResult ? "Pending" : failedGateConstraints.length ? "Low" : warningGateConstraints.length >= 4 ? "Measured" : "High";
   const currentLeader = (Object.entries(currentAllocations) as Array<[SupportedAsset, number]>).sort((a, b) => b[1] - a[1])[0];
   const targetLeader = (Object.entries(userTargetAllocations) as Array<[SupportedAsset, number]>).sort((a, b) => b[1] - a[1])[0];
+  const proposalDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[])
+    .map((asset) => ({ asset, delta: (userTargetAllocations[asset] ?? 0) - (currentAllocations[asset] ?? 0) }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 3);
+  const activeSteps = pendingPreparedCalls?.length ? pendingPreparedCalls.map((item) => item.step) : gateResult?.swap_steps ?? [];
+  const routeLabel = (pendingRouteLabel ?? lastPreparedAdapter)?.toUpperCase() ?? "BEST ROUTE";
+  const topReasons = [...failedGateConstraints, ...warningGateConstraints].slice(0, 3);
+
   const impactCards = [
     {
       label: "Concentration",
-      current: currentLeader ? `${currentLeader[0]} ${formatPercent(currentLeader[1], 0)}` : "n/a",
-      projected: targetLeader ? `${targetLeader[0]} ${formatPercent(targetLeader[1], 0)}` : "n/a",
-      delta: currentLeader && targetLeader ? `${targetLeader[0] === currentLeader[0] ? "holds" : "shifts"} leadership` : "pending",
-      body: "Largest allocation before and after applying the current target.",
+      value: currentLeader && targetLeader ? `${currentLeader[0]} → ${targetLeader[0]}` : "Pending",
+      body: currentLeader && targetLeader
+        ? `${formatPercent(currentLeader[1], 0)} largest weight becomes ${formatPercent(targetLeader[1], 0)} after the current draft.`
+        : "Largest wallet weight updates after the current proposal is applied.",
     },
     {
       label: "Liquidity path",
-      current: `${gateResult?.swap_steps.length ?? 0} trade${(gateResult?.swap_steps.length ?? 0) === 1 ? "" : "s"}`,
-      projected: pendingPreparedCalls?.length ? "Prepared for wallet" : pendingRouteLabel?.toUpperCase() ?? lastPreparedAdapter?.toUpperCase() ?? "Best route",
-      delta: gateResult?.allowed ? "Executable" : "Needs review",
-      body: "How much routing complexity the Gate sees on this draft.",
+      value: `${activeSteps.length} trade${activeSteps.length === 1 ? "" : "s"}`,
+      body: pendingPreparedCalls?.length
+        ? "Wallet calls are already prepared for this exact path."
+        : gateResult
+          ? "The Gate has translated this proposal into executable spot steps."
+          : "No executable path is available until the Gate evaluates the current draft.",
     },
     {
       label: "Network cost",
-      current: formatUsd(estimatedFeeUsd),
-      projected: feeSharePct == null ? "n/a" : `${Math.round(feeSharePct)}% fee share`,
-      delta: feeGuardResult?.passed ? (feeGuardResult.warning ? "Expensive" : "Normal") : "Pressured",
-      body: "Estimated fee and how much of the moved value it consumes.",
+      value: feeSharePct == null ? formatUsd(estimatedFeeUsd) : `${Math.round(feeSharePct)}%`,
+      body:
+        feeSharePct == null
+          ? "Estimated network cost for the current proposal."
+          : `${formatUsd(estimatedFeeUsd)} estimated fee on ${formatUsd(actionValueUsd)} moved value.`,
     },
   ];
 
@@ -375,123 +512,32 @@ export function PortfolioMainDesk(props: Props) {
               : "border-cyan-500/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),rgba(9,9,11,0.92)_45%)]"
         }`}
       >
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{gateHero.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
-                <StatusPill tone={deskTone}>{deskLabel}</StatusPill>
-                <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                  Confidence {gateConfidence}
-                </span>
-                <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                  {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} network cost
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full rounded-[24px] border border-zinc-800/80 bg-zinc-950/60 p-4 xl:w-[360px]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Gate snapshot</p>
-                  <p className="mt-1 text-sm font-medium text-white">What the Gate saw on this exact draft</p>
-                </div>
-                <span className="rounded-full border border-zinc-700/80 bg-zinc-950/80 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                  {gateResult?.swap_steps.length ?? 0} trade{(gateResult?.swap_steps.length ?? 0) === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[
-                  { label: "Passed", value: passedGateCount, tone: "text-emerald-200" },
-                  { label: "Warnings", value: warningGateConstraints.length, tone: "text-cyan-200" },
-                  { label: "Blockers", value: failedGateConstraints.length, tone: "text-amber-200" },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{item.label}</p>
-                    <p className={`mt-1.5 text-lg font-semibold ${item.tone}`}>{item.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Value moved</p>
-                  <p className="mt-1.5 text-base font-semibold text-white">{formatUsd(actionValueUsd)}</p>
-                </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Confidence</p>
-                  <p className="mt-1.5 text-base font-semibold text-white">{gateConfidence}</p>
-                </div>
-              </div>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_340px] xl:items-start">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{gateHero.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
+              <StatusPill tone={deskTone}>{deskLabel}</StatusPill>
+              <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                Confidence {gateConfidence}
+              </span>
+              <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} network cost
+              </span>
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/55 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Model proposal</p>
-                  <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
-                </div>
-                <Bot className="h-5 w-5 text-amber-300" />
-              </div>
-              <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Before → after</p>
-                  <p className="mt-1 text-sm font-medium text-white">
-                    {currentLeader ? `${currentLeader[0]} ${formatPercent(currentLeader[1], 0)}` : "n/a"} →{" "}
-                    {targetLeader ? `${targetLeader[0]} ${formatPercent(targetLeader[1], 0)}` : "n/a"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Expected shift</p>
-                  <p className="mt-1 text-sm font-medium text-white">
-                    {recommendation?.drift_monitor?.largest_gap_asset ?? "ETH"}{" "}
-                    {formatPercent(recommendation?.drift_monitor?.largest_gap_pct ?? 0, 0)}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Turnover {formatPercent(recommendation?.drift_monitor?.total_turnover_pct ?? 0, 0)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/55 p-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why the Gate decided this</p>
-              <div className="mt-3 grid gap-1.5">
-                {decisiveChecks.length ? (
-                  decisiveChecks.map((item) => (
-                    <div key={`${item.tone}-${item.title}`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                            item.tone === "blocked" ? "bg-amber-400" : "bg-cyan-400"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-medium text-white">{item.title}</p>
-                            <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-                              {item.tone === "blocked" ? "Blocker" : "Warning"}
-                            </span>
-                          </div>
-                          <p className="mt-1.5 text-xs leading-5 text-zinc-400">{item.reason}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">
-                    The Gate cleared the current draft without active blockers or warnings.
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
+            <MetricTile label="Checks run" value={`${passedGateCount + warningGateConstraints.length + failedGateConstraints.length}`} tone="default" />
+            <MetricTile label="Blockers" value={`${failedGateConstraints.length}`} tone={failedGateConstraints.length ? "warning" : "good"} />
+            <MetricTile label="Warnings" value={`${warningGateConstraints.length}`} tone={warningGateConstraints.length ? "warning" : "default"} />
+            <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
           </div>
+        </div>
 
+        <div className="mt-4">
           <PrimaryActionTray
             checking={checking}
             executing={executing}
@@ -516,132 +562,240 @@ export function PortfolioMainDesk(props: Props) {
         </div>
       </section>
 
-      {showRecommendationCard ? (
-        <AIRecommendationCard
-          checking={checking}
-          executing={executing}
-          actionType={actionType}
-          recommendation={recommendation}
-          recommendationNotice={recommendationNotice}
-          proposalHeadline={proposalHeadline}
-          proposalReason={proposalReason}
-          aiExecutionPreview={aiExecutionPreview}
-          onSetActionType={onSetActionType}
-          onGetRecommendation={onGetRecommendation}
-          onApplyAiTargets={onApplyAiTargets}
-          onRunAiGateCheck={onRunAiGateCheck}
-        />
-      ) : null}
-
-        <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Target editor</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Shape the proposal</h2>
-              {(feeGuardResult || (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed.")) && (
-                <p className="mt-1.5 text-sm text-zinc-400">{economicsHelper}</p>
-              )}
-            </div>
+      <SectionCard
+        eyebrow="Proposal"
+        title="What the system wants to do"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onSetActionType("rebalance")}
+              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                actionType === "rebalance" ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200" : "border-zinc-700 text-zinc-400"
+              }`}
+            >
+              Rebalance
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetActionType("swap")}
+              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                actionType === "swap" ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200" : "border-zinc-700 text-zinc-400"
+              }`}
+            >
+              Swap
+            </button>
             <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {proposalSourceLabel}
             </span>
           </div>
-
-        <TargetEditor
-          actionType={actionType}
-          swapAssetIn={swapAssetIn}
-          swapAssetOut={swapAssetOut}
-          onSwapAssetInChange={onSwapAssetInChange}
-          onSwapAssetOutChange={onSwapAssetOutChange}
-          swapAmount={swapAmount}
-          onSwapAmountChange={onSwapAmountChange}
-          onSwapAmountPercent={onSwapAmountPercent}
-          swapAmountPercent={swapAmountPercent}
-          swapAvailableAmount={swapAvailableAmount}
-          swapAvailableUsd={swapAvailableUsd}
-          minSwapAmount={minSwapAmount}
-          isBelowMinSwap={isBelowMinSwap}
-          slippageBps={slippageBps}
-          onSlippageChange={onSlippageChange}
-          assetSummary={assetSummary}
-          currentAllocations={currentAllocations}
-          userTargetAllocations={userTargetAllocations}
-          aiTargetAllocations={aiTargetAllocations}
-          rebalancePresets={rebalancePresets}
-          onApplyPreset={onApplyPreset}
-          targetWeights={targetWeights}
-          onTargetChange={onTargetChange}
-          targetWeightSum={targetWeightSum}
-          draftGuidance={draftGuidance}
-          suggestedSwapFallback={suggestedSwapFallback}
-          onUseSuggestedSwap={onUseSuggestedSwap}
-        />
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-[1.06fr_0.94fr] xl:items-start">
-        <ExecutionPlanCard
-          actionType={actionType}
-          gateSwapSteps={gateResult?.swap_steps ?? []}
-          pendingPreparedCalls={pendingPreparedCalls}
-          pendingRouteLabel={pendingRouteLabel}
-          lastPreparedAdapter={lastPreparedAdapter}
-          fromWei={fromWei}
-        />
-
-        <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Impact</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Expected portfolio impact</h2>
-            </div>
-            <p className="text-xs text-zinc-500">A compact read of the before-and-after effect on this wallet.</p>
-          </div>
-
-          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-3">
-            {impactCards.map((card) => (
-              <div key={card.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">{card.label}</p>
-                <div className="mt-2 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-zinc-500">Current</span>
-                  <span className="font-medium text-zinc-100">{card.current}</span>
+        }
+      >
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_0.9fr]">
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
+                  <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
                 </div>
-                <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-zinc-500">Projected</span>
-                  <span className="font-medium text-white">{card.projected}</span>
-                </div>
-                <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-zinc-500">Delta</span>
-                  <span className="font-medium text-cyan-200">{card.delta}</span>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-zinc-400">{card.body}</p>
+                <Bot className="h-5 w-5 text-amber-300" />
               </div>
-            ))}
-          </div>
-
-          {(feeGuardResult || (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed.")) ? (
-            <div className="mt-3 grid gap-2.5 lg:grid-cols-2">
-              {feeGuardResult ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-3.5 py-2.5">
-                  <p className="text-sm font-medium text-white">
-                    {feeGuardResult.passed
-                      ? feeGuardResult.warning
-                        ? "Safe, but expensive for size"
-                        : "Safe to sign"
-                      : "Too small to execute efficiently"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-400">{feeGuardResult.reason}</p>
-                </div>
-              ) : null}
-              {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-3.5 py-2.5">
-                  <p className="text-sm font-medium text-white">Insufficient STRK for fee</p>
-                  <p className="mt-1 text-xs text-zinc-400">{gasReserveResult.reason}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
+              {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
+              {showRecommendationCard ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={onGetRecommendation}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  >
+                    Refresh AI
+                  </button>
+                  <button
+                    onClick={onApplyAiTargets}
+                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                  >
+                    Use AI target
+                  </button>
+                  <button
+                    onClick={onRunAiGateCheck}
+                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                  >
+                    Check AI plan
+                  </button>
                 </div>
               ) : null}
             </div>
-          ) : null}
-        </section>
-      </div>
+
+            {actionType === "rebalance" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
+                <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {swapAssetIn} → {swapAssetOut}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {formatUsd(swapAvailableUsd)} available in wallet.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current vs proposed</p>
+            <div className="mt-3 space-y-2.5">
+              {proposalDeltas.map((item) => (
+                <div key={item.asset} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-white">{item.asset}</span>
+                    <span className={`text-sm font-medium ${item.delta >= 0 ? "text-emerald-200" : "text-amber-200"}`}>
+                      {item.delta >= 0 ? "+" : ""}
+                      {formatPercent(item.delta, 1)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {formatPercent(currentAllocations[item.asset], 1)} now → {formatPercent(userTargetAllocations[item.asset], 1)} proposed
+                    {typeof aiTargetAllocations?.[item.asset] === "number"
+                      ? ` · AI ${formatPercent(aiTargetAllocations[item.asset] ?? 0, 1)}`
+                      : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+              <p className="text-sm font-medium text-white">Why this action</p>
+              <div className="mt-2 space-y-2">
+                {topReasons.length ? (
+                  topReasons.map((item) => (
+                    <div key={item.name} className="flex items-start gap-3">
+                      <span className={`mt-1.5 h-2.5 w-2.5 rounded-full ${failedGateConstraints.some((failed) => failed.name === item.name) ? "bg-amber-400" : "bg-cyan-400"}`} />
+                      <div>
+                        <p className="text-sm text-white">{item.name}</p>
+                        <p className="text-xs leading-5 text-zinc-500">{item.reason}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-emerald-200">The Gate cleared the current draft without active blockers or warnings.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        eyebrow="Decision"
+        title="What changes if you accept"
+        actions={
+          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+            {routeLabel}
+          </span>
+        }
+      >
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_0.85fr]">
+          <div className="space-y-3">
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              <MetricTile label="Trades" value={`${activeSteps.length}`} />
+              <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
+              <MetricTile label="Network cost" value={formatUsd(estimatedFeeUsd)} tone={feeGuardResult?.passed ? "default" : "warning"} />
+            </div>
+
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Execution plan</p>
+              <div className="mt-3 space-y-2">
+                {pendingPreparedCalls?.length ? (
+                  pendingPreparedCalls.map((step, index) => (
+                    <PlanStep
+                      key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
+                      index={index + 1}
+                      title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
+                      meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
+                      value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
+                    />
+                  ))
+                ) : activeSteps.length ? (
+                  activeSteps.map((step, index) => (
+                    <PlanStep
+                      key={`${step.from_asset}-${step.to_asset}-${index}`}
+                      index={index + 1}
+                      title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
+                      meta={`${routeLabel} • expected receive in ${step.to_asset}`}
+                      value={formatUsd(step.value_usd)}
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-10 text-center">
+                    <p className="text-sm font-medium text-zinc-200">No plan yet</p>
+                    <p className="mt-2 text-sm text-zinc-500">Set a target or trade amount and the exact path will appear here.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {suggestedSwapFallback ? (
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
+                <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
+                <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
+                <button
+                  type="button"
+                  onClick={onUseSuggestedSwap}
+                  className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
+                >
+                  Use simpler swap
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid gap-2.5 sm:grid-cols-3 xl:grid-cols-1">
+              {impactCards.map((card) => (
+                <ImpactCard key={card.label} label={card.label} value={card.value} body={card.body} />
+              ))}
+            </div>
+
+            {(feeGuardResult || (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed.")) ? (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Economics</p>
+                <div className="mt-3 space-y-2">
+                  {feeGuardResult ? (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <p className="text-sm font-medium text-white">
+                        {feeGuardResult.passed
+                          ? feeGuardResult.warning
+                            ? "Safe, but expensive for size"
+                            : "Safe to sign"
+                          : "Too small to execute efficiently"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-400">{feeGuardResult.reason}</p>
+                    </div>
+                  ) : null}
+                  {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <p className="text-sm font-medium text-white">Insufficient STRK for fee</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-400">{gasReserveResult.reason}</p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </SectionCard>
 
       {gateResult ? (
         <SafetyDrawer
@@ -654,6 +808,65 @@ export function PortfolioMainDesk(props: Props) {
         />
       ) : null}
 
+      <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <button
+          type="button"
+          onClick={() => setShowEditor((current) => !current)}
+          className="flex w-full items-center justify-between gap-4 text-left"
+        >
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Manual controls</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Shape the proposal</h2>
+            <p className="mt-1.5 text-sm text-zinc-400">{economicsHelper}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {proposalSourceLabel}
+            </span>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 text-zinc-300">
+              <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${showEditor ? "rotate-180" : ""}`} />
+            </span>
+          </div>
+        </button>
+
+        <div
+          className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+            showEditor ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <TargetEditor
+              actionType={actionType}
+              swapAssetIn={swapAssetIn}
+              swapAssetOut={swapAssetOut}
+              onSwapAssetInChange={onSwapAssetInChange}
+              onSwapAssetOutChange={onSwapAssetOutChange}
+              swapAmount={swapAmount}
+              onSwapAmountChange={onSwapAmountChange}
+              onSwapAmountPercent={onSwapAmountPercent}
+              swapAmountPercent={swapAmountPercent}
+              swapAvailableAmount={swapAvailableAmount}
+              swapAvailableUsd={swapAvailableUsd}
+              minSwapAmount={minSwapAmount}
+              isBelowMinSwap={isBelowMinSwap}
+              slippageBps={slippageBps}
+              onSlippageChange={onSlippageChange}
+              assetSummary={assetSummary}
+              currentAllocations={currentAllocations}
+              userTargetAllocations={userTargetAllocations}
+              aiTargetAllocations={aiTargetAllocations}
+              rebalancePresets={rebalancePresets}
+              onApplyPreset={onApplyPreset}
+              targetWeights={targetWeights}
+              onTargetChange={onTargetChange}
+              targetWeightSum={targetWeightSum}
+              draftGuidance={draftGuidance}
+              suggestedSwapFallback={suggestedSwapFallback}
+              onUseSuggestedSwap={onUseSuggestedSwap}
+            />
+          </div>
+        </div>
+      </section>
     </section>
   );
 }
