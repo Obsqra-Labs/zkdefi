@@ -170,6 +170,29 @@ function ImpactCard({
   );
 }
 
+function DetailToggle({
+  open,
+  onToggle,
+  showLabel,
+  hideLabel,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+    >
+      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+      {open ? hideLabel : showLabel}
+    </button>
+  );
+}
+
 function PlanStep({
   index,
   title,
@@ -350,6 +373,8 @@ export function PortfolioMainDesk(props: Props) {
   } = props;
 
   const [showEditor, setShowEditor] = useState(false);
+  const [showProposalDetails, setShowProposalDetails] = useState(false);
+  const [showDecisionDetails, setShowDecisionDetails] = useState(false);
 
   const actionValueUsd = gateResult?.swap_steps?.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0) ?? 0;
   const estimatedFeeUsd = feeGuardResult?.estimated_fee_usd ?? gateResult?.estimated_cost_usd ?? 0;
@@ -473,6 +498,20 @@ export function PortfolioMainDesk(props: Props) {
   const activeSteps = pendingPreparedCalls?.length ? pendingPreparedCalls.map((item) => item.step) : gateResult?.swap_steps ?? [];
   const routeLabel = (pendingRouteLabel ?? lastPreparedAdapter)?.toUpperCase() ?? "BEST ROUTE";
   const topReasons = [...failedGateConstraints, ...warningGateConstraints].slice(0, 3);
+  const leadPlanStep = activeSteps[0] ?? null;
+  const economicsTitle = feeGuardResult
+    ? feeGuardResult.passed
+      ? feeGuardResult.warning
+        ? "Safe, but expensive for size"
+        : "Safe to sign"
+      : "Too small to execute efficiently"
+    : gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
+      ? "Insufficient STRK for fee"
+      : "Pending gate review";
+  const economicsReason = feeGuardResult?.reason ??
+    (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
+      ? gasReserveResult.reason
+      : "Run the Gate to inspect route quality, costs, and reserve preservation.");
 
   const impactCards = [
     {
@@ -591,106 +630,140 @@ export function PortfolioMainDesk(props: Props) {
           </div>
         }
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_0.9fr]">
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
-                  <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
-                </div>
-                <Bot className="h-5 w-5 text-amber-300" />
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="max-w-3xl">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
+                <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
+                {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
               </div>
-              <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
-              {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
-              {showRecommendationCard ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={onGetRecommendation}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-                  >
-                    Refresh AI
-                  </button>
-                  <button
-                    onClick={onApplyAiTargets}
-                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                  >
-                    Use AI target
-                  </button>
-                  <button
-                    onClick={onRunAiGateCheck}
-                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                  >
-                    Check AI plan
-                  </button>
-                </div>
-              ) : null}
+              <Bot className="mt-0.5 h-5 w-5 text-amber-300" />
             </div>
 
-            {actionType === "rebalance" ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
-                <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
+            {showRecommendationCard ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={onGetRecommendation}
+                  className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                >
+                  Refresh AI
+                </button>
+                <button
+                  onClick={onApplyAiTargets}
+                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                >
+                  Use AI target
+                </button>
+                <button
+                  onClick={onRunAiGateCheck}
+                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                >
+                  Check AI plan
+                </button>
               </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
-                    {swapAssetIn} → {swapAssetOut}
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    {formatUsd(swapAvailableUsd)} available in wallet.
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
 
+          {actionType === "rebalance" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
+              <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {swapAssetIn} → {swapAssetOut}
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
+                <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {formatUsd(swapAvailableUsd)} available in wallet.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current vs proposed</p>
-            <div className="mt-3 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current vs proposed</p>
+                <p className="mt-1 text-sm text-zinc-400">The first screen should tell you what changes, not make you read a spreadsheet.</p>
+              </div>
+              <DetailToggle
+                open={showProposalDetails}
+                onToggle={() => setShowProposalDetails((current) => !current)}
+                showLabel="Show detailed comparison"
+                hideLabel="Hide detailed comparison"
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
               {proposalDeltas.map((item) => (
-                <div key={item.asset} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-white">{item.asset}</span>
-                    <span className={`text-sm font-medium ${item.delta >= 0 ? "text-emerald-200" : "text-amber-200"}`}>
-                      {item.delta >= 0 ? "+" : ""}
-                      {formatPercent(item.delta, 1)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {formatPercent(currentAllocations[item.asset], 1)} now → {formatPercent(userTargetAllocations[item.asset], 1)} proposed
-                    {typeof aiTargetAllocations?.[item.asset] === "number"
-                      ? ` · AI ${formatPercent(aiTargetAllocations[item.asset] ?? 0, 1)}`
-                      : ""}
-                  </p>
-                </div>
+                <span
+                  key={`${item.asset}-delta-pill`}
+                  className={`rounded-full border px-3 py-1.5 text-xs ${
+                    item.delta >= 0
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                      : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                  }`}
+                >
+                  {item.asset} {item.delta >= 0 ? "+" : ""}
+                  {formatPercent(item.delta, 1)}
+                </span>
               ))}
             </div>
-            <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-              <p className="text-sm font-medium text-white">Why this action</p>
-              <div className="mt-2 space-y-2">
-                {topReasons.length ? (
-                  topReasons.map((item) => (
-                    <div key={item.name} className="flex items-start gap-3">
-                      <span className={`mt-1.5 h-2.5 w-2.5 rounded-full ${failedGateConstraints.some((failed) => failed.name === item.name) ? "bg-amber-400" : "bg-cyan-400"}`} />
-                      <div>
-                        <p className="text-sm text-white">{item.name}</p>
-                        <p className="text-xs leading-5 text-zinc-500">{item.reason}</p>
-                      </div>
+
+            <div className="mt-3 space-y-2">
+              {topReasons.length ? (
+                topReasons.slice(0, 2).map((item) => (
+                  <div key={`${item.name}-reason-compact`} className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                    <span className={`mt-1.5 h-2.5 w-2.5 rounded-full ${failedGateConstraints.some((failed) => failed.name === item.name) ? "bg-amber-400" : "bg-cyan-400"}`} />
+                    <div>
+                      <p className="text-sm text-white">{item.name}</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">{item.reason}</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-emerald-200">The Gate cleared the current draft without active blockers or warnings.</p>
-                )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">
+                  The Gate cleared the current draft without active blockers or warnings.
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+                showProposalDetails ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="grid gap-2.5 pt-1 sm:grid-cols-3">
+                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                    <div key={`${asset}-proposal-detail`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-white">{asset}</span>
+                        <span className={`text-sm ${userTargetAllocations[asset] >= currentAllocations[asset] ? "text-emerald-200" : "text-amber-200"}`}>
+                          {formatPercent(userTargetAllocations[asset] - currentAllocations[asset], 1)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {formatPercent(currentAllocations[asset], 1)} now → {formatPercent(userTargetAllocations[asset], 1)} proposed
+                      </p>
+                      {typeof aiTargetAllocations?.[asset] === "number" ? (
+                        <p className="mt-1 text-xs text-zinc-500">AI target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -706,93 +779,120 @@ export function PortfolioMainDesk(props: Props) {
           </span>
         }
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_0.85fr]">
-          <div className="space-y-3">
-            <div className="grid gap-2.5 sm:grid-cols-3">
-              <MetricTile label="Trades" value={`${activeSteps.length}`} />
-              <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
-              <MetricTile label="Network cost" value={formatUsd(estimatedFeeUsd)} tone={feeGuardResult?.passed ? "default" : "warning"} />
-            </div>
+        <div className="space-y-3">
+          <div className="grid gap-2.5 sm:grid-cols-4">
+            <MetricTile label="Trades" value={`${activeSteps.length}`} />
+            <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
+            <MetricTile label="Network cost" value={formatUsd(estimatedFeeUsd)} tone={feeGuardResult?.passed ? "default" : "warning"} />
+            <MetricTile label="Route" value={routeLabel} />
+          </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Execution plan</p>
-              <div className="mt-3 space-y-2">
-                {pendingPreparedCalls?.length ? (
-                  pendingPreparedCalls.map((step, index) => (
-                    <PlanStep
-                      key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
-                      index={index + 1}
-                      title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
-                      meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
-                      value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
-                    />
-                  ))
-                ) : activeSteps.length ? (
-                  activeSteps.map((step, index) => (
-                    <PlanStep
-                      key={`${step.from_asset}-${step.to_asset}-${index}`}
-                      index={index + 1}
-                      title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
-                      meta={`${routeLabel} • expected receive in ${step.to_asset}`}
-                      value={formatUsd(step.value_usd)}
-                    />
-                  ))
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_0.9fr]">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Execution path</p>
+                  <p className="mt-1 text-sm text-zinc-400">Read the next action first. Open the rest only if you need more than the main path.</p>
+                </div>
+                {(pendingPreparedCalls?.length || activeSteps.length > 1) ? (
+                  <DetailToggle
+                    open={showDecisionDetails}
+                    onToggle={() => setShowDecisionDetails((current) => !current)}
+                    showLabel="Show full plan"
+                    hideLabel="Hide full plan"
+                  />
+                ) : null}
+              </div>
+
+              <div className="mt-3">
+                {leadPlanStep ? (
+                  <PlanStep
+                    index={1}
+                    title={`Sell ${leadPlanStep.from_asset}, buy ${leadPlanStep.to_asset}`}
+                    meta={`${routeLabel} • expected receive in ${leadPlanStep.to_asset}`}
+                    value={formatUsd(leadPlanStep.value_usd)}
+                  />
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-10 text-center">
+                  <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-8 text-center">
                     <p className="text-sm font-medium text-zinc-200">No plan yet</p>
                     <p className="mt-2 text-sm text-zinc-500">Set a target or trade amount and the exact path will appear here.</p>
                   </div>
                 )}
               </div>
-            </div>
 
-            {suggestedSwapFallback ? (
-              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
-                <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
-                <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
-                <button
-                  type="button"
-                  onClick={onUseSuggestedSwap}
-                  className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
-                >
-                  Use simpler swap
-                </button>
+              <div
+                className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+                  showDecisionDetails ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div className="space-y-2 pt-1">
+                    {pendingPreparedCalls?.length ? (
+                      pendingPreparedCalls.map((step, index) => (
+                        <PlanStep
+                          key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
+                          index={index + 1}
+                          title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
+                          meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
+                          value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
+                        />
+                      ))
+                    ) : activeSteps.length ? (
+                      activeSteps.map((step, index) => (
+                        <PlanStep
+                          key={`${step.from_asset}-${step.to_asset}-${index}`}
+                          index={index + 1}
+                          title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
+                          meta={`${routeLabel} • expected receive in ${step.to_asset}`}
+                          value={formatUsd(step.value_usd)}
+                        />
+                      ))
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            ) : null}
-          </div>
-
-          <div className="space-y-3">
-            <div className="grid gap-2.5 sm:grid-cols-3 xl:grid-cols-1">
-              {impactCards.map((card) => (
-                <ImpactCard key={card.label} label={card.label} value={card.value} body={card.body} />
-              ))}
             </div>
 
-            {(feeGuardResult || (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed.")) ? (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Economics</p>
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Decision readout</p>
                 <div className="mt-3 space-y-2">
-                  {feeGuardResult ? (
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <p className="text-sm font-medium text-white">
-                        {feeGuardResult.passed
-                          ? feeGuardResult.warning
-                            ? "Safe, but expensive for size"
-                            : "Safe to sign"
-                          : "Too small to execute efficiently"}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-400">{feeGuardResult.reason}</p>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                    <p className="text-sm font-medium text-white">{economicsTitle}</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-400">{economicsReason}</p>
+                  </div>
+                  {impactCards.slice(0, 2).map((card) => (
+                    <div key={`${card.label}-compact`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-white">{card.label}</p>
+                        <span className="text-sm text-zinc-300">{card.value}</span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">{card.body}</p>
                     </div>
-                  ) : null}
+                  ))}
                   {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
                     <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <p className="text-sm font-medium text-white">Insufficient STRK for fee</p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-400">{gasReserveResult.reason}</p>
+                      <p className="text-sm font-medium text-white">Gas reserve</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">{gasReserveResult.reason}</p>
                     </div>
                   ) : null}
                 </div>
               </div>
-            ) : null}
+
+              {suggestedSwapFallback ? (
+                <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
+                  <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
+                  <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
+                  <button
+                    type="button"
+                    onClick={onUseSuggestedSwap}
+                    className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
+                  >
+                    Use simpler swap
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </SectionCard>
