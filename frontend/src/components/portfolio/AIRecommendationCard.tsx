@@ -58,10 +58,10 @@ export function AIRecommendationCard({
     <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">AI recommendation</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">What the AI thinks you should do</h2>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">System recommendation</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">What the model proposes</h2>
           <p className="mt-1.5 text-sm text-zinc-400">
-            Keep your target in control. Use the AI as a second opinion.
+            Keep your target in control. Use the model as a second opinion.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -86,7 +86,7 @@ export function AIRecommendationCard({
             className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-300 transition-colors duration-200 hover:border-amber-400/50 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Bot className={`h-3.5 w-3.5 ${checking ? "animate-pulse" : ""}`} />
-            {hasRecommendation ? "Refresh AI" : "Get AI"}
+            {hasRecommendation ? "Refresh model" : "Get model view"}
           </button>
         </div>
       </div>
@@ -126,13 +126,13 @@ export function AIRecommendationCard({
                 onClick={onApplyAiTargets}
                 className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-amber-100 transition-colors duration-200 hover:border-amber-300 hover:bg-amber-400/10"
               >
-                Use AI target
+                Use suggested target
               </button>
               <button
                 onClick={onRunAiGateCheck}
                 className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-amber-100 transition-colors duration-200 hover:border-amber-300 hover:bg-amber-400/10"
               >
-                Check AI plan
+                Check suggested plan
               </button>
               <button
                 type="button"
@@ -156,7 +156,7 @@ export function AIRecommendationCard({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Suggested mix</p>
-                      <p className="mt-1 text-sm text-zinc-400">The AI target stays separate until you apply it.</p>
+                      <p className="mt-1 text-sm text-zinc-400">The suggested target stays separate until you apply it.</p>
                     </div>
                     <span className="text-[11px] text-zinc-500">Target</span>
                   </div>
@@ -230,9 +230,9 @@ export function AIRecommendationCard({
         <div className="mt-4 rounded-[22px] border border-zinc-800 bg-zinc-900/55 p-3.5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-3xl">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">AI target unavailable</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Model target unavailable</p>
               <p className="mt-1.5 text-base font-medium text-white">
-                {recommendationNotice ? "AI recommendation is unavailable right now" : "AI target is optional"}
+                {recommendationNotice ? "Model recommendation is unavailable right now" : "Suggested target is optional"}
               </p>
               <p className="mt-1.5 text-sm leading-5 text-zinc-400">
                 {recommendationNotice ??

@@ -82,7 +82,7 @@ function AllocationOverviewAssetRow({
         <span className="text-sm font-medium text-cyan-200">{formatPercent(targetPct, 1)}</span>
       </div>
       <div className="flex items-center justify-between gap-3 md:block">
-        <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 md:hidden">AI target</span>
+        <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500 md:hidden">Suggested target</span>
         <span className="text-sm text-amber-200">{typeof aiPct === "number" ? formatPercent(aiPct, 1) : "n/a"}</span>
       </div>
       <div className="flex items-center justify-between gap-3 md:block">
@@ -107,13 +107,13 @@ function AllocationOverviewCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Allocation overview</p>
-          <p className="mt-1 text-sm text-zinc-300">Current, your target, and AI target in one decision surface.</p>
+          <p className="mt-1 text-sm text-zinc-300">Current, your target, and the suggested target in one decision surface.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
           <span className="rounded-full border border-zinc-700 px-3 py-1">Current</span>
           <span className="rounded-full border border-cyan-500/30 px-3 py-1 text-cyan-200">Your target</span>
           {aiTargetAllocations ? (
-            <span className="rounded-full border border-amber-500/30 px-3 py-1 text-amber-200">AI target</span>
+            <span className="rounded-full border border-amber-500/30 px-3 py-1 text-amber-200">Suggested target</span>
           ) : null}
         </div>
       </div>
@@ -121,7 +121,7 @@ function AllocationOverviewCard({
       <div className="mt-3 grid gap-2.5">
         <AllocationRailRow label="Current" tone="current" allocations={currentAllocations} />
         <AllocationRailRow label="Your target" tone="user" allocations={userTargetAllocations} />
-        {aiTargetAllocations ? <AllocationRailRow label="AI target" tone="ai" allocations={aiTargetAllocations} /> : null}
+        {aiTargetAllocations ? <AllocationRailRow label="Suggested target" tone="ai" allocations={aiTargetAllocations} /> : null}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-800">
@@ -129,7 +129,7 @@ function AllocationOverviewCard({
           <span>Asset</span>
           <span>Current</span>
           <span>Your target</span>
-          <span>AI target</span>
+          <span>Suggested target</span>
           <span>Move needed</span>
         </div>
         <div className="space-y-2 bg-zinc-950/85 p-2">
@@ -195,7 +195,7 @@ function TargetEditorRow({
         </div>
         <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
           <span>Current {formatPercent(currentPct, 1)}</span>
-          {typeof aiPct === "number" ? <span className="text-amber-200">AI {formatPercent(aiPct, 1)}</span> : null}
+          {typeof aiPct === "number" ? <span className="text-amber-200">Suggested {formatPercent(aiPct, 1)}</span> : null}
         </div>
       </div>
 
@@ -317,103 +317,117 @@ export function TargetEditor(props: Props) {
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
       {actionType === "swap" ? (
         <>
-          <Field label="Sell">
-            <select
-              value={swapAssetIn}
-              onChange={(event) => onSwapAssetInChange(event.target.value as SupportedAsset)}
-              className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-3.5 py-3 text-sm text-zinc-100"
-            >
-              {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                <option key={asset} value={asset}>
-                  {asset}
-                </option>
-              ))}
-            </select>
-            <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-              <span>Available</span>
-              <span>{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</span>
-            </div>
-          </Field>
-          <Field label="Buy">
-            <select
-              value={swapAssetOut}
-              onChange={(event) => onSwapAssetOutChange(event.target.value as SupportedAsset)}
-              className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-3.5 py-3 text-sm text-zinc-100"
-            >
-              {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                <option key={asset} value={asset}>
-                  {asset}
-                </option>
-              ))}
-            </select>
-            <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-              <span>Current balance</span>
-              <span>{formatAssetAmount(assetSummary[swapAssetOut].amount, swapAssetOut)}</span>
-            </div>
-          </Field>
-          <Field label="Amount" className="sm:col-span-2">
-            <div className="rounded-[24px] border border-zinc-800 bg-zinc-900/70 p-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-medium text-white">Trade ticket</p>
-                <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-                  Spot swap
-                </span>
+          <div className="sm:col-span-2 rounded-[24px] border border-zinc-800 bg-zinc-900/70 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Swap ticket</p>
+                <p className="mt-1 text-sm text-zinc-300">One direct ticket for wallet-signed spot execution.</p>
               </div>
-              <div className="flex items-center gap-2.5">
+              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+                Spot swap
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Field label="Sell">
+                <select
+                  value={swapAssetIn}
+                  onChange={(event) => onSwapAssetInChange(event.target.value as SupportedAsset)}
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
+                >
+                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                    <option key={asset} value={asset}>
+                      {asset}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+                  <span>Available</span>
+                  <span>{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</span>
+                </div>
+              </Field>
+
+              <Field label="Buy">
+                <select
+                  value={swapAssetOut}
+                  onChange={(event) => onSwapAssetOutChange(event.target.value as SupportedAsset)}
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
+                >
+                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                    <option key={asset} value={asset}>
+                      {asset}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+                  <span>Current balance</span>
+                  <span>{formatAssetAmount(assetSummary[swapAssetOut].amount, swapAssetOut)}</span>
+                </div>
+              </Field>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-3.5">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    value={swapAmount}
+                    onChange={(event) => onSwapAmountChange(event.target.value)}
+                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-3.5 py-3 text-sm text-zinc-100"
+                  />
+                  <div className="min-w-[88px] rounded-2xl border border-zinc-700 bg-zinc-900 px-3 py-3 text-right text-sm text-zinc-300">
+                    {swapAssetIn}
+                  </div>
+                </div>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {[25, 50, 75, 100].map((percent) => (
+                    <button
+                      key={percent}
+                      type="button"
+                      onClick={() => onSwapAmountPercent(percent)}
+                      className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-emerald-400/50 hover:text-white"
+                    >
+                      {percent}%
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={swapAmountPercent}
+                    onChange={(event) => onSwapAmountPercent(Number.parseFloat(event.target.value) || 0)}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-emerald-400"
+                  />
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-500">
+                    <span>{swapAmountPercent.toFixed(0)}% of available {swapAssetIn}</span>
+                    <span>{formatUsd(swapAvailableUsd)}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-500">
+                    <span>Minimum effective amount</span>
+                    <span>{formatAssetAmount(minSwapAmount, swapAssetIn)}</span>
+                  </div>
+                  {isBelowMinSwap ? (
+                    <p className="mt-1.5 text-xs text-amber-300">
+                      Amount is likely too small to route reliably. Try at least {formatAssetAmount(minSwapAmount, swapAssetIn)}.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <Field label="Max slippage (bps)">
                 <input
-                  value={swapAmount}
-                  onChange={(event) => onSwapAmountChange(event.target.value)}
+                  value={slippageBps}
+                  onChange={(event) => onSlippageChange(event.target.value)}
                   className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
                 />
-                <div className="min-w-[88px] rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-right text-sm text-zinc-300">
-                  {swapAssetIn}
-                </div>
-              </div>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {[25, 50, 75, 100].map((percent) => (
-                  <button
-                    key={percent}
-                    type="button"
-                    onClick={() => onSwapAmountPercent(percent)}
-                    className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-emerald-400/50 hover:text-white"
-                  >
-                    {percent}%
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={swapAmountPercent}
-                  onChange={(event) => onSwapAmountPercent(Number.parseFloat(event.target.value) || 0)}
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-emerald-400"
-                />
-                <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-500">
-                  <span>{swapAmountPercent.toFixed(0)}% of available {swapAssetIn}</span>
-                  <span>{formatUsd(swapAvailableUsd)}</span>
-                </div>
-                <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-500">
-                  <span>Minimum effective amount</span>
-                  <span>{formatAssetAmount(minSwapAmount, swapAssetIn)}</span>
-                </div>
-                {isBelowMinSwap ? (
-                  <p className="mt-1.5 text-xs text-amber-300">
-                    Amount is likely too small to route reliably. Try at least {formatAssetAmount(minSwapAmount, swapAssetIn)}.
-                  </p>
-                ) : null}
-              </div>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Set the maximum allowed price movement before the wallet rejects the swap.
+                </p>
+              </Field>
             </div>
-          </Field>
-          <Field label="Max slippage (bps)">
-            <input
-              value={slippageBps}
-              onChange={(event) => onSlippageChange(event.target.value)}
-              className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-3.5 py-3 text-sm text-zinc-100"
-            />
-          </Field>
+          </div>
         </>
       ) : (
         <>

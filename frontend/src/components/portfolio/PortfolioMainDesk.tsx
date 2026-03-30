@@ -654,24 +654,24 @@ export function PortfolioMainDesk(props: Props) {
 
             {showRecommendationCard ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={onGetRecommendation}
-                  className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-                >
-                  Refresh AI
-                </button>
-                <button
-                  onClick={onApplyAiTargets}
-                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                >
-                  Use AI target
-                </button>
-                <button
-                  onClick={onRunAiGateCheck}
-                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                >
-                  Check AI plan
-                </button>
+                  <button
+                    onClick={onGetRecommendation}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  >
+                    Refresh model
+                  </button>
+                  <button
+                    onClick={onApplyAiTargets}
+                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                  >
+                    Use suggested target
+                  </button>
+                  <button
+                    onClick={onRunAiGateCheck}
+                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                  >
+                    Check suggested plan
+                  </button>
               </div>
             ) : null}
           </div>
@@ -769,7 +769,7 @@ export function PortfolioMainDesk(props: Props) {
                         {formatPercent(currentAllocations[asset], 1)} now → {formatPercent(userTargetAllocations[asset], 1)} proposed
                       </p>
                       {typeof aiTargetAllocations?.[asset] === "number" ? (
-                        <p className="mt-1 text-xs text-zinc-500">AI target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
+                        <p className="mt-1 text-xs text-zinc-500">Suggested target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
                       ) : null}
                     </div>
                   ))}
