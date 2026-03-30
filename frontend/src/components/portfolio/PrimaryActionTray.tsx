@@ -92,6 +92,8 @@ export function PrimaryActionTray({
     ? "Switch to Starknet mainnet before signing."
     : proposalOutdated
       ? "The proposal changed, so the desk is checking the latest version."
+      : workflowMode === "automated" && label === "Governed execution paused"
+        ? "Governed execution is disarmed for this wallet. Use the primary action to arm it again before the automated lane can authorize moves."
       : workflowMode === "automated" && label === "Governed route ready"
         ? "The governed lane cleared this move. The primary action arms or authorizes it with the current policy and session-key posture."
       : workflowMode === "automated" && label === "Governed move blocked"

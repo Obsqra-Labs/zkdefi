@@ -443,6 +443,7 @@ export function usePortfolioPageShell() {
     () => automatedGovernedState.activeSessionKeyIds[0] ?? null,
     [automatedGovernedState.activeSessionKeyIds],
   );
+  const governedExecutionPaused = Boolean(policy?.paused);
   const primaryActionLabel = useMemo(() => {
     if (hasPreparedRebalance) {
       if (workflowMode === "manual") return "Sign manual route";
@@ -451,6 +452,7 @@ export function usePortfolioPageShell() {
     }
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return "Complete onboarding";
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return "Add session key";
+    if (workflowMode === "automated" && governedExecutionPaused) return "Arm governed execution";
     if (executing) return workflowMode === "automated" ? "Arming governed move" : "Preparing";
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
@@ -468,12 +470,13 @@ export function usePortfolioPageShell() {
     }
     if (actionType === "rebalance") return workflowMode === "automated" ? "Arm governed execution" : "Review guided move";
     return workflowMode === "automated" ? "Arm governed swap" : "Sign guided swap";
-  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
+  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionPaused, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
     if (hasPreparedRebalance) return !canSignPreparedRebalance;
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return false;
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return false;
+    if (workflowMode === "automated" && governedExecutionPaused) return false;
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
       return checking;
@@ -482,7 +485,7 @@ export function usePortfolioPageShell() {
     if (hasFreshGateCheck && !gateResult?.allowed) return true;
     if (!hasFreshGateCheck) return true;
     return checking;
-  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, automatedGovernedState, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
+  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionPaused, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
   const deskState = useMemo(() => {
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) {
       return {
@@ -498,6 +501,14 @@ export function usePortfolioPageShell() {
         tone: "warning" as const,
         headline: "Automated mode needs an active session key.",
         detail: "Add or renew a governed session key before relying on automated execution in this lane.",
+      };
+    }
+    if (workflowMode === "automated" && governedExecutionPaused) {
+      return {
+        label: "Governed execution paused",
+        tone: "warning" as const,
+        headline: "Governed execution is disarmed for this wallet.",
+        detail: "Primary action will arm governed execution again. Until then, automated mode will not authorize moves.",
       };
     }
     if (executionTxHash) {
@@ -607,7 +618,7 @@ export function usePortfolioPageShell() {
             ? "Automated mode evaluates policy, drift, and route quality before it arms a governed action."
           : "The desk will run the safety check automatically as you update the proposal.",
     };
-  }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
+  }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, governedExecutionPaused, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
   const proposalHeadline = useMemo(() => {
     if (workflowMode === "manual") {
       if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
@@ -1168,6 +1179,11 @@ export function usePortfolioPageShell() {
       router.push("/agent");
       return;
     }
+    if (workflowMode === "automated" && governedExecutionPaused) {
+      setExecutionNote("Arming governed execution for this wallet.");
+      await toggleEmergencyStop();
+      return;
+    }
     if (hasPreparedRebalance) {
       await signPreparedRebalance();
       return;
@@ -1395,6 +1411,15 @@ export function usePortfolioPageShell() {
     recommendedSwapAlternatives,
     overridePrimaryAction: canManualOverride || canAdvisoryOverride,
     automatedProfileFallback: automatedGovernedState,
+    governedExecutionPaused,
+    onToggleGovernedExecution: () => {
+      setExecutionNote(
+        policy?.paused
+          ? "Arming governed execution for this wallet."
+          : "Disarming governed execution for this wallet.",
+      );
+      void toggleEmergencyStop();
+    },
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,

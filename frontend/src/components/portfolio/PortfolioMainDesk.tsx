@@ -290,6 +290,8 @@ type Props = {
     nextActionTradeCount: number;
     nextActionValueUsd: number;
   };
+  governedExecutionPaused: boolean;
+  onToggleGovernedExecution: () => void;
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
   onUseRecommendedSwapAlternative: (option: RecommendationRouteOption) => void;
@@ -373,6 +375,8 @@ export function PortfolioMainDesk(props: Props) {
     recommendedSwapAlternatives,
     overridePrimaryAction,
     automatedProfileFallback,
+    governedExecutionPaused,
+    onToggleGovernedExecution,
     onUseSuggestedSwap,
     onUseRecommendedSwapStarter,
     onUseRecommendedSwapAlternative,
@@ -706,6 +710,17 @@ export function PortfolioMainDesk(props: Props) {
                     {formatUsd(automatedProfileFallback.nextActionValueUsd)} moved
                   </span>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={onToggleGovernedExecution}
+                  className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors ${
+                    governedExecutionPaused
+                      ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:border-amber-400/50 hover:bg-amber-500/20"
+                  }`}
+                >
+                  {governedExecutionPaused ? "Arm governed execution" : "Disarm governed execution"}
+                </button>
               </div>
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Governed control</p>
@@ -720,6 +735,11 @@ export function PortfolioMainDesk(props: Props) {
                         : "Primary action evaluates, arms, or authorizes the current governed move."}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.readinessDetail}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">
+                  {governedExecutionPaused
+                    ? "Governed execution is currently disarmed for this wallet."
+                    : "Governed execution is currently armed for this wallet."}
+                </p>
                 {automatedProfileFallback.nextActionRouteDetail ? (
                   <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.nextActionRouteDetail}</p>
                 ) : null}
