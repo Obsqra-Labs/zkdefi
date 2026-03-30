@@ -96,11 +96,15 @@ export function SafetyDrawer({
   showFullGateMatrix,
   onToggleFullMatrix,
 }: Props) {
+  const [showCleared, setShowCleared] = useState(false);
   const [showBlockers, setShowBlockers] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
-  const [showPolicyChecks, setShowPolicyChecks] = useState(false);
-  const [showZkmlChecks, setShowZkmlChecks] = useState(false);
+  const [showDeepProofData, setShowDeepProofData] = useState(false);
   const totalChecks = gateResult?.constraint_results?.length ?? 0;
+  const clearedChecks = useMemo(
+    () => (gateResult?.constraint_results ?? []).filter((item) => item.passed && !item.warning),
+    [gateResult],
+  );
   const policyChecks = useMemo(
     () => (gateResult?.constraint_results ?? []).filter((item) => item.kind === "policy"),
     [gateResult],
@@ -157,34 +161,34 @@ export function SafetyDrawer({
 
               <div className="mt-4 space-y-3 border-t border-zinc-800 pt-4">
                 <SectionToggle
-                  title="Blocking checks"
-                  subtitle="These checks must clear before the action can be signed."
-                  badge={failedGateConstraints.length ? `${failedGateConstraints.length} blockers` : "0 blockers"}
-                  open={showBlockers}
-                  onToggle={() => setShowBlockers((current) => !current)}
+                  title="What cleared"
+                  subtitle="These checks already support the current route."
+                  badge={clearedChecks.length ? `${clearedChecks.length} cleared` : "0 cleared"}
+                  open={showCleared}
+                  onToggle={() => setShowCleared((current) => !current)}
                 />
                 <div
                   className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                    showBlockers ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    showCleared ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    {failedGateConstraints.length ? (
+                    {clearedChecks.length ? (
                       <div className="space-y-2 pt-2">
-                        {failedGateConstraints.map((item) => (
+                        {clearedChecks.map((item) => (
                           <ReviewItem
-                            key={`${item.kind}-${item.name}-failed`}
+                            key={`${item.kind}-${item.name}-cleared`}
                             title={item.name}
                             reason={item.reason}
-                            label="Blocker"
-                            tone="blocked"
+                            label="Cleared"
+                            tone="passed"
                           />
                         ))}
                       </div>
                     ) : (
                       <div className="pt-2">
-                        <div className="rounded-xl border border-emerald-500/10 bg-zinc-950/80 px-3 py-3 text-sm text-emerald-200">
-                          No blockers on the current proposal.
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-3 text-sm text-zinc-300">
+                          No cleared checks to summarize yet.
                         </div>
                       </div>
                     )}
@@ -192,8 +196,8 @@ export function SafetyDrawer({
                 </div>
 
                 <SectionToggle
-                  title="Warnings"
-                  subtitle="Warnings do not stop signing, but they change the economics or confidence of the action."
+                  title="What costs more"
+                  subtitle="These items do not block signing, but they change the economics or confidence of the route."
                   badge={warningGateConstraints.length ? `${warningGateConstraints.length} warnings` : "0 warnings"}
                   open={showWarnings}
                   onToggle={() => setShowWarnings((current) => !current)}
@@ -227,55 +231,82 @@ export function SafetyDrawer({
                 </div>
 
                 <SectionToggle
-                  title="Policy constraints"
-                  subtitle="Liquidity, fees, gas reserve, sizing, and execution policy checks."
-                  badge={`${policyChecks.length} checks`}
-                  open={showPolicyChecks}
-                  onToggle={() => setShowPolicyChecks((current) => !current)}
+                  title="What blocks signing"
+                  subtitle="These checks must clear before the route can be signed."
+                  badge={failedGateConstraints.length ? `${failedGateConstraints.length} blockers` : "0 blockers"}
+                  open={showBlockers}
+                  onToggle={() => setShowBlockers((current) => !current)}
                 />
                 <div
                   className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                    showPolicyChecks ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    showBlockers ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <div className="space-y-2 pt-2">
-                      {policyChecks.map((item) => (
-                        <ReviewItem
-                          key={`${item.kind}-${item.name}-policy`}
-                          title={item.name}
-                          reason={item.reason}
-                          label={item.passed ? (item.warning ? "Warning" : "Passed") : "Blocker"}
-                          tone={item.passed ? (item.warning ? "warning" : "passed") : "blocked"}
-                        />
-                      ))}
-                    </div>
+                    {failedGateConstraints.length ? (
+                      <div className="space-y-2 pt-2">
+                        {failedGateConstraints.map((item) => (
+                          <ReviewItem
+                            key={`${item.kind}-${item.name}-failed`}
+                            title={item.name}
+                            reason={item.reason}
+                            label="Blocker"
+                            tone="blocked"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pt-2">
+                        <div className="rounded-xl border border-emerald-500/10 bg-zinc-950/80 px-3 py-3 text-sm text-emerald-200">
+                          No blockers on the current proposal.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <SectionToggle
-                  title="zkML circuit checks"
-                  subtitle="Circuit-level proofs and model attestations stay available, but off the main face."
-                  badge={`${zkmlChecks.length} checks`}
-                  open={showZkmlChecks}
-                  onToggle={() => setShowZkmlChecks((current) => !current)}
+                  title="Deep proof data"
+                  subtitle="Policy checks, zkML circuits, and the raw matrix stay available here when you need audit depth."
+                  badge={`${policyChecks.length + zkmlChecks.length} checks`}
+                  open={showDeepProofData}
+                  onToggle={() => setShowDeepProofData((current) => !current)}
                 />
                 <div
                   className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                    showZkmlChecks ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    showDeepProofData ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <div className="space-y-2 pt-2">
-                      {zkmlChecks.map((item) => (
-                        <ReviewItem
-                          key={`${item.kind}-${item.name}-zkml`}
-                          title={item.name}
-                          reason={item.reason}
-                          label={item.passed ? (item.warning ? "Warning" : "Passed") : "Blocker"}
-                          tone={item.passed ? (item.warning ? "warning" : "passed") : "blocked"}
-                        />
-                      ))}
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">Policy checks</p>
+                        <div className="space-y-2">
+                          {policyChecks.map((item) => (
+                            <ReviewItem
+                              key={`${item.kind}-${item.name}-policy`}
+                              title={item.name}
+                              reason={item.reason}
+                              label={item.passed ? (item.warning ? "Warning" : "Passed") : "Blocker"}
+                              tone={item.passed ? (item.warning ? "warning" : "passed") : "blocked"}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">zkML circuits</p>
+                        <div className="space-y-2">
+                          {zkmlChecks.map((item) => (
+                            <ReviewItem
+                              key={`${item.kind}-${item.name}-zkml`}
+                              title={item.name}
+                              reason={item.reason}
+                              label={item.passed ? (item.warning ? "Warning" : "Passed") : "Blocker"}
+                              tone={item.passed ? (item.warning ? "warning" : "passed") : "blocked"}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
