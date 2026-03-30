@@ -614,7 +614,7 @@ export function PortfolioMainDesk(props: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Proposal summary</p>
-                <p className="mt-1 text-sm text-zinc-400">Read the change in a few seconds. Open the full comparison only if you need to inspect the mix line by line.</p>
+                <p className="mt-1 text-sm text-zinc-400">Read the change fast. Open the full comparison only if you need the mix line by line.</p>
               </div>
               <DetailToggle
                 open={showProposalDetails}
