@@ -46,6 +46,7 @@ type Props = {
   proposalOutdated: boolean;
   executionNote: string | null;
   executionLink?: string | null;
+  portableReceiptLink?: string | null;
   overridePrimaryAction: boolean;
 };
 
@@ -69,6 +70,7 @@ export function PrimaryActionTray({
   proposalOutdated,
   executionNote,
   executionLink,
+  portableReceiptLink,
   overridePrimaryAction,
 }: Props) {
   const statusTone = walletMismatch || proposalOutdated ? "warning" : tone;
@@ -165,6 +167,14 @@ export function PrimaryActionTray({
                 className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
               >
                 View on Voyager
+              </a>
+            ) : null}
+            {portableReceiptLink ? (
+              <a
+                href={portableReceiptLink}
+                className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
+              >
+                View portable receipt
               </a>
             ) : null}
           </div>

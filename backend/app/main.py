@@ -278,6 +278,8 @@ landing_router = _optional_router("app.api.routes.landing")
 public_proof_dashboard_router = _optional_router("app.api.routes.public_proof_dashboard")
 portfolio_router = _optional_router("app.api.routes.portfolio")
 execution_gate_router = _optional_router("app.api.routes.execution_gate")
+receipt_vault_router = _optional_router("app.api.routes.receipt_vault")
+passport_portable_router = _optional_router("app.api.routes.passport_portable")
 demo_router = _optional_router("app.api.routes.demo")
 forge_router = _optional_router("app.api.routes.forge")
 
@@ -407,6 +409,18 @@ if execution_gate_router:
         execution_gate_router,
         prefix="/api/v1/execution_gate",
         tags=["execution-gate"],
+    )
+if receipt_vault_router:
+    app.include_router(
+        receipt_vault_router,
+        prefix="/api/v1/receipt_vault",
+        tags=["receipt-vault"],
+    )
+if passport_portable_router:
+    app.include_router(
+        passport_portable_router,
+        prefix="/api/v1/passport",
+        tags=["passport-portable"],
     )
 if demo_router:
     app.include_router(

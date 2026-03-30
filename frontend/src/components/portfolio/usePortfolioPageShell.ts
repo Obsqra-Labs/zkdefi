@@ -15,6 +15,7 @@ import {
   fetchPortfolioReceipts,
   fetchPortfolioRecommendation,
   savePortfolioPolicy,
+  setPortfolioGovernedExecutionState,
   togglePortfolioEmergencyStop,
 } from "./api";
 import {
@@ -106,6 +107,12 @@ export function usePortfolioPageShell() {
     STRK: "25",
     USDC: "35",
   });
+
+  const portableReceiptHref = useMemo(() => {
+    const registryReceiptId = receipts.find((receipt) => receipt.metadata?.portable_receipt?.registry_receipt_id)
+      ?.metadata?.portable_receipt?.registry_receipt_id;
+    return registryReceiptId ? `/archive?receipt=${registryReceiptId}` : null;
+  }, [receipts]);
 
   const assetSummary = useMemo(() => aggregateAssets(portfolio?.positions ?? []), [portfolio]);
   const totalTrackedValue = useMemo(
@@ -331,6 +338,8 @@ export function usePortfolioPageShell() {
     hasAgent: boolean;
     activeSessionCount: number;
     activeSessionKeyIds: string[];
+    governedState: NonNullable<GovernedExecution["state"]>;
+    controlState: NonNullable<GovernedExecution["control_state"]>;
     executionMode: GovernedExecution["mode"];
     primaryHint: string;
     passportScore: number;
@@ -357,6 +366,8 @@ export function usePortfolioPageShell() {
         hasAgent: Boolean(backendState.has_agent),
         activeSessionCount: Number(backendState.active_session_count ?? 0),
         activeSessionKeyIds: backendState.active_session_key_ids ?? [],
+        governedState: backendState.state ?? "session_unavailable",
+        controlState: backendState.control_state ?? "disarmed",
         executionMode: backendState.mode,
         primaryHint:
           backendState.primary_hint ||
@@ -419,6 +430,8 @@ export function usePortfolioPageShell() {
       hasAgent,
       activeSessionCount,
       activeSessionKeyIds: [],
+      governedState: hasAgent ? (activeSessionCount > 0 ? "policy_fallback" : "session_unavailable") : "session_unavailable",
+      controlState: "disarmed",
       executionMode,
       primaryHint,
       passportScore,
@@ -443,16 +456,18 @@ export function usePortfolioPageShell() {
     () => automatedGovernedState.activeSessionKeyIds[0] ?? null,
     [automatedGovernedState.activeSessionKeyIds],
   );
-  const governedExecutionPaused = Boolean(policy?.paused);
+  const governedExecutionControlState = policy?.governed_execution_state ?? automatedGovernedState.controlState ?? "disarmed";
+  const governedExecutionDisarmed = governedExecutionControlState !== "armed";
   const primaryActionLabel = useMemo(() => {
     if (hasPreparedRebalance) {
       if (workflowMode === "manual") return "Sign manual route";
       if (workflowMode === "automated") return "Authorize governed route";
       return "Sign guided route";
     }
+    if (workflowMode === "automated" && automatedGovernedState.governedState === "executing") return "Governed move executing";
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return "Complete onboarding";
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return "Add session key";
-    if (workflowMode === "automated" && governedExecutionPaused) return "Arm governed execution";
+    if (workflowMode === "automated" && governedExecutionDisarmed) return "Arm governed execution";
     if (executing) return workflowMode === "automated" ? "Arming governed move" : "Preparing";
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
@@ -470,13 +485,14 @@ export function usePortfolioPageShell() {
     }
     if (actionType === "rebalance") return workflowMode === "automated" ? "Arm governed execution" : "Review guided move";
     return workflowMode === "automated" ? "Arm governed swap" : "Sign guided swap";
-  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionPaused, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
+  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionDisarmed, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
     if (hasPreparedRebalance) return !canSignPreparedRebalance;
+    if (workflowMode === "automated" && automatedGovernedState.governedState === "executing") return true;
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return false;
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return false;
-    if (workflowMode === "automated" && governedExecutionPaused) return false;
+    if (workflowMode === "automated" && governedExecutionDisarmed) return false;
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
       return checking;
@@ -485,7 +501,7 @@ export function usePortfolioPageShell() {
     if (hasFreshGateCheck && !gateResult?.allowed) return true;
     if (!hasFreshGateCheck) return true;
     return checking;
-  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionPaused, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
+  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionDisarmed, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
   const deskState = useMemo(() => {
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) {
       return {
@@ -503,7 +519,15 @@ export function usePortfolioPageShell() {
         detail: "Add or renew a governed session key before relying on automated execution in this lane.",
       };
     }
-    if (workflowMode === "automated" && governedExecutionPaused) {
+    if (workflowMode === "automated" && automatedGovernedState.governedState === "executing") {
+      return {
+        label: "Governed move submitted",
+        tone: "good" as const,
+        headline: "A governed move is already in flight.",
+        detail: "Wait for the current governed execution to settle before arming another move in this lane.",
+      };
+    }
+    if (workflowMode === "automated" && governedExecutionDisarmed) {
       return {
         label: "Governed execution paused",
         tone: "warning" as const,
@@ -618,7 +642,7 @@ export function usePortfolioPageShell() {
             ? "Automated mode evaluates policy, drift, and route quality before it arms a governed action."
           : "The desk will run the safety check automatically as you update the proposal.",
     };
-  }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, governedExecutionPaused, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
+  }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, governedExecutionDisarmed, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
   const proposalHeadline = useMemo(() => {
     if (workflowMode === "manual") {
       if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
@@ -944,11 +968,15 @@ export function usePortfolioPageShell() {
       setPendingPreparedAt(null);
       if (pendingReceiptId) {
         try {
-          await confirmPortfolioExecution(address, pendingReceiptId, result.transaction_hash);
+          const confirmPayload = await confirmPortfolioExecution(address, pendingReceiptId, result.transaction_hash);
           setExecutionNote(
-            optimized.skippedApprovals
-              ? `Submitted via wallet after skipping ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Tx ${result.transaction_hash.slice(0, 12)}...`
-              : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
+            confirmPayload?.portable_receipt?.registry_receipt_id
+              ? optimized.skippedApprovals
+                ? `Submitted via wallet after skipping ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Portable receipt archived.`
+                : "Submitted via wallet. Portable receipt archived."
+              : optimized.skippedApprovals
+                ? `Submitted via wallet after skipping ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Tx ${result.transaction_hash.slice(0, 12)}...`
+                : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
           );
         } catch (confirmErr) {
           console.error("portfolio confirm failed after wallet submission", confirmErr);
@@ -1076,13 +1104,19 @@ export function usePortfolioPageShell() {
           );
           const result = await account.execute(optimized.calls);
           setExecutionTxHash(result.transaction_hash);
-          await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
+          const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
           setExecutionNote(
-            options?.allowManualOverride
-              ? `Submitted via wallet from manual mode. Tx ${result.transaction_hash.slice(0, 12)}...`
-              : options?.allowAdvisoryOverride
-              ? `Submitted via wallet after fee-warning override. Tx ${result.transaction_hash.slice(0, 12)}...`
-              : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
+            confirmPayload?.portable_receipt?.registry_receipt_id
+              ? options?.allowManualOverride
+                ? "Submitted via wallet from manual mode. Portable receipt archived."
+                : options?.allowAdvisoryOverride
+                ? "Submitted via wallet after fee-warning override. Portable receipt archived."
+                : "Submitted via wallet. Portable receipt archived."
+              : options?.allowManualOverride
+                ? `Submitted via wallet from manual mode. Tx ${result.transaction_hash.slice(0, 12)}...`
+                : options?.allowAdvisoryOverride
+                ? `Submitted via wallet after fee-warning override. Tx ${result.transaction_hash.slice(0, 12)}...`
+                : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
           );
           await refreshData(address);
           return;
@@ -1168,6 +1202,28 @@ export function usePortfolioPageShell() {
     }
   };
 
+  const setGovernedExecutionControl = async (state: "armed" | "disarmed") => {
+    if (!address) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const snapshot = await setPortfolioGovernedExecutionState(address, state);
+      setPolicy(snapshot);
+      setPolicyDraft(buildPolicyDraft(snapshot));
+      setPolicyDirty(false);
+      await refreshData(address);
+    } catch (err) {
+      const message = getApiErrorMessage(err);
+      setError(
+        message
+          ? `Unable to update governed execution right now. ${message}`
+          : "Unable to update governed execution right now. Try again in a moment.",
+      );
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const handlePrimaryAction = async () => {
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) {
       setExecutionNote("Automated mode needs onboarding first. Opening the passport flow.");
@@ -1179,9 +1235,9 @@ export function usePortfolioPageShell() {
       router.push("/agent");
       return;
     }
-    if (workflowMode === "automated" && governedExecutionPaused) {
+    if (workflowMode === "automated" && governedExecutionDisarmed) {
       setExecutionNote("Arming governed execution for this wallet.");
-      await toggleEmergencyStop();
+      await setGovernedExecutionControl("armed");
       return;
     }
     if (hasPreparedRebalance) {
@@ -1397,6 +1453,7 @@ export function usePortfolioPageShell() {
     proposalOutdated,
     executionNote,
     executionLink: executionTxHash ? voyagerTxUrl(executionTxHash) : null,
+    portableReceiptLink: executionTxHash ? portableReceiptHref : null,
     passedGateCount,
     failedGateConstraints,
     warningGateConstraints,
@@ -1411,14 +1468,14 @@ export function usePortfolioPageShell() {
     recommendedSwapAlternatives,
     overridePrimaryAction: canManualOverride || canAdvisoryOverride,
     automatedProfileFallback: automatedGovernedState,
-    governedExecutionPaused,
+    governedExecutionDisarmed,
     onToggleGovernedExecution: () => {
       setExecutionNote(
-        policy?.paused
+        governedExecutionDisarmed
           ? "Arming governed execution for this wallet."
           : "Disarming governed execution for this wallet.",
       );
-      void toggleEmergencyStop();
+      void setGovernedExecutionControl(governedExecutionDisarmed ? "armed" : "disarmed");
     },
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,

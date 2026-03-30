@@ -70,6 +70,18 @@ export function ClaimButton({ walletAddress, disabled }: ClaimButtonProps) {
               </a>
             </p>
           )}
+          {result.portable_receipt?.registry_receipt_id && (
+            <p>
+              Portable:{" "}
+              <Link
+                href={`/archive?receipt=${result.portable_receipt.registry_receipt_id}`}
+                className="inline-flex items-center gap-0.5 font-semibold text-cyan-400 underline"
+              >
+                View in Receipt Vault
+                <ExternalLink className="h-2.5 w-2.5" />
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     );

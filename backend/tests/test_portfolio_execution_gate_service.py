@@ -419,6 +419,8 @@ async def test_recommend_includes_governed_execution_summary(monkeypatch, gate_s
     assert "portfolio_uses_onboarding_profile" in governed["reason_codes"]
     assert "active_session_key_present" in governed["reason_codes"]
     assert governed["primary_hint"].lower().startswith("using your aggressive onboarding execution profile")
+    assert governed["control_state"] == "disarmed"
+    assert governed["state"] == "disarmed"
     assert governed["readiness"]["status"] == "policy_fallback"
     assert governed["readiness"]["label"] == "Policy fallback"
     assert governed["next_action"]["label"].startswith("Governed")
@@ -459,6 +461,8 @@ async def test_recommend_governed_execution_exposes_setup_gap_and_next_action(mo
 
     governed = result["governed_execution"]
     assert governed["mode"] == "block"
+    assert governed["control_state"] == "disarmed"
+    assert governed["state"] == "session_unavailable"
     assert governed["readiness"]["status"] == "needs_onboarding"
     assert governed["readiness"]["label"] == "Onboarding needed"
     assert "Complete onboarding" in governed["readiness"]["detail"]
@@ -799,7 +803,22 @@ async def test_recommend_prefers_routable_small_wallet_candidate(monkeypatch, ga
 
 
 @pytest.mark.asyncio
-async def test_confirm_wallet_execution_receipt_updates_tx_hash(gate_service):
+async def test_confirm_wallet_execution_receipt_updates_tx_hash(monkeypatch, gate_service):
+    async def fake_register_portfolio_execution(**_: object):
+        return {
+            "registry_receipt_id": "77",
+            "cid": "bafybeigdyrzt5m6portfolio000000000000000000000000000000000000002",
+            "gateway_url": "https://bafybeigdyrzt5m6portfolio000000000000000000000000000000000000002.ipfs.storacha.link/receipt-bundle.json",
+            "ipfs_uri": "ipfs://bafybeigdyrzt5m6portfolio000000000000000000000000000000000000002",
+            "archive_tx_hash": "0xanchor",
+        }
+
+    monkeypatch.setattr(
+        gate_service.receipt_vault_service,
+        "register_portfolio_execution",
+        fake_register_portfolio_execution,
+    )
+
     receipt = await gate_service.receipt_service.create_receipt(
         user_address="0xabc123",
         constraints_hash="0xpolicy",
@@ -816,9 +835,11 @@ async def test_confirm_wallet_execution_receipt_updates_tx_hash(gate_service):
     updated = await gate_service.receipt_service.get_receipt(receipt["receipt_id"])
 
     assert result["status"] == "submitted"
+    assert result["portable_receipt"]["registry_receipt_id"] == "77"
     assert updated is not None
     assert updated["tx_hash"] == "0xtx123"
     assert updated["metadata"]["status"] == "submitted"
+    assert updated["metadata"]["portable_receipt"]["registry_receipt_id"] == "77"
 
 
 @pytest.mark.asyncio

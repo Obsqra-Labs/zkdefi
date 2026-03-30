@@ -124,7 +124,46 @@ export async function POST(request: Request) {
     const txMatch = combined.match(/(0x[0-9a-fA-F]{50,})/);
     const txHash = txMatch?.[1] ?? "";
 
-    return NextResponse.json({ receipt_id: receiptId, tx_hash: txHash });
+    let portableReceipt: Record<string, unknown> | null = null;
+    try {
+      const registerRes = await fetch(`${BACKEND_URL}/api/v1/receipt_vault/passport/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          wallet_address: address,
+          receipt_id: receiptId,
+          tx_hash: txHash,
+          policy_hash: policyHash.toString(),
+          tier_name: raw.tier_name ?? null,
+          reputation_score: raw.reputation_score ?? null,
+          gates: raw.gates ?? {},
+          scanned_at: raw.scanned_at ?? null,
+          claimed_at: new Date().toISOString(),
+          claim_kind: "passport",
+        }),
+      });
+      if (registerRes.ok) {
+        const payload = await registerRes.json();
+        portableReceipt = {
+          registry_receipt_id: payload.registry_receipt_id ?? null,
+          cid: payload.cid ?? null,
+          gateway_url: payload.gateway_url ?? null,
+          ipfs_uri: payload.ipfs_uri ?? null,
+        };
+      } else {
+        console.error("Receipt vault registration failed:", await registerRes.text());
+      }
+    } catch (registerErr) {
+      console.error("Receipt vault registration error:", registerErr);
+    }
+
+    return NextResponse.json({
+      receipt_id: receiptId,
+      tx_hash: txHash,
+      portable_receipt: portableReceipt,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Claim failed";
     console.error("Claim error:", err);

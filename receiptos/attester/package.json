@@ -10,6 +10,7 @@
     "test": "vitest run test/"
   },
   "dependencies": {
+    "@storacha/client": "^1.1.0",
     "starknet": "^6.11.0"
   },
   "devDependencies": {

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zkde.fi/schemas/receipt-vault/receipt-bundle-1.0.json",
+  "title": "zkde.fi Receipt Bundle",
+  "type": "object",
+  "required": [
+    "version",
+    "receipt_id",
+    "action_type",
+    "timestamp",
+    "chain",
+    "subject",
+    "proof_hashes",
+    "policy_result",
+    "starknet_evidence",
+    "selective_disclosure",
+    "metadata"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "receipt_id": {
+      "type": "string",
+      "description": "String-encoded Starknet receipt identifier. Current ReceiptRegistry v0.1 source ids are u64."
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "swap",
+        "deposit",
+        "withdrawal",
+        "lp",
+        "verification",
+        "rebalance"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "block_number": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "chain": {
+      "type": "string",
+      "enum": [
+        "starknet_sepolia"
+      ]
+    },
+    "subject": {
+      "type": "string"
+    },
+    "proof_hashes": {
+      "type": "object",
+      "required": [
+        "policy_hash",
+        "proof_hash",
+        "receipt_hash"
+      ],
+      "properties": {
+        "policy_hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]+$"
+        },
+        "proof_hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]+$"
+        },
+        "receipt_hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "policy_result": {
+      "type": "object",
+      "required": [
+        "allowed",
+        "constraints_checked",
+        "tier"
+      ],
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        },
+        "constraints_checked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "starknet_evidence": {
+      "type": "object",
+      "required": [
+        "tx_hash",
+        "contract_address",
+        "event_key"
+      ],
+      "properties": {
+        "tx_hash": {
+          "type": "string"
+        },
+        "contract_address": {
+          "type": "string"
+        },
+        "event_key": {
+          "type": "string"
+        },
+        "archive_tx_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "archive_contract_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "selective_disclosure": {
+      "type": "object",
+      "required": [
+        "public_fields",
+        "private_fields",
+        "disclosure_mode"
+      ],
+      "properties": {
+        "public_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "private_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "disclosure_mode": {
+          "type": "string",
+          "enum": [
+            "full",
+            "selective",
+            "redacted"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "issuer",
+        "schema_version",
+        "human_readable"
+      ],
+      "properties": {
+        "issuer": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "human_readable": {
+          "type": "string"
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workflow_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

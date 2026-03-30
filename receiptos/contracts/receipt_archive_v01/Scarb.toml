@@ -1,0 +1,20 @@
+[package]
+name = "receipt_archive_v01"
+version = "0.1.0"
+edition = "2024_07"
+
+[dependencies]
+starknet = "2.15.0"
+
+[dev-dependencies]
+snforge_std = "0.50.0"
+cairo_test = "2.15.0"
+
+[scripts]
+test = "snforge test"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+allowed-libfuncs = true
+allowed-libfuncs-deny = false
