@@ -585,6 +585,24 @@ export function PortfolioMainDesk(props: Props) {
             overridePrimaryAction={overridePrimaryAction}
           />
         </div>
+
+        {suggestedSwapFallback ? (
+          <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
+                <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
+              </div>
+              <button
+                type="button"
+                onClick={onUseSuggestedSwap}
+                className="inline-flex items-center justify-center rounded-full border border-cyan-400/40 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
+              >
+                Use simpler swap
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <SectionCard
@@ -800,20 +818,6 @@ export function PortfolioMainDesk(props: Props) {
                 )}
               </div>
             </div>
-
-            {suggestedSwapFallback ? (
-              <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
-                <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
-                <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
-                <button
-                  type="button"
-                  onClick={onUseSuggestedSwap}
-                  className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
-                >
-                  Use simpler swap
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
       </SectionCard>

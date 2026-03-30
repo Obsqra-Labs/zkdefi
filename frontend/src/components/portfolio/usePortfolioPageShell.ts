@@ -303,7 +303,7 @@ export function usePortfolioPageShell() {
     if (hasPreparedRebalance) return "Sign rebalance";
     if (executing) return "Preparing";
     if (checking && !hasFreshGateCheck) return "Checking Safety";
-    if (canAdvisoryOverride) return actionType === "rebalance" ? "Sign with fee warning" : "Swap with fee warning";
+    if (canAdvisoryOverride) return "Continue with fee warning";
     if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
     if (!hasFreshGateCheck) return actionType === "rebalance" ? "Review rebalance" : "Review swap";
     if (actionType === "rebalance") return "Review Rebalance";
