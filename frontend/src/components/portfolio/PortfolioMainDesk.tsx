@@ -621,6 +621,15 @@ export function PortfolioMainDesk(props: Props) {
         title={actionType === "swap" ? "What you can send next" : "What the desk will execute next"}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {recommendedSwapStarter && actionType === "rebalance" ? (
+              <button
+                type="button"
+                onClick={onUseRecommendedSwapStarter}
+                className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+              >
+                Edit direct swap
+              </button>
+            ) : null}
             <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {actionType}
             </span>

@@ -501,8 +501,20 @@ export function usePortfolioPageShell() {
     try {
       const payload = await fetchPortfolioRecommendation(address);
       setRecommendation(payload);
-      setActionType("rebalance");
       setAiProposalApplied(false);
+      const bestStep =
+        payload.recommendation_mode === "best_next_move" ? payload.derived_swap_steps?.[0] : null;
+      if (bestStep) {
+        setActionType("swap");
+        setSwapAssetIn(bestStep.from_asset);
+        setSwapAssetOut(bestStep.to_asset);
+        setSwapAmount(formatEditableAmount(bestStep.amount, bestStep.from_asset));
+        setExecutionNote(
+          `Loaded the best live route first: ${bestStep.from_asset} → ${bestStep.to_asset} for about ${formatUsd(bestStep.value_usd)}.`,
+        );
+      } else {
+        setActionType("rebalance");
+      }
     } catch (err) {
       setRecommendationNotice("The suggested target is unavailable right now. You can still edit your own target and run the safety check.");
     } finally {
