@@ -519,9 +519,6 @@ export function PortfolioMainDesk(props: Props) {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
-            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-              {passedGateCount} passed
-            </span>
             <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
               warningGateConstraints.length
                 ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
@@ -535,9 +532,6 @@ export function PortfolioMainDesk(props: Props) {
                 : "border-zinc-700/80 bg-zinc-950/70 text-zinc-300"
             }`}>
               {failedGateConstraints.length} blockers
-            </span>
-            <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-              {gateConfidence} confidence
             </span>
             <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {formatUsd(actionValueUsd)} moved
