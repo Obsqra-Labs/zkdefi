@@ -133,43 +133,6 @@ function MixBar({
   );
 }
 
-function MetricTile({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "good" | "warning";
-}) {
-  const toneClass =
-    tone === "good" ? "text-emerald-200" : tone === "warning" ? "text-amber-200" : "text-white";
-  return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-3">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
-      <p className={`mt-1.5 text-base font-semibold ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
-function ImpactCard({
-  label,
-  value,
-  body,
-}: {
-  label: string;
-  value: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-3.5">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
-      <p className="mt-1.5 text-xs leading-5 text-zinc-400">{body}</p>
-    </div>
-  );
-}
-
 function DetailToggle({
   open,
   onToggle,
@@ -787,31 +750,45 @@ export function PortfolioMainDesk(props: Props) {
         }
       >
         <div className="space-y-3">
-          <div className="grid gap-2.5 sm:grid-cols-4">
-            <MetricTile label="Trades" value={`${activeSteps.length}`} />
-            <MetricTile label="Value moved" value={formatUsd(actionValueUsd)} />
-            <MetricTile label="Network cost" value={formatUsd(estimatedFeeUsd)} tone={feeGuardResult?.passed ? "default" : "warning"} />
-            <MetricTile label="Route" value={routeLabel} />
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+              {activeSteps.length} trade{activeSteps.length === 1 ? "" : "s"}
+            </span>
+            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+              {formatUsd(actionValueUsd)} moved
+            </span>
+            <span
+              className={`rounded-full border px-3 py-1.5 text-xs ${
+                feeGuardResult?.passed
+                  ? "border-zinc-700 bg-zinc-950 text-zinc-300"
+                  : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+              }`}
+            >
+              {formatUsd(estimatedFeeUsd)} network cost
+            </span>
+            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+              {routeLabel}
+            </span>
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_0.9fr]">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Execution path</p>
-                  <p className="mt-1 text-sm text-zinc-400">Read the next action first. Open the rest only if you need more than the main path.</p>
-                </div>
-                {(pendingPreparedCalls?.length || activeSteps.length > 1) ? (
-                  <DetailToggle
-                    open={showDecisionDetails}
-                    onToggle={() => setShowDecisionDetails((current) => !current)}
-                    showLabel="Show full plan"
-                    hideLabel="Hide full plan"
-                  />
-                ) : null}
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Decision summary</p>
+                <p className="mt-1 text-sm text-zinc-400">Read the lead route, the economics, and the main portfolio effect. Open the full plan only when you need the full path.</p>
               </div>
+              {(pendingPreparedCalls?.length || activeSteps.length > 1) ? (
+                <DetailToggle
+                  open={showDecisionDetails}
+                  onToggle={() => setShowDecisionDetails((current) => !current)}
+                  showLabel="Show full plan"
+                  hideLabel="Hide full plan"
+                />
+              ) : null}
+            </div>
 
-              <div className="mt-3">
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_0.85fr]">
+              <div className="space-y-3">
                 {leadPlanStep ? (
                   <PlanStep
                     index={1}
@@ -825,81 +802,76 @@ export function PortfolioMainDesk(props: Props) {
                     <p className="mt-2 text-sm text-zinc-500">Set a target or trade amount and the exact path will appear here.</p>
                   </div>
                 )}
-              </div>
 
-              <div
-                className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                  showDecisionDetails ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-                }`}
-              >
-                <div className="min-h-0 overflow-hidden">
-                  <div className="space-y-2 pt-1">
-                    {pendingPreparedCalls?.length ? (
-                      pendingPreparedCalls.map((step, index) => (
-                        <PlanStep
-                          key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
-                          index={index + 1}
-                          title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
-                          meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
-                          value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
-                        />
-                      ))
-                    ) : activeSteps.length ? (
-                      activeSteps.map((step, index) => (
-                        <PlanStep
-                          key={`${step.from_asset}-${step.to_asset}-${index}`}
-                          index={index + 1}
-                          title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
-                          meta={`${routeLabel} • expected receive in ${step.to_asset}`}
-                          value={formatUsd(step.value_usd)}
-                        />
-                      ))
-                    ) : null}
+                <div
+                  className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+                    showDecisionDetails ? "grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <div className="space-y-2 pt-1">
+                      {pendingPreparedCalls?.length ? (
+                        pendingPreparedCalls.map((step, index) => (
+                          <PlanStep
+                            key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
+                            index={index + 1}
+                            title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
+                            meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
+                            value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
+                          />
+                        ))
+                      ) : activeSteps.length ? (
+                        activeSteps.map((step, index) => (
+                          <PlanStep
+                            key={`${step.from_asset}-${step.to_asset}-${index}`}
+                            index={index + 1}
+                            title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
+                            meta={`${routeLabel} • expected receive in ${step.to_asset}`}
+                            value={formatUsd(step.value_usd)}
+                          />
+                        ))
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Decision readout</p>
-                <div className="mt-3 space-y-2">
+              <div className="space-y-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                  <p className="text-sm font-medium text-white">{economicsTitle}</p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">{economicsReason}</p>
+                </div>
+                {impactCards.slice(0, 2).map((card) => (
+                  <div key={`${card.label}-compact`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-white">{card.label}</p>
+                      <span className="text-sm text-zinc-300">{card.value}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">{card.body}</p>
+                  </div>
+                ))}
+                {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                    <p className="text-sm font-medium text-white">{economicsTitle}</p>
-                    <p className="mt-1 text-xs leading-5 text-zinc-400">{economicsReason}</p>
+                    <p className="text-sm font-medium text-white">Gas reserve</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">{gasReserveResult.reason}</p>
                   </div>
-                  {impactCards.slice(0, 2).map((card) => (
-                    <div key={`${card.label}-compact`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-white">{card.label}</p>
-                        <span className="text-sm text-zinc-300">{card.value}</span>
-                      </div>
-                      <p className="mt-1 text-xs leading-5 text-zinc-500">{card.body}</p>
-                    </div>
-                  ))}
-                  {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <p className="text-sm font-medium text-white">Gas reserve</p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-500">{gasReserveResult.reason}</p>
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
-
-              {suggestedSwapFallback ? (
-                <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
-                  <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
-                  <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
-                  <button
-                    type="button"
-                    onClick={onUseSuggestedSwap}
-                    className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
-                  >
-                    Use simpler swap
-                  </button>
-                </div>
-              ) : null}
             </div>
+
+            {suggestedSwapFallback ? (
+              <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3.5">
+                <p className="text-sm font-medium text-cyan-100">{suggestedSwapFallback.label}</p>
+                <p className="mt-1.5 text-sm text-cyan-50/80">{suggestedSwapFallback.detail}</p>
+                <button
+                  type="button"
+                  onClick={onUseSuggestedSwap}
+                  className="mt-3 rounded-full border border-cyan-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-400/10"
+                >
+                  Use simpler swap
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </SectionCard>
