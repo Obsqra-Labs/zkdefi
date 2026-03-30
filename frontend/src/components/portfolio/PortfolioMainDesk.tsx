@@ -560,6 +560,17 @@ export function PortfolioMainDesk(props: Props) {
       : workflowMode === "assisted"
         ? "Let the system suggest the move. The Gate governs what gets through."
         : "Experimental. Strategy plus policy choose the move, and the Gate stays in charge of execution.";
+  const editorHeading =
+    workflowMode === "manual" ? "Manual controls" : workflowMode === "assisted" ? "Adjust guided draft" : "Manual override";
+  const editorEyebrow = workflowMode === "manual" ? "Edit trade" : workflowMode === "assisted" ? "Adjust draft" : "Intervene manually";
+  const editorIntro =
+    workflowMode === "manual"
+      ? recommendedSwapStarter && actionType === "rebalance"
+        ? "For this wallet, start from the direct route first. Open target mix only if you need to shape the broader allocation."
+        : economicsHelper
+      : workflowMode === "assisted"
+        ? "Assisted mode loaded the guided draft already. Open this only if you want to change the trade by hand."
+        : "Automated mode is running a governed draft. Open manual override only if you want to intervene directly.";
 
   const startSection = (
     <SectionCard eyebrow="Start here" title="How do you want to manage this wallet?">
@@ -829,14 +840,16 @@ export function PortfolioMainDesk(props: Props) {
                 onClick={onGetRecommendation}
                 className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
               >
-                Refresh model
+                {workflowMode === "automated" ? "Refresh governed move" : "Refresh guided route"}
               </button>
-              <button
-                onClick={onApplyAiTargets}
-                className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-              >
-                Use suggested target
-              </button>
+              {actionType === "rebalance" ? (
+                <button
+                  onClick={onApplyAiTargets}
+                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                >
+                  {workflowMode === "automated" ? "Load governed target" : "Load guided target"}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -1035,13 +1048,9 @@ export function PortfolioMainDesk(props: Props) {
         className="flex w-full items-center justify-between gap-4 text-left"
       >
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Edit trade</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">Manual controls</h2>
-          <p className="mt-1.5 text-sm text-zinc-400">
-            {recommendedSwapStarter && actionType === "rebalance"
-              ? "For this wallet, start from the direct route first. Open target mix only if you need to shape the broader allocation."
-              : economicsHelper}
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{editorEyebrow}</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">{editorHeading}</h2>
+          <p className="mt-1.5 text-sm text-zinc-400">{editorIntro}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="inline-flex rounded-full border border-zinc-700/80 bg-zinc-950/80 p-1">

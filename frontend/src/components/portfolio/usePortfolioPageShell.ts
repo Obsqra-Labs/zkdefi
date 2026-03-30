@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import type { Call } from "starknet";
 
@@ -245,14 +245,16 @@ export function usePortfolioPageShell() {
           currentIntent.token_out === option.to_asset &&
           String(currentIntent.amount_wei ?? "") === String(option.amount_wei),
       );
-      if (matchingOption?.selected) return "Best live route";
-      if (matchingOption) return "Live route option";
+      if (matchingOption?.selected) return workflowMode === "automated" ? "Governed route" : workflowMode === "assisted" ? "Guided route" : "Best live route";
+      if (matchingOption) return "Route option";
       return "Manual swap";
     }
+    if (workflowMode === "automated") return "Governed draft";
+    if (workflowMode === "assisted") return recommendation?.recommendation_mode === "best_next_move" ? "Guided route" : "Guided draft";
     if (recommendation?.recommendation_mode === "best_next_move") return "Best next move";
     if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "Suggested target";
     return "Manual target";
-  }, [actionType, aiProposalApplied, aiProposalKey, currentIntent, currentProposalKey, recommendation, recommendedSwapOptions]);
+  }, [actionType, workflowMode, aiProposalApplied, aiProposalKey, currentIntent, currentProposalKey, recommendation, recommendedSwapOptions]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
   const suggestedSwapFallback = useMemo(() => {
     if (actionType !== "rebalance") return null;
@@ -347,7 +349,11 @@ export function usePortfolioPageShell() {
   }, [workflowMode, hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
 
   const primaryActionLabel = useMemo(() => {
-    if (hasPreparedRebalance) return workflowMode === "manual" ? "Sign manual route" : "Sign rebalance";
+    if (hasPreparedRebalance) {
+      if (workflowMode === "manual") return "Sign manual route";
+      if (workflowMode === "automated") return "Sign governed route";
+      return "Sign guided route";
+    }
     if (executing) return "Preparing";
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
@@ -359,9 +365,12 @@ export function usePortfolioPageShell() {
     if (checking && !hasFreshGateCheck) return "Checking Safety";
     if (canAdvisoryOverride) return "Continue with fee warning";
     if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
-    if (!hasFreshGateCheck) return actionType === "rebalance" ? "Review rebalance" : "Review swap";
-    if (actionType === "rebalance") return "Review Rebalance";
-    return "Sign swap";
+    if (!hasFreshGateCheck) {
+      if (workflowMode === "automated") return actionType === "rebalance" ? "Review governed move" : "Review governed swap";
+      return actionType === "rebalance" ? "Review guided move" : "Review guided swap";
+    }
+    if (actionType === "rebalance") return workflowMode === "automated" ? "Review governed move" : "Review guided move";
+    return workflowMode === "automated" ? "Sign governed swap" : "Sign guided swap";
   }, [actionType, hasPreparedRebalance, workflowMode, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
@@ -414,14 +423,50 @@ export function usePortfolioPageShell() {
     const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
     return active.length ? active.join(" • ") : "ETH • STRK • USDC";
   }, [assetSummary]);
-  const proposalHeadline =
-    recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the gate decide if it is safe to sign.";
-  const proposalReason =
-    recommendation?.recommendation_note ??
-    recommendation?.rebalance_summary?.why ??
-    "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override.";
-  const proposalRouteLabel = recommendation?.recommended_route_label ?? null;
-  const proposalRouteDetail = recommendation?.recommended_route_detail ?? null;
+  const proposalHeadline = useMemo(() => {
+    if (workflowMode === "manual") {
+      if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
+      const leadStep = gateResult?.swap_steps?.[0];
+      return leadStep ? `Rebalance via ${leadStep.from_asset} → ${leadStep.to_asset}` : "Rebalance toward your target mix";
+    }
+    if (workflowMode === "automated") {
+      return recommendation?.rebalance_summary?.headline ?? "Strategy and policy are shaping the next governed move.";
+    }
+    return recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the Gate decide if it is safe to sign.";
+  }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation]);
+  const proposalReason = useMemo(() => {
+    if (workflowMode === "manual") {
+      return actionType === "swap"
+        ? "Manual mode starts from the trade you set. The Gate still scores route quality, policy, and cost, but the wallet path stays in your hands."
+        : "Manual mode starts from your target mix. The Gate translates it into an executable path and records the checks, but the route can still continue to wallet.";
+    }
+    if (workflowMode === "automated") {
+      return (
+        recommendation?.recommendation_note ??
+        recommendation?.rebalance_summary?.why ??
+        "Experimental governed mode lets strategy and policy shape the draft while the Gate remains in charge of execution."
+      );
+    }
+    return (
+      recommendation?.recommendation_note ??
+      recommendation?.rebalance_summary?.why ??
+      "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override."
+    );
+  }, [workflowMode, actionType, recommendation]);
+  const proposalRouteLabel = useMemo(() => {
+    if (workflowMode === "manual") {
+      const leadStep = gateResult?.swap_steps?.[0];
+      return leadStep ? `${leadStep.from_asset} → ${leadStep.to_asset}` : null;
+    }
+    return recommendation?.recommended_route_label ?? null;
+  }, [workflowMode, gateResult, recommendation]);
+  const proposalRouteDetail = useMemo(() => {
+    if (workflowMode === "manual") {
+      const leadStep = gateResult?.swap_steps?.[0];
+      return leadStep ? `${formatUsd(leadStep.value_usd)} from the current manual draft` : null;
+    }
+    return recommendation?.recommended_route_detail ?? null;
+  }, [workflowMode, gateResult, recommendation]);
   const recommendedSwapStarter = useMemo(() => {
     const option = selectedRecommendedSwapOption;
     const step =
@@ -456,6 +501,54 @@ export function usePortfolioPageShell() {
       }),
     [receipts, txStatusMap],
   );
+
+  const applyRecommendationDraft = useCallback((payload: Recommendation, mode: WorkflowMode) => {
+    const selectedOption =
+      payload.recommendation_mode === "best_next_move"
+        ? payload.recommended_alternatives?.find((option) => option.selected) ?? null
+        : null;
+    const bestStep =
+      selectedOption ??
+      (payload.recommendation_mode === "best_next_move" ? payload.derived_swap_steps?.[0] : null);
+
+    if (bestStep) {
+      setActionType("swap");
+      setSwapAssetIn(bestStep.from_asset);
+      setSwapAssetOut(bestStep.to_asset);
+      setSwapAmount(formatEditableAmount(bestStep.amount, bestStep.from_asset));
+      setAiProposalApplied(false);
+      setExecutionNote(
+        mode === "automated"
+          ? `Loaded the governed live route: ${bestStep.from_asset} → ${bestStep.to_asset} for about ${formatUsd(bestStep.value_usd)}.`
+          : `Loaded the guided live route: ${bestStep.from_asset} → ${bestStep.to_asset} for about ${formatUsd(bestStep.value_usd)}.`,
+      );
+      return;
+    }
+
+    if (payload.target_allocations) {
+      const normalizedTarget = normalizeAllocationMap({
+        ETH: payload.target_allocations.ETH ?? 0,
+        STRK: payload.target_allocations.STRK ?? 0,
+        USDC: payload.target_allocations.USDC ?? 0,
+      });
+      setActionType("rebalance");
+      setTargetWeights({
+        ETH: String(normalizedTarget.ETH),
+        STRK: String(normalizedTarget.STRK),
+        USDC: String(normalizedTarget.USDC),
+      });
+      setAiProposalApplied(true);
+      setExecutionNote(
+        mode === "automated"
+          ? "Loaded the governed target draft into the desk."
+          : "Loaded the guided target draft into the desk.",
+      );
+      return;
+    }
+
+    setActionType("rebalance");
+    setAiProposalApplied(false);
+  }, []);
 
   const refreshData = async (walletAddress: string) => {
     setLoading(true);
@@ -559,23 +652,8 @@ export function usePortfolioPageShell() {
       const payload = await fetchPortfolioRecommendation(address);
       setRecommendation(payload);
       setAiProposalApplied(false);
-      const selectedOption =
-        payload.recommendation_mode === "best_next_move"
-          ? payload.recommended_alternatives?.find((option) => option.selected) ?? null
-          : null;
-      const bestStep =
-        selectedOption ??
-        (payload.recommendation_mode === "best_next_move" ? payload.derived_swap_steps?.[0] : null);
-      if (bestStep) {
-        setActionType("swap");
-        setSwapAssetIn(bestStep.from_asset);
-        setSwapAssetOut(bestStep.to_asset);
-        setSwapAmount(formatEditableAmount(bestStep.amount, bestStep.from_asset));
-        setExecutionNote(
-          `Loaded the best live route first: ${bestStep.from_asset} → ${bestStep.to_asset} for about ${formatUsd(bestStep.value_usd)}.`,
-        );
-      } else {
-        setActionType("rebalance");
+      if (workflowMode === "manual") {
+        setExecutionNote("Loaded a fresh system recommendation. Switch to Assisted or Automated to load it into the draft.");
       }
     } catch (err) {
       setRecommendationNotice("The suggested target is unavailable right now. You can still edit your own target and run the safety check.");
@@ -914,6 +992,11 @@ export function usePortfolioPageShell() {
     setPendingRouteLabel(null);
     setPendingPreparedAt(null);
   }, [currentProposalKey, actionType]);
+
+  useEffect(() => {
+    if (workflowMode === "manual" || !recommendation) return;
+    applyRecommendationDraft(recommendation, workflowMode);
+  }, [workflowMode, recommendation, applyRecommendationDraft]);
 
   useEffect(() => {
     setShowFullGateMatrix(false);
