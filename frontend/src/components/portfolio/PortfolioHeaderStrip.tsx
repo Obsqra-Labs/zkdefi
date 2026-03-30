@@ -80,7 +80,12 @@ export function PortfolioHeaderStrip({
       : driftLabel === "Rebalance suggested"
         ? "warning"
         : "neutral";
-  const safetyTone = safetyLabel === "Safe to sign" ? "good" : safetyLabel === "Needs adjustment" ? "warning" : "neutral";
+  const safetyTone =
+    safetyLabel === "Safe to sign"
+      ? "good"
+      : safetyLabel === "Needs adjustment" || safetyLabel === "Permitted with fee warning"
+        ? "warning"
+        : "neutral";
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 px-4 py-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.26)]">

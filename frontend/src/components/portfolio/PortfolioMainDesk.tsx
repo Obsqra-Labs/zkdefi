@@ -426,8 +426,8 @@ export function PortfolioMainDesk(props: Props) {
     }
     if (!gateResult.allowed) {
       return {
-        eyebrow: overridePrimaryAction ? "Fee warning override available" : "Gate blocked execution",
-        title: overridePrimaryAction ? "A route exists, but the economics are weak" : "Execution is not currently permitted",
+        eyebrow: overridePrimaryAction ? "Gate permits execution with fee warning" : "Gate blocked execution",
+        title: overridePrimaryAction ? "Execution is permitted with a fee warning" : "Execution is not currently permitted",
         summary: overridePrimaryAction
           ? "The only failed check is fee efficiency. You can still prepare the wallet route and judge the cost yourself."
           : `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
@@ -466,7 +466,9 @@ export function PortfolioMainDesk(props: Props) {
       ? feeGuardResult.warning
         ? "Safe, but expensive for size"
         : "Safe to sign"
-      : "Too small to execute efficiently"
+      : overridePrimaryAction
+        ? "Permitted with fee warning"
+        : "Too small to execute efficiently"
     : gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
       ? "Insufficient STRK for fee"
       : "Pending gate review";

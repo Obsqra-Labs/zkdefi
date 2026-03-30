@@ -92,9 +92,12 @@ export function PrimaryActionTray({
       : overridePrimaryAction
         ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
       : executionNote ??
+        (label === "Permitted with fee warning"
+          ? "The route is viable, but the cost is high for the amount moved. Review the exact path and decide in wallet."
+          :
         (label === "Needs adjustment"
           ? "The latest gate result is blocking this draft. Adjust the target and the desk will re-check automatically."
-          : "One clear action lives here. Review once, then sign.");
+          : "One clear action lives here. Review once, then sign."));
 
   return (
     <div className="mt-3.5 rounded-[20px] border border-zinc-800/80 bg-zinc-900/45 p-3.5 transition-[border-color,background-color,transform,box-shadow] duration-300 ease-out">

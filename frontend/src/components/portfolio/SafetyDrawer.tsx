@@ -116,6 +116,10 @@ export function SafetyDrawer({
       : gateResult.allowed
         ? "text-emerald-200"
         : "text-zinc-300";
+  const feeOverrideOnly =
+    !gateResult?.allowed &&
+    failedGateConstraints.length === 1 &&
+    failedGateConstraints[0]?.name === "FeeEfficiencyGuard";
 
   return (
     <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.26)] transition-[opacity,transform] duration-300 ease-out">
@@ -132,7 +136,7 @@ export function SafetyDrawer({
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Gate report</p>
                   <p className={`mt-1 text-sm font-medium ${summaryTone}`}>
-                    {gateResult.allowed ? "Safe to sign" : "Needs adjustment"} · {formatUsd(gateResult.estimated_cost_usd)} estimated network cost
+                    {gateResult.allowed ? "Safe to sign" : feeOverrideOnly ? "Permitted with fee warning" : "Needs adjustment"} · {formatUsd(gateResult.estimated_cost_usd)} estimated network cost
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {totalChecks} checks run · {gateResult.estimated_gas?.toLocaleString() ?? "0"} gas estimate

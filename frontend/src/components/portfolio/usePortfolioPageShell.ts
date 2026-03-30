@@ -259,7 +259,7 @@ export function usePortfolioPageShell() {
     if (hasFreshGateCheck) {
       if (!gateResult?.allowed && failedGateConstraints.length === 1 && failedGateConstraints[0]?.name === "FeeEfficiencyGuard") {
         return {
-          label: "Needs adjustment",
+          label: "Permitted with fee warning",
           tone: "warning" as const,
           headline: "The route exists, but the fee is heavy for the size.",
           detail: "You can still prepare the wallet path and inspect the exact cost yourself, or edit the target to improve the economics.",
@@ -303,7 +303,7 @@ export function usePortfolioPageShell() {
     if (hasPreparedRebalance) return "Sign rebalance";
     if (executing) return "Preparing";
     if (checking && !hasFreshGateCheck) return "Checking Safety";
-    if (canAdvisoryOverride) return actionType === "rebalance" ? "Sign anyway" : "Swap anyway";
+    if (canAdvisoryOverride) return actionType === "rebalance" ? "Sign with fee warning" : "Swap with fee warning";
     if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
     if (!hasFreshGateCheck) return actionType === "rebalance" ? "Review rebalance" : "Review swap";
     if (actionType === "rebalance") return "Review Rebalance";
@@ -342,7 +342,13 @@ export function usePortfolioPageShell() {
     if (status === "watch") return "Drifted";
     return "On target";
   }, [recommendation]);
-  const safetyLabel = gateResult ? (gateResult.allowed ? "Safe to sign" : "Needs adjustment") : "Drafting";
+  const safetyLabel = gateResult
+    ? canAdvisoryOverride
+      ? "Permitted with fee warning"
+      : gateResult.allowed
+        ? "Safe to sign"
+        : "Needs adjustment"
+    : "Drafting";
   const totalPortfolioValue = portfolio?.total_value_usd ?? totalTrackedValue;
   const headerBreakdown = useMemo(() => {
     const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
