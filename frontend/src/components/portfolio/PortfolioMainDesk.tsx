@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Bot, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
@@ -460,7 +460,6 @@ export function PortfolioMainDesk(props: Props) {
     .slice(0, 3);
   const activeSteps = pendingPreparedCalls?.length ? pendingPreparedCalls.map((item) => item.step) : gateResult?.swap_steps ?? [];
   const routeLabel = (pendingRouteLabel ?? lastPreparedAdapter)?.toUpperCase() ?? "BEST ROUTE";
-  const topReasons = [...failedGateConstraints, ...warningGateConstraints].slice(0, 3);
   const leadPlanStep = activeSteps[0] ?? null;
   const economicsTitle = feeGuardResult
     ? feeGuardResult.passed
@@ -597,7 +596,6 @@ export function PortfolioMainDesk(props: Props) {
                 <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
                 {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
               </div>
-              <Bot className="mt-0.5 h-5 w-5 text-amber-300" />
             </div>
 
             {showRecommendationCard ? (
@@ -665,23 +663,9 @@ export function PortfolioMainDesk(props: Props) {
               )}
             </div>
 
-            <div className="mt-3 space-y-2">
-              {topReasons.length ? (
-                topReasons.slice(0, 2).map((item) => (
-                  <div key={`${item.name}-reason-compact`} className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                    <span className={`mt-1.5 h-2.5 w-2.5 rounded-full ${failedGateConstraints.some((failed) => failed.name === item.name) ? "bg-amber-400" : "bg-cyan-400"}`} />
-                    <div>
-                      <p className="text-sm text-white">{item.name}</p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-500">{item.reason}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">
-                  The Gate cleared the current draft without active blockers or warnings.
-                </div>
-              )}
-            </div>
+            <p className="mt-3 text-xs text-zinc-500">
+              The Gate report below explains why this proposal passes or fails.
+            </p>
 
             <div
               className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
@@ -775,7 +759,7 @@ export function PortfolioMainDesk(props: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Decision summary</p>
-                <p className="mt-1 text-sm text-zinc-400">Read the lead route, the economics, and the main portfolio effect. Open the full plan only when you need the full path.</p>
+                <p className="mt-1 text-sm text-zinc-400">Lead route, economics, and impact in one view.</p>
               </div>
               {(pendingPreparedCalls?.length || activeSteps.length > 1) ? (
                 <DetailToggle
@@ -847,7 +831,6 @@ export function PortfolioMainDesk(props: Props) {
                       <p className="text-sm font-medium text-white">{card.label}</p>
                       <span className="text-sm text-zinc-300">{card.value}</span>
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">{card.body}</p>
                   </div>
                 ))}
                 {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
@@ -894,8 +877,8 @@ export function PortfolioMainDesk(props: Props) {
           className="flex w-full items-center justify-between gap-4 text-left"
         >
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Manual controls</p>
-            <h2 className="mt-1 text-lg font-semibold text-white">Shape the proposal</h2>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Edit trade</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Manual controls</h2>
             <p className="mt-1.5 text-sm text-zinc-400">{economicsHelper}</p>
           </div>
           <div className="flex items-center gap-3">
