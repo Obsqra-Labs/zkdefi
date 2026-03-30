@@ -583,9 +583,11 @@ export function PortfolioMainDesk(props: Props) {
       ? "Start from the wallet you already have. The Gate still scores the route, but manual mode can pass a real path through to your wallet."
       : workflowMode === "assisted"
         ? "Let the system suggest the move. The Gate governs what gets through."
-        : automatedProfileFallback.profileSource === "onboarding_constraints"
-          ? `Experimental. Automated mode is using your ${automatedProfileFallback.riskProfile} onboarding execution profile plus active session keys.`
-          : "Experimental. Automated mode is falling back to the current portfolio policy until onboarding is available.";
+        : automatedProfileFallback.readinessStatus === "ready"
+          ? `Experimental. Automated mode can arm the next governed move with your ${automatedProfileFallback.riskProfile} onboarding profile and active session keys.`
+          : automatedProfileFallback.readinessStatus === "policy_fallback"
+            ? `Experimental. Automated mode is ready, but this lane is still using the current ${automatedProfileFallback.policyExecutionMode} execution posture.`
+            : automatedProfileFallback.readinessDetail;
   const editorHeading =
     workflowMode === "manual" ? "Manual controls" : workflowMode === "assisted" ? "Adjust guided draft" : "Manual override";
   const editorEyebrow = workflowMode === "manual" ? "Edit trade" : workflowMode === "assisted" ? "Adjust draft" : "Intervene manually";
@@ -706,8 +708,18 @@ export function PortfolioMainDesk(props: Props) {
                 ) : null}
               </div>
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
-                <p className="text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.readinessDetail}</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Governed control</p>
+                <p className="mt-1 text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">
+                  {automatedProfileFallback.readinessStatus === "needs_onboarding"
+                    ? "Primary action opens onboarding so this wallet can enter the governed lane."
+                    : automatedProfileFallback.readinessStatus === "needs_session_key"
+                      ? "Primary action opens agent key management so this wallet can authorize governed execution."
+                      : automatedProfileFallback.readinessStatus === "policy_fallback"
+                        ? "Primary action evaluates or arms the current governed move while this lane stays in policy fallback."
+                        : "Primary action evaluates, arms, or authorizes the current governed move."}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.readinessDetail}</p>
                 {automatedProfileFallback.nextActionRouteDetail ? (
                   <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.nextActionRouteDetail}</p>
                 ) : null}

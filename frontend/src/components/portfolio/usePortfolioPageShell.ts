@@ -446,12 +446,12 @@ export function usePortfolioPageShell() {
   const primaryActionLabel = useMemo(() => {
     if (hasPreparedRebalance) {
       if (workflowMode === "manual") return "Sign manual route";
-      if (workflowMode === "automated") return "Sign governed route";
+      if (workflowMode === "automated") return "Authorize governed route";
       return "Sign guided route";
     }
     if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return "Complete onboarding";
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return "Add session key";
-    if (executing) return "Preparing";
+    if (executing) return workflowMode === "automated" ? "Arming governed move" : "Preparing";
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
         return actionType === "rebalance" ? "No route available" : "Needs route";
@@ -459,15 +459,15 @@ export function usePortfolioPageShell() {
       if (actionType === "rebalance") return canManualOverride ? "Prepare route anyway" : "Prepare manual route";
       return canManualOverride ? "Sign anyway" : "Sign manual swap";
     }
-    if (checking && !hasFreshGateCheck) return "Checking Safety";
-    if (canAdvisoryOverride) return "Continue with fee warning";
-    if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
+    if (checking && !hasFreshGateCheck) return workflowMode === "automated" ? "Evaluating governed move" : "Checking Safety";
+    if (canAdvisoryOverride) return workflowMode === "automated" ? "Authorize with fee warning" : "Continue with fee warning";
+    if (hasFreshGateCheck && !gateResult?.allowed) return workflowMode === "automated" ? "Governed move blocked" : "Needs adjustment";
     if (!hasFreshGateCheck) {
-      if (workflowMode === "automated") return actionType === "rebalance" ? "Review governed move" : "Review governed swap";
+      if (workflowMode === "automated") return "Evaluate governed move";
       return actionType === "rebalance" ? "Review guided move" : "Review guided swap";
     }
-    if (actionType === "rebalance") return workflowMode === "automated" ? "Review governed move" : "Review guided move";
-    return workflowMode === "automated" ? "Sign governed swap" : "Sign guided swap";
+    if (actionType === "rebalance") return workflowMode === "automated" ? "Arm governed execution" : "Review guided move";
+    return workflowMode === "automated" ? "Arm governed swap" : "Sign guided swap";
   }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
@@ -502,20 +502,27 @@ export function usePortfolioPageShell() {
     }
     if (executionTxHash) {
       return {
-        label: "Submitted",
+        label: workflowMode === "automated" ? "Governed move submitted" : "Submitted",
         tone: "good" as const,
-        headline: "Wallet submission is out.",
+        headline: workflowMode === "automated" ? "The governed move is out." : "Wallet submission is out.",
         detail: "Track confirmation in the activity rail while the agent keeps watching drift.",
       };
     }
     if (actionType === "rebalance" && pendingWalletCalls?.length) {
       return {
-        label: workflowMode === "manual" ? "Route ready" : "Ready to sign",
+        label: workflowMode === "manual" ? "Route ready" : workflowMode === "automated" ? "Governed route ready" : "Ready to sign",
         tone: "good" as const,
-        headline: workflowMode === "manual" ? "The manual route is ready in your wallet." : "The rebalance is ready in your wallet.",
+        headline:
+          workflowMode === "manual"
+            ? "The manual route is ready in your wallet."
+            : workflowMode === "automated"
+              ? "The governed route is ready to authorize."
+              : "The rebalance is ready in your wallet.",
         detail:
           workflowMode === "manual"
             ? "The Gate output is recorded below, but manual mode lets you inspect and sign the prepared route yourself."
+            : workflowMode === "automated"
+              ? "Primary action now authorizes the governed route with the current onboarding profile and session-key posture."
             : "Review the exact sells and buys below, then sign once.",
       };
     }
@@ -532,34 +539,72 @@ export function usePortfolioPageShell() {
         return {
           label: "Permitted with fee warning",
           tone: "warning" as const,
-          headline: "The route exists, but the fee is heavy for the size.",
-          detail: "You can still prepare the wallet path and inspect the exact cost yourself, or edit the target to improve the economics.",
+          headline:
+            workflowMode === "automated"
+              ? "The governed route exists, but the fee is heavy for the size."
+              : "The route exists, but the fee is heavy for the size.",
+          detail:
+            workflowMode === "automated"
+              ? "You can still authorize the governed route and inspect the exact cost yourself, or switch modes and edit the move manually."
+              : "You can still prepare the wallet path and inspect the exact cost yourself, or edit the target to improve the economics.",
         };
       }
       return {
-        label: gateResult?.allowed ? "Safe to sign" : "Needs adjustment",
+        label:
+          workflowMode === "automated"
+            ? gateResult?.allowed
+              ? "Governed route ready"
+              : "Governed move blocked"
+            : gateResult?.allowed
+              ? "Safe to sign"
+              : "Needs adjustment",
         tone: gateResult?.allowed ? ("good" as const) : ("warning" as const),
-        headline: gateResult?.allowed ? "The current proposal cleared safety checks." : "The current proposal needs changes before signing.",
-        detail: gateResult?.allowed
-          ? "You can move straight to review and wallet signing."
-          : "Adjust the target mix or amount and the desk will re-check automatically.",
+        headline:
+          workflowMode === "automated"
+            ? gateResult?.allowed
+              ? "The governed lane cleared this move."
+              : "The governed lane is blocking this move."
+            : gateResult?.allowed
+              ? "The current proposal cleared safety checks."
+              : "The current proposal needs changes before signing.",
+        detail:
+          workflowMode === "automated"
+            ? gateResult?.allowed
+              ? "Primary action now arms the governed move with the current policy and session-key posture."
+              : "Automated mode will not arm this move until the governed draft clears again."
+            : gateResult?.allowed
+              ? "You can move straight to review and wallet signing."
+              : "Adjust the target mix or amount and the desk will re-check automatically.",
       };
     }
     if (checking) {
       return {
-        label: "Checking",
+        label: workflowMode === "automated" ? "Evaluating governed move" : "Checking",
         tone: "neutral" as const,
-        headline: "Running the safety check in the background.",
-        detail: "Keep editing if needed. The desk updates when the fresh result lands.",
+        headline:
+          workflowMode === "automated"
+            ? "Re-evaluating the governed move."
+            : "Running the safety check in the background.",
+        detail:
+          workflowMode === "automated"
+            ? "The governed lane is refreshing policy, drift, and route economics now."
+            : "Keep editing if needed. The desk updates when the fresh result lands.",
       };
     }
     return {
-      label: "Drafting",
+      label: workflowMode === "automated" ? "Governed draft" : "Drafting",
       tone: "neutral" as const,
-      headline: workflowMode === "manual" ? "Shape a route or target first." : "Shape the target mix first.",
+      headline:
+        workflowMode === "manual"
+          ? "Shape a route or target first."
+          : workflowMode === "automated"
+            ? "Automated mode is shaping the next governed move."
+            : "Shape the target mix first.",
       detail:
         workflowMode === "manual"
           ? "Manual mode still runs the Gate and records the result, but a real route can go to wallet even when the Gate does not clear it."
+          : workflowMode === "automated"
+            ? "Automated mode evaluates policy, drift, and route quality before it arms a governed action."
           : "The desk will run the safety check automatically as you update the proposal.",
     };
   }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);

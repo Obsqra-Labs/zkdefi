@@ -92,8 +92,20 @@ export function PrimaryActionTray({
     ? "Switch to Starknet mainnet before signing."
     : proposalOutdated
       ? "The proposal changed, so the desk is checking the latest version."
+      : workflowMode === "automated" && label === "Governed route ready"
+        ? "The governed lane cleared this move. The primary action arms or authorizes it with the current policy and session-key posture."
+      : workflowMode === "automated" && label === "Governed move blocked"
+        ? "Automated mode will not arm this move until the governed draft clears again. Switch modes only if you want to intervene manually."
+      : workflowMode === "automated" && label === "Governed move submitted"
+        ? "The governed move is out. Track confirmation while the desk keeps watching drift and policy."
+      : workflowMode === "automated" && label === "Governed draft"
+        ? "Automated mode is evaluating the next governed action. The primary action will start that evaluation when needed."
+      : workflowMode === "automated" && label === "Evaluating governed move"
+        ? "The governed lane is refreshing policy, drift, and route economics before it arms the next move."
       : workflowMode === "manual" && overridePrimaryAction
         ? "Manual mode treats the Gate as advisory. A real route exists, so you can prepare it anyway and inspect the exact wallet cost yourself."
+      : workflowMode === "automated" && overridePrimaryAction
+        ? "The governed route is economically weak, not unsafe. You can still authorize it, inspect the exact cost yourself, or switch to manual control."
       : overridePrimaryAction
         ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
       : executionNote ??
@@ -161,7 +173,9 @@ export function PrimaryActionTray({
           className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-[background-color,transform,box-shadow,opacity] duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[184px] ${
             overridePrimaryAction
               ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 hover:shadow-[0_16px_40px_rgba(245,158,11,0.24)]"
-              : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)]"
+              : workflowMode === "automated"
+                ? "bg-cyan-400 text-zinc-950 hover:bg-cyan-300 hover:shadow-[0_16px_40px_rgba(34,211,238,0.22)]"
+                : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)]"
           } ${trayRefreshing ? "scale-[0.99]" : ""}`}
         >
           {executing ? (
