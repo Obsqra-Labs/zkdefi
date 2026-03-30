@@ -24,9 +24,9 @@ export default function PortfolioPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-5 py-8 text-zinc-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-zinc-950 px-5 py-6 text-zinc-100 sm:px-6 lg:px-8">
       <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="mx-auto max-w-7xl space-y-4">
         <PortfolioHeaderStrip {...headerProps} />
 
         {error ? <PortfolioErrorBanner message={error} /> : null}
@@ -52,7 +52,7 @@ export default function PortfolioPage() {
           </section>
         ) : null}
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
           <PortfolioMainDesk {...mainDeskProps} />
           <PortfolioRightRail {...rightRailProps} />
         </div>
