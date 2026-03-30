@@ -273,6 +273,11 @@ type Props = {
     detail: string;
   } | null;
   onUseSuggestedSwap?: () => void;
+  recommendedSwapStarter?: {
+    label: string;
+    detail: string;
+  } | null;
+  onUseRecommendedSwapStarter?: () => void;
 };
 
 export function TargetEditor(props: Props) {
@@ -304,6 +309,8 @@ export function TargetEditor(props: Props) {
     draftGuidance,
     suggestedSwapFallback,
     onUseSuggestedSwap,
+    recommendedSwapStarter,
+    onUseRecommendedSwapStarter,
   } = props;
   const [showAllocationOverview, setShowAllocationOverview] = useState(false);
   const allocationDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => ({
@@ -458,6 +465,15 @@ export function TargetEditor(props: Props) {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
+              {recommendedSwapStarter && onUseRecommendedSwapStarter ? (
+                <button
+                  type="button"
+                  onClick={onUseRecommendedSwapStarter}
+                  className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+                >
+                  {recommendedSwapStarter.label}
+                </button>
+              ) : null}
               {rebalancePresets.map((preset) => (
                 <button
                   key={preset.id}
@@ -471,6 +487,11 @@ export function TargetEditor(props: Props) {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
+              {recommendedSwapStarter ? (
+                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] text-cyan-100">
+                  {recommendedSwapStarter.detail}
+                </span>
+              ) : null}
               {largestAdd ? (
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
                   Largest add {largestAdd.asset} {formatPercent(largestAdd.delta, 1)}

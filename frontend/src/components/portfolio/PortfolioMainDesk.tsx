@@ -259,8 +259,13 @@ type Props = {
     label: string;
     detail: string;
   } | null;
+  recommendedSwapStarter: {
+    label: string;
+    detail: string;
+  } | null;
   overridePrimaryAction: boolean;
   onUseSuggestedSwap: () => void;
+  onUseRecommendedSwapStarter: () => void;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -335,8 +340,10 @@ export function PortfolioMainDesk(props: Props) {
     lastPreparedAdapter,
     fromWei,
     suggestedSwapFallback,
+    recommendedSwapStarter,
     overridePrimaryAction,
     onUseSuggestedSwap,
+    onUseRecommendedSwapStarter,
   } = props;
 
   const [showEditor, setShowEditor] = useState(false);
@@ -924,6 +931,8 @@ export function PortfolioMainDesk(props: Props) {
               draftGuidance={draftGuidance}
               suggestedSwapFallback={suggestedSwapFallback}
               onUseSuggestedSwap={onUseSuggestedSwap}
+              recommendedSwapStarter={recommendedSwapStarter}
+              onUseRecommendedSwapStarter={onUseRecommendedSwapStarter}
             />
           </div>
         </div>

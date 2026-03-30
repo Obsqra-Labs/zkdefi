@@ -23,7 +23,7 @@ import {
   minSwapAmountForAsset,
   optimizeWalletCallsForExecution,
 } from "./execution";
-import { formatAssetAmount, formatEditableAmount } from "./formatters";
+import { formatAssetAmount, formatEditableAmount, formatUsd } from "./formatters";
 import {
   aggregateAssets,
   chainBadgeLabel,
@@ -223,11 +223,21 @@ export function usePortfolioPageShell() {
     [recommendation],
   );
   const proposalSourceLabel = useMemo(() => {
-    if (actionType === "swap") return "Manual swap";
+    if (actionType === "swap") {
+      const recommendedStep =
+        recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
+      const matchesRecommendedSwap =
+        recommendedStep &&
+        currentIntent.type === "swap" &&
+        currentIntent.token_in === recommendedStep.from_asset &&
+        currentIntent.token_out === recommendedStep.to_asset &&
+        String(currentIntent.amount_wei ?? "") === String(recommendedStep.amount_wei);
+      return matchesRecommendedSwap ? "Best live route" : "Manual swap";
+    }
     if (recommendation?.recommendation_mode === "best_next_move") return "Best next move";
     if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "Suggested target";
     return "Manual target";
-  }, [actionType, aiProposalApplied, aiProposalKey, currentProposalKey, recommendation?.recommendation_mode]);
+  }, [actionType, aiProposalApplied, aiProposalKey, currentIntent, currentProposalKey, recommendation]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
   const suggestedSwapFallback = useMemo(() => {
     if (actionType !== "rebalance") return null;
@@ -363,6 +373,16 @@ export function usePortfolioPageShell() {
     "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override.";
   const proposalRouteLabel = recommendation?.recommended_route_label ?? null;
   const proposalRouteDetail = recommendation?.recommended_route_detail ?? null;
+  const recommendedSwapStarter = useMemo(() => {
+    const step =
+      recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
+    if (!step) return null;
+    const routeLabel = recommendation?.recommended_route_label ?? `${step.from_asset} → ${step.to_asset}`;
+    return {
+      label: `Start from ${routeLabel}`,
+      detail: `${formatUsd(step.value_usd)} direct swap${recommendation?.recommended_route_detail ? ` • ${recommendation.recommended_route_detail}` : ""}`,
+    };
+  }, [recommendation]);
   const recentActivityItems = useMemo(
     () =>
       receipts.slice(0, 4).map((receipt) => {
@@ -505,6 +525,20 @@ export function usePortfolioPageShell() {
     setAiProposalApplied(false);
     setExecutionNote(
       `Switched to the simpler ${step.from_asset} → ${step.to_asset} swap so the desk can check one direct path instead of a full rebalance.`,
+    );
+  };
+
+  const applyRecommendedSwapStarter = () => {
+    const step =
+      recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
+    if (!step) return;
+    setActionType("swap");
+    setSwapAssetIn(step.from_asset);
+    setSwapAssetOut(step.to_asset);
+    setSwapAmount(formatEditableAmount(step.amount, step.from_asset));
+    setAiProposalApplied(false);
+    setExecutionNote(
+      `Started from the best live route: ${step.from_asset} → ${step.to_asset} for about ${formatUsd(step.value_usd)}.`,
     );
   };
 
@@ -957,8 +991,10 @@ export function usePortfolioPageShell() {
     lastPreparedAdapter,
     fromWei,
     suggestedSwapFallback,
+    recommendedSwapStarter,
     overridePrimaryAction: canAdvisoryOverride,
     onUseSuggestedSwap: applySuggestedSwapFallback,
+    onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
   };
 
   const rightRailProps = {
