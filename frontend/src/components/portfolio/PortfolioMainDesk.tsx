@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
@@ -461,6 +461,7 @@ export function PortfolioMainDesk(props: Props) {
   const activeSteps = pendingPreparedCalls?.length ? pendingPreparedCalls.map((item) => item.step) : gateResult?.swap_steps ?? [];
   const routeLabel = (pendingRouteLabel ?? lastPreparedAdapter)?.toUpperCase() ?? "BEST ROUTE";
   const leadPlanStep = activeSteps[0] ?? null;
+  const gateRefreshing = checking || proposalOutdated;
   const economicsTitle = feeGuardResult
     ? feeGuardResult.passed
       ? feeGuardResult.warning
@@ -507,13 +508,13 @@ export function PortfolioMainDesk(props: Props) {
   return (
     <section className="space-y-4">
       <section
-        className={`overflow-hidden rounded-[28px] border p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)] ${
+        className={`overflow-hidden rounded-[28px] border p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)] transition-[border-color,background,box-shadow,transform,opacity] duration-500 ease-out ${
           gateHero.tone === "good"
             ? "border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),rgba(9,9,11,0.92)_45%)]"
             : gateHero.tone === "warning"
               ? "border-amber-500/20 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),rgba(9,9,11,0.92)_45%)]"
               : "border-cyan-500/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),rgba(9,9,11,0.92)_45%)]"
-        }`}
+        } ${gateRefreshing ? "border-cyan-400/30 shadow-[0_30px_90px_rgba(8,145,178,0.18)]" : ""}`}
       >
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
@@ -541,6 +542,23 @@ export function PortfolioMainDesk(props: Props) {
             <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} cost
             </span>
+          </div>
+          <div
+            className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+              gateRefreshing ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-3">
+                <div className="flex items-center gap-2 text-sm text-cyan-100">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{proposalOutdated ? "Gate result is stale. Re-evaluating this draft now." : "Gate is checking the current draft."}</span>
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-950/70">
+                  <div className="h-full w-1/3 animate-pulse rounded-full bg-cyan-400/80" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -587,7 +605,7 @@ export function PortfolioMainDesk(props: Props) {
         }
       >
         <div className="space-y-3">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+          <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
             <div className="max-w-3xl">
               <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
               <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
@@ -613,7 +631,7 @@ export function PortfolioMainDesk(props: Props) {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className={`flex flex-wrap gap-2 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
             <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
               {activeSteps.length} trade{activeSteps.length === 1 ? "" : "s"}
             </span>
@@ -634,7 +652,7 @@ export function PortfolioMainDesk(props: Props) {
             </span>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
+          <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Ticket summary</p>

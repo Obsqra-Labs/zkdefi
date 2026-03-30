@@ -98,9 +98,14 @@ export function PrimaryActionTray({
         (label === "Needs adjustment"
           ? "The latest gate result is blocking this draft. Adjust the target and the desk will re-check automatically."
           : "One clear action lives here. Review once, then sign."));
+  const trayRefreshing = checking || proposalOutdated;
 
   return (
-    <div className="mt-3.5 rounded-[20px] border border-zinc-800/80 bg-zinc-900/45 p-3.5 transition-[border-color,background-color,transform,box-shadow] duration-300 ease-out">
+    <div
+      className={`mt-3.5 rounded-[20px] border border-zinc-800/80 bg-zinc-900/45 p-3.5 transition-[border-color,background-color,transform,box-shadow,opacity] duration-300 ease-out ${
+        trayRefreshing ? "border-cyan-500/20 bg-cyan-500/[0.06]" : ""
+      }`}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -147,7 +152,7 @@ export function PrimaryActionTray({
             overridePrimaryAction
               ? "bg-amber-400 text-zinc-950 hover:bg-amber-300 hover:shadow-[0_16px_40px_rgba(245,158,11,0.24)]"
               : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)]"
-          }`}
+          } ${trayRefreshing ? "scale-[0.99]" : ""}`}
         >
           {executing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
