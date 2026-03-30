@@ -185,30 +185,27 @@ function TargetEditorRow({
   const delta = targetPct - currentPct;
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/55 px-4 py-4">
-      <div className="grid gap-4 lg:grid-cols-[150px_110px_minmax(0,1fr)_96px] lg:items-center">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${assetAccentClasses(asset)}`} />
-            <p className="text-sm font-medium text-white">{asset}</p>
-            <MovePill delta={delta} />
-          </div>
-          <p className="mt-1 text-xs text-zinc-500">{balanceLabel}</p>
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/55 px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className={`h-2.5 w-2.5 rounded-full ${assetAccentClasses(asset)}`} />
+          <p className="text-sm font-medium text-white">{asset}</p>
+          <MovePill delta={delta} />
+          <span className="text-xs text-zinc-500">{balanceLabel}</span>
         </div>
-
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current</p>
-          <p className="mt-1 text-sm font-medium text-white">{formatPercent(currentPct, 1)}</p>
+        <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+          <span>Current {formatPercent(currentPct, 1)}</span>
+          {typeof aiPct === "number" ? <span className="text-amber-200">AI {formatPercent(aiPct, 1)}</span> : null}
         </div>
+      </div>
 
+      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_88px] sm:items-center">
         <div>
           <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
             <span>Your target</span>
-            {typeof aiPct === "number" ? (
-              <span className="text-amber-200">AI target {formatPercent(aiPct, 1)}</span>
-            ) : null}
+            <span>{Math.round(targetPct)}%</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-3">
+          <div className="mt-2.5">
             <input
               type="range"
               min="0"
@@ -218,17 +215,14 @@ function TargetEditorRow({
               onChange={(event) => onChange(event.target.value)}
               className="h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-cyan-400"
             />
-            <span className="w-12 text-right text-xs text-zinc-500">{Math.round(targetPct)}%</span>
           </div>
         </div>
 
-        <div>
-          <input
-            value={Number.isFinite(targetPct) ? String(targetPct) : ""}
-            onChange={(event) => onChange(event.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-          />
-        </div>
+        <input
+          value={Number.isFinite(targetPct) ? String(targetPct) : ""}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+        />
       </div>
     </div>
   );
