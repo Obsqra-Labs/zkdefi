@@ -419,6 +419,51 @@ async def test_recommend_includes_governed_execution_summary(monkeypatch, gate_s
     assert "portfolio_uses_onboarding_profile" in governed["reason_codes"]
     assert "active_session_key_present" in governed["reason_codes"]
     assert governed["primary_hint"].lower().startswith("using your aggressive onboarding execution profile")
+    assert governed["readiness"]["status"] == "policy_fallback"
+    assert governed["readiness"]["label"] == "Policy fallback"
+    assert governed["next_action"]["label"].startswith("Governed")
+    assert governed["next_action"]["trade_count"] >= 1
+    assert governed["next_action"]["value_moved_usd"] > 0
+
+
+@pytest.mark.asyncio
+async def test_recommend_governed_execution_exposes_setup_gap_and_next_action(monkeypatch, gate_service):
+    async def fake_scan_portfolio(address: str):
+        return _mock_snapshot(address)
+
+    async def fake_get_recommendation(user_address: str, amount: float, risk_profile: str):
+        return {
+            "recommended_pools": [],
+            "ai_reasoning": "Fallback allocator output.",
+            "ai_confidence": 0.55,
+            "expected_portfolio_apy": 0.0,
+            "portfolio_risk_assessment": "Profile fallback.",
+            "recommendation_id": "rec_governed_gap",
+            "attestation_hash": "0xattestation",
+            "provenance": {"circuits_used": ["YieldOptimality_v1"]},
+            "genome": {"yield": 10, "risk": 20, "volatility": 30, "liquidity": 40, "efficiency": 50},
+        }
+
+    class EmptyConstraintGate:
+        def get_constraints(self, user_address: str):
+            return None
+
+    monkeypatch.setattr("app.services.portfolio_execution_gate.scan_portfolio", fake_scan_portfolio)
+    monkeypatch.setattr(
+        "app.services.strategy_recommendation_service.get_recommendation",
+        fake_get_recommendation,
+    )
+    monkeypatch.setattr("app.services.portfolio_execution_gate.get_constraint_gate", lambda: EmptyConstraintGate())
+
+    result = await gate_service.recommend("0xabc123")
+
+    governed = result["governed_execution"]
+    assert governed["mode"] == "block"
+    assert governed["readiness"]["status"] == "needs_onboarding"
+    assert governed["readiness"]["label"] == "Onboarding needed"
+    assert "Complete onboarding" in governed["readiness"]["detail"]
+    assert governed["next_action"]["label"].startswith("Governed")
+    assert governed["next_action"]["trade_count"] >= 1
 
 
 @pytest.mark.asyncio

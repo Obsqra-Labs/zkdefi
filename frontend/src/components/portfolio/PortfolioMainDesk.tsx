@@ -279,6 +279,16 @@ type Props = {
     riskProfile: string;
     riskTolerance: number;
     policyExecutionMode: string;
+    readinessStatus: "ready" | "needs_onboarding" | "needs_session_key" | "policy_fallback";
+    readinessLabel: string;
+    readinessDetail: string;
+    nextActionType: "swap" | "rebalance" | "wait";
+    nextActionLabel: string;
+    nextActionDetail: string;
+    nextActionRouteLabel: string | null;
+    nextActionRouteDetail: string | null;
+    nextActionTradeCount: number;
+    nextActionValueUsd: number;
   };
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
@@ -670,7 +680,39 @@ export function PortfolioMainDesk(props: Props) {
           <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Selected flow</p>
           <p className="mt-1 text-sm text-zinc-300">{workflowSummary}</p>
           {workflowMode === "automated" ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                  automatedProfileFallback.readinessStatus === "ready"
+                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                    : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                }`}>
+                  {automatedProfileFallback.readinessLabel}
+                </span>
+                {automatedProfileFallback.nextActionRouteLabel ? (
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100">
+                    {automatedProfileFallback.nextActionRouteLabel}
+                  </span>
+                ) : null}
+                {automatedProfileFallback.nextActionTradeCount > 0 ? (
+                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                    {automatedProfileFallback.nextActionTradeCount} trade{automatedProfileFallback.nextActionTradeCount === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+                {automatedProfileFallback.nextActionValueUsd > 0 ? (
+                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                    {formatUsd(automatedProfileFallback.nextActionValueUsd)} moved
+                  </span>
+                ) : null}
+              </div>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
+                <p className="text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.readinessDetail}</p>
+                {automatedProfileFallback.nextActionRouteDetail ? (
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.nextActionRouteDetail}</p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
                 automatedProfileFallback.hasOnboarding
                   ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
@@ -701,6 +743,7 @@ export function PortfolioMainDesk(props: Props) {
               >
                 Manage agent keys
               </a>
+              </div>
             </div>
           ) : null}
         </div>
@@ -884,8 +927,9 @@ export function PortfolioMainDesk(props: Props) {
             {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
             {workflowMode === "automated" && !recommendation ? (
               <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
-                <p className="text-sm font-medium text-white">Governed fallback</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.primaryHint}</p>
+                <p className="text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.nextActionDetail}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.readinessDetail}</p>
               </div>
             ) : null}
           </div>

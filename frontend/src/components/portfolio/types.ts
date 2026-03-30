@@ -352,6 +352,20 @@ export type GovernedExecution = {
   session_duration_hours?: number | null;
   tier?: number;
   tier_name?: string;
+  readiness?: {
+    status: "ready" | "needs_onboarding" | "needs_session_key" | "policy_fallback";
+    label: string;
+    detail: string;
+  };
+  next_action?: {
+    type: "swap" | "rebalance" | "wait";
+    label: string;
+    detail: string;
+    route_label?: string | null;
+    route_detail?: string | null;
+    trade_count?: number;
+    value_moved_usd?: number;
+  };
   execution_limits?: Record<string, unknown>;
 };
 

@@ -553,6 +553,7 @@ class PortfolioExecutionGateService:
         governed_execution = await self._build_governed_execution_summary(
             owner_address=normalized,
             raw_policy=raw_policy,
+            recommendation_plan=recommendation_plan,
         )
         return {
             "owner_address": normalized,
@@ -606,6 +607,7 @@ class PortfolioExecutionGateService:
         *,
         owner_address: str,
         raw_policy: dict[str, Any],
+        recommendation_plan: dict[str, Any],
     ) -> dict[str, Any]:
         try:
             onboarding = get_constraint_gate().get_constraints(owner_address)
@@ -690,6 +692,94 @@ class PortfolioExecutionGateService:
         else:
             mode = "allow"
 
+        if not has_onboarding:
+            readiness = {
+                "status": "needs_onboarding",
+                "label": "Onboarding needed",
+                "detail": "Complete onboarding before automated portfolio execution can govern this wallet.",
+            }
+        elif not active_session_ids:
+            readiness = {
+                "status": "needs_session_key",
+                "label": "Session key needed",
+                "detail": "Add or renew a governed session key before automated portfolio execution can sign.",
+            }
+        elif policy_execution_mode not in {"auto", "automated", "autonomous"}:
+            readiness = {
+                "status": "policy_fallback",
+                "label": "Policy fallback",
+                "detail": f"Automated mode is ready, but this lane still uses the current {policy_execution_mode} execution posture.",
+            }
+        else:
+            readiness = {
+                "status": "ready",
+                "label": "Ready to govern",
+                "detail": f"Automated mode can use your {governed_risk_profile} onboarding profile and active session keys.",
+            }
+
+        next_steps = recommendation_plan.get("swap_steps") or []
+        next_action_value_usd = round(
+            sum(_safe_float(step.get("value_usd")) for step in next_steps),
+            2,
+        )
+        route_label = recommendation_plan.get("route_label")
+        route_detail = recommendation_plan.get("route_detail")
+        action_type = "wait"
+        if next_steps:
+            if recommendation_plan.get("mode") == "best_next_move":
+                lead_step = next_steps[0]
+                action_type = "swap"
+                if not route_label:
+                    route_label = f"{lead_step['from_asset']} → {lead_step['to_asset']}"
+                if not route_detail and next_action_value_usd > 0:
+                    route_detail = f"About ${next_action_value_usd:,.2f} via one live swap"
+                next_action = {
+                    "type": action_type,
+                    "label": f"Governed next move: {lead_step['from_asset']} → {lead_step['to_asset']}",
+                    "detail": recommendation_plan.get("note")
+                    or f"Move about ${next_action_value_usd:,.2f} through the cleanest governed live route first.",
+                    "route_label": route_label,
+                    "route_detail": route_detail,
+                    "trade_count": len(next_steps),
+                    "value_moved_usd": next_action_value_usd,
+                }
+            else:
+                action_type = "rebalance"
+                if len(next_steps) == 1:
+                    lead_step = next_steps[0]
+                    if not route_label:
+                        route_label = f"{lead_step['from_asset']} → {lead_step['to_asset']}"
+                    if not route_detail and next_action_value_usd > 0:
+                        route_detail = f"About ${next_action_value_usd:,.2f} through one governed trade"
+                    label = f"Governed rebalance: {lead_step['from_asset']} → {lead_step['to_asset']}"
+                else:
+                    label = f"Governed rebalance: {len(next_steps)} trades"
+                    if not route_label:
+                        route_label = f"{len(next_steps)}-trade rebalance"
+                    if not route_detail and next_action_value_usd > 0:
+                        route_detail = f"About ${next_action_value_usd:,.2f} across {len(next_steps)} governed trades"
+                next_action = {
+                    "type": action_type,
+                    "label": label,
+                    "detail": recommendation_plan.get("headline")
+                    or recommendation_plan.get("note")
+                    or "The governed lane is ready to translate the current strategy target into executable trades.",
+                    "route_label": route_label,
+                    "route_detail": route_detail,
+                    "trade_count": len(next_steps),
+                    "value_moved_usd": next_action_value_usd,
+                }
+        else:
+            next_action = {
+                "type": action_type,
+                "label": "No governed move ready yet",
+                "detail": "The governed lane does not have an executable next move for the current tracked holdings yet.",
+                "route_label": None,
+                "route_detail": None,
+                "trade_count": 0,
+                "value_moved_usd": 0.0,
+            }
+
         decision_bundle = {
             "address": owner_address,
             "reputation": {
@@ -744,6 +834,8 @@ class PortfolioExecutionGateService:
             "session_duration_hours": session_duration_hours,
             "tier": tier,
             "tier_name": tier_name,
+            "readiness": readiness,
+            "next_action": next_action,
             "execution_limits": execution_limits,
         }
 

@@ -339,6 +339,16 @@ export function usePortfolioPageShell() {
     riskProfile: string;
     riskTolerance: number;
     policyExecutionMode: string;
+    readinessStatus: "ready" | "needs_onboarding" | "needs_session_key" | "policy_fallback";
+    readinessLabel: string;
+    readinessDetail: string;
+    nextActionType: "swap" | "rebalance" | "wait";
+    nextActionLabel: string;
+    nextActionDetail: string;
+    nextActionRouteLabel: string | null;
+    nextActionRouteDetail: string | null;
+    nextActionTradeCount: number;
+    nextActionValueUsd: number;
   }>(() => {
     const backendState = recommendation?.governed_execution;
     if (backendState) {
@@ -358,6 +368,34 @@ export function usePortfolioPageShell() {
         riskProfile: String(backendState.risk_profile ?? "balanced"),
         riskTolerance: Number(backendState.risk_tolerance ?? 50),
         policyExecutionMode: String(backendState.policy_execution_mode ?? "assist"),
+        readinessStatus:
+          backendState.readiness?.status ??
+          (backendState.mode === "allow"
+            ? "ready"
+            : backendState.has_onboarding
+              ? "needs_session_key"
+              : "needs_onboarding"),
+        readinessLabel:
+          backendState.readiness?.label ??
+          (backendState.mode === "allow"
+            ? "Ready to govern"
+            : backendState.has_onboarding
+              ? "Session key needed"
+              : "Onboarding needed"),
+        readinessDetail:
+          backendState.readiness?.detail ||
+          backendState.primary_hint ||
+          "Governed execution is using the current onboarding and session-key posture for this wallet.",
+        nextActionType: backendState.next_action?.type ?? "wait",
+        nextActionLabel: backendState.next_action?.label ?? "No governed move ready yet",
+        nextActionDetail:
+          backendState.next_action?.detail ||
+          backendState.primary_hint ||
+          "The governed lane does not have an executable next move yet.",
+        nextActionRouteLabel: backendState.next_action?.route_label ?? null,
+        nextActionRouteDetail: backendState.next_action?.route_detail ?? null,
+        nextActionTradeCount: Number(backendState.next_action?.trade_count ?? 0),
+        nextActionValueUsd: Number(backendState.next_action?.value_moved_usd ?? 0),
       };
     }
 
@@ -389,6 +427,16 @@ export function usePortfolioPageShell() {
       riskProfile: recommendation?.risk_profile ?? "balanced",
       riskTolerance: Number(recommendation?.risk_tolerance ?? 50),
       policyExecutionMode: "assist",
+      readinessStatus: hasAgent ? (activeSessionCount > 0 ? "policy_fallback" : "needs_session_key") : "needs_onboarding",
+      readinessLabel: hasAgent ? (activeSessionCount > 0 ? "Policy fallback" : "Session key needed") : "Onboarding needed",
+      readinessDetail: primaryHint,
+      nextActionType: "wait",
+      nextActionLabel: "No governed move ready yet",
+      nextActionDetail: "The governed lane is waiting for a portfolio recommendation before it can summarize the next move.",
+      nextActionRouteLabel: null,
+      nextActionRouteDetail: null,
+      nextActionTradeCount: 0,
+      nextActionValueUsd: 0,
     };
   }, [profile, recommendation]);
   const automatedSessionKeyId = useMemo(
@@ -525,12 +573,7 @@ export function usePortfolioPageShell() {
       if (recommendation) {
         return recommendation.rebalance_summary?.headline ?? "Strategy and policy are shaping the next governed move.";
       }
-      if (!automatedGovernedState.hasOnboarding) return "Automated mode needs onboarding before it can govern this wallet";
-      if (automatedGovernedState.activeSessionCount <= 0) return "Automated mode is waiting on a session key";
-      if (automatedGovernedState.executionMode === "allow") {
-        return `Automated mode is ready to use your ${automatedGovernedState.riskProfile} onboarding profile`;
-      }
-      return "Automated mode is falling back to your onboarding execution profile";
+      return automatedGovernedState.nextActionLabel || automatedGovernedState.readinessLabel;
     }
     return recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the Gate decide if it is safe to sign.";
   }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation, automatedGovernedState]);
@@ -542,7 +585,7 @@ export function usePortfolioPageShell() {
     }
     if (workflowMode === "automated") {
       if (!recommendation) {
-        return `${automatedGovernedState.primaryHint} Passport ${automatedGovernedState.letterRating} / ${automatedGovernedState.passportScore}. ${automatedGovernedState.activeSessionCount} active session key${automatedGovernedState.activeSessionCount === 1 ? "" : "s"}.`;
+        return automatedGovernedState.nextActionDetail || automatedGovernedState.readinessDetail;
       }
       return (
         recommendation?.recommendation_note ??
