@@ -39,6 +39,8 @@ class ActionIntentRequest(BaseModel):
     delta_list: list[RebalanceDelta] | None = None
     execute_live: bool = False
     allow_advisory_override: bool = False
+    allow_manual_override: bool = False
+    workflow_mode: Literal["manual", "assisted", "automated"] | None = None
     session_key_id: str | None = None
 
 

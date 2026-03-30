@@ -7,7 +7,7 @@ import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
 import { SafetyDrawer } from "./SafetyDrawer";
 import { TargetEditor } from "./TargetEditor";
-import type { ConstraintResult, GateResult, RecommendationRouteOption, SupportedAsset, SwapStep } from "./types";
+import type { ConstraintResult, GateResult, RecommendationRouteOption, SupportedAsset, SwapStep, WorkflowMode } from "./types";
 
 type RecommendationData = {
   drift_monitor?: {
@@ -188,6 +188,8 @@ function PlanStep({
 type Props = {
   checking: boolean;
   executing: boolean;
+  workflowMode: WorkflowMode;
+  onWorkflowModeChange: (mode: WorkflowMode) => void;
   actionType: "swap" | "rebalance";
   showRecommendationCard: boolean;
   recommendation: RecommendationData | null;
@@ -274,6 +276,8 @@ export function PortfolioMainDesk(props: Props) {
   const {
     checking,
     executing,
+    workflowMode,
+    onWorkflowModeChange,
     actionType,
     showRecommendationCard,
     recommendation,
@@ -350,7 +354,6 @@ export function PortfolioMainDesk(props: Props) {
     onUseRecommendedSwapAlternative,
   } = props;
 
-  const [workflowMode, setWorkflowMode] = useState<"manual" | "assisted" | "automated">("manual");
   const [showEditor, setShowEditor] = useState(true);
   const [showProposalDetails, setShowProposalDetails] = useState(false);
   const [showDecisionDetails, setShowDecisionDetails] = useState(false);
@@ -444,19 +447,35 @@ export function PortfolioMainDesk(props: Props) {
     }
     if (!gateResult) {
       return {
-        eyebrow: "Gate pending",
-        title: "The Gate has not evaluated this draft yet",
-        summary: "Shape the proposal first. The desk will re-check before anything reaches wallet signing.",
+        eyebrow: workflowMode === "manual" ? "Manual mode" : "Gate pending",
+        title: workflowMode === "manual" ? "Manual mode prepares a route first" : "The Gate has not evaluated this draft yet",
+        summary:
+          workflowMode === "manual"
+            ? "Shape a route or target first. The Gate still scores cost and policy, but a real path can continue to wallet in manual mode."
+            : "Shape the proposal first. The desk will re-check before anything reaches wallet signing.",
         tone: "neutral" as const,
       };
     }
     if (!gateResult.allowed) {
       return {
-        eyebrow: overridePrimaryAction ? "Gate permits execution with fee warning" : "Gate blocked execution",
-        title: overridePrimaryAction ? "Execution is permitted with a fee warning" : "Execution is not currently permitted",
-        summary: overridePrimaryAction
-          ? "The only failed check is fee efficiency. You can still prepare the wallet route and judge the cost yourself."
-          : `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
+        eyebrow:
+          workflowMode === "manual" && (gateResult?.swap_steps?.length ?? 0) > 0
+            ? "Manual mode keeps the route available"
+            : overridePrimaryAction
+              ? "Gate permits execution with fee warning"
+              : "Gate blocked execution",
+        title:
+          workflowMode === "manual" && (gateResult?.swap_steps?.length ?? 0) > 0
+            ? "The Gate flagged this route, but manual mode can still send it"
+            : overridePrimaryAction
+              ? "Execution is permitted with a fee warning"
+              : "Execution is not currently permitted",
+        summary:
+          workflowMode === "manual" && (gateResult?.swap_steps?.length ?? 0) > 0
+            ? "The Gate result is still shown below, but manual mode treats it as advisory. You can prepare the route and inspect the exact wallet cost yourself."
+            : overridePrimaryAction
+              ? "The only failed check is fee efficiency. You can still prepare the wallet route and judge the cost yourself."
+              : `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
         tone: "warning" as const,
       };
     }
@@ -537,10 +556,10 @@ export function PortfolioMainDesk(props: Props) {
   );
   const workflowSummary =
     workflowMode === "manual"
-      ? "Start from the wallet you already have. Pick swap or rebalance, then let the Gate review your draft."
+      ? "Start from the wallet you already have. The Gate still scores the route, but manual mode can pass a real path through to your wallet."
       : workflowMode === "assisted"
-        ? "Let the desk suggest the best live move, but keep wallet signing and fee overrides in your hands."
-        : "Experimental. Let strategy plus policy drive the next governed move while you keep the guardrails visible.";
+        ? "Let the system suggest the move. The Gate governs what gets through."
+        : "Experimental. Strategy plus policy choose the move, and the Gate stays in charge of execution.";
 
   const startSection = (
     <SectionCard eyebrow="Start here" title="How do you want to manage this wallet?">
@@ -572,19 +591,19 @@ export function PortfolioMainDesk(props: Props) {
             {
               id: "manual" as const,
               title: "Manual",
-              body: "Start from the current wallet and author the exact swap or rebalance yourself.",
+              body: "Author the swap or rebalance yourself. The Gate still runs and records, but it does not block a real route from reaching your wallet.",
               badge: "Direct control",
             },
             {
               id: "assisted" as const,
               title: "Assisted",
-              body: "Use the system’s best live route and let the Gate keep the recommendation honest.",
+              body: "Use the system’s best live route and let the Gate decide whether the recommendation is executable.",
               badge: "Guided",
             },
             {
               id: "automated" as const,
               title: "Automated",
-              body: "Experimental strategy-driven mode. Keep policy and drift review in control of the next move.",
+              body: "Experimental strategy-driven mode. Policy, drift, and the Gate govern the next move for you.",
               badge: "Experimental",
             },
           ].map((mode) => {
@@ -593,7 +612,7 @@ export function PortfolioMainDesk(props: Props) {
               <button
                 key={mode.id}
                 type="button"
-                onClick={() => setWorkflowMode(mode.id)}
+                onClick={() => onWorkflowModeChange(mode.id)}
                 className={`rounded-2xl border p-4 text-left transition-colors ${
                   selected
                     ? "border-cyan-500/30 bg-cyan-500/10"
@@ -644,6 +663,9 @@ export function PortfolioMainDesk(props: Props) {
         <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
+          <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+            {workflowMode === "manual" ? "Gate advisory" : workflowMode === "assisted" ? "Gate governed" : "Strategy governed"}
+          </span>
           <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
             warningGateConstraints.length
               ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
@@ -688,6 +710,7 @@ export function PortfolioMainDesk(props: Props) {
         <PrimaryActionTray
           checking={checking}
           executing={executing}
+          workflowMode={workflowMode}
           showSafetyDetails={showSafetyDetails}
           onToggleSafetyDetails={onToggleSafetyDetails}
           onRunGateCheck={onRunGateCheck}
@@ -995,6 +1018,7 @@ export function PortfolioMainDesk(props: Props) {
   const reportSection = gateResult ? (
     <SafetyDrawer
       gateResult={gateResult}
+      summaryLabel={deskLabel}
       passedGateCount={passedGateCount}
       failedGateConstraints={failedGateConstraints}
       warningGateConstraints={warningGateConstraints}

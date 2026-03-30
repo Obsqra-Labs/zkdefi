@@ -1,5 +1,6 @@
 export type SupportedAsset = "ETH" | "STRK" | "USDC";
 export type ActionType = "swap" | "rebalance";
+export type WorkflowMode = "manual" | "assisted" | "automated";
 
 export type PortfolioPosition = {
   asset_symbol: string;

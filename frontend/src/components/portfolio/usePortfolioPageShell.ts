@@ -46,6 +46,7 @@ import type {
   Recommendation,
   RecommendationRouteOption,
   SupportedAsset,
+  WorkflowMode,
 } from "./types";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -90,6 +91,7 @@ export function usePortfolioPageShell() {
   const [checking, setChecking] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("manual");
 
   const [actionType, setActionType] = useState<ActionType>("rebalance");
   const [swapAssetIn, setSwapAssetIn] = useState<SupportedAsset>("ETH");
@@ -274,13 +276,24 @@ export function usePortfolioPageShell() {
     }
     if (actionType === "rebalance" && pendingWalletCalls?.length) {
       return {
-        label: "Ready to sign",
+        label: workflowMode === "manual" ? "Route ready" : "Ready to sign",
         tone: "good" as const,
-        headline: "The rebalance is ready in your wallet.",
-        detail: "Review the exact sells and buys below, then sign once.",
+        headline: workflowMode === "manual" ? "The manual route is ready in your wallet." : "The rebalance is ready in your wallet.",
+        detail:
+          workflowMode === "manual"
+            ? "The Gate output is recorded below, but manual mode lets you inspect and sign the prepared route yourself."
+            : "Review the exact sells and buys below, then sign once.",
       };
     }
     if (hasFreshGateCheck) {
+      if (workflowMode === "manual" && !gateResult?.allowed && gateResult?.swap_steps?.length) {
+        return {
+          label: "Manual route available",
+          tone: "warning" as const,
+          headline: "Manual mode can still prepare this route.",
+          detail: "The Gate remains visible as advisory output, but a real wallet route exists and you can inspect it yourself.",
+        };
+      }
       if (!gateResult?.allowed && failedGateConstraints.length === 1 && failedGateConstraints[0]?.name === "FeeEfficiencyGuard") {
         return {
           label: "Permitted with fee warning",
@@ -309,38 +322,59 @@ export function usePortfolioPageShell() {
     return {
       label: "Drafting",
       tone: "neutral" as const,
-      headline: "Shape the target mix first.",
-      detail: "The desk will run the safety check automatically as you update the proposal.",
+      headline: workflowMode === "manual" ? "Shape a route or target first." : "Shape the target mix first.",
+      detail:
+        workflowMode === "manual"
+          ? "Manual mode still runs the Gate and records the result, but a real route can go to wallet even when the Gate does not clear it."
+          : "The desk will run the safety check automatically as you update the proposal.",
     };
-  }, [actionType, pendingWalletCalls, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
+  }, [actionType, pendingWalletCalls, workflowMode, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
   const hasPreparedRebalance = actionType === "rebalance" && Boolean(pendingWalletCalls?.length);
   const canSignPreparedRebalance = hasPreparedRebalance && Boolean(account && address);
+  const canManualOverride = useMemo(() => {
+    if (pendingWalletCalls?.length) return false;
+    if (workflowMode !== "manual") return false;
+    if (!hasFreshGateCheck || gateResult?.allowed) return false;
+    return Boolean(gateResult?.swap_steps?.length);
+  }, [workflowMode, hasFreshGateCheck, gateResult, pendingWalletCalls]);
   const canAdvisoryOverride = useMemo(() => {
     if (pendingWalletCalls?.length) return false;
+    if (workflowMode === "manual") return false;
     if (!hasFreshGateCheck || gateResult?.allowed) return false;
     if (!gateResult?.swap_steps?.length) return false;
     const failedNames = failedGateConstraints.map((item) => item.name);
     return failedNames.length === 1 && failedNames[0] === "FeeEfficiencyGuard";
-  }, [hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
+  }, [workflowMode, hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
 
   const primaryActionLabel = useMemo(() => {
-    if (hasPreparedRebalance) return "Sign rebalance";
+    if (hasPreparedRebalance) return workflowMode === "manual" ? "Sign manual route" : "Sign rebalance";
     if (executing) return "Preparing";
+    if (workflowMode === "manual") {
+      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
+        return actionType === "rebalance" ? "No route available" : "Needs route";
+      }
+      if (actionType === "rebalance") return canManualOverride ? "Prepare route anyway" : "Prepare manual route";
+      return canManualOverride ? "Sign anyway" : "Sign manual swap";
+    }
     if (checking && !hasFreshGateCheck) return "Checking Safety";
     if (canAdvisoryOverride) return "Continue with fee warning";
     if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
     if (!hasFreshGateCheck) return actionType === "rebalance" ? "Review rebalance" : "Review swap";
     if (actionType === "rebalance") return "Review Rebalance";
     return "Sign swap";
-  }, [actionType, hasPreparedRebalance, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride]);
+  }, [actionType, hasPreparedRebalance, workflowMode, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
     if (hasPreparedRebalance) return !canSignPreparedRebalance;
+    if (workflowMode === "manual") {
+      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
+      return checking;
+    }
     if (canAdvisoryOverride) return checking;
     if (hasFreshGateCheck && !gateResult?.allowed) return true;
     if (!hasFreshGateCheck) return true;
     return checking;
-  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
+  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
   const safetySummaryLine = useMemo(() => {
     if (!gateResult) return "No fresh safety result yet.";
     if (failedGateConstraints.length) return `${failedGateConstraints.length} check${failedGateConstraints.length === 1 ? "" : "s"} need attention.`;
@@ -367,7 +401,9 @@ export function usePortfolioPageShell() {
     return "On target";
   }, [recommendation]);
   const safetyLabel = gateResult
-    ? canAdvisoryOverride
+    ? canManualOverride
+      ? "Manual route available"
+      : canAdvisoryOverride
       ? "Permitted with fee warning"
       : gateResult.allowed
         ? "Safe to sign"
@@ -663,9 +699,9 @@ export function usePortfolioPageShell() {
     }
   };
 
-  const executeIntent = async (options?: { allowAdvisoryOverride?: boolean }) => {
+  const executeIntent = async (options?: { allowAdvisoryOverride?: boolean; allowManualOverride?: boolean; workflowMode?: WorkflowMode }) => {
     if (!address) return;
-    if (!hasFreshGateCheck) {
+    if (!hasFreshGateCheck && !options?.allowManualOverride) {
       setExecutionNote("Run Gate Check on the current proposal before executing.");
       return;
     }
@@ -678,9 +714,13 @@ export function usePortfolioPageShell() {
     setPendingRouteLabel(null);
     setPendingPreparedAt(null);
     setExecutionNote(
-      actionType === "rebalance"
-        ? "Re-running the gate and preparing rebalance legs for wallet signing..."
-        : "Re-running the gate and preparing a wallet request...",
+      options?.allowManualOverride
+        ? actionType === "rebalance"
+          ? "Preparing the manual route and recording the Gate result..."
+          : "Preparing the manual swap and recording the Gate result..."
+        : actionType === "rebalance"
+          ? "Re-running the gate and preparing rebalance legs for wallet signing..."
+          : "Re-running the gate and preparing a wallet request...",
     );
     setExecutionTxHash(null);
     try {
@@ -729,7 +769,9 @@ export function usePortfolioPageShell() {
             setPendingRouteLabel(payload.execution_adapter ?? null);
             setPendingPreparedAt(Date.now());
             setExecutionNote(
-              options?.allowAdvisoryOverride
+              options?.allowManualOverride
+                ? "Prepared in manual mode. The Gate result is recorded below, but you can inspect and sign the route yourself."
+                : options?.allowAdvisoryOverride
                 ? "Prepared despite the fee warning. Review the exact cost and route below, then sign only if you still want it."
                 : optimized.skippedApprovals
                   ? `Prepared rebalance steps. Skipped ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Review below, then click Sign Rebalance.`
@@ -751,7 +793,9 @@ export function usePortfolioPageShell() {
           setExecutionTxHash(result.transaction_hash);
           await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
           setExecutionNote(
-            options?.allowAdvisoryOverride
+            options?.allowManualOverride
+              ? `Submitted via wallet from manual mode. Tx ${result.transaction_hash.slice(0, 12)}...`
+              : options?.allowAdvisoryOverride
               ? `Submitted via wallet after fee-warning override. Tx ${result.transaction_hash.slice(0, 12)}...`
               : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
           );
@@ -776,7 +820,9 @@ export function usePortfolioPageShell() {
 
       setExecutionNote(
         (!benignPreviewWarning ? payload.warning : null) ||
-          "Execution was prepared but not submitted. Connect an active wallet account to sign this on mainnet.",
+          (options?.allowManualOverride
+            ? "Manual mode prepared the route, but wallet signing still needs an active mainnet account."
+            : "Execution was prepared but not submitted. Connect an active wallet account to sign this on mainnet."),
       );
       await refreshData(address);
     } catch (err) {
@@ -842,8 +888,12 @@ export function usePortfolioPageShell() {
       await signPreparedRebalance();
       return;
     }
+    if (workflowMode === "manual") {
+      await executeIntent({ allowManualOverride: true, workflowMode });
+      return;
+    }
     if (canAdvisoryOverride) {
-      await executeIntent({ allowAdvisoryOverride: true });
+      await executeIntent({ allowAdvisoryOverride: true, workflowMode });
       return;
     }
     if (hasFreshGateCheck && !gateResult?.allowed) {
@@ -854,7 +904,7 @@ export function usePortfolioPageShell() {
       await runGateCheck();
       return;
     }
-    await executeIntent();
+    await executeIntent({ workflowMode });
   };
 
   useEffect(() => {
@@ -965,6 +1015,8 @@ export function usePortfolioPageShell() {
   const mainDeskProps = {
     checking,
     executing,
+    workflowMode,
+    onWorkflowModeChange: setWorkflowMode,
     actionType,
     showRecommendationCard: hasSupportedCapital,
     recommendation,
@@ -1043,7 +1095,7 @@ export function usePortfolioPageShell() {
     suggestedSwapFallback,
     recommendedSwapStarter,
     recommendedSwapAlternatives,
-    overridePrimaryAction: canAdvisoryOverride,
+    overridePrimaryAction: canManualOverride || canAdvisoryOverride,
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,

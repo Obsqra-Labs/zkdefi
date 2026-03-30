@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { AlertTriangle, ChevronRight, Loader2, ShieldCheck, Wallet, Zap } from "lucide-react";
+import type { WorkflowMode } from "./types";
 
 type DeskTone = "good" | "neutral" | "warning";
 
@@ -28,6 +29,7 @@ function StatusPill({
 type Props = {
   checking: boolean;
   executing: boolean;
+  workflowMode: WorkflowMode;
   showSafetyDetails: boolean;
   onToggleSafetyDetails: () => void;
   onRunGateCheck: () => void;
@@ -50,6 +52,7 @@ type Props = {
 export function PrimaryActionTray({
   checking,
   executing,
+  workflowMode,
   showSafetyDetails,
   onToggleSafetyDetails,
   onRunGateCheck,
@@ -89,6 +92,8 @@ export function PrimaryActionTray({
     ? "Switch to Starknet mainnet before signing."
     : proposalOutdated
       ? "The proposal changed, so the desk is checking the latest version."
+      : workflowMode === "manual" && overridePrimaryAction
+        ? "Manual mode treats the Gate as advisory. A real route exists, so you can prepare it anyway and inspect the exact wallet cost yourself."
       : overridePrimaryAction
         ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
       : executionNote ??

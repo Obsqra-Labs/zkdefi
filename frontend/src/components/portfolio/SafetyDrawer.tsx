@@ -81,6 +81,7 @@ function ReviewItem({
 
 type Props = {
   gateResult: GateResult | null;
+  summaryLabel: string;
   passedGateCount: number;
   failedGateConstraints: ConstraintResult[];
   warningGateConstraints: ConstraintResult[];
@@ -90,6 +91,7 @@ type Props = {
 
 export function SafetyDrawer({
   gateResult,
+  summaryLabel,
   passedGateCount,
   failedGateConstraints,
   warningGateConstraints,
@@ -140,7 +142,7 @@ export function SafetyDrawer({
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Gate report</p>
                   <p className={`mt-1 text-sm font-medium ${summaryTone}`}>
-                    {gateResult.allowed ? "Safe to sign" : feeOverrideOnly ? "Permitted with fee warning" : "Needs adjustment"} · {formatUsd(gateResult.estimated_cost_usd)} estimated network cost
+                    {summaryLabel || (gateResult.allowed ? "Safe to sign" : feeOverrideOnly ? "Permitted with fee warning" : "Needs adjustment")} · {formatUsd(gateResult.estimated_cost_usd)} estimated network cost
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {totalChecks} checks run · {gateResult.estimated_gas?.toLocaleString() ?? "0"} gas estimate

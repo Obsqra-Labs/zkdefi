@@ -14,6 +14,7 @@ import type {
   Receipt,
   Recommendation,
   SupportedAsset,
+  WorkflowMode,
 } from "./types";
 
 export const PORTFOLIO_NETWORK_ID = "starknet_mainnet";
@@ -66,24 +67,27 @@ export async function fetchPortfolioPageData(walletAddress: string): Promise<{
   receipts: Receipt[];
 }> {
   const [portfolio, policy, readiness, receipts] = await Promise.all([
-    apiFetch<PortfolioSnapshot>(`/api/v1/portfolio/${walletAddress}`),
-    apiFetch<PolicySnapshot>(`/api/v1/execution_gate/policy/${walletAddress}`),
-    apiFetch<ExecutorReadiness>(`/api/v1/execution_gate/readiness/${PORTFOLIO_NETWORK_ID}`),
-    apiFetch<Receipt[]>(`/api/v1/execution_gate/receipts/${walletAddress}`),
+    apiFetch<PortfolioSnapshot>(`/api/v1/portfolio/${walletAddress}`, { timeoutMs: 25_000 }),
+    apiFetch<PolicySnapshot>(`/api/v1/execution_gate/policy/${walletAddress}`, { timeoutMs: 15_000 }),
+    apiFetch<ExecutorReadiness>(`/api/v1/execution_gate/readiness/${PORTFOLIO_NETWORK_ID}`, { timeoutMs: 15_000 }),
+    apiFetch<Receipt[]>(`/api/v1/execution_gate/receipts/${walletAddress}`, { timeoutMs: 20_000 }),
   ]);
   return { portfolio, policy, readiness, receipts };
 }
 
 export async function fetchPortfolioReceipts(walletAddress: string): Promise<Receipt[]> {
-  return apiFetch<Receipt[]>(`/api/v1/execution_gate/receipts/${walletAddress}`);
+  return apiFetch<Receipt[]>(`/api/v1/execution_gate/receipts/${walletAddress}`, { timeoutMs: 20_000 });
 }
 
 export async function checkPortfolioIntent(
   ownerAddress: string,
   intent: Record<string, unknown>,
 ): Promise<GateResult> {
+  const intentType = String(intent?.type ?? "swap").toLowerCase();
+  const timeoutMs = intentType === "rebalance" ? 120_000 : 75_000;
   return apiFetch<GateResult>("/api/v1/execution_gate/check", {
     method: "POST",
+    timeoutMs,
     body: JSON.stringify({
       owner_address: ownerAddress,
       intent,
@@ -93,7 +97,9 @@ export async function checkPortfolioIntent(
 }
 
 export async function fetchPortfolioRecommendation(ownerAddress: string): Promise<Recommendation> {
-  return apiFetch<Recommendation>(`/api/v1/execution_gate/recommendation/${ownerAddress}`);
+  return apiFetch<Recommendation>(`/api/v1/execution_gate/recommendation/${ownerAddress}`, {
+    timeoutMs: 90_000,
+  });
 }
 
 export async function executePortfolioIntent(
@@ -102,6 +108,8 @@ export async function executePortfolioIntent(
   actionType: ActionType,
   options?: {
     allowAdvisoryOverride?: boolean;
+    allowManualOverride?: boolean;
+    workflowMode?: WorkflowMode;
   },
 ): Promise<ExecutionResponse> {
   return apiFetch<ExecutionResponse>("/api/v1/execution_gate/execute", {
@@ -113,6 +121,8 @@ export async function executePortfolioIntent(
         ...intent,
         execute_live: false,
         allow_advisory_override: Boolean(options?.allowAdvisoryOverride),
+        allow_manual_override: Boolean(options?.allowManualOverride),
+        workflow_mode: options?.workflowMode,
       },
     }),
   });

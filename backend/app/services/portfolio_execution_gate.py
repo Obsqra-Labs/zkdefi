@@ -904,13 +904,26 @@ class PortfolioExecutionGateService:
             }
 
         allow_advisory_override = bool(normalized_intent.get("allow_advisory_override"))
+        allow_manual_override = bool(normalized_intent.get("allow_manual_override"))
         can_override_gate = self._can_override_blocked_gate(
             normalized_intent,
             gate_result,
             execute_live=execute_live,
         )
+        can_manually_override_gate = self._can_manually_override_blocked_gate(
+            normalized_intent,
+            gate_result,
+            execute_live=execute_live,
+        )
+        override_mode = (
+            "manual"
+            if allow_manual_override and can_manually_override_gate
+            else "advisory"
+            if allow_advisory_override and can_override_gate
+            else None
+        )
 
-        if not gate_result["allowed"] and not (allow_advisory_override and can_override_gate):
+        if not gate_result["allowed"] and override_mode is None:
             receipt = await self.receipt_service.create_receipt(
                 user_address=normalized,
                 constraints_hash=gate_result["policy_hash"],
@@ -957,11 +970,14 @@ class PortfolioExecutionGateService:
                 if normalized_intent["type"] == "swap"
                 else normalized_intent.get("target_allocations"),
                 "swap_steps": gate_result.get("swap_steps", []),
-                "override_used": allow_advisory_override and can_override_gate,
+                "override_used": override_mode is not None,
+                "override_mode": override_mode,
+                "workflow_mode": normalized_intent.get("workflow_mode"),
             },
             "execution": {
                 **execution,
                 "session_key_id": session_key_id,
+                "workflow_mode": normalized_intent.get("workflow_mode"),
                 "portfolio_before": self._serialize_portfolio_state(
                     snapshot_before,
                     holdings_before,
@@ -1042,6 +1058,21 @@ class PortfolioExecutionGateService:
         if str(fee_guard.get("severity") or "") != "blocked":
             return False
 
+        return True
+
+    def _can_manually_override_blocked_gate(
+        self,
+        intent: dict[str, Any],
+        gate_result: dict[str, Any],
+        *,
+        execute_live: bool,
+    ) -> bool:
+        if execute_live:
+            return False
+        if gate_result.get("allowed"):
+            return False
+        if not gate_result.get("swap_steps"):
+            return False
         return True
 
     async def _execute_swap_intent(
@@ -1348,6 +1379,9 @@ class PortfolioExecutionGateService:
         normalized["adapter_target"] = str(normalized.get("adapter_target") or "best").strip().lower()
         normalized["route_hash"] = normalized.get("route_hash")
         normalized["allow_advisory_override"] = bool(normalized.get("allow_advisory_override"))
+        normalized["allow_manual_override"] = bool(normalized.get("allow_manual_override"))
+        workflow_mode = str(normalized.get("workflow_mode") or "").strip().lower()
+        normalized["workflow_mode"] = workflow_mode if workflow_mode in {"manual", "assisted", "automated"} else None
         normalized["session_key_id"] = str(normalized.get("session_key_id") or "").strip() or None
         normalized["target_allocations"] = self._normalize_target_allocations(normalized.get("target_allocations"))
         normalized["delta_list"] = normalized.get("delta_list") if isinstance(normalized.get("delta_list"), list) else []
