@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { assetAccentClasses, formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import type { SupportedAsset } from "./types";
@@ -313,6 +313,14 @@ export function TargetEditor(props: Props) {
     onUseRecommendedSwapStarter,
   } = props;
   const [showAllocationOverview, setShowAllocationOverview] = useState(false);
+  const [showTargetMixControls, setShowTargetMixControls] = useState(!recommendedSwapStarter);
+
+  useEffect(() => {
+    if (actionType !== "rebalance") return;
+    setShowTargetMixControls(!recommendedSwapStarter);
+    setShowAllocationOverview(false);
+  }, [actionType, recommendedSwapStarter]);
+
   const allocationDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => ({
     asset,
     delta: userTargetAllocations[asset] - currentAllocations[asset],
@@ -442,25 +450,41 @@ export function TargetEditor(props: Props) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Target editor</p>
-                <p className="mt-1 text-sm text-zinc-300">Edit your owned target directly, or start from a preset. Open the full comparison only when you need it.</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  {recommendedSwapStarter
+                    ? "Start from the direct route first. Open target mix only if you need to shape the broader allocation."
+                    : "Edit your owned target directly, or start from a preset. Open the full comparison only when you need it."}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                    Math.abs(targetWeightSum - 100) <= 1
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                      : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-                  }`}
-                >
-                  Target total {targetWeightSum.toFixed(1)}%
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAllocationOverview((current) => !current)}
-                  className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-                >
-                  {showAllocationOverview ? "Hide comparison" : "Show comparison"}
-                </button>
+                {showTargetMixControls ? (
+                  <>
+                    <div
+                      className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                        Math.abs(targetWeightSum - 100) <= 1
+                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                          : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                      }`}
+                    >
+                      Target total {targetWeightSum.toFixed(1)}%
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllocationOverview((current) => !current)}
+                      className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                    >
+                      {showAllocationOverview ? "Hide comparison" : "Show comparison"}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowTargetMixControls(true)}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  >
+                    Open target mix
+                  </button>
+                )}
               </div>
             </div>
 
@@ -507,9 +531,24 @@ export function TargetEditor(props: Props) {
               </span>
             </div>
 
+            {recommendedSwapStarter && !showTargetMixControls ? (
+              <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-3.5">
+                <p className="text-sm font-medium text-white">Edit the route first</p>
+                <p className="mt-1 text-sm text-cyan-50/80">
+                  For this wallet size, one direct swap usually reflects the real executable path better than percentage sliders.
+                </p>
+                {draftGuidance ? (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-zinc-950/45 px-3 py-2.5">
+                    <p className="text-xs font-medium text-white">{draftGuidance.title}</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-400">{draftGuidance.body}</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             <div
               className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                showAllocationOverview ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+                showTargetMixControls && showAllocationOverview ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
               }`}
             >
               <div className="min-h-0 overflow-hidden">
@@ -521,7 +560,7 @@ export function TargetEditor(props: Props) {
               </div>
             </div>
 
-            {draftGuidance ? (
+            {showTargetMixControls && draftGuidance ? (
               <div
                 className={`mt-3 rounded-2xl border px-3.5 py-3 text-sm ${
                   draftGuidance.tone === "good"
@@ -562,30 +601,38 @@ export function TargetEditor(props: Props) {
                 ) : null}
               </div>
             ) : null}
-            <div className="mt-4 space-y-3">
-              {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                <TargetEditorRow
-                  key={asset}
-                  asset={asset}
-                  balanceLabel={formatAssetAmount(assetSummary[asset].amount, asset)}
-                  currentPct={currentAllocations[asset]}
-                  targetPct={Number.parseFloat(targetWeights[asset]) || 0}
-                  aiPct={aiTargetAllocations?.[asset]}
-                  onChange={(value) => onTargetChange(asset, value)}
-                />
-              ))}
-            </div>
-            <div className="mt-3 grid gap-2.5 md:grid-cols-[1fr_170px]">
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-3 text-xs text-zinc-500">
-                The desk normalizes at execution, but staying close to 100% keeps the plan easier to trust.
+            <div
+              className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
+                showTargetMixControls ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="space-y-3">
+                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                    <TargetEditorRow
+                      key={asset}
+                      asset={asset}
+                      balanceLabel={formatAssetAmount(assetSummary[asset].amount, asset)}
+                      currentPct={currentAllocations[asset]}
+                      targetPct={Number.parseFloat(targetWeights[asset]) || 0}
+                      aiPct={aiTargetAllocations?.[asset]}
+                      onChange={(value) => onTargetChange(asset, value)}
+                    />
+                  ))}
+                </div>
+                <div className="mt-3 grid gap-2.5 md:grid-cols-[1fr_170px]">
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-3 text-xs text-zinc-500">
+                    The desk normalizes at execution, but staying close to 100% keeps the plan easier to trust.
+                  </div>
+                  <Field label="Max slippage (bps)">
+                    <input
+                      value={slippageBps}
+                      onChange={(event) => onSlippageChange(event.target.value)}
+                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
+                    />
+                  </Field>
+                </div>
               </div>
-              <Field label="Max slippage (bps)">
-                <input
-                  value={slippageBps}
-                  onChange={(event) => onSlippageChange(event.target.value)}
-                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
-                />
-              </Field>
             </div>
           </div>
         </>

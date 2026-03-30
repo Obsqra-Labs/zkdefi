@@ -875,7 +875,11 @@ export function PortfolioMainDesk(props: Props) {
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Edit trade</p>
             <h2 className="mt-1 text-lg font-semibold text-white">Manual controls</h2>
-            <p className="mt-1.5 text-sm text-zinc-400">{economicsHelper}</p>
+            <p className="mt-1.5 text-sm text-zinc-400">
+              {recommendedSwapStarter && actionType === "rebalance"
+                ? "For this wallet, start from the direct route first. Open target mix only if you need to shape the broader allocation."
+                : economicsHelper}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="inline-flex rounded-full border border-zinc-700/80 bg-zinc-950/80 p-1">
