@@ -423,6 +423,31 @@ export function usePortfolioPageShell() {
     const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
     return active.length ? active.join(" • ") : "ETH • STRK • USDC";
   }, [assetSummary]);
+  const automatedProfileFallback = useMemo(() => {
+    const executionDecision = profile?.decisions?.execution;
+    const executionMode = executionDecision?.mode ?? "advisory";
+    const sessionInfo = profile?.identity?.session_summary;
+    const activeSessionCount = Number(sessionInfo?.active_count ?? 0);
+    const hasAgent = Boolean(profile?.identity?.has_agent);
+    const passportScore = Number(profile?.passport?.composite_score ?? 0);
+    const letterRating = String(profile?.passport?.letter_rating ?? "D");
+    const primaryHint =
+      executionDecision?.reason_hints?.[0] ??
+      (hasAgent
+        ? activeSessionCount > 0
+          ? "Governed execution can use the current execution profile."
+          : "Create or renew a session key before relying on governed execution."
+        : "Complete onboarding before relying on governed execution.");
+
+    return {
+      hasAgent,
+      activeSessionCount,
+      executionMode,
+      primaryHint,
+      passportScore,
+      letterRating,
+    };
+  }, [profile]);
   const proposalHeadline = useMemo(() => {
     if (workflowMode === "manual") {
       if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
@@ -430,10 +455,15 @@ export function usePortfolioPageShell() {
       return leadStep ? `Rebalance via ${leadStep.from_asset} → ${leadStep.to_asset}` : "Rebalance toward your target mix";
     }
     if (workflowMode === "automated") {
-      return recommendation?.rebalance_summary?.headline ?? "Strategy and policy are shaping the next governed move.";
+      if (recommendation) {
+        return recommendation.rebalance_summary?.headline ?? "Strategy and policy are shaping the next governed move.";
+      }
+      if (!automatedProfileFallback.hasAgent) return "Automated mode needs onboarding before it can govern this wallet";
+      if (automatedProfileFallback.activeSessionCount <= 0) return "Automated mode is waiting on a session key";
+      return "Automated mode is falling back to your current execution profile";
     }
     return recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the Gate decide if it is safe to sign.";
-  }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation]);
+  }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation, automatedProfileFallback]);
   const proposalReason = useMemo(() => {
     if (workflowMode === "manual") {
       return actionType === "swap"
@@ -441,6 +471,9 @@ export function usePortfolioPageShell() {
         : "Manual mode starts from your target mix. The Gate translates it into an executable path and records the checks, but the route can still continue to wallet.";
     }
     if (workflowMode === "automated") {
+      if (!recommendation) {
+        return `${automatedProfileFallback.primaryHint} Passport ${automatedProfileFallback.letterRating} / ${automatedProfileFallback.passportScore}. ${automatedProfileFallback.activeSessionCount} active session key${automatedProfileFallback.activeSessionCount === 1 ? "" : "s"}.`;
+      }
       return (
         recommendation?.recommendation_note ??
         recommendation?.rebalance_summary?.why ??
@@ -452,7 +485,7 @@ export function usePortfolioPageShell() {
       recommendation?.rebalance_summary?.why ??
       "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override."
     );
-  }, [workflowMode, actionType, recommendation]);
+  }, [workflowMode, actionType, recommendation, automatedProfileFallback]);
   const proposalRouteLabel = useMemo(() => {
     if (workflowMode === "manual") {
       const leadStep = gateResult?.swap_steps?.[0];
@@ -1179,6 +1212,7 @@ export function usePortfolioPageShell() {
     recommendedSwapStarter,
     recommendedSwapAlternatives,
     overridePrimaryAction: canManualOverride || canAdvisoryOverride,
+    automatedProfileFallback,
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,

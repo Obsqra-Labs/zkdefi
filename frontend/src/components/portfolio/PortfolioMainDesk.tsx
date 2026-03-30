@@ -267,6 +267,14 @@ type Props = {
   } | null;
   recommendedSwapAlternatives: RecommendationRouteOption[];
   overridePrimaryAction: boolean;
+  automatedProfileFallback: {
+    hasAgent: boolean;
+    activeSessionCount: number;
+    executionMode: "allow" | "advisory" | "block";
+    primaryHint: string;
+    passportScore: number;
+    letterRating: string;
+  };
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
   onUseRecommendedSwapAlternative: (option: RecommendationRouteOption) => void;
@@ -349,6 +357,7 @@ export function PortfolioMainDesk(props: Props) {
     recommendedSwapStarter,
     recommendedSwapAlternatives,
     overridePrimaryAction,
+    automatedProfileFallback,
     onUseSuggestedSwap,
     onUseRecommendedSwapStarter,
     onUseRecommendedSwapAlternative,
@@ -559,7 +568,7 @@ export function PortfolioMainDesk(props: Props) {
       ? "Start from the wallet you already have. The Gate still scores the route, but manual mode can pass a real path through to your wallet."
       : workflowMode === "assisted"
         ? "Let the system suggest the move. The Gate governs what gets through."
-        : "Experimental. Strategy plus policy choose the move, and the Gate stays in charge of execution.";
+        : "Experimental. Until passport execution is unified, automated mode falls back to onboarding execution posture plus session-key availability.";
   const editorHeading =
     workflowMode === "manual" ? "Manual controls" : workflowMode === "assisted" ? "Adjust guided draft" : "Manual override";
   const editorEyebrow = workflowMode === "manual" ? "Edit trade" : workflowMode === "assisted" ? "Adjust draft" : "Intervene manually";
@@ -653,6 +662,35 @@ export function PortfolioMainDesk(props: Props) {
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Selected flow</p>
           <p className="mt-1 text-sm text-zinc-300">{workflowSummary}</p>
+          {workflowMode === "automated" ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                automatedProfileFallback.hasAgent
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                  : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+              }`}>
+                {automatedProfileFallback.hasAgent ? "Onboarding found" : "Onboarding missing"}
+              </span>
+              <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                automatedProfileFallback.activeSessionCount > 0
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                  : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+              }`}>
+                {automatedProfileFallback.activeSessionCount > 0
+                  ? `${automatedProfileFallback.activeSessionCount} active session key${automatedProfileFallback.activeSessionCount === 1 ? "" : "s"}`
+                  : "No active session key"}
+              </span>
+              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                Passport {automatedProfileFallback.letterRating} / {automatedProfileFallback.passportScore}
+              </span>
+              <a
+                href="/agent"
+                className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+              >
+                Manage agent keys
+              </a>
+            </div>
+          ) : null}
         </div>
       </div>
     </SectionCard>
@@ -832,6 +870,12 @@ export function PortfolioMainDesk(props: Props) {
               </div>
             ) : null}
             {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
+            {workflowMode === "automated" && !recommendation ? (
+              <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
+                <p className="text-sm font-medium text-white">Governed fallback</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.primaryHint}</p>
+              </div>
+            ) : null}
           </div>
 
           {showRecommendationCard && workflowMode !== "manual" ? (
