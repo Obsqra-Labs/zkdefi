@@ -268,12 +268,17 @@ type Props = {
   recommendedSwapAlternatives: RecommendationRouteOption[];
   overridePrimaryAction: boolean;
   automatedProfileFallback: {
+    hasOnboarding: boolean;
     hasAgent: boolean;
     activeSessionCount: number;
     executionMode: "allow" | "advisory" | "block";
     primaryHint: string;
     passportScore: number;
     letterRating: string;
+    profileSource: "onboarding_constraints" | "portfolio_policy";
+    riskProfile: string;
+    riskTolerance: number;
+    policyExecutionMode: string;
   };
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
@@ -568,7 +573,9 @@ export function PortfolioMainDesk(props: Props) {
       ? "Start from the wallet you already have. The Gate still scores the route, but manual mode can pass a real path through to your wallet."
       : workflowMode === "assisted"
         ? "Let the system suggest the move. The Gate governs what gets through."
-        : "Experimental. Until passport execution is unified, automated mode falls back to onboarding execution posture plus session-key availability.";
+        : automatedProfileFallback.profileSource === "onboarding_constraints"
+          ? `Experimental. Automated mode is using your ${automatedProfileFallback.riskProfile} onboarding execution profile plus active session keys.`
+          : "Experimental. Automated mode is falling back to the current portfolio policy until onboarding is available.";
   const editorHeading =
     workflowMode === "manual" ? "Manual controls" : workflowMode === "assisted" ? "Adjust guided draft" : "Manual override";
   const editorEyebrow = workflowMode === "manual" ? "Edit trade" : workflowMode === "assisted" ? "Adjust draft" : "Intervene manually";
@@ -665,11 +672,13 @@ export function PortfolioMainDesk(props: Props) {
           {workflowMode === "automated" ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                automatedProfileFallback.hasAgent
+                automatedProfileFallback.hasOnboarding
                   ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
                   : "border-amber-500/20 bg-amber-500/10 text-amber-200"
               }`}>
-                {automatedProfileFallback.hasAgent ? "Onboarding found" : "Onboarding missing"}
+                {automatedProfileFallback.hasOnboarding
+                  ? `${automatedProfileFallback.riskProfile} onboarding profile`
+                  : "Onboarding missing"}
               </span>
               <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
                 automatedProfileFallback.activeSessionCount > 0
@@ -682,6 +691,9 @@ export function PortfolioMainDesk(props: Props) {
               </span>
               <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
                 Passport {automatedProfileFallback.letterRating} / {automatedProfileFallback.passportScore}
+              </span>
+              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                Policy {automatedProfileFallback.policyExecutionMode}
               </span>
               <a
                 href="/agent"

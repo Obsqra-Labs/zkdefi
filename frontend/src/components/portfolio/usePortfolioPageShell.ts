@@ -38,6 +38,7 @@ import type {
   ActionType,
   ExecutorReadiness,
   GateResult,
+  GovernedExecution,
   PolicyDraft,
   PolicySnapshot,
   PortfolioSnapshot,
@@ -423,9 +424,41 @@ export function usePortfolioPageShell() {
     const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
     return active.length ? active.join(" • ") : "ETH • STRK • USDC";
   }, [assetSummary]);
-  const automatedProfileFallback = useMemo(() => {
+  const automatedGovernedState = useMemo<{
+    hasOnboarding: boolean;
+    hasAgent: boolean;
+    activeSessionCount: number;
+    executionMode: GovernedExecution["mode"];
+    primaryHint: string;
+    passportScore: number;
+    letterRating: string;
+    profileSource: GovernedExecution["source"];
+    riskProfile: string;
+    riskTolerance: number;
+    policyExecutionMode: string;
+  }>(() => {
+    const backendState = recommendation?.governed_execution;
+    if (backendState) {
+      return {
+        hasOnboarding: Boolean(backendState.has_onboarding),
+        hasAgent: Boolean(backendState.has_agent),
+        activeSessionCount: Number(backendState.active_session_count ?? 0),
+        executionMode: backendState.mode,
+        primaryHint:
+          backendState.primary_hint ||
+          backendState.reason_hints?.[0] ||
+          "Governed execution is using the current onboarding and session-key posture for this wallet.",
+        passportScore: Number(backendState.passport_score ?? profile?.passport?.composite_score ?? 0),
+        letterRating: String(backendState.passport_letter ?? profile?.passport?.letter_rating ?? "D"),
+        profileSource: backendState.source,
+        riskProfile: String(backendState.risk_profile ?? "balanced"),
+        riskTolerance: Number(backendState.risk_tolerance ?? 50),
+        policyExecutionMode: String(backendState.policy_execution_mode ?? "assist"),
+      };
+    }
+
     const executionDecision = profile?.decisions?.execution;
-    const executionMode = executionDecision?.mode ?? "advisory";
+    const executionMode: GovernedExecution["mode"] = executionDecision?.mode ?? "advisory";
     const sessionInfo = profile?.identity?.session_summary;
     const activeSessionCount = Number(sessionInfo?.active_count ?? 0);
     const hasAgent = Boolean(profile?.identity?.has_agent);
@@ -440,14 +473,19 @@ export function usePortfolioPageShell() {
         : "Complete onboarding before relying on governed execution.");
 
     return {
+      hasOnboarding: hasAgent,
       hasAgent,
       activeSessionCount,
       executionMode,
       primaryHint,
       passportScore,
       letterRating,
+      profileSource: hasAgent ? "onboarding_constraints" : "portfolio_policy",
+      riskProfile: recommendation?.risk_profile ?? "balanced",
+      riskTolerance: Number(recommendation?.risk_tolerance ?? 50),
+      policyExecutionMode: "assist",
     };
-  }, [profile]);
+  }, [profile, recommendation]);
   const proposalHeadline = useMemo(() => {
     if (workflowMode === "manual") {
       if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
@@ -458,12 +496,15 @@ export function usePortfolioPageShell() {
       if (recommendation) {
         return recommendation.rebalance_summary?.headline ?? "Strategy and policy are shaping the next governed move.";
       }
-      if (!automatedProfileFallback.hasAgent) return "Automated mode needs onboarding before it can govern this wallet";
-      if (automatedProfileFallback.activeSessionCount <= 0) return "Automated mode is waiting on a session key";
-      return "Automated mode is falling back to your current execution profile";
+      if (!automatedGovernedState.hasOnboarding) return "Automated mode needs onboarding before it can govern this wallet";
+      if (automatedGovernedState.activeSessionCount <= 0) return "Automated mode is waiting on a session key";
+      if (automatedGovernedState.executionMode === "allow") {
+        return `Automated mode is ready to use your ${automatedGovernedState.riskProfile} onboarding profile`;
+      }
+      return "Automated mode is falling back to your onboarding execution profile";
     }
     return recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the Gate decide if it is safe to sign.";
-  }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation, automatedProfileFallback]);
+  }, [workflowMode, actionType, swapAssetIn, swapAssetOut, gateResult, recommendation, automatedGovernedState]);
   const proposalReason = useMemo(() => {
     if (workflowMode === "manual") {
       return actionType === "swap"
@@ -472,7 +513,7 @@ export function usePortfolioPageShell() {
     }
     if (workflowMode === "automated") {
       if (!recommendation) {
-        return `${automatedProfileFallback.primaryHint} Passport ${automatedProfileFallback.letterRating} / ${automatedProfileFallback.passportScore}. ${automatedProfileFallback.activeSessionCount} active session key${automatedProfileFallback.activeSessionCount === 1 ? "" : "s"}.`;
+        return `${automatedGovernedState.primaryHint} Passport ${automatedGovernedState.letterRating} / ${automatedGovernedState.passportScore}. ${automatedGovernedState.activeSessionCount} active session key${automatedGovernedState.activeSessionCount === 1 ? "" : "s"}.`;
       }
       return (
         recommendation?.recommendation_note ??
@@ -485,7 +526,7 @@ export function usePortfolioPageShell() {
       recommendation?.rebalance_summary?.why ??
       "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override."
     );
-  }, [workflowMode, actionType, recommendation, automatedProfileFallback]);
+  }, [workflowMode, actionType, recommendation, automatedGovernedState]);
   const proposalRouteLabel = useMemo(() => {
     if (workflowMode === "manual") {
       const leadStep = gateResult?.swap_steps?.[0];
@@ -668,7 +709,7 @@ export function usePortfolioPageShell() {
     }
   };
 
-  const getRecommendation = async () => {
+  const getRecommendation = useCallback(async () => {
     if (!address) return;
     setChecking(true);
     setError(null);
@@ -693,7 +734,7 @@ export function usePortfolioPageShell() {
     } finally {
       setChecking(false);
     }
-  };
+  }, [address, workflowMode]);
 
   const applyAiTargets = () => {
     if (!aiTargetAllocations) return;
@@ -1032,6 +1073,11 @@ export function usePortfolioPageShell() {
   }, [workflowMode, recommendation, applyRecommendationDraft]);
 
   useEffect(() => {
+    if (!address || workflowMode === "manual" || recommendation) return;
+    void getRecommendation();
+  }, [address, workflowMode, recommendation, getRecommendation]);
+
+  useEffect(() => {
     setShowFullGateMatrix(false);
   }, [gateResult?.receipt_id, gateResult?.intent_hash, gateResult?.route_hash]);
 
@@ -1212,7 +1258,7 @@ export function usePortfolioPageShell() {
     recommendedSwapStarter,
     recommendedSwapAlternatives,
     overridePrimaryAction: canManualOverride || canAdvisoryOverride,
-    automatedProfileFallback,
+    automatedProfileFallback: automatedGovernedState,
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,

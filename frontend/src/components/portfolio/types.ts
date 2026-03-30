@@ -333,6 +333,28 @@ export type RecommendationRouteOption = {
   selected?: boolean;
 };
 
+export type GovernedExecution = {
+  source: "onboarding_constraints" | "portfolio_policy";
+  mode: "allow" | "advisory" | "block";
+  reason_codes: string[];
+  reason_hints: string[];
+  primary_hint: string;
+  has_onboarding: boolean;
+  has_agent: boolean;
+  active_session_count: number;
+  active_session_key_ids?: string[];
+  passport_score?: number;
+  passport_letter?: string | null;
+  risk_profile?: string | null;
+  risk_tolerance?: number;
+  policy_execution_mode?: string;
+  max_position_usd?: number | null;
+  session_duration_hours?: number | null;
+  tier?: number;
+  tier_name?: string;
+  execution_limits?: Record<string, unknown>;
+};
+
 export type Recommendation = {
   rationale: string;
   source: string;
@@ -368,6 +390,7 @@ export type Recommendation = {
   execution_translation?: RecommendationExecutionTranslation | null;
   drift_monitor?: RecommendationDriftMonitor | null;
   rebalance_summary?: RecommendationSummary | null;
+  governed_execution?: GovernedExecution | null;
   execution_fit?: {
     mode?: string;
     description?: string;

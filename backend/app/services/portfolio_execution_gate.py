@@ -13,10 +13,14 @@ import hashlib
 import json
 import logging
 import os
+import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
+from app.api.reputation import TIER_INFO, _user_store as reputation_user_store
+from app.api.risk_passport import _composite_score as _passport_composite_score
+from app.api.risk_passport import _letter_rating as _passport_letter_rating
 from app.services.ekubo_config import (
     EKUBO_MAINNET_CHAIN_ID,
     SEPOLIA_ETH,
@@ -29,8 +33,10 @@ from app.services.ekubo_execution_service import build_swap_calldata, submit_swa
 from app.services.portfolio_monitor_service import get_portfolio_monitor_service
 from app.services.execution_policy_service import get_execution_policy_service
 from app.services.position_scanner import PortfolioSnapshot, scan_portfolio
+from app.services.profile_decision_service import get_profile_decision_service
 from app.services.receipt_service import get_receipt_service
 from app.services.session_key_service import get_session_key_service
+from app.services.constraint_gate import get_constraint_gate
 from app.services.vault_policy_service import get_vault_policy_service
 from app.services.zkml.circuit_scanner import (
     build_agent_reputation_inputs,
@@ -544,6 +550,10 @@ class PortfolioExecutionGateService:
                 "headline": recommendation_plan["headline"],
                 "why": recommendation_plan["note"],
             }
+        governed_execution = await self._build_governed_execution_summary(
+            owner_address=normalized,
+            raw_policy=raw_policy,
+        )
         return {
             "owner_address": normalized,
             "source": source,
@@ -581,6 +591,7 @@ class PortfolioExecutionGateService:
             "execution_translation": translation,
             "drift_monitor": drift_monitor,
             "rebalance_summary": rebalance_summary,
+            "governed_execution": governed_execution,
             "execution_fit": {
                 "mode": "spot_rebalance_proxy",
                 "description": (
@@ -588,6 +599,152 @@ class PortfolioExecutionGateService:
                     "strategy and rebalances wallet holdings toward it with spot swaps."
                 ),
             },
+        }
+
+    async def _build_governed_execution_summary(
+        self,
+        *,
+        owner_address: str,
+        raw_policy: dict[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            onboarding = get_constraint_gate().get_constraints(owner_address)
+        except Exception as exc:
+            logger.warning("constraint gate unavailable for governed summary %s: %s", owner_address[:18], exc)
+            onboarding = None
+
+        has_onboarding = onboarding is not None
+        has_agent = bool(onboarding.agent_initialized) if onboarding else False
+        identity_commitment = str(onboarding.identity_commitment or "") if onboarding else ""
+        profile_source = "onboarding_constraints" if has_onboarding else "portfolio_policy"
+        governed_risk_tolerance = (
+            _safe_int(getattr(onboarding, "risk_tolerance", 0), 0)
+            if onboarding
+            else self._risk_tolerance_from_policy(raw_policy)
+        )
+        governed_risk_profile = (
+            str(getattr(onboarding, "risk_profile", "") or "")
+            if onboarding
+            else self._risk_profile_from_tolerance(governed_risk_tolerance)
+        )
+        max_position_usd = round(_safe_float(getattr(onboarding, "max_position_usd", 0.0), 0.0), 2) if onboarding else None
+        session_duration_hours = _safe_int(getattr(onboarding, "session_duration_hours", 0), 0) if onboarding else None
+        policy_execution_mode = str(raw_policy.get("execution_policy", {}).get("mode", "assist") or "assist")
+
+        try:
+            session_rows = await self.session_key_service.list_user_sessions(owner_address)
+        except Exception as exc:
+            logger.warning("session key lookup unavailable for governed summary %s: %s", owner_address[:18], exc)
+            session_rows = []
+
+        active_sessions = [row for row in session_rows if bool(row.get("is_active"))]
+        active_session_ids = [
+            str(row.get("session_id"))
+            for row in active_sessions
+            if isinstance(row.get("session_id"), str) and str(row.get("session_id")).strip()
+        ]
+
+        reputation_row = reputation_user_store.get(owner_address.lower()) or {}
+        tier = _safe_int(reputation_row.get("tier"), 0)
+        first_interaction = _safe_int(reputation_row.get("first_interaction"), 0)
+        tenure_days = int((time.time() - first_interaction) / 86400) if first_interaction > 0 else 0
+        successful_txns = _safe_int(reputation_row.get("successful_txns"), 0)
+        transaction_count = _safe_int(reputation_row.get("transaction_count"), successful_txns)
+        collateral_eth = _safe_float(reputation_row.get("collateral"), 0.0) / 1e18
+        total_volume_eth = _safe_float(reputation_row.get("total_volume"), 0.0) / 1e18
+        passport_score = _passport_composite_score(tier, tenure_days, total_volume_eth, collateral_eth)
+        passport_letter = _passport_letter_rating(passport_score)
+        tier_name = TIER_INFO.get(tier, TIER_INFO[0]).tier_name
+
+        reason_codes: list[str] = []
+        reason_hints: list[str] = []
+
+        if has_onboarding:
+            reason_codes.append("portfolio_uses_onboarding_profile")
+            reason_hints.append(
+                f"Using your {governed_risk_profile} onboarding execution profile until portable passport execution is unified for portfolio."
+            )
+        else:
+            reason_codes.append("onboarding_profile_missing")
+            reason_hints.append("Complete onboarding before relying on governed portfolio execution.")
+
+        if active_session_ids:
+            reason_codes.append("active_session_key_present")
+            reason_hints.append(
+                f"Governed execution has {len(active_session_ids)} active session key{'s' if len(active_session_ids) != 1 else ''} available."
+            )
+        else:
+            reason_codes.append("no_active_session_key")
+            reason_hints.append("Create or renew a session key before relying on governed execution.")
+
+        if policy_execution_mode not in {"auto", "automated", "autonomous"}:
+            reason_codes.append("portfolio_policy_fallback_mode")
+            reason_hints.append(
+                f"Portfolio still falls back to the current {policy_execution_mode} execution posture for this lane."
+            )
+
+        if not has_onboarding:
+            mode = "block"
+        elif not active_session_ids:
+            mode = "advisory"
+        else:
+            mode = "allow"
+
+        decision_bundle = {
+            "address": owner_address,
+            "reputation": {
+                "tier": tier,
+                "tier_name": tier_name,
+                "tenure_days": tenure_days,
+                "transaction_count": transaction_count,
+                "successful_txns": successful_txns,
+                "collateral_eth": collateral_eth,
+                "total_volume_eth": total_volume_eth,
+            },
+            "risk_passport": {
+                "composite_score": passport_score,
+                "letter_rating": passport_letter,
+            },
+            "onboarding": {
+                "has_agent": has_agent,
+                "identity_commitment": identity_commitment,
+            },
+            "linked_addresses": {},
+            "compliance_summary": {"count": 0, "profiles": []},
+            "session_summary": {
+                "count": len(session_rows),
+                "active_count": len(active_session_ids),
+                "sessions": session_rows,
+            },
+        }
+        decision_payload = get_profile_decision_service().evaluate(decision_bundle)
+        execution_limits = ((decision_payload.get("decisions") or {}).get("execution") or {}).get("limits") or {}
+
+        primary_hint = (
+            " ".join(reason_hints[:2]).strip()
+            or "Governed execution is using the current onboarding and session-key posture for this wallet."
+        )
+
+        return {
+            "source": profile_source,
+            "mode": mode,
+            "reason_codes": reason_codes,
+            "reason_hints": reason_hints,
+            "primary_hint": primary_hint,
+            "has_onboarding": has_onboarding,
+            "has_agent": has_agent,
+            "active_session_count": len(active_session_ids),
+            "active_session_key_ids": active_session_ids,
+            "passport_score": passport_score,
+            "passport_letter": passport_letter,
+            "risk_profile": governed_risk_profile,
+            "risk_tolerance": governed_risk_tolerance,
+            "policy_execution_mode": policy_execution_mode,
+            "max_position_usd": max_position_usd,
+            "session_duration_hours": session_duration_hours,
+            "tier": tier,
+            "tier_name": tier_name,
+            "execution_limits": execution_limits,
         }
 
     async def record_policy_update_receipt(

@@ -349,6 +349,79 @@ async def test_recommend_returns_rebalance_intent(monkeypatch, gate_service):
 
 
 @pytest.mark.asyncio
+async def test_recommend_includes_governed_execution_summary(monkeypatch, gate_service):
+    async def fake_scan_portfolio(address: str):
+        return _mock_snapshot(address)
+
+    async def fake_get_recommendation(user_address: str, amount: float, risk_profile: str):
+        return {
+            "recommended_pools": [],
+            "ai_reasoning": "Fallback allocator output.",
+            "ai_confidence": 0.55,
+            "expected_portfolio_apy": 0.0,
+            "portfolio_risk_assessment": "Profile fallback.",
+            "recommendation_id": "rec_governed",
+            "attestation_hash": "0xattestation",
+            "provenance": {"circuits_used": ["YieldOptimality_v1"]},
+            "genome": {"yield": 10, "risk": 20, "volatility": 30, "liquidity": 40, "efficiency": 50},
+        }
+
+    class FakeConstraintGate:
+        class Constraints:
+            agent_initialized = True
+            identity_commitment = "0xidentity"
+            risk_tolerance = 70
+            risk_profile = "aggressive"
+            max_position_usd = 1800.0
+            session_duration_hours = 24
+
+        def get_constraints(self, user_address: str):
+            return self.Constraints()
+
+    class FakeReputationStore:
+        def get(self, key: str):
+            return {
+                "tier": 1,
+                "first_interaction": 0,
+                "successful_txns": 5,
+                "transaction_count": 5,
+                "collateral": 0,
+                "total_volume": 0,
+            }
+
+    monkeypatch.setattr("app.services.portfolio_execution_gate.scan_portfolio", fake_scan_portfolio)
+    monkeypatch.setattr(
+        "app.services.strategy_recommendation_service.get_recommendation",
+        fake_get_recommendation,
+    )
+    monkeypatch.setattr("app.services.portfolio_execution_gate.get_constraint_gate", lambda: FakeConstraintGate())
+    monkeypatch.setattr("app.services.portfolio_execution_gate.reputation_user_store", FakeReputationStore())
+
+    gate_service.session_key_service.create_key(
+        owner_address="0xabc123",
+        session_public_key="0xsession",
+        policy_hash=None,
+        message_hash="session",
+        signature_digest="sig",
+        expires_at=None,
+    )
+
+    result = await gate_service.recommend("0xabc123")
+
+    governed = result["governed_execution"]
+    assert governed["source"] == "onboarding_constraints"
+    assert governed["has_onboarding"] is True
+    assert governed["has_agent"] is True
+    assert governed["active_session_count"] == 1
+    assert governed["risk_profile"] == "aggressive"
+    assert governed["risk_tolerance"] == 70
+    assert governed["mode"] == "allow"
+    assert "portfolio_uses_onboarding_profile" in governed["reason_codes"]
+    assert "active_session_key_present" in governed["reason_codes"]
+    assert governed["primary_hint"].lower().startswith("using your aggressive onboarding execution profile")
+
+
+@pytest.mark.asyncio
 async def test_recommend_uses_post_rebalance_snapshot_for_drift_attribution(monkeypatch, gate_service):
     async def fake_scan_portfolio(address: str):
         return _mock_snapshot(address)
