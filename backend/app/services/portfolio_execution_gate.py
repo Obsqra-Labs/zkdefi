@@ -495,7 +495,8 @@ class PortfolioExecutionGateService:
             )
             source = "heuristic_fallback_v1"
 
-        recommendation_plan = self._select_recommendation_target(
+        recommendation_plan = await self._select_recommendation_target(
+            owner_address=normalized,
             holdings=holdings,
             target_allocations=allocator_target_allocations,
             policy=policy,
@@ -1618,9 +1619,130 @@ class PortfolioExecutionGateService:
             projected[to_asset]["value_usd"] = max(0.0, _safe_float(projected[to_asset].get("value_usd", 0.0)) + moved_value)
         return self._weights_pct(projected)
 
-    def _select_recommendation_target(
+    def _build_small_portfolio_candidate_steps(
+        self,
+        holdings: dict[str, dict[str, float]],
+        target_allocations: dict[str, float],
+    ) -> list[dict[str, Any]]:
+        total_value = sum(item["value_usd"] for item in holdings.values())
+        if total_value <= 0:
+            return []
+
+        target_values = {
+            asset: (target_allocations.get(asset, 0.0) / 100.0) * total_value
+            for asset in SUPPORTED_ASSETS
+        }
+        deltas = {
+            asset: round(target_values[asset] - holdings[asset]["value_usd"], 2)
+            for asset in SUPPORTED_ASSETS
+        }
+        sells = [
+            {
+                "asset": asset,
+                "value_usd": min(abs(delta), self._max_sellable_value_usd(asset, holdings)),
+            }
+            for asset, delta in deltas.items()
+            if delta < -0.5 and self._max_sellable_value_usd(asset, holdings) > 0.5
+        ]
+        buys = [
+            {"asset": asset, "value_usd": delta}
+            for asset, delta in deltas.items()
+            if delta > 0.5
+        ]
+        candidates: list[dict[str, Any]] = []
+        for sell in sells:
+            for buy in buys:
+                matched = round(min(sell["value_usd"], buy["value_usd"]), 2)
+                if matched < SMALL_PORTFOLIO_MIN_ACTION_USD:
+                    continue
+                amount = matched / max(ASSET_PRICES_USD.get(sell["asset"], 1.0), 1e-9)
+                candidates.append(
+                    {
+                        "from_asset": sell["asset"],
+                        "to_asset": buy["asset"],
+                        "value_usd": matched,
+                        "amount": amount,
+                        "amount_wei": int(amount * (10 ** ASSET_DECIMALS[sell["asset"]])),
+                    }
+                )
+        candidates.sort(key=lambda item: _safe_float(item.get("value_usd")), reverse=True)
+        deduped: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for step in candidates:
+            key = (str(step.get("from_asset") or ""), str(step.get("to_asset") or ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(step)
+        return deduped[:4]
+
+    async def _score_recommendation_candidate_step(
         self,
         *,
+        owner_address: str,
+        step: dict[str, Any],
+        policy: dict[str, Any],
+        holdings: dict[str, dict[str, float]],
+        target_allocations: dict[str, float],
+    ) -> dict[str, Any]:
+        step_intent = {
+            "type": "swap",
+            "network_id": NETWORK_MAINNET,
+            "token_in": step["from_asset"],
+            "token_out": step["to_asset"],
+            "amount_wei": _safe_int(step["amount_wei"]),
+            "max_slippage_bps": min(policy.get("max_slippage_bps", DEFAULT_POLICY["max_slippage_bps"]), 75),
+            "adapter_target": "best",
+            "owner_address": owner_address,
+        }
+        execution = await self._execute_swap_intent(step_intent, False, use_cache=True)
+        route_ready = execution.get("status") != "error" and bool(
+            execution.get("wallet_calls") or (
+                execution.get("calldata", {}).get("contract_address")
+                and execution.get("calldata", {}).get("calldata")
+            )
+        )
+        estimated_gas = self._estimate_gas(step_intent, [step])
+        fee_assessment = self._assess_fee_efficiency(
+            intent_type="swap",
+            network_id=NETWORK_MAINNET,
+            action_value_usd=_safe_float(step.get("value_usd")),
+            swap_steps=[step],
+            estimated_gas=estimated_gas,
+            holdings=holdings,
+        )
+        current_allocations = self._weights_pct(holdings)
+        current_gap = sum(
+            abs(_safe_float(target_allocations.get(asset)) - _safe_float(current_allocations.get(asset)))
+            for asset in SUPPORTED_ASSETS
+        )
+        projected_target = self._projected_allocations_after_steps(holdings, [step])
+        projected_gap = sum(
+            abs(_safe_float(target_allocations.get(asset)) - _safe_float(projected_target.get(asset)))
+            for asset in SUPPORTED_ASSETS
+        )
+        gap_reduction = round(max(0.0, current_gap - projected_gap), 2)
+        return {
+            "step": step,
+            "execution": execution,
+            "route_ready": route_ready,
+            "fee_assessment": fee_assessment,
+            "projected_target": projected_target,
+            "gap_reduction": gap_reduction,
+            "score": (
+                1 if route_ready else 0,
+                1 if not fee_assessment["fee_blocked"] else 0,
+                1 if not fee_assessment["fee_warning"] else 0,
+                gap_reduction,
+                _safe_float(step.get("value_usd")),
+                -_safe_float(fee_assessment.get("fee_share")),
+            ),
+        }
+
+    async def _select_recommendation_target(
+        self,
+        *,
+        owner_address: str,
         holdings: dict[str, dict[str, float]],
         target_allocations: dict[str, float],
         policy: dict[str, Any],
@@ -1662,6 +1784,54 @@ class PortfolioExecutionGateService:
             or fee_assessment["fee_blocked"]
         ):
             return result
+
+        candidate_steps = self._build_small_portfolio_candidate_steps(holdings, target_allocations)
+        route_ranked_candidate: dict[str, Any] | None = None
+        if len(candidate_steps) > 1:
+            ranked = await asyncio.gather(
+                *[
+                    self._score_recommendation_candidate_step(
+                        owner_address=owner_address,
+                        step=step,
+                        policy=policy,
+                        holdings=holdings,
+                        target_allocations=target_allocations,
+                    )
+                    for step in candidate_steps
+                ]
+            )
+            route_ranked_candidate = max(ranked, key=lambda item: item["score"], default=None)
+            if route_ranked_candidate and route_ranked_candidate["route_ready"]:
+                chosen_step = route_ranked_candidate["step"]
+                projected_target = route_ranked_candidate["projected_target"]
+                projected_gap = max(
+                    (
+                        abs(_safe_float(target_allocations.get(asset)) - _safe_float(projected_target.get(asset)))
+                        for asset in SUPPORTED_ASSETS
+                    ),
+                    default=0.0,
+                )
+                if projected_gap >= 4.0:
+                    execution = route_ranked_candidate["execution"]
+                    route_bits = [str(execution.get("execution_adapter") or "").upper()]
+                    route_names = [str(item) for item in (execution.get("route") or []) if str(item)]
+                    if route_names:
+                        route_bits.append(" / ".join(route_names))
+                    route_summary = " via ".join(bit for bit in route_bits if bit)
+                    return {
+                        "mode": "best_next_move",
+                        "target_allocations": projected_target,
+                        "swap_steps": [chosen_step],
+                        "allocator_swap_steps": allocator_steps,
+                        "note": (
+                            f"On a ${total_value:,.2f} wallet, the cleanest live route is one {chosen_step['from_asset']} → "
+                            f"{chosen_step['to_asset']} swap for about ${_safe_float(chosen_step.get('value_usd')):,.2f}"
+                            + (f" {route_summary.lower()}." if route_summary else ".")
+                            + f" The longer-horizon suggested mix still leans toward ETH {target_allocations.get('ETH', 0.0):.0f}% / "
+                            f"STRK {target_allocations.get('STRK', 0.0):.0f}% / USDC {target_allocations.get('USDC', 0.0):.0f}%."
+                        ),
+                        "headline": f"Take the cleanest routed move: sell {chosen_step['from_asset']} and add {chosen_step['to_asset']}.",
+                    }
 
         projected_target = self._projected_allocations_after_steps(holdings, allocator_steps)
         projected_gap = max(

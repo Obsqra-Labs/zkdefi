@@ -559,6 +559,117 @@ async def test_recommend_prefers_best_next_move_for_small_wallet(monkeypatch, ga
 
 
 @pytest.mark.asyncio
+async def test_recommend_prefers_routable_small_wallet_candidate(monkeypatch, gate_service):
+    async def fake_scan_portfolio(address: str):
+        return PortfolioSnapshot(
+            wallet_address=address,
+            scanned_at="2026-03-28T00:00:00+00:00",
+            positions=[
+                Position(protocol="wallet", position_type="token", asset_symbol="ETH", amount=0.0021875, value_usd=7.0),
+                Position(protocol="wallet", position_type="token", asset_symbol="STRK", amount=5.5555555556, value_usd=4.0),
+                Position(protocol="wallet", position_type="token", asset_symbol="USDC", amount=2.0, value_usd=2.0),
+            ],
+            total_value_usd=13.0,
+            protocol_count=0,
+            position_count=3,
+            protocols_found=["wallet"],
+            snapshot_hash="0xroute-aware",
+        )
+
+    async def fake_get_recommendation(user_address: str, amount: float, risk_profile: str):
+        return {
+            "recommended_pools": [
+                {
+                    "pool_id": "eth_lending",
+                    "protocol": "Lending",
+                    "pair": "ETH Lending",
+                    "allocation_percent": 20.0,
+                    "allocation_amount": 2.6,
+                    "expected_apy": 0.08,
+                    "risk_score": 15.0,
+                    "risk_flags": [],
+                },
+                {
+                    "pool_id": "strk_lending",
+                    "protocol": "Lending",
+                    "pair": "STRK Lending",
+                    "allocation_percent": 20.0,
+                    "allocation_amount": 2.6,
+                    "expected_apy": 0.08,
+                    "risk_score": 15.0,
+                    "risk_flags": [],
+                },
+                {
+                    "pool_id": "idle_reserve",
+                    "protocol": "Idle",
+                    "pair": "Reserve",
+                    "allocation_percent": 60.0,
+                    "allocation_amount": 7.8,
+                    "expected_apy": 0.0,
+                    "risk_score": 0.0,
+                    "risk_flags": [],
+                },
+            ],
+            "ai_reasoning": "Preserve reserve and reduce concentration.",
+            "ai_confidence": 0.74,
+            "expected_portfolio_apy": 0.05,
+            "portfolio_risk_assessment": "Cash-heavy defensive mix.",
+            "recommendation_id": "rec_route_aware",
+            "attestation_hash": "0xattestation",
+            "provenance": {"circuits_used": ["YieldOptimality_v1"]},
+            "genome": {"yield": 41, "risk": 22, "volatility": 28, "liquidity": 91, "efficiency": 44},
+        }
+
+    async def fake_execute_swap_intent(intent, execute_live, *, use_cache=True):
+        if intent["token_in"] == "ETH":
+            return {
+                "status": "error",
+                "wallet_calls": [],
+                "execution_adapter": "best",
+                "route": [],
+                "error": "No AVNU liquidity for this pair.",
+            }
+        return {
+            "status": "prepared",
+            "wallet_calls": [
+                {
+                    "contract_address": "0x123",
+                    "entrypoint": "multi_route_swap",
+                    "calldata": ["0x1", "0x2"],
+                }
+            ],
+            "execution_adapter": "avnu",
+            "route": ["AVNU"],
+            "expected_out": "1400000",
+            "error": None,
+        }
+
+    monkeypatch.setattr("app.services.portfolio_execution_gate.scan_portfolio", fake_scan_portfolio)
+    monkeypatch.setattr(
+        "app.services.strategy_recommendation_service.get_recommendation",
+        fake_get_recommendation,
+    )
+    monkeypatch.setattr(gate_service, "_execute_swap_intent", fake_execute_swap_intent)
+
+    result = await gate_service.recommend("0xabc123")
+
+    assert result["recommendation_mode"] == "best_next_move"
+    assert result["allocator_target_allocations"] == {"ETH": 20.0, "STRK": 20.0, "USDC": 60.0}
+    assert result["derived_swap_steps"] == [
+        {
+            "from_asset": "STRK",
+            "to_asset": "USDC",
+            "value_usd": 1.4,
+            "amount": pytest.approx(1.9444444444),
+            "amount_wei": 1944444444444444416,
+        }
+    ]
+    assert result["rebalance_summary"]["headline"].startswith("Take the cleanest routed move")
+    assert "strk" in result["rebalance_summary"]["why"].lower()
+    assert "avnu" in result["rebalance_summary"]["why"].lower()
+
+
+@pytest.mark.asyncio
 async def test_confirm_wallet_execution_receipt_updates_tx_hash(gate_service):
     receipt = await gate_service.receipt_service.create_receipt(
         user_address="0xabc123",
