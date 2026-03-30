@@ -97,12 +97,17 @@ export function PrimaryActionTray({
       : overridePrimaryAction
         ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
       : executionNote ??
+        (label === "Onboarding needed"
+          ? "Automated mode is waiting on onboarding. Use the primary action to open the passport flow and set the governed profile first."
+          : label === "Session key needed"
+            ? "Automated mode is waiting on a governed session key. Use the primary action to open agent key management."
+            :
         (label === "Permitted with fee warning"
           ? "The route is viable, but the cost is high for the amount moved. Review the exact path and decide in wallet."
           :
         (label === "Needs adjustment"
           ? "The latest gate result is blocking this draft. Adjust the target and the desk will re-check automatically."
-          : "One clear action lives here. Review once, then sign."));
+          : "One clear action lives here. Review once, then sign.")));
   const trayRefreshing = checking || proposalOutdated;
 
   return (

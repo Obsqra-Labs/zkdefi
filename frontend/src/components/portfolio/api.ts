@@ -110,6 +110,7 @@ export async function executePortfolioIntent(
     allowAdvisoryOverride?: boolean;
     allowManualOverride?: boolean;
     workflowMode?: WorkflowMode;
+    sessionKeyId?: string | null;
   },
 ): Promise<ExecutionResponse> {
   return apiFetch<ExecutionResponse>("/api/v1/execution_gate/execute", {
@@ -123,6 +124,7 @@ export async function executePortfolioIntent(
         allow_advisory_override: Boolean(options?.allowAdvisoryOverride),
         allow_manual_override: Boolean(options?.allowManualOverride),
         workflow_mode: options?.workflowMode,
+        session_key_id: options?.sessionKeyId ?? undefined,
       },
     }),
   });

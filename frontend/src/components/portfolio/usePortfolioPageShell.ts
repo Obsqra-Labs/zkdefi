@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "@starknet-react/core";
+import { useRouter } from "next/navigation";
 import type { Call } from "starknet";
 
 import {
@@ -64,6 +65,7 @@ const PREPARED_WALLET_CALL_TTL_MS = 20_000;
 export function usePortfolioPageShell() {
   const { address, account, isConnected, chainId } = useAccount();
   const { profile } = useRiskProfileV2(address);
+  const router = useRouter();
 
   const [portfolio, setPortfolio] = useState<PortfolioSnapshot | null>(null);
   const [policy, setPolicy] = useState<PolicySnapshot | null>(null);
@@ -268,7 +270,188 @@ export function usePortfolioPageShell() {
       detail: `Instead of shopping percentage targets, switch this draft to one direct ${formatAssetAmount(step.amount, step.from_asset)} ${step.from_asset} swap.`,
     };
   }, [actionType, gateResult, portfolio?.total_value_usd, totalTrackedValue]);
+  const hasPreparedRebalance = actionType === "rebalance" && Boolean(pendingWalletCalls?.length);
+  const canSignPreparedRebalance = hasPreparedRebalance && Boolean(account && address);
+  const canManualOverride = useMemo(() => {
+    if (pendingWalletCalls?.length) return false;
+    if (workflowMode !== "manual") return false;
+    if (!hasFreshGateCheck || gateResult?.allowed) return false;
+    return Boolean(gateResult?.swap_steps?.length);
+  }, [workflowMode, hasFreshGateCheck, gateResult, pendingWalletCalls]);
+  const canAdvisoryOverride = useMemo(() => {
+    if (pendingWalletCalls?.length) return false;
+    if (workflowMode === "manual") return false;
+    if (!hasFreshGateCheck || gateResult?.allowed) return false;
+    if (!gateResult?.swap_steps?.length) return false;
+    const failedNames = failedGateConstraints.map((item) => item.name);
+    return failedNames.length === 1 && failedNames[0] === "FeeEfficiencyGuard";
+  }, [workflowMode, hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
+
+  const safetySummaryLine = useMemo(() => {
+    if (!gateResult) return "No fresh safety result yet.";
+    if (failedGateConstraints.length) return `${failedGateConstraints.length} check${failedGateConstraints.length === 1 ? "" : "s"} need attention.`;
+    if (warningGateConstraints.length) return `${warningGateConstraints.length} warning${warningGateConstraints.length === 1 ? "" : "s"} to review.`;
+    return `${passedGateCount} checks passed.`;
+  }, [gateResult, failedGateConstraints.length, warningGateConstraints.length, passedGateCount]);
+  const feeGuardResult = useMemo(
+    () => gateResult?.constraint_results.find((item) => item.name === "FeeEfficiencyGuard") ?? null,
+    [gateResult],
+  );
+  const gasReserveResult = useMemo(
+    () => gateResult?.constraint_results.find((item) => item.name === "GasReserveGuard") ?? null,
+    [gateResult],
+  );
+  const proposalTurnoverPct = useMemo(() => {
+    if (!gateResult?.swap_steps?.length || totalTrackedValue <= 0) return null;
+    const movedUsd = gateResult.swap_steps.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0);
+    return (movedUsd / totalTrackedValue) * 100;
+  }, [gateResult, totalTrackedValue]);
+  const driftLabel = useMemo(() => {
+    const status = recommendation?.drift_monitor?.status;
+    if (status === "rebalance") return "Rebalance suggested";
+    if (status === "watch") return "Drifted";
+    return "On target";
+  }, [recommendation]);
+  const safetyLabel = gateResult
+    ? canManualOverride
+      ? "Manual route available"
+      : canAdvisoryOverride
+      ? "Permitted with fee warning"
+      : gateResult.allowed
+        ? "Safe to sign"
+        : "Needs adjustment"
+    : "Drafting";
+  const totalPortfolioValue = portfolio?.total_value_usd ?? totalTrackedValue;
+  const headerBreakdown = useMemo(() => {
+    const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
+    return active.length ? active.join(" • ") : "ETH • STRK • USDC";
+  }, [assetSummary]);
+  const automatedGovernedState = useMemo<{
+    hasOnboarding: boolean;
+    hasAgent: boolean;
+    activeSessionCount: number;
+    activeSessionKeyIds: string[];
+    executionMode: GovernedExecution["mode"];
+    primaryHint: string;
+    passportScore: number;
+    letterRating: string;
+    profileSource: GovernedExecution["source"];
+    riskProfile: string;
+    riskTolerance: number;
+    policyExecutionMode: string;
+  }>(() => {
+    const backendState = recommendation?.governed_execution;
+    if (backendState) {
+      return {
+        hasOnboarding: Boolean(backendState.has_onboarding),
+        hasAgent: Boolean(backendState.has_agent),
+        activeSessionCount: Number(backendState.active_session_count ?? 0),
+        activeSessionKeyIds: backendState.active_session_key_ids ?? [],
+        executionMode: backendState.mode,
+        primaryHint:
+          backendState.primary_hint ||
+          backendState.reason_hints?.[0] ||
+          "Governed execution is using the current onboarding and session-key posture for this wallet.",
+        passportScore: Number(backendState.passport_score ?? profile?.passport?.composite_score ?? 0),
+        letterRating: String(backendState.passport_letter ?? profile?.passport?.letter_rating ?? "D"),
+        profileSource: backendState.source,
+        riskProfile: String(backendState.risk_profile ?? "balanced"),
+        riskTolerance: Number(backendState.risk_tolerance ?? 50),
+        policyExecutionMode: String(backendState.policy_execution_mode ?? "assist"),
+      };
+    }
+
+    const executionDecision = profile?.decisions?.execution;
+    const executionMode: GovernedExecution["mode"] = executionDecision?.mode ?? "advisory";
+    const sessionInfo = profile?.identity?.session_summary;
+    const activeSessionCount = Number(sessionInfo?.active_count ?? 0);
+    const hasAgent = Boolean(profile?.identity?.has_agent);
+    const passportScore = Number(profile?.passport?.composite_score ?? 0);
+    const letterRating = String(profile?.passport?.letter_rating ?? "D");
+    const primaryHint =
+      executionDecision?.reason_hints?.[0] ??
+      (hasAgent
+        ? activeSessionCount > 0
+          ? "Governed execution can use the current execution profile."
+          : "Create or renew a session key before relying on governed execution."
+        : "Complete onboarding before relying on governed execution.");
+
+    return {
+      hasOnboarding: hasAgent,
+      hasAgent,
+      activeSessionCount,
+      activeSessionKeyIds: [],
+      executionMode,
+      primaryHint,
+      passportScore,
+      letterRating,
+      profileSource: hasAgent ? "onboarding_constraints" : "portfolio_policy",
+      riskProfile: recommendation?.risk_profile ?? "balanced",
+      riskTolerance: Number(recommendation?.risk_tolerance ?? 50),
+      policyExecutionMode: "assist",
+    };
+  }, [profile, recommendation]);
+  const automatedSessionKeyId = useMemo(
+    () => automatedGovernedState.activeSessionKeyIds[0] ?? null,
+    [automatedGovernedState.activeSessionKeyIds],
+  );
+  const primaryActionLabel = useMemo(() => {
+    if (hasPreparedRebalance) {
+      if (workflowMode === "manual") return "Sign manual route";
+      if (workflowMode === "automated") return "Sign governed route";
+      return "Sign guided route";
+    }
+    if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return "Complete onboarding";
+    if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return "Add session key";
+    if (executing) return "Preparing";
+    if (workflowMode === "manual") {
+      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
+        return actionType === "rebalance" ? "No route available" : "Needs route";
+      }
+      if (actionType === "rebalance") return canManualOverride ? "Prepare route anyway" : "Prepare manual route";
+      return canManualOverride ? "Sign anyway" : "Sign manual swap";
+    }
+    if (checking && !hasFreshGateCheck) return "Checking Safety";
+    if (canAdvisoryOverride) return "Continue with fee warning";
+    if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
+    if (!hasFreshGateCheck) {
+      if (workflowMode === "automated") return actionType === "rebalance" ? "Review governed move" : "Review governed swap";
+      return actionType === "rebalance" ? "Review guided move" : "Review guided swap";
+    }
+    if (actionType === "rebalance") return workflowMode === "automated" ? "Review governed move" : "Review guided move";
+    return workflowMode === "automated" ? "Sign governed swap" : "Sign guided swap";
+  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
+  const primaryActionDisabled = useMemo(() => {
+    if (executing) return true;
+    if (hasPreparedRebalance) return !canSignPreparedRebalance;
+    if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) return false;
+    if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return false;
+    if (workflowMode === "manual") {
+      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
+      return checking;
+    }
+    if (canAdvisoryOverride) return checking;
+    if (hasFreshGateCheck && !gateResult?.allowed) return true;
+    if (!hasFreshGateCheck) return true;
+    return checking;
+  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, automatedGovernedState, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
   const deskState = useMemo(() => {
+    if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) {
+      return {
+        label: "Onboarding needed",
+        tone: "warning" as const,
+        headline: "Automated mode needs onboarding before it can govern this wallet.",
+        detail: "Complete onboarding first. Governed execution falls back to your onboarding profile and session posture.",
+      };
+    }
+    if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) {
+      return {
+        label: "Session key needed",
+        tone: "warning" as const,
+        headline: "Automated mode needs an active session key.",
+        detail: "Add or renew a governed session key before relying on automated execution in this lane.",
+      };
+    }
     if (executionTxHash) {
       return {
         label: "Submitted",
@@ -331,161 +514,7 @@ export function usePortfolioPageShell() {
           ? "Manual mode still runs the Gate and records the result, but a real route can go to wallet even when the Gate does not clear it."
           : "The desk will run the safety check automatically as you update the proposal.",
     };
-  }, [actionType, pendingWalletCalls, workflowMode, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
-  const hasPreparedRebalance = actionType === "rebalance" && Boolean(pendingWalletCalls?.length);
-  const canSignPreparedRebalance = hasPreparedRebalance && Boolean(account && address);
-  const canManualOverride = useMemo(() => {
-    if (pendingWalletCalls?.length) return false;
-    if (workflowMode !== "manual") return false;
-    if (!hasFreshGateCheck || gateResult?.allowed) return false;
-    return Boolean(gateResult?.swap_steps?.length);
-  }, [workflowMode, hasFreshGateCheck, gateResult, pendingWalletCalls]);
-  const canAdvisoryOverride = useMemo(() => {
-    if (pendingWalletCalls?.length) return false;
-    if (workflowMode === "manual") return false;
-    if (!hasFreshGateCheck || gateResult?.allowed) return false;
-    if (!gateResult?.swap_steps?.length) return false;
-    const failedNames = failedGateConstraints.map((item) => item.name);
-    return failedNames.length === 1 && failedNames[0] === "FeeEfficiencyGuard";
-  }, [workflowMode, hasFreshGateCheck, gateResult, failedGateConstraints, pendingWalletCalls]);
-
-  const primaryActionLabel = useMemo(() => {
-    if (hasPreparedRebalance) {
-      if (workflowMode === "manual") return "Sign manual route";
-      if (workflowMode === "automated") return "Sign governed route";
-      return "Sign guided route";
-    }
-    if (executing) return "Preparing";
-    if (workflowMode === "manual") {
-      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
-        return actionType === "rebalance" ? "No route available" : "Needs route";
-      }
-      if (actionType === "rebalance") return canManualOverride ? "Prepare route anyway" : "Prepare manual route";
-      return canManualOverride ? "Sign anyway" : "Sign manual swap";
-    }
-    if (checking && !hasFreshGateCheck) return "Checking Safety";
-    if (canAdvisoryOverride) return "Continue with fee warning";
-    if (hasFreshGateCheck && !gateResult?.allowed) return "Needs adjustment";
-    if (!hasFreshGateCheck) {
-      if (workflowMode === "automated") return actionType === "rebalance" ? "Review governed move" : "Review governed swap";
-      return actionType === "rebalance" ? "Review guided move" : "Review guided swap";
-    }
-    if (actionType === "rebalance") return workflowMode === "automated" ? "Review governed move" : "Review guided move";
-    return workflowMode === "automated" ? "Sign governed swap" : "Sign guided swap";
-  }, [actionType, hasPreparedRebalance, workflowMode, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
-  const primaryActionDisabled = useMemo(() => {
-    if (executing) return true;
-    if (hasPreparedRebalance) return !canSignPreparedRebalance;
-    if (workflowMode === "manual") {
-      if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
-      return checking;
-    }
-    if (canAdvisoryOverride) return checking;
-    if (hasFreshGateCheck && !gateResult?.allowed) return true;
-    if (!hasFreshGateCheck) return true;
-    return checking;
-  }, [executing, hasPreparedRebalance, canSignPreparedRebalance, workflowMode, hasFreshGateCheck, gateResult, checking, canAdvisoryOverride]);
-  const safetySummaryLine = useMemo(() => {
-    if (!gateResult) return "No fresh safety result yet.";
-    if (failedGateConstraints.length) return `${failedGateConstraints.length} check${failedGateConstraints.length === 1 ? "" : "s"} need attention.`;
-    if (warningGateConstraints.length) return `${warningGateConstraints.length} warning${warningGateConstraints.length === 1 ? "" : "s"} to review.`;
-    return `${passedGateCount} checks passed.`;
-  }, [gateResult, failedGateConstraints.length, warningGateConstraints.length, passedGateCount]);
-  const feeGuardResult = useMemo(
-    () => gateResult?.constraint_results.find((item) => item.name === "FeeEfficiencyGuard") ?? null,
-    [gateResult],
-  );
-  const gasReserveResult = useMemo(
-    () => gateResult?.constraint_results.find((item) => item.name === "GasReserveGuard") ?? null,
-    [gateResult],
-  );
-  const proposalTurnoverPct = useMemo(() => {
-    if (!gateResult?.swap_steps?.length || totalTrackedValue <= 0) return null;
-    const movedUsd = gateResult.swap_steps.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0);
-    return (movedUsd / totalTrackedValue) * 100;
-  }, [gateResult, totalTrackedValue]);
-  const driftLabel = useMemo(() => {
-    const status = recommendation?.drift_monitor?.status;
-    if (status === "rebalance") return "Rebalance suggested";
-    if (status === "watch") return "Drifted";
-    return "On target";
-  }, [recommendation]);
-  const safetyLabel = gateResult
-    ? canManualOverride
-      ? "Manual route available"
-      : canAdvisoryOverride
-      ? "Permitted with fee warning"
-      : gateResult.allowed
-        ? "Safe to sign"
-        : "Needs adjustment"
-    : "Drafting";
-  const totalPortfolioValue = portfolio?.total_value_usd ?? totalTrackedValue;
-  const headerBreakdown = useMemo(() => {
-    const active = SUPPORTED_ASSETS.filter((asset) => assetSummary[asset].valueUsd > 0.01);
-    return active.length ? active.join(" • ") : "ETH • STRK • USDC";
-  }, [assetSummary]);
-  const automatedGovernedState = useMemo<{
-    hasOnboarding: boolean;
-    hasAgent: boolean;
-    activeSessionCount: number;
-    executionMode: GovernedExecution["mode"];
-    primaryHint: string;
-    passportScore: number;
-    letterRating: string;
-    profileSource: GovernedExecution["source"];
-    riskProfile: string;
-    riskTolerance: number;
-    policyExecutionMode: string;
-  }>(() => {
-    const backendState = recommendation?.governed_execution;
-    if (backendState) {
-      return {
-        hasOnboarding: Boolean(backendState.has_onboarding),
-        hasAgent: Boolean(backendState.has_agent),
-        activeSessionCount: Number(backendState.active_session_count ?? 0),
-        executionMode: backendState.mode,
-        primaryHint:
-          backendState.primary_hint ||
-          backendState.reason_hints?.[0] ||
-          "Governed execution is using the current onboarding and session-key posture for this wallet.",
-        passportScore: Number(backendState.passport_score ?? profile?.passport?.composite_score ?? 0),
-        letterRating: String(backendState.passport_letter ?? profile?.passport?.letter_rating ?? "D"),
-        profileSource: backendState.source,
-        riskProfile: String(backendState.risk_profile ?? "balanced"),
-        riskTolerance: Number(backendState.risk_tolerance ?? 50),
-        policyExecutionMode: String(backendState.policy_execution_mode ?? "assist"),
-      };
-    }
-
-    const executionDecision = profile?.decisions?.execution;
-    const executionMode: GovernedExecution["mode"] = executionDecision?.mode ?? "advisory";
-    const sessionInfo = profile?.identity?.session_summary;
-    const activeSessionCount = Number(sessionInfo?.active_count ?? 0);
-    const hasAgent = Boolean(profile?.identity?.has_agent);
-    const passportScore = Number(profile?.passport?.composite_score ?? 0);
-    const letterRating = String(profile?.passport?.letter_rating ?? "D");
-    const primaryHint =
-      executionDecision?.reason_hints?.[0] ??
-      (hasAgent
-        ? activeSessionCount > 0
-          ? "Governed execution can use the current execution profile."
-          : "Create or renew a session key before relying on governed execution."
-        : "Complete onboarding before relying on governed execution.");
-
-    return {
-      hasOnboarding: hasAgent,
-      hasAgent,
-      activeSessionCount,
-      executionMode,
-      primaryHint,
-      passportScore,
-      letterRating,
-      profileSource: hasAgent ? "onboarding_constraints" : "portfolio_policy",
-      riskProfile: recommendation?.risk_profile ?? "balanced",
-      riskTolerance: Number(recommendation?.risk_tolerance ?? 50),
-      policyExecutionMode: "assist",
-    };
-  }, [profile, recommendation]);
+  }, [actionType, pendingWalletCalls, workflowMode, automatedGovernedState, hasFreshGateCheck, gateResult, checking, executionTxHash, failedGateConstraints]);
   const proposalHeadline = useMemo(() => {
     if (workflowMode === "manual") {
       if (actionType === "swap") return `Swap ${swapAssetIn} into ${swapAssetOut}`;
@@ -851,7 +880,12 @@ export function usePortfolioPageShell() {
     }
   };
 
-  const executeIntent = async (options?: { allowAdvisoryOverride?: boolean; allowManualOverride?: boolean; workflowMode?: WorkflowMode }) => {
+  const executeIntent = async (options?: {
+    allowAdvisoryOverride?: boolean;
+    allowManualOverride?: boolean;
+    workflowMode?: WorkflowMode;
+    sessionKeyId?: string | null;
+  }) => {
     if (!address) return;
     if (!hasFreshGateCheck && !options?.allowManualOverride) {
       setExecutionNote("Run Gate Check on the current proposal before executing.");
@@ -1036,6 +1070,16 @@ export function usePortfolioPageShell() {
   };
 
   const handlePrimaryAction = async () => {
+    if (workflowMode === "automated" && !automatedGovernedState.hasOnboarding) {
+      setExecutionNote("Automated mode needs onboarding first. Opening the passport flow.");
+      router.push("/passport");
+      return;
+    }
+    if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) {
+      setExecutionNote("Automated mode needs a session key first. Opening agent key management.");
+      router.push("/agent");
+      return;
+    }
     if (hasPreparedRebalance) {
       await signPreparedRebalance();
       return;
@@ -1045,7 +1089,11 @@ export function usePortfolioPageShell() {
       return;
     }
     if (canAdvisoryOverride) {
-      await executeIntent({ allowAdvisoryOverride: true, workflowMode });
+      await executeIntent({
+        allowAdvisoryOverride: true,
+        workflowMode,
+        sessionKeyId: workflowMode === "automated" ? automatedSessionKeyId : null,
+      });
       return;
     }
     if (hasFreshGateCheck && !gateResult?.allowed) {
@@ -1056,7 +1104,7 @@ export function usePortfolioPageShell() {
       await runGateCheck();
       return;
     }
-    await executeIntent({ workflowMode });
+    await executeIntent({ workflowMode, sessionKeyId: workflowMode === "automated" ? automatedSessionKeyId : null });
   };
 
   useEffect(() => {
