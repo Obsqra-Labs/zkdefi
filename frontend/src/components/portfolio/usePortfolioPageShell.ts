@@ -224,9 +224,10 @@ export function usePortfolioPageShell() {
   );
   const proposalSourceLabel = useMemo(() => {
     if (actionType === "swap") return "Manual swap";
+    if (recommendation?.recommendation_mode === "best_next_move") return "Best next move";
     if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "Suggested target";
     return "Manual target";
-  }, [actionType, aiProposalApplied, aiProposalKey, currentProposalKey]);
+  }, [actionType, aiProposalApplied, aiProposalKey, currentProposalKey, recommendation?.recommendation_mode]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
   const suggestedSwapFallback = useMemo(() => {
     if (actionType !== "rebalance") return null;
@@ -357,6 +358,7 @@ export function usePortfolioPageShell() {
   const proposalHeadline =
     recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the gate decide if it is safe to sign.";
   const proposalReason =
+    recommendation?.recommendation_note ??
     recommendation?.rebalance_summary?.why ??
     "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override.";
   const recentActivityItems = useMemo(

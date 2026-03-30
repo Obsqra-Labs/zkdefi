@@ -469,7 +469,7 @@ class PortfolioExecutionGateService:
                 recommendation_amount,
                 risk_profile,
             )
-            target_allocations = self._derive_asset_targets_from_strategy(
+            allocator_target_allocations = self._derive_asset_targets_from_strategy(
                 strategy.get("recommended_pools") or [],
             )
             rationale = str(strategy.get("ai_reasoning") or "").strip() or (
@@ -489,11 +489,19 @@ class PortfolioExecutionGateService:
                 "provenance": None,
                 "genome": None,
             }
-            target_allocations = self._fallback_target_allocations(current_weights, total_value)
+            allocator_target_allocations = self._fallback_target_allocations(current_weights, total_value)
             rationale = (
                 "Allocator service is unavailable, so the gate fell back to a simple defensive token mix."
             )
             source = "heuristic_fallback_v1"
+
+        recommendation_plan = self._select_recommendation_target(
+            holdings=holdings,
+            target_allocations=allocator_target_allocations,
+            policy=policy,
+        )
+        target_allocations = recommendation_plan["target_allocations"]
+        steps = recommendation_plan["swap_steps"]
 
         intent = {
             "type": "rebalance",
@@ -505,7 +513,6 @@ class PortfolioExecutionGateService:
             "max_slippage_bps": min(policy["max_slippage_bps"], 75),
             "adapter_target": "best",
         }
-        steps = self._build_rebalance_steps(holdings, target_allocations)
         translation = self._build_execution_translation(
             strategy.get("recommended_pools") or [],
             target_allocations,
@@ -513,7 +520,7 @@ class PortfolioExecutionGateService:
         )
         drift_monitor = self._build_drift_monitor(
             current_allocations=current_weights,
-            target_allocations=target_allocations,
+            target_allocations=allocator_target_allocations,
             total_value_usd=total_value,
             cooldown_seconds=_safe_int(policy.get("cooldown_seconds"), 300),
             receipts=receipts,
@@ -530,6 +537,12 @@ class PortfolioExecutionGateService:
             target_allocations=target_allocations,
             drift_monitor=drift_monitor,
         )
+        if recommendation_plan["mode"] == "best_next_move":
+            rebalance_summary = {
+                **rebalance_summary,
+                "headline": recommendation_plan["headline"],
+                "why": recommendation_plan["note"],
+            }
         return {
             "owner_address": normalized,
             "source": source,
@@ -545,8 +558,11 @@ class PortfolioExecutionGateService:
             },
             "current_allocations": current_weights,
             "target_allocations": target_allocations,
+            "allocator_target_allocations": allocator_target_allocations,
             "estimated_swap_count": len(steps),
-            "rationale": rebalance_summary.get("headline") or rationale,
+            "rationale": rebalance_summary.get("headline") or recommendation_plan["note"] or rationale,
+            "recommendation_mode": recommendation_plan["mode"],
+            "recommendation_note": recommendation_plan["note"],
             "intent": intent,
             "recommended_pools": strategy.get("recommended_pools") or [],
             "expected_portfolio_apy": _safe_float(strategy.get("expected_portfolio_apy")),
@@ -557,6 +573,7 @@ class PortfolioExecutionGateService:
             "provenance": strategy.get("provenance"),
             "genome": strategy.get("genome"),
             "derived_swap_steps": steps,
+            "allocator_swap_steps": recommendation_plan["allocator_swap_steps"],
             "execution_translation": translation,
             "drift_monitor": drift_monitor,
             "rebalance_summary": rebalance_summary,
@@ -1518,6 +1535,160 @@ class PortfolioExecutionGateService:
             ),
         }
 
+    def _assess_fee_efficiency(
+        self,
+        *,
+        intent_type: str,
+        network_id: str,
+        action_value_usd: float,
+        swap_steps: list[dict[str, Any]],
+        estimated_gas: int,
+        holdings: dict[str, dict[str, float]],
+    ) -> dict[str, Any]:
+        estimated_cost_usd = round(estimated_gas * ESTIMATED_USD_PER_GAS_UNIT, 4)
+        fee_share = estimated_cost_usd / max(action_value_usd, 0.0001)
+        portfolio_total_usd = sum(_safe_float(item.get("value_usd", 0.0)) for item in holdings.values())
+        min_value_threshold = (
+            MIN_SWAP_VALUE_USD if intent_type == "swap" else (
+                MIN_MULTI_SWAP_REBALANCE_VALUE_USD if len(swap_steps) > 1 else MIN_REBALANCE_VALUE_USD
+            )
+        )
+        small_portfolio_grace = (
+            intent_type == "rebalance"
+            and network_id == NETWORK_MAINNET
+            and portfolio_total_usd <= SMALL_PORTFOLIO_GRACE_USD
+            and action_value_usd >= SMALL_PORTFOLIO_MIN_ACTION_USD
+        )
+        small_portfolio_single_step_grace = small_portfolio_grace and len(swap_steps) == 1
+        effective_fee_share_block = (
+            SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
+            if small_portfolio_single_step_grace
+            else BLOCK_FEE_SHARE_OF_ACTION
+        )
+        effective_grace_fee_share_limit = (
+            SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
+            if small_portfolio_single_step_grace
+            else SMALL_PORTFOLIO_GRACE_MAX_FEE_SHARE
+        )
+        grace_revoked_for_fee_share = small_portfolio_grace and fee_share > effective_grace_fee_share_limit
+        fee_blocked = (
+            (action_value_usd < min_value_threshold and not small_portfolio_grace)
+            or fee_share > effective_fee_share_block
+            or grace_revoked_for_fee_share
+        )
+        fee_warning = not fee_blocked and fee_share > WARN_FEE_SHARE_OF_ACTION
+        return {
+            "estimated_cost_usd": estimated_cost_usd,
+            "fee_share": fee_share,
+            "fee_share_pct": round(fee_share * 100, 1),
+            "portfolio_total_usd": round(portfolio_total_usd, 2),
+            "min_value_threshold": min_value_threshold,
+            "small_portfolio_grace": small_portfolio_grace,
+            "small_portfolio_single_step_grace": small_portfolio_single_step_grace,
+            "effective_fee_share_block": effective_fee_share_block,
+            "effective_grace_fee_share_limit": effective_grace_fee_share_limit,
+            "grace_revoked_for_fee_share": grace_revoked_for_fee_share,
+            "fee_blocked": fee_blocked,
+            "fee_warning": fee_warning,
+            "swap_step_count": len(swap_steps),
+        }
+
+    def _projected_allocations_after_steps(
+        self,
+        holdings: dict[str, dict[str, float]],
+        swap_steps: list[dict[str, Any]],
+    ) -> dict[str, float]:
+        projected = {
+            asset: {
+                "value_usd": _safe_float(item.get("value_usd", 0.0)),
+                "amount": _safe_float(item.get("amount", 0.0)),
+            }
+            for asset, item in holdings.items()
+        }
+        for step in swap_steps:
+            from_asset = _normalize_asset(step.get("from_asset"))
+            to_asset = _normalize_asset(step.get("to_asset"))
+            if from_asset not in projected or to_asset not in projected:
+                continue
+            value_usd = max(0.0, _safe_float(step.get("value_usd", 0.0)))
+            if value_usd <= 0:
+                continue
+            moved_value = min(max(0.0, _safe_float(projected[from_asset].get("value_usd", 0.0))), value_usd)
+            projected[from_asset]["value_usd"] = max(0.0, _safe_float(projected[from_asset].get("value_usd", 0.0)) - moved_value)
+            projected[to_asset]["value_usd"] = max(0.0, _safe_float(projected[to_asset].get("value_usd", 0.0)) + moved_value)
+        return self._weights_pct(projected)
+
+    def _select_recommendation_target(
+        self,
+        *,
+        holdings: dict[str, dict[str, float]],
+        target_allocations: dict[str, float],
+        policy: dict[str, Any],
+    ) -> dict[str, Any]:
+        allocator_steps = self._build_rebalance_steps(holdings, target_allocations)
+        total_value = sum(item["value_usd"] for item in holdings.values())
+        action_value_usd = self._estimate_action_value_usd(
+            {"type": "rebalance"},
+            holdings,
+            allocator_steps,
+        )
+        estimated_gas = self._estimate_gas(
+            {
+                "type": "rebalance",
+                "network_id": NETWORK_MAINNET,
+                "max_slippage_bps": min(policy.get("max_slippage_bps", DEFAULT_POLICY["max_slippage_bps"]), 75),
+            },
+            allocator_steps,
+        )
+        fee_assessment = self._assess_fee_efficiency(
+            intent_type="rebalance",
+            network_id=NETWORK_MAINNET,
+            action_value_usd=action_value_usd,
+            swap_steps=allocator_steps,
+            estimated_gas=estimated_gas,
+            holdings=holdings,
+        )
+        result = {
+            "mode": "allocator_target",
+            "target_allocations": target_allocations,
+            "swap_steps": allocator_steps,
+            "allocator_swap_steps": allocator_steps,
+            "note": None,
+            "headline": None,
+        }
+        if (
+            total_value > SMALL_PORTFOLIO_SINGLE_STEP_USD
+            or len(allocator_steps) != 1
+            or fee_assessment["fee_blocked"]
+        ):
+            return result
+
+        projected_target = self._projected_allocations_after_steps(holdings, allocator_steps)
+        projected_gap = max(
+            (
+                abs(_safe_float(target_allocations.get(asset)) - _safe_float(projected_target.get(asset)))
+                for asset in SUPPORTED_ASSETS
+            ),
+            default=0.0,
+        )
+        if projected_gap < 4.0:
+            return result
+
+        lead_step = allocator_steps[0]
+        return {
+            "mode": "best_next_move",
+            "target_allocations": projected_target,
+            "swap_steps": self._build_rebalance_steps(holdings, projected_target),
+            "allocator_swap_steps": allocator_steps,
+            "note": (
+                f"On a ${total_value:,.2f} wallet, the cleanest first move is one {lead_step['from_asset']} → "
+                f"{lead_step['to_asset']} swap for about ${_safe_float(lead_step.get('value_usd')):,.2f}. "
+                f"The longer-horizon suggested mix still leans toward ETH {target_allocations.get('ETH', 0.0):.0f}% / "
+                f"STRK {target_allocations.get('STRK', 0.0):.0f}% / USDC {target_allocations.get('USDC', 0.0):.0f}%."
+            ),
+            "headline": f"Take the cleanest next move: sell {lead_step['from_asset']} and add {lead_step['to_asset']}.",
+        }
+
     def _serialize_portfolio_state(
         self,
         snapshot: PortfolioSnapshot | None,
@@ -1579,7 +1750,7 @@ class PortfolioExecutionGateService:
         if largest_gap_pct >= trigger_pct or total_turnover_pct >= 10.0:
             status = "rebalance"
             explanation = (
-                "The wallet has drifted materially away from the AI target mix. A rebalance is justified if "
+                "The wallet has drifted materially away from the suggested mix. A rebalance is justified if "
                 "the gate still approves the path."
             )
         elif largest_gap_pct >= watch_pct or total_turnover_pct >= 5.0:
@@ -1591,7 +1762,7 @@ class PortfolioExecutionGateService:
         else:
             status = "aligned"
             explanation = (
-                "The wallet remains close to the AI target mix. The agent can stay in monitor mode rather than "
+                "The wallet remains close to the suggested mix. The agent can stay in monitor mode rather than "
                 "forcing a rebalance."
             )
 
@@ -1688,7 +1859,7 @@ class PortfolioExecutionGateService:
                     "label": "Fresh capital likely changed the portfolio weights.",
                     "confidence": "medium",
                     "evidence": f"{recent_deposits} recent deposit/fund receipt(s).",
-                    "suggested_action": "Re-evaluate the AI target now that the wallet capital base has changed.",
+                    "suggested_action": "Re-evaluate the suggested target now that the wallet capital base has changed.",
                 }
             )
 
@@ -1774,7 +1945,7 @@ class PortfolioExecutionGateService:
             drivers.append(
                 {
                     "kind": "aligned",
-                    "label": "The wallet is still broadly aligned with the AI target mix.",
+                    "label": "The wallet is still broadly aligned with the suggested mix.",
                     "confidence": "high",
                     "evidence": "No material out-of-band assets detected.",
                     "suggested_action": "Keep monitoring rather than forcing turnover.",
@@ -2320,38 +2491,23 @@ class PortfolioExecutionGateService:
             }
         )
 
-        estimated_cost_usd = round(estimated_gas * ESTIMATED_USD_PER_GAS_UNIT, 4)
-        fee_share = estimated_cost_usd / max(action_value_usd, 0.0001)
-        portfolio_total_usd = sum(_safe_float(item.get("value_usd", 0.0)) for item in holdings.values())
-        min_value_threshold = (
-            MIN_SWAP_VALUE_USD if intent["type"] == "swap" else (
-                MIN_MULTI_SWAP_REBALANCE_VALUE_USD if len(swap_steps) > 1 else MIN_REBALANCE_VALUE_USD
-            )
+        fee_assessment = self._assess_fee_efficiency(
+            intent_type=intent["type"],
+            network_id=str(intent.get("network_id") or NETWORK_MAINNET),
+            action_value_usd=action_value_usd,
+            swap_steps=swap_steps,
+            estimated_gas=estimated_gas,
+            holdings=holdings,
         )
-        small_portfolio_grace = (
-            intent["type"] == "rebalance"
-            and intent.get("network_id") == NETWORK_MAINNET
-            and portfolio_total_usd <= SMALL_PORTFOLIO_GRACE_USD
-            and action_value_usd >= SMALL_PORTFOLIO_MIN_ACTION_USD
-        )
-        small_portfolio_single_step_grace = small_portfolio_grace and len(swap_steps) == 1
-        effective_fee_share_block = (
-            SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
-            if small_portfolio_single_step_grace
-            else BLOCK_FEE_SHARE_OF_ACTION
-        )
-        effective_grace_fee_share_limit = (
-            SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
-            if small_portfolio_single_step_grace
-            else SMALL_PORTFOLIO_GRACE_MAX_FEE_SHARE
-        )
-        grace_revoked_for_fee_share = small_portfolio_grace and fee_share > effective_grace_fee_share_limit
-        fee_blocked = (
-            (action_value_usd < min_value_threshold and not small_portfolio_grace)
-            or fee_share > effective_fee_share_block
-            or grace_revoked_for_fee_share
-        )
-        fee_warning = not fee_blocked and fee_share > WARN_FEE_SHARE_OF_ACTION
+        estimated_cost_usd = fee_assessment["estimated_cost_usd"]
+        fee_share = fee_assessment["fee_share"]
+        min_value_threshold = fee_assessment["min_value_threshold"]
+        small_portfolio_grace = fee_assessment["small_portfolio_grace"]
+        small_portfolio_single_step_grace = fee_assessment["small_portfolio_single_step_grace"]
+        effective_fee_share_block = fee_assessment["effective_fee_share_block"]
+        grace_revoked_for_fee_share = fee_assessment["grace_revoked_for_fee_share"]
+        fee_blocked = fee_assessment["fee_blocked"]
+        fee_warning = fee_assessment["fee_warning"]
         fee_ok = not fee_blocked
         if fee_blocked:
             reason_codes.append("fee_inefficient")
@@ -2395,7 +2551,7 @@ class PortfolioExecutionGateService:
                 "warning": fee_warning or small_portfolio_grace,
                 "severity": "blocked" if fee_blocked else ("warning" if fee_warning or small_portfolio_grace else "info"),
                 "estimated_fee_usd": estimated_cost_usd,
-                "fee_share_pct": round(fee_share * 100, 1),
+                "fee_share_pct": fee_assessment["fee_share_pct"],
             }
         )
 

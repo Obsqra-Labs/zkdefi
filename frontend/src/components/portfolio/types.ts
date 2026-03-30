@@ -321,6 +321,8 @@ export type RecommendationSummary = {
 export type Recommendation = {
   rationale: string;
   source: string;
+  recommendation_mode?: "allocator_target" | "best_next_move";
+  recommendation_note?: string | null;
   risk_profile?: string;
   risk_tolerance?: number;
   tracked_capital_usd?: number;
@@ -333,6 +335,7 @@ export type Recommendation = {
   };
   current_allocations: Record<SupportedAsset, number>;
   target_allocations: Record<SupportedAsset, number>;
+  allocator_target_allocations?: Record<SupportedAsset, number>;
   estimated_swap_count: number;
   recommended_pools?: RecommendationPool[];
   expected_portfolio_apy?: number;
@@ -343,6 +346,7 @@ export type Recommendation = {
   provenance?: RecommendationProvenance | null;
   genome?: RecommendationGenome | null;
   derived_swap_steps?: SwapStep[];
+  allocator_swap_steps?: SwapStep[];
   execution_translation?: RecommendationExecutionTranslation | null;
   drift_monitor?: RecommendationDriftMonitor | null;
   rebalance_summary?: RecommendationSummary | null;
