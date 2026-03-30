@@ -224,7 +224,7 @@ export function usePortfolioPageShell() {
   );
   const proposalSourceLabel = useMemo(() => {
     if (actionType === "swap") return "Manual swap";
-    if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "AI target";
+    if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "Suggested target";
     return "Manual target";
   }, [actionType, aiProposalApplied, aiProposalKey, currentProposalKey]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
@@ -352,7 +352,7 @@ export function usePortfolioPageShell() {
     recommendation?.rebalance_summary?.headline ?? "Set a target mix and let the gate decide if it is safe to sign.";
   const proposalReason =
     recommendation?.rebalance_summary?.why ??
-    "The AI target stays separate from your target. Use it as a suggestion, not an automatic override.";
+    "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override.";
   const recentActivityItems = useMemo(
     () =>
       receipts.slice(0, 4).map((receipt) => {
@@ -474,7 +474,7 @@ export function usePortfolioPageShell() {
       setActionType("rebalance");
       setAiProposalApplied(false);
     } catch (err) {
-      setRecommendationNotice("The AI target is unavailable right now. You can still edit your own target and run the safety check.");
+      setRecommendationNotice("The suggested target is unavailable right now. You can still edit your own target and run the safety check.");
     } finally {
       setChecking(false);
     }

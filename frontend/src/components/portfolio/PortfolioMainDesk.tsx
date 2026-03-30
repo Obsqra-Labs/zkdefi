@@ -660,18 +660,12 @@ export function PortfolioMainDesk(props: Props) {
                   >
                     Refresh model
                   </button>
-                  <button
-                    onClick={onApplyAiTargets}
-                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                  >
-                    Use suggested target
-                  </button>
-                  <button
-                    onClick={onRunAiGateCheck}
-                    className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                  >
-                    Check suggested plan
-                  </button>
+                <button
+                  onClick={onApplyAiTargets}
+                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
+                >
+                  Use suggested target
+                </button>
               </div>
             ) : null}
           </div>

@@ -129,12 +129,6 @@ export function AIRecommendationCard({
                 Use suggested target
               </button>
               <button
-                onClick={onRunAiGateCheck}
-                className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-amber-100 transition-colors duration-200 hover:border-amber-300 hover:bg-amber-400/10"
-              >
-                Check suggested plan
-              </button>
-              <button
                 type="button"
                 onClick={() => setExpanded((current) => !current)}
                 className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 px-3.5 py-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
