@@ -194,6 +194,8 @@ type Props = {
   recommendationNotice: string | null;
   proposalHeadline: string;
   proposalReason: string;
+  proposalRouteLabel: string | null;
+  proposalRouteDetail: string | null;
   aiExecutionPreview: { steps: SwapStep[]; total: number } | null;
   onSetActionType: (value: "swap" | "rebalance") => void;
   onGetRecommendation: () => void;
@@ -271,6 +273,8 @@ export function PortfolioMainDesk(props: Props) {
     recommendationNotice,
     proposalHeadline,
     proposalReason,
+    proposalRouteLabel,
+    proposalRouteDetail,
     aiExecutionPreview,
     onSetActionType,
     onGetRecommendation,
@@ -628,6 +632,19 @@ export function PortfolioMainDesk(props: Props) {
               <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
               <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
               <p className="mt-2 text-sm leading-6 text-zinc-300 line-clamp-2">{proposalReason}</p>
+              {proposalRouteLabel ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Best live route</span>
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100">
+                    {proposalRouteLabel}
+                  </span>
+                  {proposalRouteDetail ? (
+                    <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+                      {proposalRouteDetail}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
               {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
             </div>
 

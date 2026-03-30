@@ -323,6 +323,8 @@ export type Recommendation = {
   source: string;
   recommendation_mode?: "allocator_target" | "best_next_move";
   recommendation_note?: string | null;
+  recommended_route_label?: string | null;
+  recommended_route_detail?: string | null;
   risk_profile?: string;
   risk_tolerance?: number;
   tracked_capital_usd?: number;

@@ -564,6 +564,8 @@ class PortfolioExecutionGateService:
             "rationale": rebalance_summary.get("headline") or recommendation_plan["note"] or rationale,
             "recommendation_mode": recommendation_plan["mode"],
             "recommendation_note": recommendation_plan["note"],
+            "recommended_route_label": recommendation_plan.get("route_label"),
+            "recommended_route_detail": recommendation_plan.get("route_detail"),
             "intent": intent,
             "recommended_pools": strategy.get("recommended_pools") or [],
             "expected_portfolio_apy": _safe_float(strategy.get("expected_portfolio_apy")),
@@ -1777,6 +1779,8 @@ class PortfolioExecutionGateService:
             "allocator_swap_steps": allocator_steps,
             "note": None,
             "headline": None,
+            "route_label": None,
+            "route_detail": None,
         }
         if (
             total_value > SMALL_PORTFOLIO_SINGLE_STEP_USD
@@ -1831,6 +1835,8 @@ class PortfolioExecutionGateService:
                             f"STRK {target_allocations.get('STRK', 0.0):.0f}% / USDC {target_allocations.get('USDC', 0.0):.0f}%."
                         ),
                         "headline": f"Take the cleanest routed move: sell {chosen_step['from_asset']} and add {chosen_step['to_asset']}.",
+                        "route_label": f"{chosen_step['from_asset']} → {chosen_step['to_asset']}",
+                        "route_detail": route_summary or None,
                     }
 
         projected_target = self._projected_allocations_after_steps(holdings, allocator_steps)
@@ -1857,6 +1863,8 @@ class PortfolioExecutionGateService:
                 f"STRK {target_allocations.get('STRK', 0.0):.0f}% / USDC {target_allocations.get('USDC', 0.0):.0f}%."
             ),
             "headline": f"Take the cleanest next move: sell {lead_step['from_asset']} and add {lead_step['to_asset']}.",
+            "route_label": f"{lead_step['from_asset']} → {lead_step['to_asset']}",
+            "route_detail": None,
         }
 
     def _serialize_portfolio_state(

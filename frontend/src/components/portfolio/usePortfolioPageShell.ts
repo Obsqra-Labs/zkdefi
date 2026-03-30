@@ -361,6 +361,8 @@ export function usePortfolioPageShell() {
     recommendation?.recommendation_note ??
     recommendation?.rebalance_summary?.why ??
     "The suggested target stays separate from your target. Use it as a suggestion, not an automatic override.";
+  const proposalRouteLabel = recommendation?.recommended_route_label ?? null;
+  const proposalRouteDetail = recommendation?.recommended_route_detail ?? null;
   const recentActivityItems = useMemo(
     () =>
       receipts.slice(0, 4).map((receipt) => {
@@ -885,6 +887,8 @@ export function usePortfolioPageShell() {
     recommendationNotice,
     proposalHeadline,
     proposalReason,
+    proposalRouteLabel,
+    proposalRouteDetail,
     aiExecutionPreview,
     onSetActionType: setActionType,
     onGetRecommendation: () => {
