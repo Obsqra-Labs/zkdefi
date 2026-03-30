@@ -616,24 +616,9 @@ export function PortfolioMainDesk(props: Props) {
         title="What the system wants to do"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onSetActionType("rebalance")}
-              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                actionType === "rebalance" ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200" : "border-zinc-700 text-zinc-400"
-              }`}
-            >
-              Rebalance
-            </button>
-            <button
-              type="button"
-              onClick={() => onSetActionType("swap")}
-              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                actionType === "swap" ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200" : "border-zinc-700 text-zinc-400"
-              }`}
-            >
-              Swap
-            </button>
+            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+              {actionType}
+            </span>
             <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {proposalSourceLabel}
             </span>
@@ -670,60 +655,51 @@ export function PortfolioMainDesk(props: Props) {
             ) : null}
           </div>
 
-          {actionType === "rebalance" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
-              <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
-                <p className="mt-2 text-lg font-semibold text-white">
-                  {swapAssetIn} → {swapAssetOut}
-                </p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
-                <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  {formatUsd(swapAvailableUsd)} available in wallet.
-                </p>
-              </div>
-            </div>
-          )}
-
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current vs proposed</p>
-                <p className="mt-1 text-sm text-zinc-400">The first screen should tell you what changes, not make you read a spreadsheet.</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Proposal summary</p>
+                <p className="mt-1 text-sm text-zinc-400">Read the change in a few seconds. Open the full comparison only if you need to inspect the mix line by line.</p>
               </div>
               <DetailToggle
                 open={showProposalDetails}
                 onToggle={() => setShowProposalDetails((current) => !current)}
-                showLabel="Show detailed comparison"
-                hideLabel="Hide detailed comparison"
+                showLabel="Show full comparison"
+                hideLabel="Hide full comparison"
               />
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {proposalDeltas.map((item) => (
-                <span
-                  key={`${item.asset}-delta-pill`}
-                  className={`rounded-full border px-3 py-1.5 text-xs ${
-                    item.delta >= 0
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                      : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-                  }`}
-                >
-                  {item.asset} {item.delta >= 0 ? "+" : ""}
-                  {formatPercent(item.delta, 1)}
-                </span>
-              ))}
+              {actionType === "rebalance" ? (
+                proposalDeltas.map((item) => (
+                  <span
+                    key={`${item.asset}-delta-pill`}
+                    className={`rounded-full border px-3 py-1.5 text-xs ${
+                      item.delta >= 0
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                        : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                    }`}
+                  >
+                    {item.asset} {item.delta >= 0 ? "+" : ""}
+                    {formatPercent(item.delta, 1)}
+                  </span>
+                ))
+              ) : (
+                <>
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100">
+                    {swapAssetIn} → {swapAssetOut}
+                  </span>
+                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+                    {swapAmount || "0"} {swapAssetIn}
+                  </span>
+                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+                    {slippageBps || "0"} bps slippage
+                  </span>
+                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+                    {formatUsd(swapAvailableUsd)} available
+                  </span>
+                </>
+              )}
             </div>
 
             <div className="mt-3 space-y-2">
@@ -750,24 +726,51 @@ export function PortfolioMainDesk(props: Props) {
               }`}
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="grid gap-2.5 pt-1 sm:grid-cols-3">
-                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                    <div key={`${asset}-proposal-detail`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-white">{asset}</span>
-                        <span className={`text-sm ${userTargetAllocations[asset] >= currentAllocations[asset] ? "text-emerald-200" : "text-amber-200"}`}>
-                          {formatPercent(userTargetAllocations[asset] - currentAllocations[asset], 1)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-zinc-500">
-                        {formatPercent(currentAllocations[asset], 1)} now → {formatPercent(userTargetAllocations[asset], 1)} proposed
-                      </p>
-                      {typeof aiTargetAllocations?.[asset] === "number" ? (
-                        <p className="mt-1 text-xs text-zinc-500">Suggested target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
-                      ) : null}
+                {actionType === "rebalance" ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
+                      <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
                     </div>
-                  ))}
-                </div>
+                    <div className="grid gap-2.5 sm:grid-cols-3">
+                      {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                        <div key={`${asset}-proposal-detail`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-medium text-white">{asset}</span>
+                            <span className={`text-sm ${userTargetAllocations[asset] >= currentAllocations[asset] ? "text-emerald-200" : "text-amber-200"}`}>
+                              {formatPercent(userTargetAllocations[asset] - currentAllocations[asset], 1)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            {formatPercent(currentAllocations[asset], 1)} now → {formatPercent(userTargetAllocations[asset], 1)} proposed
+                          </p>
+                          {typeof aiTargetAllocations?.[asset] === "number" ? (
+                            <p className="mt-1 text-xs text-zinc-500">Suggested target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 pt-1 sm:grid-cols-2">
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {swapAssetIn} → {swapAssetOut}
+                      </p>
+                      <p className="mt-1 text-sm text-zinc-400">
+                        {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
+                      <p className="mt-1 text-sm text-zinc-400">
+                        {formatUsd(swapAvailableUsd)} available in wallet.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -924,6 +927,25 @@ export function PortfolioMainDesk(props: Props) {
             <p className="mt-1.5 text-sm text-zinc-400">{economicsHelper}</p>
           </div>
           <div className="flex items-center gap-3">
+            <div className="inline-flex rounded-full border border-zinc-700/80 bg-zinc-950/80 p-1">
+              {(["rebalance", "swap"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSetActionType(type);
+                  }}
+                  className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                    actionType === type
+                      ? "bg-cyan-500/15 text-cyan-100"
+                      : "text-zinc-400 transition-colors duration-200 hover:text-zinc-100"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
             <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
               {proposalSourceLabel}
             </span>
