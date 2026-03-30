@@ -587,7 +587,7 @@ export function PortfolioMainDesk(props: Props) {
               <div className="max-w-3xl">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">System thesis</p>
                 <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">{proposalReason}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300 line-clamp-2">{proposalReason}</p>
                 {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
               </div>
             </div>
