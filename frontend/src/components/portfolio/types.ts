@@ -318,6 +318,20 @@ export type RecommendationSummary = {
   }>;
 };
 
+export type RecommendationRouteOption = {
+  label: string;
+  detail: string;
+  from_asset: SupportedAsset;
+  to_asset: SupportedAsset;
+  amount: number;
+  amount_wei: number;
+  value_usd: number;
+  route_label: string;
+  route_detail?: string | null;
+  fee_warning?: boolean;
+  selected?: boolean;
+};
+
 export type Recommendation = {
   rationale: string;
   source: string;
@@ -325,6 +339,7 @@ export type Recommendation = {
   recommendation_note?: string | null;
   recommended_route_label?: string | null;
   recommended_route_detail?: string | null;
+  recommended_alternatives?: RecommendationRouteOption[];
   risk_profile?: string;
   risk_tolerance?: number;
   tracked_capital_usd?: number;

@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { assetAccentClasses, formatAssetAmount, formatPercent, formatUsd } from "./formatters";
-import type { SupportedAsset } from "./types";
+import type { RecommendationRouteOption, SupportedAsset } from "./types";
 
 function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
@@ -277,7 +277,9 @@ type Props = {
     label: string;
     detail: string;
   } | null;
+  recommendedSwapAlternatives: RecommendationRouteOption[];
   onUseRecommendedSwapStarter?: () => void;
+  onUseRecommendedSwapAlternative?: (option: RecommendationRouteOption) => void;
 };
 
 export function TargetEditor(props: Props) {
@@ -310,7 +312,9 @@ export function TargetEditor(props: Props) {
     suggestedSwapFallback,
     onUseSuggestedSwap,
     recommendedSwapStarter,
+    recommendedSwapAlternatives,
     onUseRecommendedSwapStarter,
+    onUseRecommendedSwapAlternative,
   } = props;
   const [showAllocationOverview, setShowAllocationOverview] = useState(false);
   const [showTargetMixControls, setShowTargetMixControls] = useState(!recommendedSwapStarter);
@@ -344,6 +348,21 @@ export function TargetEditor(props: Props) {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {recommendedSwapAlternatives.length && onUseRecommendedSwapAlternative ? (
+                <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Other live routes</span>
+                  {recommendedSwapAlternatives.map((option) => (
+                    <button
+                      key={`${option.from_asset}-${option.to_asset}-${option.amount_wei}`}
+                      type="button"
+                      onClick={() => onUseRecommendedSwapAlternative(option)}
+                      className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-emerald-400/50 hover:text-white"
+                    >
+                      {option.route_label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <Field label="Sell">
                 <select
                   value={swapAssetIn}
@@ -498,6 +517,18 @@ export function TargetEditor(props: Props) {
                   {recommendedSwapStarter.label}
                 </button>
               ) : null}
+              {recommendedSwapAlternatives.length && onUseRecommendedSwapAlternative
+                ? recommendedSwapAlternatives.map((option) => (
+                    <button
+                      key={`${option.from_asset}-${option.to_asset}-${option.amount_wei}`}
+                      type="button"
+                      onClick={() => onUseRecommendedSwapAlternative(option)}
+                      className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-cyan-400/50 hover:text-white"
+                    >
+                      {option.route_label}
+                    </button>
+                  ))
+                : null}
               {rebalancePresets.map((preset) => (
                 <button
                   key={preset.id}

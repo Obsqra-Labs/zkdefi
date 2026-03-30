@@ -558,6 +558,8 @@ async def test_recommend_prefers_best_next_move_for_small_wallet(monkeypatch, ga
     assert "longer-horizon suggested mix" in result["rebalance_summary"]["why"]
     assert result["recommended_route_label"] == "ETH → STRK"
     assert result["recommended_route_detail"] is None
+    assert result["recommended_alternatives"][0]["route_label"] == "ETH → STRK"
+    assert result["recommended_alternatives"][0]["selected"] is True
 
 
 @pytest.mark.asyncio
@@ -671,6 +673,11 @@ async def test_recommend_prefers_routable_small_wallet_candidate(monkeypatch, ga
     assert "avnu" in result["rebalance_summary"]["why"].lower()
     assert result["recommended_route_label"] == "STRK → USDC"
     assert result["recommended_route_detail"] == "AVNU via AVNU"
+    assert len(result["recommended_alternatives"]) == 1
+    assert result["recommended_alternatives"][0]["route_label"] == "STRK → USDC"
+    assert result["recommended_alternatives"][0]["route_detail"] == "AVNU via AVNU"
+    assert result["recommended_alternatives"][0]["fee_warning"] is True
+    assert result["recommended_alternatives"][0]["selected"] is True
 
 
 @pytest.mark.asyncio

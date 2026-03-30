@@ -7,7 +7,7 @@ import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
 import { SafetyDrawer } from "./SafetyDrawer";
 import { TargetEditor } from "./TargetEditor";
-import type { ConstraintResult, GateResult, SupportedAsset, SwapStep } from "./types";
+import type { ConstraintResult, GateResult, RecommendationRouteOption, SupportedAsset, SwapStep } from "./types";
 
 type RecommendationData = {
   drift_monitor?: {
@@ -263,9 +263,11 @@ type Props = {
     label: string;
     detail: string;
   } | null;
+  recommendedSwapAlternatives: RecommendationRouteOption[];
   overridePrimaryAction: boolean;
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
+  onUseRecommendedSwapAlternative: (option: RecommendationRouteOption) => void;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -341,9 +343,11 @@ export function PortfolioMainDesk(props: Props) {
     fromWei,
     suggestedSwapFallback,
     recommendedSwapStarter,
+    recommendedSwapAlternatives,
     overridePrimaryAction,
     onUseSuggestedSwap,
     onUseRecommendedSwapStarter,
+    onUseRecommendedSwapAlternative,
   } = props;
 
   const [showEditor, setShowEditor] = useState(false);
@@ -661,6 +665,21 @@ export function PortfolioMainDesk(props: Props) {
                   ) : null}
                 </div>
               ) : null}
+              {recommendedSwapAlternatives.length ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Other live routes</span>
+                  {recommendedSwapAlternatives.map((option) => (
+                    <button
+                      key={`${option.from_asset}-${option.to_asset}-${option.amount_wei}`}
+                      type="button"
+                      onClick={() => onUseRecommendedSwapAlternative(option)}
+                      className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-cyan-400/50 hover:text-cyan-100"
+                    >
+                      {option.route_label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
             </div>
 
@@ -945,7 +964,9 @@ export function PortfolioMainDesk(props: Props) {
               suggestedSwapFallback={suggestedSwapFallback}
               onUseSuggestedSwap={onUseSuggestedSwap}
               recommendedSwapStarter={recommendedSwapStarter}
+              recommendedSwapAlternatives={recommendedSwapAlternatives}
               onUseRecommendedSwapStarter={onUseRecommendedSwapStarter}
+              onUseRecommendedSwapAlternative={onUseRecommendedSwapAlternative}
             />
           </div>
         </div>

@@ -44,6 +44,7 @@ import type {
   PreparedCall,
   Receipt,
   Recommendation,
+  RecommendationRouteOption,
   SupportedAsset,
 } from "./types";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
@@ -174,6 +175,17 @@ export function usePortfolioPageShell() {
     const total = steps.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0);
     return { steps, total };
   }, [recommendation]);
+  const recommendedSwapOptions = useMemo(
+    () =>
+      recommendation?.recommendation_mode === "best_next_move"
+        ? recommendation?.recommended_alternatives ?? []
+        : [],
+    [recommendation],
+  );
+  const selectedRecommendedSwapOption = useMemo(
+    () => recommendedSwapOptions.find((option) => option.selected) ?? null,
+    [recommendedSwapOptions],
+  );
   const warningGateConstraints = useMemo(
     () =>
       (gateResult?.constraint_results ?? []).filter((item) => {
@@ -224,20 +236,21 @@ export function usePortfolioPageShell() {
   );
   const proposalSourceLabel = useMemo(() => {
     if (actionType === "swap") {
-      const recommendedStep =
-        recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
-      const matchesRecommendedSwap =
-        recommendedStep &&
-        currentIntent.type === "swap" &&
-        currentIntent.token_in === recommendedStep.from_asset &&
-        currentIntent.token_out === recommendedStep.to_asset &&
-        String(currentIntent.amount_wei ?? "") === String(recommendedStep.amount_wei);
-      return matchesRecommendedSwap ? "Best live route" : "Manual swap";
+      const matchingOption = recommendedSwapOptions.find(
+        (option) =>
+          currentIntent.type === "swap" &&
+          currentIntent.token_in === option.from_asset &&
+          currentIntent.token_out === option.to_asset &&
+          String(currentIntent.amount_wei ?? "") === String(option.amount_wei),
+      );
+      if (matchingOption?.selected) return "Best live route";
+      if (matchingOption) return "Live route option";
+      return "Manual swap";
     }
     if (recommendation?.recommendation_mode === "best_next_move") return "Best next move";
     if (aiProposalApplied || (aiProposalKey && currentProposalKey === aiProposalKey)) return "Suggested target";
     return "Manual target";
-  }, [actionType, aiProposalApplied, aiProposalKey, currentIntent, currentProposalKey, recommendation]);
+  }, [actionType, aiProposalApplied, aiProposalKey, currentIntent, currentProposalKey, recommendation, recommendedSwapOptions]);
   const proposalOutdated = Boolean(gateResult) && lastCheckedProposalKey !== currentProposalKey;
   const suggestedSwapFallback = useMemo(() => {
     if (actionType !== "rebalance") return null;
@@ -374,15 +387,23 @@ export function usePortfolioPageShell() {
   const proposalRouteLabel = recommendation?.recommended_route_label ?? null;
   const proposalRouteDetail = recommendation?.recommended_route_detail ?? null;
   const recommendedSwapStarter = useMemo(() => {
+    const option = selectedRecommendedSwapOption;
     const step =
-      recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
+      option ??
+      (recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null);
     if (!step) return null;
-    const routeLabel = recommendation?.recommended_route_label ?? `${step.from_asset} → ${step.to_asset}`;
+    const routeLabel = option?.route_label ?? recommendation?.recommended_route_label ?? `${step.from_asset} → ${step.to_asset}`;
     return {
       label: `Start from ${routeLabel}`,
-      detail: `${formatUsd(step.value_usd)} direct swap${recommendation?.recommended_route_detail ? ` • ${recommendation.recommended_route_detail}` : ""}`,
+      detail:
+        option?.detail ??
+        `${formatUsd(step.value_usd)} direct swap${recommendation?.recommended_route_detail ? ` • ${recommendation.recommended_route_detail}` : ""}`,
     };
-  }, [recommendation]);
+  }, [recommendation, selectedRecommendedSwapOption]);
+  const recommendedSwapAlternatives = useMemo(
+    () => recommendedSwapOptions.filter((option) => !option.selected),
+    [recommendedSwapOptions],
+  );
   const recentActivityItems = useMemo(
     () =>
       receipts.slice(0, 4).map((receipt) => {
@@ -502,8 +523,13 @@ export function usePortfolioPageShell() {
       const payload = await fetchPortfolioRecommendation(address);
       setRecommendation(payload);
       setAiProposalApplied(false);
+      const selectedOption =
+        payload.recommendation_mode === "best_next_move"
+          ? payload.recommended_alternatives?.find((option) => option.selected) ?? null
+          : null;
       const bestStep =
-        payload.recommendation_mode === "best_next_move" ? payload.derived_swap_steps?.[0] : null;
+        selectedOption ??
+        (payload.recommendation_mode === "best_next_move" ? payload.derived_swap_steps?.[0] : null);
       if (bestStep) {
         setActionType("swap");
         setSwapAssetIn(bestStep.from_asset);
@@ -542,7 +568,8 @@ export function usePortfolioPageShell() {
 
   const applyRecommendedSwapStarter = () => {
     const step =
-      recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null;
+      selectedRecommendedSwapOption ??
+      (recommendation?.recommendation_mode === "best_next_move" ? recommendation?.derived_swap_steps?.[0] : null);
     if (!step) return;
     setActionType("swap");
     setSwapAssetIn(step.from_asset);
@@ -551,6 +578,17 @@ export function usePortfolioPageShell() {
     setAiProposalApplied(false);
     setExecutionNote(
       `Started from the best live route: ${step.from_asset} → ${step.to_asset} for about ${formatUsd(step.value_usd)}.`,
+    );
+  };
+
+  const applyRecommendedSwapOption = (option: RecommendationRouteOption) => {
+    setActionType("swap");
+    setSwapAssetIn(option.from_asset);
+    setSwapAssetOut(option.to_asset);
+    setSwapAmount(formatEditableAmount(option.amount, option.from_asset));
+    setAiProposalApplied(false);
+    setExecutionNote(
+      `Loaded an alternate live route: ${option.route_label} for about ${formatUsd(option.value_usd)}.`,
     );
   };
 
@@ -1004,9 +1042,11 @@ export function usePortfolioPageShell() {
     fromWei,
     suggestedSwapFallback,
     recommendedSwapStarter,
+    recommendedSwapAlternatives,
     overridePrimaryAction: canAdvisoryOverride,
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
+    onUseRecommendedSwapAlternative: applyRecommendedSwapOption,
   };
 
   const rightRailProps = {

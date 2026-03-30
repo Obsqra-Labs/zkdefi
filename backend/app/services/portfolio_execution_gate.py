@@ -566,6 +566,7 @@ class PortfolioExecutionGateService:
             "recommendation_note": recommendation_plan["note"],
             "recommended_route_label": recommendation_plan.get("route_label"),
             "recommended_route_detail": recommendation_plan.get("route_detail"),
+            "recommended_alternatives": recommendation_plan.get("alternatives", []),
             "intent": intent,
             "recommended_pools": strategy.get("recommended_pools") or [],
             "expected_portfolio_apy": _safe_float(strategy.get("expected_portfolio_apy")),
@@ -1741,6 +1742,40 @@ class PortfolioExecutionGateService:
             ),
         }
 
+    def _serialize_recommendation_candidate_option(
+        self,
+        candidate: dict[str, Any],
+        *,
+        selected: bool = False,
+    ) -> dict[str, Any]:
+        step = candidate["step"]
+        execution = candidate.get("execution") or {}
+        fee_assessment = candidate.get("fee_assessment") or {}
+        route_bits = [str(execution.get("execution_adapter") or "").upper()]
+        route_names = [str(item) for item in (execution.get("route") or []) if str(item)]
+        if route_names:
+            route_bits.append(" / ".join(route_names))
+        route_summary = " via ".join(bit for bit in route_bits if bit) or None
+        fee_share = _safe_float(fee_assessment.get("fee_share"))
+        detail_parts = [f"${_safe_float(step.get('value_usd')):,.2f} direct swap"]
+        if route_summary:
+            detail_parts.append(route_summary)
+        if fee_assessment.get("fee_warning"):
+            detail_parts.append(f"{fee_share:.0f}% fee share")
+        return {
+            "label": f"{step['from_asset']} → {step['to_asset']}",
+            "detail": " • ".join(detail_parts),
+            "from_asset": step["from_asset"],
+            "to_asset": step["to_asset"],
+            "amount": _safe_float(step.get("amount")),
+            "amount_wei": _safe_int(step.get("amount_wei")),
+            "value_usd": _safe_float(step.get("value_usd")),
+            "route_label": f"{step['from_asset']} → {step['to_asset']}",
+            "route_detail": route_summary,
+            "fee_warning": bool(fee_assessment.get("fee_warning")),
+            "selected": selected,
+        }
+
     async def _select_recommendation_target(
         self,
         *,
@@ -1781,6 +1816,7 @@ class PortfolioExecutionGateService:
             "headline": None,
             "route_label": None,
             "route_detail": None,
+            "alternatives": [],
         }
         if (
             total_value > SMALL_PORTFOLIO_SINGLE_STEP_USD
@@ -1791,6 +1827,7 @@ class PortfolioExecutionGateService:
 
         candidate_steps = self._build_small_portfolio_candidate_steps(holdings, target_allocations)
         route_ranked_candidate: dict[str, Any] | None = None
+        ranked_route_options: list[dict[str, Any]] = []
         if len(candidate_steps) > 1:
             ranked = await asyncio.gather(
                 *[
@@ -1804,7 +1841,14 @@ class PortfolioExecutionGateService:
                     for step in candidate_steps
                 ]
             )
-            route_ranked_candidate = max(ranked, key=lambda item: item["score"], default=None)
+            ranked_route_options = sorted(
+                [item for item in ranked if item["route_ready"]],
+                key=lambda item: item["score"],
+                reverse=True,
+            )
+            route_ranked_candidate = ranked_route_options[0] if ranked_route_options else max(
+                ranked, key=lambda item: item["score"], default=None
+            )
             if route_ranked_candidate and route_ranked_candidate["route_ready"]:
                 chosen_step = route_ranked_candidate["step"]
                 projected_target = route_ranked_candidate["projected_target"]
@@ -1822,6 +1866,7 @@ class PortfolioExecutionGateService:
                     if route_names:
                         route_bits.append(" / ".join(route_names))
                     route_summary = " via ".join(bit for bit in route_bits if bit)
+                    chosen_amount_wei = _safe_int(chosen_step.get("amount_wei"))
                     return {
                         "mode": "best_next_move",
                         "target_allocations": projected_target,
@@ -1837,6 +1882,15 @@ class PortfolioExecutionGateService:
                         "headline": f"Take the cleanest routed move: sell {chosen_step['from_asset']} and add {chosen_step['to_asset']}.",
                         "route_label": f"{chosen_step['from_asset']} → {chosen_step['to_asset']}",
                         "route_detail": route_summary or None,
+                        "alternatives": [
+                            self._serialize_recommendation_candidate_option(
+                                item,
+                                selected=_safe_int(item["step"].get("amount_wei")) == chosen_amount_wei
+                                and item["step"].get("from_asset") == chosen_step["from_asset"]
+                                and item["step"].get("to_asset") == chosen_step["to_asset"],
+                            )
+                            for item in ranked_route_options[:3]
+                        ],
                     }
 
         projected_target = self._projected_allocations_after_steps(holdings, allocator_steps)
@@ -1851,6 +1905,41 @@ class PortfolioExecutionGateService:
             return result
 
         lead_step = allocator_steps[0]
+        lead_amount_wei = _safe_int(lead_step.get("amount_wei"))
+        lead_fee_assessment = self._assess_fee_efficiency(
+            intent_type="swap",
+            network_id=NETWORK_MAINNET,
+            action_value_usd=_safe_float(lead_step.get("value_usd")),
+            swap_steps=[lead_step],
+            estimated_gas=self._estimate_gas(
+                {
+                    "type": "swap",
+                    "network_id": NETWORK_MAINNET,
+                    "max_slippage_bps": min(policy.get("max_slippage_bps", DEFAULT_POLICY["max_slippage_bps"]), 75),
+                },
+                [lead_step],
+            ),
+            holdings=holdings,
+        )
+        fallback_options = [
+            self._serialize_recommendation_candidate_option(
+                {
+                    "step": lead_step,
+                    "execution": {},
+                    "fee_assessment": lead_fee_assessment,
+                },
+                selected=True,
+            )
+        ]
+        for item in ranked_route_options[:2]:
+            step = item["step"]
+            if (
+                _safe_int(step.get("amount_wei")) == lead_amount_wei
+                and step.get("from_asset") == lead_step["from_asset"]
+                and step.get("to_asset") == lead_step["to_asset"]
+            ):
+                continue
+            fallback_options.append(self._serialize_recommendation_candidate_option(item, selected=False))
         return {
             "mode": "best_next_move",
             "target_allocations": projected_target,
@@ -1865,6 +1954,7 @@ class PortfolioExecutionGateService:
             "headline": f"Take the cleanest next move: sell {lead_step['from_asset']} and add {lead_step['to_asset']}.",
             "route_label": f"{lead_step['from_asset']} → {lead_step['to_asset']}",
             "route_detail": None,
+            "alternatives": fallback_options[:3],
         }
 
     def _serialize_portfolio_state(
