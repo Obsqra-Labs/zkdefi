@@ -15,25 +15,6 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
-function MatrixStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "good" | "bad" | "neutral";
-}) {
-  const toneClass =
-    tone === "good" ? "text-emerald-300" : tone === "bad" ? "text-red-300" : "text-zinc-200";
-  return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">{label}</p>
-      <p className={`mt-3 text-2xl font-semibold ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
 function SectionToggle({
   title,
   subtitle,
@@ -128,20 +109,17 @@ export function SafetyDrawer({
     () => (gateResult?.constraint_results ?? []).filter((item) => item.kind === "zkml"),
     [gateResult],
   );
+  const summaryTone = !gateResult
+    ? "text-zinc-300"
+    : failedGateConstraints.length
+      ? "text-amber-200"
+      : gateResult.allowed
+        ? "text-emerald-200"
+        : "text-zinc-300";
 
   return (
-    <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.3)] transition-[opacity,transform] duration-300 ease-out">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/80">
-          <div className="h-4 w-4 rounded-full bg-emerald-300" />
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Gate report summary</p>
-          <h2 className="mt-1 text-xl font-semibold text-white">Only the summary lives on the product face</h2>
-        </div>
-      </div>
-
-      <div className="mt-6">
+    <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.26)] transition-[opacity,transform] duration-300 ease-out">
+      <div>
         {!gateResult ? (
           <EmptyState
             title="No proposal checked yet"
@@ -149,29 +127,11 @@ export function SafetyDrawer({
           />
         ) : (
           <>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <MatrixStat
-                label="Passed"
-                value={passedGateCount.toString()}
-                tone="good"
-              />
-              <MatrixStat
-                label="Warnings"
-                value={warningGateConstraints.length.toString()}
-                tone={warningGateConstraints.length ? "neutral" : "good"}
-              />
-              <MatrixStat
-                label="Failed"
-                value={failedGateConstraints.length.toString()}
-                tone={failedGateConstraints.length ? "bad" : "neutral"}
-              />
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Gate summary</p>
-                  <p className="mt-1 text-sm text-zinc-300">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Gate report</p>
+                  <p className={`mt-1 text-sm font-medium ${summaryTone}`}>
                     {gateResult.allowed ? "Safe to sign" : "Needs adjustment"} · {formatUsd(gateResult.estimated_cost_usd)} estimated network cost
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
@@ -191,7 +151,7 @@ export function SafetyDrawer({
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3 border-t border-zinc-800 pt-4">
+              <div className="mt-4 space-y-3 border-t border-zinc-800 pt-4">
                 <SectionToggle
                   title="Blocking checks"
                   subtitle="These checks must clear before the action can be signed."
@@ -317,7 +277,7 @@ export function SafetyDrawer({
                 </div>
               </div>
 
-              <div className="mt-5 flex items-center justify-between gap-3 border-t border-zinc-800 pt-4">
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-800 pt-4">
                 <div className="text-xs text-zinc-500">Full matrix is still available when you need the raw check-by-check view.</div>
                 <button
                   type="button"
