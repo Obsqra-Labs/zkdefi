@@ -165,21 +165,33 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
 
       const chamberAddress = config.CHAMBER_ADDR_MAINNET;
 
+      // Chamber.deposit(hash: u256, asset: Asset{amount: u256, addr: ContractAddress})
+      // u256 is serialized as two felt252s: [low_128, high_128]
+      const MASK_128 = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+      const commitmentBig = BigInt(commitment);
+      const hashLow = (commitmentBig & MASK_128).toString();
+      const hashHigh = (commitmentBig >> BigInt(128)).toString();
+      const amountBig = BigInt(amountWei);
+      const amountLow = (amountBig & MASK_128).toString();
+      const amountHigh = (amountBig >> BigInt(128)).toString();
+
       const calls: Call[] = [
         // 1. Approve Chamber to spend tokens
         {
           contractAddress: tokenAddress as `0x${string}`,
           entrypoint: "approve",
-          calldata: [chamberAddress, amountWei, "0"],
+          calldata: [chamberAddress, amountLow, amountHigh],
         },
         // 2. Deposit into Chamber
         {
           contractAddress: chamberAddress as `0x${string}`,
           entrypoint: "deposit",
           calldata: [
-            commitment.toString(),
+            hashLow,
+            hashHigh,
+            amountLow,
+            amountHigh,
             tokenAddress,
-            amountWei,
           ],
         },
       ];
