@@ -163,3 +163,15 @@ ecosystem.config.cjs
 # ── Large EZKL KZG bundles (>50MB, regenerated from models) ──
 backend/app/data/ezkl_models/yield_forecast/kzg_mpcheck_bundle.json
 backend/app/data/ezkl_models/anomaly_detector/kzg_mpcheck_bundle.json
+
+# ── Data backups ──
+backend/data/*.backup_*
+
+# ── Build logs ──
+circuits/build/*.log
+
+# ── Deployment markers ──
+.marketplace_deployed
+
+# ── Dead code archive ──
+frontend/src/_archive/

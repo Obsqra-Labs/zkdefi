@@ -94,6 +94,8 @@ The frontend Receipt Vault page shows IPFS links, Voyager transaction links, and
 
 ## Proof Systems
 
+**Try the full ZKML proof pipeline in production:** [zkde.fi/test](https://zkde.fi/test)
+
 | System | What it proves | Where |
 |--------|---------------|-------|
 | **EZKL** | ML model inference (credit scoring, anomaly detection, yield forecast) | Backend → Groth16 proof |
