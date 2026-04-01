@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { useRouter } from "next/navigation";
 import type { Call } from "starknet";
-import { RpcProvider } from "starknet";
 
 import {
   buildPolicyDraft,
@@ -1199,10 +1198,10 @@ export function usePortfolioPageShell() {
                   address,
                 );
                 setExecutionNote(`🛡 Deposit confirmed (${depTxHash.slice(0, 12)}...). Generating ZK withdrawal proof...`);
-                const rpcUrl = readiness?.rpc_url || MAINNET_RPC_URL;
-                const provider = new RpcProvider({ nodeUrl: rpcUrl });
+                // Use the account as provider — it already has a working RPC connection
+                // (creating a separate RpcProvider risks an empty/stale URL).
                 const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
-                  provider,
+                  account,
                   address,
                   tokenAddr,
                   amountWei,

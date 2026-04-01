@@ -291,16 +291,30 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       setStep("generating_proof");
       setMessage("Generating zero-knowledge withdrawal proof (this may take a few seconds)...");
 
-      // 1. Get chamber contract
+      // 1. Get chamber contract (typed — uses ABI for serialization)
       const chamber = sdk.getChamber(provider as any);
+      console.log("[MIST] Chamber contract ready");
 
       // 2. Verify the deposit exists
       const asset = await sdk.fetchTxAssets(chamber, key, recipientAddress);
+      console.log("[MIST] fetchTxAssets result:", asset);
       if (!asset) throw new Error("Deposit not found in MIST Chamber. It may not be confirmed yet.");
 
       // 3. Get Merkle tree state
       const rawLeaves = await (chamber as any).tx_array();
-      const leaves: bigint[] = (rawLeaves as unknown[]).map((l) => BigInt(l as string | number | bigint));
+      console.log("[MIST] tx_array returned", Array.isArray(rawLeaves) ? rawLeaves.length : 0, "leaves, sample:", rawLeaves?.[0]);
+      // u256 may come back as BigInt or {low, high} — normalise robustly
+      const toBigInt = (v: unknown): bigint => {
+        if (typeof v === "bigint") return v;
+        if (typeof v === "number" || typeof v === "string") return BigInt(v);
+        // starknet.js typed u256 → {low: bigint|string, high: bigint|string}
+        const obj = v as { low?: unknown; high?: unknown };
+        if (obj && obj.low !== undefined) {
+          return BigInt(obj.low as string | number | bigint) + (BigInt(obj.high as string | number | bigint) << BigInt(128));
+        }
+        return BigInt(String(v));
+      };
+      const leaves: bigint[] = (rawLeaves as unknown[]).map(toBigInt);
       const txIndex = await sdk.getTxIndexInTree(
         leaves,
         key,
@@ -308,9 +322,12 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         tokenAddress,
         amountWei,
       );
+      console.log("[MIST] txIndex:", txIndex);
+      if (txIndex < 0) throw new Error("Deposit not found in Merkle tree. The tree may not have updated yet — try again in a few seconds.");
 
       // 4. Compute Merkle root + proof path
       const [root, ...proof] = sdk.calculateMerkleRootAndProof(leaves, txIndex);
+      console.log("[MIST] Merkle root computed, proof length:", proof.length);
 
       // 5. Build witness for ZK circuit
       const witness = {
@@ -324,7 +341,9 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       };
 
       // 6. Generate Groth16 proof → Starknet calldata via Garaga
+      console.log("[MIST] Starting Groth16 proof generation (WASM)...");
       const calldata = await sdk.full_prove(witness);
+      console.log("[MIST] Proof generated, calldata length:", calldata.length);
 
       setMessage("Proof generated. Building withdrawal transaction...");
 
