@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CallData } from "starknet";
 import type { AccountInterface, Call, ProviderInterface } from "starknet";
 
 /**
@@ -165,34 +166,35 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
 
       const chamberAddress = config.CHAMBER_ADDR_MAINNET;
 
-      // Chamber.deposit(hash: u256, asset: Asset{amount: u256, addr: ContractAddress})
-      // u256 is serialized as two felt252s: [low_128, high_128]
-      const MASK_128 = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-      const commitmentBig = BigInt(commitment);
-      const hashLow = (commitmentBig & MASK_128).toString();
-      const hashHigh = (commitmentBig >> BigInt(128)).toString();
-      const amountBig = BigInt(amountWei);
-      const amountLow = (amountBig & MASK_128).toString();
-      const amountHigh = (amountBig >> BigInt(128)).toString();
+      // Use ABI-driven CallData.compile to correctly serialize u256 and struct types.
+      // CallData auto-splits BigInt → {low, high} for u256 fields per the ABI.
+      const erc20Cd = new CallData(config.ERC20_ABI);
+      const approveCalldata = erc20Cd.compile("approve", [
+        chamberAddress,
+        BigInt(amountWei),
+      ]);
+
+      const chamberCd = new CallData(config.CHAMBER_ABI);
+      const depositCalldata = chamberCd.compile("deposit", [
+        commitment, // hash: u256 — BigInt from txHash(), auto-split
+        {
+          amount: BigInt(amountWei), // u256 — auto-split
+          addr: tokenAddress,        // ContractAddress
+        },
+      ]);
 
       const calls: Call[] = [
         // 1. Approve Chamber to spend tokens
         {
           contractAddress: tokenAddress as `0x${string}`,
           entrypoint: "approve",
-          calldata: [chamberAddress, amountLow, amountHigh],
+          calldata: approveCalldata,
         },
         // 2. Deposit into Chamber
         {
           contractAddress: chamberAddress as `0x${string}`,
           entrypoint: "deposit",
-          calldata: [
-            hashLow,
-            hashHigh,
-            amountLow,
-            amountHigh,
-            tokenAddress,
-          ],
+          calldata: depositCalldata,
         },
       ];
 
