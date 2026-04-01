@@ -19,12 +19,24 @@ from app.services.receipt_service import get_receipt_service
 router = APIRouter(prefix="/risk_passport", tags=["risk_passport"])
 
 
-def _composite_score(tier: int, tenure_days: int, total_volume_eth: float, collateral_eth: float) -> int:
+def _composite_score(
+    tier: int,
+    tenure_days: int,
+    total_volume_eth: float,
+    collateral_eth: float,
+    *,
+    txn_count: int = 0,
+    protocol_count: int = 0,
+    wallet_value_usd: float = 0.0,
+) -> int:
     score = (
-        tier * 30
-        + min(tenure_days // 10, 20)
-        + min(int(total_volume_eth * 2), 25)
-        + min(int(collateral_eth * 10), 25)
+        tier * 25                                # 0-75  (tier 0-3)
+        + min(tenure_days // 10, 15)             # 0-15  (150 days to cap)
+        + min(int(total_volume_eth * 2), 15)     # 0-15
+        + min(int(collateral_eth * 10), 15)      # 0-15
+        + min(txn_count, 10)                     # 0-10  (1 pt per txn)
+        + min(protocol_count * 3, 10)            # 0-10  (3 pts per protocol)
+        + min(int(wallet_value_usd / 10), 10)    # 0-10  ($100 to cap)
     )
     return max(0, min(100, score))
 
@@ -63,6 +75,10 @@ async def get_user_passport(address: str, request: Request):
         tenure_days = rep.get("tenure_days", 0)
         total_volume_eth = rep.get("total_volume_eth", 0.0)
         collateral_eth = rep.get("collateral_eth", 0.0)
+        on_chain = rep.get("on_chain") or {}
+        txn_count = rep.get("transaction_count", 0)
+        protocol_count = on_chain.get("protocol_count", 0)
+        wallet_value_usd = on_chain.get("wallet_value_usd", 0.0)
 
         credit_tier = None
         credit_score = None
@@ -92,7 +108,12 @@ async def get_user_passport(address: str, request: Request):
         except Exception:
             proof_receipts = []
 
-        composite = _composite_score(tier, tenure_days, total_volume_eth, collateral_eth)
+        composite = _composite_score(
+            tier, tenure_days, total_volume_eth, collateral_eth,
+            txn_count=txn_count,
+            protocol_count=protocol_count,
+            wallet_value_usd=wallet_value_usd,
+        )
         letter = _letter_rating(composite)
 
     return {

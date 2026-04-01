@@ -5,9 +5,27 @@ import { useAccount, useDisconnect } from "@starknet-react/core";
 import { Wallet, ChevronDown, ExternalLink, Copy, LogOut } from "lucide-react";
 import { WalletModal } from "./WalletModal";
 import { toastSuccess } from "@/lib/toast";
+import { voyagerContractUrl, sepoliaStarkscanContractUrl } from "@/lib/explorer";
+
+function normalizeChainId(chainId: string | bigint | undefined): string {
+  if (typeof chainId === "bigint") return `0x${chainId.toString(16)}`.toLowerCase();
+  return String(chainId ?? "").toLowerCase();
+}
+
+function isMainnetChain(chainId: string | bigint | undefined): boolean {
+  const value = normalizeChainId(chainId);
+  return value.includes("main") || value === "0x534e5f4d41494e";
+}
+
+function chainLabel(chainId: string | bigint | undefined): string {
+  if (isMainnetChain(chainId)) return "Mainnet";
+  const value = normalizeChainId(chainId);
+  if (value.includes("sep") || value === "0x534e5f5345504f4c4941") return "Sepolia";
+  return "Unknown";
+}
 
 export function ConnectButton() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -28,7 +46,7 @@ export function ConnectButton() {
 
   const viewOnExplorer = () => {
     if (address) {
-      window.open(`https://sepolia.starkscan.co/contract/${address}`, "_blank");
+      window.open(isMainnetChain(chainId) ? voyagerContractUrl(address) : sepoliaStarkscanContractUrl(address), "_blank");
       setIsDropdownOpen(false);
     }
   };
@@ -45,7 +63,7 @@ export function ConnectButton() {
             {address.slice(0, 4)}...{address.slice(-4)}
           </span>
           <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
-            Sepolia
+            {chainLabel(chainId)}
           </span>
           <ChevronDown className="w-4 h-4 text-zinc-400" />
         </button>

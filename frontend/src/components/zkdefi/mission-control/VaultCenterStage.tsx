@@ -3,10 +3,9 @@
 import {
   LayoutDashboard,
   Droplets,
-  Landmark,
-  Vote,
   Activity,
   TrendingUp,
+  Settings,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { VaultTab } from "@/lib/agentState";
@@ -15,9 +14,8 @@ import type { SignalForExecution } from "@/components/zkdefi/mission-control/Sig
 import { OverviewTab } from "@/components/zkdefi/tabs/OverviewTab";
 import { MarketsTab } from "@/components/zkdefi/tabs/MarketsTab";
 import { CapitalTab } from "@/components/zkdefi/tabs/CapitalTab";
-import { LendTab } from "@/components/zkdefi/tabs/LendTab";
-import { GovernTab } from "@/components/zkdefi/tabs/GovernTab";
 import { ActivityTab } from "@/components/zkdefi/tabs/ActivityTab";
+import { SettingsTab } from "@/components/zkdefi/tabs/SettingsTab";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 
 export interface VaultCenterStageProps {
@@ -32,12 +30,11 @@ export interface VaultCenterStageProps {
 }
 
 const TABS = [
-  { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
-  { id: "markets" as const, label: "Markets", icon: TrendingUp },
-  { id: "capital" as const, label: "Capital", icon: Droplets },
-  { id: "lend" as const, label: "Lend", icon: Landmark },
-  { id: "govern" as const, label: "Govern", icon: Vote },
-  { id: "activity" as const, label: "Activity", icon: Activity },
+  { id: "home" as const, label: "Home", icon: LayoutDashboard },
+  { id: "plan" as const, label: "Plan", icon: TrendingUp },
+  { id: "portfolio" as const, label: "Portfolio", icon: Droplets },
+  { id: "history" as const, label: "History", icon: Activity },
+  { id: "settings" as const, label: "Settings", icon: Settings },
 ];
 
 export function VaultCenterStage({
@@ -84,34 +81,29 @@ export function VaultCenterStage({
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="p-0"
           >
-            {activeTab === "overview" && (
+            {activeTab === "home" && (
               <ErrorBoundary>
                 <OverviewTab address={address} isDemo={isDemo} commitments={commitments} walletBalance={walletBalance} onDeploy={onDeploy} />
               </ErrorBoundary>
             )}
-            {activeTab === "markets" && (
+            {activeTab === "plan" && (
               <ErrorBoundary>
                 <MarketsTab onDeploy={onDeploy} />
               </ErrorBoundary>
             )}
-            {activeTab === "capital" && (
+            {activeTab === "portfolio" && (
               <ErrorBoundary>
                 <CapitalTab address={address} onSlideout={onSlideout} isDemo={isDemo} commitments={commitments} />
               </ErrorBoundary>
             )}
-            {activeTab === "lend" && (
-              <ErrorBoundary>
-                <LendTab address={address} />
-              </ErrorBoundary>
-            )}
-            {activeTab === "govern" && (
-              <ErrorBoundary>
-                <GovernTab address={address} />
-              </ErrorBoundary>
-            )}
-            {activeTab === "activity" && (
+            {activeTab === "history" && (
               <ErrorBoundary>
                 <ActivityTab address={address} />
+              </ErrorBoundary>
+            )}
+            {activeTab === "settings" && (
+              <ErrorBoundary>
+                <SettingsTab address={address} />
               </ErrorBoundary>
             )}
           </motion.div>

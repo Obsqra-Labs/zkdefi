@@ -29,12 +29,12 @@ export function PortfolioCapitalOverview({
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-zinc-400">
               {unsupportedAssets.length
-                ? "/portfolio mainnet-v1 currently supports ETH, STRK, and USDC only. Unsupported holdings stay outside the main execution path for now."
+                ? "/portfolio mainnet-v1 currently supports ETH, STRK, USDC, and WBTC only. Unsupported holdings stay outside the main execution path for now."
                 : "Wallet balances will appear here after the next scan. The desk stays visible so the flow still makes sense before funds land."}
             </p>
           </div>
           <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-300">
-            ETH · STRK · USDC
+            ETH · STRK · USDC · WBTC
           </span>
         </div>
 

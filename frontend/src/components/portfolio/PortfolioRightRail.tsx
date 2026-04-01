@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown, Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 
 import { formatPercent, formatUsd } from "./formatters";
+import { MixBar } from "./PortfolioMainDesk";
 import type { ActivityItem, PolicyDraft, PolicySnapshot, SupportedAsset } from "./types";
 
 type GateGuardResult = {
@@ -11,24 +12,6 @@ type GateGuardResult = {
   warning?: boolean;
   reason: string;
 };
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-8 text-center">
-      <p className="text-sm font-medium text-zinc-200">{title}</p>
-      <p className="mt-2 text-sm text-zinc-500">{body}</p>
-    </div>
-  );
-}
-
-function LoadingLine({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 text-sm text-zinc-500">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      {label}...
-    </div>
-  );
-}
 
 function RailKeyValue({
   label,
@@ -62,49 +45,6 @@ function Field({
   );
 }
 
-function CompactSection({
-  eyebrow,
-  title,
-  summary,
-  defaultOpen = false,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  summary?: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-start justify-between gap-4 text-left"
-      >
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</p>
-          <h3 className="mt-1 text-sm font-semibold text-white">{title}</h3>
-          {summary ? <p className="mt-1.5 text-xs leading-5 text-zinc-500">{summary}</p> : null}
-        </div>
-        <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-700 text-zinc-300 transition-transform duration-300">
-          <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
-        </span>
-      </button>
-
-      <div
-        className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-          open ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-        }`}
-      >
-        <div className="min-h-0 overflow-hidden">{children}</div>
-      </div>
-    </section>
-  );
-}
-
 type Props = {
   totalTrackedValue: number;
   currentAllocations: Record<SupportedAsset, number>;
@@ -119,9 +59,13 @@ type Props = {
   policyDirty: boolean;
   checking: boolean;
   onTogglePolicyEditor: () => void;
-  onPolicyFieldChange: (field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps", value: string) => void;
+  onPolicyFieldChange: (field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps" | "maxFeeSharePct", value: string) => void;
   onPolicyMinAmountChange: (asset: SupportedAsset, value: string) => void;
   onSavePolicy: () => void;
+  workflowMode?: string;
+  automatedProfileFallback?: Record<string, unknown>;
+  governedExecutionDisarmed?: boolean;
+  onToggleGovernedExecution?: () => void;
 };
 
 export function PortfolioRightRail({
@@ -146,188 +90,182 @@ export function PortfolioRightRail({
   const topAsset = assetsByWeight[0]?.[0] ?? "ETH";
   const topWeight = assetsByWeight[0]?.[1] ?? 0;
 
+  const [activityExpanded, setActivityExpanded] = useState(false);
+  const visibleActivity = activityExpanded ? recentActivity : recentActivity.slice(0, 4);
+
+  const statusColor = (status: string) => {
+    if (status === "confirmed") return "text-emerald-300";
+    if (status === "submitted" || status === "accepted") return "text-cyan-300";
+    if (status === "failed" || status === "blocked") return "text-red-300";
+    if (status === "ready to sign") return "text-amber-300";
+    return "text-zinc-500";
+  };
+
   return (
     <aside className="space-y-3 xl:sticky xl:top-6">
+      {/* ── Section 1: Portfolio Mix ── */}
       <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Wallet</p>
-        <h3 className="mt-1 text-sm font-semibold text-white">Compact wallet view</h3>
-        <div className="mt-3 space-y-1">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Portfolio</p>
+        <div className="mt-2 space-y-1">
           <RailKeyValue label="Tracked value" value={formatUsd(totalTrackedValue)} />
           <RailKeyValue label="Largest weight" value={`${topAsset} ${formatPercent(topWeight, 1)}`} />
           <RailKeyValue
             label="Draft turnover"
-            value={proposalTurnoverPct == null ? "Pending" : formatPercent(proposalTurnoverPct, 1)}
+            value={proposalTurnoverPct == null ? "—" : formatPercent(proposalTurnoverPct, 1)}
             valueClassName={proposalTurnoverPct != null && proposalTurnoverPct >= 40 ? "text-amber-200" : "text-zinc-200"}
           />
+        </div>
+        {unsupportedAssets.length ? (
+          <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            Unsupported: {unsupportedAssets.join(", ")}
+          </div>
+        ) : null}
+        <div className="mt-3">
+          <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
+        </div>
+      </section>
+
+      {/* ── Section 2: Guards ── */}
+      <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Guards</p>
+        <div className="mt-2 space-y-1">
           <RailKeyValue
-            label="Fee"
+            label="Fee gate"
             value={
               feeGuardResult
                 ? feeGuardResult.passed
-                  ? feeGuardResult.warning
-                    ? "Warning"
-                    : "Clear"
+                  ? feeGuardResult.warning ? "Warning" : "Clear"
                   : "Blocked"
-                : "Pending"
+                : "—"
             }
             valueClassName={
               feeGuardResult
                 ? feeGuardResult.passed
-                  ? feeGuardResult.warning
-                    ? "text-amber-200"
-                    : "text-emerald-200"
-                  : "text-amber-200"
-                : "text-zinc-200"
+                  ? feeGuardResult.warning ? "text-amber-200" : "text-emerald-200"
+                  : "text-red-300"
+                : "text-zinc-500"
             }
           />
+          <RailKeyValue
+            label="Gas reserve"
+            value={
+              gasReserveResult
+                ? gasReserveResult.passed ? "OK" : "Low"
+                : "—"
+            }
+            valueClassName={
+              gasReserveResult
+                ? gasReserveResult.passed ? "text-emerald-200" : "text-amber-200"
+                : "text-zinc-500"
+            }
+          />
+          {policy ? (
+            <>
+              <RailKeyValue label="Slippage limit" value={`${policy.max_slippage_bps} bps`} />
+              <RailKeyValue label="Max action" value={formatUsd(policy.max_value_per_action_usd)} />
+              <RailKeyValue label="Fee threshold" value={`${policy.max_fee_share_pct}%`} />
+            </>
+          ) : (
+            <div className="flex items-center gap-2 py-2 text-xs text-zinc-500">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+            </div>
+          )}
         </div>
-        {unsupportedAssets.length ? (
-          <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-100">
-            Unsupported: {unsupportedAssets.join(", ")}
-          </div>
-        ) : null}
-        {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
-          <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-xs text-zinc-300">
-            {gasReserveResult.reason}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={onTogglePolicyEditor}
+            className="text-[11px] text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+          >
+            {showPolicyEditor ? "Close editor" : "Edit limits"}
+          </button>
+        </div>
+
+        {showPolicyEditor && policyDraft ? (
+          <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-200">
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <Field label="Max value (USD)">
+                <input
+                  value={policyDraft.maxValueUsd}
+                  onChange={(e) => onPolicyFieldChange("maxValueUsd", e.target.value)}
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                />
+              </Field>
+              <Field label="Slippage (bps)">
+                <input
+                  value={policyDraft.maxSlippageBps}
+                  onChange={(e) => onPolicyFieldChange("maxSlippageBps", e.target.value)}
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                />
+              </Field>
+              <Field label="Fee threshold (%)">
+                <input
+                  value={policyDraft.maxFeeSharePct}
+                  onChange={(e) => onPolicyFieldChange("maxFeeSharePct", e.target.value)}
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                />
+              </Field>
+              <Field label="Cooldown (s)">
+                <input
+                  value={policyDraft.cooldownSeconds}
+                  onChange={(e) => onPolicyFieldChange("cooldownSeconds", e.target.value)}
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                />
+              </Field>
+            </div>
+            <button
+              onClick={onSavePolicy}
+              disabled={!policyDirty || checking}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Save
+            </button>
           </div>
         ) : null}
       </section>
 
-      <CompactSection
-        eyebrow="Guardrails"
-        title="Trading limits"
-        summary={
-          policy
-            ? `${policy.max_slippage_bps} bps · ${formatUsd(policy.max_value_per_action_usd)} max action · ${policy.paused ? "Paused" : "Active"}`
-            : "Loading the current guardrails."
-        }
-      >
-        {!policy ? (
-          <div className="mt-1">
-            <LoadingLine label="Loading guardrails" />
-          </div>
-        ) : (
-          <>
-            <div className="space-y-1">
-              <RailKeyValue label="Allowed assets" value={policy.allowed_assets.join(", ")} />
-              <RailKeyValue label="Max slippage" value={`${policy.max_slippage_bps} bps`} />
-              <RailKeyValue label="Cooldown" value={`${policy.cooldown_seconds}s`} />
-              <RailKeyValue label="Max action size" value={formatUsd(policy.max_value_per_action_usd)} />
-              <RailKeyValue
-                label="Pause state"
-                value={policy.paused ? "Paused" : "Active"}
-                valueClassName={policy.paused ? "text-red-300" : "text-emerald-300"}
-              />
-            </div>
-
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onTogglePolicyEditor}
-                className="rounded-full border border-zinc-700 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-              >
-                {showPolicyEditor ? "Hide editor" : "Edit guardrails"}
-              </button>
-              {policyDirty ? <span className="text-xs text-amber-300">Unsaved changes</span> : null}
-            </div>
-
-            {showPolicyEditor && policyDraft ? (
-              <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-200">
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <Field label="Max action value (USD)">
-                    <input
-                      value={policyDraft.maxValueUsd}
-                      onChange={(event) => onPolicyFieldChange("maxValueUsd", event.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                    />
-                  </Field>
-                  <Field label="Max slippage (bps)">
-                    <input
-                      value={policyDraft.maxSlippageBps}
-                      onChange={(event) => onPolicyFieldChange("maxSlippageBps", event.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                    />
-                  </Field>
-                  <Field label="Cooldown (seconds)">
-                    <input
-                      value={policyDraft.cooldownSeconds}
-                      onChange={(event) => onPolicyFieldChange("cooldownSeconds", event.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                    />
-                  </Field>
-                  <Field label="Rebalance swap cap">
-                    <input
-                      value={policyDraft.maxSwaps}
-                      onChange={(event) => onPolicyFieldChange("maxSwaps", event.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                    />
-                  </Field>
+      {/* ── Section 3: Activity ── */}
+      <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Activity</p>
+        <div className="mt-2 space-y-1.5">
+          {visibleActivity.length ? (
+            visibleActivity.map((item) => (
+              <div key={item.id} className="rounded-lg border border-zinc-800/70 bg-zinc-900/50 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium text-white">{item.title}</p>
+                  <span className="shrink-0 text-[10px] text-zinc-600">{item.timestamp}</span>
                 </div>
-                <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
-                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                    <Field key={asset} label={`Min ${asset}`}>
-                      <input
-                        value={policyDraft.minAmounts[asset]}
-                        onChange={(event) => onPolicyMinAmountChange(asset, event.target.value)}
-                        className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                      />
-                    </Field>
-                  ))}
-                </div>
-                <button
-                  onClick={onSavePolicy}
-                  disabled={!policyDirty || checking}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                  Save guardrails
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </CompactSection>
-
-      <CompactSection
-        eyebrow="Recent activity"
-        title="Last actions"
-        summary={
-          recentActivity.length
-            ? `${Math.min(3, recentActivity.length)} recent item${recentActivity.length === 1 ? "" : "s"}`
-            : "Recent gate checks and signed actions will show up here."
-        }
-      >
-        <div className="space-y-2">
-          {recentActivity.length ? (
-            recentActivity.slice(0, 3).map((item) => (
-              <div key={item.id} className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-white">{item.title}</p>
-                    <p className="mt-1 text-xs text-zinc-500">{item.summary}</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <span className={`text-[10px] uppercase tracking-[0.14em] ${statusColor(item.status)}`}>{item.status}</span>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    {item.receiptHref ? <a href={item.receiptHref} className="text-emerald-400 hover:text-emerald-300">Receipt</a> : null}
+                    {item.txHref ? <a href={item.txHref} target="_blank" rel="noreferrer" className="text-cyan-300 hover:text-cyan-200">Tx</a> : null}
                   </div>
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-400">{item.status}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-zinc-500">
-                  <span>{item.timestamp}</span>
-                  {item.txHref ? (
-                    <a
-                      href={item.txHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-cyan-200 underline underline-offset-4 hover:text-cyan-100"
-                    >
-                      View tx
-                    </a>
-                  ) : null}
                 </div>
               </div>
             ))
           ) : (
-            <EmptyState title="No recent activity" body="Recent gate checks and signed actions will show up here." />
+            <p className="py-4 text-center text-xs text-zinc-600">No activity yet</p>
+          )}
+
+          {recentActivity.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setActivityExpanded((c) => !c)}
+              className="block w-full text-center text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              {activityExpanded ? "Show less" : `Show all ${recentActivity.length}`}
+            </button>
+          )}
+
+          {recentActivity.length > 0 && (
+            <a href="/archive" className="block text-center text-xs text-zinc-500 hover:text-zinc-300">
+              View archive →
+            </a>
           )}
         </div>
-      </CompactSection>
+      </section>
     </aside>
   );
 }

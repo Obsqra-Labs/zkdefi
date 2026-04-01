@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 
+import { AppNavbar } from "@/components/zkdefi/AppNavbar";
 import { apiFetch } from "@/lib/api/client";
 
 type VerifyResult = {
@@ -43,7 +44,9 @@ export default function VerifyReceiptPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-5 py-6 text-zinc-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+      <AppNavbar />
+      <div className="px-5 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-5">
         <section className="rounded-[28px] border border-zinc-800/80 bg-zinc-950/90 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
           <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500">Receipt Vault</p>
@@ -139,6 +142,7 @@ export default function VerifyReceiptPage() {
             </details>
           </section>
         ) : null}
+      </div>
       </div>
     </main>
   );

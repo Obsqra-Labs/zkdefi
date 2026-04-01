@@ -17,13 +17,16 @@ from app.services.ekubo_config import (
     SEPOLIA_ETH,
     SEPOLIA_STRK,
     SEPOLIA_USDC,
+    get_ekubo_core_address,
     get_ekubo_chain_id,
+    get_ekubo_router_address,
+    get_starknet_rpc_for_chain,
 )
 from app.services.ekubo_client import get_pair_pools, get_pair_positions
 
 logger = logging.getLogger(__name__)
 
-# RPC for on-chain Core get_pool_price discovery (Sepolia)
+# RPC fallback for on-chain Core get_pool_price discovery.
 STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://starknet-sepolia-rpc.publicnode.com")
 
 # Ekubo Core view get_pool_price(PoolKey) -> PoolPrice; selector from starknet_py.hash.selector.get_selector_from_name("get_pool_price")
@@ -280,6 +283,7 @@ async def _call_core_get_pool_price(
 
 async def _call_router_quote_swap(
     rpc_url: str,
+    router_address: str,
     token0: str,
     token1: str,
     fee_u128: int,
@@ -300,7 +304,7 @@ async def _call_router_quote_swap(
         "method": "starknet_call",
         "params": {
             "request": {
-                "contract_address": _felt_to_hex(EKUBO_ROUTER_SEPOLIA),
+                "contract_address": _felt_to_hex(router_address),
                 "entry_point_selector": hex(ROUTER_QUOTE_SWAP_SELECTOR),
                 "calldata": calldata,
             },
@@ -334,6 +338,7 @@ async def quote_swap_output(
     tick_spacing: int,
     extension: str = "0",
     rpc_url: str | None = None,
+    chain_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Quote Router.swap for a single pool key and return output amount for token_out.
@@ -346,12 +351,15 @@ async def quote_swap_output(
     except (ValueError, TypeError):
         return {"ok": False, "amount_out": 0, "error": "Invalid token address"}
 
-    url = rpc_url or STARKNET_RPC_URL
+    resolved_chain_id = chain_id or get_ekubo_chain_id()
+    url = rpc_url or get_starknet_rpc_for_chain(resolved_chain_id) or STARKNET_RPC_URL
     if not url:
         return {"ok": False, "amount_out": 0, "error": "RPC unavailable"}
+    router_address = get_ekubo_router_address(resolved_chain_id)
 
     ok, result, err = await _call_router_quote_swap(
         rpc_url=url,
+        router_address=router_address,
         token0=token0,
         token1=token1,
         fee_u128=fee_u128,
@@ -439,6 +447,7 @@ async def discover_pool_on_chain(
     token_out: str,
     amount_in_wei: int | None = None,
     rpc_url: str | None = None,
+    chain_id: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Discover an initialized Ekubo pool for (token_in, token_out) by calling Core get_pool_price
@@ -451,13 +460,15 @@ async def discover_pool_on_chain(
         t1 = to if t0 == ti else ti
     except (ValueError, TypeError):
         return None
-    url = rpc_url or STARKNET_RPC_URL
+    resolved_chain_id = chain_id or get_ekubo_chain_id()
+    url = rpc_url or get_starknet_rpc_for_chain(resolved_chain_id) or STARKNET_RPC_URL
     if not url:
         return None
+    core_address = get_ekubo_core_address(resolved_chain_id)
     for fee_pct, tick_spacing in _POOL_DISCOVERY_COMBOS:
         for fee_u128 in _fee_candidates_from_raw(str(fee_pct)):
             ok, felts = await _call_core_get_pool_price(
-                url, EKUBO_CORE_SEPOLIA, t0, t1, fee_u128, tick_spacing, "0"
+                url, core_address, t0, t1, fee_u128, tick_spacing, "0"
             )
             if not (ok and _is_pool_initialized(felts)):
                 continue
@@ -470,6 +481,7 @@ async def discover_pool_on_chain(
                     tick_spacing=tick_spacing,
                     extension="0",
                     rpc_url=url,
+                    chain_id=resolved_chain_id,
                 )
                 if not quote.get("ok") or int(quote.get("amount_out") or 0) <= 0:
                     continue
@@ -560,6 +572,7 @@ async def discover_pool_from_positions(
             fee_u128=int(candidate["fee_u128"]),
             tick_spacing=int(candidate["tick_spacing"]),
             extension=str(candidate.get("extension") or "0"),
+            chain_id=chain_id,
         )
         out_amount = int(quote.get("amount_out") or 0)
         if quote.get("ok") and out_amount > 0:
@@ -595,6 +608,7 @@ def _calc_min_out(expected_out: int | None, slippage_bps: int) -> int:
 
 
 def _build_swap_calldata_with_pool_params(
+    router_address: str,
     token_in: str,
     token_out: str,
     amount_in_wei: int,
@@ -624,7 +638,7 @@ def _build_swap_calldata_with_pool_params(
         token_in, str(amount_in_wei), "0",
     ]
     result: dict[str, Any] = {
-        "contract_address": EKUBO_ROUTER_SEPOLIA,
+        "contract_address": router_address,
         "entrypoint": "swap",
         "calldata": calldata,
         "error": None,
@@ -637,6 +651,7 @@ def _build_swap_calldata_with_pool_params(
 
 
 def _build_multihop_calldata(
+    router_address: str,
     token_in: str,
     amount_in_wei: int,
     route_nodes: list[dict[str, Any]],
@@ -667,7 +682,7 @@ def _build_multihop_calldata(
     # Keep min_out as metadata for UI only; it is not part of this entrypoint calldata.
     calldata.extend([token_in, str(amount_in_wei), "0"])
     return {
-        "contract_address": EKUBO_ROUTER_SEPOLIA,
+        "contract_address": router_address,
         "entrypoint": "multihop_swap",
         "calldata": calldata,
         "error": None,
@@ -703,6 +718,7 @@ async def _discover_multihop_route(
                 token_in=token_in,
                 token_out=intermediate,
                 amount_in_wei=amount_in_wei,
+                chain_id=chain_id,
             )
         if not hop1:
             continue
@@ -721,6 +737,7 @@ async def _discover_multihop_route(
                 token_in=intermediate,
                 token_out=token_out,
                 amount_in_wei=out1,
+                chain_id=chain_id,
             )
         if not hop2:
             continue
@@ -771,6 +788,7 @@ async def build_swap_calldata(
     Returns { "contract_address", "entrypoint", "calldata" } for frontend to sign, or for executor to submit.
     """
     top_pools: list[dict[str, Any]] = []
+    router_address = get_ekubo_router_address(chain_id)
     try:
         pools_data = await get_pair_pools(chain_id, token_in, token_out, min_tvl_usd=0)
         raw_top = pools_data.get("topPools")
@@ -793,9 +811,11 @@ async def build_swap_calldata(
                     fee_u128=fee_u128,
                     tick_spacing=tick_spacing,
                     extension=extension,
+                    chain_id=chain_id,
                 )
                 if quote.get("ok") and int(quote.get("amount_out") or 0) > 0:
                     return _build_swap_calldata_with_pool_params(
+                        router_address=router_address,
                         token_in=token_in,
                         token_out=token_out,
                         amount_in_wei=amount_in_wei,
@@ -827,6 +847,7 @@ async def build_swap_calldata(
             discovered_from_positions.get("tick_spacing"),
         )
         return _build_swap_calldata_with_pool_params(
+            router_address=router_address,
             token_in=token_in,
             token_out=token_out,
             amount_in_wei=amount_in_wei,
@@ -838,7 +859,12 @@ async def build_swap_calldata(
             slippage_bps=slippage_bps,
         )
 
-    discovered = await discover_pool_on_chain(token_in, token_out, amount_in_wei=amount_in_wei)
+    discovered = await discover_pool_on_chain(
+        token_in,
+        token_out,
+        amount_in_wei=amount_in_wei,
+        chain_id=chain_id,
+    )
     if discovered:
         logger.info(
             "Ekubo swap calldata fallback: using discovered pool params fee_u128=%s spacing=%s",
@@ -846,6 +872,7 @@ async def build_swap_calldata(
             discovered.get("tick_spacing"),
         )
         return _build_swap_calldata_with_pool_params(
+            router_address=router_address,
             token_in=token_in,
             token_out=token_out,
             amount_in_wei=amount_in_wei,
@@ -870,6 +897,7 @@ async def build_swap_calldata(
             multihop["expected_out"],
         )
         return _build_multihop_calldata(
+            router_address=router_address,
             token_in=token_in,
             amount_in_wei=amount_in_wei,
             route_nodes=multihop["route_nodes"],
@@ -883,7 +911,7 @@ async def build_swap_calldata(
         "contract_address": None,
         "entrypoint": None,
         "calldata": None,
-        "error": "No executable Ekubo liquidity for this pair on Sepolia (quote output is zero or pool uninitialized).",
+        "error": "No executable Ekubo liquidity for this pair on the selected network (quote output is zero or pool uninitialized).",
     }
 
 
@@ -892,7 +920,12 @@ def strategy_to_pair(strategy: str) -> tuple[str, str] | None:
     return _STRATEGY_PAIR.get((strategy or "").strip().lower())
 
 
-def _build_swap_calldata_fallback(token_in: str, token_out: str, amount_in_wei: int) -> dict[str, Any]:
+def _build_swap_calldata_fallback(
+    token_in: str,
+    token_out: str,
+    amount_in_wei: int,
+    router_address: str = EKUBO_ROUTER_SEPOLIA,
+) -> dict[str, Any]:
     """
     Build Router.swap calldata using fixed Sepolia pool params when Ekubo API is unavailable.
     Uses 0.05% fee, tick_spacing 1000 (mainnet-style). If you get NOT_INITIALIZED on-chain,
@@ -917,7 +950,7 @@ def _build_swap_calldata_fallback(token_in: str, token_out: str, amount_in_wei: 
         token_in, str(amount_in_wei), "0",
     ]
     return {
-        "contract_address": EKUBO_ROUTER_SEPOLIA,
+        "contract_address": router_address,
         "entrypoint": "swap",
         "calldata": calldata,
         "error": None,
@@ -946,9 +979,15 @@ async def build_calldata_for_allocation(
     if not result.get("error"):
         return result
     # API failed: try on-chain discovery (Core get_pool_price for known fee/tick_spacing combos)
-    discovered = await discover_pool_on_chain(token_in, token_out, amount_in_wei=amount_in_wei)
+    discovered = await discover_pool_on_chain(
+        token_in,
+        token_out,
+        amount_in_wei=amount_in_wei,
+        chain_id=chain_id,
+    )
     if discovered:
         return _build_swap_calldata_with_pool_params(
+            get_ekubo_router_address(chain_id),
             token_in,
             token_out,
             amount_in_wei,
@@ -965,7 +1004,13 @@ async def build_calldata_for_allocation(
     }
 
 
-async def submit_swap(contract_address: str, entrypoint: str, calldata: list[str]) -> str | None:
+async def submit_swap(
+    contract_address: str,
+    entrypoint: str,
+    calldata: list[str],
+    *,
+    network_id: str = "starknet_sepolia",
+) -> str | None:
     """
     Submit a swap via ContractExecutor when EXECUTOR_LIVE_SUBMIT and account are set.
     Returns tx hash or None (e.g. not configured or invoke failed).
@@ -975,9 +1020,14 @@ async def submit_swap(contract_address: str, entrypoint: str, calldata: list[str
     try:
         from app.services.contract_executor import ContractExecutor
         ex = ContractExecutor()
-        if not ex.can_submit_live():
+        if not ex.can_submit_live(network_id):
             return None
-        return await ex._invoke(contract_address, entrypoint, [str(x) for x in calldata])
+        return await ex._invoke(
+            contract_address,
+            entrypoint,
+            [str(x) for x in calldata],
+            network_id=network_id,
+        )
     except Exception as e:
         logger.warning("submit_swap failed: %s", e)
         return None

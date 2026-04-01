@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { ConnectButton } from "@/components/zkdefi/ConnectButton";
-import { UnifiedHeader } from "@/components/zkdefi/mission-control/UnifiedHeader";
+import { AppNavbar } from "@/components/zkdefi/AppNavbar";
 import { TrustFlowChecklist } from "@/components/zkdefi/TrustFlowChecklist";
 import { TrustFlowProgressSummary } from "@/components/zkdefi/trust-flow/TrustFlowProgressSummary";
 import { useWalletSettled } from "@/lib/useWalletSettled";
@@ -68,9 +68,9 @@ import { useTrustFlowState } from "@/lib/trust/useTrustFlowState";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
   useLinkedAddresses,
-  useRiskProfile,
   useRiskProfileV2,
 } from "@/hooks/useProfile";
+import { usePortablePassport } from "@/hooks/usePortablePassport";
 
 type LensKey = "identity" | "reputation" | "credit" | "governance";
 type ChainKey = "eth" | "arb" | "base" | "opt";
@@ -151,13 +151,13 @@ export default function ProfilePage() {
   const zkficoEnabled = isZkficoFinisherEnabled();
   const trustSurfaceWiringEnabled = isTrustSurfaceWiringEnabled();
 
-  const { profile: bundle, loading: bundleLoading, refetch: refetchBundle } = useRiskProfile(address);
   const {
     profile: profileV2,
     loading: v2Loading,
     error: v2Error,
     refetch: refetchV2,
   } = useRiskProfileV2(address);
+  const { passport: ppp, loading: pppLoading, refetch: refetchPpp } = usePortablePassport(address);
   const { linked, draft, setDraft, save, saving } = useLinkedAddresses(address);
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -291,7 +291,7 @@ export default function ProfilePage() {
   };
 
   const refreshing = async () => {
-    await Promise.all([refetchBundle(), refetchV2()]);
+    await Promise.all([refetchV2(), refetchPpp()]);
     if (address) {
       const tasks: Array<Promise<unknown>> = [
         refreshSessions(address, setSessions, setSessionLoading),
@@ -662,12 +662,30 @@ export default function ProfilePage() {
     );
   }
 
-  const rep = profileV2?.reputation ?? bundle?.reputation;
-  const passport = profileV2?.passport ?? bundle?.risk_passport;
+  // PPP is the canonical source; profileV2 provides supplementary domains
+  // (identity, governance, credentials, predictive credit) not yet in PPP.
+  const rep = {
+    tier: ppp?.reputation?.tier ?? profileV2?.reputation?.tier ?? 0,
+    tier_name: ppp?.reputation?.tier_name ?? profileV2?.reputation?.tier_name ?? "Unknown",
+    tenure_days: ppp?.reputation?.tenure_days ?? profileV2?.reputation?.tenure_days ?? 0,
+    successful_txns: ppp?.reputation?.successful_txns ?? profileV2?.reputation?.successful_txns ?? 0,
+    transaction_count: ppp?.reputation?.transaction_count ?? profileV2?.reputation?.transaction_count ?? 0,
+    total_volume_eth: ppp?.reputation?.total_volume_eth ?? profileV2?.reputation?.total_volume_eth ?? 0,
+    collateral_eth: ppp?.reputation?.collateral_eth ?? profileV2?.reputation?.collateral_eth ?? 0,
+  };
+  const passport = profileV2?.passport;
+
+  // PPP-first display values with V2 fallback
+  const repTierDisplay = rep.tier_name;
+  const passportScoreDisplay = ppp?.claims?.risk_posture?.composite_score ?? passport?.composite_score ?? 0;
+  const execGateDisplay = ppp?.claims?.execution_eligibility?.mode ?? executionGate.mode;
+  const execGateReasons = ppp?.claims?.execution_eligibility?.reason_codes ?? executionGate.reasons;
+  const lendGateDisplay = ppp?.claims?.lending_eligibility?.mode ?? lendingGate.mode;
+  const lendGateReasons = ppp?.claims?.lending_eligibility?.reason_codes ?? lendingGate.reasons;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
-      <UnifiedHeader address={address} activeOverlay={null} onOverlayChange={() => {}} />
+      <AppNavbar />
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -700,9 +718,9 @@ export default function ProfilePage() {
         ) : null}
 
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatCard label="Reputation Tier" value={String(rep?.tier_name ?? "Unknown")} />
-          <StatCard label="Passport Score" value={String(passport?.composite_score ?? 0)} />
-          <StatCard label="Execution Gate" value={executionGate.mode.toUpperCase()} />
+          <StatCard label="Reputation Tier" value={String(repTierDisplay)} />
+          <StatCard label="Passport Score" value={String(passportScoreDisplay)} />
+          <StatCard label="Execution Gate" value={execGateDisplay.toUpperCase()} />
           <StatCard label="Voting Power" value={toFixed(governancePower?.votingPower, 2)} />
         </div>
 
@@ -849,15 +867,15 @@ export default function ProfilePage() {
             <Panel title="Portfolio Snapshot" icon={<Eye className="h-4 w-4" />}>
               <MetricRow
                 label="TVL"
-                value={formatUsdSafe(profileV2?.portfolio?.total_value_usd ?? 0)}
+                value={formatUsdSafe(ppp?.activity?.defi?.tvl_usd ?? profileV2?.portfolio?.total_value_usd ?? 0)}
               />
               <MetricRow
                 label="Protocols"
-                value={String(profileV2?.portfolio?.protocol_count ?? 0)}
+                value={String(ppp?.activity?.defi?.protocol_count ?? profileV2?.portfolio?.protocol_count ?? 0)}
               />
               <MetricRow
                 label="Positions"
-                value={String(profileV2?.portfolio?.position_count ?? 0)}
+                value={String(ppp?.activity?.defi?.position_count ?? profileV2?.portfolio?.position_count ?? 0)}
               />
               <MetricRow
                 label="Scanned at"
@@ -1313,7 +1331,7 @@ export default function ProfilePage() {
         {activeLens === "credit" && (
           <section className="grid gap-4 lg:grid-cols-2">
             <Panel title="Credit Domain" icon={<TrendingUp className="h-4 w-4" />}>
-              <MetricRow label="Lending Gate" value={lendingGate.mode.toUpperCase()} />
+              <MetricRow label="Lending Gate" value={lendGateDisplay.toUpperCase()} />
               <MetricRow label="Predictive Grade" value={String(profileV2?.predictive_credit?.grade ?? "N/A")} />
               <MetricRow label="Credit line" value={`${Number(profileV2?.predictive_credit?.credit_line_eth ?? 0).toFixed(4)} ETH`} />
               <MetricRow label="Rate" value={`${Number(profileV2?.predictive_credit?.rate_bps ?? 0)} bps`} />
@@ -1342,8 +1360,8 @@ export default function ProfilePage() {
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
                 <div className="mb-1 text-sm font-medium">Execution gate reasons</div>
                 <ul className="space-y-1 text-xs text-zinc-300">
-                  {executionGate.reasons.length ? (
-                    executionGate.reasons.map((reason) => <li key={reason}>- {reason}</li>)
+                  {execGateReasons.length ? (
+                    execGateReasons.map((reason) => <li key={reason}>- {reason}</li>)
                   ) : (
                     <li>- none</li>
                   )}
@@ -1352,8 +1370,8 @@ export default function ProfilePage() {
               <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
                 <div className="mb-1 text-sm font-medium">Lending gate reasons</div>
                 <ul className="space-y-1 text-xs text-zinc-300">
-                  {lendingGate.reasons.length ? (
-                    lendingGate.reasons.map((reason) => <li key={reason}>- {reason}</li>)
+                  {lendGateReasons.length ? (
+                    lendGateReasons.map((reason) => <li key={reason}>- {reason}</li>)
                   ) : (
                     <li>- none</li>
                   )}
@@ -1394,7 +1412,7 @@ export default function ProfilePage() {
         <div className="mt-6 text-xs text-zinc-500">
           <span className="inline-flex items-center gap-1">
             <Clock3 className="h-3 w-3" />
-            loading: {bundleLoading || v2Loading ? "yes" : "no"}
+            loading: {v2Loading || pppLoading ? "yes" : "no"}
           </span>
           <span className="mx-2">|</span>
           <span>identity commitment: {identityBinding.identityCommitment ? "present" : "missing"}</span>
@@ -1407,6 +1425,8 @@ export default function ProfilePage() {
           </span>
           <span className="mx-2">|</span>
           <span>wiring: {trustSurfaceWiringEnabled ? "on" : "off"}</span>
+          <span className="mx-2">|</span>
+          <span>ppp: {ppp ? "active" : pppLoading ? "loading" : "off"}</span>
           <span className="mx-2">|</span>
           <span>
             API base: <code>{apiUrl("/api/v1/zkdefi")}</code>

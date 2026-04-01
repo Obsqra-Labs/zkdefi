@@ -11,8 +11,8 @@ const LOAD_MORE_INCREMENT = 30;
 const POLL_MS = 15_000;
 
 const FILTERS = [
-  { id: "all", label: "All" },
   { id: "receipt", label: "Receipts" },
+  { id: "all", label: "All Events" },
   { id: "decision", label: "Decisions" },
   { id: "privacy", label: "Proofs" },
   { id: "deposit", label: "Deposits" },
@@ -45,11 +45,35 @@ function truncHash(h: string) {
   return h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
 }
 
+function sortStreamItems(items: StreamItem[], activeFilter: string): StreamItem[] {
+  const typeRank: Record<string, number> = {
+    receipt: 0,
+    privacy: 1,
+    decision: 2,
+    deposit: 3,
+    governance: 4,
+  };
+
+  return [...items].sort((a, b) => {
+    const at = new Date(a.timestamp).getTime() || 0;
+    const bt = new Date(b.timestamp).getTime() || 0;
+
+    // Receipt-first ordering only when user is in mixed view.
+    if (activeFilter === "all") {
+      const ar = typeRank[a.type] ?? 99;
+      const br = typeRank[b.type] ?? 99;
+      if (ar !== br) return ar - br;
+    }
+
+    return bt - at;
+  });
+}
+
 export function ActivityTab({ address }: { address: string }) {
   const [items, setItems] = useState<StreamItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("receipt");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(INITIAL_LIMIT);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -107,16 +131,22 @@ export function ActivityTab({ address }: { address: string }) {
   };
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return items;
+    const sorted = sortStreamItems(items, filter);
+    if (!search.trim()) return sorted;
     const q = search.trim().toLowerCase();
-    return items.filter(
+    return sorted.filter(
       (i) =>
         i.title?.toLowerCase().includes(q) ||
         i.subtitle?.toLowerCase().includes(q) ||
         i.id?.toLowerCase().includes(q) ||
         Object.values(i.hashes ?? {}).some((h) => h?.toLowerCase().includes(q)),
     );
-  }, [items, search]);
+  }, [filter, items, search]);
+
+  const receiptCount = useMemo(
+    () => items.filter((i) => i.type === "receipt").length,
+    [items],
+  );
 
   const groups = useMemo(() => {
     const map: Record<string, StreamItem[]> = {};
@@ -154,8 +184,12 @@ export function ActivityTab({ address }: { address: string }) {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 px-3 pt-2 pb-1 text-[11px] text-zinc-500">
+        History is receipt-first. Showing {receiptCount} verified receipts out of {items.length} events.
+      </div>
+
       {/* Filter bar + search */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-zinc-800 flex items-center gap-2">
+      <div className="flex-shrink-0 px-3 py-1.5 border-b border-zinc-800 flex items-center gap-1.5">
         <div className="flex gap-1 overflow-x-auto flex-1 scrollbar-none">
           {FILTERS.map((f) => (
             <button
@@ -185,16 +219,16 @@ export function ActivityTab({ address }: { address: string }) {
       </div>
 
       {/* Stream content */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+      <div className="flex-1 overflow-y-auto px-3 py-1.5 space-y-2.5">
         {groups.length === 0 ? (
           <div className="py-16 text-center text-zinc-600 text-xs space-y-2">
-            <p>No activity yet</p>
-            <p className="text-zinc-700">Activity events will appear here as you interact with the protocol — deposits, withdrawals, proofs, and governance votes.</p>
+            <p>No receipts yet</p>
+            <p className="text-zinc-700">Receipt events will appear here first as you execute plans, then supporting decisions, proofs, and votes.</p>
           </div>
         ) : (
           groups.map(([label, groupItems]) => (
             <section key={label}>
-              <div className="flex items-center gap-2 mb-1 px-1">
+              <div className="flex items-center gap-2 mb-0.5 px-1">
                 <span className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">
                   {label}
                 </span>

@@ -592,6 +592,10 @@ export function useLinkedAddresses(address: string | undefined) {
   return { linked, draft, setDraft, save, loading, saving, refetch };
 }
 
+/**
+ * @deprecated Use `usePortablePassport` from `@/hooks/usePortablePassport` instead.
+ * Kept for backward compatibility during migration.
+ */
 export function useRiskProfile(address: string | undefined) {
   const [profile, setProfile] = useState<RiskProfileBundle | null>(null);
   const [loading, setLoading] = useState(false);
@@ -662,6 +666,11 @@ export function useRiskProfile(address: string | undefined) {
   };
 }
 
+/**
+ * @deprecated Use `usePortablePassport` from `@/hooks/usePortablePassport` instead.
+ * Kept for backward compatibility; `/profile` still uses this for governance,
+ * credential lifecycle, and trust-flow state not yet covered by PPP.
+ */
 export function useRiskProfileV2(address: string | undefined) {
   const [profile, setProfile] = useState<RiskProfileV2 | null>(null);
   const [loading, setLoading] = useState(false);

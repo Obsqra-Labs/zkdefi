@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, Shield, Layers, Coins, Loader2, AlertTriangle, Radio, ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Zap, TrendingUp } from "lucide-react";
-import { apiFetch, API_BASE } from "@/lib/api/client";
+import { Wallet, Sparkles, TrendingUp, ShieldCheck, ListChecks, ExternalLink, ArrowRight } from "lucide-react";
+import { apiFetch } from "@/lib/api/client";
 import { sepoliaVoyagerTxUrl } from "@/lib/explorer";
 import { useVaultSummary } from "@/hooks/useVaultSummary";
-import { getEkuboPositions, type EkuboPosition } from "@/lib/api/ekubo";
-import { InlineOracleCard, type OracleSignal } from "@/components/zkdefi/shared/InlineOracleCard";
+import { getEkuboPositions } from "@/lib/api/ekubo";
 import {
   DEMO_VAULT_SUMMARY,
   DEMO_ACTIVITY,
@@ -15,8 +14,6 @@ import {
 } from "@/lib/demoCapitalOS";
 import type { VaultCommitment } from "@/hooks/usePrivacyVault";
 import { useTokenPrices, priceOf } from "@/hooks/useTokenPrices";
-import PositionsOverview from "@/components/zkdefi/vault/PositionsOverview";
-import { AgentAllocationStrip } from "@/components/zkdefi/vault/AgentAllocationStrip";
 
 import type { SignalForExecution } from "@/components/zkdefi/mission-control/SignalExecutionDrawer";
 
@@ -32,8 +29,27 @@ function usd(v: number) {
   return `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-zinc-800/60 ${className}`} />;
+type Allocation = {
+  privacy: number;
+  ekubo: number;
+  idle: number;
+};
+
+type HeroSignal = {
+  pair: string;
+  confidence: number;
+  recommendation: string;
+};
+
+function buildTargetAllocation(primaryType: string | undefined): Allocation {
+  if (primaryType === "lending") return { privacy: 25, ekubo: 30, idle: 45 };
+  if (primaryType === "staking") return { privacy: 50, ekubo: 20, idle: 30 };
+  if (primaryType === "lp") return { privacy: 30, ekubo: 50, idle: 20 };
+  return {
+    privacy: DEMO_ALLOCATION.lending + DEMO_ALLOCATION.staking,
+    ekubo: DEMO_ALLOCATION.ekubo,
+    idle: DEMO_ALLOCATION.idle,
+  };
 }
 
 export function OverviewTab({ address, isDemo, commitments: commitmentsProp, walletBalance, onDeploy }: OverviewTabProps) {
@@ -55,13 +71,11 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   const [privacyTotal, setPrivacyTotal] = useState(0);
   const [privacyYield, setPrivacyYield] = useState(0);
   const [ekuboTotal, setEkuboTotal] = useState(0);
-  const [ekuboPositions, setEkuboPositions] = useState<EkuboPosition[]>([]);
   const [deployedLoading, setDeployedLoading] = useState(true);
 
-  const [signals, setSignals] = useState<OracleSignal[]>([]);
+  const [signals, setSignals] = useState<HeroSignal[]>([]);
   const [rawOpps, setRawOpps] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
-  const [activityError, setActivityError] = useState(false);
 
   // Compute privacy pool totals from actual user commitments
   const activeCommitments = useMemo(() => isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? []), [isDemo, commitmentsProp]);
@@ -100,8 +114,6 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
 
       if (cancelled) return;
 
-      const positions = ekuboRes.positions ?? [];
-      setEkuboPositions(positions);
       setEkuboTotal(ekuboRes.total_value_usd ?? 0);
       setDeployedLoading(false);
     })();
@@ -115,10 +127,11 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
     // In demo mode, use demo data
     if (isDemo) {
       setSignals([
-        { pair: "STRK/ETH", direction: "up", confidence: 0.85, recommendation: "22.0% APY" },
-        { pair: "ETH/USDC", direction: "stable", confidence: 0.90, recommendation: "18.0% APY" },
-        { pair: "STRK/USDC", direction: "stable", confidence: 0.70, recommendation: "15.0% APY" },
+        { pair: "STRK/ETH", confidence: 0.85, recommendation: "22.0% APY" },
+        { pair: "ETH/USDC", confidence: 0.9, recommendation: "18.0% APY" },
+        { pair: "STRK/USDC", confidence: 0.7, recommendation: "15.0% APY" },
       ]);
+      setRawOpps([]);
       setActivity(DEMO_ACTIVITY);
       return;
     }
@@ -129,14 +142,12 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
       .then((res) => {
         if (cancelled) return;
         const opps = Array.isArray(res?.opportunities) ? res.opportunities : Array.isArray(res) ? res : [];
-        const mapped: OracleSignal[] = opps.slice(0, 6).map((o: any) => {
+        const mapped: HeroSignal[] = opps.slice(0, 6).map((o: any) => {
           const yld = Number(o.currentYield ?? o.apy ?? o.yield ?? 0);
           const risk = Number(o.riskScore ?? o.risk_score ?? 50);
           const conf = o.confidence > 0 ? Number(o.confidence) : (100 - risk) / 100;
-          const dir: OracleSignal["direction"] = yld > 50 ? "up" : yld > 10 ? "stable" : "down";
           return {
             pair: o.title ?? o.pair ?? o.pool ?? o.name ?? "Unknown",
-            direction: (o.signal_direction ?? o.direction ?? dir) as OracleSignal["direction"],
             confidence: conf,
             recommendation: o.recommendation ?? o.action ?? `${yld.toFixed(1)}% APY`,
           };
@@ -152,9 +163,7 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
         const items = Array.isArray(res?.events) ? res.events : Array.isArray(res) ? res : [];
         setActivity(items.slice(0, 5));
       })
-      .catch(() => {
-        if (!cancelled) setActivityError(true);
-      });
+      .catch(() => setActivity([]));
 
     return () => { cancelled = true; };
   }, [address, isDemo]);
@@ -173,234 +182,144 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   const deployed = privacyTotal + ekuboTotal;
   const idle = Math.max(0, totalCapital - deployed);
   const totalWithYield = totalCapital + privacyYield;
-  const allocationPct = totalCapital > 0 ? { privacy: (privacyTotal / totalCapital) * 100, ekubo: (ekuboTotal / totalCapital) * 100, idle: (idle / totalCapital) * 100 } : { privacy: 0, ekubo: 0, idle: 100 };
+  const currentAllocation = totalCapital > 0 ? {
+    privacy: (privacyTotal / totalCapital) * 100,
+    ekubo: (ekuboTotal / totalCapital) * 100,
+    idle: (idle / totalCapital) * 100,
+  } : { privacy: 0, ekubo: 0, idle: 100 };
 
-  // Pool breakdown from commitments
-  const poolBreakdown = useMemo(() => {
-    const map: Record<string, { count: number; usd: number; yield_usd: number }> = {};
-    for (const c of activeCommitments) {
-      const variant = c.pool_variant ?? "unassigned";
-      const price = priceOf(prices, c.asset ?? "STRK");
-      const amt = Number(c.amount_wei) / 1e18 * price;
-      const yld = c.yield_accrued ? Number(c.yield_accrued) / 1e18 * price : 0;
-      if (!map[variant]) map[variant] = { count: 0, usd: 0, yield_usd: 0 };
-      map[variant].count++;
-      map[variant].usd += amt;
-      map[variant].yield_usd += yld;
-    }
-    return map;
-  }, [activeCommitments, prices]);
+  const primaryOpportunity = rawOpps[0] ?? null;
+  const heroSignal = signals[0] ?? {
+    pair: "No active signal",
+    confidence: 0,
+    recommendation: "Waiting for market and policy update",
+  };
+  const targetAllocation = buildTargetAllocation(primaryOpportunity?.type);
+  const planActions = [
+    `Allocate ${Math.max(10, Math.round(targetAllocation.ekubo / 2))}% of idle balance to ${heroSignal.pair}.`,
+    `Maintain ${Math.round(targetAllocation.privacy)}% in privacy sleeves for stable yield and proof history.`,
+    `Keep ${Math.round(targetAllocation.idle)}% liquid to absorb volatility and fast opportunities.`,
+  ];
 
   return (
-    <div className="space-y-5 p-4">
-      {/* Balance Hero */}
-      <section className="glass rounded-xl p-5 space-y-4">
-        {vault.loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-8 w-48" />
-            <div className="flex gap-4">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-5 w-24" />
-            </div>
+    <div className="space-y-3 p-3">
+      <section className="rounded-xl border border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/70 p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-zinc-400">
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            Primary Recommendation
           </div>
-        ) : (
-          <>
-            <div className="flex items-baseline justify-between">
-              <div>
-                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5">Total Capital</p>
-                <h2 className="text-3xl font-bold text-white tracking-tight">{usd(totalWithYield)}</h2>
-              </div>
-              {privacyYield > 0 && (
-                <div className="flex items-center gap-1 text-emerald-400 text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  <TrendingUp className="w-3 h-3" />
-                  +{usd(privacyYield)} yield
-                </div>
-              )}
-            </div>
-
-            {/* Token balances */}
-            <div className="flex flex-wrap gap-3 text-sm">
-              <span className="text-zinc-400">
-                <span className="text-violet-400 font-medium">{vault.strk_balance.toFixed(2)}</span> STRK
-              </span>
-              <span className="text-zinc-400">
-                <span className="text-cyan-400 font-medium">{vault.eth_balance.toFixed(4)}</span> ETH
-              </span>
-            </div>
-
-            {/* Allocation bar */}
-            <div className="space-y-2">
-              <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-800">
-                {allocationPct.privacy > 0 && (
-                  <div className="bg-violet-500 transition-all" style={{ width: `${allocationPct.privacy}%` }} title={`Privacy Pools: ${allocationPct.privacy.toFixed(1)}%`} />
-                )}
-                {allocationPct.ekubo > 0 && (
-                  <div className="bg-cyan-500 transition-all" style={{ width: `${allocationPct.ekubo}%` }} title={`Ekubo LP: ${allocationPct.ekubo.toFixed(1)}%`} />
-                )}
-                {allocationPct.idle > 0 && (
-                  <div className="bg-zinc-600 transition-all" style={{ width: `${allocationPct.idle}%` }} title={`Idle: ${allocationPct.idle.toFixed(1)}%`} />
-                )}
-              </div>
-              <div className="flex gap-4 text-[11px] text-zinc-500">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500" /> Privacy Pools {allocationPct.privacy.toFixed(0)}%</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-500" /> Ekubo LP {allocationPct.ekubo.toFixed(0)}%</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-zinc-600" /> Idle {allocationPct.idle.toFixed(0)}%</span>
-              </div>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* Deployed / Idle Breakdown */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {deployedLoading ? (
-          [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)
-        ) : (
-          <>
-            <BreakdownCard
-              icon={Shield}
-              label="Privacy Pools"
-              value={usd(privacyTotal)}
-              sub={`${activeCommitments.length} commitment${activeCommitments.length !== 1 ? "s" : ""}`}
-              accent="text-violet-400"
-            />
-            <BreakdownCard
-              icon={Layers}
-              label="Ekubo LP"
-              value={usd(ekuboTotal)}
-              sub={`${ekuboPositions.length} position${ekuboPositions.length !== 1 ? "s" : ""}`}
-              accent="text-cyan-400"
-            />
-            <BreakdownCard
-              icon={Coins}
-              label="Idle"
-              value={usd(idle)}
-              sub={deployed > 0 ? `${((idle / totalCapital) * 100).toFixed(0)}% undeployed` : "not yet deployed"}
-              accent="text-zinc-400"
-            />
-          </>
-        )}
-      </section>
-
-      {/* Per-pool breakdown from commitments */}
-      {Object.keys(poolBreakdown).length > 0 && (
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {Object.entries(poolBreakdown).map(([variant, info]) => {
-            const color = variant === "conservative" ? "border-emerald-700/40" : variant === "moderate" ? "border-yellow-700/40" : variant === "aggressive" ? "border-red-700/40" : "border-zinc-700/40";
-            const label = variant.charAt(0).toUpperCase() + variant.slice(1);
-            return (
-              <div key={variant} className={`rounded-xl border ${color} bg-zinc-900/40 p-3 space-y-1`}>
-                <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{label} Pool</p>
-                <p className="text-sm font-semibold text-zinc-100">{usd(info.usd)}</p>
-                <div className="flex justify-between text-[10px] text-zinc-500">
-                  <span>{info.count} note{info.count !== 1 ? "s" : ""}</span>
-                  {info.yield_usd > 0 && <span className="text-emerald-400">+{usd(info.yield_usd)} yield</span>}
-                </div>
-              </div>
-            );
-          })}
-        </section>
-      )}
-
-      {/* Pool-Grouped Positions (Phase C) */}
-      <PositionsOverview
-        commitments={isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? [])}
-        address={address}
-        walletBalance={walletBalance}
-        ekuboPositions={ekuboPositions}
-      />
-
-      {/* Agent Allocation Drift (Phase D) */}
-      <AgentAllocationStrip
-        address={address}
-        commitments={isDemo ? DEMO_COMMITMENTS : (commitmentsProp ?? [])}
-      />
-
-      {/* Oracle Command Center (Gap 28) */}
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-            <Radio className="w-3.5 h-3.5 text-emerald-400" />
-            Oracle Command Center
-          </h3>
-          <span className="text-[10px] text-zinc-600">{signals.length} signal{signals.length !== 1 ? "s" : ""}</span>
+          <span className="rounded-full border border-cyan-600/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-300">
+            {(heroSignal.confidence * 100).toFixed(0)}% confidence
+          </span>
         </div>
-        {signals.length === 0 ? (
-          <p className="text-xs text-zinc-600 italic">No active oracle signals</p>
-        ) : (
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-2">
-            {signals.map((s, i) => (
-              <InlineOracleCard
-                key={i}
-                signal={s}
-                onDeploy={onDeploy ? () => {
-                  const raw = rawOpps[i] ?? {};
-                  onDeploy({
-                    id: raw.id ?? raw.pool ?? `signal-${i}`,
-                    name: s.pair,
-                    type: raw.type ?? "dex",
-                    venue: raw.venue ?? raw.platform ?? undefined,
-                    apy_bps: Math.round((Number(raw.currentYield ?? raw.apy ?? 0)) * 100),
-                    risk_level: raw.risk_level ?? (Number(raw.riskScore ?? 50) < 35 ? "low" : Number(raw.riskScore ?? 50) < 65 ? "medium" : "high"),
-                    signal: raw.signal ?? undefined,
-                    signal_strength: raw.signal_strength ?? Math.round(s.confidence * 100),
-                    signal_reason: raw.signal_reason ?? raw.reason ?? undefined,
-                  });
-                } : undefined}
-              />
-            ))}
+            <h2 className="text-2xl font-semibold text-white">{heroSignal.pair}</h2>
+            <p className="text-[13px] text-zinc-300">{heroSignal.recommendation}</p>
+            <p className="text-xs text-zinc-500">
+              Recommendation fuses risk gates, venue constraints, and live yield snapshots before execution.
+            </p>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={() => {
+              if (!onDeploy) return;
+              onDeploy({
+                id: primaryOpportunity?.id ?? heroSignal.pair,
+                name: heroSignal.pair,
+                type: primaryOpportunity?.type ?? "lp",
+                venue: primaryOpportunity?.protocol,
+                currentYield: Number(primaryOpportunity?.currentYield ?? 0),
+                apy_bps: Math.round(Number(primaryOpportunity?.currentYield ?? 0) * 100),
+                riskScore: Number(primaryOpportunity?.riskScore ?? 50),
+                signal_reason: primaryOpportunity?.aiNarrative ?? heroSignal.recommendation,
+              });
+            }}
+            disabled={!onDeploy}
+            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Open Execution
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
       </section>
 
-      {/* Recent Activity */}
-      <section>
-        <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Recent Activity</h3>
-        {activityError ? (
-          <p className="text-xs text-zinc-600 italic">Unable to load activity</p>
-        ) : activity.length === 0 ? (
+      <section className="grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <SnapshotCard
+            title="Total Capital"
+            value={usd(totalWithYield)}
+            subtitle={privacyYield > 0 ? `Includes +${usd(privacyYield)} accrued yield` : "No realized yield yet"}
+          />
+          <SnapshotCard
+            title="Deployed"
+            value={deployedLoading ? "Loading..." : usd(deployed)}
+            subtitle="Across privacy pools and Ekubo LP"
+          />
+          <SnapshotCard
+            title="Idle Reserve"
+            value={usd(idle)}
+            subtitle="Available for immediate plan execution"
+          />
+        </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+          <h3 className="mb-3 text-xs uppercase tracking-wider text-zinc-400">Current vs Target Allocation</h3>
+          <div className="space-y-3">
+            <AllocationRow label="Privacy" current={currentAllocation.privacy} target={targetAllocation.privacy} color="bg-emerald-500" />
+            <AllocationRow label="Ekubo" current={currentAllocation.ekubo} target={targetAllocation.ekubo} color="bg-cyan-500" />
+            <AllocationRow label="Idle" current={currentAllocation.idle} target={targetAllocation.idle} color="bg-zinc-500" />
+          </div>
+        </div>
+      </section>
+
+      <details className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+        <summary className="cursor-pointer list-none text-sm font-medium text-zinc-100">
+          <span className="inline-flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-amber-400" />
+            Plan Preview
+          </span>
+        </summary>
+        <div className="mt-3 space-y-3 text-sm text-zinc-300">
+          {planActions.map((action, index) => (
+            <div key={index} className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2">
+              <span className="text-zinc-500">Step {index + 1}.</span> {action}
+            </div>
+          ))}
+          <p className="text-xs text-zinc-500">
+            <span className="inline-flex items-center gap-1.5 text-zinc-300">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              Execution stays advisory until policy and session constraints pass.
+            </span>
+          </p>
+        </div>
+      </details>
+
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+        <h3 className="mb-2 text-xs uppercase tracking-wider text-zinc-400">Receipt Feed</h3>
+        {activity.length === 0 ? (
           <p className="text-xs text-zinc-600 italic">No recent activity</p>
         ) : (
           <div className="space-y-1.5">
-            {activity.map((ev, i) => {
-              const evType = (ev.event ?? ev.type ?? "").toLowerCase();
-              const IconEl = evType.includes("deposit") || evType.includes("fund")
-                ? ArrowDownCircle
-                : evType.includes("withdraw")
-                  ? ArrowUpCircle
-                  : evType.includes("rebalance") || evType.includes("swap")
-                    ? RefreshCw
-                    : evType.includes("execute") || evType.includes("signal")
-                      ? Zap
-                      : Shield;
-              const iconColor = evType.includes("deposit") || evType.includes("fund")
-                ? "text-emerald-400"
-                : evType.includes("withdraw")
-                  ? "text-orange-400"
-                  : evType.includes("rebalance")
-                    ? "text-violet-400"
-                    : "text-cyan-400";
+            {activity.slice(0, 3).map((ev, i) => {
               const txHash = ev.tx_hash ?? ev.proof_hash ?? null;
 
               return (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-900/40 border border-zinc-800 text-xs group hover:bg-zinc-800/40 transition-colors">
-                  <div className={`p-1.5 rounded-md bg-zinc-800/60 ${iconColor}`}>
-                    <IconEl className="w-3.5 h-3.5" />
+                <div key={i} className="group flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2.5 text-xs">
+                  <div className="rounded-md bg-zinc-800/70 p-1.5 text-cyan-300">
+                    <TrendingUp className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-zinc-200 truncate block">
                       {ev.description ?? ev.event ?? ev.type ?? "Event"}
                     </span>
-                    {ev.amount && (
-                      <span className="text-[10px] text-zinc-500">
-                        {ev.amount} {ev.token ?? "STRK"}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-zinc-500">
+                      {ev.timestamp ? new Date(ev.timestamp).toLocaleString() : "Unknown time"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-zinc-600">
-                      {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-                    </span>
                     {txHash && (
                       <a
                         href={sepoliaVoyagerTxUrl(txHash)}
@@ -422,17 +341,40 @@ export function OverviewTab({ address, isDemo, commitments: commitmentsProp, wal
   );
 }
 
-function BreakdownCard({ icon: Icon, label, value, sub, accent }: { icon: React.ElementType; label: string; value: string; sub?: string; accent: string }) {
+function SnapshotCard({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
   return (
-    <div className="glass rounded-xl p-4 flex items-center gap-3">
-      <div className={`p-2 rounded-lg bg-zinc-800/60 ${accent}`}>
-        <Icon className="w-4 h-4" />
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+      <p className="text-xs text-zinc-500">{title}</p>
+      <p className="mt-1 text-lg font-semibold text-zinc-100">{value}</p>
+      <p className="mt-1 text-[11px] text-zinc-500">{subtitle}</p>
+    </div>
+  );
+}
+
+function AllocationRow({
+  label,
+  current,
+  target,
+  color,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  color: string;
+}) {
+  const delta = target - current;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-zinc-300">{label}</span>
+        <span className="text-zinc-500">Current {current.toFixed(0)}% · Target {target.toFixed(0)}%</span>
       </div>
-      <div>
-        <p className="text-xs text-zinc-500">{label}</p>
-        <p className="text-sm font-semibold text-zinc-100">{value}</p>
-        {sub && <p className="text-[10px] text-zinc-600 mt-0.5">{sub}</p>}
+      <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
+        <div className={`${color} h-full`} style={{ width: `${Math.max(0, Math.min(100, current))}%` }} />
       </div>
+      <p className={`text-[11px] ${delta >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
+        {delta >= 0 ? "Increase" : "Reduce"} by {Math.abs(delta).toFixed(0)}%
+      </p>
     </div>
   );
 }

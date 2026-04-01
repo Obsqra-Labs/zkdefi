@@ -45,6 +45,8 @@ import { useAccount } from "@starknet-react/core";
 export interface SignalForExecution {
   id: string;
   name: string;
+  suggestedAmount?: number;
+  suggestedPrivacyLevel?: "public" | "shielded" | "full";
   type?: string;
   venue?: string;
   currentYield?: number;
@@ -94,6 +96,15 @@ interface ExecutionResult {
       reason_hints?: string[];
     } | null;
   };
+}
+
+interface ExecutionPollResult {
+  call_id: string;
+  status: string;
+  error?: string | null;
+  reason?: string | null;
+  reason_codes?: string[];
+  reason_hints?: string[];
 }
 
 interface Props {
@@ -151,6 +162,7 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
+  const [pollReason, setPollReason] = useState<string | null>(null);
   const [gateError, setGateError] = useState<TrustGateErrorDetail | null>(null);
 
   // Reset state when signal changes
@@ -158,8 +170,13 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
     setSimulation(null);
     setResult(null);
     setPollStatus(null);
+    setPollReason(null);
     setGateError(null);
-    setAmount("100");
+    const nextAmount = signal?.suggestedAmount && Number.isFinite(signal.suggestedAmount)
+      ? String(signal.suggestedAmount)
+      : "100";
+    setAmount(nextAmount);
+    setPrivacyLevel(signal?.suggestedPrivacyLevel ?? "public");
   }, [signal?.id]);
 
   // ---- Simulate ----
@@ -265,27 +282,49 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
     if (!result?.call_id) return;
     let dead = false;
 
+    const terminal = new Set(["confirmed", "failed", "aborted", "cancelled", "rejected", "not_found"]);
+
     const poll = async () => {
       try {
-        const res = await apiFetch<{ status: string }>(
+        const res = await apiFetch<ExecutionPollResult>(
           `/api/v1/zkdefi/oracle/execution/${result.call_id}`,
         );
-        if (!dead) setPollStatus(res.status);
+        if (dead) return;
+        setPollStatus(res.status);
+        const reason =
+          (res.reason && res.reason.trim()) ||
+          (res.error && res.error.trim()) ||
+          (Array.isArray(res.reason_hints) && res.reason_hints.length > 0 ? res.reason_hints.join("; ") : "") ||
+          (Array.isArray(res.reason_codes) && res.reason_codes.length > 0 ? res.reason_codes.join(", ") : "") ||
+          null;
+        setPollReason(reason);
       } catch {
         // noop
       }
     };
 
     poll();
-    const id = setInterval(poll, 5000);
-    return () => { dead = true; clearInterval(id); };
-  }, [result?.call_id]);
+    const id = setInterval(async () => {
+      await poll();
+      if (!dead && pollStatus && terminal.has(pollStatus)) {
+        clearInterval(id);
+      }
+    }, 5000);
+
+    return () => {
+      dead = true;
+      clearInterval(id);
+    };
+  }, [result?.call_id, pollStatus]);
 
   if (!signal) return null;
 
   const apy = apyFromSignal(signal);
   const risk = riskLabel(signal.riskScore, signal.risk_level);
   const amountNum = parseFloat(amount) || 0;
+
+  const currentStatus = pollStatus ?? result?.status ?? "pending";
+  const isTerminalFailure = ["failed", "aborted", "cancelled", "rejected", "not_found"].includes(currentStatus);
 
   // Completed state
   if (result) {
@@ -338,17 +377,22 @@ export function SignalExecutionDrawer({ signal, address, onClose }: Props) {
             <div className="flex items-center justify-between">
               <span className="text-zinc-500">Status</span>
               <span className={`flex items-center gap-1.5 ${
-                (pollStatus ?? result.status) === "confirmed" ? "text-emerald-400" :
-                (pollStatus ?? result.status) === "failed" ? "text-red-400" :
+                currentStatus === "confirmed" ? "text-emerald-400" :
+                isTerminalFailure ? "text-red-400" :
                 "text-amber-400"
               }`}>
-                {(pollStatus ?? result.status) !== "confirmed" && (pollStatus ?? result.status) !== "failed" && (
+                {!isTerminalFailure && currentStatus !== "confirmed" && (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 )}
-                {(pollStatus ?? result.status) === "confirmed" && <Check className="w-3 h-3" />}
-                {(pollStatus ?? result.status) ?? "pending"}
+                {currentStatus === "confirmed" && <Check className="w-3 h-3" />}
+                {currentStatus}
               </span>
             </div>
+            {isTerminalFailure && (
+              <div className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-[11px] text-red-300">
+                {pollReason || "Execution was aborted by relayer/policy without additional detail."}
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-zinc-500">Privacy</span>
               <span className="text-zinc-300 capitalize">{privacyLevel}</span>

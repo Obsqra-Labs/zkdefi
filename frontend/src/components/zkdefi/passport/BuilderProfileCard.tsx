@@ -63,7 +63,7 @@ function buildRows(profile: ReputationProfile, activity: BuilderActivity): Row[]
       label: "Bridge Deposits",
       icon: ArrowDownToLine,
       value: profile.collateral_eth > 0 ? `${profile.collateral_eth} ETH` : "—",
-      detail: gates.collateral_deposit
+      detail: profile.collateral_eth > 0
         ? "collateral gate open · deposit events indexed"
         : "no bridge deposits detected",
       attestation: profile.collateral_eth > 0 ? "indexed" : "pending",
@@ -74,25 +74,25 @@ function buildRows(profile: ReputationProfile, activity: BuilderActivity): Row[]
       id: "dex",
       label: "DEX Swaps",
       icon: ArrowLeftRight,
-      value: gates.swap ? "active" : "—",
-      detail: gates.swap
+      value: gates.canSwap ? "active" : "—",
+      detail: gates.canSwap
         ? "swap events detected via Ekubo indexer"
         : "no swap events detected",
-      attestation: gates.swap ? "indexed" : "pending",
+      attestation: gates.canSwap ? "indexed" : "pending",
       source: SOURCES.ekubo,
-      active: !!gates.swap,
+      active: !!gates.canSwap,
     },
     {
       id: "lending",
       label: "Lending",
       icon: Landmark,
-      value: gates.lending ? "active" : "—",
-      detail: gates.lending
+      value: gates.canLend ? "active" : "—",
+      detail: gates.canLend
         ? "supply events detected via Vesu indexer"
         : "no lending activity detected",
-      attestation: gates.lending ? "indexed" : "pending",
+      attestation: gates.canLend ? "indexed" : "pending",
       source: SOURCES.vesu,
-      active: !!gates.lending,
+      active: !!gates.canLend,
     },
     {
       id: "deploys",

@@ -33,6 +33,12 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
         </Link>
 
         <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
+          <Link
+            href="/portfolio"
+            className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+          >
+            Portfolio
+          </Link>
           <a
             href="/#capital-os"
             className="text-sm text-zinc-400 transition-colors hover:text-white"
@@ -46,8 +52,8 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
             About
           </a>
           <a
-            href="/test"
-            className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+            href="/archive"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
           >
             Live Proof
           </a>
@@ -72,7 +78,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
 
         <div className="hidden items-center gap-3 md:flex">
           <Link
-            href="/agent"
+            href="/portfolio"
             prefetch={false}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 font-medium transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20"
           >
@@ -134,7 +140,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
           </a>
           <div className="border-t border-zinc-800 pt-2">
             <Link
-              href="/agent"
+              href="/portfolio"
               prefetch={false}
               onClick={() => setMobileOpen(false)}
               className="block rounded-lg px-3 py-2 text-sm text-emerald-300 hover:bg-zinc-900 hover:text-emerald-200"

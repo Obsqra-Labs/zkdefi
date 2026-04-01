@@ -149,6 +149,14 @@ interface DepositPanelProps {
   fixedPoolId?: PoolBucket;
   /** Record deposit in V2 ledger (intent→confirm). Best-effort — on-chain deposit is the source of truth. */
   onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
+  /** Called after user acknowledges a successful deposit confirmation card. */
+  onDepositConfirmed?: (payload: {
+    amount: string;
+    asset: Asset;
+    pool: PoolBucket;
+    method: PrivacyMethod;
+    txHash: string;
+  }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -165,6 +173,7 @@ export function DepositPanel({
   initialPool,
   fixedPoolId,
   onRecordDeposit,
+  onDepositConfirmed,
 }: DepositPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
@@ -585,6 +594,15 @@ export function DepositPanel({
         data={confirmation}
         accent="emerald"
         onDismiss={() => {
+          if (confirmation.txHash) {
+            onDepositConfirmed?.({
+              amount: confirmation.amount,
+              asset: selectedAsset,
+              pool: selectedPool,
+              method,
+              txHash: confirmation.txHash,
+            });
+          }
           setConfirmation(null);
           setAmount("");
           setDepositSteps([]);

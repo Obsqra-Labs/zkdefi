@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY", "")
 ARBISCAN_API_KEY = os.getenv("ARBISCAN_API_KEY", "")
 BASESCAN_API_KEY = os.getenv("BASESCAN_API_KEY", "")
-STARKNET_RPC_URL = os.getenv("STARKNET_RPC_URL", "https://api.cartridge.gg/x/starknet/sepolia")
+STARKNET_RPC_URL = os.getenv("STARKNET_MAINNET_RPC_URL", os.getenv("STARKNET_RPC_URL", "https://rpc.starknet.lava.build:443"))
 
-# API Endpoints
-ETHERSCAN_API = "https://api.etherscan.io/api"
+# API Endpoints — Etherscan V2 unified endpoint (covers ETH mainnet via chainid=1)
+ETHERSCAN_API = "https://api.etherscan.io/v2/api"
 ARBISCAN_API = "https://api.arbiscan.io/api"
 BASESCAN_API = "https://api.basescan.org/api"
 VOYAGER_API = "https://api.voyager.online/beta"
@@ -111,8 +111,9 @@ class CrossChainFetcher:
         
         try:
             if ETHERSCAN_API_KEY:
-                # Get transaction list
+                # Get transaction list (Etherscan V2 requires chainid)
                 params = {
+                    "chainid": 1,
                     "module": "account",
                     "action": "txlist",
                     "address": address,
@@ -131,6 +132,8 @@ class CrossChainFetcher:
                     if txns:
                         history.first_tx_timestamp = int(txns[0].get("timeStamp", 0))
                         history.last_tx_timestamp = int(txns[-1].get("timeStamp", 0))
+                        if history.first_tx_timestamp > 0:
+                            history.account_age_days = (int(time.time()) - history.first_tx_timestamp) // 86400
                         
                         # Count unique contracts and failed txns
                         contracts = set()
@@ -188,16 +191,22 @@ class CrossChainFetcher:
                 nonce = int(data["result"], 16)
                 history.transaction_count = nonce
                 
-                # Estimate account age based on nonce
-                # Rough heuristic: 1 tx per day average
-                history.account_age_days = max(nonce, 30)
-                history.first_tx_timestamp = int(time.time()) - (history.account_age_days * 86400)
+                # Do NOT estimate age from nonce — real age comes from
+                # onchain_activity_service via block timestamp analysis.
+                # Nonce is transaction count, not age proxy.
+                history.account_age_days = 0
+                history.first_tx_timestamp = 0
+            elif "error" in data:
+                # Definitive RPC error (e.g. "Contract not found") — return empty,
+                # NOT synthetic fallback data.
+                logger.info("Starknet RPC error for %s: %s", address[:20], data["error"])
             else:
                 history = self._generate_fallback_history("starknet", address)
                 
         except Exception as e:
             logger.warning(f"Starknet fetch error: {e}")
-            history = self._generate_fallback_history("starknet", address)
+            # Network errors get empty data, not fake data
+            pass
         
         self._set_cached(cache_key, history)
         return history
@@ -232,6 +241,8 @@ class CrossChainFetcher:
                     if txns:
                         history.first_tx_timestamp = int(txns[0].get("timeStamp", 0))
                         history.last_tx_timestamp = int(txns[-1].get("timeStamp", 0))
+                        if history.first_tx_timestamp > 0:
+                            history.account_age_days = (int(time.time()) - history.first_tx_timestamp) // 86400
                         
                         contracts = set()
                         for tx in txns:
@@ -280,6 +291,8 @@ class CrossChainFetcher:
                     if txns:
                         history.first_tx_timestamp = int(txns[0].get("timeStamp", 0))
                         history.last_tx_timestamp = int(txns[-1].get("timeStamp", 0))
+                        if history.first_tx_timestamp > 0:
+                            history.account_age_days = (int(time.time()) - history.first_tx_timestamp) // 86400
             else:
                 history = self._generate_fallback_history("base", address)
                 

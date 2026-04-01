@@ -29,7 +29,7 @@ export function formatAssetAmount(value: number, asset: SupportedAsset): string 
       maximumFractionDigits: 1,
     }).format(value)} ${asset}`;
   }
-  const decimals = asset === "USDC" ? 4 : value < 0.01 ? 6 : 4;
+  const decimals = asset === "USDC" ? 4 : asset === "WBTC" ? 6 : value < 0.01 ? 6 : 4;
   return `${value.toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
@@ -38,7 +38,7 @@ export function formatAssetAmount(value: number, asset: SupportedAsset): string 
 
 export function formatEditableAmount(value: number, asset: SupportedAsset): string {
   if (!Number.isFinite(value) || value <= 0) return "";
-  const decimals = asset === "USDC" ? 4 : 6;
+  const decimals = asset === "USDC" ? 4 : asset === "WBTC" ? 8 : 6;
   return value.toFixed(decimals).replace(/\.?0+$/, "");
 }
 
@@ -50,6 +50,8 @@ export function assetAccentClasses(asset: SupportedAsset): string {
       return "bg-emerald-300";
     case "USDC":
       return "bg-amber-300";
+    case "WBTC":
+      return "bg-orange-400";
     default:
       return "bg-zinc-300";
   }

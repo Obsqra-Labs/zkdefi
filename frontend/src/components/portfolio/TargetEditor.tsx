@@ -36,7 +36,7 @@ function AllocationRailRow({
       <div className="flex items-center justify-between gap-3">
         <p className={`text-[11px] uppercase tracking-[0.18em] ${labelTone}`}>{label}</p>
         <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-          {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+          {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
             <span key={`${label}-${asset}`}>
               {asset} {formatPercent(allocations[asset] ?? 0, 0)}
             </span>
@@ -44,7 +44,7 @@ function AllocationRailRow({
         </div>
       </div>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-zinc-950">
-        {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+        {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
           <div
             key={`${label}-${asset}-bar`}
             className={`h-full ${assetAccentClasses(asset)}`}
@@ -133,7 +133,7 @@ function AllocationOverviewCard({
           <span>Move needed</span>
         </div>
         <div className="space-y-2 bg-zinc-950/85 p-2">
-          {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+          {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
             <AllocationOverviewAssetRow
               key={`overview-${asset}`}
               asset={asset}
@@ -325,7 +325,7 @@ export function TargetEditor(props: Props) {
     setShowAllocationOverview(false);
   }, [actionType, recommendedSwapStarter]);
 
-  const allocationDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => ({
+  const allocationDeltas = (["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => ({
     asset,
     delta: userTargetAllocations[asset] - currentAllocations[asset],
   }));
@@ -369,7 +369,7 @@ export function TargetEditor(props: Props) {
                   onChange={(event) => onSwapAssetInChange(event.target.value as SupportedAsset)}
                   className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
                 >
-                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                  {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
                     <option key={asset} value={asset}>
                       {asset}
                     </option>
@@ -387,7 +387,7 @@ export function TargetEditor(props: Props) {
                   onChange={(event) => onSwapAssetOutChange(event.target.value as SupportedAsset)}
                   className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3.5 py-3 text-sm text-zinc-100"
                 >
-                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                  {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
                     <option key={asset} value={asset}>
                       {asset}
                     </option>
@@ -558,7 +558,7 @@ export function TargetEditor(props: Props) {
                 </span>
               ) : null}
               <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] text-zinc-300">
-                {(["ETH", "STRK", "USDC"] as SupportedAsset[]).length} tracked assets
+                {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).length} tracked assets
               </span>
             </div>
 
@@ -639,7 +639,7 @@ export function TargetEditor(props: Props) {
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="space-y-3">
-                  {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+                  {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
                     <TargetEditorRow
                       key={asset}
                       asset={asset}

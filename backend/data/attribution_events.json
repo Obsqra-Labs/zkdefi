@@ -322,5 +322,17 @@
       "subject": "test-user-1",
       "ts": 1773345914
     }
+  ],
+  "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3": [
+    {
+      "id": "attr_51169672085c",
+      "chain": "starknet",
+      "protocol_id": "aggregated",
+      "action_type": "swap",
+      "timestamp": "2026-03-28T03:17:55.882844+00:00",
+      "confidence": 0.9,
+      "subject": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+      "ts": 1774672403
+    }
   ]
 }

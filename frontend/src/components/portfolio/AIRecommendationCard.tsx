@@ -155,7 +155,7 @@ export function AIRecommendationCard({
                     <span className="text-[11px] text-zinc-500">Target</span>
                   </div>
                   <div className="mt-3 space-y-2.5">
-                    {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => {
+                    {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => {
                       const value = recommendation?.target_allocations?.[asset] ?? 0;
                       return (
                         <div key={`ai-target-${asset}`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2.5">

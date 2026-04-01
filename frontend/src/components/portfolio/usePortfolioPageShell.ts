@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "@starknet-react/core";
 import { useRouter } from "next/navigation";
 import type { Call } from "starknet";
+import { RpcProvider } from "starknet";
 
 import {
   buildPolicyDraft,
@@ -19,6 +20,8 @@ import {
   togglePortfolioEmergencyStop,
 } from "./api";
 import {
+  ASSET_DECIMALS,
+  MAINNET_TOKEN_BY_SYMBOL,
   buildWalletCallsFromExecution,
   extractExecutionError,
   fromWei,
@@ -26,6 +29,21 @@ import {
   optimizeWalletCallsForExecution,
 } from "./execution";
 import { formatAssetAmount, formatEditableAmount, formatUsd } from "./formatters";
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 0) return "just now";
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 import {
   aggregateAssets,
   chainBadgeLabel,
@@ -33,6 +51,7 @@ import {
   normalizeAllocationMap,
   normalizeReceiptStatus,
   proposalKeyForIntent,
+  receiptEventGroup,
   receiptEventSummary,
   receiptEventTitle,
 } from "./helpers";
@@ -43,6 +62,7 @@ import type {
   GovernedExecution,
   PolicyDraft,
   PolicySnapshot,
+  PortableReceiptData,
   PortfolioSnapshot,
   PreparedCall,
   Receipt,
@@ -52,11 +72,12 @@ import type {
   WorkflowMode,
 } from "./types";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
+import { useMistPrivacy } from "@/hooks/useMistPrivacy";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { voyagerTxUrl } from "@/lib/explorer";
 import { getTxStatus, type TxSettlementStatus } from "@/lib/pendingTx";
 
-const SUPPORTED_ASSETS: SupportedAsset[] = ["ETH", "STRK", "USDC"];
+const SUPPORTED_ASSETS: SupportedAsset[] = ["ETH", "STRK", "USDC", "WBTC"];
 const MAINNET_RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL_MAINNET ||
   process.env.NEXT_PUBLIC_RPC_URL ||
@@ -82,6 +103,8 @@ export function usePortfolioPageShell() {
   const [lastPreparedAdapter, setLastPreparedAdapter] = useState<string | null>(null);
   const [executionNote, setExecutionNote] = useState<string | null>(null);
   const [executionTxHash, setExecutionTxHash] = useState<string | null>(null);
+  const [executionReceiptCid, setExecutionReceiptCid] = useState<string | null>(null);
+  const [executionReceipt, setExecutionReceipt] = useState<PortableReceiptData | null>(null);
   const [pendingPreparedCalls, setPendingPreparedCalls] = useState<PreparedCall[] | null>(null);
   const [pendingWalletCalls, setPendingWalletCalls] = useState<Call[] | null>(null);
   const [pendingReceiptId, setPendingReceiptId] = useState<string | null>(null);
@@ -91,10 +114,18 @@ export function usePortfolioPageShell() {
   const [showFullGateMatrix, setShowFullGateMatrix] = useState(false);
   const [showSafetyDetails, setShowSafetyDetails] = useState(false);
   const [showPolicyEditor, setShowPolicyEditor] = useState(false);
+  const [showSessionKeyModal, setShowSessionKeyModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+  const [intentSet, setIntentSet] = useState(false);
+  const recommendationJustAppliedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [privateMode, setPrivateMode] = useState(false);
+
+  // MIST.cash privacy layer (deposit → ZK withdraw → break on-chain link)
+  const mistPrivacy = useMistPrivacy();
   const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("manual");
 
   const [actionType, setActionType] = useState<ActionType>("rebalance");
@@ -104,8 +135,9 @@ export function usePortfolioPageShell() {
   const [slippageBps, setSlippageBps] = useState("50");
   const [targetWeights, setTargetWeights] = useState<Record<SupportedAsset, string>>({
     ETH: "40",
-    STRK: "25",
-    USDC: "35",
+    STRK: "20",
+    USDC: "30",
+    WBTC: "10",
   });
 
   const portableReceiptHref = useMemo(() => {
@@ -134,7 +166,7 @@ export function usePortfolioPageShell() {
           acc[asset] = totalTrackedValue > 0 ? (assetSummary[asset].valueUsd / totalTrackedValue) * 100 : 0;
           return acc;
         },
-        { ETH: 0, STRK: 0, USDC: 0 } as Record<SupportedAsset, number>,
+        { ETH: 0, STRK: 0, USDC: 0, WBTC: 0 } as Record<SupportedAsset, number>,
       ),
     [assetSummary, totalTrackedValue],
   );
@@ -167,6 +199,7 @@ export function usePortfolioPageShell() {
       ETH: Number.parseFloat(targetWeights.ETH) || 0,
       STRK: Number.parseFloat(targetWeights.STRK) || 0,
       USDC: Number.parseFloat(targetWeights.USDC) || 0,
+      WBTC: Number.parseFloat(targetWeights.WBTC) || 0,
     }),
     [targetWeights],
   );
@@ -177,6 +210,7 @@ export function usePortfolioPageShell() {
             ETH: recommendation.target_allocations.ETH ?? 0,
             STRK: recommendation.target_allocations.STRK ?? 0,
             USDC: recommendation.target_allocations.USDC ?? 0,
+            WBTC: recommendation.target_allocations.WBTC ?? 0,
           }
         : null,
     [recommendation],
@@ -469,6 +503,7 @@ export function usePortfolioPageShell() {
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) return "Add session key";
     if (workflowMode === "automated" && governedExecutionDisarmed) return "Arm governed execution";
     if (executing) return workflowMode === "automated" ? "Arming governed move" : "Preparing";
+    if (loadingRecommendation && !hasFreshGateCheck) return workflowMode === "automated" ? "Loading governed route" : "Loading recommendation";
     if (workflowMode === "manual") {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) {
         return actionType === "rebalance" ? "No route available" : "Needs route";
@@ -485,7 +520,7 @@ export function usePortfolioPageShell() {
     }
     if (actionType === "rebalance") return workflowMode === "automated" ? "Arm governed execution" : "Review guided move";
     return workflowMode === "automated" ? "Arm governed swap" : "Sign guided swap";
-  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionDisarmed, executing, checking, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
+  }, [actionType, hasPreparedRebalance, workflowMode, automatedGovernedState, governedExecutionDisarmed, executing, checking, loadingRecommendation, hasFreshGateCheck, gateResult, canAdvisoryOverride, canManualOverride]);
   const primaryActionDisabled = useMemo(() => {
     if (executing) return true;
     if (hasPreparedRebalance) return !canSignPreparedRebalance;
@@ -497,6 +532,8 @@ export function usePortfolioPageShell() {
       if (hasFreshGateCheck && !gateResult?.allowed && !gateResult?.swap_steps?.length) return true;
       return checking;
     }
+    // Assisted/Automated: if gate already allowed, don't disable even during background re-check
+    if (hasFreshGateCheck && gateResult?.allowed) return false;
     if (canAdvisoryOverride) return checking;
     if (hasFreshGateCheck && !gateResult?.allowed) return true;
     if (!hasFreshGateCheck) return true;
@@ -713,16 +750,26 @@ export function usePortfolioPageShell() {
   );
   const recentActivityItems = useMemo(
     () =>
-      receipts.slice(0, 4).map((receipt) => {
+      receipts.slice(0, 15).map((receipt) => {
         const txStatus = receipt.tx_hash ? txStatusMap[receipt.tx_hash] : undefined;
         const status = normalizeReceiptStatus(receipt, txStatus);
+        const registryId = receipt.metadata?.portable_receipt?.registry_receipt_id;
+        const cid = receipt.metadata?.portable_receipt?.cid;
+        const anchorTier = receipt.metadata?.portable_receipt?.anchor_tier
+          ?? (receipt.metadata as Record<string, unknown> | undefined)?.anchor_tier as string | undefined
+          ?? null;
         return {
           id: receipt.receipt_id,
           title: receiptEventTitle(receipt),
           summary: receiptEventSummary(receipt, status),
           status,
-          timestamp: new Date(receipt.timestamp).toLocaleString(),
+          timestamp: relativeTime(receipt.timestamp),
           txHref: receipt.tx_hash ? voyagerTxUrl(receipt.tx_hash) : null,
+          receiptHref: registryId ? `/archive?receipt=${registryId}` : null,
+          verifyHref: cid ? `/verify?cid=${cid}` : null,
+          group: receiptEventGroup(receipt),
+          cid: cid ?? null,
+          anchorTier: anchorTier ?? null,
         };
       }),
     [receipts, txStatusMap],
@@ -756,12 +803,14 @@ export function usePortfolioPageShell() {
         ETH: payload.target_allocations.ETH ?? 0,
         STRK: payload.target_allocations.STRK ?? 0,
         USDC: payload.target_allocations.USDC ?? 0,
+        WBTC: payload.target_allocations.WBTC ?? 0,
       });
       setActionType("rebalance");
       setTargetWeights({
         ETH: String(normalizedTarget.ETH),
         STRK: String(normalizedTarget.STRK),
         USDC: String(normalizedTarget.USDC),
+        WBTC: String(normalizedTarget.WBTC),
       });
       setAiProposalApplied(true);
       setExecutionNote(
@@ -818,6 +867,7 @@ export function usePortfolioPageShell() {
       ETH: String(allocations.ETH),
       STRK: String(allocations.STRK),
       USDC: String(allocations.USDC),
+      WBTC: String(allocations.WBTC),
     });
     if (aiTargetAllocations) {
       const aiNormalized = normalizeAllocationMap(aiTargetAllocations);
@@ -840,8 +890,6 @@ export function usePortfolioPageShell() {
     setPendingReceiptId(null);
     setPendingRouteLabel(null);
     setPendingPreparedAt(null);
-    setExecutionNote(null);
-    setExecutionTxHash(null);
     try {
       const intent = intentOverride ?? currentIntent;
       const payload = await checkPortfolioIntent(address, intent);
@@ -863,7 +911,7 @@ export function usePortfolioPageShell() {
 
   const getRecommendation = useCallback(async () => {
     if (!address) return;
-    setChecking(true);
+    setLoadingRecommendation(true);
     setError(null);
     setRecommendationNotice(null);
     setLastPreparedAdapter(null);
@@ -872,8 +920,6 @@ export function usePortfolioPageShell() {
     setPendingReceiptId(null);
     setPendingRouteLabel(null);
     setPendingPreparedAt(null);
-    setExecutionNote(null);
-    setExecutionTxHash(null);
     try {
       const payload = await fetchPortfolioRecommendation(address);
       setRecommendation(payload);
@@ -884,7 +930,7 @@ export function usePortfolioPageShell() {
     } catch (err) {
       setRecommendationNotice("The suggested target is unavailable right now. You can still edit your own target and run the safety check.");
     } finally {
-      setChecking(false);
+      setLoadingRecommendation(false);
     }
   }, [address, workflowMode]);
 
@@ -966,27 +1012,27 @@ export function usePortfolioPageShell() {
       setPendingReceiptId(null);
       setPendingRouteLabel(null);
       setPendingPreparedAt(null);
+      setExecutionReceiptCid(null);
+      setExecutionReceipt(null);
       if (pendingReceiptId) {
         try {
           const confirmPayload = await confirmPortfolioExecution(address, pendingReceiptId, result.transaction_hash);
-          setExecutionNote(
-            confirmPayload?.portable_receipt?.registry_receipt_id
-              ? optimized.skippedApprovals
-                ? `Submitted via wallet after skipping ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Portable receipt archived.`
-                : "Submitted via wallet. Portable receipt archived."
-              : optimized.skippedApprovals
-                ? `Submitted via wallet after skipping ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Tx ${result.transaction_hash.slice(0, 12)}...`
-                : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
-          );
+          if (confirmPayload?.portable_receipt?.cid) {
+            setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+            setExecutionReceipt(confirmPayload.portable_receipt);
+            setExecutionNote(`Receipt saved to IPFS and anchored on Starknet.`);
+          } else {
+            setExecutionNote(`Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`);
+          }
         } catch (confirmErr) {
           console.error("portfolio confirm failed after wallet submission", confirmErr);
           setExecutionNote(
-            `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}... Receipt sync is delayed, but the transaction was sent.`,
+            `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}... Receipt sync delayed.`,
           );
         }
       } else {
         setExecutionNote(
-          `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}... Receipt sync is unavailable, but the transaction was sent.`,
+          `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
         );
       }
       await refreshData(address);
@@ -1036,6 +1082,7 @@ export function usePortfolioPageShell() {
           : "Re-running the gate and preparing a wallet request...",
     );
     setExecutionTxHash(null);
+    setExecutionReceiptCid(null);
     try {
       if (account && !isMainnetChain(chainId)) {
         setExecutionNote("Wallet is connected on Sepolia. Switch Argent to Starknet mainnet first.");
@@ -1048,7 +1095,21 @@ export function usePortfolioPageShell() {
 
       if (payload.tx_hash) {
         setExecutionTxHash(payload.tx_hash);
-        setExecutionNote(`Submitted on ${payload.status}. Tx ${payload.tx_hash.slice(0, 12)}...`);
+        setExecutionReceiptCid(null);
+        setExecutionReceipt(null);
+        setExecutionNote(`Submitted. Tx ${payload.tx_hash.slice(0, 12)}...`);
+        if (payload.receipt_id) {
+          try {
+            const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, payload.tx_hash);
+            if (confirmPayload?.portable_receipt?.cid) {
+              setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+              setExecutionReceipt(confirmPayload.portable_receipt);
+              setExecutionNote(`Receipt saved to IPFS and anchored on Starknet.`);
+            }
+          } catch (confirmErr) {
+            console.error("portfolio confirm failed after server-side submission", confirmErr);
+          }
+        }
         await refreshData(address);
         return;
       }
@@ -1102,22 +1163,73 @@ export function usePortfolioPageShell() {
               ? `Prepared via ${adapterLabel}. Skipped ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Awaiting wallet signature in Argent...`
               : `Prepared via ${adapterLabel}. Awaiting wallet signature in Argent...`,
           );
+
+          // ── MIST.cash privacy wrap ──────────────────────────────────
+          // When privateMode is on and this is a swap (not rebalance),
+          // route the input token through the MIST Chamber first:
+          //   1. deposit input amount into Chamber  (approve + deposit tx)
+          //   2. wait for Merkle tree update
+          //   3. generate ZK proof + withdraw       (handle_zkp tx)
+          //   4. then execute the original swap
+          // This breaks the on-chain link between the user's source
+          // funds and the swap transaction.
+          if (privateMode && actionType === "swap" && swapAssetIn !== "WBTC") {
+            const tokenAddr = MAINNET_TOKEN_BY_SYMBOL[swapAssetIn];
+            const decimals = ASSET_DECIMALS[swapAssetIn];
+            const amountWei = Math.round(Number.parseFloat(swapAmount || "0") * 10 ** decimals).toString();
+            if (Number(amountWei) > 0) {
+              try {
+                await mistPrivacy.initialize();
+                setExecutionNote("🛡 Private mode: depositing into MIST Chamber...");
+                const { txHash: depTxHash, claimingKey: key } = await mistPrivacy.executeDeposit(
+                  account,
+                  tokenAddr,
+                  amountWei,
+                  address,
+                );
+                setExecutionNote(`🛡 Deposit confirmed (${depTxHash.slice(0, 12)}...). Generating ZK withdrawal proof...`);
+                const rpcUrl = readiness?.rpc_url || MAINNET_RPC_URL;
+                const provider = new RpcProvider({ nodeUrl: rpcUrl });
+                const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
+                  provider,
+                  address,
+                  tokenAddr,
+                  amountWei,
+                  key,
+                );
+                setExecutionNote("🛡 Proof generated. Sign the private withdrawal + swap in your wallet...");
+                // Combine: withdraw from Chamber + original swap in one multicall
+                const combinedCalls = [...withdrawCalls, ...optimized.calls];
+                const result = await account.execute(combinedCalls);
+                setExecutionTxHash(result.transaction_hash);
+                const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
+                if (confirmPayload?.portable_receipt?.cid) {
+                  setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+                  setExecutionReceipt(confirmPayload.portable_receipt);
+                  setExecutionNote(`🛡 Private swap complete. Receipt saved to IPFS.`);
+                } else {
+                  setExecutionNote(`🛡 Private swap submitted. Tx ${result.transaction_hash.slice(0, 12)}...`);
+                }
+                await refreshData(address);
+                return;
+              } catch (privErr) {
+                const privMsg = privErr instanceof Error ? privErr.message : String(privErr);
+                setExecutionNote(`Privacy wrap failed: ${privMsg}. Falling back to normal execution...`);
+                // Fall through to normal execution below
+              }
+            }
+          }
+
           const result = await account.execute(optimized.calls);
           setExecutionTxHash(result.transaction_hash);
           const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
-          setExecutionNote(
-            confirmPayload?.portable_receipt?.registry_receipt_id
-              ? options?.allowManualOverride
-                ? "Submitted via wallet from manual mode. Portable receipt archived."
-                : options?.allowAdvisoryOverride
-                ? "Submitted via wallet after fee-warning override. Portable receipt archived."
-                : "Submitted via wallet. Portable receipt archived."
-              : options?.allowManualOverride
-                ? `Submitted via wallet from manual mode. Tx ${result.transaction_hash.slice(0, 12)}...`
-                : options?.allowAdvisoryOverride
-                ? `Submitted via wallet after fee-warning override. Tx ${result.transaction_hash.slice(0, 12)}...`
-                : `Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`,
-          );
+          if (confirmPayload?.portable_receipt?.cid) {
+            setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+            setExecutionReceipt(confirmPayload.portable_receipt);
+            setExecutionNote(`Receipt saved to IPFS and anchored on Starknet.`);
+          } else {
+            setExecutionNote(`Submitted via wallet. Tx ${result.transaction_hash.slice(0, 12)}...`);
+          }
           await refreshData(address);
           return;
         }
@@ -1154,6 +1266,25 @@ export function usePortfolioPageShell() {
     } finally {
       setExecuting(false);
     }
+  };
+
+  const resetIntent = () => {
+    setIntentSet(false);
+    setGateResult(null);
+    setLastCheckedProposalKey(null);
+    setRecommendation(null);
+    setRecommendationNotice(null);
+    setExecutionNote(null);
+    setExecutionTxHash(null);
+    setExecutionReceiptCid(null);
+    setExecutionReceipt(null);
+    setPendingPreparedCalls(null);
+    setPendingWalletCalls(null);
+    setPendingReceiptId(null);
+    setPendingRouteLabel(null);
+    setPendingPreparedAt(null);
+    setError(null);
+    recommendationJustAppliedRef.current = false;
   };
 
   const runAiGateCheck = async () => {
@@ -1231,8 +1362,8 @@ export function usePortfolioPageShell() {
       return;
     }
     if (workflowMode === "automated" && automatedGovernedState.activeSessionCount <= 0) {
-      setExecutionNote("Automated mode needs a session key first. Opening agent key management.");
-      router.push("/agent");
+      setExecutionNote("Automated mode needs a session key first.");
+      setShowSessionKeyModal(true);
       return;
     }
     if (workflowMode === "automated" && governedExecutionDisarmed) {
@@ -1277,6 +1408,7 @@ export function usePortfolioPageShell() {
 
   useEffect(() => {
     if (workflowMode === "manual" || !recommendation) return;
+    recommendationJustAppliedRef.current = true;
     applyRecommendationDraft(recommendation, workflowMode);
   }, [workflowMode, recommendation, applyRecommendationDraft]);
 
@@ -1291,13 +1423,21 @@ export function usePortfolioPageShell() {
 
   useEffect(() => {
     if (!address || executing || checking) return;
+    // Don't auto-gate-check until the user has set an intent
+    // (except automated mode which runs off policy).
+    if (!intentSet && workflowMode !== "automated") return;
     if (actionType === "rebalance" && pendingWalletCalls?.length) return;
     if (lastCheckedProposalKey === currentProposalKey) return;
+    if (executionTxHash) return;
+    // After a recommendation is applied, run the gate check immediately instead of
+    // waiting 700ms so the user doesn't stare at a disabled button.
+    const delay = recommendationJustAppliedRef.current ? 100 : 700;
     const timeoutId = window.setTimeout(() => {
+      recommendationJustAppliedRef.current = false;
       void runGateCheck();
-    }, 700);
+    }, delay);
     return () => window.clearTimeout(timeoutId);
-  }, [address, actionType, currentProposalKey, lastCheckedProposalKey, checking, executing, pendingWalletCalls]);
+  }, [address, actionType, currentProposalKey, lastCheckedProposalKey, checking, executing, pendingWalletCalls, executionTxHash, intentSet, workflowMode]);
 
   useEffect(() => {
     const hashes = Array.from(
@@ -1344,6 +1484,8 @@ export function usePortfolioPageShell() {
       setLastPreparedAdapter(null);
       setExecutionNote(null);
       setExecutionTxHash(null);
+      setExecutionReceiptCid(null);
+      setExecutionReceipt(null);
       setPendingPreparedCalls(null);
       setPendingWalletCalls(null);
       setPendingReceiptId(null);
@@ -1380,6 +1522,8 @@ export function usePortfolioPageShell() {
       void toggleEmergencyStop();
     },
     paused: Boolean(policy?.paused),
+    workflowMode,
+    onWorkflowModeChange: setWorkflowMode,
   };
 
   const mainDeskProps = {
@@ -1393,6 +1537,7 @@ export function usePortfolioPageShell() {
     recommendationNotice,
     proposalHeadline,
     proposalReason,
+    walletAddress: address ?? "",
     proposalRouteLabel,
     proposalRouteDetail,
     aiExecutionPreview,
@@ -1452,6 +1597,9 @@ export function usePortfolioPageShell() {
     walletLabel: chainBadgeLabel(chainId),
     proposalOutdated,
     executionNote,
+    executionReceiptCid,
+    executionReceipt,
+    executionTxHash,
     executionLink: executionTxHash ? voyagerTxUrl(executionTxHash) : null,
     portableReceiptLink: executionTxHash ? portableReceiptHref : null,
     passedGateCount,
@@ -1467,6 +1615,13 @@ export function usePortfolioPageShell() {
     recommendedSwapStarter,
     recommendedSwapAlternatives,
     overridePrimaryAction: canManualOverride || canAdvisoryOverride,
+    loadingRecommendation,
+    intentSet,
+    onIntentSet: () => setIntentSet(true),
+    onResetIntent: resetIntent,
+    llmProvider: (recommendation as Record<string, unknown>)?.provenance
+      ? String(((recommendation as Record<string, unknown>).provenance as Record<string, unknown>)?.llm_provider ?? "")
+      : null,
     automatedProfileFallback: automatedGovernedState,
     governedExecutionDisarmed,
     onToggleGovernedExecution: () => {
@@ -1480,6 +1635,19 @@ export function usePortfolioPageShell() {
     onUseSuggestedSwap: applySuggestedSwapFallback,
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,
+    privateMode,
+    onTogglePrivateMode: () => setPrivateMode((v) => !v),
+    mistPrivacyStep: mistPrivacy.step,
+    mistPrivacyMessage: mistPrivacy.message,
+    mistPrivacyBusy: mistPrivacy.busy,
+    mistPrivacyError: mistPrivacy.error,
+    showSessionKeyModal,
+    onDismissSessionKeyModal: () => setShowSessionKeyModal(false),
+    onSessionKeyGranted: (sessionId: string) => {
+      setShowSessionKeyModal(false);
+      setExecutionNote(`Session key granted (${sessionId.slice(0, 10)}…). You can now arm autopilot.`);
+      if (address) void refreshData(address);
+    },
   };
 
   const rightRailProps = {
@@ -1497,7 +1665,7 @@ export function usePortfolioPageShell() {
     checking,
     onTogglePolicyEditor: () => setShowPolicyEditor((current) => !current),
     onPolicyFieldChange: (
-      field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps",
+      field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps" | "maxFeeSharePct",
       value: string,
     ) => {
       setPolicyDraft((current) => (current ? { ...current, [field]: value } : current));
@@ -1511,6 +1679,17 @@ export function usePortfolioPageShell() {
     },
     onSavePolicy: () => {
       void savePolicy();
+    },
+    workflowMode,
+    automatedProfileFallback: automatedGovernedState,
+    governedExecutionDisarmed,
+    onToggleGovernedExecution: () => {
+      setExecutionNote(
+        governedExecutionDisarmed
+          ? "Arming governed execution for this wallet."
+          : "Disarming governed execution for this wallet.",
+      );
+      void setGovernedExecutionControl(governedExecutionDisarmed ? "armed" : "disarmed");
     },
   };
 

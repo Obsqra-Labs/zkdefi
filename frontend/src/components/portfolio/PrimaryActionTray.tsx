@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlertTriangle, ChevronRight, Loader2, ShieldCheck, Wallet, Zap } from "lucide-react";
+import { AlertTriangle, ChevronRight, Copy, ExternalLink, Loader2, ShieldCheck, Wallet, Zap } from "lucide-react";
 import type { WorkflowMode } from "./types";
 
 type DeskTone = "good" | "neutral" | "warning";
@@ -46,6 +46,7 @@ type Props = {
   proposalOutdated: boolean;
   executionNote: string | null;
   executionLink?: string | null;
+  executionReceiptCid?: string | null;
   portableReceiptLink?: string | null;
   overridePrimaryAction: boolean;
 };
@@ -70,6 +71,7 @@ export function PrimaryActionTray({
   proposalOutdated,
   executionNote,
   executionLink,
+  executionReceiptCid,
   portableReceiptLink,
   overridePrimaryAction,
 }: Props) {
@@ -91,39 +93,21 @@ export function PrimaryActionTray({
       ? "Refreshing safety state"
       : label;
   const statusBody = walletMismatch
-    ? "Switch to Starknet mainnet before signing."
+    ? "Switch to Starknet mainnet."
     : proposalOutdated
-      ? "The proposal changed, so the desk is checking the latest version."
-      : workflowMode === "automated" && label === "Governed execution paused"
-        ? "Governed execution is disarmed for this wallet. Use the primary action to arm it again before the automated lane can authorize moves."
-      : workflowMode === "automated" && label === "Governed route ready"
-        ? "The governed lane cleared this move. The primary action arms or authorizes it with the current policy and session-key posture."
-      : workflowMode === "automated" && label === "Governed move blocked"
-        ? "Automated mode will not arm this move until the governed draft clears again. Switch modes only if you want to intervene manually."
-      : workflowMode === "automated" && label === "Governed move submitted"
-        ? "The governed move is out. Track confirmation while the desk keeps watching drift and policy."
-      : workflowMode === "automated" && label === "Governed draft"
-        ? "Automated mode is evaluating the next governed action. The primary action will start that evaluation when needed."
-      : workflowMode === "automated" && label === "Evaluating governed move"
-        ? "The governed lane is refreshing policy, drift, and route economics before it arms the next move."
-      : workflowMode === "manual" && overridePrimaryAction
-        ? "Manual mode treats the Gate as advisory. A real route exists, so you can prepare it anyway and inspect the exact wallet cost yourself."
-      : workflowMode === "automated" && overridePrimaryAction
-        ? "The governed route is economically weak, not unsafe. You can still authorize it, inspect the exact cost yourself, or switch to manual control."
+      ? "Re-evaluating the latest draft."
       : overridePrimaryAction
-        ? "The Gate is flagging fee economics, not route safety. You can still prepare the wallet path and inspect the exact cost yourself."
-      : executionNote ??
-        (label === "Onboarding needed"
-          ? "Automated mode is waiting on onboarding. Use the primary action to open the passport flow and set the governed profile first."
-          : label === "Session key needed"
-            ? "Automated mode is waiting on a governed session key. Use the primary action to open agent key management."
-            :
-        (label === "Permitted with fee warning"
-          ? "The route is viable, but the cost is high for the amount moved. Review the exact path and decide in wallet."
-          :
-        (label === "Needs adjustment"
-          ? "The latest gate result is blocking this draft. Adjust the target and the desk will re-check automatically."
-          : "One clear action lives here. Review once, then sign.")));
+        ? "Fee economics flagged — you can still proceed."
+        : executionNote ??
+          (label === "Onboarding needed"
+            ? "Complete onboarding first."
+            : label === "Session key needed"
+              ? "Set up an agent session key."
+              : label === "Permitted with fee warning"
+                ? "High cost for the amount moved."
+                : label === "Needs adjustment"
+                  ? "Adjust target to clear the Gate."
+                  : "Review once, then sign.");
   const trayRefreshing = checking || proposalOutdated;
 
   return (
@@ -141,41 +125,55 @@ export function PrimaryActionTray({
             </div>
             <StatusPill tone={statusTone}>{label}</StatusPill>
           </div>
-          <p className="mt-2 text-sm text-zinc-400">{statusBody}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+          <p className="mt-1.5 text-[13px] text-zinc-400">{statusBody}</p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
             <button
               onClick={onRunGateCheck}
               disabled={checking || executing}
-              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-2.5 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className="h-3 w-3" />
               Recheck
             </button>
             <button
               type="button"
               onClick={onToggleSafetyDetails}
-              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-2.5 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
             >
-              <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-300 ${showSafetyDetails ? "rotate-90" : ""}`} />
-              {showSafetyDetails ? "Hide report" : "Gate report"}
+              <ChevronRight className={`h-3 w-3 transition-transform duration-300 ${showSafetyDetails ? "rotate-90" : ""}`} />
+              {showSafetyDetails ? "Hide" : "Report"}
             </button>
             {executionLink ? (
               <a
                 href={executionLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-2.5 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
               >
-                View on Voyager
+                Voyager
               </a>
             ) : null}
-            {portableReceiptLink ? (
-              <a
-                href={portableReceiptLink}
-                className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition-colors duration-200 hover:border-zinc-500 hover:text-zinc-100"
-              >
-                View portable receipt
-              </a>
+            {executionReceiptCid ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300">
+                <span className="font-mono text-[11px]" title={executionReceiptCid}>
+                  ipfs://{executionReceiptCid.slice(0, 12)}…
+                </span>
+                <button
+                  type="button"
+                  title="Copy CID"
+                  onClick={() => navigator.clipboard.writeText(executionReceiptCid)}
+                  className="text-emerald-400 hover:text-emerald-200"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+                <a
+                  href="/archive"
+                  className="text-emerald-400 hover:text-emerald-200"
+                  title="View in Archive"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </span>
             ) : null}
           </div>
         </div>

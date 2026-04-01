@@ -891,5 +891,52 @@
       "portable_v3": "3.0",
       "zkfico_pack_v1": "1.0"
     }
+  },
+  "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3": {
+    "subject": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+    "window_days": 90,
+    "min_confidence": 0.0,
+    "summary": {
+      "attribution_count": 1,
+      "coverage_score": 0.6,
+      "verified_chain_count": 0
+    },
+    "claims": {
+      "activity_score_0_100": 17.5,
+      "reputation_score_0_100": 0,
+      "reputation_tier": 0,
+      "reputation_tier_name": "Strict",
+      "tenure_days": 0,
+      "gates": {
+        "canSwap": false,
+        "canLP": false,
+        "canLend": false,
+        "canBorrow": false,
+        "canStake": false,
+        "canPrivacy": false,
+        "canDarkLedger": false,
+        "canDCA": false,
+        "canLimits": false
+      },
+      "letter_rating": "D",
+      "credit_line_eth": 0.0,
+      "collateral_line_eth": 0.0,
+      "unsecured_cap_eth": 0.0,
+      "rate_bps": 800,
+      "cross_chain_verified": false,
+      "linked_chain_count": 0,
+      "action_type_counts": {
+        "swap": 1
+      },
+      "protocol_counts": {
+        "aggregated": 1
+      }
+    },
+    "version_matrix": {
+      "builder_v2": "2.0",
+      "profile_v2": "2.0",
+      "portable_v3": "3.0",
+      "zkfico_pack_v1": "1.0"
+    }
   }
 }

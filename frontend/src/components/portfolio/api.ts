@@ -56,6 +56,7 @@ export function buildPortfolioIntent(draft: PortfolioIntentDraft): Record<string
       ETH: Number.parseFloat(draft.targetWeights.ETH) || 0,
       STRK: Number.parseFloat(draft.targetWeights.STRK) || 0,
       USDC: Number.parseFloat(draft.targetWeights.USDC) || 0,
+      WBTC: Number.parseFloat(draft.targetWeights.WBTC) || 0,
     },
   };
 }
@@ -134,8 +135,16 @@ export async function confirmPortfolioExecution(
   ownerAddress: string,
   receiptId: string,
   txHash: string,
-): Promise<void> {
-  await apiFetch("/api/v1/execution_gate/confirm", {
+): Promise<{
+  portable_receipt?: {
+    registry_receipt_id?: string;
+    cid?: string;
+    gateway_url?: string | null;
+    ipfs_uri?: string | null;
+  };
+  portable_receipt_error?: string;
+}> {
+  return apiFetch("/api/v1/execution_gate/confirm", {
     method: "POST",
     body: JSON.stringify({
       owner_address: ownerAddress,
@@ -152,10 +161,12 @@ export function buildPolicyDraft(snapshot: PolicySnapshot): PolicyDraft {
     maxSlippageBps: String(snapshot.max_slippage_bps ?? ""),
     cooldownSeconds: String(snapshot.cooldown_seconds ?? ""),
     maxSwaps: String(snapshot.max_swaps_per_rebalance ?? ""),
+    maxFeeSharePct: String(snapshot.max_fee_share_pct ?? "85"),
     minAmounts: {
       ETH: String(snapshot.min_amounts?.ETH ?? minSwapAmountForAsset("ETH")),
       STRK: String(snapshot.min_amounts?.STRK ?? minSwapAmountForAsset("STRK")),
       USDC: String(snapshot.min_amounts?.USDC ?? minSwapAmountForAsset("USDC")),
+      WBTC: String(snapshot.min_amounts?.WBTC ?? minSwapAmountForAsset("WBTC")),
     },
   };
 }
@@ -167,6 +178,7 @@ export function buildPolicyPayload(draft: PolicyDraft): Record<string, unknown> 
     max_slippage_bps: Number(draft.maxSlippageBps) || 0,
     cooldown_seconds: Number(draft.cooldownSeconds) || 0,
     max_swaps_per_rebalance: Number(draft.maxSwaps) || 1,
+    max_fee_share_pct: Math.max(1, Math.min(100, Number(draft.maxFeeSharePct) || 85)),
     min_amounts: {
       ETH: Number(draft.minAmounts.ETH) || minSwapAmountForAsset("ETH"),
       STRK: Number(draft.minAmounts.STRK) || minSwapAmountForAsset("STRK"),
@@ -195,6 +207,19 @@ export async function togglePortfolioEmergencyStop(
     body: JSON.stringify({
       ...buildPolicyPayload(buildPolicyDraft(snapshot)),
       paused: !snapshot.paused,
+    }),
+  });
+  return payload.snapshot;
+}
+
+export async function setPortfolioGovernedExecutionState(
+  ownerAddress: string,
+  state: "armed" | "disarmed",
+): Promise<PolicySnapshot> {
+  const payload = await apiFetch<{ snapshot: PolicySnapshot }>(`/api/v1/execution_gate/policy/${ownerAddress}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      governed_execution_state: state,
     }),
   });
   return payload.snapshot;

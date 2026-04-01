@@ -1,4 +1,4 @@
-"""Ekubo config constants (Sepolia defaults, env-overridable)."""
+"""Ekubo config constants (Sepolia + mainnet, env-overridable)."""
 import os
 
 # Sepolia core Ekubo contracts
@@ -9,6 +9,16 @@ EKUBO_CORE_SEPOLIA = os.getenv(
 EKUBO_ROUTER_SEPOLIA = os.getenv(
     "EKUBO_ROUTER_SEPOLIA",
     "0x0045f933adf0607292468ad1c1dedaa74d5ad166392590e72676a34d01d7b763",
+)
+
+# Starknet mainnet Ekubo contracts
+EKUBO_CORE_MAINNET = os.getenv(
+    "EKUBO_CORE_MAINNET",
+    "0x00000005dd3d2f4429af886cd1a3b08228e5c6d1564b37e8c46e0000a0516413",
+)
+EKUBO_ROUTER_MAINNET = os.getenv(
+    "EKUBO_ROUTER_MAINNET",
+    "0x0199741822c2dc722f6f605204f35e56dbc23bceed54818168c4c49e4c8393c3",
 )
 EKUBO_POSITIONS_SEPOLIA = os.getenv(
     "EKUBO_POSITIONS_SEPOLIA",
@@ -55,6 +65,9 @@ SEPOLIA_STRKBTC = os.getenv(
 )
 
 EKUBO_API_BASE = os.getenv("EKUBO_API_BASE", "https://prod-api.ekubo.org")
+STARKNET_MAINNET_RPC_URL = os.getenv("STARKNET_MAINNET_RPC_URL", "https://rpc.starknet.lava.build:443")
+EKUBO_MAINNET_CHAIN_ID = os.getenv("EKUBO_MAINNET_CHAIN_ID", "0x534e5f4d41494e")
+_EKUBO_SEPOLIA_CHAIN_IDS = {"0x534e5f5345504f4c4941", "0x534e5f4d41494f", "23448594291968335"}
 
 
 def get_ekubo_chain_id() -> str:
@@ -64,3 +77,23 @@ def get_ekubo_chain_id() -> str:
         return raw.strip()
     # Conservative fallback if env was accidentally dropped.
     return "0x534e5f5345504f4c4941"
+
+
+def is_ekubo_mainnet_chain(chain_id: str | None) -> bool:
+    value = str(chain_id or "").strip().lower()
+    return value == EKUBO_MAINNET_CHAIN_ID.strip().lower()
+
+
+def get_ekubo_core_address(chain_id: str | None) -> str:
+    return EKUBO_CORE_MAINNET if is_ekubo_mainnet_chain(chain_id) else EKUBO_CORE_SEPOLIA
+
+
+def get_ekubo_router_address(chain_id: str | None) -> str:
+    return EKUBO_ROUTER_MAINNET if is_ekubo_mainnet_chain(chain_id) else EKUBO_ROUTER_SEPOLIA
+
+
+def get_starknet_rpc_for_chain(chain_id: str | None) -> str:
+    return STARKNET_MAINNET_RPC_URL if is_ekubo_mainnet_chain(chain_id) else os.getenv(
+        "STARKNET_RPC_URL",
+        "https://starknet-sepolia-rpc.publicnode.com",
+    )

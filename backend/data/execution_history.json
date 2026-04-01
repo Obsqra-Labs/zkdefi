@@ -1,0 +1,25 @@
+{
+  "0x0c19ccdb85fc68e3ec1db841d4dc693aef046b1e8c5b409f04291563a815a4": {
+    "id": "0x0c19ccdb85fc68e3ec1db841d4dc693aef046b1e8c5b409f04291563a815a4",
+    "address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "full",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-28T05:09:45.546040+00:00",
+    "tx_hash": null,
+    "status": "rejected",
+    "error": "All connection attempts failed",
+    "submitted_at": "2026-03-28T05:09:45.564339+00:00"
+  }
+}

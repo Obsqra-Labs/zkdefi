@@ -14,6 +14,11 @@ const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ||
   "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/EvhYN6geLrdvbYHVRgPJ7";
 
+function resolveRpcUrl(override?: string | null): string {
+  if (override && override.trim()) return override.trim();
+  return RPC_URL;
+}
+
 // ---------------------------------------------------------------------------
 // Module-level state
 // ---------------------------------------------------------------------------
@@ -43,10 +48,10 @@ export type TxSettlementStatus =
 /**
  * One-shot status check for a tx hash. Light-weight; call in a setInterval.
  */
-export async function getTxStatus(txHash: string): Promise<TxSettlementStatus> {
+export async function getTxStatus(txHash: string, nodeUrl?: string): Promise<TxSettlementStatus> {
   try {
     const { RpcProvider } = await import("starknet");
-    const provider = new RpcProvider({ nodeUrl: RPC_URL });
+    const provider = new RpcProvider({ nodeUrl: resolveRpcUrl(nodeUrl) });
     const status = await provider.getTransactionStatus(txHash);
 
     const finality = (status.finality_status ?? "") as string;

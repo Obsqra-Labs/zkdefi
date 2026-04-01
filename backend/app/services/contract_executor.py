@@ -17,7 +17,10 @@ import re
 import shutil
 import subprocess
 import time
+import json
 from dataclasses import dataclass
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -52,31 +55,169 @@ class ExecutionResult:
     error: Optional[str] = None
 
 
+@dataclass
+class ExecutionTargetConfig:
+    network_id: str
+    rpc_url: str
+    account_path: str
+    private_key: str
+    account_address: str
+    deposit_contract: str
+    deposit_entrypoint: str
+    allocation_contract: str
+    allocation_entrypoint: str
+    live_submit_enabled: bool
+
+
 class ContractExecutor:
     def __init__(self) -> None:
-        self.rpc_url = os.getenv("EXECUTOR_RPC_URL") or os.getenv("STARKNET_RPC_URL", "http://localhost:5050")
-        self.account_path = os.getenv("EXECUTOR_ACCOUNT_PATH") or os.getenv("STARKNET_ACCOUNT")
-        self.private_key = os.getenv("EXECUTOR_PRIVATE_KEY") or os.getenv("RELAYER_PRIVATE_KEY")
-
-        # Optional configurable calls. If unset, executor remains in record-only mode.
-        self.deposit_contract = os.getenv("EXECUTOR_DEPOSIT_CONTRACT") or os.getenv("PROOF_GATED_AGENT_ADDRESS")
-        self.deposit_entrypoint = os.getenv("EXECUTOR_DEPOSIT_ENTRYPOINT")  # e.g. deposit_with_proof
-        self.allocation_contract = os.getenv("EXECUTOR_ALLOCATION_CONTRACT")
-        self.allocation_entrypoint = os.getenv("EXECUTOR_ALLOCATION_ENTRYPOINT")
-
-        self.live_submit_enabled = os.getenv("EXECUTOR_LIVE_SUBMIT", "false").lower() == "true"
         self._starkli = shutil.which("starkli")
 
-    def can_submit_live(self) -> bool:
-        return bool(
-            self.live_submit_enabled
-            and self._starkli
-            and self.account_path
-            and self.private_key
+    def _resolve_target_config(self, network_id: str = "starknet_sepolia") -> ExecutionTargetConfig:
+        resolved_network = (network_id or "starknet_sepolia").strip().lower() or "starknet_sepolia"
+        is_mainnet = resolved_network == "starknet_mainnet"
+        suffix = "_MAINNET" if is_mainnet else ""
+        rpc_url = (
+            (os.getenv("EXECUTOR_RPC_URL_MAINNET") or os.getenv("STARKNET_MAINNET_RPC_URL") or "")
+            if is_mainnet
+            else (
+                os.getenv("EXECUTOR_RPC_URL")
+                or os.getenv("STARKNET_RPC_URL", "http://localhost:5050")
+                or "http://localhost:5050"
+            )
+        )
+        account_path = (
+            (os.getenv("EXECUTOR_ACCOUNT_PATH_MAINNET") or "")
+            if is_mainnet
+            else (
+                os.getenv("EXECUTOR_ACCOUNT_PATH")
+                or os.getenv("STARKNET_ACCOUNT")
+                or ""
+            )
+        )
+        private_key = (
+            (os.getenv("EXECUTOR_PRIVATE_KEY_MAINNET") or "")
+            if is_mainnet
+            else (
+                os.getenv("EXECUTOR_PRIVATE_KEY")
+                or os.getenv("RELAYER_PRIVATE_KEY")
+                or ""
+            )
+        )
+        deposit_contract = (
+            os.getenv(f"EXECUTOR_DEPOSIT_CONTRACT{suffix}")
+            or os.getenv("EXECUTOR_DEPOSIT_CONTRACT")
+            or os.getenv("PROOF_GATED_AGENT_ADDRESS")
+            or ""
+        )
+        allocation_contract = (
+            os.getenv(f"EXECUTOR_ALLOCATION_CONTRACT{suffix}")
+            or os.getenv("EXECUTOR_ALLOCATION_CONTRACT")
+            or ""
+        )
+        live_submit_enabled = (
+            (os.getenv("EXECUTOR_LIVE_SUBMIT_MAINNET") or "false")
+            if is_mainnet
+            else (os.getenv("EXECUTOR_LIVE_SUBMIT") or "false")
+        ).lower() == "true"
+        account_address = self._read_account_address(account_path)
+        return ExecutionTargetConfig(
+            network_id=resolved_network,
+            rpc_url=rpc_url,
+            account_path=account_path,
+            private_key=private_key,
+            account_address=account_address,
+            deposit_contract=deposit_contract,
+            deposit_entrypoint=os.getenv(f"EXECUTOR_DEPOSIT_ENTRYPOINT{suffix}") or os.getenv("EXECUTOR_DEPOSIT_ENTRYPOINT") or "",
+            allocation_contract=allocation_contract,
+            allocation_entrypoint=os.getenv(f"EXECUTOR_ALLOCATION_ENTRYPOINT{suffix}") or os.getenv("EXECUTOR_ALLOCATION_ENTRYPOINT") or "",
+            live_submit_enabled=live_submit_enabled,
         )
 
-    async def _invoke(self, contract: str, entrypoint: str, calldata: list[str]) -> Optional[str]:
-        if not self.can_submit_live():
+    def can_submit_live(self, network_id: str = "starknet_sepolia") -> bool:
+        cfg = self._resolve_target_config(network_id)
+        account_deployed = self._is_account_deployed(cfg)
+        return bool(
+            cfg.live_submit_enabled
+            and self._starkli
+            and cfg.account_path
+            and cfg.private_key
+            and account_deployed
+        )
+
+    def get_readiness(self, network_id: str = "starknet_sepolia") -> dict[str, object]:
+        cfg = self._resolve_target_config(network_id)
+        account_deployed = self._is_account_deployed(cfg)
+        return {
+            "network_id": cfg.network_id,
+            "rpc_url": cfg.rpc_url,
+            "account_path": cfg.account_path,
+            "account_address": cfg.account_address,
+            "live_submit_enabled": cfg.live_submit_enabled,
+            "starkli_available": bool(self._starkli),
+            "account_configured": bool(cfg.account_path),
+            "private_key_configured": bool(cfg.private_key),
+            "account_deployed": account_deployed,
+            "can_submit_live": bool(
+                cfg.live_submit_enabled
+                and self._starkli
+                and cfg.account_path
+                and cfg.private_key
+                and account_deployed
+            ),
+        }
+
+    def _read_account_address(self, account_path: str) -> str:
+        if not account_path:
+            return ""
+        try:
+            with open(account_path, "r", encoding="utf-8") as fh:
+                payload = json.load(fh)
+        except Exception:
+            return ""
+        deployment = payload.get("deployment") if isinstance(payload, dict) else None
+        if isinstance(deployment, dict):
+            return str(deployment.get("address") or "").strip()
+        return str(payload.get("address") or "").strip() if isinstance(payload, dict) else ""
+
+    def _is_account_deployed(self, cfg: ExecutionTargetConfig) -> bool:
+        if not cfg.rpc_url or not cfg.account_address:
+            return False
+        payload = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "method": "starknet_getClassHashAt",
+                "params": {
+                    "block_id": "latest",
+                    "contract_address": cfg.account_address,
+                },
+                "id": 1,
+            }
+        ).encode("utf-8")
+        req = urllib_request.Request(
+            cfg.rpc_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib_request.urlopen(req, timeout=15) as response:
+                body = response.read().decode("utf-8")
+            parsed = json.loads(body)
+        except (urllib_error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            return False
+        return bool(parsed.get("result")) and not parsed.get("error")
+
+    async def _invoke(
+        self,
+        contract: str,
+        entrypoint: str,
+        calldata: list[str],
+        *,
+        network_id: str = "starknet_sepolia",
+    ) -> Optional[str]:
+        cfg = self._resolve_target_config(network_id)
+        if not self.can_submit_live(network_id):
             return None
         if not contract or not entrypoint:
             return None
@@ -85,11 +226,11 @@ class ContractExecutor:
             str(self._starkli),
             "invoke",
             "--rpc",
-            self.rpc_url,
+            cfg.rpc_url,
             "--account",
-            str(self.account_path),
+            str(cfg.account_path),
             "--private-key",
-            str(self.private_key),
+            str(cfg.private_key),
             contract,
             entrypoint,
             *[str(x) for x in calldata],
@@ -115,10 +256,13 @@ class ContractExecutor:
         deposit_amount_wei: int,
         risk_profile: str,
         llm_reasoning_hash: str,
+        *,
+        network_id: str = "starknet_sepolia",
     ) -> Optional[str]:
-        if not self.can_submit_live():
+        cfg = self._resolve_target_config(network_id)
+        if not self.can_submit_live(network_id):
             return None
-        if not self.deposit_contract or not self.deposit_entrypoint:
+        if not cfg.deposit_contract or not cfg.deposit_entrypoint:
             return None
 
         amount_low, amount_high = _u256_parts(int(deposit_amount_wei))
@@ -127,17 +271,20 @@ class ContractExecutor:
         # Generic calldata schema for configurable executor entrypoint:
         # [amount_low, amount_high, proof_hash]
         calldata = [str(amount_low), str(amount_high), str(proof_hash)]
-        return await self._invoke(self.deposit_contract, self.deposit_entrypoint, calldata)
+        return await self._invoke(cfg.deposit_contract, cfg.deposit_entrypoint, calldata, network_id=network_id)
 
     async def maybe_submit_allocation(
         self,
         pool_id: str,
         amount_wei: int,
         protocol: str,
+        *,
+        network_id: str = "starknet_sepolia",
     ) -> Optional[str]:
-        if not self.can_submit_live():
+        cfg = self._resolve_target_config(network_id)
+        if not self.can_submit_live(network_id):
             return None
-        if not self.allocation_contract or not self.allocation_entrypoint:
+        if not cfg.allocation_contract or not cfg.allocation_entrypoint:
             return None
 
         amount_low, amount_high = _u256_parts(int(amount_wei))
@@ -147,7 +294,7 @@ class ContractExecutor:
         # Generic calldata schema for configurable executor entrypoint:
         # [pool_felt, protocol_id, amount_low, amount_high]
         calldata = [str(pool_felt), str(protocol_id), str(amount_low), str(amount_high)]
-        return await self._invoke(self.allocation_contract, self.allocation_entrypoint, calldata)
+        return await self._invoke(cfg.allocation_contract, cfg.allocation_entrypoint, calldata, network_id=network_id)
 
     async def execute_deposit_and_allocation(
         self,
@@ -157,6 +304,8 @@ class ContractExecutor:
         allocation: dict[str, float],
         llm_reasoning_hash: str,
         expected_apy: float,
+        *,
+        network_id: str = "starknet_sepolia",
     ) -> ExecutionResult:
         try:
             now = int(time.time() * 1000)
@@ -175,6 +324,7 @@ class ContractExecutor:
                 deposit_amount_wei=int(deposit_amount),
                 risk_profile=risk_profile,
                 llm_reasoning_hash=llm_reasoning_hash,
+                network_id=network_id,
             )
 
             allocation_tx_hashes: dict[str, Optional[str]] = {}
@@ -184,6 +334,7 @@ class ContractExecutor:
                     pool_id=strategy_name,
                     amount_wei=amount_wei,
                     protocol="ekubo" if "ekubo" in strategy_name.lower() else "other",
+                    network_id=network_id,
                 )
 
             any_live = vault_tx_hash is not None or any(v is not None for v in allocation_tx_hashes.values())
@@ -218,4 +369,3 @@ def get_executor() -> ContractExecutor:
     if _EXECUTOR_INSTANCE is None:
         _EXECUTOR_INSTANCE = ContractExecutor()
     return _EXECUTOR_INSTANCE
-

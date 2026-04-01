@@ -68,17 +68,27 @@ class TestCreateReceipt:
 class TestConfirmReceipt:
     @pytest.mark.asyncio
     async def test_confirms_and_adds_tx_hash(self, svc: ReceiptService):
-        r = await svc.create_receipt("0xA", "0x", "0x", "deposit", 1, 10)
+        r = await svc.create_receipt(
+            "0xA",
+            "0x",
+            "0x",
+            "deposit",
+            1,
+            10,
+            metadata={"source": "execution_gate_v1", "stage": "execute", "status": "ready_to_sign"},
+        )
         result = await svc.confirm_receipt(r["receipt_id"], "0xTX123")
-        assert result["status"] == "confirmed"
+        assert result["status"] == "submitted"
         stored = await svc.get_receipt(r["receipt_id"])
         assert stored["on_chain"] is True
         assert stored["tx_hash"] == "0xTX123"
+        assert stored["metadata"]["status"] == "submitted"
+        assert stored["metadata"]["execution"]["tx_status"] == "submitted"
 
     @pytest.mark.asyncio
     async def test_confirm_nonexistent_is_noop(self, svc: ReceiptService):
         result = await svc.confirm_receipt("0xDOESNOTEXIST", "0xTX")
-        assert result["status"] == "confirmed"  # no-op but returns shape
+        assert result["status"] == "missing"  # no-op but returns shape
 
 
 # ---------------------------------------------------------------------------

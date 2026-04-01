@@ -56,6 +56,31 @@ export function sepoliaVoyagerClassUrl(classHash: string): string {
   return `${SEPOLIA_VOYAGER_BASE}/class/${hash}`;
 }
 
+// ── Receipt-aware URL (auto-detect Sepolia vs mainnet) ──
+const KNOWN_SEPOLIA_CONTRACTS = new Set([
+  "0x0544ef8cbf8bf1ac7987bc0d2bb211434d515fbe10bab65f36e0f761c79bbdff", // ReceiptRegistry (Sepolia)
+  "0x076f1e28238b1ce4640632be6df94fcf3ac8b85ba9ad1fac00ef2142f10a1054", // ReceiptArchive (Sepolia)
+]);
+
+function isSepoliaContract(addr?: string | null): boolean {
+  if (!addr) return false; // default to mainnet (current deployment)
+  const normalized = addr.toLowerCase();
+  for (const known of KNOWN_SEPOLIA_CONTRACTS) {
+    if (normalized.startsWith(known)) return true;
+  }
+  return false;
+}
+
+/** Smart receipt tx URL — uses Sepolia Voyager for known Sepolia contracts, mainnet otherwise. */
+export function receiptVoyagerTxUrl(
+  txHash: string,
+  contractAddress?: string | null,
+): string {
+  return isSepoliaContract(contractAddress)
+    ? sepoliaVoyagerTxUrl(txHash)
+    : voyagerTxUrl(txHash);
+}
+
 // ── Obsqra Proof Chain (L3) ──
 export const L3_FORGE_BASE = "https://starknet.obsqra.fi/forge";
 

@@ -147,14 +147,43 @@ class ExecutionPolicyService:
         # Validate execution rules
         max_alloc = float(exec_rules.get("maxAllocationPct", 100.0))
         max_alloc = max(0.0, min(100.0, max_alloc))
-        
+
         daily_limit_usd = float(exec_rules.get("dailyLimitUSD", 100000.0))
         daily_limit_usd = max(0.0, daily_limit_usd)
-        
+
         auto_execute = bool(exec_rules.get("autoExecute", False))
-        
+
+        cooldown_seconds = int(exec_rules.get("cooldownSeconds", 300))
+        cooldown_seconds = max(0, min(86_400, cooldown_seconds))
+
+        max_slippage_bps = int(exec_rules.get("maxSlippageBps", 150))
+        max_slippage_bps = max(0, min(5_000, max_slippage_bps))
+
+        max_swaps_per_rebalance = int(exec_rules.get("maxSwapsPerRebalance", 3))
+        max_swaps_per_rebalance = max(1, min(10, max_swaps_per_rebalance))
+
+        min_amounts = exec_rules.get("minAmounts", {})
+        if not isinstance(min_amounts, dict):
+            min_amounts = {}
+        cleaned_min_amounts: dict[str, float] = {}
+        for key, val in min_amounts.items():
+            try:
+                cleaned_min_amounts[str(key).upper()] = max(0.0, float(val))
+            except (TypeError, ValueError):
+                continue
+
         is_active = bool(policy_data.get("isActive", True))
-        
+        governed_execution = policy_data.get("governedExecution", {})
+        if not isinstance(governed_execution, dict):
+            governed_execution = {}
+        governed_execution_state = str(
+            governed_execution.get("state")
+            or ("armed" if auto_execute else "disarmed")
+        ).strip().lower()
+        if governed_execution_state not in {"armed", "disarmed"}:
+            governed_execution_state = "armed" if auto_execute else "disarmed"
+        governed_execution_updated_at = governed_execution.get("updatedAt")
+
         return {
             "address": policy_data.get("address", "unknown"),
             "gateRules": {
@@ -167,8 +196,16 @@ class ExecutionPolicyService:
                 "maxAllocationPct": max_alloc,
                 "dailyLimitUSD": daily_limit_usd,
                 "autoExecute": auto_execute,
+                "cooldownSeconds": cooldown_seconds,
+                "maxSlippageBps": max_slippage_bps,
+                "maxSwapsPerRebalance": max_swaps_per_rebalance,
+                "minAmounts": cleaned_min_amounts,
             },
             "isActive": is_active,
+            "governedExecution": {
+                "state": governed_execution_state,
+                "updatedAt": governed_execution_updated_at,
+            },
             "createdAt": policy_data.get("createdAt"),
             "updatedAt": policy_data.get("updatedAt"),
         }
@@ -188,8 +225,16 @@ class ExecutionPolicyService:
                 "maxAllocationPct": 20.0,
                 "dailyLimitUSD": 10000.0,
                 "autoExecute": False,
+                "cooldownSeconds": 300,
+                "maxSlippageBps": 150,
+                "maxSwapsPerRebalance": 3,
+                "minAmounts": {"ETH": 0.00001, "STRK": 0.1, "USDC": 1.0},
             },
             "isActive": True,
+            "governedExecution": {
+                "state": "disarmed",
+                "updatedAt": now,
+            },
             "createdAt": now,
             "updatedAt": now,
         }

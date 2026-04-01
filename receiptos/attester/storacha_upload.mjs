@@ -52,7 +52,7 @@ async function createClient(args) {
 async function cmdUploadJsonFile(args) {
   const path = String(args.path ?? "").trim();
   const name = String(args.name ?? "receipt-bundle.json").trim() || "receipt-bundle.json";
-  const gatewayHost = String(args.gateway_host ?? process.env.STORACHA_GATEWAY_HOST ?? "storacha.link").trim() || "storacha.link";
+  const gatewayHost = String(args.gateway_host ?? process.env.STORACHA_GATEWAY_HOST ?? "w3s.link").trim() || "w3s.link";
   if (!path) {
     fail("--path is required");
   }

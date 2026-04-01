@@ -14,8 +14,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.services.zkdefi_agent_service import ZkdefiAgentService
-
 _RECEIPT_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "receipts.db"
 
 
@@ -26,7 +24,6 @@ class ReceiptService:
     """
 
     def __init__(self):
-        self.agent_service = ZkdefiAgentService()
         self._db_lock = threading.RLock()
         self._init_db()
 
@@ -143,15 +140,91 @@ class ReceiptService:
         tx_hash: str,
     ) -> dict[str, Any]:
         """Confirm receipt was submitted on-chain."""
+        updated = False
         with self._db_lock, self._db_connect() as conn:
-            conn.execute(
-                "UPDATE receipts SET on_chain=1, tx_hash=? WHERE receipt_id=?",
-                (tx_hash, receipt_id),
+            row = conn.execute(
+                "SELECT metadata FROM receipts WHERE receipt_id=?",
+                (receipt_id,),
+            ).fetchone()
+            metadata: dict[str, Any] = {}
+            if row and row["metadata"]:
+                try:
+                    metadata = json.loads(row["metadata"])
+                except (json.JSONDecodeError, TypeError):
+                    metadata = {}
+            if metadata.get("stage") == "execute":
+                execution_meta = metadata.get("execution") if isinstance(metadata.get("execution"), dict) else {}
+                metadata = {
+                    **metadata,
+                    "status": "submitted",
+                    "execution": {
+                        **execution_meta,
+                        "tx_status": execution_meta.get("tx_status") or "submitted",
+                        "tx_submitted_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                }
+            result = conn.execute(
+                "UPDATE receipts SET on_chain=1, tx_hash=?, metadata=? WHERE receipt_id=?",
+                (tx_hash, json.dumps(metadata) if metadata else None, receipt_id),
             )
+            updated = result.rowcount > 0
         return {
             "receipt_id": receipt_id,
             "tx_hash": tx_hash,
-            "status": "confirmed",
+            "status": "submitted" if updated else "missing",
+        }
+
+    async def update_receipt_metadata(
+        self,
+        receipt_id: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Replace metadata payload for a receipt."""
+        meta_json = json.dumps(metadata) if metadata else None
+        with self._db_lock, self._db_connect() as conn:
+            conn.execute(
+                "UPDATE receipts SET metadata=? WHERE receipt_id=?",
+                (meta_json, receipt_id),
+            )
+        return {
+            "receipt_id": receipt_id,
+            "metadata": metadata,
+        }
+
+    async def get_recent_receipts_with_tx_hash(
+        self,
+        *,
+        limit: int = 250,
+    ) -> list[dict[str, Any]]:
+        """Return receipts that include a tx_hash, newest first."""
+        import asyncio
+
+        def _fetch() -> list[dict[str, Any]]:
+            sql = (
+                "SELECT * FROM receipts WHERE tx_hash IS NOT NULL AND tx_hash != '' "
+                "ORDER BY timestamp DESC LIMIT ?"
+            )
+            with self._db_lock, self._db_connect() as conn:
+                rows = conn.execute(sql, (int(limit),)).fetchall()
+            return [self._row_to_dict(r) for r in rows]
+
+        return await asyncio.to_thread(_fetch)
+
+    async def update_receipt_metadata(
+        self,
+        receipt_id: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Replace metadata payload for a receipt."""
+        meta_json = json.dumps(metadata) if metadata else None
+        with self._db_lock, self._db_connect() as conn:
+            conn.execute(
+                "UPDATE receipts SET metadata=? WHERE receipt_id=?",
+                (meta_json, receipt_id),
+            )
+        return {
+            "receipt_id": receipt_id,
+            "metadata": metadata,
         }
 
     async def get_receipt(self, receipt_id: str) -> dict[str, Any] | None:

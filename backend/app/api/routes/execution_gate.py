@@ -4,6 +4,7 @@ Stable execution gate API for the mainnet-v1 `/portfolio` lane.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
@@ -60,10 +61,12 @@ class ReceiptConfirmRequest(BaseModel):
 
 class PolicyUpdateRequest(BaseModel):
     paused: bool | None = None
+    governed_execution_state: Literal["armed", "disarmed"] | None = None
     max_value_per_action_usd: float | None = Field(default=None, ge=0)
     max_slippage_bps: int | None = Field(default=None, ge=0, le=5_000)
     cooldown_seconds: int | None = Field(default=None, ge=0, le=86_400)
     max_swaps_per_rebalance: int | None = Field(default=None, ge=1, le=10)
+    max_fee_share_pct: float | None = Field(default=None, ge=1, le=100)
     min_amounts: dict[str, float] | None = None
 
 
@@ -81,6 +84,7 @@ async def put_execution_gate_policy(owner_address: str, body: PolicyUpdateReques
     before_snapshot = await service.get_policy_snapshot(owner_address)
     current = policy_service.get_policy(owner_address).data
     exec_rules = dict(current.get("executionRules", {}))
+    governed_execution = dict(current.get("governedExecution", {}))
     if body.max_value_per_action_usd is not None:
         exec_rules["dailyLimitUSD"] = body.max_value_per_action_usd
     if body.max_slippage_bps is not None:
@@ -89,14 +93,21 @@ async def put_execution_gate_policy(owner_address: str, body: PolicyUpdateReques
         exec_rules["cooldownSeconds"] = body.cooldown_seconds
     if body.max_swaps_per_rebalance is not None:
         exec_rules["maxSwapsPerRebalance"] = body.max_swaps_per_rebalance
+    if body.max_fee_share_pct is not None:
+        exec_rules["maxFeeSharePct"] = body.max_fee_share_pct
     if body.min_amounts is not None:
         exec_rules["minAmounts"] = body.min_amounts
+    if body.governed_execution_state is not None:
+        governed_execution["state"] = body.governed_execution_state
+        governed_execution["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        exec_rules["autoExecute"] = body.governed_execution_state == "armed"
 
     updated = policy_service.set_policy(
         owner_address,
         {
             **current,
             "executionRules": exec_rules,
+            "governedExecution": governed_execution,
             "isActive": not bool(body.paused) if body.paused is not None else current.get("isActive", True),
         },
     )

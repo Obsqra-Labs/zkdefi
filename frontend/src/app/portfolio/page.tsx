@@ -1,5 +1,6 @@
 "use client";
 
+import { AppNavbar } from "@/components/zkdefi/AppNavbar";
 import { PortfolioDisconnectedState } from "@/components/portfolio/PortfolioDisconnectedState";
 import { PortfolioErrorBanner } from "@/components/portfolio/PortfolioErrorBanner";
 import { PortfolioHeaderStrip } from "@/components/portfolio/PortfolioHeaderStrip";
@@ -20,11 +21,18 @@ export default function PortfolioPage() {
   } = usePortfolioPageShell();
 
   if (!isConnected || !address) {
-    return <PortfolioDisconnectedState />;
+    return (
+      <>
+        <AppNavbar />
+        <PortfolioDisconnectedState />
+      </>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-5 py-6 text-zinc-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+      <AppNavbar />
+      <div className="px-5 py-6 sm:px-6 lg:px-8">
       <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden="true" />
       <div className="mx-auto max-w-7xl space-y-4">
         <PortfolioHeaderStrip {...headerProps} />
@@ -56,6 +64,7 @@ export default function PortfolioPage() {
           <PortfolioMainDesk {...mainDeskProps} />
           <PortfolioRightRail {...rightRailProps} />
         </div>
+      </div>
       </div>
     </main>
   );

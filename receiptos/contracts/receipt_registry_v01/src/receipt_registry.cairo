@@ -9,7 +9,8 @@ pub trait IReceiptRegistry<TContractState> {
     ) -> u64;
     fn consume_receipt(ref self: TContractState, receipt_id: u64, nullifier: felt252);
     fn verify_receipt(self: @TContractState, receipt_id: u64) -> bool;
-    fn upgrade(ref self: TContractState, new_attester_pubkey: felt252);
+    fn rotate_attester_pubkey(ref self: TContractState, new_attester_pubkey: felt252);
+    fn upgrade_class(ref self: TContractState, new_class_hash: starknet::ClassHash);
     fn get_admin(self: @TContractState) -> starknet::ContractAddress;
     fn get_attester_pubkey(self: @TContractState) -> felt252;
     fn get_receipt_policy_hash(self: @TContractState, receipt_id: u64) -> felt252;
@@ -24,7 +25,10 @@ pub trait IReceiptRegistry<TContractState> {
 pub mod ReceiptRegistry {
     use core::ecdsa::check_ecdsa_signature;
     use starknet::ContractAddress;
+    use starknet::ClassHash;
     use starknet::get_caller_address;
+    use starknet::SyscallResultTrait;
+    use starknet::syscalls::replace_class_syscall;
     use starknet::storage::{Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess};
 
     #[storage]
@@ -47,6 +51,7 @@ pub mod ReceiptRegistry {
         ReceiptIssued: ReceiptIssued,
         ReceiptConsumed: ReceiptConsumed,
         AttesterUpgraded: AttesterUpgraded,
+        ClassUpgraded: ClassUpgraded,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -70,6 +75,11 @@ pub mod ReceiptRegistry {
     struct AttesterUpgraded {
         old_attester_pubkey: felt252,
         new_attester_pubkey: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct ClassUpgraded {
+        new_class_hash: ClassHash,
     }
 
     #[constructor]
@@ -126,7 +136,7 @@ pub mod ReceiptRegistry {
             self.receipt_exists.entry(receipt_id).read() && !self.receipt_consumed.entry(receipt_id).read()
         }
 
-        fn upgrade(ref self: ContractState, new_attester_pubkey: felt252) {
+        fn rotate_attester_pubkey(ref self: ContractState, new_attester_pubkey: felt252) {
             let caller = get_caller_address();
             assert(caller == self.admin.read(), 'ONLY_ADMIN');
             assert(new_attester_pubkey != 0, 'ZERO_ATTESTER');
@@ -134,6 +144,13 @@ pub mod ReceiptRegistry {
             let old_attester_pubkey = self.attester_pubkey.read();
             self.attester_pubkey.write(new_attester_pubkey);
             self.emit(AttesterUpgraded { old_attester_pubkey, new_attester_pubkey });
+        }
+
+        fn upgrade_class(ref self: ContractState, new_class_hash: ClassHash) {
+            let caller = get_caller_address();
+            assert(caller == self.admin.read(), 'ONLY_ADMIN');
+            replace_class_syscall(new_class_hash).unwrap_syscall();
+            self.emit(ClassUpgraded { new_class_hash });
         }
 
         fn get_admin(self: @ContractState) -> ContractAddress {

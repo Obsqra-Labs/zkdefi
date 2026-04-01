@@ -4,16 +4,18 @@ import type { Call } from "starknet";
 
 import type { ExecutionResponse, SupportedAsset } from "./types";
 
-const ASSET_DECIMALS: Record<SupportedAsset, number> = {
+export const ASSET_DECIMALS: Record<SupportedAsset, number> = {
   ETH: 18,
   STRK: 18,
   USDC: 6,
+  WBTC: 8,
 };
 
-const MAINNET_TOKEN_BY_SYMBOL: Record<SupportedAsset, `0x${string}`> = {
+export const MAINNET_TOKEN_BY_SYMBOL: Record<SupportedAsset, `0x${string}`> = {
   ETH: "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
   STRK: "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
   USDC: "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8",
+  WBTC: "0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac",
 };
 
 export function fromWei(amountWei: number, asset: SupportedAsset): number {
@@ -29,6 +31,8 @@ export function minSwapAmountForAsset(asset: SupportedAsset): number {
       return 0.1;
     case "USDC":
       return 1;
+    case "WBTC":
+      return 0.00001;
     default:
       return 0.00001;
   }

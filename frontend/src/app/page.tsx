@@ -185,7 +185,7 @@ export default function LandingPage() {
                   value: "316+",
                   label: "receipts",
                   breakdown: "verified execution receipts on-chain",
-                  href: "/test",
+                  href: "/archive",
                 },
               ] as const
             ).map((s, i) => {
@@ -220,7 +220,7 @@ export default function LandingPage() {
           <Reveal delay={700}>
             <div className="mt-14 flex flex-wrap items-center gap-4">
               <Link
-                href="/agent"
+                href="/portfolio"
                 className="cta-glow inline-flex items-center gap-2.5 rounded-lg bg-emerald-600 px-7 py-3.5 text-sm font-semibold tracking-wide transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20"
               >
                 Launch App

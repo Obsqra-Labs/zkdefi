@@ -22,7 +22,16 @@ RECEIPT_BUNDLE_SCHEMA_PATH = (
     REPO_ROOT / "receiptos" / "docs" / "receipt-vault" / "receipt_bundle_schema.json"
 )
 
-DEFAULT_CHAIN = "starknet_sepolia"
+def _detect_chain() -> str:
+    rpc = os.getenv("RECEIPTOS_STARKNET_RPC", "").strip().lower()
+    if "sepolia" in rpc:
+        return "starknet_sepolia"
+    if rpc:
+        return "starknet"
+    return "starknet_sepolia"
+
+
+DEFAULT_CHAIN = _detect_chain()
 DEFAULT_DISCLOSURE = {
     "public_fields": [
         "action_type",

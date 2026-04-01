@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy zkde.fi frontend to production on this VPS.
 # Builds with NEXT_PUBLIC_API_URL=https://zkde.fi, then restarts the frontend.
-# Nginx routes zkde.fi → :3001 and /api/v1/zkdefi → :8003.
+# Nginx routes zkde.fi → :3001 and /api → :8003.
 #
 # Run this on the server that hosts zkde.fi after code changes. A full build + start
 # ensures HTML and _next/static chunks are from the same build (avoids ChunkLoadError
@@ -10,7 +10,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FRONTEND_DIR="$SCRIPT_DIR/frontend"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+FRONTEND_DIR="$REPO_ROOT/frontend"
 LIVE_ORIGIN="${LIVE_ORIGIN:-https://zkde.fi}"
 
 extract_agent_chunks() {
@@ -29,20 +30,39 @@ extract_agent_css() {
     | sort -u
 }
 
+extract_page_chunks() {
+  local origin="$1"
+  local route="$2"
+  curl -fsS "${origin}${route}" \
+    | grep -oE '/_next/static/chunks[^"[:space:]]+\.js' \
+    | sed 's#^/##' \
+    | sort -u
+}
+
+extract_page_css() {
+  local origin="$1"
+  local route="$2"
+  curl -fsS "${origin}${route}" \
+    | grep -oE '/_next/static/css[^"[:space:]]+\.css' \
+    | sed 's#^/##' \
+    | sort -u
+}
+
 verify_assets() {
   local origin="$1"
   local label="$2"
+  local route="${3:-/agent}"
   local missing=0
   local chunks
   local css_assets
-  chunks="$(extract_agent_chunks "$origin" || true)"
-  css_assets="$(extract_agent_css "$origin" || true)"
+  chunks="$(extract_page_chunks "$origin" "$route" || true)"
+  css_assets="$(extract_page_css "$origin" "$route" || true)"
   if [ -z "$chunks" ]; then
-    echo "ERROR: ${label} did not return any agent chunks"
+    echo "ERROR: ${label} did not return any chunks for ${route}"
     return 1
   fi
   if [ -z "$css_assets" ]; then
-    echo "ERROR: ${label} did not return any agent CSS assets"
+    echo "ERROR: ${label} did not return any CSS assets for ${route}"
     return 1
   fi
   while read -r chunk; do
@@ -127,6 +147,13 @@ if [ -z "$EXPECTED_AGENT_CHUNK" ]; then
 fi
 echo "Built agent chunk: $EXPECTED_AGENT_CHUNK"
 
+EXPECTED_PORTFOLIO_CHUNK="$(ls .next/static/chunks/app/portfolio/page-*.js 2>/dev/null | head -n1 | xargs -r basename || true)"
+if [ -z "$EXPECTED_PORTFOLIO_CHUNK" ]; then
+  echo "ERROR: Could not find built portfolio page chunk in .next/static/chunks/app/portfolio"
+  exit 1
+fi
+echo "Built portfolio chunk: $EXPECTED_PORTFOLIO_CHUNK"
+
 # 3. Start production server
 echo "Starting production server on port 3001..."
 if command -v pm2 >/dev/null 2>&1; then
@@ -151,10 +178,12 @@ else
 fi
 
 echo "Running local chunk integrity checks..."
-verify_assets "http://127.0.0.1:3001" "local"
+verify_assets "http://127.0.0.1:3001" "local agent" "/agent"
+verify_assets "http://127.0.0.1:3001" "local portfolio" "/portfolio"
 
 echo "Running live chunk integrity checks (${LIVE_ORIGIN})..."
-verify_assets "$LIVE_ORIGIN" "live"
+verify_assets "$LIVE_ORIGIN" "live agent" "/agent"
+verify_assets "$LIVE_ORIGIN" "live portfolio" "/portfolio"
 
 LIVE_AGENT_CHUNK="$(curl -fsS "${LIVE_ORIGIN}/agent" | grep -oE '_next/static/chunks/app/agent/page-[^"[:space:]]+\.js' | head -n1 | xargs -r basename || true)"
 if [ -z "$LIVE_AGENT_CHUNK" ]; then
@@ -171,3 +200,27 @@ if [ "$LIVE_AGENT_CHUNK" != "$EXPECTED_AGENT_CHUNK" ]; then
 fi
 
 echo "Chunk integrity check passed: live matches built chunk (${EXPECTED_AGENT_CHUNK})"
+
+LIVE_PORTFOLIO_CHUNK="$(curl -fsS "${LIVE_ORIGIN}/portfolio" | grep -oE '_next/static/chunks/app/portfolio/page-[^"[:space:]]+\.js' | head -n1 | xargs -r basename || true)"
+if [ -z "$LIVE_PORTFOLIO_CHUNK" ]; then
+  echo "ERROR: Could not parse live portfolio chunk from ${LIVE_ORIGIN}/portfolio"
+  exit 1
+fi
+
+if [ "$LIVE_PORTFOLIO_CHUNK" != "$EXPECTED_PORTFOLIO_CHUNK" ]; then
+  echo "ERROR: Live portfolio chunk mismatch"
+  echo "  built: $EXPECTED_PORTFOLIO_CHUNK"
+  echo "  live:  $LIVE_PORTFOLIO_CHUNK"
+  echo "This indicates stale runtime/cache drift on /portfolio. Retry deploy and clear edge cache if enabled."
+  exit 1
+fi
+
+echo "Chunk integrity check passed: live matches built portfolio chunk (${EXPECTED_PORTFOLIO_CHUNK})"
+
+READINESS_NETWORK="$(curl -fsS "${LIVE_ORIGIN}/api/v1/execution_gate/readiness/starknet_mainnet" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("network_id", ""))' || true)"
+if [ "$READINESS_NETWORK" != "starknet_mainnet" ]; then
+  echo "ERROR: execution gate readiness check did not return starknet_mainnet"
+  exit 1
+fi
+
+echo "Execution gate readiness check passed for starknet_mainnet"

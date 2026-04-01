@@ -20,9 +20,9 @@ def _first_env(*names: str, default: str = "") -> str:
 STARKNET_RPC_URL = _first_env(
     "STARKNET_RPC_URL",
     "STARKNET_RPC_URL_V08",
-    default="https://starknet-sepolia-rpc.publicnode.com",
+    default="https://rpc.starknet.lava.build:443",
 )
-STARKNET_CHAIN_ID = _first_env("STARKNET_CHAIN_ID", "EKUBO_CHAIN_ID", default="sepolia")
+STARKNET_CHAIN_ID = _first_env("STARKNET_CHAIN_ID", "EKUBO_CHAIN_ID", default="0x534e5f4d41494e")
 
 # Contract addresses used by relayer runner
 FULLY_SHIELDED_POOL_ADDRESS = _first_env(

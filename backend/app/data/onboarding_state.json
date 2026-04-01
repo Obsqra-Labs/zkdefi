@@ -22,5 +22,11 @@
 "identity_commitment": "0x28072e7db2ee0545239229c5c75a3820c96bf5541cfa8016f03efe5fddf731ce",
 "timestamp": 1773232938,
 "agent_initialized": true
+},
+"0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3": {
+"fact_hash": "0x4e58e9a4825adb6181093143e4a01e21563a2c8fae5bb6f2f8f6634191a28d3",
+"identity_commitment": "0x2aebcc6c1f044a6ada8cc40ccf44233cf12be4f693f4320caae1f346ea531c1d",
+"timestamp": 1774673076,
+"agent_initialized": true
 }
 }

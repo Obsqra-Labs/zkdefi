@@ -30,7 +30,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
-from starknet_py.hash.selector import get_selector_from_name
+
+try:
+    from starknet_py.hash.selector import get_selector_from_name
+except Exception:  # pragma: no cover - runtime fallback for partial starknet_py installs
+    get_selector_from_name = None
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +166,11 @@ class PortfolioSnapshot:
     total_value_usd: float = 0.0
     protocol_count: int = 0
     position_count: int = 0
+    wallet_token_count: int = 0
+    wallet_positions_value_usd: float = 0.0
+    defi_positions_value_usd: float = 0.0
     protocols_found: List[str] = field(default_factory=list)
+    wallet_assets_found: List[str] = field(default_factory=list)
     snapshot_hash: str = ""     # SHA-256 of canonical JSON — for proof binding
     scan_duration_ms: float = 0.0
     errors: List[str] = field(default_factory=list)
@@ -195,7 +203,11 @@ class PortfolioSnapshot:
 
 # ─── RPC helper ───────────────────────────────────────────────────────────────
 
-_BALANCE_OF_SELECTOR = hex(get_selector_from_name("balance_of"))
+if get_selector_from_name is not None:
+    _BALANCE_OF_SELECTOR = hex(get_selector_from_name("balance_of"))
+else:
+    # Same legacy selector already used elsewhere in the codebase.
+    _BALANCE_OF_SELECTOR = "0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e"
 
 
 # RPC error codes that are permanent (no point retrying)
@@ -526,7 +538,11 @@ def _snapshot_to_summary(snapshot: PortfolioSnapshot) -> Dict[str, Any]:
         "total_value_usd": snapshot.total_value_usd,
         "protocol_count": snapshot.protocol_count,
         "position_count": snapshot.position_count,
+        "wallet_token_count": snapshot.wallet_token_count,
+        "wallet_positions_value_usd": snapshot.wallet_positions_value_usd,
+        "defi_positions_value_usd": snapshot.defi_positions_value_usd,
         "protocols_found": snapshot.protocols_found,
+        "wallet_assets_found": snapshot.wallet_assets_found,
         "snapshot_hash": snapshot.snapshot_hash,
         "scanned_at": snapshot.scanned_at,
     }
@@ -627,8 +643,13 @@ async def scan_portfolio(wallet_address: str, *, skip_cache: bool = False) -> Po
                 pos.value_usd = pos.amount * price
 
     # Build snapshot
-    protocols_found = sorted(set(p.protocol for p in all_positions if p.protocol != "wallet"))
-    total_usd = sum(p.value_usd for p in all_positions)
+    wallet_positions = [p for p in all_positions if p.protocol == "wallet"]
+    defi_positions = [p for p in all_positions if p.protocol != "wallet"]
+    protocols_found = sorted(set(p.protocol for p in defi_positions))
+    wallet_assets_found = sorted(set(p.asset_symbol for p in wallet_positions))
+    wallet_positions_value_usd = sum(p.value_usd for p in wallet_positions)
+    defi_positions_value_usd = sum(p.value_usd for p in defi_positions)
+    total_usd = wallet_positions_value_usd + defi_positions_value_usd
     duration_ms = (time.time() - t0) * 1000
 
     snapshot = PortfolioSnapshot(
@@ -637,8 +658,12 @@ async def scan_portfolio(wallet_address: str, *, skip_cache: bool = False) -> Po
         positions=all_positions,
         total_value_usd=total_usd,
         protocol_count=len(protocols_found),
-        position_count=len([p for p in all_positions if p.protocol != "wallet"]),
+        position_count=len(defi_positions),
+        wallet_token_count=len(wallet_positions),
+        wallet_positions_value_usd=wallet_positions_value_usd,
+        defi_positions_value_usd=defi_positions_value_usd,
         protocols_found=protocols_found,
+        wallet_assets_found=wallet_assets_found,
         scan_duration_ms=round(duration_ms, 1),
         errors=all_errors,
     )

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Shield, Loader2, TrendingUp, RefreshCw, Filter,
+  Shield, TrendingUp, RefreshCw, Wallet,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { PoolBucketCard } from "@/components/zkdefi/shared/PoolBucketCard";
@@ -46,6 +46,24 @@ const FILTER_PILLS: Array<{ key: OpFilter; label: string }> = [
   { key: "stake", label: "Stake" },
   { key: "private", label: "Private" },
 ];
+
+function toUsd(value: number): string {
+  return `$${Math.round(value).toLocaleString()}`;
+}
+
+function riskScoreFromOpportunity(opp: any): number {
+  const direct = Number(opp?.riskScore ?? opp?.risk_score);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+
+  const level = String(opp?.risk_level ?? opp?.risk ?? "medium").toLowerCase();
+  if (level === "low") return 25;
+  if (level === "high") return 75;
+  return 50;
+}
+
+function apyFromOpportunity(opp: any): number {
+  return Number(opp?.currentYield ?? opp?.apy ?? opp?.yield ?? opp?.apr ?? 0) || 0;
+}
 
 export function CapitalTab({ address, onSlideout, isDemo, commitments }: CapitalTabProps) {
   // ── Opportunities ──
@@ -120,8 +138,94 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
     });
   }, [opportunities, opFilter]);
 
+  const capitalSummary = useMemo(() => {
+    const conservativeUsd = poolUserData.conservative?.usd ?? 0;
+    const moderateUsd = poolUserData.moderate?.usd ?? 0;
+    const aggressiveUsd = poolUserData.aggressive?.usd ?? 0;
+
+    const totalCommittedUsd = conservativeUsd + moderateUsd + aggressiveUsd;
+    const opps = filteredOpps.length > 0 ? filteredOpps : opportunities;
+
+    const weightedRisk = opps.length
+      ? opps.reduce((sum, opp) => sum + riskScoreFromOpportunity(opp), 0) / opps.length
+      : 0;
+
+    const avgApy = opps.length
+      ? opps.reduce((sum, opp) => sum + apyFromOpportunity(opp), 0) / opps.length
+      : 0;
+
+    const deployableEstimate = Math.max(0, totalCommittedUsd * 0.2);
+
+    return {
+      totalCommittedUsd,
+      conservativeUsd,
+      moderateUsd,
+      aggressiveUsd,
+      weightedRisk,
+      avgApy,
+      deployableEstimate,
+      opportunityCount: opportunities.length,
+      privateOpportunityCount: opportunities.filter((o) =>
+        String(o.type ?? o.category ?? "").toLowerCase().includes("priv") ||
+        String(o.type ?? o.category ?? "").toLowerCase().includes("shield")
+      ).length,
+    };
+  }, [filteredOpps, opportunities, poolUserData]);
+
+  const poolAllocationRows = useMemo(() => {
+    const total = capitalSummary.totalCommittedUsd;
+    return POOLS.map((p) => {
+      const usd = poolUserData[p.id]?.usd ?? 0;
+      const pct = total > 0 ? Math.round((usd / total) * 100) : 0;
+      return { ...p, usd, pct };
+    });
+  }, [capitalSummary.totalCommittedUsd, poolUserData]);
+
+  const riskTone =
+    capitalSummary.weightedRisk >= 65
+      ? { label: "High", cls: "text-red-300 border-red-500/30 bg-red-500/10" }
+      : capitalSummary.weightedRisk >= 40
+        ? { label: "Balanced", cls: "text-amber-300 border-amber-500/30 bg-amber-500/10" }
+        : { label: "Conservative", cls: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10" };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="inline-flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-cyan-300" />
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-200">Portfolio Snapshot</h3>
+          </div>
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] ${riskTone.cls}`}>
+            Risk posture: {riskTone.label}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <SnapshotTile label="Committed Capital" value={toUsd(capitalSummary.totalCommittedUsd)} hint="Across privacy pools" />
+          <SnapshotTile label="Deployable Estimate" value={toUsd(capitalSummary.deployableEstimate)} hint="Suggested next deployment budget" />
+          <SnapshotTile label="Avg Opportunity Yield" value={`${capitalSummary.avgApy.toFixed(1)}%`} hint={`${capitalSummary.opportunityCount} lanes tracked`} />
+        </div>
+
+        <div className="mt-3 space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
+            <span>Allocation by risk bucket</span>
+            <span>Private lanes: {capitalSummary.privateOpportunityCount}</span>
+          </div>
+          {poolAllocationRows.map((row) => (
+            <div key={row.id} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300">{row.label}</span>
+                <span className="text-zinc-400">{toUsd(row.usd)} ({row.pct}%)</span>
+              </div>
+              <div className="h-1.5 rounded bg-zinc-800">
+                <div className="h-1.5 rounded bg-cyan-400/70" style={{ width: `${Math.max(4, row.pct)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ─── Privacy Pool Buckets ─── */}
       <section>
         <div className="flex items-center gap-2 mb-3">
@@ -131,7 +235,7 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
           </h3>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {POOLS.map((pool) => {
             const userData = poolUserData[pool.id];
             return (
@@ -158,12 +262,12 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
-              Opportunities
+              Deployable Opportunities
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto">
+        <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
           {FILTER_PILLS.map((pill) => (
             <button
               key={pill.key}
@@ -180,7 +284,7 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
         </div>
 
         {oppsLoading ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-14 rounded-xl bg-zinc-800/40 animate-pulse" />
             ))}
@@ -224,9 +328,7 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
                       </p>
                       <div className="flex items-center gap-2 text-xs mt-0.5">
                         <span className="text-emerald-400 font-medium">
-                          {Number(
-                            opp.currentYield ?? opp.apy ?? opp.yield ?? opp.apr ?? 0
-                          ).toFixed(1)}
+                          {apyFromOpportunity(opp).toFixed(1)}
                           % APY
                         </span>
                         <span className={riskCls}>{riskLevel}</span>
@@ -240,7 +342,7 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
                     onClick={() => onSlideout("deposit")}
                     className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600/80 text-white text-xs font-medium hover:bg-emerald-500 transition-colors"
                   >
-                    Deploy
+                    Allocate
                   </button>
                 </div>
               );
@@ -248,6 +350,16 @@ export function CapitalTab({ address, onSlideout, isDemo, commitments }: Capital
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function SnapshotTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+      <div className="text-[11px] uppercase tracking-wider text-zinc-500">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-zinc-100">{value}</div>
+      <div className="mt-1 text-[11px] text-zinc-500">{hint}</div>
     </div>
   );
 }

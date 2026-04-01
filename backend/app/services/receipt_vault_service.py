@@ -38,8 +38,9 @@ RECEIPT_VAULT_DB_PATH = DATA_DIR / "receipt_vault.db"
 RECEIPT_VAULT_HELPER = REPO_ROOT / "receiptos" / "attester" / "receipt_vault.mjs"
 STORACHA_UPLOAD_HELPER = REPO_ROOT / "receiptos" / "attester" / "storacha_upload.mjs"
 
-DEFAULT_GATEWAY_HOST = os.getenv("STORACHA_GATEWAY_HOST", "storacha.link")
-DEFAULT_REGISTRY_ADDRESS = "0x0544ef8cbf8bf1ac7987bc0d2bb211434d515fbe10bab65f36e0f761c79bbdff"
+DEFAULT_GATEWAY_HOST = os.getenv("STORACHA_GATEWAY_HOST", "w3s.link")
+DEFAULT_SELF_HOST_BASE = os.getenv("RECEIPT_VAULT_SELF_HOST_BASE", "").strip()
+DEFAULT_REGISTRY_ADDRESS = "0x048bfcab6cde939483a9a1f71ecadb1839bd4df9ae4d8fd3f4723fed0c8d4aac"
 DEFAULT_REGISTRY_EVENT = "ReceiptIssued"
 DEFAULT_ARCHIVE_EVENT = "CidAnchored"
 DEFAULT_TIER_BY_MODE = {
@@ -48,6 +49,15 @@ DEFAULT_TIER_BY_MODE = {
     "automated": "trusted",
 }
 CID_PATTERN = re.compile(r"(bafy[a-z0-9]+|Qm[1-9A-HJ-NP-Za-km-z]{44})")
+
+# --- Receipt anchor tier thresholds ---
+# Gold: individual on-chain receipt + CID anchor (costs gas)
+# Bronze: IPFS upload only (free), deterministic receipt ID
+try:
+    GOLD_AMOUNT_THRESHOLD_USD = float(os.getenv("RECEIPT_GOLD_THRESHOLD_USD", "100"))
+except (TypeError, ValueError):
+    GOLD_AMOUNT_THRESHOLD_USD = 100.0
+GOLD_ACTION_TYPES = {"lending", "borrow", "leverage", "liquidation"}
 
 
 def _utc_now() -> datetime:
@@ -75,6 +85,28 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _classify_anchor_tier(source_receipt: dict[str, Any]) -> str:
+    """Classify whether a receipt needs on-chain anchoring (gold) or IPFS-only (bronze)."""
+    metadata = source_receipt.get("metadata") if isinstance(source_receipt.get("metadata"), dict) else {}
+    gate = metadata.get("gate") if isinstance(metadata.get("gate"), dict) else {}
+    action_type = str(source_receipt.get("action_type") or "swap").lower()
+    amount = _safe_float(source_receipt.get("amount"), 0.0)
+
+    # Gold conditions — economic or inferment decisions that need tamper-proof trail
+    if action_type in GOLD_ACTION_TYPES:
+        return "gold"
+    if gate.get("override_used") or gate.get("override_mode"):
+        return "gold"
+    if amount >= GOLD_AMOUNT_THRESHOLD_USD:
+        return "gold"
+    if str(gate.get("workflow_mode") or "").lower() == "automated":
+        return "gold"
+    if gate.get("allowed") is False and amount > 0:
+        return "gold"
+
+    return "bronze"
 
 
 def _map_tier(raw: Any, *, fallback: str = "basic") -> str:
@@ -279,8 +311,8 @@ class ReceiptVaultService:
             raise last_error
         return {}
 
-    def _starkli_call(self, contract: str, entrypoint: str, *calldata: str) -> str:
-        rpc = (
+    def _starkli_call(self, contract: str, entrypoint: str, *calldata: str, rpc_override: str | None = None) -> str:
+        rpc = rpc_override or (
             os.getenv("RECEIPTOS_STARKNET_RPC", "").strip()
             or os.getenv("STARKNET_RPC_URL", "").strip()
         )
@@ -298,6 +330,17 @@ class ReceiptVaultService:
         if result.returncode != 0:
             raise RuntimeError(output or f"starkli call failed for {entrypoint}")
         return output
+
+    def _lookup_archive_contract(self, registry_receipt_id: str) -> str | None:
+        """Look up the archive contract address stored in the DB for this receipt."""
+        with self._db_lock, self._db_connect() as conn:
+            row = conn.execute(
+                "SELECT archive_contract_address FROM receipt_vault WHERE registry_receipt_id = ?",
+                (registry_receipt_id,),
+            ).fetchone()
+        if row and row[0]:
+            return str(row[0]).strip() or None
+        return None
 
     def _starkli_selector(self, name: str) -> str:
         result = subprocess.run(
@@ -334,6 +377,12 @@ class ReceiptVaultService:
         host = os.getenv("STORACHA_GATEWAY_HOST", DEFAULT_GATEWAY_HOST).strip() or DEFAULT_GATEWAY_HOST
         return f"https://{cid}.ipfs.{host}/{filename}"
 
+    def _self_hosted_bundle_url(self, registry_receipt_id: str) -> str | None:
+        base = os.getenv("RECEIPT_VAULT_SELF_HOST_BASE", DEFAULT_SELF_HOST_BASE).strip()
+        if not base:
+            return None
+        return f"{base.rstrip('/')}/api/v1/receipt_vault/receipt/{registry_receipt_id}/bundle"
+
     def _normalize_cid_input(self, cid_or_url: str) -> tuple[str, str | None]:
         raw = str(cid_or_url or "").strip()
         if not raw:
@@ -359,10 +408,15 @@ class ReceiptVaultService:
 
     async def _fetch_bundle_by_cid(self, cid_or_url: str) -> tuple[str, str, dict[str, Any]]:
         cid, preferred_url = self._normalize_cid_input(cid_or_url)
+        # Try local DB first (instant, no network dependency)
+        local = self._fetch_bundle_from_db(cid)
+        if local is not None:
+            return cid, "local_db", local
         candidates = []
         if preferred_url:
             candidates.append(preferred_url)
         candidates.append(self._gateway_url(cid))
+        candidates.append(f"https://{cid}.ipfs.w3s.link/receipt-bundle.json")
         candidates.append(f"https://storacha.link/ipfs/{cid}/receipt-bundle.json")
         last_error: Exception | None = None
         for url in dict.fromkeys(candidates):
@@ -375,6 +429,19 @@ class ReceiptVaultService:
                 last_error = exc
                 continue
         raise RuntimeError(f"Unable to fetch receipt bundle for CID {cid}: {last_error}")
+
+    def _fetch_bundle_from_db(self, cid: str) -> dict[str, Any] | None:
+        with self._db_connect() as conn:
+            row = conn.execute(
+                "SELECT bundle_json FROM receipt_vault WHERE cid = ? LIMIT 1",
+                (cid,),
+            ).fetchone()
+        if row and row[0]:
+            try:
+                return json.loads(row[0])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return None
 
     async def _issue_registry_receipt(self, *, policy_hash: str, weight: int) -> dict[str, Any]:
         return await asyncio.to_thread(
@@ -459,7 +526,7 @@ class ReceiptVaultService:
             return f"{action} submitted in manual mode. Gate result recorded, route prepared for direct wallet review via {adapter}."
         if gate.get("override_mode") == "advisory":
             return f"{action} submitted after a fee warning. Route reviewed and sent through {adapter}."
-        return f"{action} executed within policy bounds. Verified on Starknet Sepolia."
+        return f"{action} executed within policy bounds. Verified on Starknet."
 
     async def register_portfolio_execution(
         self,
@@ -479,12 +546,41 @@ class ReceiptVaultService:
         gate_meta = metadata.get("gate") if isinstance(metadata.get("gate"), dict) else {}
         workflow_mode = str(gate_meta.get("workflow_mode") or "manual")
         action_type = str(source_receipt.get("action_type") or "swap")
-        policy_hash = str(gate_meta.get("policy_hash") or source_receipt.get("constraints_hash") or "0x0")
+        raw_policy_hash = str(gate_meta.get("policy_hash") or source_receipt.get("constraints_hash") or "0x0")
         proof_hash = str(gate_meta.get("intent_hash") or source_receipt.get("proof_hash") or "0x0")
         if proof_hash in {"", "0x0", "0x00"}:
             proof_hash = poseidon_hash_json({"execution_tx_hash": execution_tx_hash})
+        # Make policy_hash unique per execution to avoid POLICY_HASH_REPLAY on-chain.
+        # The on-chain registry requires each policy_hash to be used only once.
+        policy_hash = poseidon_hash_json({
+            "policy_hash": raw_policy_hash,
+            "execution_tx_hash": execution_tx_hash,
+            "source_receipt_id": str(source_receipt.get("receipt_id") or ""),
+        })
         weight = max(1, _safe_int(source_receipt.get("amount"), 1))
-        registry_issue = await self._issue_registry_receipt(policy_hash=policy_hash, weight=weight)
+
+        # --- Anchor tier: gold = on-chain + IPFS, bronze = IPFS only ---
+        anchor_tier = _classify_anchor_tier(source_receipt)
+
+        registry_issue: dict[str, Any] = {}
+        if anchor_tier == "gold":
+            try:
+                registry_issue = await self._issue_registry_receipt(policy_hash=policy_hash, weight=weight)
+            except Exception as registry_exc:
+                import logging as _log
+                _log.getLogger("receipt_vault").warning("On-chain registry issue failed (gas?): %s — falling back to bronze", registry_exc)
+                anchor_tier = "bronze"
+
+        if not registry_issue.get("receipt_id"):
+            # Bronze path or gold fallback: deterministic receipt ID, no on-chain tx
+            registry_issue = {
+                "receipt_id": poseidon_hash_json({
+                    "policy_hash": policy_hash,
+                    "execution_tx_hash": execution_tx_hash,
+                    "fallback": True,
+                }),
+                "tx_hash": "0x0",
+            }
         registry_receipt_id = str(registry_issue["receipt_id"])
         event_key = self._starkli_selector(DEFAULT_REGISTRY_EVENT)
         constraints_checked = self._portfolio_constraints_checked(gate_meta)
@@ -501,6 +597,7 @@ class ReceiptVaultService:
             tier=tier,
             registry_tx_hash=str(registry_issue["tx_hash"]),
             registry_contract_address=_registry_contract_address(),
+            archive_contract_address=os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", "") if anchor_tier == "gold" else None,
             event_key=event_key,
             human_readable=self._portfolio_human_readable(
                 {
@@ -511,6 +608,7 @@ class ReceiptVaultService:
             metadata={
                 "source": "portfolio_execute",
                 "workflow_mode": workflow_mode,
+                "anchor_tier": anchor_tier,
                 "execution_tx_hash": execution_tx_hash,
                 "source_receipt_id": str(source_receipt.get("receipt_id") or ""),
                 "gate_status": str(metadata.get("status") or ""),
@@ -526,7 +624,14 @@ class ReceiptVaultService:
         upload = await self._upload_bundle(bundle)
         cid = str(upload.get("cid") or "")
         cid_hash = await self._hash_cid(cid)
-        anchor = await self._anchor_cid(registry_receipt_id, cid_hash)
+        anchor: dict[str, Any] = {}
+        if anchor_tier == "gold":
+            try:
+                anchor = await self._anchor_cid(registry_receipt_id, cid_hash)
+            except Exception as anchor_exc:
+                import logging as _log
+                _log.getLogger("receipt_vault").warning("On-chain CID anchor failed (gas?): %s", anchor_exc)
+        verification_status = "anchored" if anchor.get("tx_hash") else "uploaded"
         self._upsert_row(
             {
                 "registry_receipt_id": registry_receipt_id,
@@ -538,13 +643,13 @@ class ReceiptVaultService:
                 "proof_hash": proof_hash,
                 "receipt_hash": str((bundle.get("proof_hashes") or {}).get("receipt_hash") or ""),
                 "registry_tx_hash": str(registry_issue["tx_hash"]),
-                "registry_contract_address": _registry_contract_address(),
+                "registry_contract_address": _registry_contract_address() if anchor_tier == "gold" else "",
                 "cid": cid,
                 "cid_hash": cid_hash,
                 "archive_tx_hash": str(anchor.get("tx_hash") or ""),
-                "archive_contract_address": os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", ""),
+                "archive_contract_address": os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", "") if anchor_tier == "gold" else "",
                 "bundle_json": canonicalize_bundle_json(bundle),
-                "verification_status": "anchored",
+                "verification_status": verification_status,
                 "last_error": None,
             }
         )
@@ -646,7 +751,11 @@ class ReceiptVaultService:
             {
                 **row,
                 "bundle_summary": bundle_summary(row.get("bundle") or {}),
-                "gateway_url": self._gateway_url(row["cid"]) if row.get("cid") else None,
+                "gateway_url": (
+                    self._self_hosted_bundle_url(row["registry_receipt_id"])
+                    or (self._gateway_url(row["cid"]) if row.get("cid") else None)
+                ),
+                "ipfs_gateway_url": self._gateway_url(row["cid"]) if row.get("cid") else None,
                 "ipfs_uri": f"ipfs://{row['cid']}" if row.get("cid") else None,
             }
             for row in rows
@@ -665,7 +774,11 @@ class ReceiptVaultService:
         payload = {
             **row,
             "bundle_summary": bundle_summary(row.get("bundle") or {}),
-            "gateway_url": self._gateway_url(row["cid"]) if row.get("cid") else None,
+            "gateway_url": (
+                self._self_hosted_bundle_url(row["registry_receipt_id"])
+                or (self._gateway_url(row["cid"]) if row.get("cid") else None)
+            ),
+            "ipfs_gateway_url": self._gateway_url(row["cid"]) if row.get("cid") else None,
             "ipfs_uri": f"ipfs://{row['cid']}" if row.get("cid") else None,
         }
         if verify and row.get("cid"):
@@ -687,50 +800,94 @@ class ReceiptVaultService:
         recomputed_receipt_hash = compute_receipt_hash(bundle)
         cid_hash = await self._hash_cid(cid)
 
-        archive_contract = os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", "").strip()
-        registry_contract = _registry_contract_address()
+        # Use the bundle's own contract addresses and chain for verification
+        evidence = bundle.get("starknet_evidence") or {}
+        bundle_chain = str(bundle.get("chain") or "")
+        registry_contract = str(evidence.get("contract_address") or "").strip() or _registry_contract_address()
+        archive_contract = str(evidence.get("archive_contract_address") or "").strip()
+        if not archive_contract:
+            # Look up from DB row
+            row_archive = self._lookup_archive_contract(receipt_id)
+            archive_contract = row_archive or os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", "").strip()
+
+        # Choose RPC based on whether the bundle's contracts match our mainnet config
+        rpc_override = None
+        mainnet_registry = _normalize_felt(_registry_contract_address())
+        mainnet_archive = _normalize_felt(os.getenv("RECEIPTOS_ARCHIVE_ADDRESS", ""))
+        bundle_registry = _normalize_felt(registry_contract)
+        bundle_archive = _normalize_felt(archive_contract)
+        is_mainnet_receipt = (bundle_registry == mainnet_registry) or (bundle_archive == mainnet_archive and mainnet_archive != "0x0")
+        if not is_mainnet_receipt:
+            # This receipt's contracts aren't our mainnet ones — assume Sepolia
+            rpc_override = os.getenv("STARKNET_SEPOLIA_RPC", "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/demo")
+
         anchored_cid_hash = None
         anchored_matches = False
         if archive_contract and receipt_id:
-            anchored_cid_hash = self._parse_call_value(
-                self._starkli_call(archive_contract, "get_cid_anchor", receipt_id)
-            )
-            anchored_matches = _normalize_felt(anchored_cid_hash) == _normalize_felt(cid_hash)
+            try:
+                anchored_cid_hash = self._parse_call_value(
+                    self._starkli_call(archive_contract, "get_cid_anchor", receipt_id, rpc_override=rpc_override)
+                )
+                anchored_matches = _normalize_felt(anchored_cid_hash) == _normalize_felt(cid_hash)
+            except RuntimeError:
+                pass
 
         registry_valid = False
         onchain_policy_hash = None
         policy_hash_matches = False
         if registry_contract and receipt_id:
-            registry_valid = self._bool_from_output(
-                self._starkli_call(registry_contract, "verify_receipt", receipt_id)
-            )
-            onchain_policy_hash = self._parse_call_value(
-                self._starkli_call(registry_contract, "get_receipt_policy_hash", receipt_id)
-            )
-            bundle_policy_hash = str(((bundle.get("proof_hashes") or {}).get("policy_hash")) or "")
-            policy_hash_matches = _normalize_felt(onchain_policy_hash) == _normalize_felt(bundle_policy_hash)
+            try:
+                registry_valid = self._bool_from_output(
+                    self._starkli_call(registry_contract, "verify_receipt", receipt_id, rpc_override=rpc_override)
+                )
+                onchain_policy_hash = self._parse_call_value(
+                    self._starkli_call(registry_contract, "get_receipt_policy_hash", receipt_id, rpc_override=rpc_override)
+                )
+                bundle_policy_hash = str(((bundle.get("proof_hashes") or {}).get("policy_hash")) or "")
+                policy_hash_matches = _normalize_felt(onchain_policy_hash) == _normalize_felt(bundle_policy_hash)
+            except RuntimeError:
+                pass
 
         receipt_hash_matches = bundle_receipt_hash.lower() == recomputed_receipt_hash.lower()
-        verified = all(
-            [
-                bool(receipt_id),
-                receipt_hash_matches,
-                anchored_matches,
-                registry_valid,
-                policy_hash_matches,
-            ]
+
+        # Detect bronze (off-chain only) receipts: no on-chain registry/archive tx
+        bundle_tx = str(evidence.get("tx_hash") or "0x0").strip()
+        bundle_meta = bundle.get("metadata") if isinstance(bundle.get("metadata"), dict) else {}
+        is_bronze = (
+            bundle_meta.get("anchor_tier") == "bronze"
+            or (bundle_tx in ("0x0", "0x00", "") and not anchored_matches and not registry_valid)
         )
+
+        if is_bronze:
+            # Bronze receipts only need a valid receipt hash — on-chain checks are N/A
+            verified = bool(receipt_id) and receipt_hash_matches
+            status = "UPLOADED" if verified else "FAILED"
+        else:
+            verified = all(
+                [
+                    bool(receipt_id),
+                    receipt_hash_matches,
+                    anchored_matches,
+                    registry_valid,
+                    policy_hash_matches,
+                ]
+            )
+            status = "VERIFIED" if verified else "FAILED"
+
         return {
-            "status": "VERIFIED" if verified else "FAILED",
+            "status": status,
             "verified": verified,
+            "anchor_tier": "bronze" if is_bronze else "gold",
             "cid": cid,
             "fetched_url": fetched_url,
             "receipt_id": receipt_id,
             "checks": {
                 "receipt_hash_matches": receipt_hash_matches,
-                "anchored_cid_matches": anchored_matches,
-                "registry_receipt_valid": registry_valid,
-                "policy_hash_matches": policy_hash_matches,
+                **({}  if is_bronze else {
+                    "anchored_cid_matches": anchored_matches,
+                    "registry_receipt_valid": registry_valid,
+                    "policy_hash_matches": policy_hash_matches,
+                }),
             },
             "bundle_receipt_hash": bundle_receipt_hash,
             "recomputed_receipt_hash": recomputed_receipt_hash,

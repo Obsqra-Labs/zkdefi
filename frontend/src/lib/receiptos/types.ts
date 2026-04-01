@@ -23,6 +23,14 @@ export interface OnchainReceipt {
 export interface ClaimResponse {
   receipt_id: number;
   tx_hash: string;
+  portable_receipt?: {
+    registry_receipt_id?: string;
+    cid?: string;
+    gateway_url?: string | null;
+    ipfs_gateway_url?: string | null;
+    ipfs_uri?: string | null;
+    archive_tx_hash?: string | null;
+  } | null;
 }
 
 /** Full reputation profile surfaced by the backend */

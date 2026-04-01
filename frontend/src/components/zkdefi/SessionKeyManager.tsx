@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useAccount } from "@starknet-react/core";
-import { Key, Clock, Shield, X, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { Key, Clock, X, Check, AlertTriangle, Shield, Loader2 } from "lucide-react";
 import { API_BASE } from "@/lib/api/client";
-const SESSION_KEY_MANAGER_ADDRESS = process.env.NEXT_PUBLIC_SESSION_KEY_MANAGER_ADDRESS || "";
 
 interface Session {
   session_id: string;
@@ -27,15 +25,14 @@ interface SessionKeyManagerProps {
 }
 
 export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyManagerProps) {
-  const { account } = useAccount();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [granting, setGranting] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [txError, setTxError] = useState("");
   
-  // Grant form state
-  const [sessionKeyAddress, setSessionKeyAddress] = useState("");
+  // Grant form state — default to user's own wallet address
+  const [sessionKeyAddress, setSessionKeyAddress] = useState(userAddress);
   const [maxPosition, setMaxPosition] = useState(10000);
   const [allowedProtocols, setAllowedProtocols] = useState<string[]>(["pools", "ekubo", "lending"]);
   const [durationHours, setDurationHours] = useState(24);
@@ -80,34 +77,8 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
       
       if (response.ok) {
         const data = await response.json();
-        let txHash = "";
-
-        // Execute on-chain via wallet if contract is deployed and account connected
-        if (SESSION_KEY_MANAGER_ADDRESS && account) {
-          try {
-            const calldata = data.calldata || {};
-            const result = await account.execute([
-              {
-                contractAddress: SESSION_KEY_MANAGER_ADDRESS,
-                entrypoint: "grant_session",
-                calldata: [
-                  sessionKeyAddress,
-                  String(maxPosition),
-                  String(durationHours * 3600),
-                ],
-              },
-            ]);
-            txHash = result.transaction_hash;
-          } catch (walletErr: any) {
-            // If wallet rejects, still confirm locally for demo UX
-            console.warn("Wallet tx failed, confirming locally:", walletErr.message);
-            setTxError(walletErr.message ?? "Wallet rejected");
-            txHash = "0x" + "0".repeat(64);
-          }
-        } else {
-          // No on-chain contract — local-only grant
-          txHash = "0x" + "0".repeat(64);
-        }
+        // Skip on-chain contract call — use local-only grant
+        const txHash = "0x" + "0".repeat(64);
 
         await confirmGrant(data.session_id, txHash);
         setShowGrantModal(false);
@@ -146,25 +117,8 @@ export function SessionKeyManager({ userAddress, onSessionGranted }: SessionKeyM
       });
       
       if (response.ok) {
-        let txHash = "";
-
-        if (SESSION_KEY_MANAGER_ADDRESS && account) {
-          try {
-            const result = await account.execute([
-              {
-                contractAddress: SESSION_KEY_MANAGER_ADDRESS,
-                entrypoint: "revoke_session",
-                calldata: [sessionId],
-              },
-            ]);
-            txHash = result.transaction_hash;
-          } catch (walletErr: any) {
-            console.warn("Wallet revoke tx failed:", walletErr.message);
-            txHash = "0x" + "0".repeat(64);
-          }
-        } else {
-          txHash = "0x" + "0".repeat(64);
-        }
+        // Skip on-chain contract call — use local-only revoke
+        const txHash = "0x" + "0".repeat(64);
 
         await fetch(`${API_BASE}/v1/zkdefi/session_keys/revoke/confirm`, {
           method: "POST",

@@ -143,51 +143,51 @@ export function useVaultV2(address: string | undefined): UseVaultV2Return {
   /** Record a deposit in the Privacy Pool (V2 intent→confirm) */
   const recordDeposit = useCallback(
     async (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => {
-      if (!vaultId) return;
+      if (!vaultId || !address) return;
       try {
-        const intent = await createDepositIntent(vaultId, amountWei, token, rail);
-        await confirmDeposit(intent.intent_id, txHash, commitmentHash);
+        const intent = await createDepositIntent(vaultId, amountWei, token, rail, address);
+        await confirmDeposit(intent.intent_id, txHash, commitmentHash, address);
         await refresh();
       } catch {
         // best-effort — on-chain deposit already succeeded
         console.warn("[PrivacyPool] Failed to record deposit in V2 ledger");
       }
     },
-    [vaultId, refresh],
+    [vaultId, address, refresh],
   );
 
   /** Record a withdrawal in the private vault rail */
   const recordWithdrawal = useCallback(
     async (amountWei: string, token: string, destination: string, route: string) => {
-      if (!vaultId) return;
+      if (!vaultId || !address) return;
       try {
-        await requestWithdrawal(vaultId, amountWei, token, destination, route);
+        await requestWithdrawal(vaultId, amountWei, token, destination, route, address);
         await refresh();
       } catch {
         console.warn("[VaultV2] Failed to record withdrawal in V2 ledger");
       }
     },
-    [vaultId, refresh],
+    [vaultId, address, refresh],
   );
 
   /** Sweep a private note back to ledger balance */
   const doSweepToLedger = useCallback(
     async (noteId: string, amountWei: string, token: string) => {
-      if (!vaultId) throw new Error("No vault");
-      await sweepToLedger(vaultId, noteId, amountWei, token);
+      if (!vaultId || !address) throw new Error("No vault");
+      await sweepToLedger(vaultId, noteId, amountWei, token, address);
       await refresh();
     },
-    [vaultId, refresh],
+    [vaultId, address, refresh],
   );
 
   /** Sweep ledger balance out to a private settlement rail */
   const doSweepToVault = useCallback(
     async (amountWei: string, token: string, targetRail: string) => {
-      if (!vaultId) throw new Error("No vault");
-      await sweepToVault(vaultId, amountWei, token, targetRail);
+      if (!vaultId || !address) throw new Error("No vault");
+      await sweepToVault(vaultId, amountWei, token, targetRail, address);
       await refresh();
     },
-    [vaultId, refresh],
+    [vaultId, address, refresh],
   );
 
   return {

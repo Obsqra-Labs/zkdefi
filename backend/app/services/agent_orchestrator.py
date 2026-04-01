@@ -153,7 +153,7 @@ class AgentOrchestrator:
         record = self._execution_history.get(call_id)
         if not record:
             return {"status": "not_found", "call_id": call_id}
-        
+
         return {
             "call_id": call_id,
             "status": record.get("status", "unknown"),
@@ -162,6 +162,11 @@ class AgentOrchestrator:
             "address": record.get("address"),
             "submitted_at": record.get("submitted_at"),
             "completed_at": record.get("completed_at"),
+            # Bubble up reason fields when available so UI can explain aborts/failures.
+            "error": record.get("error"),
+            "reason": record.get("reason"),
+            "reason_codes": record.get("reason_codes") or [],
+            "reason_hints": record.get("reason_hints") or [],
         }
     
     def _get_adapter_config(

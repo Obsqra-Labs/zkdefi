@@ -52,5 +52,119 @@
     "signal_id": "test",
     "estimated_gas": 180000,
     "created_at": "2026-03-08T13:13:23.322921+00:00"
+  },
+  "0x33f2ab0eec84b4b14c0a0490feb1baf20b1b827713031fc6fcdb59cf84e27b": {
+    "id": "0x33f2ab0eec84b4b14c0a0490feb1baf20b1b827713031fc6fcdb59cf84e27b",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-27T22:00:28.419281+00:00"
+  },
+  "0x81c1eb2443aef2a8fb297f39313650d3ee6142752c05f87998a31750858228": {
+    "id": "0x81c1eb2443aef2a8fb297f39313650d3ee6142752c05f87998a31750858228",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-27T22:02:29.716894+00:00"
+  },
+  "0xc3509766ca718dab23629c1c990fcb3ea5295d3e7acf1da6707f37195cf754": {
+    "id": "0xc3509766ca718dab23629c1c990fcb3ea5295d3e7acf1da6707f37195cf754",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-27T23:19:06.034963+00:00"
+  },
+  "0x14ef155703f81fcca8b5e615f0d7152f6f31bac73360f7a5f6e46b71d03a4d": {
+    "id": "0x14ef155703f81fcca8b5e615f0d7152f6f31bac73360f7a5f6e46b71d03a4d",
+    "address": "0x05fe812551bec726f1bf5026d5fb88f06ed411a753fb4468f9e19ebf8ced1b3d",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-27T23:39:24.265414+00:00"
+  },
+  "0xb5e440dfc9ee0a6d1b110f09bd70f523769a7d89e629532779a4ab5f1fc7ca": {
+    "id": "0xb5e440dfc9ee0a6d1b110f09bd70f523769a7d89e629532779a4ab5f1fc7ca",
+    "address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "public",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-28T05:09:37.117568+00:00"
+  },
+  "0x0c19ccdb85fc68e3ec1db841d4dc693aef046b1e8c5b409f04291563a815a4": {
+    "id": "0x0c19ccdb85fc68e3ec1db841d4dc693aef046b1e8c5b409f04291563a815a4",
+    "address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+    "adapter": "ekubo",
+    "method": "swap",
+    "calldata": {
+      "to": null,
+      "method": "swap",
+      "amount": 100,
+      "slippage_bps": 50,
+      "privacy_mode": "full",
+      "token_in": null,
+      "token_out": null,
+      "fee_tier": 3000
+    },
+    "signal_id": "c39db783ed1d814e",
+    "estimated_gas": 250000,
+    "created_at": "2026-03-28T05:09:45.546040+00:00"
   }
 }

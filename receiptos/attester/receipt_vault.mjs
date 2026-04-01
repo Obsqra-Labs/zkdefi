@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { hash, ec } from "starknet";
 
-const DEFAULT_REGISTRY_ADDRESS = "0x0544ef8cbf8bf1ac7987bc0d2bb211434d515fbe10bab65f36e0f761c79bbdff";
+const DEFAULT_REGISTRY_ADDRESS = "0x048bfcab6cde939483a9a1f71ecadb1839bd4df9ae4d8fd3f4723fed0c8d4aac";
 
 function fail(message) {
   console.error(message);
@@ -137,14 +137,18 @@ function cmdIssueRegistry(args) {
       ?? DEFAULT_REGISTRY_ADDRESS,
   );
   const rpc = String(args.rpc ?? process.env.RECEIPTOS_STARKNET_RPC ?? process.env.STARKNET_RPC_URL ?? "");
-  const account = String(args.account ?? process.env.STARKNET_ACCOUNT ?? "");
+  const account = String(args.account ?? process.env.RECEIPTOS_STARKNET_ACCOUNT ?? process.env.STARKNET_ACCOUNT ?? "");
   const submitterPk = String(args["submitter-pk"] ?? process.env.RECEIPTOS_SUBMITTER_PK ?? "");
   const attesterSk = String(args["attester-sk"] ?? process.env.RECEIPTOS_ATTESTER_SK ?? "");
   if (!policyHash || !weight || !registry || !rpc || !account || !submitterPk || !attesterSk) {
     fail("Missing required issue-registry args or env");
   }
 
-  const signature = ec.starkCurve.sign(policyHash, attesterSk);
+  // Reduce policyHash mod Stark curve order so it fits the signing domain [0, EC_ORDER)
+  // Also use reducedHash for the on-chain call so felt252 and verification match.
+  const EC_ORDER = BigInt("0x800000000000011000000000000000000000000000000000000000000000001");
+  const reducedHash = "0x" + (BigInt(policyHash) % EC_ORDER).toString(16);
+  const signature = ec.starkCurve.sign(reducedHash, attesterSk);
   const sigR = `0x${signature.r.toString(16)}`;
   const sigS = `0x${signature.s.toString(16)}`;
 
@@ -154,7 +158,7 @@ function cmdIssueRegistry(args) {
     "invoke",
     registry,
     "issue_attested_receipt",
-    policyHash,
+    reducedHash,
     sigR,
     sigS,
     weight,
@@ -179,7 +183,7 @@ function cmdIssueRegistry(args) {
 function cmdAnchorCid(args) {
   const archive = String(args.archive ?? process.env.RECEIPTOS_ARCHIVE_ADDRESS ?? "");
   const rpc = String(args.rpc ?? process.env.RECEIPTOS_STARKNET_RPC ?? process.env.STARKNET_RPC_URL ?? "");
-  const account = String(args.account ?? process.env.STARKNET_ACCOUNT ?? "");
+  const account = String(args.account ?? process.env.RECEIPTOS_STARKNET_ACCOUNT ?? process.env.STARKNET_ACCOUNT ?? "");
   const submitterPk = String(args["submitter-pk"] ?? process.env.RECEIPTOS_SUBMITTER_PK ?? "");
   const receiptId = String(args["receipt-id"] ?? "");
   const cidHash = String(args["cid-hash"] ?? "");

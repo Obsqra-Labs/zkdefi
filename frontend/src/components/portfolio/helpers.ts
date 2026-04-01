@@ -134,6 +134,7 @@ export function proposalKeyForIntent(intent: Record<string, unknown>): string {
       ETH: target.ETH ?? 0,
       STRK: target.STRK ?? 0,
       USDC: target.USDC ?? 0,
+      WBTC: target.WBTC ?? 0,
     },
     max_slippage_bps: intent.max_slippage_bps ?? 50,
   });
@@ -154,6 +155,7 @@ export function aggregateAssets(
       ETH: { amount: 0, valueUsd: 0 },
       STRK: { amount: 0, valueUsd: 0 },
       USDC: { amount: 0, valueUsd: 0 },
+      WBTC: { amount: 0, valueUsd: 0 },
     },
   );
 }
@@ -165,17 +167,19 @@ export function normalizeAllocationMap(
     ETH: Math.max(0, Number(allocations.ETH ?? 0)),
     STRK: Math.max(0, Number(allocations.STRK ?? 0)),
     USDC: Math.max(0, Number(allocations.USDC ?? 0)),
+    WBTC: Math.max(0, Number(allocations.WBTC ?? 0)),
   };
-  const total = cleaned.ETH + cleaned.STRK + cleaned.USDC;
+  const total = cleaned.ETH + cleaned.STRK + cleaned.USDC + cleaned.WBTC;
   if (total <= 0) {
-    return { ETH: 40, STRK: 25, USDC: 35 };
+    return { ETH: 40, STRK: 20, USDC: 30, WBTC: 10 };
   }
   const normalized = {
     ETH: Number(((cleaned.ETH / total) * 100).toFixed(1)),
     STRK: Number(((cleaned.STRK / total) * 100).toFixed(1)),
     USDC: Number(((cleaned.USDC / total) * 100).toFixed(1)),
+    WBTC: Number(((cleaned.WBTC / total) * 100).toFixed(1)),
   };
-  const residual = Number((100 - (normalized.ETH + normalized.STRK + normalized.USDC)).toFixed(1));
+  const residual = Number((100 - (normalized.ETH + normalized.STRK + normalized.USDC + normalized.WBTC)).toFixed(1));
   normalized.USDC = Number((normalized.USDC + residual).toFixed(1));
   return normalized;
 }

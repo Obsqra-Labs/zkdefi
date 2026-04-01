@@ -43,10 +43,10 @@ describe("agentState — feature flag", () => {
 });
 
 describe("agentState — resolveViewParamV2", () => {
-  it("defaults to vault/overview when no params", () => {
+  it("defaults to vault/home when no params", () => {
     const r = resolveViewParamV2(null, null);
     expect(r.mode).toBe("vault");
-    expect(r.vaultTab).toBe("overview");
+    expect(r.vaultTab).toBe("home");
   });
 
   it('resolves "intelligence" mode', () => {
@@ -55,28 +55,28 @@ describe("agentState — resolveViewParamV2", () => {
     expect(r.vaultTab).toBeFalsy();
   });
 
-  it("resolves vault with pools → capital tab (legacy alias)", () => {
+  it("resolves vault with pools → portfolio tab (legacy alias)", () => {
     const r = resolveViewParamV2("vault", "pools");
     expect(r.mode).toBe("vault");
-    expect(r.vaultTab).toBe("capital");
+    expect(r.vaultTab).toBe("portfolio");
   });
 
-  it("resolves vault with ekubo → capital tab (legacy alias)", () => {
+  it("resolves vault with ekubo → portfolio tab (legacy alias)", () => {
     const r = resolveViewParamV2("vault", "ekubo");
     expect(r.mode).toBe("vault");
-    expect(r.vaultTab).toBe("capital");
+    expect(r.vaultTab).toBe("portfolio");
   });
 
-  it("resolves vault with lending → lend tab", () => {
+  it("resolves vault with lending → portfolio tab", () => {
     const r = resolveViewParamV2("vault", "lending");
     expect(r.mode).toBe("vault");
-    expect(r.vaultTab).toBe("lend");
+    expect(r.vaultTab).toBe("portfolio");
   });
 
-  it("resolves vault with activity tab", () => {
+  it("resolves vault with activity tab → history", () => {
     const r = resolveViewParamV2("vault", "activity");
     expect(r.mode).toBe("vault");
-    expect(r.vaultTab).toBe("activity");
+    expect(r.vaultTab).toBe("history");
   });
 
   it("defaults unknown v to vault", () => {
@@ -86,7 +86,7 @@ describe("agentState — resolveViewParamV2", () => {
 
   it("ignores unknown tab", () => {
     const r = resolveViewParamV2("vault", "bogus");
-    expect(r.vaultTab).toBe("overview");
+    expect(r.vaultTab).toBe("home");
   });
 });
 
@@ -127,7 +127,7 @@ describe("agentState — buildAgentUrl", () => {
   });
 
   it("builds URL for vault with specific tab", () => {
-    expect(buildAgentUrl("vault", "capital")).toBe("/agent?v=vault&t=capital");
+    expect(buildAgentUrl("vault", "portfolio")).toBe("/agent?v=vault&t=portfolio");
   });
 
   it("builds URL for intelligence (no tab)", () => {

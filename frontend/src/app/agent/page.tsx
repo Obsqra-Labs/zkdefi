@@ -91,7 +91,7 @@ function AgentPageInner() {
 
   const resolvedV2 = resolveViewParamV2(searchParams.get("v"), searchParams.get("t"));
   const resolvedV2Overlay = resolveViewOverlayV2(searchParams.get("v"));
-  const [vaultTab, setVaultTab] = useState<VaultTab>(resolvedV2.vaultTab ?? "overview");
+  const [vaultTab, setVaultTab] = useState<VaultTab>(resolvedV2.vaultTab ?? "home");
 
   useEffect(() => {
     setMounted(true);
@@ -158,6 +158,48 @@ function AgentPageInner() {
     setSelectedSignal(signal);
     setSlideout("execute");
   }, []);
+
+  const handlePostDepositHandoff = useCallback((payload: {
+    amount: string;
+    asset: "STRK" | "ETH" | "strkBTC";
+    txHash: string;
+    mode: "fund" | "deposit";
+    pool?: "conservative" | "moderate" | "aggressive";
+    expectedApy?: number;
+  }) => {
+    const poolMeta = payload.pool
+      ? {
+          conservative: { venue: "lending", risk: 30, apy: 5.5 },
+          moderate: { venue: "ekubo", risk: 55, apy: 8.5 },
+          aggressive: { venue: "ekubo", risk: 75, apy: 12.0 },
+        }[payload.pool]
+      : { venue: "ekubo", risk: 55, apy: payload.expectedApy ? payload.expectedApy * 100 : 9.0 };
+
+    const signal: SignalForExecution = {
+      id: `post-deposit-${Date.now()}`,
+      name: `${payload.asset} post-deposit deployment`,
+      suggestedAmount: Number(payload.amount) > 0 ? Number(payload.amount) : undefined,
+      suggestedPrivacyLevel: "shielded",
+      type: payload.mode === "fund" ? "vault_fund" : "vault_deposit",
+      venue: poolMeta.venue,
+      currentYield: poolMeta.apy,
+      apy_bps: Math.round(poolMeta.apy * 100),
+      riskScore: poolMeta.risk,
+      signal_reason: payload.mode === "fund"
+        ? `Vault funded with ${payload.amount} ${payload.asset}. Route to execution to deploy capital across adapters.`
+        : `Deposit confirmed for ${payload.amount} ${payload.asset}${payload.pool ? ` (${payload.pool} pool)` : ""}. Continue with swap/deploy execution.`,
+    };
+
+    trackEvent("post_deposit_handoff", {
+      mode: payload.mode,
+      asset: payload.asset,
+      pool: payload.pool,
+      tx_hash: payload.txHash,
+    });
+
+    handleVaultTabChange("plan");
+    handleDeploy(signal);
+  }, [handleDeploy, handleVaultTabChange]);
 
   const openSlideout = useCallback((mode: NonNullable<SlideoutModeV2>, poolId?: string) => {
     trackEvent("slideout_open", { slideout: mode, pool: poolId });
@@ -315,6 +357,12 @@ function AgentPageInner() {
                 addCommitment={vault.addCommitment}
                 address={address}
                 onRecordDeposit={v2.recordDeposit}
+                onFundConfirmed={(payload) => {
+                  handlePostDepositHandoff({
+                    ...payload,
+                    mode: "fund",
+                  });
+                }}
               />
             )}
             {slideout === "deposit" && (
@@ -328,6 +376,12 @@ function AgentPageInner() {
                   initialPool={slideoutPool as "conservative" | "moderate" | "aggressive" | undefined}
                   fixedPoolId={slideoutPool as "conservative" | "moderate" | "aggressive" | undefined}
                   onRecordDeposit={v2.recordDeposit}
+                  onDepositConfirmed={(payload) => {
+                    handlePostDepositHandoff({
+                      ...payload,
+                      mode: "deposit",
+                    });
+                  }}
                 />
                 {(showAdvancedPrivacyRails) && (
                   <AdvancedDepositSection

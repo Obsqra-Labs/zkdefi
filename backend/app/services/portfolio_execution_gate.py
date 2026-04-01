@@ -34,6 +34,7 @@ from app.services.portfolio_monitor_service import get_portfolio_monitor_service
 from app.services.execution_policy_service import get_execution_policy_service
 from app.services.position_scanner import PortfolioSnapshot, scan_portfolio
 from app.services.profile_decision_service import get_profile_decision_service
+from app.services.receipt_vault_service import get_receipt_vault_service
 from app.services.receipt_service import get_receipt_service
 from app.services.session_key_service import get_session_key_service
 from app.services.constraint_gate import get_constraint_gate
@@ -57,16 +58,18 @@ from app.services.zkml.circuit_scanner import (
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_ASSETS = ("ETH", "STRK", "USDC")
+SUPPORTED_ASSETS = ("ETH", "STRK", "USDC", "WBTC")
 ASSET_PRICES_USD = {
     "ETH": 3200.0,
     "STRK": 0.72,
     "USDC": 1.0,
+    "WBTC": 100000.0,
 }
 ASSET_DECIMALS = {
     "ETH": 18,
     "STRK": 18,
     "USDC": 6,
+    "WBTC": 8,
 }
 SEPOLIA_TOKEN_BY_SYMBOL = {
     "ETH": SEPOLIA_ETH,
@@ -77,6 +80,7 @@ MAINNET_TOKEN_BY_SYMBOL = {
     "ETH": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     "STRK": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
     "USDC": "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8",
+    "WBTC": "0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac",
 }
 NETWORK_MAINNET = "starknet_mainnet"
 NETWORK_SEPOLIA = "starknet_sepolia"
@@ -98,11 +102,11 @@ MAINNET_V1_CIRCUITS = [
     "ExecutionIntegrity",
 ]
 
-WARN_FEE_SHARE_OF_ACTION = max(0.0, float(os.getenv("PORTFOLIO_WARN_FEE_SHARE_OF_ACTION", "0.35")))
-BLOCK_FEE_SHARE_OF_ACTION = max(WARN_FEE_SHARE_OF_ACTION, float(os.getenv("PORTFOLIO_BLOCK_FEE_SHARE_OF_ACTION", "0.85")))
-MIN_SWAP_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_SWAP_VALUE_USD", "0.75")))
-MIN_REBALANCE_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_REBALANCE_VALUE_USD", "0.5")))
-MIN_MULTI_SWAP_REBALANCE_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_MULTI_SWAP_REBALANCE_VALUE_USD", "1.0")))
+WARN_FEE_SHARE_OF_ACTION = max(0.0, float(os.getenv("PORTFOLIO_WARN_FEE_SHARE_OF_ACTION", "100.0")))
+BLOCK_FEE_SHARE_OF_ACTION = max(WARN_FEE_SHARE_OF_ACTION, float(os.getenv("PORTFOLIO_BLOCK_FEE_SHARE_OF_ACTION", "100.0")))
+MIN_SWAP_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_SWAP_VALUE_USD", "0.0")))
+MIN_REBALANCE_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_REBALANCE_VALUE_USD", "0.0")))
+MIN_MULTI_SWAP_REBALANCE_VALUE_USD = max(0.0, float(os.getenv("PORTFOLIO_MIN_MULTI_SWAP_REBALANCE_VALUE_USD", "0.0")))
 SMALL_PORTFOLIO_GRACE_USD = max(0.0, float(os.getenv("PORTFOLIO_SMALL_PORTFOLIO_GRACE_USD", "25.0")))
 SMALL_PORTFOLIO_MIN_ACTION_USD = max(0.0, float(os.getenv("PORTFOLIO_SMALL_PORTFOLIO_MIN_ACTION_USD", "0.5")))
 SMALL_PORTFOLIO_SINGLE_STEP_USD = max(0.0, float(os.getenv("PORTFOLIO_SMALL_PORTFOLIO_SINGLE_STEP_USD", "15.0")))
@@ -127,11 +131,14 @@ DEFAULT_POLICY = {
     "max_slippage_bps": 150,
     "cooldown_seconds": 300,
     "max_swaps_per_rebalance": 3,
+    "max_fee_share_pct": round(BLOCK_FEE_SHARE_OF_ACTION * 100),
     "paused": False,
+    "governed_execution_state": "disarmed",
     "min_amounts": {
         "ETH": 0.00001,
         "STRK": 0.1,
         "USDC": 1.0,
+        "WBTC": 0.00001,
     },
 }
 
@@ -192,6 +199,7 @@ class PortfolioExecutionGateService:
 
     def __init__(self) -> None:
         self.receipt_service = get_receipt_service()
+        self.receipt_vault_service = get_receipt_vault_service()
         self.execution_policy_service = get_execution_policy_service()
         self.session_key_service = get_session_key_service()
         self.monitor_service = get_portfolio_monitor_service()
@@ -205,6 +213,13 @@ class PortfolioExecutionGateService:
         normalized = _normalize_address(owner_address)
         execution_policy = self.execution_policy_service.get_policy(normalized).data
         exec_rules = execution_policy.get("executionRules", {})
+        governed_execution = execution_policy.get("governedExecution", {})
+        governed_execution_state = str(
+            governed_execution.get("state")
+            or ("armed" if bool(exec_rules.get("autoExecute", False)) else "disarmed")
+        ).strip().lower()
+        if governed_execution_state not in {"armed", "disarmed"}:
+            governed_execution_state = DEFAULT_POLICY["governed_execution_state"]
         snapshot = {
             **DEFAULT_POLICY,
             "address": normalized,
@@ -212,6 +227,7 @@ class PortfolioExecutionGateService:
             "max_risk_score": execution_policy.get("gateRules", {}).get("maxRiskScore", 80),
             "require_circuit_verified": execution_policy.get("gateRules", {}).get("requireCircuitVerified", False),
             "paused": not bool(execution_policy.get("isActive", True)),
+            "governed_execution_state": governed_execution_state,
             "max_value_per_action_usd": min(
                 DEFAULT_POLICY["max_value_per_action_usd"],
                 _safe_float(exec_rules.get("dailyLimitUSD"), DEFAULT_POLICY["max_value_per_action_usd"]),
@@ -223,6 +239,10 @@ class PortfolioExecutionGateService:
                 DEFAULT_POLICY["max_swaps_per_rebalance"],
             ),
             "min_amounts": exec_rules.get("minAmounts") or DEFAULT_POLICY["min_amounts"],
+            "max_fee_share_pct": _safe_float(
+                exec_rules.get("maxFeeSharePct"),
+                DEFAULT_POLICY["max_fee_share_pct"],
+            ),
         }
         if override:
             snapshot.update({k: v for k, v in override.items() if v is not None})
@@ -337,6 +357,47 @@ class PortfolioExecutionGateService:
         if _normalize_address(receipt.get("user", "")) != normalized:
             raise PermissionError("Receipt does not belong to this wallet.")
         result = await self.receipt_service.confirm_receipt(receipt_id, tx_hash)
+        portable_receipt = None
+        portable_error = None
+        confirmed_receipt = await self.receipt_service.get_receipt(receipt_id) or receipt
+        metadata = (
+            confirmed_receipt.get("metadata")
+            if isinstance(confirmed_receipt.get("metadata"), dict)
+            else {}
+        )
+        if metadata.get("stage") == "execute":
+            try:
+                portable_receipt = await self.receipt_vault_service.register_portfolio_execution(
+                    owner_address=normalized,
+                    source_receipt=confirmed_receipt,
+                    execution_tx_hash=tx_hash,
+                )
+                portable_meta = {
+                    "registry_receipt_id": portable_receipt.get("registry_receipt_id"),
+                    "registry_contract_address": portable_receipt.get("registry_contract_address"),
+                    "cid": portable_receipt.get("cid"),
+                    "gateway_url": portable_receipt.get("gateway_url"),
+                    "ipfs_gateway_url": portable_receipt.get("ipfs_gateway_url"),
+                    "ipfs_uri": portable_receipt.get("ipfs_uri"),
+                    "archive_tx_hash": portable_receipt.get("archive_tx_hash"),
+                    "archive_contract_address": portable_receipt.get("archive_contract_address"),
+                }
+                await self.receipt_service.update_receipt_metadata(
+                    receipt_id,
+                    {
+                        **metadata,
+                        "portable_receipt": portable_meta,
+                    },
+                )
+            except Exception as exc:
+                portable_error = str(exc)
+                await self.receipt_service.update_receipt_metadata(
+                    receipt_id,
+                    {
+                        **metadata,
+                        "portable_receipt_error": portable_error,
+                    },
+                )
         _json_log(
             "execution_gate.confirm",
             owner_address=normalized,
@@ -344,6 +405,19 @@ class PortfolioExecutionGateService:
             tx_hash=tx_hash,
             status=result.get("status"),
         )
+        if portable_receipt:
+            result["portable_receipt"] = {
+                "registry_receipt_id": portable_receipt.get("registry_receipt_id"),
+                "registry_contract_address": portable_receipt.get("registry_contract_address"),
+                "cid": portable_receipt.get("cid"),
+                "gateway_url": portable_receipt.get("gateway_url"),
+                "ipfs_gateway_url": portable_receipt.get("ipfs_gateway_url"),
+                "ipfs_uri": portable_receipt.get("ipfs_uri"),
+                "archive_tx_hash": portable_receipt.get("archive_tx_hash"),
+                "archive_contract_address": portable_receipt.get("archive_contract_address"),
+            }
+        if portable_error:
+            result["portable_receipt_error"] = portable_error
         return result
 
     def get_executor_readiness(self, network_id: str) -> dict[str, Any]:
@@ -553,7 +627,9 @@ class PortfolioExecutionGateService:
         governed_execution = await self._build_governed_execution_summary(
             owner_address=normalized,
             raw_policy=raw_policy,
+            policy_snapshot=policy,
             recommendation_plan=recommendation_plan,
+            receipts=receipts,
         )
         return {
             "owner_address": normalized,
@@ -572,7 +648,7 @@ class PortfolioExecutionGateService:
             "target_allocations": target_allocations,
             "allocator_target_allocations": allocator_target_allocations,
             "estimated_swap_count": len(steps),
-            "rationale": rebalance_summary.get("headline") or recommendation_plan["note"] or rationale,
+            "rationale": rationale or rebalance_summary.get("headline") or recommendation_plan["note"],
             "recommendation_mode": recommendation_plan["mode"],
             "recommendation_note": recommendation_plan["note"],
             "recommended_route_label": recommendation_plan.get("route_label"),
@@ -607,7 +683,9 @@ class PortfolioExecutionGateService:
         *,
         owner_address: str,
         raw_policy: dict[str, Any],
+        policy_snapshot: dict[str, Any],
         recommendation_plan: dict[str, Any],
+        receipts: list[dict[str, Any]],
     ) -> dict[str, Any]:
         try:
             onboarding = get_constraint_gate().get_constraints(owner_address)
@@ -685,6 +763,31 @@ class PortfolioExecutionGateService:
                 f"Portfolio still falls back to the current {policy_execution_mode} execution posture for this lane."
             )
 
+        governed_control_state = str(
+            policy_snapshot.get("governed_execution_state")
+            or ("armed" if policy_execution_mode in {"auto", "automated", "autonomous"} else "disarmed")
+        ).strip().lower()
+        if governed_control_state not in {"armed", "disarmed"}:
+            governed_control_state = "disarmed"
+
+        recent_governed_execution_receipt = next(
+            (
+                receipt
+                for receipt in reversed(receipts)
+                if (
+                    isinstance(receipt.get("metadata"), dict)
+                    and (
+                        (receipt.get("metadata", {}).get("execution") or {}).get("workflow_mode") == "automated"
+                        or (receipt.get("metadata", {}).get("gate") or {}).get("workflow_mode") == "automated"
+                    )
+                    and str((receipt.get("metadata") or {}).get("status") or "").lower()
+                    in {"prepared", "submitted", "settling", "pending", "wallet_ready", "executing"}
+                )
+            ),
+            None,
+        )
+        has_recent_governed_execution = recent_governed_execution_receipt is not None
+
         if not has_onboarding:
             mode = "block"
         elif not active_session_ids:
@@ -716,6 +819,17 @@ class PortfolioExecutionGateService:
                 "label": "Ready to govern",
                 "detail": f"Automated mode can use your {governed_risk_profile} onboarding profile and active session keys.",
             }
+
+        if has_recent_governed_execution:
+            governed_state = "executing"
+        elif governed_control_state != "armed":
+            governed_state = "disarmed"
+        elif not has_onboarding or not active_session_ids:
+            governed_state = "session_unavailable"
+        elif policy_execution_mode not in {"auto", "automated", "autonomous"}:
+            governed_state = "policy_fallback"
+        else:
+            governed_state = "armed"
 
         next_steps = recommendation_plan.get("swap_steps") or []
         next_action_value_usd = round(
@@ -818,6 +932,8 @@ class PortfolioExecutionGateService:
         return {
             "source": profile_source,
             "mode": mode,
+            "state": governed_state,
+            "control_state": governed_control_state,
             "reason_codes": reason_codes,
             "reason_hints": reason_hints,
             "primary_hint": primary_hint,
@@ -850,6 +966,7 @@ class PortfolioExecutionGateService:
         changed_fields: list[str] = []
         for field in (
             "paused",
+            "governed_execution_state",
             "max_value_per_action_usd",
             "max_slippage_bps",
             "cooldown_seconds",
@@ -1215,6 +1332,10 @@ class PortfolioExecutionGateService:
                 "policy_hash": gate_result["policy_hash"],
                 "intent_hash": gate_result["intent_hash"],
                 "route_hash": gate_result["route_hash"],
+                "allowed": gate_result.get("allowed"),
+                "reason_codes": gate_result.get("reason_codes", []),
+                "constraint_results": gate_result.get("constraint_results", []),
+                "estimated_cost_usd": gate_result.get("estimated_cost_usd"),
                 "target_allocations": gate_result.get("current_allocations")
                 if normalized_intent["type"] == "swap"
                 else normalized_intent.get("target_allocations"),
@@ -1831,7 +1952,13 @@ class PortfolioExecutionGateService:
         swap_steps: list[dict[str, Any]],
         estimated_gas: int,
         holdings: dict[str, dict[str, float]],
+        policy_max_fee_share_pct: float | None = None,
     ) -> dict[str, Any]:
+        block_fee_share = (
+            policy_max_fee_share_pct / 100.0
+            if policy_max_fee_share_pct is not None
+            else BLOCK_FEE_SHARE_OF_ACTION
+        )
         estimated_cost_usd = round(estimated_gas * ESTIMATED_USD_PER_GAS_UNIT, 4)
         fee_share = estimated_cost_usd / max(action_value_usd, 0.0001)
         portfolio_total_usd = sum(_safe_float(item.get("value_usd", 0.0)) for item in holdings.values())
@@ -1850,7 +1977,7 @@ class PortfolioExecutionGateService:
         effective_fee_share_block = (
             SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
             if small_portfolio_single_step_grace
-            else BLOCK_FEE_SHARE_OF_ACTION
+            else block_fee_share
         )
         effective_grace_fee_share_limit = (
             SMALL_PORTFOLIO_SINGLE_STEP_MAX_FEE_SHARE
@@ -1996,6 +2123,7 @@ class PortfolioExecutionGateService:
             swap_steps=[step],
             estimated_gas=estimated_gas,
             holdings=holdings,
+            policy_max_fee_share_pct=_safe_float(policy.get("max_fee_share_pct")),
         )
         current_allocations = self._weights_pct(holdings)
         current_gap = sum(
@@ -2089,6 +2217,7 @@ class PortfolioExecutionGateService:
             swap_steps=allocator_steps,
             estimated_gas=estimated_gas,
             holdings=holdings,
+            policy_max_fee_share_pct=_safe_float(policy.get("max_fee_share_pct")),
         )
         result = {
             "mode": "allocator_target",
@@ -2203,6 +2332,7 @@ class PortfolioExecutionGateService:
                 [lead_step],
             ),
             holdings=holdings,
+            policy_max_fee_share_pct=_safe_float(policy.get("max_fee_share_pct")),
         )
         fallback_options = [
             self._serialize_recommendation_candidate_option(
@@ -3049,6 +3179,7 @@ class PortfolioExecutionGateService:
             swap_steps=swap_steps,
             estimated_gas=estimated_gas,
             holdings=holdings,
+            policy_max_fee_share_pct=_safe_float(policy.get("max_fee_share_pct")),
         )
         estimated_cost_usd = fee_assessment["estimated_cost_usd"]
         fee_share = fee_assessment["fee_share"]
@@ -3059,6 +3190,10 @@ class PortfolioExecutionGateService:
         grace_revoked_for_fee_share = fee_assessment["grace_revoked_for_fee_share"]
         fee_blocked = fee_assessment["fee_blocked"]
         fee_warning = fee_assessment["fee_warning"]
+        # ── Demo mode: never block on fee efficiency ──────────────
+        # The guard still reports its metrics (fee_share_pct, estimated_fee_usd)
+        # so the UI can display cost info, but it will never prevent execution.
+        fee_blocked = False
         fee_ok = not fee_blocked
         if fee_blocked:
             reason_codes.append("fee_inefficient")

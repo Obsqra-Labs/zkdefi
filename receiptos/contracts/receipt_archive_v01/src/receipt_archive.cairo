@@ -3,12 +3,16 @@ pub trait IReceiptArchive<TContractState> {
     fn anchor_cid(ref self: TContractState, receipt_id: u64, cid_hash: felt252);
     fn get_cid_anchor(self: @TContractState, receipt_id: u64) -> felt252;
     fn get_admin(self: @TContractState) -> starknet::ContractAddress;
+    fn upgrade_class(ref self: TContractState, new_class_hash: starknet::ClassHash);
 }
 
 #[starknet::contract]
 pub mod ReceiptArchive {
     use starknet::ContractAddress;
+    use starknet::ClassHash;
     use starknet::get_caller_address;
+    use starknet::SyscallResultTrait;
+    use starknet::syscalls::replace_class_syscall;
     use starknet::storage::{Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess};
 
     #[storage]
@@ -21,6 +25,7 @@ pub mod ReceiptArchive {
     #[derive(Drop, starknet::Event)]
     enum Event {
         CidAnchored: CidAnchored,
+        ClassUpgraded: ClassUpgraded,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -29,6 +34,11 @@ pub mod ReceiptArchive {
         receipt_id: u64,
         #[key]
         cid_hash: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct ClassUpgraded {
+        new_class_hash: ClassHash,
     }
 
     #[constructor]
@@ -57,6 +67,13 @@ pub mod ReceiptArchive {
 
         fn get_admin(self: @ContractState) -> ContractAddress {
             self.admin.read()
+        }
+
+        fn upgrade_class(ref self: ContractState, new_class_hash: ClassHash) {
+            let caller = get_caller_address();
+            assert(caller == self.admin.read(), 'ONLY_ADMIN');
+            replace_class_syscall(new_class_hash).unwrap_syscall();
+            self.emit(ClassUpgraded { new_class_hash });
         }
     }
 }

@@ -15,6 +15,7 @@ import {
   Gauge,
   ArrowRightLeft,
   Trophy,
+  Settings,
 } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "@/lib/api/client";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -419,9 +420,9 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
     : null;
 
   return (
-    <div className="w-[260px] flex-shrink-0 p-3 flex flex-col gap-3 overflow-y-auto">
+    <div className="w-[236px] flex-shrink-0 p-2.5 flex flex-col gap-2 overflow-y-auto">
       {/* 1 — Agent Status */}
-      <section className="rounded-lg border border-zinc-800 p-3">
+      <section className="rounded-lg border border-zinc-800 p-2.5">
         <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Agent</h3>
         {statusErr ? (
           <p className="text-[11px] text-red-400">{statusErr}</p>
@@ -492,215 +493,235 @@ export function AgentControls({ address, isDemo }: AgentControlsProps) {
         </div>
       </section>
 
-      {/* 1b — Portfolio Performance */}
-      {portfolio && (
-        <section className="rounded-lg border border-zinc-800 p-3 space-y-2">
-          <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <BarChart3 className="w-3 h-3" /> Performance
-          </h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Deployed</span>
-              <span className="text-zinc-200 font-medium">${portfolio.deployed_usd.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Yield</span>
-              <span className="text-emerald-400 font-medium">+${portfolio.yield_usd.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Est. APY</span>
-              <span className="text-cyan-400 font-medium">{portfolio.apy_estimate.toFixed(1)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Positions</span>
-              <span className="text-zinc-200 font-medium">{portfolio.positions}</span>
-            </div>
-          </div>
-
-          {/* Risk Exposure mini-bar */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="text-zinc-500 flex items-center gap-1"><Gauge className="w-3 h-3" /> Risk Exposure</span>
-              <span className={`font-medium ${portfolio.risk_pct < 40 ? "text-emerald-400" : portfolio.risk_pct < 70 ? "text-amber-400" : "text-red-400"}`}>{portfolio.risk_pct}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${portfolio.risk_pct < 40 ? "bg-emerald-500" : portfolio.risk_pct < 70 ? "bg-amber-500" : "bg-red-500"}`}
-                style={{ width: `${portfolio.risk_pct}%` }}
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 1c — Agent Leaderboard */}
-      {leaderboard.length > 0 && (
-        <section className="rounded-lg border border-zinc-800 p-3 space-y-2">
-          <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Trophy className="w-3 h-3" /> Leaderboard
-          </h3>
-          <div className="space-y-1">
-            {leaderboard.map((entry, i) => (
-              <div key={entry.agent_id} className="flex items-center justify-between text-[11px]">
-                <span className="text-zinc-400">
-                  <span className={i === 0 ? "text-amber-400 font-semibold" : i === 1 ? "text-zinc-300" : "text-zinc-500"}>#{i + 1}</span>{" "}
-                  {entry.name || entry.agent_id.slice(0, 8)}
-                </span>
-                <span className={`font-medium ${entry.cumulative_return_bps >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {entry.cumulative_return_bps >= 0 ? "+" : ""}{(entry.cumulative_return_bps / 100).toFixed(1)}%
-                </span>
+      {/* Portfolio Monitoring (collapsed by default) */}
+      <details className="group">
+        <summary className="cursor-pointer rounded-lg border border-zinc-800 p-2.5 hover:bg-zinc-900/50 transition-colors">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <BarChart3 className="w-3 h-3" /> Portfolio Monitoring
+          </span>
+        </summary>
+        <div className="mt-2 space-y-2">
+          {/* Portfolio Performance */}
+          {portfolio && (
+            <section className="rounded-lg border border-zinc-800 p-2.5 space-y-1.5">
+              <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <BarChart3 className="w-3 h-3" /> Performance
+              </h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Deployed</span>
+                  <span className="text-zinc-200 font-medium">${portfolio.deployed_usd.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Yield</span>
+                  <span className="text-emerald-400 font-medium">+${portfolio.yield_usd.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Est. APY</span>
+                  <span className="text-cyan-400 font-medium">{portfolio.apy_estimate.toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Positions</span>
+                  <span className="text-zinc-200 font-medium">{portfolio.positions}</span>
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+
+              {/* Risk Exposure mini-bar */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-zinc-500 flex items-center gap-1"><Gauge className="w-3 h-3" /> Risk Exposure</span>
+                  <span className={`font-medium ${portfolio.risk_pct < 40 ? "text-emerald-400" : portfolio.risk_pct < 70 ? "text-amber-400" : "text-red-400"}`}>{portfolio.risk_pct}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${portfolio.risk_pct < 40 ? "bg-emerald-500" : portfolio.risk_pct < 70 ? "bg-amber-500" : "bg-red-500"}`}
+                    style={{ width: `${portfolio.risk_pct}%` }}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Leaderboard */}
+          {leaderboard.length > 0 && (
+            <section className="rounded-lg border border-zinc-800 p-2.5 space-y-1.5">
+              <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Trophy className="w-3 h-3" /> Leaderboard
+              </h3>
+              <div className="space-y-1">
+                {leaderboard.map((entry, i) => (
+                  <div key={entry.agent_id} className="flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400">
+                      <span className={i === 0 ? "text-amber-400 font-semibold" : i === 1 ? "text-zinc-300" : "text-zinc-500"}>#{i + 1}</span>{" "}
+                      {entry.name || entry.agent_id.slice(0, 8)}
+                    </span>
+                    <span className={`font-medium ${entry.cumulative_return_bps >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {entry.cumulative_return_bps >= 0 ? "+" : ""}{(entry.cumulative_return_bps / 100).toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </details>
 
       {/* 2 — Emergency Stop */}
       <button
         onClick={handleEmergency}
         disabled={emergencyLoading}
-        className="w-full py-2.5 rounded-lg font-semibold text-sm bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+        className="w-full py-2 rounded-lg font-semibold text-xs bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
       >
         <AlertTriangle className="w-4 h-4" />
         {emergencyLoading ? "Stopping…" : "EMERGENCY STOP"}
       </button>
 
-      {/* 3 — Constraints Summary */}
-      <section className="rounded-lg border border-zinc-800 p-3">
-        <button
-          type="button"
-          onClick={() => setConstraintsOpen((o) => !o)}
-          className="w-full flex items-center justify-between"
-        >
-          <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Constraints</h3>
-          <ChevronDown className={`w-3 h-3 text-zinc-600 transition-transform ${constraintsOpen ? "rotate-180" : ""}`} />
-        </button>
-        {constraintsErr ? (
-          <p className="text-[10px] text-red-400 mt-1">{constraintsErr}</p>
-        ) : constraintSummary && !constraintsOpen ? (
-          <p className="text-[11px] text-zinc-400 mt-1 truncate">{constraintSummary}</p>
-        ) : null}
-        {constraintsOpen && constraints && (
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="flex justify-between text-zinc-500">
-              <span>Risk tolerance</span>
-              <span className="text-zinc-300">{constraints.risk_tolerance ?? "—"}%</span>
-            </div>
-            {constraints.venue_limits?.ekubo_pct != null && (
-              <div className="flex justify-between text-zinc-500">
-                <span>Ekubo</span>
-                <span className="text-zinc-300">{constraints.venue_limits.ekubo_pct}%</span>
-              </div>
-            )}
-            {constraints.venue_limits?.lending_pct != null && (
-              <div className="flex justify-between text-zinc-500">
-                <span>Lending</span>
-                <span className="text-zinc-300">{constraints.venue_limits.lending_pct}%</span>
-              </div>
-            )}
-            {constraints.privacy_mode && (
-              <div className="flex justify-between text-zinc-500">
-                <span>Privacy</span>
-                <span className="text-zinc-300">{constraints.privacy_mode}</span>
-              </div>
-            )}
-
-            {/* Venue routing preference */}
-            <div className="pt-2 mt-2 border-t border-zinc-800/50">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
-                <ArrowRightLeft className="w-3 h-3" />
-                Swap Routing
-              </div>
-              <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-[10px]">
-                {(["best", "ekubo", "avnu"] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={async () => {
-                      const prev = venuePref;
-                      setVenuePref(v);
-                      setVenuePrefLoading(true);
-                      try {
-                        await apiFetchAuth(
-                          `/api/v1/zkdefi/mc/constraints/${address}`,
-                          address,
-                          {
-                            method: "PUT",
-                            body: JSON.stringify({ venue_pref: v }),
-                          },
-                        );
-                      } catch {
-                        setVenuePref(prev);
-                      } finally {
-                        setVenuePrefLoading(false);
-                      }
-                    }}
-                    disabled={venuePrefLoading}
-                    className={`flex-1 px-2 py-1.5 text-center transition-colors ${
-                      venuePref === v
-                        ? "bg-cyan-600/20 text-cyan-300 font-semibold"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-                    } disabled:opacity-50`}
-                  >
-                    {v === "best" ? "Best" : v === "ekubo" ? "Ekubo" : "AVNU"}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-zinc-600 mt-1">
-                {venuePref === "best" ? "Auto-route: compares Ekubo & AVNU" : venuePref === "ekubo" ? "Direct Ekubo concentrated liquidity pools" : "AVNU multi-hop aggregator routing"}
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* 4 — Session Key Status */}
-      <section className="rounded-lg border border-zinc-800 p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Key className="w-3.5 h-3.5 text-zinc-500" />
-            <span className={`text-xs ${sessionExpired ? "text-amber-400" : "text-zinc-300"}`}>
-              {sessionLine}
-            </span>
-          </div>
-          {(sessionExpired || !activeSessionId) && (
+      {/* Advanced Config (collapsed by default) */}
+      <details className="group">
+        <summary className="cursor-pointer rounded-lg border border-zinc-800 p-2.5 hover:bg-zinc-900/50 transition-colors">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Settings className="w-3 h-3" /> Advanced Config
+          </span>
+        </summary>
+        <div className="mt-2 space-y-2">
+          {/* Constraints */}
+          <section className="rounded-lg border border-zinc-800 p-2.5">
             <button
-              onClick={grantSessionKey}
-              disabled={grantLoading}
-              className="text-[10px] px-2 py-1 rounded border border-violet-600/40 text-violet-400 hover:bg-violet-900/30 disabled:opacity-50 flex items-center gap-1"
+              type="button"
+              onClick={() => setConstraintsOpen((o) => !o)}
+              className="w-full flex items-center justify-between"
             >
-              {grantLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-              Grant
+              <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Constraints</h3>
+              <ChevronDown className={`w-3 h-3 text-zinc-600 transition-transform ${constraintsOpen ? "rotate-180" : ""}`} />
             </button>
-          )}
-        </div>
-      </section>
+            {constraintsErr ? (
+              <p className="text-[10px] text-red-400 mt-1">{constraintsErr}</p>
+            ) : constraintSummary && !constraintsOpen ? (
+              <p className="text-[11px] text-zinc-400 mt-1 truncate">{constraintSummary}</p>
+            ) : null}
+            {constraintsOpen && constraints && (
+              <div className="mt-2 space-y-1 text-xs">
+                <div className="flex justify-between text-zinc-500">
+                  <span>Risk tolerance</span>
+                  <span className="text-zinc-300">{constraints.risk_tolerance ?? "—"}%</span>
+                </div>
+                {constraints.venue_limits?.ekubo_pct != null && (
+                  <div className="flex justify-between text-zinc-500">
+                    <span>Ekubo</span>
+                    <span className="text-zinc-300">{constraints.venue_limits.ekubo_pct}%</span>
+                  </div>
+                )}
+                {constraints.venue_limits?.lending_pct != null && (
+                  <div className="flex justify-between text-zinc-500">
+                    <span>Lending</span>
+                    <span className="text-zinc-300">{constraints.venue_limits.lending_pct}%</span>
+                  </div>
+                )}
+                {constraints.privacy_mode && (
+                  <div className="flex justify-between text-zinc-500">
+                    <span>Privacy</span>
+                    <span className="text-zinc-300">{constraints.privacy_mode}</span>
+                  </div>
+                )}
 
-      {/* 5 — Rebalance Mode Toggle */}
-      <section className="rounded-lg border border-zinc-800 p-3">
-        <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rebalance Mode</h3>
-        {rebalanceModeErr ? (
-          <p className="text-[10px] text-red-400">{rebalanceModeErr}</p>
-        ) : null}
-        <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-xs">
-          {(["user", "oracle"] as RebalanceMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => handleRebalanceModeToggle(m)}
-              disabled={rebalanceModeLoading}
-              className={`flex-1 px-3 py-1.5 text-center transition-colors ${
-                rebalanceMode === m
-                  ? "bg-emerald-600/30 text-emerald-300 font-semibold"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-              } disabled:opacity-50`}
-            >
-              {m === "user" ? "My Agent" : "Oracle"}
-            </button>
-          ))}
+                {/* Venue routing preference */}
+                <div className="pt-2 mt-2 border-t border-zinc-800/50">
+                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                    <ArrowRightLeft className="w-3 h-3" />
+                    Swap Routing
+                  </div>
+                  <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-[10px]">
+                    {(["best", "ekubo", "avnu"] as const).map((v) => (
+                      <button
+                        key={v}
+                        onClick={async () => {
+                          const prev = venuePref;
+                          setVenuePref(v);
+                          setVenuePrefLoading(true);
+                          try {
+                            await apiFetchAuth(
+                              `/api/v1/zkdefi/mc/constraints/${address}`,
+                              address,
+                              {
+                                method: "PUT",
+                                body: JSON.stringify({ venue_pref: v }),
+                              },
+                            );
+                          } catch {
+                            setVenuePref(prev);
+                          } finally {
+                            setVenuePrefLoading(false);
+                          }
+                        }}
+                        disabled={venuePrefLoading}
+                        className={`flex-1 px-2 py-1.5 text-center transition-colors ${
+                          venuePref === v
+                            ? "bg-cyan-600/20 text-cyan-300 font-semibold"
+                            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                        } disabled:opacity-50`}
+                      >
+                        {v === "best" ? "Best" : v === "ekubo" ? "Ekubo" : "AVNU"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-zinc-600 mt-1">
+                    {venuePref === "best" ? "Auto-route: compares Ekubo & AVNU" : venuePref === "ekubo" ? "Direct Ekubo concentrated liquidity pools" : "AVNU multi-hop aggregator routing"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Session Key Status */}
+          <section className="rounded-lg border border-zinc-800 p-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="w-3.5 h-3.5 text-zinc-500" />
+                <span className={`text-xs ${sessionExpired ? "text-amber-400" : "text-zinc-300"}`}>
+                  {sessionLine}
+                </span>
+              </div>
+              {(sessionExpired || !activeSessionId) && (
+                <button
+                  onClick={grantSessionKey}
+                  disabled={grantLoading}
+                  className="text-[10px] px-2 py-1 rounded border border-violet-600/40 text-violet-400 hover:bg-violet-900/30 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {grantLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+                  Grant
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Rebalance Mode Toggle */}
+          <section className="rounded-lg border border-zinc-800 p-2.5">
+            <h3 className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rebalance Mode</h3>
+            {rebalanceModeErr ? (
+              <p className="text-[10px] text-red-400">{rebalanceModeErr}</p>
+            ) : null}
+            <div className="flex rounded-lg border border-zinc-700 overflow-hidden text-xs">
+              {(["user", "oracle"] as RebalanceMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleRebalanceModeToggle(m)}
+                  disabled={rebalanceModeLoading}
+                  className={`flex-1 px-3 py-1.5 text-center transition-colors ${
+                    rebalanceMode === m
+                      ? "bg-emerald-600/30 text-emerald-300 font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  } disabled:opacity-50`}
+                >
+                  {m === "user" ? "My Agent" : "Oracle"}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-zinc-600 mt-1.5">
+              {rebalanceMode === "user" ? "Only you can deploy/close pool capital." : "Oracle can rebalance with zkML verification."}
+            </p>
+          </section>
         </div>
-        <p className="text-[10px] text-zinc-600 mt-1.5">
-          {rebalanceMode === "user" ? "Only you can deploy/close pool capital." : "Oracle can rebalance with zkML verification."}
-        </p>
-      </section>
+      </details>
     </div>
   );
 }

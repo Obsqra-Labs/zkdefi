@@ -282,6 +282,7 @@ receipt_vault_router = _optional_router("app.api.routes.receipt_vault")
 passport_portable_router = _optional_router("app.api.routes.passport_portable")
 demo_router = _optional_router("app.api.routes.demo")
 forge_router = _optional_router("app.api.routes.forge")
+studio_telegram_router = _optional_router("app.api.routes.studio_telegram")
 
 if zkdefi_router:
     app.include_router(zkdefi_router, prefix="/api/v1/zkdefi", tags=["zkdefi"])
@@ -434,6 +435,8 @@ if forge_router:
         prefix="/api/v1/zkdefi",
         tags=["forge"],
     )
+if studio_telegram_router:
+    app.include_router(studio_telegram_router)
 if privacy_vault_router:
     app.include_router(
         privacy_vault_router,

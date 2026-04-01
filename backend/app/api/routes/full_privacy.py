@@ -68,8 +68,8 @@ class DepositCommitmentResponse(BaseModel):
 class RegisterCommitmentRequest(BaseModel):
     commitment: str = Field(..., min_length=1)
     wait_for_onchain: bool = Field(
-        default=True,
-        description="When false, return after local Merkle registration and sync the root on-chain in the background.",
+        default=False,
+        description="When true, wait synchronously for on-chain root registration before returning. Default false: return immediately after local Merkle insertion and sync root on-chain in background.",
     )
 
 

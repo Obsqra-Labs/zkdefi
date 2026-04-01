@@ -4,10 +4,12 @@ Receipt Vault API.
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.services.receipt_vault_service import get_receipt_vault_service
@@ -54,6 +56,24 @@ async def get_receipt_detail(registry_receipt_id: str) -> dict[str, Any]:
     if receipt is None:
         raise HTTPException(status_code=404, detail="Receipt not found")
     return receipt
+
+
+@router.get("/receipt/{registry_receipt_id}/bundle")
+async def get_receipt_bundle(registry_receipt_id: str) -> JSONResponse:
+    """Serve the receipt bundle JSON directly (self-hosted fallback for IPFS gateways)."""
+    service = get_receipt_vault_service()
+    receipt = await service.get_receipt(registry_receipt_id, verify=False)
+    if receipt is None:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    bundle = receipt.get("bundle") or {}
+    return JSONResponse(
+        content=bundle,
+        headers={
+            "Content-Disposition": "inline; filename=receipt-bundle.json",
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-CID": receipt.get("cid") or "",
+        },
+    )
 
 
 @router.post("/verify")

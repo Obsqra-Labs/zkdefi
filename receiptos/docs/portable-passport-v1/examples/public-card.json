@@ -1,0 +1,55 @@
+{
+  "version": "ppp.v1",
+  "subject": {
+    "starknet_address": "0x0123",
+    "subject_id": "did:zkdefi:0x0123"
+  },
+  "identity": {
+    "linked_addresses": [],
+    "privacy_mode": "public"
+  },
+  "reputation": {
+    "tier": 2,
+    "tier_name": "Express",
+    "score": 745,
+    "credit_score": null,
+    "letter_rating": "B"
+  },
+  "activity": {
+    "builder": {
+      "deploy_count": 3,
+      "verified_receipt_count": 7,
+      "proof_count": 4
+    },
+    "defi": {
+      "tvl_usd": 100000,
+      "protocol_count": 4,
+      "position_count": 9,
+      "turnover_30d_usd": 420000
+    }
+  },
+  "evidence": {
+    "receipt_root": "0xabc",
+    "portfolio_snapshot_hash": "0xdef",
+    "proof_registry_refs": ["proof:1", "proof:2"]
+  },
+  "claims": {
+    "execution_eligibility": {
+      "allowed": true,
+      "confidence_band": "high"
+    },
+    "lending_eligibility": {
+      "allowed": true,
+      "max_ltv": 55
+    },
+    "risk_posture": {
+      "label": "balanced"
+    }
+  },
+  "provenance": {
+    "generated_at": "2026-03-30T00:00:00Z",
+    "policy_hash": "0x111",
+    "circuits": ["RiskPassportTier", "AgentReputationScore"],
+    "proof_mode": "hybrid"
+  }
+}

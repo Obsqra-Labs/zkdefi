@@ -62,7 +62,9 @@ async def test_register_passport_claim_uploads_and_persists_bundle(monkeypatch, 
 @pytest.mark.asyncio
 async def test_register_portfolio_execution_issues_registry_and_stores_override_state(monkeypatch, vault_service):
     async def fake_issue_registry(*, policy_hash, weight):
-        assert policy_hash == "0x123"
+        # policy_hash is now a Poseidon hash of (raw_policy_hash + execution_tx_hash + source_receipt_id)
+        assert policy_hash.startswith("0x")
+        assert len(policy_hash) > 4  # not trivially empty
         assert weight == 250
         return {"receipt_id": "88", "tx_hash": "0xregistry"}
 

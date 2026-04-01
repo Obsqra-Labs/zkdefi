@@ -74,6 +74,17 @@ export interface LedgerEntry {
 
 const V2 = "/api/v2/vault";
 
+async function vaultMutationFetch<T>(
+  path: string,
+  walletAddress: string | undefined,
+  init: Parameters<typeof clientApiFetch>[1],
+): Promise<T> {
+  if (walletAddress) {
+    return clientApiFetchAuth<T>(path, walletAddress, init);
+  }
+  return clientApiFetch<T>(path, init);
+}
+
 export async function getOrCreateVault(
   ownerAddress: string,
   mode = "OPERATOR_MANAGED",
@@ -93,8 +104,9 @@ export async function createDepositIntent(
   amountWei: string,
   token: string,
   rail: string,
+  walletAddress?: string,
 ): Promise<DepositIntent> {
-  return clientApiFetch(`${V2}/deposit/intent`, {
+  return vaultMutationFetch(`${V2}/deposit/intent`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, rail }),
   });
@@ -104,8 +116,9 @@ export async function confirmDeposit(
   intentId: string,
   txHash: string,
   commitmentHash: string,
+  walletAddress?: string,
 ): Promise<DepositIntent> {
-  return clientApiFetch(`${V2}/deposit/confirm`, {
+  return vaultMutationFetch(`${V2}/deposit/confirm`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ intent_id: intentId, tx_hash: txHash, commitment_hash: commitmentHash }),
   });
@@ -124,8 +137,9 @@ export async function createDeployIntent(
   adapters: string[],
   amounts: string[],
   token: string,
+  walletAddress?: string,
 ): Promise<DeployProposal> {
-  return clientApiFetch(`${V2}/deploy/intent`, {
+  return vaultMutationFetch(`${V2}/deploy/intent`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ vault_id: vaultId, adapters, amounts, token }),
   });
@@ -157,8 +171,9 @@ export async function requestWithdrawal(
   token: string,
   destination: string,
   route: string,
+  walletAddress?: string,
 ): Promise<Withdrawal> {
-  return clientApiFetch(`${V2}/withdraw/request`, {
+  return vaultMutationFetch(`${V2}/withdraw/request`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, destination, route }),
   });
@@ -169,8 +184,9 @@ export async function sweepToLedger(
   noteId: string,
   amountWei: string,
   token: string,
+  walletAddress?: string,
 ): Promise<{ status: string; note_id: string }> {
-  return clientApiFetch(`${V2}/sweep/to-ledger`, {
+  return vaultMutationFetch(`${V2}/sweep/to-ledger`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ vault_id: vaultId, note_id: noteId, amount_wei: amountWei, token }),
   });
@@ -181,8 +197,9 @@ export async function sweepToVault(
   amountWei: string,
   token: string,
   targetRail: string,
+  walletAddress?: string,
 ): Promise<{ status: string; note_id: string }> {
-  return clientApiFetch(`${V2}/sweep/to-vault`, {
+  return vaultMutationFetch(`${V2}/sweep/to-vault`, walletAddress, {
     method: "POST",
     body: JSON.stringify({ vault_id: vaultId, amount_wei: amountWei, token, target_rail: targetRail }),
   });

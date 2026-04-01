@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zkdefi.xyz/schemas/portable-passport-v1.schema.json",
+  "title": "Portable Passport Profile v1",
+  "type": "object",
+  "required": [
+    "version",
+    "subject",
+    "identity",
+    "reputation",
+    "activity",
+    "evidence",
+    "claims",
+    "provenance"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "ppp.v1"
+    },
+    "subject": {
+      "type": "object",
+      "required": ["starknet_address", "subject_id"],
+      "properties": {
+        "starknet_address": { "type": "string" },
+        "subject_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "identity": {
+      "type": "object",
+      "required": ["linked_addresses", "privacy_mode"],
+      "properties": {
+        "linked_addresses": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "session_state": { "type": "object" },
+        "privacy_mode": {
+          "type": "string",
+          "enum": ["public", "selective", "private"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "reputation": {
+      "type": "object",
+      "required": ["tier", "tier_name", "score", "letter_rating"],
+      "properties": {
+        "tier": { "type": "integer", "minimum": 0 },
+        "tier_name": { "type": "string" },
+        "score": { "type": "number" },
+        "credit_score": { "type": ["number", "null"] },
+        "letter_rating": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "activity": {
+      "type": "object",
+      "required": ["builder", "defi"],
+      "properties": {
+        "builder": {
+          "type": "object",
+          "required": ["deploy_count", "verified_receipt_count", "proof_count"],
+          "properties": {
+            "deploy_count": { "type": "integer", "minimum": 0 },
+            "verified_receipt_count": { "type": "integer", "minimum": 0 },
+            "proof_count": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "defi": {
+          "type": "object",
+          "required": ["tvl_usd", "protocol_count", "position_count", "turnover_30d_usd"],
+          "properties": {
+            "tvl_usd": { "type": "number", "minimum": 0 },
+            "protocol_count": { "type": "integer", "minimum": 0 },
+            "position_count": { "type": "integer", "minimum": 0 },
+            "turnover_30d_usd": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["receipt_root", "portfolio_snapshot_hash", "proof_registry_refs"],
+      "properties": {
+        "receipt_root": { "type": "string" },
+        "portfolio_snapshot_hash": { "type": "string" },
+        "proof_registry_refs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "object",
+      "required": ["execution_eligibility", "lending_eligibility", "risk_posture"],
+      "properties": {
+        "execution_eligibility": { "type": "object" },
+        "lending_eligibility": { "type": "object" },
+        "risk_posture": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["generated_at", "policy_hash", "circuits", "proof_mode"],
+      "properties": {
+        "generated_at": { "type": "string" },
+        "policy_hash": { "type": "string" },
+        "circuits": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "proof_mode": {
+          "type": "string",
+          "enum": ["groth16", "advisory", "hybrid"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

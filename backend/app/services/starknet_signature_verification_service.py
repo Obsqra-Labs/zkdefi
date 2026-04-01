@@ -246,6 +246,30 @@ class StarknetSignatureVerificationService:
         if not ok:
             raise StarknetSignatureVerificationError(reason or "Invalid Starknet signature")
 
+    def verify_message_hash(
+        self,
+        *,
+        starknet_address: str,
+        message_hash: Any,
+        signature: Any,
+    ) -> None:
+        if not self.required:
+            return
+        if not self.rpc_url:
+            raise StarknetSignatureVerificationError("Starknet RPC URL is not configured")
+
+        account_address = self._parse_felt(starknet_address, field="starknet_address")
+        msg_hash = self._parse_felt(message_hash, field="message_hash")
+        sig_parts = self._normalize_signature(signature)
+
+        ok, reason = self._rpc_is_valid_signature(
+            account_address=account_address,
+            message_hash=msg_hash,
+            signature=sig_parts,
+        )
+        if not ok:
+            raise StarknetSignatureVerificationError(reason or "Invalid Starknet signature")
+
 
 _service: StarknetSignatureVerificationService | None = None
 

@@ -1,6 +1,17 @@
-export type SupportedAsset = "ETH" | "STRK" | "USDC";
+export type SupportedAsset = "ETH" | "STRK" | "USDC" | "WBTC";
 export type ActionType = "swap" | "rebalance";
 export type WorkflowMode = "manual" | "assisted" | "automated";
+
+export type PortableReceiptData = {
+  registry_receipt_id?: string;
+  registry_contract_address?: string | null;
+  cid?: string;
+  gateway_url?: string | null;
+  ipfs_gateway_url?: string | null;
+  ipfs_uri?: string | null;
+  archive_tx_hash?: string | null;
+  archive_contract_address?: string | null;
+};
 
 export type PortfolioPosition = {
   asset_symbol: string;
@@ -31,8 +42,10 @@ export type PolicySnapshot = {
   max_slippage_bps: number;
   cooldown_seconds: number;
   max_swaps_per_rebalance: number;
+  max_fee_share_pct: number;
   min_amounts?: Record<SupportedAsset, number>;
   paused: boolean;
+  governed_execution_state?: "armed" | "disarmed";
   min_reputation_score?: number;
   max_risk_score?: number;
   policy_hash: string;
@@ -213,6 +226,15 @@ export type Receipt = {
       portfolio_before?: AllocationSnapshot;
       portfolio_after?: AllocationSnapshot;
     };
+    portable_receipt?: {
+      registry_receipt_id?: string;
+      cid?: string;
+      gateway_url?: string | null;
+      ipfs_uri?: string | null;
+      archive_tx_hash?: string | null;
+      anchor_tier?: string | null;
+    };
+    portable_receipt_error?: string;
   };
 };
 
@@ -336,6 +358,8 @@ export type RecommendationRouteOption = {
 export type GovernedExecution = {
   source: "onboarding_constraints" | "portfolio_policy";
   mode: "allow" | "advisory" | "block";
+  state?: "disarmed" | "armed" | "policy_fallback" | "session_unavailable" | "executing";
+  control_state?: "armed" | "disarmed";
   reason_codes: string[];
   reason_hints: string[];
   primary_hint: string;
@@ -435,6 +459,7 @@ export type PolicyDraft = {
   maxSlippageBps: string;
   cooldownSeconds: string;
   maxSwaps: string;
+  maxFeeSharePct: string;
   minAmounts: Record<SupportedAsset, string>;
 };
 
@@ -445,4 +470,9 @@ export type ActivityItem = {
   status: string;
   timestamp: string;
   txHref?: string | null;
+  receiptHref?: string | null;
+  verifyHref?: string | null;
+  group: "system" | "gate" | "user";
+  cid?: string | null;
+  anchorTier?: string | null;
 };

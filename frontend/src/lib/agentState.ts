@@ -15,8 +15,8 @@ import type { PrivacyMethod, VaultCommitment } from "@/hooks/usePrivacyVault";
 /** V2 2-pill center stage modes */
 export type CenterModeV2 = "intelligence" | "vault";
 
-/** Inner tabs of the Vault center stage — six-lane layout */
-export type VaultTab = "overview" | "markets" | "capital" | "lend" | "govern" | "activity";
+/** Inner tabs of the Vault center stage — CapitalOS product IA */
+export type VaultTab = "home" | "plan" | "portfolio" | "history" | "settings";
 
 /** Overlay modes — full-screen panels that replace center stage */
 export type OverlayModeV2 =
@@ -86,37 +86,41 @@ export function resolveViewParamV2(
     lower === "opportunities" ||
     lower === "trade" ||
     lower === "ekubo" ||
-    lower === "capital"
+    lower === "capital" ||
+    lower === "home" ||
+    lower === "plan" ||
+    lower === "history" ||
+    lower === "settings"
   ) {
     return { mode: "vault", vaultTab: resolveVaultTab(lower, tLower) };
   }
 
-  // Lending / borrow → lend tab
+  // Legacy lending / borrow surfaces map to portfolio for MVP
   if (lower === "lending" || lower === "p2p" || lower === "lend" || lower === "borrow") {
-    return { mode: "vault", vaultTab: "lend" };
+    return { mode: "vault", vaultTab: "portfolio" };
   }
 
   // Activity / history
   if (lower === "history" || lower === "memory_lane" || lower === "receipts" || lower === "activity") {
-    return { mode: "vault", vaultTab: "activity" };
+    return { mode: "vault", vaultTab: "history" };
   }
 
-  // Oracle / marketplace → overview (no longer standalone tabs)
+  // Oracle / marketplace map to plan surface
   if (lower === "oracle" || lower === "marketplace") {
-    return { mode: "vault", vaultTab: "overview" };
+    return { mode: "vault", vaultTab: "plan" };
   }
 
-  // Governance / policy → govern tab
+  // Governance / policy map to settings for MVP
   if (
     lower === "models" ||
     lower === "zkml" ||
     lower === "governance" ||
     lower === "policy"
   ) {
-    return { mode: "vault", vaultTab: "govern" };
+    return { mode: "vault", vaultTab: "settings" };
   }
 
-  // Default: vault overview
+  // Default: vault home
   if (!lower) {
     return { mode: "vault", vaultTab: resolveVaultTab("", tLower) };
   }
@@ -126,19 +130,57 @@ export function resolveViewParamV2(
 
 function resolveVaultTab(vLower: string, tLower: string): VaultTab {
   // Explicit ?t= param takes priority — map old names to new five-lane tabs
-  if (tLower === "pools" || tLower === "pool" || tLower === "ekubo" || tLower === "lp" || tLower === "trade" || tLower === "execution" || tLower === "capital") return "capital";
-  if (tLower === "lending" || tLower === "lend") return "lend";
-  if (tLower === "governance" || tLower === "govern") return "govern";
-  if (tLower === "activity" || tLower === "history") return "activity";
-  if (tLower === "oracle" || tLower === "marketplace" || tLower === "markets" || tLower === "opportunities") return "markets";
-  if (tLower === "overview") return "overview";
+  if (
+    tLower === "pools" ||
+    tLower === "pool" ||
+    tLower === "ekubo" ||
+    tLower === "lp" ||
+    tLower === "capital" ||
+    tLower === "lending" ||
+    tLower === "lend" ||
+    tLower === "governance" ||
+    tLower === "govern" ||
+    tLower === "portfolio"
+  ) return "portfolio";
+  if (tLower === "activity" || tLower === "history" || tLower === "receipts") return "history";
+  if (
+    tLower === "oracle" ||
+    tLower === "marketplace" ||
+    tLower === "markets" ||
+    tLower === "opportunities" ||
+    tLower === "trade" ||
+    tLower === "execution" ||
+    tLower === "plan"
+  ) return "plan";
+  if (tLower === "settings" || tLower === "policy" || tLower === "models" || tLower === "zkml") return "settings";
+  if (tLower === "overview" || tLower === "home") return "home";
 
   // Infer from ?v= when ?t= is absent
-  if (vLower === "pools" || vLower === "pool" || vLower === "pool_intelligence" || vLower === "ekubo" || vLower === "capital") return "capital";
-  if (vLower === "execution" || vLower === "execution_flow" || vLower === "trade") return "capital";
-  if (vLower === "oracle" || vLower === "marketplace") return "markets";
+  if (
+    vLower === "pools" ||
+    vLower === "pool" ||
+    vLower === "pool_intelligence" ||
+    vLower === "ekubo" ||
+    vLower === "capital" ||
+    vLower === "portfolio" ||
+    vLower === "lending" ||
+    vLower === "lend" ||
+    vLower === "governance"
+  ) return "portfolio";
+  if (
+    vLower === "execution" ||
+    vLower === "execution_flow" ||
+    vLower === "trade" ||
+    vLower === "oracle" ||
+    vLower === "marketplace" ||
+    vLower === "opportunities" ||
+    vLower === "markets" ||
+    vLower === "plan"
+  ) return "plan";
+  if (vLower === "history" || vLower === "activity" || vLower === "memory_lane" || vLower === "receipts") return "history";
+  if (vLower === "settings" || vLower === "policy" || vLower === "models" || vLower === "zkml") return "settings";
 
-  return "overview";
+  return "home";
 }
 
 /** Resolve ?v= param to an initial overlay or slideout for V2 layout */
@@ -156,7 +198,7 @@ export function resolveViewOverlayV2(
 export function buildAgentUrl(mode: CenterModeV2, vaultTab?: VaultTab): string {
   const params = new URLSearchParams();
   params.set("v", mode);
-  if (mode === "vault" && vaultTab && vaultTab !== "overview") {
+  if (mode === "vault" && vaultTab && vaultTab !== "home") {
     params.set("t", vaultTab);
   }
   return `/agent?${params.toString()}`;

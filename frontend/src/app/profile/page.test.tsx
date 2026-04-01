@@ -5,7 +5,6 @@ import ProfilePage from "./page";
 
 const useAccountMock = vi.fn();
 const useWalletSettledMock = vi.fn();
-const useRiskProfileMock = vi.fn();
 const useRiskProfileV2Mock = vi.fn();
 const useLinkedAddressesMock = vi.fn();
 const getUserSessionsMock = vi.fn();
@@ -24,7 +23,6 @@ vi.mock("@/components/zkdefi/ConnectButton", () => ({
 }));
 
 vi.mock("@/hooks/useProfile", () => ({
-  useRiskProfile: (...args: unknown[]) => useRiskProfileMock(...args),
   useRiskProfileV2: (...args: unknown[]) => useRiskProfileV2Mock(...args),
   useLinkedAddresses: (...args: unknown[]) => useLinkedAddressesMock(...args),
 }));
@@ -53,30 +51,6 @@ vi.mock("@/lib/toast", () => ({
 
 function mockCommonHooks() {
   useWalletSettledMock.mockReturnValue({ settled: true });
-
-  useRiskProfileMock.mockReturnValue({
-    profile: {
-      reputation: {
-        tier: 2,
-        tier_name: "Active",
-        tenure_days: 14,
-        successful_txns: 8,
-        collateral_eth: 0.4,
-        transaction_count: 10,
-        total_volume_eth: 2.1,
-      },
-      risk_passport: {
-        composite_score: 68,
-        letter_rating: "B",
-        tier: 2,
-        tier_name: "Active",
-        credit_tier: "b",
-        credit_score: 680,
-      },
-    },
-    loading: false,
-    refetch: vi.fn(),
-  });
 
   useLinkedAddressesMock.mockReturnValue({
     linked: { eth: "", arb: "", base: "", opt: "" },

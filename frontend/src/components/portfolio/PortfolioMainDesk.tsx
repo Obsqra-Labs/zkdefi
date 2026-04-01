@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2, X, RotateCcw, Cpu, Brain, ShieldCheck } from "lucide-react";
 
 import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
 import { PrimaryActionTray } from "./PrimaryActionTray";
+import { ReceiptVaultHero } from "./ReceiptVaultHero";
 import { SafetyDrawer } from "./SafetyDrawer";
 import { TargetEditor } from "./TargetEditor";
-import type { ConstraintResult, GateResult, RecommendationRouteOption, SupportedAsset, SwapStep, WorkflowMode } from "./types";
+import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
+import type { ConstraintResult, GateResult, PortableReceiptData, RecommendationRouteOption, SupportedAsset, SwapStep, WorkflowMode } from "./types";
 
 type RecommendationData = {
   drift_monitor?: {
@@ -66,32 +68,7 @@ function StatusPill({
   );
 }
 
-function SectionCard({
-  eyebrow,
-  title,
-  actions,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
-        </div>
-        {actions}
-      </div>
-      <div className="mt-3.5">{children}</div>
-    </section>
-  );
-}
-
-function MixBar({
+export function MixBar({
   label,
   allocations,
   emphasis,
@@ -107,7 +84,7 @@ function MixBar({
           {label}
         </p>
         <div className="flex flex-wrap gap-3 text-xs text-zinc-400">
-          {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+          {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
             <span key={`${label}-${asset}`}>
               {asset} {formatPercent(allocations[asset] ?? 0, 0)}
             </span>
@@ -115,7 +92,7 @@ function MixBar({
         </div>
       </div>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-zinc-950">
-        {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
+        {(["ETH", "STRK", "USDC", "WBTC"] as SupportedAsset[]).map((asset) => (
           <div
             key={`${label}-${asset}-segment`}
             className={
@@ -123,36 +100,15 @@ function MixBar({
                 ? "bg-cyan-400"
                 : asset === "STRK"
                   ? "bg-amber-400"
-                  : "bg-emerald-400"
+                  : asset === "WBTC"
+                    ? "bg-orange-400"
+                    : "bg-emerald-400"
             }
             style={{ width: `${Math.max(0, Math.min(100, allocations[asset] ?? 0))}%` }}
           />
         ))}
       </div>
     </div>
-  );
-}
-
-function DetailToggle({
-  open,
-  onToggle,
-  showLabel,
-  hideLabel,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  showLabel: string;
-  hideLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-    >
-      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
-      {open ? hideLabel : showLabel}
-    </button>
   );
 }
 
@@ -185,6 +141,64 @@ function PlanStep({
   );
 }
 
+function SlideUpModal({
+  open,
+  onClose,
+  title,
+  eyebrow,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  eyebrow?: string;
+  children: ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-[24px] border border-zinc-800/80 bg-zinc-950 p-5 shadow-2xl sm:mx-4 sm:rounded-[24px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {eyebrow ? <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</p> : null}
+            <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mt-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function LlmBadge({ provider }: { provider: string | null }) {
+  if (!provider) return null;
+  const isDeterministic = provider === "deterministic";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em] ${
+        isDeterministic
+          ? "border-zinc-700 bg-zinc-900/80 text-zinc-400"
+          : "border-violet-500/25 bg-violet-500/10 text-violet-200"
+      }`}
+      title={isDeterministic ? "Deterministic heuristic fallback" : `LLM reasoning via ${provider}`}
+    >
+      {isDeterministic ? <Cpu className="h-3 w-3" /> : <Brain className="h-3 w-3" />}
+      {isDeterministic ? "Deterministic" : "LLM"}
+    </span>
+  );
+}
+
 type Props = {
   checking: boolean;
   executing: boolean;
@@ -196,6 +210,7 @@ type Props = {
   recommendationNotice: string | null;
   proposalHeadline: string;
   proposalReason: string;
+  walletAddress: string;
   proposalRouteLabel: string | null;
   proposalRouteDetail: string | null;
   aiExecutionPreview: { steps: SwapStep[]; total: number } | null;
@@ -248,6 +263,10 @@ type Props = {
   proposalOutdated: boolean;
   executionNote: string | null;
   executionLink?: string | null;
+  executionReceiptCid?: string | null;
+  executionReceipt?: PortableReceiptData | null;
+  executionTxHash?: string | null;
+  portableReceiptLink?: string | null;
   passedGateCount: number;
   failedGateConstraints: ConstraintResult[];
   warningGateConstraints: ConstraintResult[];
@@ -267,10 +286,17 @@ type Props = {
   } | null;
   recommendedSwapAlternatives: RecommendationRouteOption[];
   overridePrimaryAction: boolean;
+  loadingRecommendation: boolean;
+  intentSet: boolean;
+  onIntentSet: () => void;
+  onResetIntent: () => void;
+  llmProvider: string | null;
   automatedProfileFallback: {
     hasOnboarding: boolean;
     hasAgent: boolean;
     activeSessionCount: number;
+    governedState: "disarmed" | "armed" | "policy_fallback" | "session_unavailable" | "executing";
+    controlState: "armed" | "disarmed";
     executionMode: "allow" | "advisory" | "block";
     primaryHint: string;
     passportScore: number;
@@ -290,11 +316,20 @@ type Props = {
     nextActionTradeCount: number;
     nextActionValueUsd: number;
   };
-  governedExecutionPaused: boolean;
+  governedExecutionDisarmed: boolean;
   onToggleGovernedExecution: () => void;
   onUseSuggestedSwap: () => void;
   onUseRecommendedSwapStarter: () => void;
   onUseRecommendedSwapAlternative: (option: RecommendationRouteOption) => void;
+  showSessionKeyModal: boolean;
+  onDismissSessionKeyModal: () => void;
+  onSessionKeyGranted: (sessionId: string) => void;
+  privateMode: boolean;
+  onTogglePrivateMode: () => void;
+  mistPrivacyStep: string;
+  mistPrivacyMessage: string;
+  mistPrivacyBusy: boolean;
+  mistPrivacyError: string | null;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -304,18 +339,13 @@ export function PortfolioMainDesk(props: Props) {
     workflowMode,
     onWorkflowModeChange,
     actionType,
-    showRecommendationCard,
     recommendation,
     recommendationNotice,
     proposalHeadline,
     proposalReason,
-    proposalRouteLabel,
-    proposalRouteDetail,
-    aiExecutionPreview,
+    walletAddress,
     onSetActionType,
     onGetRecommendation,
-    onApplyAiTargets,
-    onRunAiGateCheck,
     proposalSourceLabel,
     swapAssetIn,
     swapAssetOut,
@@ -341,11 +371,8 @@ export function PortfolioMainDesk(props: Props) {
     onTargetChange,
     targetWeightSum,
     gateResult,
-    safetySummaryLine,
     deskTone,
     deskLabel,
-    deskHeadline,
-    deskDetail,
     feeGuardResult,
     gasReserveResult,
     showSafetyDetails,
@@ -361,6 +388,10 @@ export function PortfolioMainDesk(props: Props) {
     proposalOutdated,
     executionNote,
     executionLink,
+    executionReceiptCid,
+    executionReceipt,
+    executionTxHash,
+    portableReceiptLink,
     passedGateCount,
     failedGateConstraints,
     warningGateConstraints,
@@ -374,27 +405,41 @@ export function PortfolioMainDesk(props: Props) {
     recommendedSwapStarter,
     recommendedSwapAlternatives,
     overridePrimaryAction,
-    automatedProfileFallback,
-    governedExecutionPaused,
-    onToggleGovernedExecution,
+    loadingRecommendation,
+    intentSet,
+    onIntentSet,
+    onResetIntent,
+    llmProvider,
     onUseSuggestedSwap,
     onUseRecommendedSwapStarter,
     onUseRecommendedSwapAlternative,
+    showSessionKeyModal,
+    onDismissSessionKeyModal,
+    onSessionKeyGranted,
+    privateMode,
+    onTogglePrivateMode,
+    mistPrivacyStep,
+    mistPrivacyMessage,
+    mistPrivacyBusy,
+    mistPrivacyError,
   } = props;
 
-  const [showEditor, setShowEditor] = useState(true);
-  const [showProposalDetails, setShowProposalDetails] = useState(false);
-  const [showDecisionDetails, setShowDecisionDetails] = useState(false);
+  const [showTradeTicketModal, setShowTradeTicketModal] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [showEditorModal, setShowEditorModal] = useState(false);
 
+  // Suppress auto-recommendation until user picks an action
   useEffect(() => {
-    setShowEditor(workflowMode === "manual");
-  }, [workflowMode]);
-
-  useEffect(() => {
+    if (!intentSet) return;
     if (workflowMode === "manual") return;
     if (recommendation || recommendationNotice || checking) return;
     onGetRecommendation();
-  }, [workflowMode, recommendation, recommendationNotice, checking, onGetRecommendation]);
+  }, [intentSet, workflowMode, recommendation, recommendationNotice, checking, onGetRecommendation]);
+
+  // In manual mode, skip the picker entirely — go straight to editor
+  // In assisted mode, show the ZKML CTA
+  // In automated mode, show the governance dashboard
+  const showActionPicker = !intentSet && !executing;
 
   const actionValueUsd = gateResult?.swap_steps?.reduce((sum, step) => sum + (Number(step.value_usd) || 0), 0) ?? 0;
   const estimatedFeeUsd = feeGuardResult?.estimated_fee_usd ?? gateResult?.estimated_cost_usd ?? 0;
@@ -461,26 +506,25 @@ export function PortfolioMainDesk(props: Props) {
       return {
         eyebrow: "Gate passed",
         title: "Execution submitted",
-        summary: "The Gate cleared this draft and the wallet submission is already out on Starknet.",
+        summary: "Gate cleared — submission is on Starknet.",
         tone: "good" as const,
       };
     }
     if (proposalOutdated) {
       return {
         eyebrow: "Recheck needed",
-        title: "Target edits invalidated the prior Gate result",
-        summary: "The last review is stale. Edit freely, then run a fresh Gate decision before signing.",
+        title: "Target edits invalidated the prior result",
+        summary: "Run a fresh Gate check before signing.",
         tone: "warning" as const,
       };
     }
     if (!gateResult) {
       return {
         eyebrow: workflowMode === "manual" ? "Manual mode" : "Gate pending",
-        title: workflowMode === "manual" ? "Manual mode prepares a route first" : "The Gate has not evaluated this draft yet",
-        summary:
-          workflowMode === "manual"
-            ? "Shape a route or target first. The Gate still scores cost and policy, but a real path can continue to wallet in manual mode."
-            : "Shape the proposal first. The desk will re-check before anything reaches wallet signing.",
+        title: workflowMode === "manual" ? "Shape a route first" : "Gate has not evaluated this draft",
+        summary: workflowMode === "manual"
+          ? "Set a target or amount, then the Gate scores the route."
+          : "Shape the proposal first. Gate re-checks before anything reaches wallet.",
         tone: "neutral" as const,
       };
     }
@@ -494,62 +538,40 @@ export function PortfolioMainDesk(props: Props) {
               : "Gate blocked execution",
         title:
           workflowMode === "manual" && (gateResult?.swap_steps?.length ?? 0) > 0
-            ? "The Gate flagged this route, but manual mode can still send it"
+            ? "Gate flagged this route — manual mode can still send"
             : overridePrimaryAction
-              ? "Execution is permitted with a fee warning"
-              : "Execution is not currently permitted",
+              ? "Permitted with fee warning"
+              : "Execution blocked",
         summary:
           workflowMode === "manual" && (gateResult?.swap_steps?.length ?? 0) > 0
-            ? "The Gate result is still shown below, but manual mode treats it as advisory. You can prepare the route and inspect the exact wallet cost yourself."
+            ? "Gate result shown below. Manual mode treats it as advisory."
             : overridePrimaryAction
-              ? "The only failed check is fee efficiency. You can still prepare the wallet route and judge the cost yourself."
-              : `${failedGateConstraints.length} blocking check${failedGateConstraints.length === 1 ? "" : "s"} must clear before signing can proceed.`,
+              ? "Only fee efficiency failed. You can still proceed."
+              : `${failedGateConstraints.length} check${failedGateConstraints.length === 1 ? "" : "s"} must clear.`,
         tone: "warning" as const,
       };
     }
     if (warningGateConstraints.length) {
       return {
         eyebrow: "Gate passed with warnings",
-        title: "Execution is permitted",
-        summary: `${warningGateConstraints.length} warning${warningGateConstraints.length === 1 ? "" : "s"} remain, but the Gate still allows this path.`,
+        title: "Execution permitted",
+        summary: `${warningGateConstraints.length} warning${warningGateConstraints.length === 1 ? "" : "s"}, but Gate allows this path.`,
         tone: "neutral" as const,
       };
     }
     return {
       eyebrow: "Gate passed",
       title: "Execution permitted",
-      summary: "The Gate cleared liquidity, policy, and execution conditions for this draft.",
+      summary: "Liquidity, policy, and conditions cleared.",
       tone: "good" as const,
     };
   })();
 
-  const gateConfidence =
-    !gateResult ? "Pending" : failedGateConstraints.length ? "Low" : warningGateConstraints.length >= 4 ? "Measured" : "High";
   const currentLeader = (Object.entries(currentAllocations) as Array<[SupportedAsset, number]>).sort((a, b) => b[1] - a[1])[0];
   const targetLeader = (Object.entries(userTargetAllocations) as Array<[SupportedAsset, number]>).sort((a, b) => b[1] - a[1])[0];
-  const proposalDeltas = (["ETH", "STRK", "USDC"] as SupportedAsset[])
-    .map((asset) => ({ asset, delta: (userTargetAllocations[asset] ?? 0) - (currentAllocations[asset] ?? 0) }))
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 3);
   const activeSteps = pendingPreparedCalls?.length ? pendingPreparedCalls.map((item) => item.step) : gateResult?.swap_steps ?? [];
   const routeLabel = (pendingRouteLabel ?? lastPreparedAdapter)?.toUpperCase() ?? "BEST ROUTE";
-  const leadPlanStep = activeSteps[0] ?? null;
   const gateRefreshing = checking || proposalOutdated;
-  const economicsTitle = feeGuardResult
-    ? feeGuardResult.passed
-      ? feeGuardResult.warning
-        ? "Safe, but expensive for size"
-        : "Safe to sign"
-      : overridePrimaryAction
-        ? "Permitted with fee warning"
-        : "Too small to execute efficiently"
-    : gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
-      ? "Insufficient STRK for fee"
-      : "Pending gate review";
-  const economicsReason = feeGuardResult?.reason ??
-    (gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed."
-      ? gasReserveResult.reason
-      : "Run the Gate to inspect route quality, costs, and reserve preservation.");
 
   const impactCards = [
     {
@@ -578,214 +600,208 @@ export function PortfolioMainDesk(props: Props) {
     },
   ];
 
-  const totalTrackedValue = (["ETH", "STRK", "USDC"] as SupportedAsset[]).reduce(
-    (sum, asset) => sum + (assetSummary[asset]?.valueUsd ?? 0),
-    0,
-  );
-  const workflowSummary =
-    workflowMode === "manual"
-      ? "Start from the wallet you already have. The Gate still scores the route, but manual mode can pass a real path through to your wallet."
-      : workflowMode === "assisted"
-        ? "Let the system suggest the move. The Gate governs what gets through."
-        : automatedProfileFallback.readinessStatus === "ready"
-          ? `Experimental. Automated mode can arm the next governed move with your ${automatedProfileFallback.riskProfile} onboarding profile and active session keys.`
-          : automatedProfileFallback.readinessStatus === "policy_fallback"
-            ? `Experimental. Automated mode is ready, but this lane is still using the current ${automatedProfileFallback.policyExecutionMode} execution posture.`
-            : automatedProfileFallback.readinessDetail;
   const editorHeading =
     workflowMode === "manual" ? "Manual controls" : workflowMode === "assisted" ? "Adjust guided draft" : "Manual override";
   const editorEyebrow = workflowMode === "manual" ? "Edit trade" : workflowMode === "assisted" ? "Adjust draft" : "Intervene manually";
   const editorIntro =
     workflowMode === "manual"
       ? recommendedSwapStarter && actionType === "rebalance"
-        ? "For this wallet, start from the direct route first. Open target mix only if you need to shape the broader allocation."
+        ? "Start from the direct route. Open target mix to shape the broader allocation."
         : economicsHelper
       : workflowMode === "assisted"
-        ? "Assisted mode loaded the guided draft already. Open this only if you want to change the trade by hand."
-        : "Automated mode is running a governed draft. Open manual override only if you want to intervene directly.";
+        ? "Guided draft is loaded. Edit only if you want to override."
+        : "Governed draft is running. Override only if needed.";
 
-  const startSection = (
-    <SectionCard eyebrow="Start here" title="How do you want to manage this wallet?">
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Current tracked mix</p>
-              <p className="mt-1 text-sm text-zinc-300">ETH, STRK, and USDC the desk can actually trade on mainnet-v1.</p>
-            </div>
-            <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-              {formatUsd(totalTrackedValue)} tracked
+  /* ------------------------------------------------------------------ */
+  /*  Has the user just completed a run? Show done state.                */
+  /* ------------------------------------------------------------------ */
+  const executionDone = !executing && Boolean(executionTxHash || executionReceipt?.cid);
+
+  /* ------------------------------------------------------------------ */
+  /*  ACTION PICKER — mode-specific entry point                         */
+  /* ------------------------------------------------------------------ */
+  const {
+    automatedProfileFallback: autoProfile,
+    governedExecutionDisarmed,
+    onToggleGovernedExecution,
+  } = props;
+
+  const manualPickerSection = showActionPicker && workflowMode === "manual" ? (
+    <section className="overflow-hidden rounded-[28px] border border-zinc-700/60 bg-zinc-950/90 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Manual mode</p>
+      <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">Build your own trade</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+        Full control. Pick a swap or rebalance, set every parameter, and gate-score before signing.
+      </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => { onIntentSet(); onSetActionType("swap"); setShowEditorModal(true); }}
+          className="group rounded-2xl border border-zinc-700/80 bg-zinc-900/60 p-5 text-left transition-all hover:border-cyan-500/40 hover:bg-zinc-800/60"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-lg">↔</span>
+          <h3 className="mt-3 text-base font-semibold text-white">Swap</h3>
+          <p className="mt-1.5 text-sm leading-5 text-zinc-500 group-hover:text-zinc-400">
+            Exchange one token for another. Set the pair, amount, and slippage tolerance yourself.
+          </p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { onIntentSet(); onSetActionType("rebalance"); setShowEditorModal(true); }}
+          className="group rounded-2xl border border-zinc-700/80 bg-zinc-900/60 p-5 text-left transition-all hover:border-cyan-500/40 hover:bg-zinc-800/60"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-lg">⚖</span>
+          <h3 className="mt-3 text-base font-semibold text-white">Rebalance</h3>
+          <p className="mt-1.5 text-sm leading-5 text-zinc-500 group-hover:text-zinc-400">
+            Set target allocation weights across ETH, STRK, USDC, and WBTC. Gate scores the route.
+          </p>
+        </button>
+      </div>
+    </section>
+  ) : null;
+
+  const assistedPickerSection = showActionPicker && workflowMode === "assisted" ? (
+    <section className="overflow-hidden rounded-[28px] border border-cyan-500/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.10),rgba(9,9,11,0.95)_50%)] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-400/70">Assisted mode</p>
+      <h1 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">Let ZKML find the best move</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-200/88">
+        The AI runs 37 proof families — credit gates, risk models, liquidity analysis — then recommends the optimal route. You review and approve before anything hits the chain.
+      </p>
+
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => {
+            onIntentSet();
+            onGetRecommendation();
+          }}
+          disabled={loadingRecommendation}
+          className="group relative inline-flex items-center gap-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-6 py-4 text-left transition-all duration-200 hover:border-cyan-400/50 hover:bg-cyan-500/16 hover:shadow-[0_8px_24px_rgba(8,145,178,0.18)] disabled:opacity-60"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/15 text-lg">⚡</span>
+          <div>
+            <h3 className="text-base font-semibold text-cyan-50">Run ZKML Analysis</h3>
+            <p className="mt-0.5 text-sm text-zinc-400 group-hover:text-zinc-300">
+              Analyze portfolio → Recommend action → Gate check → You approve
+            </p>
+          </div>
+          {loadingRecommendation && (
+            <Loader2 className="ml-2 h-5 w-5 animate-spin text-cyan-300" />
+          )}
+        </button>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3 text-xs text-zinc-500">
+        <span>Want more control?</span>
+        <button
+          type="button"
+          onClick={() => { onIntentSet(); onSetActionType("swap"); setShowEditorModal(true); }}
+          className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200"
+        >
+          Manual swap
+        </button>
+        <button
+          type="button"
+          onClick={() => { onIntentSet(); onSetActionType("rebalance"); setShowEditorModal(true); }}
+          className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200"
+        >
+          Manual rebalance
+        </button>
+      </div>
+    </section>
+  ) : null;
+
+  const automatedDashboardSection = showActionPicker && workflowMode === "automated" ? (
+    <section className="overflow-hidden rounded-[28px] border border-violet-500/20 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.12),rgba(9,9,11,0.95)_50%)] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-400/70">Automated mode</p>
+          <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">Governed autopilot</h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
+            AI picks and executes within your policy bounds. Monitor, arm/disarm, or intervene.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleGovernedExecution}
+          className={`rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] transition-colors ${
+            governedExecutionDisarmed
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+              : "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+          }`}
+        >
+          {governedExecutionDisarmed ? "Arm autopilot" : "Disarm"}
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Status</p>
+          <p className="mt-2 flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${
+              autoProfile.readinessStatus === "ready" && !governedExecutionDisarmed
+                ? "bg-emerald-400 animate-pulse"
+                : autoProfile.readinessStatus === "ready"
+                  ? "bg-amber-400"
+                  : "bg-zinc-600"
+            }`} />
+            <span className="text-sm font-medium text-white">{autoProfile.readinessLabel}</span>
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">{autoProfile.readinessDetail}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Next action</p>
+          <p className="mt-2 text-sm font-medium text-white">{autoProfile.nextActionLabel}</p>
+          <p className="mt-1 text-xs text-zinc-500">{autoProfile.nextActionDetail}</p>
+          {autoProfile.nextActionRouteLabel && (
+            <span className="mt-2 inline-block rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-200">
+              {autoProfile.nextActionRouteLabel}
             </span>
-          </div>
-          <div className="mt-3">
-            <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-              <span key={`wallet-${asset}`} className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] text-zinc-300">
-                {asset} {formatUsd(assetSummary[asset]?.valueUsd ?? 0)}
-              </span>
-            ))}
-          </div>
+          )}
         </div>
-
-        <div className="grid gap-3 lg:grid-cols-3">
-          {[
-            {
-              id: "manual" as const,
-              title: "Manual",
-              body: "Author the swap or rebalance yourself. The Gate still runs and records, but it does not block a real route from reaching your wallet.",
-              badge: "Direct control",
-            },
-            {
-              id: "assisted" as const,
-              title: "Assisted",
-              body: "Use the system’s best live route and let the Gate decide whether the recommendation is executable.",
-              badge: "Guided",
-            },
-            {
-              id: "automated" as const,
-              title: "Automated",
-              body: "Experimental strategy-driven mode. Policy, drift, and the Gate govern the next move for you.",
-              badge: "Experimental",
-            },
-          ].map((mode) => {
-            const selected = workflowMode === mode.id;
-            return (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => onWorkflowModeChange(mode.id)}
-                className={`rounded-2xl border p-4 text-left transition-colors ${
-                  selected
-                    ? "border-cyan-500/30 bg-cyan-500/10"
-                    : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-600 hover:bg-zinc-900/80"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-base font-semibold text-white">{mode.title}</p>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.16em] ${
-                      mode.id === "automated"
-                        ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
-                        : selected
-                          ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-100"
-                          : "border-zinc-700 bg-zinc-950 text-zinc-400"
-                    }`}
-                  >
-                    {mode.badge}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">{mode.body}</p>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Selected flow</p>
-          <p className="mt-1 text-sm text-zinc-300">{workflowSummary}</p>
-          {workflowMode === "automated" ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                  automatedProfileFallback.readinessStatus === "ready"
-                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                    : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-                }`}>
-                  {automatedProfileFallback.readinessLabel}
-                </span>
-                {automatedProfileFallback.nextActionRouteLabel ? (
-                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100">
-                    {automatedProfileFallback.nextActionRouteLabel}
-                  </span>
-                ) : null}
-                {automatedProfileFallback.nextActionTradeCount > 0 ? (
-                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                    {automatedProfileFallback.nextActionTradeCount} trade{automatedProfileFallback.nextActionTradeCount === 1 ? "" : "s"}
-                  </span>
-                ) : null}
-                {automatedProfileFallback.nextActionValueUsd > 0 ? (
-                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                    {formatUsd(automatedProfileFallback.nextActionValueUsd)} moved
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={onToggleGovernedExecution}
-                  className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors ${
-                    governedExecutionPaused
-                      ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
-                      : "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:border-amber-400/50 hover:bg-amber-500/20"
-                  }`}
-                >
-                  {governedExecutionPaused ? "Arm governed execution" : "Disarm governed execution"}
-                </button>
-              </div>
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Governed control</p>
-                <p className="mt-1 text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">
-                  {automatedProfileFallback.readinessStatus === "needs_onboarding"
-                    ? "Primary action opens onboarding so this wallet can enter the governed lane."
-                    : automatedProfileFallback.readinessStatus === "needs_session_key"
-                      ? "Primary action opens agent key management so this wallet can authorize governed execution."
-                      : automatedProfileFallback.readinessStatus === "policy_fallback"
-                        ? "Primary action evaluates or arms the current governed move while this lane stays in policy fallback."
-                        : "Primary action evaluates, arms, or authorizes the current governed move."}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.readinessDetail}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  {governedExecutionPaused
-                    ? "Governed execution is currently disarmed for this wallet."
-                    : "Governed execution is currently armed for this wallet."}
-                </p>
-                {automatedProfileFallback.nextActionRouteDetail ? (
-                  <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.nextActionRouteDetail}</p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                automatedProfileFallback.hasOnboarding
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                  : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-              }`}>
-                {automatedProfileFallback.hasOnboarding
-                  ? `${automatedProfileFallback.riskProfile} onboarding profile`
-                  : "Onboarding missing"}
-              </span>
-              <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                automatedProfileFallback.activeSessionCount > 0
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                  : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-              }`}>
-                {automatedProfileFallback.activeSessionCount > 0
-                  ? `${automatedProfileFallback.activeSessionCount} active session key${automatedProfileFallback.activeSessionCount === 1 ? "" : "s"}`
-                  : "No active session key"}
-              </span>
-              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                Passport {automatedProfileFallback.letterRating} / {automatedProfileFallback.passportScore}
-              </span>
-              <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                Policy {automatedProfileFallback.policyExecutionMode}
-              </span>
-              <a
-                href="/agent"
-                className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
-              >
-                Manage agent keys
-              </a>
-              </div>
-            </div>
-          ) : null}
+        <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Risk profile</p>
+          <p className="mt-2 text-sm font-medium text-white">{autoProfile.riskProfile}</p>
+          <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+            <span>Passport {autoProfile.letterRating}</span>
+            <span>·</span>
+            <span>{autoProfile.activeSessionCount} key{autoProfile.activeSessionCount === 1 ? "" : "s"}</span>
+          </div>
         </div>
       </div>
-    </SectionCard>
-  );
 
-  const gateSection = (
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            onIntentSet();
+            onGetRecommendation();
+          }}
+          disabled={loadingRecommendation || governedExecutionDisarmed}
+          className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-200 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
+        >
+          {loadingRecommendation ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Run governed cycle
+        </button>
+        <button
+          type="button"
+          onClick={() => { onIntentSet(); onSetActionType("swap"); setShowEditorModal(true); }}
+          className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-500"
+        >
+          Manual override
+        </button>
+      </div>
+    </section>
+  ) : null;
+
+  /* ------------------------------------------------------------------ */
+  /*  GATE SECTION — compact hero with action + modal triggers          */
+  /* ------------------------------------------------------------------ */
+  const gateSection = intentSet ? (
     <section
-      className={`overflow-hidden rounded-[28px] border p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)] transition-[border-color,background,box-shadow,transform,opacity] duration-500 ease-out ${
+      className={`overflow-hidden rounded-[28px] border p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)] transition-[border-color,background] duration-500 ease-out ${
         gateHero.tone === "good"
           ? "border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),rgba(9,9,11,0.92)_45%)]"
           : gateHero.tone === "warning"
@@ -794,54 +810,49 @@ export function PortfolioMainDesk(props: Props) {
       } ${gateRefreshing ? "border-cyan-400/30 shadow-[0_30px_90px_rgba(8,145,178,0.18)]" : ""}`}
     >
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{gateHero.title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
-          <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {workflowMode === "manual" ? "Gate advisory" : workflowMode === "assisted" ? "Gate governed" : "Strategy governed"}
-          </span>
-          <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-            warningGateConstraints.length
-              ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
-              : "border-zinc-700/80 bg-zinc-950/70 text-zinc-300"
-          }`}>
-            {warningGateConstraints.length} warnings
-          </span>
-          <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-            failedGateConstraints.length
-              ? "border-red-500/20 bg-red-500/10 text-red-200"
-              : "border-zinc-700/80 bg-zinc-950/70 text-zinc-300"
-          }`}>
-            {failedGateConstraints.length} blockers
-          </span>
-          <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {formatUsd(actionValueUsd)} moved
-          </span>
-          <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "Awaiting"} cost
-          </span>
-        </div>
-        <div
-          className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-            gateRefreshing ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="min-h-0 overflow-hidden">
-            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-3">
-              <div className="flex items-center gap-2 text-sm text-cyan-100">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{proposalOutdated ? "Gate result is stale. Re-evaluating this draft now." : "Gate is checking the current draft."}</span>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-950/70">
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-cyan-400/80" />
-              </div>
-            </div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-400">Gate</p>
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">{gateHero.title}</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <LlmBadge provider={llmProvider} />
+            <StatusPill tone={gateHero.tone}>{gateHero.eyebrow}</StatusPill>
           </div>
         </div>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-200/88">{gateHero.summary}</p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {failedGateConstraints.length > 0 && (
+            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-red-200">
+              {failedGateConstraints.length} blocker{failedGateConstraints.length === 1 ? "" : "s"}
+            </span>
+          )}
+          {warningGateConstraints.length > 0 && (
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-200">
+              {warningGateConstraints.length} warning{warningGateConstraints.length === 1 ? "" : "s"}
+            </span>
+          )}
+          <span className="rounded-full border border-zinc-700/80 bg-zinc-950/70 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+            {formatUsd(actionValueUsd)} · {gateResult ? formatUsd(gateResult.estimated_cost_usd) : "—"} fee
+          </span>
+        </div>
+
+        {/* Gate checking indicator */}
+        {gateRefreshing && (
+          <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-3">
+            <div className="flex items-center gap-2 text-sm text-cyan-100">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>{proposalOutdated ? "Re-evaluating draft…" : "Gate is checking…"}</span>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-950/70">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-cyan-400/80" />
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Primary Action */}
       <div className="mt-4">
         <PrimaryActionTray
           checking={checking}
@@ -863,8 +874,39 @@ export function PortfolioMainDesk(props: Props) {
           proposalOutdated={proposalOutdated}
           executionNote={executionNote}
           executionLink={executionLink}
+          executionReceiptCid={executionReceiptCid}
+          portableReceiptLink={portableReceiptLink}
           overridePrimaryAction={overridePrimaryAction}
         />
+      </div>
+
+      {/* Quick-action toolbar — modal openers */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowEditorModal(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+        >
+          Edit {actionType}
+        </button>
+        {activeSteps.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowTradeTicketModal(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+          >
+            {activeSteps.length} trade{activeSteps.length === 1 ? "" : "s"} · {routeLabel}
+          </button>
+        )}
+        {gateResult && (
+          <button
+            type="button"
+            onClick={() => setShowSafetyModal(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+          >
+            {passedGateCount}/{gateResult.constraint_results?.length ?? 0} checks
+          </button>
+        )}
       </div>
 
       {suggestedSwapFallback ? (
@@ -885,390 +927,448 @@ export function PortfolioMainDesk(props: Props) {
         </div>
       ) : null}
     </section>
-  );
+  ) : null;
 
-  const tradeTicketSection = (
-    <SectionCard
-      eyebrow="Trade ticket"
-      title={
-        workflowMode === "automated"
-          ? "What the governed strategy would execute next"
-          : actionType === "swap"
-            ? "What you can send next"
-            : "What the desk will execute next"
-      }
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          {recommendedSwapStarter && actionType === "rebalance" ? (
+  /* ------------------------------------------------------------------ */
+  /*  DONE STATE — after execution, with reset button                   */
+  /* ------------------------------------------------------------------ */
+  const doneSection = executionDone ? (
+    <section className="overflow-hidden rounded-[28px] border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),rgba(9,9,11,0.95)_50%)] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]">
+      {executionReceipt?.cid ? (
+        <ReceiptVaultHero
+          receipt={executionReceipt}
+          executionTxHash={executionTxHash ?? null}
+          workflowMode={workflowMode}
+          passedGateCount={passedGateCount}
+          totalConstraintCount={gateResult?.constraint_results?.length ?? 0}
+        />
+      ) : (
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">Done</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">Transaction submitted</h2>
+          {executionNote && <p className="mt-2 text-sm text-zinc-400">{executionNote}</p>}
+
+          {/* Always surface tx hash, IPFS, and gate results */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            {executionTxHash && (
+              <a
+                href={`https://voyager.online/tx/${executionTxHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/60 px-2.5 py-1 font-mono text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+                title={executionTxHash}
+              >
+                <ExternalLink className="h-3 w-3" />
+                tx {executionTxHash.slice(0, 8)}…{executionTxHash.slice(-6)}
+              </a>
+            )}
+            {executionReceiptCid && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300">
+                <span className="font-mono text-[11px]" title={executionReceiptCid}>
+                  ipfs://{executionReceiptCid.slice(0, 12)}…
+                </span>
+                <button
+                  type="button"
+                  title="Copy CID"
+                  onClick={() => navigator.clipboard.writeText(executionReceiptCid)}
+                  className="text-emerald-400 hover:text-emerald-200"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {portableReceiptLink && (
+              <a
+                href={portableReceiptLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 transition-colors hover:border-emerald-400/50 hover:text-emerald-200"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Receipt
+              </a>
+            )}
+          </div>
+
+          {gateResult && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <span>
+                Gate: {passedGateCount}/{gateResult.constraint_results?.length ?? 0} checks passed
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            onResetIntent();
+            setShowEditorModal(false);
+            setShowTradeTicketModal(false);
+            setShowSafetyModal(false);
+          }}
+          className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/20"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Start new action
+        </button>
+        {gateResult && (
+          <button
+            type="button"
+            onClick={() => setShowSafetyModal(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+          >
+            View safety report
+          </button>
+        )}
+      </div>
+    </section>
+  ) : null;
+
+  /* ------------------------------------------------------------------ */
+  /*  AI RECOMMENDATION CARD — surface the LLM reasoning in ZKML mode   */
+  /* ------------------------------------------------------------------ */
+  const recommendationCard =
+    !showActionPicker &&
+    !executionDone &&
+    workflowMode !== "manual" &&
+    (recommendation || loadingRecommendation) ? (
+      <section className="overflow-hidden rounded-[28px] border border-cyan-500/20 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),rgba(9,9,11,0.95)_50%)] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4 text-cyan-400" />
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-400/70">
+                {workflowMode === "assisted" ? "ZKML recommendation" : "Governed strategy"}
+              </p>
+            </div>
+            {loadingRecommendation && !recommendation ? (
+              <div className="mt-3 flex items-center gap-2 text-sm text-cyan-100">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Running 37 proof families…</span>
+              </div>
+            ) : (
+              <>
+                <h2 className="mt-2 text-lg font-semibold text-white">{proposalHeadline}</h2>
+                <p className="mt-1.5 text-sm leading-6 text-zinc-300">{proposalReason}</p>
+
+                {recommendation?.drift_monitor?.explanation && (
+                  <p className="mt-2 text-xs leading-5 text-zinc-400">
+                    <span className="font-medium text-zinc-300">Drift: </span>
+                    {recommendation.drift_monitor.explanation}
+                  </p>
+                )}
+
+                {recommendation?.rebalance_summary?.top_changes?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {recommendation.rebalance_summary.top_changes.map((change) => (
+                      <span
+                        key={change.asset}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                          change.delta_pct > 0
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                            : "border-red-500/25 bg-red-500/10 text-red-300"
+                        }`}
+                      >
+                        {change.asset}
+                        <span>{change.delta_pct > 0 ? "+" : ""}{Math.round(change.delta_pct)}%</span>
+                      </span>
+                    ))}
+                    {recommendation?.estimated_swap_count != null && (
+                      <span className="inline-flex items-center rounded-full border border-zinc-700/70 bg-zinc-900/60 px-2.5 py-1 text-[11px] text-zinc-400">
+                        {recommendation.estimated_swap_count} trade{recommendation.estimated_swap_count === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+
+                {recommendationNotice && (
+                  <p className="mt-2 text-xs text-amber-200">{recommendationNotice}</p>
+                )}
+              </>
+            )}
+          </div>
+          {llmProvider && (
+            <span className="shrink-0 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-cyan-300">
+              {llmProvider}
+            </span>
+          )}
+        </div>
+      </section>
+    ) : null;
+
+  /* ------------------------------------------------------------------ */
+  /*  RETURN — clean flow: pick → gate → done                           */
+  /* ------------------------------------------------------------------ */
+  return (
+    <section className="space-y-4">
+      {/* ── Privacy toggle ────────────────────────────────────────── */}
+      <div className="flex items-center justify-between rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base">{privateMode ? "🛡" : "🔓"}</span>
+          <div>
+            <p className="text-sm font-medium text-white">
+              {privateMode ? "Private mode" : "Standard mode"}
+            </p>
+            <p className="text-[11px] text-zinc-500">
+              {privateMode
+                ? "Swaps routed through MIST Chamber (ZK proof breaks on-chain link)"
+                : "Tap to enable privacy via MIST.cash"}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onTogglePrivateMode}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+            privateMode ? "bg-cyan-500" : "bg-zinc-700"
+          }`}
+          role="switch"
+          aria-checked={privateMode}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              privateMode ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+      {privateMode && mistPrivacyStep !== "idle" && mistPrivacyStep !== "complete" && (
+        <div className={`rounded-2xl border px-4 py-3 text-sm ${
+          mistPrivacyError
+            ? "border-red-500/30 bg-red-500/10 text-red-300"
+            : "border-cyan-500/20 bg-cyan-500/5 text-cyan-200"
+        }`}>
+          <div className="flex items-center gap-2">
+            {mistPrivacyBusy && (
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            )}
+            <span>{mistPrivacyMessage || mistPrivacyError || `Step: ${mistPrivacyStep}`}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1: Mode-specific entry (start state) */}
+      {manualPickerSection}
+      {assistedPickerSection}
+      {automatedDashboardSection}
+
+      {/* Phase 1.5: AI recommendation insight (after ZKML analysis) */}
+      {recommendationCard}
+
+      {/* Phase 2: Gate + primary action (active state) */}
+      {!executionDone && gateSection}
+
+      {/* Phase 3: Done card with receipt + reset (end state) */}
+      {doneSection}
+
+      {/* ── Modals ── */}
+
+      {/* Editor Modal */}
+      <SlideUpModal
+        open={showEditorModal}
+        onClose={() => setShowEditorModal(false)}
+        eyebrow={editorEyebrow}
+        title={editorHeading}
+      >
+        <p className="mb-4 text-sm text-zinc-400">{editorIntro}</p>
+        <div className="mb-3 flex items-center gap-2">
+          {(["rebalance", "swap"] as const).map((type) => (
             <button
+              key={type}
               type="button"
-              onClick={onUseRecommendedSwapStarter}
-              className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+              onClick={() => onSetActionType(type)}
+              className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
+                actionType === type
+                  ? "bg-cyan-500/15 text-cyan-100 border border-cyan-500/30"
+                  : "text-zinc-400 border border-zinc-700 hover:text-zinc-100"
+              }`}
             >
-              Edit direct swap
+              {type}
             </button>
-          ) : null}
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {actionType}
-          </span>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
+          ))}
+          <span className="ml-auto rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
             {proposalSourceLabel}
           </span>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {routeLabel}
-          </span>
         </div>
-      }
-    >
-      <div className="space-y-3">
-        <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
-          <div className="max-w-3xl">
+        <TargetEditor
+          actionType={actionType}
+          swapAssetIn={swapAssetIn}
+          swapAssetOut={swapAssetOut}
+          onSwapAssetInChange={onSwapAssetInChange}
+          onSwapAssetOutChange={onSwapAssetOutChange}
+          swapAmount={swapAmount}
+          onSwapAmountChange={onSwapAmountChange}
+          onSwapAmountPercent={onSwapAmountPercent}
+          swapAmountPercent={swapAmountPercent}
+          swapAvailableAmount={swapAvailableAmount}
+          swapAvailableUsd={swapAvailableUsd}
+          minSwapAmount={minSwapAmount}
+          isBelowMinSwap={isBelowMinSwap}
+          slippageBps={slippageBps}
+          onSlippageChange={onSlippageChange}
+          assetSummary={assetSummary}
+          currentAllocations={currentAllocations}
+          userTargetAllocations={userTargetAllocations}
+          aiTargetAllocations={aiTargetAllocations}
+          rebalancePresets={rebalancePresets}
+          onApplyPreset={onApplyPreset}
+          targetWeights={targetWeights}
+          onTargetChange={onTargetChange}
+          targetWeightSum={targetWeightSum}
+          draftGuidance={draftGuidance}
+          suggestedSwapFallback={suggestedSwapFallback}
+          onUseSuggestedSwap={onUseSuggestedSwap}
+          recommendedSwapStarter={recommendedSwapStarter}
+          recommendedSwapAlternatives={recommendedSwapAlternatives}
+          onUseRecommendedSwapStarter={onUseRecommendedSwapStarter}
+          onUseRecommendedSwapAlternative={onUseRecommendedSwapAlternative}
+        />
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => { setShowEditorModal(false); onRunGateCheck(); }}
+            className="rounded-full bg-cyan-500/20 border border-cyan-500/30 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/30"
+          >
+            Done — run Gate check
+          </button>
+        </div>
+      </SlideUpModal>
+
+      {/* Trade Ticket Modal */}
+      <SlideUpModal
+        open={showTradeTicketModal}
+        onClose={() => setShowTradeTicketModal(false)}
+        eyebrow="Trade ticket"
+        title={actionType === "swap" ? "Swap ticket" : "Rebalance ticket"}
+      >
+        <div className="space-y-3">
+          {/* Proposal summary */}
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
               {workflowMode === "manual" ? "Manual draft" : workflowMode === "automated" ? "Governed strategy" : "System thesis"}
             </p>
             <p className="mt-1 text-base font-medium text-white">{proposalHeadline}</p>
-            <p className="mt-2 text-sm leading-6 text-zinc-300 line-clamp-2">{proposalReason}</p>
-            {proposalRouteLabel ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Best live route</span>
-                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-100">
-                  {proposalRouteLabel}
-                </span>
-                {proposalRouteDetail ? (
-                  <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                    {proposalRouteDetail}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {recommendedSwapAlternatives.length ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Other live routes</span>
-                {recommendedSwapAlternatives.map((option) => (
-                  <button
-                    key={`${option.from_asset}-${option.to_asset}-${option.amount_wei}`}
-                    type="button"
-                    onClick={() => onUseRecommendedSwapAlternative(option)}
-                    className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-cyan-400/50 hover:text-cyan-100"
-                  >
-                    {option.route_label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            <p className="mt-2 text-sm leading-6 text-zinc-300 line-clamp-3">{proposalReason}</p>
             {recommendationNotice ? <p className="mt-2 text-sm text-amber-200">{recommendationNotice}</p> : null}
-            {workflowMode === "automated" && !recommendation ? (
-              <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3.5 py-3">
-                <p className="text-sm font-medium text-white">{automatedProfileFallback.nextActionLabel}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">{automatedProfileFallback.nextActionDetail}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-500">{automatedProfileFallback.readinessDetail}</p>
-              </div>
-            ) : null}
           </div>
 
-          {showRecommendationCard && workflowMode !== "manual" ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={onGetRecommendation}
-                className="rounded-full border border-zinc-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-              >
-                {workflowMode === "automated" ? "Refresh governed move" : "Refresh guided route"}
-              </button>
-              {actionType === "rebalance" ? (
-                <button
-                  onClick={onApplyAiTargets}
-                  className="rounded-full border border-amber-400/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-100 hover:border-amber-300 hover:bg-amber-400/10"
-                >
-                  {workflowMode === "automated" ? "Load governed target" : "Load guided target"}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        <div className={`flex flex-wrap gap-2 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
-            {activeSteps.length} trade{activeSteps.length === 1 ? "" : "s"}
-          </span>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
-            {formatUsd(actionValueUsd)} moved
-          </span>
-          <span
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              feeGuardResult?.passed
-                ? "border-zinc-700 bg-zinc-950 text-zinc-300"
-                : "border-amber-500/20 bg-amber-500/10 text-amber-200"
-            }`}
-          >
-            {formatUsd(estimatedFeeUsd)} network cost
-          </span>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
-            {routeLabel}
-          </span>
-        </div>
-
-        <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4 transition-opacity duration-300 ${gateRefreshing ? "opacity-80" : "opacity-100"}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Ticket summary</p>
-              <p className="mt-1 text-sm text-zinc-400">Lead route, economics, and mix change in one view.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <DetailToggle
-                open={showProposalDetails}
-                onToggle={() => setShowProposalDetails((current) => !current)}
-                showLabel="Show mix"
-                hideLabel="Hide mix"
-              />
-              {(pendingPreparedCalls?.length || activeSteps.length > 1) ? (
-                <DetailToggle
-                  open={showDecisionDetails}
-                  onToggle={() => setShowDecisionDetails((current) => !current)}
-                  showLabel="Show full plan"
-                  hideLabel="Hide full plan"
-                />
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_0.85fr]">
-            <div className="space-y-3">
-              {leadPlanStep ? (
-                <PlanStep
-                  index={1}
-                  title={`Sell ${leadPlanStep.from_asset}, buy ${leadPlanStep.to_asset}`}
-                  meta={`${routeLabel} • expected receive in ${leadPlanStep.to_asset}`}
-                  value={formatUsd(leadPlanStep.value_usd)}
-                />
-              ) : (
-                <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-8 text-center">
-                  <p className="text-sm font-medium text-zinc-200">No plan yet</p>
-                  <p className="mt-2 text-sm text-zinc-500">Set a target or trade amount and the exact path will appear here.</p>
-                </div>
-              )}
-
-              <div
-                className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-                  showDecisionDetails ? "grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-                }`}
-              >
-                <div className="min-h-0 overflow-hidden">
-                  <div className="space-y-2 pt-1">
-                    {pendingPreparedCalls?.length ? (
-                      pendingPreparedCalls.map((step, index) => (
-                        <PlanStep
-                          key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
-                          index={index + 1}
-                          title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
-                          meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
-                          value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
-                        />
-                      ))
-                    ) : activeSteps.length ? (
-                      activeSteps.map((step, index) => (
-                        <PlanStep
-                          key={`${step.from_asset}-${step.to_asset}-${index}`}
-                          index={index + 1}
-                          title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
-                          meta={`${routeLabel} • expected receive in ${step.to_asset}`}
-                          value={formatUsd(step.value_usd)}
-                        />
-                      ))
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          {/* Plan steps */}
+          {activeSteps.length ? (
             <div className="space-y-2">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                <p className="text-sm font-medium text-white">{economicsTitle}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">{economicsReason}</p>
-              </div>
-              {impactCards.slice(0, 2).map((card) => (
-                <div key={`${card.label}-compact`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-white">{card.label}</p>
-                    <span className="text-sm text-zinc-300">{card.value}</span>
-                  </div>
-                </div>
-              ))}
-              {gasReserveResult && gasReserveResult.reason !== "No STRK gas reserve adjustment needed." ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                  <p className="text-sm font-medium text-white">Gas reserve</p>
-                  <p className="mt-1 text-xs leading-5 text-zinc-500">{gasReserveResult.reason}</p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-              showProposalDetails ? "mt-3 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-            }`}
-          >
-            <div className="min-h-0 overflow-hidden">
-              {actionType === "rebalance" ? (
-                <div className="space-y-3 pt-1">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
-                    <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
-                  </div>
-                  <div className="grid gap-2.5 sm:grid-cols-3">
-                    {(["ETH", "STRK", "USDC"] as SupportedAsset[]).map((asset) => (
-                      <div key={`${asset}-proposal-detail`} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-medium text-white">{asset}</span>
-                          <span className={`text-sm ${userTargetAllocations[asset] >= currentAllocations[asset] ? "text-emerald-200" : "text-amber-200"}`}>
-                            {formatPercent(userTargetAllocations[asset] - currentAllocations[asset], 1)}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {formatPercent(currentAllocations[asset], 1)} now → {formatPercent(userTargetAllocations[asset], 1)} proposed
-                        </p>
-                        {typeof aiTargetAllocations?.[asset] === "number" ? (
-                          <p className="mt-1 text-xs text-zinc-500">Suggested target {formatPercent(aiTargetAllocations[asset] ?? 0, 1)}</p>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{activeSteps.length} step{activeSteps.length === 1 ? "" : "s"} · {routeLabel}</p>
+              {pendingPreparedCalls?.length ? (
+                pendingPreparedCalls.map((step, index) => (
+                  <PlanStep
+                    key={`${step.step.from_asset}-${step.step.to_asset}-${index}-prepared`}
+                    index={index + 1}
+                    title={`Sell ${step.step.from_asset}, buy ${step.step.to_asset}`}
+                    meta={`${(step.execution_adapter ?? "best").toUpperCase()}${step.route?.length ? ` • ${step.route.join(" → ")}` : ""}`}
+                    value={formatAssetAmount(fromWei(Number(step.step.amount_wei), step.step.from_asset), step.step.from_asset)}
+                  />
+                ))
               ) : (
-                <div className="grid gap-3 pt-1 sm:grid-cols-2">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Swap ticket</p>
-                    <p className="mt-2 text-lg font-semibold text-white">
-                      {swapAssetIn} → {swapAssetOut}
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-400">
-                      {swapAmount || "0"} {swapAssetIn} with max {slippageBps || "0"} bps slippage.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Available balance</p>
-                    <p className="mt-2 text-lg font-semibold text-white">{formatAssetAmount(swapAvailableAmount, swapAssetIn)}</p>
-                    <p className="mt-1 text-sm text-zinc-400">
-                      {formatUsd(swapAvailableUsd)} available in wallet.
-                    </p>
-                  </div>
-                </div>
+                activeSteps.map((step, index) => (
+                  <PlanStep
+                    key={`${step.from_asset}-${step.to_asset}-${index}`}
+                    index={index + 1}
+                    title={`Sell ${step.from_asset}, buy ${step.to_asset}`}
+                    meta={`${routeLabel} • expected receive in ${step.to_asset}`}
+                    value={formatUsd(step.value_usd)}
+                  />
+                ))
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </SectionCard>
-  );
+          ) : (
+            <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 px-5 py-8 text-center">
+              <p className="text-sm font-medium text-zinc-200">No plan yet</p>
+              <p className="mt-2 text-sm text-zinc-500">Set a target and the exact path will appear.</p>
+            </div>
+          )}
 
-  const reportSection = gateResult ? (
-    <SafetyDrawer
-      gateResult={gateResult}
-      summaryLabel={deskLabel}
-      passedGateCount={passedGateCount}
-      failedGateConstraints={failedGateConstraints}
-      warningGateConstraints={warningGateConstraints}
-      showFullGateMatrix={showFullGateMatrix}
-      onToggleFullMatrix={onToggleFullMatrix}
-    />
-  ) : null;
+          {/* Mix bars */}
+          {actionType === "rebalance" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MixBar label="Current mix" allocations={currentAllocations} emphasis="current" />
+              <MixBar label="Proposed mix" allocations={userTargetAllocations} emphasis="target" />
+            </div>
+          )}
 
-  const editorSection = (
-    <section className="rounded-[24px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-      <button
-        type="button"
-        onClick={() => setShowEditor((current) => !current)}
-        className="flex w-full items-center justify-between gap-4 text-left"
-      >
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">{editorEyebrow}</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{editorHeading}</h2>
-          <p className="mt-1.5 text-sm text-zinc-400">{editorIntro}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="inline-flex rounded-full border border-zinc-700/80 bg-zinc-950/80 p-1">
-            {(["rebalance", "swap"] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSetActionType(type);
-                }}
-                className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${
-                  actionType === type
-                    ? "bg-cyan-500/15 text-cyan-100"
-                    : "text-zinc-400 transition-colors duration-200 hover:text-zinc-100"
-                }`}
-              >
-                {type}
-              </button>
+          {/* Economics */}
+          <div className="grid gap-2 sm:grid-cols-3">
+            {impactCards.map((card) => (
+              <div key={card.label} className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-white">{card.label}</p>
+                  <span className="text-sm text-zinc-300">{card.value}</span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">{card.body}</p>
+              </div>
             ))}
           </div>
-          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-            {proposalSourceLabel}
-          </span>
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 text-zinc-300">
-            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${showEditor ? "rotate-180" : ""}`} />
-          </span>
         </div>
-      </button>
+      </SlideUpModal>
 
-      <div
-        className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${
-          showEditor ? "mt-4 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"
-        }`}
+      {/* Safety Report Modal */}
+      <SlideUpModal
+        open={showSafetyModal}
+        onClose={() => setShowSafetyModal(false)}
+        eyebrow="Safety report"
+        title={`${passedGateCount} of ${gateResult?.constraint_results?.length ?? 0} checks passed`}
       >
-        <div className="min-h-0 overflow-hidden">
-          <TargetEditor
-            actionType={actionType}
-            swapAssetIn={swapAssetIn}
-            swapAssetOut={swapAssetOut}
-            onSwapAssetInChange={onSwapAssetInChange}
-            onSwapAssetOutChange={onSwapAssetOutChange}
-            swapAmount={swapAmount}
-            onSwapAmountChange={onSwapAmountChange}
-            onSwapAmountPercent={onSwapAmountPercent}
-            swapAmountPercent={swapAmountPercent}
-            swapAvailableAmount={swapAvailableAmount}
-            swapAvailableUsd={swapAvailableUsd}
-            minSwapAmount={minSwapAmount}
-            isBelowMinSwap={isBelowMinSwap}
-            slippageBps={slippageBps}
-            onSlippageChange={onSlippageChange}
-            assetSummary={assetSummary}
-            currentAllocations={currentAllocations}
-            userTargetAllocations={userTargetAllocations}
-            aiTargetAllocations={aiTargetAllocations}
-            rebalancePresets={rebalancePresets}
-            onApplyPreset={onApplyPreset}
-            targetWeights={targetWeights}
-            onTargetChange={onTargetChange}
-            targetWeightSum={targetWeightSum}
-            draftGuidance={draftGuidance}
-            suggestedSwapFallback={suggestedSwapFallback}
-            onUseSuggestedSwap={onUseSuggestedSwap}
-            recommendedSwapStarter={recommendedSwapStarter}
-            recommendedSwapAlternatives={recommendedSwapAlternatives}
-            onUseRecommendedSwapStarter={onUseRecommendedSwapStarter}
-            onUseRecommendedSwapAlternative={onUseRecommendedSwapAlternative}
+        {gateResult ? (
+          <SafetyDrawer
+            gateResult={gateResult}
+            summaryLabel={deskLabel}
+            passedGateCount={passedGateCount}
+            failedGateConstraints={failedGateConstraints}
+            warningGateConstraints={warningGateConstraints}
+            showFullGateMatrix={showFullGateMatrix}
+            onToggleFullMatrix={onToggleFullMatrix}
           />
+        ) : (
+          <p className="py-8 text-center text-sm text-zinc-500">Run a Gate check first to see the safety report.</p>
+        )}
+      </SlideUpModal>
+
+      {/* Execution Status Modal */}
+      {executing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-[24px] border border-cyan-500/25 bg-zinc-950 p-8 shadow-2xl text-center max-w-sm w-full mx-4">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-cyan-400" />
+            <h3 className="mt-4 text-lg font-semibold text-white">Executing transaction</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              {executionNote ?? "Waiting for wallet confirmation and chain settlement…"}
+            </p>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-cyan-400/80" />
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
-  );
+      ) : null}
 
-  const sectionOrder =
-    workflowMode === "manual"
-      ? [editorSection, gateSection, tradeTicketSection, reportSection]
-      : workflowMode === "automated"
-        ? [gateSection, tradeTicketSection, reportSection, editorSection]
-        : [gateSection, tradeTicketSection, editorSection, reportSection];
-
-  return (
-    <section className="space-y-4">
-      {startSection}
-      {sectionOrder.map((section, index) =>
-        section ? <div key={`desk-section-${index}`}>{section}</div> : null,
+      {/* Session Key Manager Modal */}
+      {showSessionKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={(e) => { if (e.target === e.currentTarget) onDismissSessionKeyModal(); }}>
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-[24px] border border-violet-500/25 bg-zinc-950 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-400/70">Autopilot requirement</p>
+                <h3 className="mt-1 text-lg font-semibold text-white">Session key needed</h3>
+              </div>
+              <button type="button" onClick={onDismissSessionKeyModal} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-zinc-400">
+              Automated mode needs an active session key to execute trades on your behalf. Grant one below.
+            </p>
+            <SessionKeyManager userAddress={walletAddress} onSessionGranted={onSessionKeyGranted} />
+          </div>
+        </div>
       )}
     </section>
   );

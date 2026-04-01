@@ -362,14 +362,22 @@ export default function TradePage() {
             </div>
 
             {txHash && (
-              <a
-                href={sepoliaStarkscanTxUrl(txHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-sm text-emerald-400 hover:text-emerald-300"
-              >
-                View on Starkscan <ExternalLink className="h-4 w-4" />
-              </a>
+              <div className="flex items-center justify-center gap-4">
+                <a
+                  href={sepoliaStarkscanTxUrl(txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300"
+                >
+                  View on Starkscan <ExternalLink className="h-4 w-4" />
+                </a>
+                <a
+                  href="/archive"
+                  className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300"
+                >
+                  Receipt Archive <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
             )}
           </div>
 

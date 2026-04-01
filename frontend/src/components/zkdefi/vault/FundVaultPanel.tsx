@@ -195,6 +195,13 @@ interface FundVaultPanelProps {
   isDemo?: boolean;
   /** Record deposit in V2 ledger */
   onRecordDeposit?: (amountWei: string, token: string, rail: string, txHash: string, commitmentHash: string) => Promise<void>;
+  /** Called after user acknowledges a successful fund confirmation card. */
+  onFundConfirmed?: (payload: {
+    amount: string;
+    asset: Asset;
+    txHash: string;
+    expectedApy?: number;
+  }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +216,7 @@ export function FundVaultPanel({
   address,
   isDemo,
   onRecordDeposit,
+  onFundConfirmed,
 }: FundVaultPanelProps) {
   const { account } = useAccount();
   const { setActivityFeed } = useApp();
@@ -555,6 +563,14 @@ export function FundVaultPanel({
         data={confirmation}
         accent="violet"
         onDismiss={() => {
+          if (confirmation.txHash) {
+            onFundConfirmed?.({
+              amount: confirmation.amount,
+              asset: selectedAsset,
+              txHash: confirmation.txHash,
+              expectedApy: confirmation.expectedApy,
+            });
+          }
           setConfirmation(null);
           setAmount("");
           setDepositSteps([]);

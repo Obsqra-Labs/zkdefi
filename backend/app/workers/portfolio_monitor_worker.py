@@ -80,6 +80,20 @@ class PortfolioMonitorWorker:
                         },
                     },
                 )
+                try:
+                    from app.services import studio_notify
+
+                    await studio_notify.notify_studio_personal_alert(
+                        wallet=user_address,
+                        kind="portfolio_drift",
+                        payload={
+                            "drift_status": drift.get("status"),
+                            "recommendation_id": recommendation.get("recommendation_id"),
+                            "explanation": drift.get("explanation"),
+                        },
+                    )
+                except Exception as exc:
+                    logger.debug("studio_notify after monitor alert: %s", exc)
             self._monitor_service.record_review(
                 user_address,
                 recommendation=recommendation,

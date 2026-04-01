@@ -44,6 +44,7 @@ Thumbs.db
 !.env.example
 
 # ── Databases & runtime state (never track) ──
+backend/data/test_portfolio_monitor_state_*.json
 *.db
 *.db-shm
 *.db-wal
@@ -85,9 +86,6 @@ contracts/starkli_config/private_key.txt
 backend/.env
 .l1-sepolia-keystore.json
 backend/.l1-sepolia-keystore.json
-.worktrees/
-__pycache__/
-*.pyc
 
 # Agent spam / backups (never track)
 archive/
@@ -123,3 +121,45 @@ artifacts/
 *.fig
 receiptos/passport/node_modules/
 receiptos/passport/.next/
+
+# Starknet Foundry / Scarb caches (local builds)
+**/.snfoundry_cache/
+
+# VitePress (docs-site) dev cache
+docs-site/docs/.vitepress/cache/
+
+# TypeScript / ESLint incremental
+*.tsbuildinfo
+.eslintcache
+
+# Local tooling (do not publish)
+.codex
+.codex/
+
+# ── Backup / preview snapshots ──
+frontend.backup*/
+frontend.preview*/
+
+# ── Deploy result artifacts (contain deployer keys context) ──
+deploy_*_results.json
+
+# ── Log files ──
+*.log
+!circuits/build/*.log
+
+# ── README backups ──
+*.bak
+
+# ── Implementation status dumps ──
+TRADE_DESK_IMPLEMENTATION_COMPLETE.txt
+
+# ── PM2 ecosystem (local) ──
+ecosystem.config.js
+ecosystem.config.cjs
+
+# ── Starkli wallet/account files ──
+.starkli-wallets/
+
+# ── Large EZKL KZG bundles (>50MB, regenerated from models) ──
+backend/app/data/ezkl_models/yield_forecast/kzg_mpcheck_bundle.json
+backend/app/data/ezkl_models/anomaly_detector/kzg_mpcheck_bundle.json

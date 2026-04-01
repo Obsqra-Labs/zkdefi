@@ -1,126 +1,127 @@
-# zkde.fi — Provable Receipt OS for Starknet
+# zkde.fi
 
-> **Start at [zkde.fi/test](https://zkde.fi/test) — every claim below is verifiable there in under 60 seconds.** Judges: see [JUDGES.md](JUDGES.md) for a quick routing guide.
+**Proof-gated DeFi execution on Starknet mainnet.**
 
-> Every computation — human or AI — produces a verifiable receipt.
-> Receipts compose recursively. Reputation emerges from receipts.
-
-**By [Obsqra Labs](https://obsqra.xyz)** · Live: [zkde.fi](https://zkde.fi) · Docs: [docs/](docs/README.md) · [Live Proof Readout](https://zkde.fi/test)
+Live at **[zkde.fi](https://zkde.fi)** · Built by [Obsqra Labs](https://obsqra.xyz)
 
 ---
 
 ## What is this?
 
-zkde.fi is a **recursive multi-chain proving fabric** on Starknet. It turns every on-chain and off-chain action into a provable receipt — then composes those receipts across L1 (Ethereum Sepolia), L2 (Starknet Sepolia), and L3 (Madara appchain).
+zkde.fi is a proof-gated portfolio execution engine on Starknet. Every trade — swap or rebalance — passes through a constraint gate scored by ZKML models before it touches the chain. Execution receipts are bundled, stored on IPFS via Storacha, and anchored on-chain through a two-contract receipt system.
 
-This is not an AI agent. It's the **proving infrastructure** that any agent, model, or user can run on top of.
+The platform runs on **Starknet mainnet** with real tokens, real Ekubo swaps, and real IPFS storage.
 
 ---
 
-## Architecture
+## How It Works
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     zkde.fi Stack                       │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐           │
-│  │ Noir HONK│   │Native KZG│   │Groth16/  │           │
-│  │ (Path A) │   │ (Path B) │   │Garaga    │           │
-│  └────┬─────┘   └────┬─────┘   │(Path C)  │           │
-│       │               │         └────┬─────┘           │
-│       └───────┬───────┴──────────────┘                 │
-│               ▼                                         │
-│  ┌─────────────────────────┐                           │
-│  │   Receipt Aggregator    │  ← verifiable event log   │
-│  │   (recursive compose)   │                           │
-│  └────────────┬────────────┘                           │
-│               │                                         │
-│    ┌──────────┼──────────┐                             │
-│    ▼          ▼          ▼                              │
-│  ┌────┐   ┌─────┐   ┌─────┐                           │
-│  │ L1 │   │ L2  │   │ L3  │                           │
-│  │ETH │◄──│STRK │◄──│Madara│                          │
-│  │Sep.│   │Sep. │   │App  │                            │
-│  └────┘   └─────┘   └─────┘                           │
-│                                                         │
-│  ┌─────────────────────────┐                           │
-│  │    ModelBridge (EZKL)   │  AI model → ZK proof      │
-│  │  model registry on L3   │                           │
-│  └─────────────────────────┘                           │
-│                                                         │
-│  ┌─────────────────────────┐                           │
-│  │  Reputation / Identity  │  Poseidon-hashed           │
-│  │  badge-gated lending    │  behavior proofs           │
-│  │  DAO voting             │                           │
-│  └─────────────────────────┘                           │
-│                                                         │
-│  ┌─────────────────────────┐                           │
-│  │     Capital OS          │  DeFi surface              │
-│  │  strategy sim · scanner │  (first receipt consumer)  │
-│  │  privacy pools          │                           │
-│  └─────────────────────────┘                           │
-└─────────────────────────────────────────────────────────┘
+User wallet (Argent/Braavos)
+        │
+        ▼
+┌─────────────────────────┐
+│   Portfolio Dashboard    │  ← pick swap / rebalance / autopilot
+│   (Next.js 14 + React)  │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│   Execution Gate (API)  │  ← risk scoring, constraint checks
+│   EZKL + OpenAI models  │     fee guard, slippage guard, etc.
+│   Groth16 via Garaga    │
+└───────────┬─────────────┘
+            │
+    ┌───────┴───────┐
+    ▼               ▼
+┌────────┐   ┌──────────┐
+│ Ekubo  │   │  MIST    │  ← optional privacy wrap
+│  Swap  │   │ Chamber  │     (deposit → ZK proof → withdraw → swap)
+└───┬────┘   └────┬─────┘
+    │             │
+    └──────┬──────┘
+           ▼
+┌─────────────────────────┐
+│  Receipt Vault           │
+│  Storacha IPFS + on-chain│  ← gold tier: CID anchored on-chain
+│  ReceiptArchive contract │     bronze tier: IPFS only
+└──────────────────────────┘
 ```
 
----
+### Three workflow modes
 
-## Core Primitive: Receipts
-
-Everything produces a **receipt** — a verifiable proof that a computation happened correctly.
-
-| Receipt Type | Proof System | Settlement |
-|---|---|---|
-| Model inference (EZKL) | Groth16 → Garaga | L3 → L2 |
-| Noir circuit execution | HONK | L2 |
-| KZG polynomial commitment | Native Cairo KZG | L2 |
-| Behavior / reputation | Poseidon hash | L3 |
-| Cross-chain bridge | STARK + relay | L1 ↔ L2 ↔ L3 |
-
-Receipts compose recursively — a reputation badge is a receipt-of-receipts.
+| Mode | How it works |
+|------|-------------|
+| **Manual** | You set every parameter. Gate scores the route. You sign. |
+| **Assisted** | ZKML recommends the optimal trade. You review and approve. |
+| **Automated** | Session key + policy. Agent executes within your constraints. |
 
 ---
 
-## 4 Proving Lanes
+## Mainnet Contracts
 
-### Path A — Noir HONK
-Noir circuits → HONK proofs → L2 verification. General-purpose computation receipts.
+All contracts are deployed on **Starknet mainnet** (`SN_MAIN`).
 
-### Path B — Native KZG
-Cairo-native KZG polynomial commitment verification. EZKL model proofs verified directly without Groth16 wrapping. [Spec →](docs/plans/CAIRO_KZG_VERIFIER_SPEC.md)
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **ReceiptRegistry** | [`0x048bfcab6cde939483a9a1f71ecadb1839bd4df9ae4d8fd3f4723fed0c8d4aac`](https://voyager.online/contract/0x048bfcab6cde939483a9a1f71ecadb1839bd4df9ae4d8fd3f4723fed0c8d4aac) | On-chain receipt storage |
+| **ReceiptArchive** | [`0x0092494273b46b26d5c7684d41e2fc5c15a3b24a56507e410f1b8ee33c3dabda`](https://voyager.online/contract/0x0092494273b46b26d5c7684d41e2fc5c15a3b24a56507e410f1b8ee33c3dabda) | CID anchoring (Poseidon hash of IPFS CID) |
+| **MIST Chamber** | [`0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444`](https://voyager.online/contract/0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444) | Privacy deposits/withdrawals via ZK proof (MIST.cash) |
 
-### Path C — Groth16 / Garaga Bridge
-EZKL → Groth16 → Garaga on-chain verifier. Primary ModelBridge lane for AI model verification. [Spec →](docs/plans/EZKL_TO_PROOF_BRIDGE_SPEC.md)
+### Protocol integrations (mainnet)
 
-### STARK (Native)
-Cairo's native proof system. Contract-level verification and L2 → L1 settlement.
-
----
-
-## What's Deployed
-
-| Component | Network | Link |
-|---|---|---|
-| ModelBridge verifier | Starknet Sepolia (L2) | [Contracts](contracts/) |
-| L3 Garaga verifier | Madara appchain (L3) | [Architecture](docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md) |
-| L1 EZKL bridge verifier | Ethereum Sepolia (L1) | [Spec](docs/plans/L1_SEPOLIA_EZKL_VERIFIER.md) |
-| Reputation proof API | Backend | [API](docs/REPUTATION_PROOF_API.md) |
-| 7 Starknet contracts | Sepolia testnet | [Contracts](contracts/) |
-| 4 EVM contracts | Ethereum Sepolia | [Bridge spec](docs/plans/L1_EZKL_BRIDGE_SPEC.md) |
-| 31 circom circuits | WASM + zkey | [Circuits](circuits/) |
-| Live proof readout | Web | [zkde.fi/test](https://zkde.fi/test) |
+| Protocol | Address |
+|----------|---------|
+| Ekubo Core | `0x0280d63e837e70ebdee7f7f2b314c6f24b4bbe6dd59dbfcc5038d07cdbe2e0f2` |
+| StarkGate ETH Bridge | `0x073314940630fd6dcda0d772d4c972c4e0a9946bef9dabf4ef84eda8ef542b82` |
 
 ---
 
-## Reputation System
+## IPFS Integration
 
-Receipts accumulate into **portable reputation**:
+Every execution produces a **portable receipt bundle** — a JSON document containing the gate results, proof hashes, and execution metadata. These are stored via [Storacha](https://storacha.network) (w3up):
 
-1. **Behavior proofs** — Poseidon-hashed on-chain activity
-2. **Badge screening** — threshold-gated credentials from receipt history
-3. **Gated DeFi** — reputation unlocks lending tiers, DAO voting weight, privacy pool access
+1. Backend serializes the receipt bundle with `canonicalize_bundle_json()`
+2. Uploads via `@storacha/client` SDK → returns a CID
+3. **Gold tier** (high-value actions): Poseidon hash of the CID is anchored on-chain via `ReceiptArchive.anchor_cid()`
+4. **Bronze tier** (standard actions): IPFS-only, no gas cost
 
-Specs: [Reputation v3](docs/CAPITAL_OS_PORTABLE_REPUTATION_V3_SPEC.md) · [Gated Lending + DAO](docs/REPUTATION_GATED_LENDING_DAO_VOTING.md)
+Receipt bundles are viewable at `https://<cid>.ipfs.storacha.link/receipt-bundle.json`.
+
+The frontend Receipt Vault page shows IPFS links, Voyager transaction links, and verification status for each receipt.
+
+---
+
+## Proof Systems
+
+| System | What it proves | Where |
+|--------|---------------|-------|
+| **EZKL** | ML model inference (credit scoring, anomaly detection, yield forecast) | Backend → Groth16 proof |
+| **Garaga** | On-chain Groth16 verification | Starknet contracts |
+| **MIST.cash** | Private deposit/withdrawal (Poseidon hashing, Merkle trees, Groth16) | Client-side WASM |
+| **Execution Gate** | Constraint satisfaction (fee efficiency, slippage, portfolio limits) | Backend scoring |
+
+### On-chain verification contracts (Sepolia testnet)
+
+| Contract | Address |
+|----------|---------|
+| ZkmlVerifier | `0x068abd64a4a78172a5ee15a30bbe614257d62482f07d3ff7fdb72da5aad08923` |
+| GaragaVerifier | `0x06d0cb7a48b48c5b6ca70f856d249caccea90f506ad7596a6838502fe3aa6d37` |
+| ObsqraFactRegistry | `0x02009ab87f581a0a92f65906ce84664a5cfcb86f7266651f48a04fac3c62faa3` |
+| Halo2Verifier (Ethereum Sepolia) | `0xF7b555ca4E54a8c7B9A0DDBFa17341575a852Ab9` |
+
+---
+
+## Privacy
+
+When private mode is enabled, swaps are routed through the **MIST.cash Chamber**:
+
+1. Deposit input tokens into the Chamber (approve + deposit, one wallet signature)
+2. Wait for Merkle tree update (~12s)
+3. Generate a Groth16 ZK proof client-side (Poseidon hashing via Go-compiled WASM)
+4. Withdraw from Chamber + execute swap in a single multicall
+
+This breaks the on-chain link between source funds and the swap transaction. Supported tokens: ETH, STRK, USDC.
 
 ---
 
@@ -128,78 +129,53 @@ Specs: [Reputation v3](docs/CAPITAL_OS_PORTABLE_REPUTATION_V3_SPEC.md) · [Gated
 
 ```
 zkdefi/
-├── frontend/          Next.js app (zkde.fi)
-├── backend/           Python FastAPI — proofs, reputation, model bridge
-├── contracts/         Cairo smart contracts (L2 + L3)
-├── circuits/          Noir circuits, EZKL models, KZG artifacts
-├── scripts/           Build, deploy, showcase runners
-├── artifacts/         Generated proof artifacts + showcase reports
-├── docs/              Architecture, specs, plans
-│   └── plans/         Implementation specs
-├── credit-scoring/    Credit scoring model + EZKL compilation
-├── monitoring/        Prometheus alerts, Grafana dashboards
-├── tests/             Integration + unit tests
-└── market-maker-sim/  Sepolia Ekubo API + optional bots (`docker compose up`, see README)
+├── frontend/          Next.js 14 app (zkde.fi)
+├── backend/           FastAPI (Python 3.12) — execution gate, receipt vault, proofs
+├── contracts/         Cairo smart contracts
+├── circuits/          Noir circuits, EZKL model artifacts
+├── receiptos/         Receipt infrastructure (Storacha upload, attester, passport)
+├── scripts/           Deploy and utility scripts
+├── docs/              Architecture and specs
+├── credit-scoring/    EZKL credit scoring model
+├── monitoring/        Prometheus + Grafana dashboards
+├── tests/             Integration tests
+└── market-maker-sim/  Ekubo market simulation
 ```
 
 ---
 
-## Quick Start
+## Running Locally
 
 ```bash
 # Backend
-cd backend && python -m venv venv && source venv/bin/activate
+cd backend
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # set STARKNET_RPC_URL, etc.
-uvicorn app.main:app --host 0.0.0.0 --port 8003
+cp .env.example .env          # configure RPC, Storacha keys, etc.
+uvicorn app.main:app --port 8003
 
 # Frontend
-cd frontend && npm install
-cp .env.example .env.local   # set NEXT_PUBLIC_API_URL, NEXT_PUBLIC_RPC_URL
-npm run dev   # → http://localhost:3001
+cd frontend
+npm install
+cp .env.example .env.local    # configure API URL, contract addresses
+npm run dev                   # http://localhost:3001
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | Next.js 14, React, Tailwind CSS |
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 14, React 18, Tailwind CSS, starknet-react |
 | Backend | FastAPI, Python 3.12 |
-| Proofs | Garaga (SNARK), Stone/Integrity (STARK), EZKL (zkML), Noir (HONK) |
-| Contracts | Cairo, Scarb |
-| Chains | Starknet Sepolia · Ethereum Sepolia · Madara L3 appchain |
-
----
-
-## How It Differs
-
-Other projects verify that an AI agent made a correct decision.
-zkde.fi verifies that **any computation happened correctly**, then lets those verifications compose.
-
-- Not an agent framework — a **proving fabric**
-- Not single-proof — **recursive multi-lane** (Noir, KZG, Groth16, STARK)
-- Not L2-only — **L1 ↔ L2 ↔ L3** tri-chain settlement
-- Not inference-only — **behavior, reputation, identity, capital**
-
-The AI model verification (ModelBridge) is one lane. The system is the lanes.
-
----
-
-## Key Documents
-
-| Document | Covers |
-|---|---|
-| [Receipts as Primitive](docs/RECEIPTS_AS_PRIMITIVE_STRATEGY.md) | Core thesis — why receipts, not proofs |
-| [Recursive Multichain Proving](docs/RECURSIVE_MULTICHAIN_PROVING_CORE.md) | How lanes compose across chains |
-| [ZK OS Reframe](docs/ZK_OS_REFrame.md) | Product vision — zkRAG, zkGraph, zkSyslog |
-| [L3 Architecture](docs/MADARA_L3_APPCHAIN_ARCHITECTURE.md) | Madara appchain design |
-| [ModelBridge Integration](docs/L3_PROVING_PATHS_INTEGRATION.md) | EZKL → L3 → L2 pipeline |
-| [Hackathon Build Narrative](docs/HACKATHON_BUILD_NARRATIVE.md) | Build story + milestones |
+| Proofs | EZKL (zkML), Garaga (Groth16), MIST.cash SDK (Poseidon/Groth16 WASM) |
+| Contracts | Cairo (Scarb), Starknet mainnet |
+| Storage | Storacha (IPFS), on-chain CID anchoring |
+| DEX | Ekubo (mainnet), AVNU aggregator |
 
 ---
 
 ## License
 
-Apache-2.0
+Apache-2.0 — see [LICENSE](LICENSE).

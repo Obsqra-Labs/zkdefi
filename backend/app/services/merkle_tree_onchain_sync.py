@@ -217,15 +217,24 @@ async def _starkli_add_known_root(root_felt: int) -> str | None:
         # Get nonce with "latest" block so _prepare_invoke_v3 doesn't call get_nonce().
         # Retry with nonce refresh on stale-nonce errors (shared wallet scenario).
         for nonce_attempt in range(4):
-            nonce    = await account.get_nonce(block_number="latest")
+            nonce    = await asyncio.wait_for(account.get_nonce(block_number="latest"), timeout=15.0)
             try:
-                draft_tx = await account._prepare_invoke_v3(
-                    [call], resource_bounds=_RBM.init_with_zeros(), nonce=nonce
+                draft_tx = await asyncio.wait_for(
+                    account._prepare_invoke_v3(
+                        [call], resource_bounds=_RBM.init_with_zeros(), nonce=nonce
+                    ),
+                    timeout=15.0,
                 )
                 # Pass the unsigned draft to estimate_fee — it signs internally with QUERY version.
-                estimated = await account.estimate_fee(draft_tx, block_number="latest")
+                estimated = await asyncio.wait_for(
+                    account.estimate_fee(draft_tx, block_number="latest"),
+                    timeout=15.0,
+                )
                 rbm       = estimated.to_resource_bounds()
-                tx        = await account.execute_v3(calls=call, resource_bounds=rbm, nonce=nonce)
+                tx        = await asyncio.wait_for(
+                    account.execute_v3(calls=call, resource_bounds=rbm, nonce=nonce),
+                    timeout=15.0,
+                )
                 tx_hash  = hex(tx.transaction_hash)
                 logger.info("add_known_root submitted via starknet.py: %s (root_felt=%s)", tx_hash, hex(root_felt))
                 return tx_hash
@@ -335,13 +344,16 @@ async def verify_root_on_chain(root: int) -> bool:
     try:
         client = _FNC(node_url=rpc_url)
         tree_int = int(cfg["address"], 16) if cfg["address"].startswith("0x") else int(cfg["address"])
-        result = await client.call_contract(
-            _Call(
-                to_addr   = tree_int,
-                selector  = _sel("is_known_root"),
-                calldata  = [root_felt],
+        result = await asyncio.wait_for(
+            client.call_contract(
+                _Call(
+                    to_addr   = tree_int,
+                    selector  = _sel("is_known_root"),
+                    calldata  = [root_felt],
+                ),
+                block_number="latest",
             ),
-            block_number="latest",
+            timeout=10.0,
         )
         # result is a list of ints; [1] = true, [0] = false
         return bool(result and result[0] == 1)

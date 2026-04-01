@@ -15,36 +15,50 @@ function ringColor(score: number): string {
   return "stroke-red-400";
 }
 
-/* ── Score formula (mirrors backend compute_reputation_score) ───── */
+/* ── Score formula (mirrors backend _composite_score in risk_passport.py) ── */
 
 interface ScoreBreakdown {
   tierPts: number;
   tenurePts: number;
-  txnPts: number;
+  volumePts: number;
   collateralPts: number;
-  penaltyPts: number;
+  txnPts: number;
+  protocolPts: number;
+  walletPts: number;
   total: number;
 }
 
-function computeBreakdown(p: ReputationProfile): ScoreBreakdown {
-  const tierPts = p.tier * 25;                                     // max 50
-  const tenurePts = Math.min(p.tenure_days / 365, 1) * 10;        // max 10
-  const txnPts = Math.min(p.successful_txns / 100, 1) * 10;       // max 10
-  const collateralPts = Math.min(p.collateral_eth / 10, 1) * 5;   // max 5
-  const totalTxns = p.successful_txns + p.failed_txns;
-  const failureRatio = totalTxns > 0 ? p.failed_txns / totalTxns : 0;
-  const penaltyPts = failureRatio * 15;                            // max 15
+function computeBreakdown(
+  p: ReputationProfile,
+  extra?: { protocolCount?: number; walletValueUsd?: number },
+): ScoreBreakdown {
+  const tierPts = p.tier * 25;                                         // max 75
+  const tenurePts = Math.min(Math.floor(p.tenure_days / 10), 15);      // max 15
+  const volumePts = Math.min(Math.floor(p.total_volume_eth * 2), 15);  // max 15
+  const collateralPts = Math.min(Math.floor(p.collateral_eth * 10), 15); // max 15
+  const txnPts = Math.min(p.transaction_count, 10);                    // max 10
+  const protocolPts = Math.min((extra?.protocolCount ?? 0) * 3, 10);   // max 10
+  const walletPts = Math.min(Math.floor((extra?.walletValueUsd ?? 0) / 10), 10); // max 10
   const total = Math.max(0, Math.min(100,
-    Math.round(tierPts + tenurePts + txnPts + collateralPts - penaltyPts),
+    tierPts + tenurePts + volumePts + collateralPts + txnPts + protocolPts + walletPts,
   ));
-  return { tierPts, tenurePts, txnPts, collateralPts, penaltyPts, total };
+  return { tierPts, tenurePts, volumePts, collateralPts, txnPts, protocolPts, walletPts, total };
 }
 
-export function ScoreBanner({ profile }: { profile: ReputationProfile }) {
+export function ScoreBanner({
+  profile,
+  protocolCount,
+  walletValueUsd,
+}: {
+  profile: ReputationProfile;
+  protocolCount?: number;
+  walletValueUsd?: number;
+}) {
   const tier = TIER_CONFIG[profile.tier] ?? TIER_CONFIG[0];
   const TierIcon = tier.icon;
-  const bd = computeBreakdown(profile);
-  const pct = bd.total;
+  const bd = computeBreakdown(profile, { protocolCount, walletValueUsd });
+  // Use the authoritative backend score for the ring, breakdown for detail bars
+  const pct = profile.reputation_score > 0 ? profile.reputation_score : bd.total;
   const r = 40;
   const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
@@ -95,13 +109,13 @@ export function ScoreBanner({ profile }: { profile: ReputationProfile }) {
           Score Breakdown
         </p>
         <div className="space-y-1">
-          <BreakdownBar label="Tier" points={bd.tierPts} max={50} color="bg-blue-500" />
-          <BreakdownBar label="Tenure" points={bd.tenurePts} max={10} color="bg-emerald-500" />
+          <BreakdownBar label="Tier" points={bd.tierPts} max={75} color="bg-blue-500" />
+          <BreakdownBar label="Tenure" points={bd.tenurePts} max={15} color="bg-emerald-500" />
           <BreakdownBar label="Txns" points={bd.txnPts} max={10} color="bg-amber-500" />
-          <BreakdownBar label="Collateral" points={bd.collateralPts} max={5} color="bg-violet-500" />
-          {bd.penaltyPts > 0.1 && (
-            <BreakdownBar label="Failure penalty" points={-bd.penaltyPts} max={15} color="bg-red-500" />
-          )}
+          <BreakdownBar label="Protocols" points={bd.protocolPts} max={10} color="bg-cyan-500" />
+          <BreakdownBar label="Wallet" points={bd.walletPts} max={10} color="bg-teal-500" />
+          <BreakdownBar label="Volume" points={bd.volumePts} max={15} color="bg-violet-500" />
+          <BreakdownBar label="Collateral" points={bd.collateralPts} max={15} color="bg-purple-500" />
         </div>
       </div>
     </div>

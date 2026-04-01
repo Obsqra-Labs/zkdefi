@@ -1,8 +1,11 @@
 {
   "sepolia": {
-    "receipt_registry_v01": "unresolved"
+    "receipt_registry_v01": "0x0544ef8cbf8bf1ac7987bc0d2bb211434d515fbe10bab65f36e0f761c79bbdff",
+    "receipt_archive_v01": "0x076f1e28238b1ce4640632be6df94fcf3ac8b85ba9ad1fac00ef2142f10a1054"
   },
   "mainnet": {
-    "receipt_registry_v01": "unresolved"
+    "receipt_registry_v01": "0x048bfcab6cde939483a9a1f71ecadb1839bd4df9ae4d8fd3f4723fed0c8d4aac",
+    "receipt_archive_v01": "0x0092494273b46b26d5c7684d41e2fc5c15a3b24a56507e410f1b8ee33c3dabda",
+    "service_account": "0x00971ff0f5f989167f790c44ffc298042b584cbe4873e04f342e6b83c508394b"
   }
 }

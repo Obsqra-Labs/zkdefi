@@ -1,0 +1,56 @@
+{
+  "version": "ppp.v1",
+  "subject": {
+    "starknet_address": "0x0123",
+    "subject_id": "did:zkdefi:0x0123"
+  },
+  "identity": {
+    "linked_addresses": [],
+    "session_state": {},
+    "privacy_mode": "selective"
+  },
+  "reputation": {
+    "tier": 1,
+    "tier_name": "Standard",
+    "score": 612,
+    "credit_score": null,
+    "letter_rating": "C"
+  },
+  "activity": {
+    "builder": {
+      "deploy_count": 0,
+      "verified_receipt_count": 0,
+      "proof_count": 0
+    },
+    "defi": {
+      "tvl_usd": 0,
+      "protocol_count": 0,
+      "position_count": 0,
+      "turnover_30d_usd": 0
+    }
+  },
+  "evidence": {
+    "receipt_root": "0x0",
+    "portfolio_snapshot_hash": "0x0",
+    "proof_registry_refs": []
+  },
+  "claims": {
+    "execution_eligibility": {
+      "allowed": false,
+      "reason_codes": ["insufficient_activity"]
+    },
+    "lending_eligibility": {
+      "allowed": false,
+      "max_ltv": 0
+    },
+    "risk_posture": {
+      "label": "conservative"
+    }
+  },
+  "provenance": {
+    "generated_at": "2026-03-30T00:00:00Z",
+    "policy_hash": "0x0",
+    "circuits": [],
+    "proof_mode": "advisory"
+  }
+}

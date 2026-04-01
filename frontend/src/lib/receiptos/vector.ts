@@ -151,6 +151,16 @@ interface TimelineResponse {
   }[];
 }
 
+export interface PortfolioSummary {
+  wallet_address: string;
+  total_value_usd: number;
+  protocol_count: number;
+  position_count: number;
+  protocols_found: string[];
+  snapshot_hash: string;
+  scanned_at: string;
+}
+
 /**
  * Fetch on-chain builder activity — attested receipts from the
  * ReceiptOS mission-control timeline. Single endpoint, fault-tolerant.
@@ -158,24 +168,45 @@ interface TimelineResponse {
 export async function fetchBuilderActivity(
   walletAddress: string,
 ): Promise<BuilderActivity> {
+  const pathCandidates = [
+    `/api/v1/zkdefi/mc/receipts/timeline/${walletAddress}?limit=50`,
+    `/api/v1/zkdefi/mission_control/receipts/timeline/${walletAddress}?limit=50`,
+  ];
+
   try {
-    const data = await apiFetch<TimelineResponse>(
-      `/api/v1/zkdefi/mission_control/receipts/timeline/${walletAddress}?limit=50`,
-      { timeoutMs: 10_000 },
-    );
-    const receipts: ReceiptEntry[] = (data.timeline ?? []).flatMap((day) =>
-      (day.receipts ?? []).map((r) => ({
-        receiptId: r.receipt_id ?? "",
-        timestamp: r.timestamp ?? "",
-        type: r.type ?? "unknown",
-        intentSummary: r.intent_summary ?? "",
-        gateStatus: r.gate_status ?? "pending",
-        hashes: r.hashes ?? { intent: "", policy: "", execution: "", receipt: "" },
-        source: r.source ?? "unknown",
-      })),
-    );
-    return { totalReceipts: data.total ?? 0, receipts };
+    for (const path of pathCandidates) {
+      try {
+        const data = await apiFetch<TimelineResponse>(path, { timeoutMs: 10_000 });
+        const receipts: ReceiptEntry[] = (data.timeline ?? []).flatMap((day) =>
+          (day.receipts ?? []).map((r) => ({
+            receiptId: r.receipt_id ?? "",
+            timestamp: r.timestamp ?? "",
+            type: r.type ?? "unknown",
+            intentSummary: r.intent_summary ?? "",
+            gateStatus: r.gate_status ?? "pending",
+            hashes: r.hashes ?? { intent: "", policy: "", execution: "", receipt: "" },
+            source: r.source ?? "unknown",
+          })),
+        );
+        return { totalReceipts: data.total ?? 0, receipts };
+      } catch {
+        // Try next route variant for mixed deployments.
+      }
+    }
+
+    return { totalReceipts: 0, receipts: [] };
   } catch {
     return { totalReceipts: 0, receipts: [] };
+  }
+}
+
+/** Portfolio summary fallback for passport display (aligns passport with /portfolio). */
+export async function fetchPortfolioSummary(walletAddress: string): Promise<PortfolioSummary | null> {
+  try {
+    return await apiFetch<PortfolioSummary>(`/api/v1/portfolio/${walletAddress}/summary`, {
+      timeoutMs: 15_000,
+    });
+  } catch {
+    return null;
   }
 }

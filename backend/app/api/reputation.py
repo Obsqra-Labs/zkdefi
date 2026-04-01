@@ -27,18 +27,29 @@ from app.services.trust_version_matrix import get_backend_trust_flags, get_trust
 router = APIRouter(prefix="/reputation", tags=["reputation"])
 
 
-def compute_reputation_score(tier: int, tenure: int, txns: int, collateral: float, failed_txns: int = 0) -> int:
-    tier_weight = tier * 25
+def compute_reputation_score(
+    tier: int,
+    tenure: int,
+    txns: int,
+    collateral: float,
+    failed_txns: int = 0,
+    *,
+    protocol_count: int = 0,
+    wallet_value_usd: float = 0.0,
+) -> int:
+    tier_weight = tier * 20
     tenure_weight = min(tenure / 365, 1) * 10
-    txn_weight = min(txns / 100, 1) * 10
+    txn_weight = min(txns / 50, 1) * 15
     coll_weight = min(collateral / 10, 1) * 5
+    protocol_weight = min(protocol_count * 3, 10)
+    wallet_weight = min(wallet_value_usd / 100, 1) * 10
     # Penalty: lose up to 15 points based on failure ratio
     total_txns = txns + failed_txns
     failure_penalty = 0
     if total_txns > 0:
         failure_ratio = failed_txns / total_txns
         failure_penalty = failure_ratio * 15
-    raw = tier_weight + tenure_weight + txn_weight + coll_weight - failure_penalty
+    raw = tier_weight + tenure_weight + txn_weight + coll_weight + protocol_weight + wallet_weight - failure_penalty
     return max(0, min(int(raw), 100))
 
 
@@ -82,6 +93,7 @@ class UserReputationResponse(BaseModel):
     upgrade_requirements: Optional[dict]
     reputation_score: int = 0
     gates: dict[str, bool] = {}
+    on_chain: Optional[dict] = None
 
 
 class TierUpgradeRequest(BaseModel):
@@ -446,7 +458,7 @@ async def get_tier_info(tier_id: int) -> TierInfo:
 
 @router.get("/user/{address}", response_model=UserReputationResponse)
 async def get_user_reputation(address: str) -> UserReputationResponse:
-    """Merged in-app + verified cross-chain reputation baseline."""
+    """Merged in-app + verified cross-chain + on-chain reputation baseline."""
     user = get_user_data(address)
     tier = int(user.get("tier", 0))
     tier_name = TIER_INFO.get(tier, TIER_INFO[0]).tier_name
@@ -476,9 +488,49 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
     except Exception:
         pass
 
-    tenure_days = max(in_app_tenure_days, chain_tenure_days)
+    # Fetch real on-chain activity (positions, bridge deposits, nonce)
+    onchain_activity = None
+    onchain_collateral = 0.0
+    onchain_nonce = 0
+    onchain_bridge_eth = 0.0
+    onchain_age_days = 0
+    try:
+        from app.services.onchain_activity_service import get_onchain_activity
+        activity = await get_onchain_activity(address)
+        onchain_activity = activity.to_dict()
+        onchain_collateral = activity.collateral_eth
+        onchain_nonce = activity.starknet_nonce
+        onchain_bridge_eth = activity.bridge_total_eth
+        onchain_age_days = activity.account_age_days
+    except Exception as exc:
+        logger.warning("On-chain activity fetch failed for %s: %s", address, exc)
+
+    tenure_days = max(in_app_tenure_days, chain_tenure_days, onchain_age_days)
     in_app_txns = int(user.get("successful_txns", 0) or 0)
     successful_txns = in_app_txns + chain_tx_count if chain_tx_count > 0 else in_app_txns
+
+    # Use real nonce as transaction count floor (most accurate for Starknet)
+    in_app_tx_count = int(user.get("transaction_count", 0) or 0)
+    transaction_count = max(in_app_tx_count + chain_tx_count, onchain_nonce)
+
+    # Use real position data for collateral if available
+    # Include wallet token value — it represents capital in the ecosystem
+    stored_collateral = float(user.get("collateral", 0) or 0) / 1e18
+    onchain_wallet_eth = 0.0
+    if onchain_activity:
+        wallet_usd = onchain_activity.get("wallet_value_usd", 0.0) or 0.0
+        total_usd = onchain_activity.get("total_value_usd", 0.0) or 0.0
+        # Convert USD to ETH using ~$2500 fallback; conservative estimate
+        value_usd = max(wallet_usd, total_usd)
+        onchain_wallet_eth = value_usd / 2500.0
+    collateral_eth = max(stored_collateral, onchain_collateral, onchain_wallet_eth)
+
+    # Use real data for volume: positions + bridge deposits + wallet value
+    stored_volume = float(user.get("total_volume", 0) or 0) / 1e18
+    real_volume = max(onchain_collateral, onchain_wallet_eth) + onchain_bridge_eth
+    total_volume_eth = max(stored_volume, real_volume)
+
+    failed_txns = int(user.get("failed_txns", 0) or 0)
 
     upgrade_eligible = False
     upgrade_requirements: dict[str, Any] | None = None
@@ -497,8 +549,7 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
     elif tier == 1:
         needs_tenure = 180 - tenure_days
         min_collateral_eth = 1.0
-        current_collateral = float(user.get("collateral", 0) or 0) / 1e18
-        needs_collateral = min_collateral_eth - current_collateral
+        needs_collateral = min_collateral_eth - collateral_eth
         if needs_tenure <= 0 and needs_collateral <= 0:
             upgrade_eligible = True
         else:
@@ -508,25 +559,25 @@ async def get_user_reputation(address: str) -> UserReputationResponse:
                 "needs_collateral_eth": max(0, needs_collateral),
             }
 
-    in_app_tx_count = int(user.get("transaction_count", 0) or 0)
-    transaction_count = in_app_tx_count + chain_tx_count if chain_tx_count > 0 else in_app_tx_count
-    collateral_eth = float(user.get("collateral", 0) or 0) / 1e18
-    failed_txns = int(user.get("failed_txns", 0) or 0)
-
     return UserReputationResponse(
         address=address,
         tier=tier,
         tier_name=tier_name,
         transaction_count=transaction_count,
-        total_volume_eth=float(user.get("total_volume", 0) or 0) / 1e18,
+        total_volume_eth=total_volume_eth,
         tenure_days=tenure_days,
         successful_txns=successful_txns,
         failed_txns=failed_txns,
         collateral_eth=collateral_eth,
         upgrade_eligible=upgrade_eligible,
         upgrade_requirements=upgrade_requirements,
-        reputation_score=compute_reputation_score(tier, tenure_days, successful_txns, collateral_eth, failed_txns),
+        reputation_score=compute_reputation_score(
+            tier, tenure_days, successful_txns, collateral_eth, failed_txns,
+            protocol_count=onchain_activity.get("protocol_count", 0) if onchain_activity else 0,
+            wallet_value_usd=onchain_activity.get("wallet_value_usd", 0.0) if onchain_activity else 0.0,
+        ),
         gates=compute_gates(tier),
+        on_chain=onchain_activity,
     )
 
 

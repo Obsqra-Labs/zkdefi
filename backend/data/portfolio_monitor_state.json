@@ -1,0 +1,34 @@
+{
+  "0xabc123": {
+    "owner_address": "0xabc123",
+    "last_reviewed_at": "2026-03-30T14:58:55.522387+00:00",
+    "last_source": "allocator_v1",
+    "last_recommendation_id": "aa8c62e220f2",
+    "drift_status": "rebalance",
+    "total_turnover_pct": 50.0,
+    "estimated_turnover_usd": 0.0,
+    "largest_gap_asset": "STRK",
+    "largest_gap_pct": 55.0,
+    "driver_kinds": [
+      "market_drift"
+    ],
+    "last_alerted_at": "2026-03-30T14:56:13.910346+00:00",
+    "last_alerted_status": "rebalance"
+  },
+  "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3": {
+    "owner_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
+    "last_reviewed_at": "2026-04-01T06:36:09.365353+00:00",
+    "last_source": "allocator_v1",
+    "last_recommendation_id": "d477621ec0ec",
+    "drift_status": "rebalance",
+    "total_turnover_pct": 57.28,
+    "estimated_turnover_usd": 1.65,
+    "largest_gap_asset": "STRK",
+    "largest_gap_pct": 57.27,
+    "driver_kinds": [
+      "manual_swaps"
+    ],
+    "last_alerted_at": "2026-04-01T06:32:25.525978+00:00",
+    "last_alerted_status": "rebalance"
+  }
+}
