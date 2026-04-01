@@ -12,6 +12,8 @@ zkde.fi is a proof-gated portfolio execution engine on Starknet. Every trade —
 
 The platform runs on **Starknet mainnet** with real tokens, real Ekubo swaps, and real IPFS storage.
 
+**Supported tokens:** ETH, STRK, USDC, WBTC
+
 ---
 
 ## How It Works
@@ -123,7 +125,9 @@ When private mode is enabled, swaps are routed through the **MIST.cash Chamber**
 3. Generate a Groth16 ZK proof client-side (Poseidon hashing via Go-compiled WASM)
 4. Withdraw from Chamber + execute swap in a single multicall
 
-This breaks the on-chain link between source funds and the swap transaction. Supported tokens: ETH, STRK, USDC.
+This breaks the on-chain link between source funds and the swap transaction.
+
+**Privacy-supported tokens:** ETH, STRK, USDC. WBTC is supported for swaps and rebalancing but does not yet support MIST.cash privacy wrapping.
 
 ---
 
