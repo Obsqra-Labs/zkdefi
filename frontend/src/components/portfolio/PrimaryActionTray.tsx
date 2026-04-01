@@ -49,6 +49,7 @@ type Props = {
   executionReceiptCid?: string | null;
   portableReceiptLink?: string | null;
   overridePrimaryAction: boolean;
+  quoteSecondsLeft?: number | null;
 };
 
 export function PrimaryActionTray({
@@ -74,6 +75,7 @@ export function PrimaryActionTray({
   executionReceiptCid,
   portableReceiptLink,
   overridePrimaryAction,
+  quoteSecondsLeft,
 }: Props) {
   const statusTone = walletMismatch || proposalOutdated ? "warning" : tone;
   const statusIcon = walletMismatch ? (
@@ -198,6 +200,11 @@ export function PrimaryActionTray({
             <ShieldCheck className="h-4 w-4" />
           )}
           {primaryActionLabel}
+          {quoteSecondsLeft != null && !executing && (
+            <span className="ml-1.5 tabular-nums text-xs opacity-80">
+              ({quoteSecondsLeft}s)
+            </span>
+          )}
         </button>
       </div>
     </div>

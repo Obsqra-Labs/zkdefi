@@ -135,6 +135,7 @@ export async function confirmPortfolioExecution(
   ownerAddress: string,
   receiptId: string,
   txHash: string,
+  privacyMeta?: { deposit_tx_hash: string; chamber: string; token: string },
 ): Promise<{
   portable_receipt?: {
     registry_receipt_id?: string;
@@ -150,6 +151,7 @@ export async function confirmPortfolioExecution(
       owner_address: ownerAddress,
       receipt_id: receiptId,
       tx_hash: txHash,
+      ...(privacyMeta ? { privacy_wrap: privacyMeta } : {}),
     }),
   });
 }

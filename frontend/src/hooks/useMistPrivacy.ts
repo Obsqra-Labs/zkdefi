@@ -215,10 +215,33 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         setDepositTxHash(result.transaction_hash);
 
         setStep("waiting_confirmation");
-        setMessage(`Deposit submitted (${result.transaction_hash.slice(0, 12)}...). Waiting for confirmation...`);
+        setMessage(`Deposit submitted (${result.transaction_hash.slice(0, 12)}...). Waiting for on-chain confirmation...`);
 
-        // Wait a moment for the tx to propagate (the Merkle tree needs updating)
-        await new Promise((resolve) => setTimeout(resolve, 8_000));
+        // Poll for tx receipt instead of hardcoded sleep
+        const maxWaitMs = 60_000;
+        const pollIntervalMs = 3_000;
+        const startTime = Date.now();
+        let confirmed = false;
+        while (Date.now() - startTime < maxWaitMs) {
+          try {
+            // Use starknet.js provider to check tx status
+            const receipt = await account.getTransactionReceipt(result.transaction_hash);
+            if (receipt && (receipt as any).execution_status !== "REVERTED") {
+              confirmed = true;
+              break;
+            }
+            if (receipt && (receipt as any).execution_status === "REVERTED") {
+              throw new Error(`Deposit transaction reverted: ${result.transaction_hash}`);
+            }
+          } catch (pollErr) {
+            // getTransactionReceipt throws if tx not found yet — keep polling
+            if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+          }
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+        if (!confirmed) {
+          throw new Error("Deposit confirmation timed out after 60s. The transaction may still be pending.");
+        }
 
         setStep("ready_to_swap");
         setMessage("Deposit confirmed. Ready to generate withdrawal proof.");
@@ -337,11 +360,32 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
 
         setStep("waiting_confirmation");
         setMessage(
-          `Deposit tx ${depositResult.transaction_hash.slice(0, 12)}... submitted. Waiting for Merkle tree update...`,
+          `Deposit tx ${depositResult.transaction_hash.slice(0, 12)}... submitted. Waiting for on-chain confirmation...`,
         );
 
-        // Wait for the deposit to propagate into the Merkle tree
-        await new Promise((resolve) => setTimeout(resolve, 12_000));
+        // Poll for tx receipt instead of hardcoded sleep
+        const maxWaitMs = 60_000;
+        const pollIntervalMs = 3_000;
+        const startTime = Date.now();
+        let confirmed = false;
+        while (Date.now() - startTime < maxWaitMs) {
+          try {
+            const receipt = await account.getTransactionReceipt(depositResult.transaction_hash);
+            if (receipt && (receipt as any).execution_status !== "REVERTED") {
+              confirmed = true;
+              break;
+            }
+            if (receipt && (receipt as any).execution_status === "REVERTED") {
+              throw new Error(`Deposit transaction reverted: ${depositResult.transaction_hash}`);
+            }
+          } catch (pollErr) {
+            if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+          }
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+        if (!confirmed) {
+          throw new Error("Deposit confirmation timed out after 60s. The transaction may still be pending.");
+        }
 
         // Step 2: Withdraw with ZK proof
         const withdrawCalls = await buildWithdrawCalls(

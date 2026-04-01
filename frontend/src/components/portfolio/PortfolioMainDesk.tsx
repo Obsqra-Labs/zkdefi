@@ -266,6 +266,7 @@ type Props = {
   executionReceiptCid?: string | null;
   executionReceipt?: PortableReceiptData | null;
   executionTxHash?: string | null;
+  quoteSecondsLeft?: number | null;
   portableReceiptLink?: string | null;
   passedGateCount: number;
   failedGateConstraints: ConstraintResult[];
@@ -325,6 +326,7 @@ type Props = {
   onDismissSessionKeyModal: () => void;
   onSessionKeyGranted: (sessionId: string) => void;
   privateMode: boolean;
+  privacyUnavailableReason: string | null;
   onTogglePrivateMode: () => void;
   mistPrivacyStep: string;
   mistPrivacyMessage: string;
@@ -391,6 +393,7 @@ export function PortfolioMainDesk(props: Props) {
     executionReceiptCid,
     executionReceipt,
     executionTxHash,
+    quoteSecondsLeft,
     portableReceiptLink,
     passedGateCount,
     failedGateConstraints,
@@ -417,6 +420,7 @@ export function PortfolioMainDesk(props: Props) {
     onDismissSessionKeyModal,
     onSessionKeyGranted,
     privateMode,
+    privacyUnavailableReason,
     onTogglePrivateMode,
     mistPrivacyStep,
     mistPrivacyMessage,
@@ -877,6 +881,7 @@ export function PortfolioMainDesk(props: Props) {
           executionReceiptCid={executionReceiptCid}
           portableReceiptLink={portableReceiptLink}
           overridePrimaryAction={overridePrimaryAction}
+          quoteSecondsLeft={quoteSecondsLeft ?? null}
         />
       </div>
 
@@ -1108,30 +1113,33 @@ export function PortfolioMainDesk(props: Props) {
       {/* ── Privacy toggle ────────────────────────────────────────── */}
       <div className="flex items-center justify-between rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <span className="text-base">{privateMode ? "🛡" : "🔓"}</span>
+          <span className="text-base">{privateMode && !privacyUnavailableReason ? "🛡" : "🔓"}</span>
           <div>
             <p className="text-sm font-medium text-white">
-              {privateMode ? "Private mode" : "Standard mode"}
+              {privateMode && !privacyUnavailableReason ? "Private mode" : "Standard mode"}
             </p>
             <p className="text-[11px] text-zinc-500">
-              {privateMode
-                ? "Swaps routed through MIST Chamber (ZK proof breaks on-chain link)"
-                : "Tap to enable privacy via MIST.cash"}
+              {privacyUnavailableReason
+                ? privacyUnavailableReason
+                : privateMode
+                  ? "Swaps routed through MIST Chamber (ZK proof breaks on-chain link)"
+                  : "Tap to enable privacy via MIST.cash"}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onTogglePrivateMode}
-          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-            privateMode ? "bg-cyan-500" : "bg-zinc-700"
+          disabled={!!privacyUnavailableReason}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+            privacyUnavailableReason ? "cursor-not-allowed opacity-40 bg-zinc-700" : privateMode ? "cursor-pointer bg-cyan-500" : "cursor-pointer bg-zinc-700"
           }`}
           role="switch"
-          aria-checked={privateMode}
+          aria-checked={privateMode && !privacyUnavailableReason}
         >
           <span
             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-              privateMode ? "translate-x-5" : "translate-x-0"
+              privateMode && !privacyUnavailableReason ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>

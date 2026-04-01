@@ -82,6 +82,7 @@ class ProofPipeline:
         self._ezkl_auto_setup_on_demand = _env_bool("EZKL_AUTO_SETUP_ON_DEMAND", True)
         self._modelbridge_try_real_ezkl = _env_bool("MODELBRIDGE_TRY_REAL_EZKL", True)
         self._modelbridge_require_real_ezkl = _env_bool("MODELBRIDGE_REQUIRE_REAL_EZKL", False)
+        self._allow_synthetic_proofs = _env_bool("ALLOW_SYNTHETIC_PROOFS", False)
         self._modelbridge_require_real_groth16 = _env_bool("MODELBRIDGE_REQUIRE_REAL_GROTH16", True)
         self._l2_verify_chain_id = os.getenv("PROOF_L2_VERIFY_CHAIN_ID", "starknet-sepolia").strip()
         try:
@@ -1188,6 +1189,23 @@ class ProofPipeline:
                     "Execution trust depends on deployed ModelBridge verifier lanes."
                 )
         else:
+            if not self._allow_synthetic_proofs:
+                logger.warning(
+                    "Real EZKL proof unavailable and ALLOW_SYNTHETIC_PROOFS=false; "
+                    "returning non-compliant result for model=%s",
+                    model_name,
+                )
+                return {
+                    "success": False,
+                    "can_execute": False,
+                    "ezkl_proof": None,
+                    "bridge_proof": {"success": False, "error": "Real EZKL proof unavailable and synthetic proofs are disabled"},
+                    "verification": {
+                        "verified": False,
+                        "trust_mode": "rejected_no_synthetic",
+                        "failure_reason": "Real EZKL proof unavailable and synthetic proofs are disabled (ALLOW_SYNTHETIC_PROOFS=false)",
+                    },
+                }
             ezkl_proof = self._generate_synthetic_ezkl_proof(
                 model_name=model_name,
                 input_data=input_data,

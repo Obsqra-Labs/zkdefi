@@ -190,6 +190,11 @@ async def _generate_llm_reasoning(
         return None
 
 
+# ── Recommendation cache (keyed on address + profile, 60s TTL) ──────────
+_recommendation_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+_RECOMMENDATION_CACHE_TTL = 60.0
+
+
 # ── Main recommendation ─────────────────────────────────────────────────
 
 async def get_recommendation(
@@ -198,7 +203,31 @@ async def get_recommendation(
     risk_profile: str,
 ) -> dict[str, Any]:
     """Return recommendation with real EZKL proofs and LLM reasoning.
-    Falls back to deterministic reasoning if models/LLM unavailable."""
+    Falls back to deterministic reasoning if models/LLM unavailable.
+    Results are cached for 60s per address+profile pair."""
+    profile = risk_profile.lower() if risk_profile else "balanced"
+    cache_key = f"{user_address.lower()}:{profile}:{int(amount * 100)}"
+    now = time.monotonic()
+    cached = _recommendation_cache.get(cache_key)
+    if cached and (now - cached[0]) < _RECOMMENDATION_CACHE_TTL:
+        logger.debug("recommendation cache hit for %s", cache_key)
+        return cached[1]
+
+    result = await _get_recommendation_uncached(user_address, amount, risk_profile)
+    _recommendation_cache[cache_key] = (now, result)
+    # Evict stale entries (keep cache bounded)
+    stale_keys = [k for k, (ts, _) in _recommendation_cache.items() if (now - ts) > _RECOMMENDATION_CACHE_TTL * 3]
+    for k in stale_keys:
+        _recommendation_cache.pop(k, None)
+    return result
+
+
+async def _get_recommendation_uncached(
+    user_address: str,
+    amount: float,
+    risk_profile: str,
+) -> dict[str, Any]:
+    """Actual recommendation logic (no caching)."""
     profile = risk_profile.lower() if risk_profile else "balanced"
     yields = await _fetch_live_yields()
 

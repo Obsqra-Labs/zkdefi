@@ -621,17 +621,31 @@ class ReceiptVaultService:
                 "override_mode": gate_meta.get("override_mode"),
             },
         )
-        upload = await self._upload_bundle(bundle)
-        cid = str(upload.get("cid") or "")
-        cid_hash = await self._hash_cid(cid)
+        # Upload bundle to Storacha IPFS — gracefully handle failures so the
+        # swap receipt is still recorded (as "pending_upload") even when IPFS is down.
+        cid = ""
+        cid_hash = ""
+        verification_status = "pending_upload"
+        try:
+            upload = await self._upload_bundle(bundle)
+            cid = str(upload.get("cid") or "")
+            cid_hash = await self._hash_cid(cid) if cid else ""
+            verification_status = "uploaded"
+        except Exception as upload_exc:
+            import logging as _log
+            _log.getLogger("receipt_vault").error(
+                "Storacha IPFS upload failed for receipt %s: %s — receipt will be retryable",
+                registry_receipt_id, upload_exc,
+            )
         anchor: dict[str, Any] = {}
-        if anchor_tier == "gold":
+        if anchor_tier == "gold" and cid_hash:
             try:
                 anchor = await self._anchor_cid(registry_receipt_id, cid_hash)
             except Exception as anchor_exc:
                 import logging as _log
                 _log.getLogger("receipt_vault").warning("On-chain CID anchor failed (gas?): %s", anchor_exc)
-        verification_status = "anchored" if anchor.get("tx_hash") else "uploaded"
+        if anchor.get("tx_hash"):
+            verification_status = "anchored"
         self._upsert_row(
             {
                 "registry_receipt_id": registry_receipt_id,

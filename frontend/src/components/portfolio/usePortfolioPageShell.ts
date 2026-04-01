@@ -89,6 +89,9 @@ export function usePortfolioPageShell() {
   const { profile } = useRiskProfileV2(address);
   const router = useRouter();
 
+  // Quote countdown (seconds remaining before prepared calls expire)
+  const [quoteSecondsLeft, setQuoteSecondsLeft] = useState<number | null>(null);
+
   const [portfolio, setPortfolio] = useState<PortfolioSnapshot | null>(null);
   const [policy, setPolicy] = useState<PolicySnapshot | null>(null);
   const [policyDraft, setPolicyDraft] = useState<PolicyDraft | null>(null);
@@ -122,7 +125,15 @@ export function usePortfolioPageShell() {
   const [intentSet, setIntentSet] = useState(false);
   const recommendationJustAppliedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [privateMode, setPrivateMode] = useState(false);
+  const [privateMode, setPrivateMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem(`zkdefi_private_mode_${address ?? ""}`) === "true"; } catch { return false; }
+  });
+  // Persist privacy preference
+  useEffect(() => {
+    if (!address) return;
+    try { window.localStorage.setItem(`zkdefi_private_mode_${address}`, String(privateMode)); } catch { /* noop */ }
+  }, [privateMode, address]);
 
   // MIST.cash privacy layer (deposit → ZK withdraw → break on-chain link)
   const mistPrivacy = useMistPrivacy();
@@ -1202,7 +1213,11 @@ export function usePortfolioPageShell() {
                 const combinedCalls = [...withdrawCalls, ...optimized.calls];
                 const result = await account.execute(combinedCalls);
                 setExecutionTxHash(result.transaction_hash);
-                const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
+                const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash, {
+                  deposit_tx_hash: depTxHash,
+                  chamber: "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
+                  token: tokenAddr,
+                });
                 if (confirmPayload?.portable_receipt?.cid) {
                   setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
                   setExecutionReceipt(confirmPayload.portable_receipt);
@@ -1214,8 +1229,9 @@ export function usePortfolioPageShell() {
                 return;
               } catch (privErr) {
                 const privMsg = privErr instanceof Error ? privErr.message : String(privErr);
-                setExecutionNote(`Privacy wrap failed: ${privMsg}. Falling back to normal execution...`);
-                // Fall through to normal execution below
+                setExecutionNote(`🛡 Privacy wrap failed: ${privMsg}. Execution blocked — disable private mode or retry.`);
+                setExecuting(false);
+                return;
               }
             }
           }
@@ -1497,6 +1513,36 @@ export function usePortfolioPageShell() {
     void refreshData(address);
   }, [address, isConnected]);
 
+  // Auto-refresh portfolio 30s after execution to catch settled state
+  useEffect(() => {
+    if (!executionTxHash || !address) return;
+    const timer = setTimeout(() => {
+      void refreshData(address);
+    }, 30_000);
+    return () => clearTimeout(timer);
+  }, [executionTxHash, address]);
+
+  // Quote countdown timer — ticks every second while a quote is alive
+  useEffect(() => {
+    if (!pendingPreparedAt) { setQuoteSecondsLeft(null); return; }
+    const tick = () => {
+      const elapsed = Date.now() - pendingPreparedAt;
+      const remaining = Math.max(0, Math.ceil((PREPARED_WALLET_CALL_TTL_MS - elapsed) / 1000));
+      setQuoteSecondsLeft(remaining > 0 ? remaining : null);
+      if (remaining <= 0) {
+        setPendingWalletCalls(null);
+        setPendingPreparedCalls(null);
+        setPendingReceiptId(null);
+        setPendingRouteLabel(null);
+        setPendingPreparedAt(null);
+        setExecutionNote("Quote expired — re-check to get a fresh route.");
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [pendingPreparedAt]);
+
   useEffect(() => {
     if (!policy || policyDirty) return;
     setPolicyDraft(buildPolicyDraft(policy));
@@ -1600,6 +1646,7 @@ export function usePortfolioPageShell() {
     executionReceiptCid,
     executionReceipt,
     executionTxHash,
+    quoteSecondsLeft,
     executionLink: executionTxHash ? voyagerTxUrl(executionTxHash) : null,
     portableReceiptLink: executionTxHash ? portableReceiptHref : null,
     passedGateCount,
@@ -1636,6 +1683,9 @@ export function usePortfolioPageShell() {
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,
     privateMode,
+    privacyUnavailableReason: privateMode && actionType === "swap" && swapAssetIn === "WBTC"
+      ? "MIST.cash does not support WBTC yet"
+      : null,
     onTogglePrivateMode: () => setPrivateMode((v) => !v),
     mistPrivacyStep: mistPrivacy.step,
     mistPrivacyMessage: mistPrivacy.message,
