@@ -36,7 +36,7 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: https:",
           "font-src 'self' data:",
-          "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io https://api.coingecko.com https://prod-api.ekubo.org wss://*.starknet.io",
+          "connect-src 'self' https://*.starknet.io https://*.alchemy.com https://*.infura.io https://*.lava.build https://*.lavanet.xyz https://*.blastapi.io https://*.nethermind.io https://*.zan.top https://api.coingecko.com https://prod-api.ekubo.org wss://*.starknet.io wss://*.lava.build data:",
           "worker-src 'self' blob:",
           "frame-ancestors 'none'",
         ].join('; '),
