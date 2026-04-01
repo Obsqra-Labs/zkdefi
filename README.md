@@ -182,6 +182,14 @@ npm run dev                   # http://localhost:3001
 
 ---
 
+## Trust Framework Alignment (ERC-8004)
+
+zkdefi implements the core ERC-8004 trust primitives — identity, reputation, and validation — as a Starknet-native autonomous agent system with ZK-verified execution gating. Agent identities are operator-linked, reputation is onchain and proof-backed, validation is skill-verifiable, and autonomous actions are cryptographically enforced before execution.
+
+DevSpot manifests are included for compatibility, and the ERC-8004 interoperability layer is represented through Starknet-native registry contracts with adapter compatibility where required.
+
+---
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
