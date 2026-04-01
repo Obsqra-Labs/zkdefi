@@ -1203,6 +1203,29 @@ export function usePortfolioPageShell() {
             const amountWei = Math.round(Number.parseFloat(swapAmount || "0") * 10 ** decimals).toString();
             if (Number(amountWei) > 0) {
               try {
+                // Pre-flight balance check — avoids cryptic u256_sub Overflow
+                try {
+                  const balResult = await account.callContract({
+                    contractAddress: tokenAddr,
+                    entrypoint: "balanceOf",
+                    calldata: [address],
+                  });
+                  // balanceOf returns u256 as [low, high]
+                  const balLow = BigInt(balResult[0] ?? "0");
+                  const balHigh = BigInt(balResult[1] ?? "0");
+                  const balance = balLow + (balHigh << BigInt(128));
+                  if (balance < BigInt(amountWei)) {
+                    const humanBal = Number(balance) / 10 ** decimals;
+                    setExecutionNote(
+                      `🛡 Insufficient ${swapAssetIn} balance for private deposit: you have ${humanBal.toFixed(decimals)} but need ${swapAmount}.`,
+                    );
+                    setExecuting(false);
+                    return;
+                  }
+                } catch {
+                  // If balance check fails, proceed anyway — the on-chain tx will catch it
+                }
+
                 await mistPrivacy.initialize();
                 setExecutionNote("🛡 Private mode: preparing deposit...");
 
@@ -1242,7 +1265,11 @@ export function usePortfolioPageShell() {
                 return;
               } catch (privErr) {
                 const privMsg = privErr instanceof Error ? privErr.message : String(privErr);
-                setExecutionNote(`🛡 Privacy wrap failed: ${privMsg}. Execution blocked — disable private mode or retry.`);
+                const isBalanceError = privMsg.includes("u256_sub Overflow") || privMsg.includes("u256_sub");
+                const userMsg = isBalanceError
+                  ? `Insufficient ${swapAssetIn} balance for deposit amount. Lower the amount or add funds.`
+                  : privMsg;
+                setExecutionNote(`🛡 Privacy wrap failed: ${userMsg}`);
                 setExecuting(false);
                 return;
               }
@@ -1457,7 +1484,11 @@ export function usePortfolioPageShell() {
       if (pending.address) await refreshData(pending.address);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setExecutionNote(`🛡 Privacy wrap failed: ${msg}. Use your recovery file to withdraw manually.`);
+      const isBalanceError = msg.includes("u256_sub Overflow") || msg.includes("u256_sub");
+      const userMsg = isBalanceError
+        ? "Insufficient token balance for the deposit amount. Lower the amount or add funds. Your recovery file is still valid if a deposit went through."
+        : `${msg}. Use your recovery file to withdraw manually if a deposit went through.`;
+      setExecutionNote(`🛡 Privacy wrap failed: ${userMsg}`);
     } finally {
       setExecuting(false);
     }

@@ -640,6 +640,10 @@ privacy_unified_router = _optional_router("app.api.routes.privacy_unified")
 if privacy_unified_router:
     app.include_router(privacy_unified_router, prefix="/api/v1/zkdefi", tags=["privacy-unified"])
 
+privacy_recovery_router = _optional_router("app.api.routes.privacy_recovery")
+if privacy_recovery_router:
+    app.include_router(privacy_recovery_router, prefix="/api/v1/zkdefi", tags=["privacy-recovery"])
+
 price_proxy_router = _optional_router("app.api.routes.price_proxy")
 if price_proxy_router:
     app.include_router(price_proxy_router, prefix="/api/v1/zkdefi", tags=["price-proxy"])
