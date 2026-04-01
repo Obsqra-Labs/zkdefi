@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Copy, ExternalLink, Loader2, X, RotateCcw, Cpu, Brain, ShieldCheck } from "lucide-react";
 
 import { formatAssetAmount, formatPercent, formatUsd } from "./formatters";
@@ -332,6 +332,12 @@ type Props = {
   mistPrivacyMessage: string;
   mistPrivacyBusy: boolean;
   mistPrivacyError: string | null;
+  pendingKeyDownload: boolean;
+  onConfirmKeyDownloaded: () => void;
+  onCancelKeyDownload: () => void;
+  showRecoveryPanel: boolean;
+  onToggleRecoveryPanel: () => void;
+  onRecoverFromKey: (recoveryJson: string) => void;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -426,6 +432,12 @@ export function PortfolioMainDesk(props: Props) {
     mistPrivacyMessage,
     mistPrivacyBusy,
     mistPrivacyError,
+    pendingKeyDownload,
+    onConfirmKeyDownloaded,
+    onCancelKeyDownload,
+    showRecoveryPanel,
+    onToggleRecoveryPanel,
+    onRecoverFromKey,
   } = props;
 
   const [showTradeTicketModal, setShowTradeTicketModal] = useState(false);
@@ -1159,6 +1171,49 @@ export function PortfolioMainDesk(props: Props) {
         </div>
       )}
 
+      {/* Key download confirmation gate */}
+      {pendingKeyDownload && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-sm">
+          <p className="font-medium text-amber-200">⚠ Save your recovery file before continuing</p>
+          <p className="mt-1 text-amber-300/70 text-xs">
+            A recovery file was just downloaded. Without it, deposited funds cannot be withdrawn
+            if the transaction is interrupted. Confirm you saved it to proceed.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={onConfirmKeyDownloaded}
+              className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
+            >
+              I&apos;ve saved my recovery file — continue
+            </button>
+            <button
+              type="button"
+              onClick={onCancelKeyDownload}
+              className="rounded-lg bg-zinc-700 px-4 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Recovery panel for stuck deposits */}
+      {privateMode && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onToggleRecoveryPanel}
+            className="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors"
+          >
+            {showRecoveryPanel ? "Hide recovery" : "Recover stuck deposit"}
+          </button>
+        </div>
+      )}
+      {showRecoveryPanel && (
+        <RecoveryPanel onRecover={onRecoverFromKey} />
+      )}
+
       {/* Phase 1: Mode-specific entry (start state) */}
       {manualPickerSection}
       {assistedPickerSection}
@@ -1379,5 +1434,61 @@ export function PortfolioMainDesk(props: Props) {
         </div>
       )}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Recovery panel — paste or upload a mist-recovery-*.json to withdraw stuck funds
+// ---------------------------------------------------------------------------
+function RecoveryPanel({ onRecover }: { onRecover: (json: string) => void }) {
+  const [text, setText] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      setText(content);
+    };
+    reader.readAsText(file);
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-4 text-sm space-y-3">
+      <p className="font-medium text-zinc-300">Recover stuck deposit</p>
+      <p className="text-[11px] text-zinc-500">
+        Upload the <code className="text-cyan-400">mist-recovery-*.json</code> file that was downloaded
+        when you initiated the deposit. This will generate a ZK proof and withdraw your funds.
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+        >
+          Choose file
+        </button>
+        <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="hidden" />
+      </div>
+      {text && (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={4}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-300 font-mono focus:border-cyan-500 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onRecover(text)}
+            className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
+          >
+            Withdraw with this key
+          </button>
+        </>
+      )}
+    </div>
   );
 }

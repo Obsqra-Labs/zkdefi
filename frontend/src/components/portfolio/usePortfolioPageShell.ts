@@ -71,7 +71,7 @@ import type {
   WorkflowMode,
 } from "./types";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
-import { useMistPrivacy } from "@/hooks/useMistPrivacy";
+import { useMistPrivacy, downloadClaimingKeyFile } from "@/hooks/useMistPrivacy";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { voyagerTxUrl } from "@/lib/explorer";
 import { getTxStatus, type TxSettlementStatus } from "@/lib/pendingTx";
@@ -137,6 +137,20 @@ export function usePortfolioPageShell() {
   // MIST.cash privacy layer (deposit → ZK withdraw → break on-chain link)
   const mistPrivacy = useMistPrivacy();
   const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("manual");
+
+  // Privacy key-download gate: pauses execution until user saves the recovery file
+  const [pendingKeyDownload, setPendingKeyDownload] = useState<{
+    calls: import("starknet").Call[];
+    claimingKey: string;
+    tokenAddr: string;
+    amountWei: string;
+    address: string;
+    optimizedCalls: import("starknet").Call[];
+    receiptId: string;
+  } | null>(null);
+
+  // Recovery: let user paste a claiming key to withdraw stuck funds
+  const [showRecoveryPanel, setShowRecoveryPanel] = useState(false);
 
   const [actionType, setActionType] = useState<ActionType>("rebalance");
   const [swapAssetIn, setSwapAssetIn] = useState<SupportedAsset>("ETH");
@@ -1190,41 +1204,41 @@ export function usePortfolioPageShell() {
             if (Number(amountWei) > 0) {
               try {
                 await mistPrivacy.initialize();
-                setExecutionNote("🛡 Private mode: depositing into MIST Chamber...");
-                const { txHash: depTxHash, claimingKey: key } = await mistPrivacy.executeDeposit(
-                  account,
+                setExecutionNote("🛡 Private mode: preparing deposit...");
+
+                // Build deposit calls to get the claiming key BEFORE executing
+                const { calls: depositCalls, claimingKey: key } = await mistPrivacy.buildDepositCalls(
                   tokenAddr,
                   amountWei,
                   address,
                 );
-                setExecutionNote(`🛡 Deposit confirmed (${depTxHash.slice(0, 12)}...). Generating ZK withdrawal proof...`);
-                // Use the account as provider — it already has a working RPC connection
-                // (creating a separate RpcProvider risks an empty/stale URL).
-                const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
-                  account,
-                  address,
-                  tokenAddr,
+
+                // Gate: require user to download the recovery file before proceeding
+                const config = await import("@mistcash/config");
+                downloadClaimingKeyFile({
+                  claimingKey: key,
+                  tokenAddress: tokenAddr,
                   amountWei,
-                  key,
-                );
-                setExecutionNote("🛡 Proof generated. Sign the private withdrawal + swap in your wallet...");
-                // Combine: withdraw from Chamber + original swap in one multicall
-                const combinedCalls = [...withdrawCalls, ...optimized.calls];
-                const result = await account.execute(combinedCalls);
-                setExecutionTxHash(result.transaction_hash);
-                const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash, {
-                  deposit_tx_hash: depTxHash,
-                  chamber: "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
-                  token: tokenAddr,
+                  recipientAddress: address,
+                  chamberAddress: config.CHAMBER_ADDR_MAINNET,
                 });
-                if (confirmPayload?.portable_receipt?.cid) {
-                  setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
-                  setExecutionReceipt(confirmPayload.portable_receipt);
-                  setExecutionNote(`🛡 Private swap complete. Receipt saved to IPFS.`);
-                } else {
-                  setExecutionNote(`🛡 Private swap submitted. Tx ${result.transaction_hash.slice(0, 12)}...`);
-                }
-                await refreshData(address);
+
+                // Pause execution — store the pending state so the UI can show a
+                // confirmation button. Execution resumes in confirmKeyDownloaded().
+                setPendingKeyDownload({
+                  calls: depositCalls,
+                  claimingKey: key,
+                  tokenAddr,
+                  amountWei,
+                  address,
+                  optimizedCalls: optimized.calls,
+                  receiptId: payload.receipt_id,
+                });
+                setExecutionNote(
+                  "🛡 Recovery file downloaded. Confirm you saved it to continue.",
+                );
+                // Don't set executing=false — the UI will show the confirmation button
+                // while the execution overlay remains visible.
                 return;
               } catch (privErr) {
                 const privMsg = privErr instanceof Error ? privErr.message : String(privErr);
@@ -1367,6 +1381,130 @@ export function usePortfolioPageShell() {
       );
     } finally {
       setChecking(false);
+    }
+  };
+
+  // ---- Privacy: resume execution after user confirms they saved the recovery file ----
+  const confirmKeyDownloaded = async () => {
+    const pending = pendingKeyDownload;
+    if (!pending) return;
+    setPendingKeyDownload(null);
+
+    if (!account) {
+      setExecutionNote("Wallet not connected.");
+      setExecuting(false);
+      return;
+    }
+
+    try {
+      setExecutionNote("🛡 Depositing into MIST Chamber...");
+      const result = await account.execute(pending.calls);
+      const depTxHash = result.transaction_hash;
+      setExecutionTxHash(depTxHash);
+
+      setExecutionNote(`🛡 Deposit submitted (${depTxHash.slice(0, 12)}...). Waiting for confirmation...`);
+
+      // Poll for receipt
+      const maxWaitMs = 60_000;
+      const pollIntervalMs = 3_000;
+      const startTime = Date.now();
+      let confirmed = false;
+      while (Date.now() - startTime < maxWaitMs) {
+        try {
+          const receipt = await account.getTransactionReceipt(depTxHash);
+          if (receipt && (receipt as any).execution_status !== "REVERTED") {
+            confirmed = true;
+            break;
+          }
+          if (receipt && (receipt as any).execution_status === "REVERTED") {
+            throw new Error(`Deposit reverted: ${depTxHash}`);
+          }
+        } catch (pollErr) {
+          if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+        }
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+      }
+      if (!confirmed) {
+        throw new Error("Deposit confirmation timed out. Your recovery file has the claiming key.");
+      }
+
+      setExecutionNote(`🛡 Deposit confirmed. Generating ZK withdrawal proof...`);
+      const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
+        account,
+        pending.address,
+        pending.tokenAddr,
+        pending.amountWei,
+        pending.claimingKey,
+      );
+
+      setExecutionNote("🛡 Proof generated. Sign the private withdrawal + swap...");
+      const combinedCalls = [...withdrawCalls, ...pending.optimizedCalls];
+      const swapResult = await account.execute(combinedCalls);
+      setExecutionTxHash(swapResult.transaction_hash);
+
+      const confirmPayload = await confirmPortfolioExecution(pending.address, pending.receiptId, swapResult.transaction_hash, {
+        deposit_tx_hash: depTxHash,
+        chamber: "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
+        token: pending.tokenAddr,
+      });
+      if (confirmPayload?.portable_receipt?.cid) {
+        setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+        setExecutionReceipt(confirmPayload.portable_receipt);
+        setExecutionNote("🛡 Private swap complete. Receipt saved to IPFS.");
+      } else {
+        setExecutionNote(`🛡 Private swap submitted. Tx ${swapResult.transaction_hash.slice(0, 12)}...`);
+      }
+      if (pending.address) await refreshData(pending.address);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setExecutionNote(`🛡 Privacy wrap failed: ${msg}. Use your recovery file to withdraw manually.`);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  // ---- Privacy: cancel the pending deposit (user didn't want to proceed) ----
+  const cancelKeyDownload = () => {
+    setPendingKeyDownload(null);
+    setExecutionNote(null);
+    setExecuting(false);
+  };
+
+  // ---- Privacy recovery: withdraw stuck funds using a saved claiming key ----
+  const recoverFromKey = async (recoveryJson: string) => {
+    if (!account) {
+      setExecutionNote("Wallet not connected.");
+      return;
+    }
+    try {
+      const data = JSON.parse(recoveryJson);
+      const { claimingKey, tokenAddress, amountWei, recipientAddress } = data;
+      if (!claimingKey || !tokenAddress || !amountWei || !recipientAddress) {
+        throw new Error("Invalid recovery file — missing required fields.");
+      }
+      await mistPrivacy.initialize();
+      setExecuting(true);
+      setExecutionNote("🛡 Recovery: generating ZK withdrawal proof...");
+
+      const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
+        account,
+        recipientAddress,
+        tokenAddress,
+        amountWei,
+        claimingKey,
+      );
+
+      setExecutionNote("🛡 Proof generated. Sign the recovery withdrawal...");
+      const result = await account.execute(withdrawCalls);
+      setExecutionTxHash(result.transaction_hash);
+      setExecutionNote(`🛡 Recovery withdrawal submitted. Tx ${result.transaction_hash.slice(0, 12)}...`);
+      setShowRecoveryPanel(false);
+      if (address) await refreshData(address);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setExecutionNote(`🛡 Recovery failed: ${msg}`);
+    } finally {
+      setExecuting(false);
     }
   };
 
@@ -1690,6 +1828,12 @@ export function usePortfolioPageShell() {
     mistPrivacyMessage: mistPrivacy.message,
     mistPrivacyBusy: mistPrivacy.busy,
     mistPrivacyError: mistPrivacy.error,
+    pendingKeyDownload: !!pendingKeyDownload,
+    onConfirmKeyDownloaded: confirmKeyDownloaded,
+    onCancelKeyDownload: cancelKeyDownload,
+    showRecoveryPanel,
+    onToggleRecoveryPanel: () => setShowRecoveryPanel((v) => !v),
+    onRecoverFromKey: recoverFromKey,
     showSessionKeyModal,
     onDismissSessionKeyModal: () => setShowSessionKeyModal(false),
     onSessionKeyGranted: (sessionId: string) => {

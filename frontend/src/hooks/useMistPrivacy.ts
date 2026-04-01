@@ -34,6 +34,38 @@ async function ensureMistCore() {
 }
 
 // ---------------------------------------------------------------------------
+// Claiming key file download (browser)
+// ---------------------------------------------------------------------------
+
+/** Trigger a browser download of a JSON recovery file containing the claiming key. */
+export function downloadClaimingKeyFile(opts: {
+  claimingKey: string;
+  tokenAddress: string;
+  amountWei: string;
+  recipientAddress: string;
+  chamberAddress: string;
+}) {
+  const payload = {
+    _warning: "KEEP THIS FILE PRIVATE. Anyone with the claiming key can withdraw your funds.",
+    claimingKey: opts.claimingKey,
+    tokenAddress: opts.tokenAddress,
+    amountWei: opts.amountWei,
+    recipientAddress: opts.recipientAddress,
+    chamberAddress: opts.chamberAddress,
+    createdAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mist-recovery-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
