@@ -1,9 +1,16 @@
+import os
 import pytest
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 from app.services.proof_pipeline import ProofMode, ProofPipeline
+
+
+@pytest.fixture(autouse=True)
+def _allow_synthetic_proofs(monkeypatch):
+    """Bridge pipeline tests exercise both real and synthetic EZKL paths."""
+    monkeypatch.setenv("ALLOW_SYNTHETIC_PROOFS", "true")
 
 
 class _NoopSequencer:
@@ -1354,3 +1361,29 @@ async def test_heavy_stark_l2_sets_failure_reason_when_strict_verification_fails
     assert result["primary_authority"] == "l2"
     assert result["l2"]["verified_on_chain"] is False
     assert result["failure_reason"] == "mirror not available"
+
+
+@pytest.mark.asyncio
+async def test_synthetic_proofs_blocked_when_env_disabled(monkeypatch):
+    """ALLOW_SYNTHETIC_PROOFS=false should early-return non-compliant when real EZKL unavailable."""
+    monkeypatch.setenv("ALLOW_SYNTHETIC_PROOFS", "false")
+    pipeline = ProofPipeline()
+    _disable_event_log(monkeypatch, pipeline)
+
+    async def fake_real_ezkl(**kwargs):
+        return None, False
+
+    monkeypatch.setattr(pipeline, "_try_generate_real_ezkl_proof", fake_real_ezkl)
+
+    result = await pipeline.generate_ml_proofs(
+        user_address="0x1",
+        model_name="risk_model",
+        input_data=[[1.0, 2.0]],
+        proof_mode=ProofMode.EZKL_BRIDGE,
+        execution_chain="l3",
+    )
+
+    assert result["success"] is False
+    assert result["can_execute"] is False
+    assert result["verification"]["trust_mode"] == "rejected_no_synthetic"
+    assert "synthetic proofs are disabled" in result["verification"]["failure_reason"]
