@@ -337,7 +337,7 @@ type Props = {
   onCancelKeyDownload: () => void;
   showRecoveryPanel: boolean;
   onToggleRecoveryPanel: () => void;
-  onRecoverFromKey: (recoveryJson: string) => void;
+  onRecoverFromKey: (recoveryJson: string) => Promise<void>;
 };
 
 export function PortfolioMainDesk(props: Props) {
@@ -1211,7 +1211,7 @@ export function PortfolioMainDesk(props: Props) {
         </div>
       )}
       {showRecoveryPanel && (
-        <RecoveryPanel onRecover={onRecoverFromKey} />
+        <RecoveryPanel onRecover={onRecoverFromKey} walletAddress={walletAddress} />
       )}
 
       {/* Phase 1: Mode-specific entry (start state) */}
@@ -1440,20 +1440,71 @@ export function PortfolioMainDesk(props: Props) {
 // ---------------------------------------------------------------------------
 // Recovery panel — paste or upload a mist-recovery-*.json to withdraw stuck funds
 // ---------------------------------------------------------------------------
-function RecoveryPanel({ onRecover }: { onRecover: (json: string) => void }) {
+function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string) => Promise<void>; walletAddress: string }) {
   const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setStatus(null);
     const reader = new FileReader();
     reader.onload = () => {
       const content = reader.result as string;
       setText(content);
+      // Validate JSON immediately
+      try {
+        const data = JSON.parse(content);
+        if (!data.claimingKey) setStatus("⚠ File does not contain a claimingKey field.");
+      } catch {
+        setStatus("⚠ Invalid JSON file.");
+      }
     };
     reader.readAsText(file);
   }, []);
+
+  const handleRestoreFromServer = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    setStatus("Checking server for backed-up recovery keys...");
+    try {
+      const res = await fetch(`/api/v1/zkdefi/privacy/recovery/fetch/${walletAddress}`);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const data = await res.json();
+      const entries = data.entries ?? [];
+      if (entries.length === 0) {
+        setStatus("⚠ No backed-up keys found for this wallet.");
+        return;
+      }
+      // Use the most recent entry
+      const latest = entries[entries.length - 1];
+      const decoded = atob(latest.encrypted_blob);
+      setText(decoded);
+      setStatus(`✓ Restored key from server (${entries.length} backup${entries.length > 1 ? "s" : ""} found). Click "Withdraw" to proceed.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatus(`✗ Server restore failed: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [walletAddress, busy]);
+
+  const handleRecover = useCallback(async () => {
+    if (!text || busy) return;
+    setBusy(true);
+    setStatus("Generating ZK withdrawal proof — this may take up to 40 seconds...");
+    try {
+      await onRecover(text);
+      setStatus("✓ Recovery withdrawal submitted.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatus(`✗ ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [text, busy, onRecover]);
 
   return (
     <div className="rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-4 text-sm space-y-3">
@@ -1467,8 +1518,17 @@ function RecoveryPanel({ onRecover }: { onRecover: (json: string) => void }) {
           type="button"
           onClick={() => fileRef.current?.click()}
           className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+          disabled={busy}
         >
           Choose file
+        </button>
+        <button
+          type="button"
+          onClick={handleRestoreFromServer}
+          className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+          disabled={busy}
+        >
+          Restore from server
         </button>
         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="hidden" />
       </div>
@@ -1479,15 +1539,22 @@ function RecoveryPanel({ onRecover }: { onRecover: (json: string) => void }) {
             onChange={(e) => setText(e.target.value)}
             rows={4}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-300 font-mono focus:border-cyan-500 focus:outline-none"
+            readOnly={busy}
           />
           <button
             type="button"
-            onClick={() => onRecover(text)}
-            className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
+            onClick={handleRecover}
+            disabled={busy}
+            className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Withdraw with this key
+            {busy ? "Generating proof..." : "Withdraw with this key"}
           </button>
         </>
+      )}
+      {status && (
+        <p className={`text-[11px] ${status.startsWith("✗") || status.startsWith("⚠") ? "text-red-400" : status.startsWith("✓") ? "text-green-400" : "text-amber-400"}`}>
+          {status}
+        </p>
       )}
     </div>
   );

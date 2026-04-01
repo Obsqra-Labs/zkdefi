@@ -1246,6 +1246,32 @@ export function usePortfolioPageShell() {
                   chamberAddress: config.CHAMBER_ADDR_MAINNET,
                 });
 
+                // Fire-and-forget: backup recovery key to backend
+                try {
+                  const recoveryPayload = JSON.stringify({
+                    claimingKey: key, tokenAddress: tokenAddr,
+                    amountWei, recipientAddress: address,
+                    chamberAddress: config.CHAMBER_ADDR_MAINNET,
+                  });
+                  const commitmentHash = Array.from(
+                    new Uint8Array(
+                      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(recoveryPayload)),
+                    ),
+                  ).map((b) => b.toString(16).padStart(2, "0")).join("");
+                  fetch("/api/v1/zkdefi/privacy/recovery/store", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      wallet_address: address,
+                      encrypted_blob: btoa(recoveryPayload),
+                      commitment_hash: commitmentHash,
+                      token_address: tokenAddr,
+                      amount_wei: amountWei,
+                      chamber_address: config.CHAMBER_ADDR_MAINNET,
+                    }),
+                  }).catch((e) => console.warn("[MIST] L3 backup failed (non-critical):", e));
+                } catch { /* non-critical */ }
+
                 // Pause execution — store the pending state so the UI can show a
                 // confirmation button. Execution resumes in confirmKeyDownloaded().
                 setPendingKeyDownload({
@@ -1505,7 +1531,7 @@ export function usePortfolioPageShell() {
   const recoverFromKey = async (recoveryJson: string) => {
     if (!account) {
       setExecutionNote("Wallet not connected.");
-      return;
+      throw new Error("Wallet not connected.");
     }
     try {
       const data = JSON.parse(recoveryJson);
@@ -1534,6 +1560,7 @@ export function usePortfolioPageShell() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setExecutionNote(`🛡 Recovery failed: ${msg}`);
+      throw err;
     } finally {
       setExecuting(false);
     }

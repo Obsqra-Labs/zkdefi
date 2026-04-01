@@ -332,9 +332,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       console.log("[MIST] fetchTxAssets result:", asset);
       if (!asset) throw new Error("Deposit not found in MIST Chamber. It may not be confirmed yet.");
 
-      // 3. Get Merkle tree state
-      const rawLeaves = await (chamber as any).tx_array();
-      console.log("[MIST] tx_array returned", Array.isArray(rawLeaves) ? rawLeaves.length : 0, "leaves, sample:", rawLeaves?.[0]);
+      // 3. Get Merkle tree state — retry up to 8 times (tree may not have indexed the deposit yet)
       // u256 may come back as BigInt or {low, high} — normalise robustly
       const toBigInt = (v: unknown): bigint => {
         if (typeof v === "bigint") return v;
@@ -346,16 +344,32 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         }
         return BigInt(String(v));
       };
-      const leaves: bigint[] = (rawLeaves as unknown[]).map(toBigInt);
-      const txIndex = await sdk.getTxIndexInTree(
-        leaves,
-        key,
-        recipientAddress,
-        tokenAddress,
-        amountWei,
-      );
-      console.log("[MIST] txIndex:", txIndex);
-      if (txIndex < 0) throw new Error("Deposit not found in Merkle tree. The tree may not have updated yet — try again in a few seconds.");
+
+      const MAX_TREE_RETRIES = 8;
+      const TREE_RETRY_DELAY_MS = 5000;
+      let leaves: bigint[] = [];
+      let txIndex = -1;
+
+      for (let attempt = 1; attempt <= MAX_TREE_RETRIES; attempt++) {
+        const rawLeaves = await (chamber as any).tx_array();
+        console.log(`[MIST] tx_array attempt ${attempt}/${MAX_TREE_RETRIES}: ${Array.isArray(rawLeaves) ? rawLeaves.length : 0} leaves`);
+        leaves = (rawLeaves as unknown[]).map(toBigInt);
+        txIndex = await sdk.getTxIndexInTree(
+          leaves,
+          key,
+          recipientAddress,
+          tokenAddress,
+          amountWei,
+        );
+        console.log(`[MIST] txIndex (attempt ${attempt}):`, txIndex);
+        if (txIndex >= 0) break;
+
+        if (attempt < MAX_TREE_RETRIES) {
+          setMessage(`Waiting for deposit to appear in Merkle tree (attempt ${attempt}/${MAX_TREE_RETRIES})...`);
+          await new Promise((resolve) => setTimeout(resolve, TREE_RETRY_DELAY_MS));
+        }
+      }
+      if (txIndex < 0) throw new Error("Deposit not found in Merkle tree after multiple attempts. Please try the recovery option later.");
 
       // 4. Compute Merkle root + proof path
       const [root, ...proof] = sdk.calculateMerkleRootAndProof(leaves, txIndex);
