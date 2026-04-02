@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CallData, RpcProvider } from "starknet";
 import type { AccountInterface, Call, ProviderInterface } from "starknet";
+import { apiUrl } from "@/lib/api/client";
 
 /**
  * Custom hook wrapping @mistcash/sdk for privacy-preserving swaps.
@@ -507,8 +508,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       setStep("withdrawing");
       setMessage("Submitting withdrawal via privacy relayer...");
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiBase}/api/v1/zkdefi/relayer/mist/withdraw`, {
+      const res = await fetch(apiUrl("/api/v1/zkdefi/relayer/mist/withdraw"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -526,7 +526,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
 
       // 3. Poll for execution (relayer runner picks it up)
       setMessage("Waiting for relayer to submit on-chain (this may take a few seconds)...");
-      const pollUrl = `${apiBase}/api/v1/zkdefi/relayer/mist/status/${requestId}`;
+      const pollUrl = apiUrl(`/api/v1/zkdefi/relayer/mist/status/${requestId}`);
       const maxWaitMs = 120_000;
       const pollIntervalMs = 2_000;
       const startTime = Date.now();
