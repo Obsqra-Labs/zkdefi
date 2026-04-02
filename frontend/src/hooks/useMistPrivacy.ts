@@ -380,7 +380,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         if (legacyAssetAmount > BigInt(0)) {
           throw new Error(
             `Deposit of ${humanAmount} ${tokenSymbol} was found on-chain in a legacy chamber format created by an earlier client hashing bug. ` +
-            "Automatic ZK withdrawal is not supported for that deposit yet.",
+            "The chamber's public recovery methods also reject it, so it is not recoverable through the public MIST ABI.",
           );
         }
         throw new Error(
@@ -433,7 +433,9 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       );
 
       // 4. Compute Merkle root + proof path
-      const [root, ...proof] = sdk.calculateMerkleRootAndProof(leaves, txIndex);
+      const proofWithRoot = sdk.calculateMerkleRootAndProof(leaves, txIndex);
+      const root = proofWithRoot[proofWithRoot.length - 1];
+      const proof = proofWithRoot.slice(0, -1);
       console.log("[MIST] Merkle root computed, proof length:", proof.length);
 
       // 5. Build witness for ZK circuit

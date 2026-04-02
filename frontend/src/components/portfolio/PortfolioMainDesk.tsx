@@ -1510,7 +1510,7 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
         if (legacyFormat) {
           setStatus(
             "⚠ Deposit found in legacy chamber format caused by an earlier client hashing bug. " +
-            "Automatic ZK recovery is not supported for this deposit yet.",
+            "The chamber's public recovery methods reject it, so this deposit cannot be recovered through the public MIST ABI.",
           );
           return;
         }
@@ -1666,7 +1666,7 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
           </div>
           {!depositCheck.checking && depositCheck.legacyFormat && (
             <p className="mt-1.5 text-[10px] text-amber-200/80">
-              This deposit was written under the wrong chamber key by an earlier client bug. It exists on-chain, but this recovery flow cannot generate a valid ZK withdrawal for it yet.
+              This deposit was written under the wrong chamber key by an earlier client bug. It exists on-chain, but both public emergency recovery entrypoints reject it with an invalid Merkle proof, so it is not recoverable through the public MIST ABI.
             </p>
           )}
           {!depositCheck.checking && !depositCheck.found && !depositCheck.legacyFormat && (
