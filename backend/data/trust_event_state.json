@@ -1867,7 +1867,7 @@
     "credit.model_state": {
       "grade": "AAA",
       "rate_bps": 300,
-      "credit_line_eth": 0.000666,
+      "credit_line_eth": 0.000608,
       "model_name": "creditworthiness_mlp",
       "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     },
@@ -1966,6 +1966,31 @@
       "grade": "AAA",
       "rate_bps": 300,
       "credit_line_eth": 0.000342,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x06ed2ffe0bfbc9fb5baef2a0b6625c05cd34a67130d0d2c80b67404edcf9b204": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
       "model_name": "creditworthiness_mlp",
       "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     },

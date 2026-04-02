@@ -44,9 +44,11 @@ export function downloadClaimingKeyFile(opts: {
   amountWei: string;
   recipientAddress: string;
   chamberAddress: string;
+  depositTxHash?: string;
 }) {
-  const payload = {
+  const payload: Record<string, unknown> = {
     _warning: "KEEP THIS FILE PRIVATE. Anyone with the claiming key can withdraw your funds.",
+    version: opts.depositTxHash ? 2 : 1,
     claimingKey: opts.claimingKey,
     tokenAddress: opts.tokenAddress,
     amountWei: opts.amountWei,
@@ -54,11 +56,15 @@ export function downloadClaimingKeyFile(opts: {
     chamberAddress: opts.chamberAddress,
     createdAt: new Date().toISOString(),
   };
+  if (opts.depositTxHash) {
+    payload.depositTxHash = opts.depositTxHash;
+    payload.depositConfirmed = true;
+  }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `mist-recovery-${Date.now()}.json`;
+  a.download = `mist-recovery-${opts.depositTxHash ? "confirmed-" : ""}${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -276,25 +282,28 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         setStep("waiting_confirmation");
         setMessage(`Deposit submitted (${result.transaction_hash.slice(0, 12)}...). Waiting for on-chain confirmation...`);
 
-        // Poll for tx receipt instead of hardcoded sleep
-        const maxWaitMs = 60_000;
+        // Poll for tx receipt — only accept SUCCEEDED
+        const maxWaitMs = 90_000;
         const pollIntervalMs = 3_000;
         const startTime = Date.now();
         let confirmed = false;
         while (Date.now() - startTime < maxWaitMs) {
           try {
-            // Use starknet.js provider to check tx status
             const receipt = await account.getTransactionReceipt(result.transaction_hash);
-            if (receipt && (receipt as any).execution_status !== "REVERTED") {
+            const execStatus = (receipt as any)?.execution_status;
+            if (execStatus === "SUCCEEDED") {
               confirmed = true;
               break;
             }
-            if (receipt && (receipt as any).execution_status === "REVERTED") {
-              throw new Error(`Deposit transaction reverted: ${result.transaction_hash}`);
+            if (execStatus === "REVERTED") {
+              const reason = (receipt as any)?.revert_reason || "unknown";
+              throw new Error(`Deposit transaction reverted: ${result.transaction_hash} — ${reason}`);
+            }
+            if (execStatus === "REJECTED") {
+              throw new Error(`Deposit rejected by sequencer: ${result.transaction_hash}`);
             }
           } catch (pollErr) {
-            // getTransactionReceipt throws if tx not found yet — keep polling
-            if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+            if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
           }
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
@@ -351,10 +360,21 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       const asset = await sdk.fetchTxAssets(chamber, key, recipientAddress);
       console.log("[MIST] fetchTxAssets result:", JSON.stringify(asset, (_k, v) => typeof v === "bigint" ? v.toString() : v));
       const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+
+      // Derive human-readable info for error messages
+      const knownTokens: Record<string, [string, number]> = {
+        "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": ["ETH", 18],
+        "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d": ["STRK", 18],
+        "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8": ["USDC", 6],
+      };
+      const [tokenSymbol, tokenDecimals] = knownTokens[tokenAddress] ?? ["tokens", 18];
+      const humanAmount = (Number(amountWei) / 10 ** tokenDecimals).toFixed(tokenDecimals <= 6 ? tokenDecimals : 6).replace(/\.?0+$/, "");
+
       if (!asset || assetAmount === BigInt(0)) {
         throw new Error(
-          "Deposit not found on-chain. The original deposit transaction may have failed or was never confirmed. " +
-          "Try depositing again with a new privacy swap.",
+          `Deposit of ${humanAmount} ${tokenSymbol} not found on-chain. ` +
+          "The original deposit transaction may have failed or was never confirmed. " +
+          "Your tokens should still be in your wallet — try a new privacy swap.",
         );
       }
 
@@ -395,7 +415,10 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
           await new Promise((resolve) => setTimeout(resolve, TREE_RETRY_DELAY_MS));
         }
       }
-      if (txIndex < 0) throw new Error("Deposit not found in Merkle tree after multiple attempts. Please try the recovery option later.");
+      if (txIndex < 0) throw new Error(
+        `Deposit of ${humanAmount} ${tokenSymbol} exists on-chain but is not in the Merkle tree yet (${leaves.length} leaves checked). ` +
+        "The tree may still be updating — try the recovery option again in 30 seconds.",
+      );
 
       // 4. Compute Merkle root + proof path
       const [root, ...proof] = sdk.calculateMerkleRootAndProof(leaves, txIndex);

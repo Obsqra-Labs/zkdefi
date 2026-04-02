@@ -9,6 +9,7 @@ import { ReceiptVaultHero } from "./ReceiptVaultHero";
 import { SafetyDrawer } from "./SafetyDrawer";
 import { TargetEditor } from "./TargetEditor";
 import { SessionKeyManager } from "@/components/zkdefi/SessionKeyManager";
+import { ProofStepper, type ProofStepperProps } from "@/components/zkdefi/vault/ProofStepper";
 import type { ConstraintResult, GateResult, PortableReceiptData, RecommendationRouteOption, SupportedAsset, SwapStep, WorkflowMode } from "./types";
 
 type RecommendationData = {
@@ -1157,18 +1158,7 @@ export function PortfolioMainDesk(props: Props) {
         </button>
       </div>
       {privateMode && mistPrivacyStep !== "idle" && mistPrivacyStep !== "complete" && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm ${
-          mistPrivacyError
-            ? "border-red-500/30 bg-red-500/10 text-red-300"
-            : "border-cyan-500/20 bg-cyan-500/5 text-cyan-200"
-        }`}>
-          <div className="flex items-center gap-2">
-            {mistPrivacyBusy && (
-              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            )}
-            <span>{mistPrivacyMessage || mistPrivacyError || `Step: ${mistPrivacyStep}`}</span>
-          </div>
-        </div>
+        <PrivacyStepIndicator step={mistPrivacyStep} message={mistPrivacyMessage} error={mistPrivacyError} />
       )}
 
       {/* Key download confirmation gate */}
@@ -1444,31 +1434,97 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [depositCheck, setDepositCheck] = useState<{
+    checking: boolean;
+    found: boolean | null;
+    amount: string;
+    token: string;
+    tokenSymbol: string;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Verify a recovery file's deposit on-chain
+  const verifyDeposit = useCallback(async (raw: string) => {
+    let data: { claimingKey?: string; tokenAddress?: string; amountWei?: string; recipientAddress?: string; depositTxHash?: string };
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      setStatus("⚠ Invalid JSON file.");
+      return;
+    }
+    if (!data.claimingKey) {
+      setStatus("⚠ File does not contain a claimingKey field.");
+      return;
+    }
+    if (!data.tokenAddress || !data.amountWei || !data.recipientAddress) {
+      setStatus("⚠ Incomplete recovery file — missing token, amount, or recipient.");
+      return;
+    }
+
+    // Derive token symbol from known addresses
+    const knownTokens: Record<string, string> = {
+      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": "ETH",
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d": "STRK",
+      "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8": "USDC",
+    };
+    const tokenSymbol = knownTokens[data.tokenAddress] ?? "Token";
+    const decimals = tokenSymbol === "USDC" ? 6 : tokenSymbol === "WBTC" ? 8 : 18;
+    const humanAmount = (Number(data.amountWei) / 10 ** decimals).toFixed(decimals <= 6 ? decimals : 6).replace(/\.?0+$/, "");
+
+    setDepositCheck({ checking: true, found: null, amount: humanAmount, token: data.tokenAddress, tokenSymbol });
+    setStatus(null);
+
+    try {
+      // Dynamically load SDK and check deposit on-chain
+      const [sdk, config] = await Promise.all([
+        import("@mistcash/sdk"),
+        import("@mistcash/config"),
+      ]);
+      await sdk.initCore();
+
+      const { RpcProvider } = await import("starknet");
+      const readProvider = new RpcProvider({
+        nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET || process.env.NEXT_PUBLIC_RPC_URL || "/api/v1/zkdefi/starknet-rpc",
+      });
+      const chamber = sdk.getChamber(readProvider as any);
+      const asset = await sdk.fetchTxAssets(chamber, data.claimingKey, data.recipientAddress);
+      const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+      const found = assetAmount > BigInt(0);
+
+      setDepositCheck((prev) => prev ? { ...prev, checking: false, found } : null);
+      if (!found) {
+        if (data.depositTxHash) {
+          setStatus(`✗ No deposit found on-chain. Check tx on explorer: ${data.depositTxHash.slice(0, 14)}…`);
+        } else {
+          setStatus("✗ No deposit found on-chain. The deposit likely failed or was never signed. Your tokens should still be in your wallet.");
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setDepositCheck((prev) => prev ? { ...prev, checking: false, found: null } : null);
+      setStatus(`⚠ Could not verify deposit: ${msg}`);
+    }
+  }, []);
 
   const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setStatus(null);
+    setDepositCheck(null);
     const reader = new FileReader();
     reader.onload = () => {
       const content = reader.result as string;
       setText(content);
-      // Validate JSON immediately
-      try {
-        const data = JSON.parse(content);
-        if (!data.claimingKey) setStatus("⚠ File does not contain a claimingKey field.");
-      } catch {
-        setStatus("⚠ Invalid JSON file.");
-      }
+      void verifyDeposit(content);
     };
     reader.readAsText(file);
-  }, []);
+  }, [verifyDeposit]);
 
   const handleRestoreFromServer = useCallback(async () => {
     if (busy) return;
     setBusy(true);
     setStatus("Checking server for backed-up recovery keys...");
+    setDepositCheck(null);
     try {
       const res = await fetch(`/api/v1/zkdefi/privacy/recovery/fetch/${walletAddress}`);
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -1478,18 +1534,18 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
         setStatus("⚠ No backed-up keys found for this wallet.");
         return;
       }
-      // Use the most recent entry
       const latest = entries[entries.length - 1];
       const decoded = atob(latest.encrypted_blob);
       setText(decoded);
-      setStatus(`✓ Restored key from server (${entries.length} backup${entries.length > 1 ? "s" : ""} found). Click "Withdraw" to proceed.`);
+      setStatus(`✓ Restored key from server (${entries.length} backup${entries.length > 1 ? "s" : ""} found). Verifying deposit…`);
+      void verifyDeposit(decoded);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatus(`✗ Server restore failed: ${msg}`);
     } finally {
       setBusy(false);
     }
-  }, [walletAddress, busy]);
+  }, [walletAddress, busy, verifyDeposit]);
 
   const handleRecover = useCallback(async () => {
     if (!text || busy) return;
@@ -1506,12 +1562,14 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
     }
   }, [text, busy, onRecover]);
 
+  const withdrawDisabled = busy || !text || depositCheck?.checking || depositCheck?.found === false;
+
   return (
     <div className="rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-4 text-sm space-y-3">
       <p className="font-medium text-zinc-300">Recover stuck deposit</p>
       <p className="text-[11px] text-zinc-500">
         Upload the <code className="text-cyan-400">mist-recovery-*.json</code> file that was downloaded
-        when you initiated the deposit. This will generate a ZK proof and withdraw your funds.
+        when you initiated the deposit. We&apos;ll verify the deposit on-chain before attempting withdrawal.
       </p>
       <div className="flex gap-2">
         <button
@@ -1532,22 +1590,69 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
         </button>
         <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="hidden" />
       </div>
+
+      {/* Deposit verification status card */}
+      {depositCheck && (
+        <div className={`rounded-lg border px-3 py-2.5 ${
+          depositCheck.checking
+            ? "border-zinc-700 bg-zinc-900"
+            : depositCheck.found
+              ? "border-emerald-500/30 bg-emerald-500/10"
+              : "border-red-500/30 bg-red-500/10"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {depositCheck.checking ? (
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+              ) : depositCheck.found ? (
+                <span className="text-emerald-400 text-xs">✓</span>
+              ) : (
+                <span className="text-red-400 text-xs">✗</span>
+              )}
+              <span className={`text-xs font-medium ${
+                depositCheck.checking ? "text-zinc-300" : depositCheck.found ? "text-emerald-300" : "text-red-300"
+              }`}>
+                {depositCheck.amount} {depositCheck.tokenSymbol}
+              </span>
+            </div>
+            <span className={`text-[10px] ${
+              depositCheck.checking ? "text-zinc-500" : depositCheck.found ? "text-emerald-400" : "text-red-400"
+            }`}>
+              {depositCheck.checking ? "Verifying on-chain…" : depositCheck.found ? "Deposit found" : "Not on-chain"}
+            </span>
+          </div>
+          {!depositCheck.checking && !depositCheck.found && (
+            <p className="mt-1.5 text-[10px] text-zinc-500">
+              The original deposit transaction likely failed or was never confirmed. Your tokens should still be in your wallet.
+              Start a new privacy swap to try again.
+            </p>
+          )}
+        </div>
+      )}
+
       {text && (
         <>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-300 font-mono focus:border-cyan-500 focus:outline-none"
-            readOnly={busy}
-          />
+          <details className="group">
+            <summary className="cursor-pointer text-[10px] text-zinc-500 hover:text-zinc-400">
+              Show recovery data
+            </summary>
+            <textarea
+              value={text}
+              onChange={(e) => { setText(e.target.value); setDepositCheck(null); }}
+              rows={4}
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-300 font-mono focus:border-cyan-500 focus:outline-none"
+              readOnly={busy}
+            />
+          </details>
           <button
             type="button"
             onClick={handleRecover}
-            disabled={busy}
-            className="rounded-lg bg-cyan-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!!withdrawDisabled}
+            className={`rounded-lg px-4 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              depositCheck?.found ? "bg-emerald-600 hover:bg-emerald-500" : "bg-cyan-600 hover:bg-cyan-500"
+            }`}
           >
-            {busy ? "Generating proof..." : "Withdraw with this key"}
+            {busy ? "Generating proof…" : depositCheck?.found === false ? "Deposit not found" : "Withdraw with this key"}
           </button>
         </>
       )}
@@ -1558,4 +1663,56 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Privacy flow step indicator (maps mistPrivacyStep → ProofStepper)
+// ---------------------------------------------------------------------------
+
+const PRIVACY_STEPS = ["Approve token", "Deposit to Chamber", "Confirm on-chain", "Generate ZK proof", "Relay withdrawal"] as const;
+
+function stepStatus(currentStep: string, idx: number): "pending" | "active" | "done" | "error" {
+  const stepMap: Record<string, number> = {
+    initializing: -1,
+    approving: 0,
+    depositing: 1,
+    waiting_confirmation: 2,
+    generating_proof: 3,
+    withdrawing: 4,
+    ready_to_swap: 5,
+    error: -2,
+  };
+  const current = stepMap[currentStep] ?? -1;
+  if (currentStep === "error") {
+    // Mark the last non-pending step as error
+    if (idx === Math.max(0, current)) return "error";
+    if (idx < current) return "done";
+    return "pending";
+  }
+  if (idx < current) return "done";
+  if (idx === current) return "active";
+  return "pending";
+}
+
+function PrivacyStepIndicator({ step, message, error }: { step: string; message: string; error: string | null }) {
+  const steps: ProofStepperProps["steps"] = PRIVACY_STEPS.map((label, idx) => ({
+    label,
+    status: error && step === "error"
+      ? (idx === 0 ? "error" : "pending") // fallback: mark first step as error
+      : stepStatus(step, idx),
+    detail: stepStatus(step, idx) === "active" ? (message || undefined) : undefined,
+  }));
+
+  // For error state, find the furthest step that was active and mark it as error
+  if (error) {
+    const stepMap: Record<string, number> = { approving: 0, depositing: 1, waiting_confirmation: 2, generating_proof: 3, withdrawing: 4 };
+    const errIdx = stepMap[step] ?? 0;
+    for (let i = 0; i < steps.length; i++) {
+      if (i < errIdx) steps[i].status = "done";
+      else if (i === errIdx) { steps[i].status = "error"; steps[i].detail = error; }
+      else steps[i].status = "pending";
+    }
+  }
+
+  return <ProofStepper steps={steps} accent="blue" />;
 }

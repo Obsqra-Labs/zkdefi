@@ -1,5 +1,42 @@
 import type { SupportedAsset, RecommendationDriftStatus } from "./types";
 
+/**
+ * Parse a human-readable token amount (e.g. "1.14") into a wei string
+ * using pure string manipulation — no floating-point precision loss.
+ *
+ * Examples:
+ *   parseAmountWei("1.14", 18)  → "1140000000000000000"
+ *   parseAmountWei("0.5", 6)    → "500000"
+ *   parseAmountWei("100", 18)   → "100000000000000000000"
+ */
+export function parseAmountWei(amount: string, decimals: number): string {
+  const s = amount.trim();
+  if (!s || s === "0") return "0";
+
+  // Split on decimal point
+  const dotIdx = s.indexOf(".");
+  let intPart: string;
+  let fracPart: string;
+  if (dotIdx === -1) {
+    intPart = s;
+    fracPart = "";
+  } else {
+    intPart = s.slice(0, dotIdx);
+    fracPart = s.slice(dotIdx + 1);
+  }
+
+  // Pad or truncate fractional part to exactly `decimals` digits
+  if (fracPart.length < decimals) {
+    fracPart = fracPart.padEnd(decimals, "0");
+  } else if (fracPart.length > decimals) {
+    fracPart = fracPart.slice(0, decimals);
+  }
+
+  // Concatenate and strip leading zeros
+  const raw = (intPart + fracPart).replace(/^0+/, "") || "0";
+  return raw;
+}
+
 export function formatUsd(value: number): string {
   const fractionDigits = value >= 1000 ? 0 : value >= 1 ? 2 : value > 0 ? 4 : 2;
   return new Intl.NumberFormat("en-US", {

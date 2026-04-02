@@ -73,6 +73,7 @@ import type {
 import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { useMistPrivacy, downloadClaimingKeyFile } from "@/hooks/useMistPrivacy";
 import { getApiErrorMessage } from "@/lib/api/client";
+import { parseAmountWei } from "./formatters";
 import { voyagerTxUrl } from "@/lib/explorer";
 import { getTxStatus, type TxSettlementStatus } from "@/lib/pendingTx";
 
@@ -1200,8 +1201,10 @@ export function usePortfolioPageShell() {
           if (privateMode && actionType === "swap" && swapAssetIn !== "WBTC") {
             const tokenAddr = MAINNET_TOKEN_BY_SYMBOL[swapAssetIn];
             const decimals = ASSET_DECIMALS[swapAssetIn];
-            const amountWei = Math.round(Number.parseFloat(swapAmount || "0") * 10 ** decimals).toString();
-            if (Number(amountWei) > 0) {
+            // BigInt-safe amount parsing — avoids precision loss for 18-decimal tokens
+            // (Number can only hold ~15 significant digits; 1.14 STRK = 1.14e18 exceeds Number.MAX_SAFE_INTEGER)
+            const amountWei = parseAmountWei(swapAmount || "0", decimals);
+            if (amountWei !== "0") {
               try {
                 // Pre-flight balance check — avoids cryptic u256_sub Overflow
                 try {
@@ -1457,31 +1460,72 @@ export function usePortfolioPageShell() {
 
       setExecutionNote(`🛡 Deposit submitted (${depTxHash.slice(0, 12)}...). Waiting for confirmation...`);
 
-      // Poll for receipt
-      const maxWaitMs = 60_000;
+      // Poll for receipt — only accept SUCCEEDED, treat REVERTED/REJECTED as errors
+      const maxWaitMs = 90_000;
       const pollIntervalMs = 3_000;
       const startTime = Date.now();
       let confirmed = false;
       while (Date.now() - startTime < maxWaitMs) {
         try {
           const receipt = await account.getTransactionReceipt(depTxHash);
-          if (receipt && (receipt as any).execution_status !== "REVERTED") {
+          const execStatus = (receipt as any)?.execution_status;
+          if (execStatus === "SUCCEEDED") {
             confirmed = true;
             break;
           }
-          if (receipt && (receipt as any).execution_status === "REVERTED") {
-            throw new Error(`Deposit reverted: ${depTxHash}`);
+          if (execStatus === "REVERTED") {
+            const revertReason = (receipt as any)?.revert_reason || "unknown reason";
+            throw new Error(`Deposit reverted (${depTxHash.slice(0, 14)}…): ${revertReason}`);
           }
+          if (execStatus === "REJECTED") {
+            throw new Error(`Deposit rejected by sequencer (${depTxHash.slice(0, 14)}…). Try again.`);
+          }
+          // Still PENDING or RECEIVED — keep polling
         } catch (pollErr) {
-          if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+          if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
         }
         await new Promise((r) => setTimeout(r, pollIntervalMs));
       }
       if (!confirmed) {
-        throw new Error("Deposit confirmation timed out. Your recovery file has the claiming key.");
+        throw new Error(`Deposit not confirmed after 90s (${depTxHash.slice(0, 14)}…). Your recovery file has the claiming key — use it to withdraw once confirmed.`);
       }
 
       setExecutionNote(`🛡 Deposit confirmed. Generating ZK withdrawal proof...`);
+
+      // Re-download recovery file v2 with depositTxHash for reliable future recovery
+      try {
+        const config2 = await import("@mistcash/config");
+        downloadClaimingKeyFile({
+          claimingKey: pending.claimingKey,
+          tokenAddress: pending.tokenAddr,
+          amountWei: pending.amountWei,
+          recipientAddress: pending.address,
+          chamberAddress: config2.CHAMBER_ADDR_MAINNET,
+          depositTxHash: depTxHash,
+        });
+        // Also update server backup with tx hash
+        const recoveryPayloadV2 = JSON.stringify({
+          claimingKey: pending.claimingKey, tokenAddress: pending.tokenAddr,
+          amountWei: pending.amountWei, recipientAddress: pending.address,
+          chamberAddress: config2.CHAMBER_ADDR_MAINNET, depositTxHash: depTxHash,
+        });
+        const commitHash = Array.from(
+          new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(recoveryPayloadV2))),
+        ).map((b) => b.toString(16).padStart(2, "0")).join("");
+        fetch("/api/v1/zkdefi/privacy/recovery/store", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wallet_address: pending.address,
+            encrypted_blob: btoa(recoveryPayloadV2),
+            commitment_hash: commitHash,
+            token_address: pending.tokenAddr,
+            amount_wei: pending.amountWei,
+            chamber_address: config2.CHAMBER_ADDR_MAINNET,
+          }),
+        }).catch(() => {});
+      } catch { /* non-critical: original recovery file still works */ }
+
       const withdrawTxHash = await mistPrivacy.submitWithdrawViaRelay(
         account,
         pending.address,
@@ -1492,7 +1536,9 @@ export function usePortfolioPageShell() {
 
       setExecutionNote("🛡 Proof relayed. Executing swap...");
       const swapResult = await account.execute(pending.optimizedCalls);
-      setExecutionTxHash(swapResult.transaction_hash);
+      // Keep deposit tx hash visible — don't overwrite with swap hash
+      // setExecutionTxHash already set to depTxHash above
+      setExecutionNote(`🛡 Private swap submitted. Deposit: ${depTxHash.slice(0, 12)}… · Swap: ${swapResult.transaction_hash.slice(0, 12)}…`);
 
       const confirmPayload = await confirmPortfolioExecution(pending.address, pending.receiptId, swapResult.transaction_hash, {
         deposit_tx_hash: depTxHash,

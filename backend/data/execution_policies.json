@@ -170,5 +170,34 @@
     },
     "createdAt": "2026-04-01T12:18:26.819973+00:00",
     "updatedAt": "2026-04-01T12:18:26.819973+00:00"
+  },
+  "0x06ed2ffe0bfbc9fb5baef2a0b6625c05cd34a67130d0d2c80b67404edcf9b204": {
+    "address": "0x06ed2ffe0bfbc9fb5baef2a0b6625c05cd34a67130d0d2c80b67404edcf9b204",
+    "gateRules": {
+      "minReputationScore": 0,
+      "maxRiskScore": 80,
+      "requireCircuitVerified": false,
+      "preferPrivacyMode": null
+    },
+    "executionRules": {
+      "maxAllocationPct": 20.0,
+      "dailyLimitUSD": 10000.0,
+      "autoExecute": false,
+      "cooldownSeconds": 300,
+      "maxSlippageBps": 150,
+      "maxSwapsPerRebalance": 3,
+      "minAmounts": {
+        "ETH": 1e-05,
+        "STRK": 0.1,
+        "USDC": 1.0
+      }
+    },
+    "isActive": true,
+    "governedExecution": {
+      "state": "disarmed",
+      "updatedAt": "2026-04-02T04:41:30.356117+00:00"
+    },
+    "createdAt": "2026-04-02T04:41:30.356117+00:00",
+    "updatedAt": "2026-04-02T04:41:30.356117+00:00"
   }
 }

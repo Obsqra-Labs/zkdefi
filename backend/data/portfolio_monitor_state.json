@@ -17,18 +17,18 @@
   },
   "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3": {
     "owner_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3",
-    "last_reviewed_at": "2026-04-02T04:34:30.582631+00:00",
+    "last_reviewed_at": "2026-04-02T05:09:50.427953+00:00",
     "last_source": "allocator_v1",
-    "last_recommendation_id": "ad05841d73f5",
+    "last_recommendation_id": "07710ca10c35",
     "drift_status": "rebalance",
-    "total_turnover_pct": 54.55,
-    "estimated_turnover_usd": 0.98,
+    "total_turnover_pct": 60.5,
+    "estimated_turnover_usd": 1.02,
     "largest_gap_asset": "STRK",
-    "largest_gap_pct": 54.55,
+    "largest_gap_pct": 60.49,
     "driver_kinds": [
       "market_drift"
     ],
-    "last_alerted_at": "2026-04-02T04:31:08.784523+00:00",
+    "last_alerted_at": "2026-04-02T05:06:00.201741+00:00",
     "last_alerted_status": "rebalance"
   },
   "0x03c33bbfa0042555fc7349124a4d0508a4975e9b2a192a3ee04de9613a86903f": {
@@ -61,6 +61,22 @@
       "market_drift"
     ],
     "last_alerted_at": "2026-04-01T21:26:19.754905+00:00",
+    "last_alerted_status": "rebalance"
+  },
+  "0x06ed2ffe0bfbc9fb5baef2a0b6625c05cd34a67130d0d2c80b67404edcf9b204": {
+    "owner_address": "0x06ed2ffe0bfbc9fb5baef2a0b6625c05cd34a67130d0d2c80b67404edcf9b204",
+    "last_reviewed_at": "2026-04-02T05:06:25.764315+00:00",
+    "last_source": "allocator_v1",
+    "last_recommendation_id": "450dbabe3eab",
+    "drift_status": "rebalance",
+    "total_turnover_pct": 50.0,
+    "estimated_turnover_usd": 0.0,
+    "largest_gap_asset": "STRK",
+    "largest_gap_pct": 63.0,
+    "driver_kinds": [
+      "market_drift"
+    ],
+    "last_alerted_at": "2026-04-02T05:02:36.826464+00:00",
     "last_alerted_status": "rebalance"
   }
 }
