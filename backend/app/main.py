@@ -648,6 +648,10 @@ price_proxy_router = _optional_router("app.api.routes.price_proxy")
 if price_proxy_router:
     app.include_router(price_proxy_router, prefix="/api/v1/zkdefi", tags=["price-proxy"])
 
+starknet_rpc_proxy_router = _optional_router("app.api.routes.starknet_rpc_proxy")
+if starknet_rpc_proxy_router:
+    app.include_router(starknet_rpc_proxy_router, prefix="/api/v1/zkdefi", tags=["starknet-rpc"])
+
 
 # -----------------------------------------------------------------------------
 # Backward compatibility aliases

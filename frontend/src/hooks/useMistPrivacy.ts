@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CallData } from "starknet";
+import { CallData, RpcProvider } from "starknet";
 import type { AccountInterface, Call, ProviderInterface } from "starknet";
 
 /**
@@ -323,9 +323,15 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       setStep("generating_proof");
       setMessage("Generating zero-knowledge withdrawal proof (this may take a few seconds)...");
 
-      // 1. Get chamber contract (typed — uses ABI for serialization)
-      const chamber = sdk.getChamber(provider as any);
-      console.log("[MIST] Chamber contract ready");
+      // 1. Get chamber contract — use our own RPC provider for read calls
+      // to avoid CORS blocks from wallet providers (BlastAPI, etc.)
+      const readProvider = new RpcProvider({
+        nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET ||
+          process.env.NEXT_PUBLIC_RPC_URL ||
+          "/api/v1/zkdefi/starknet-rpc",
+      });
+      const chamber = sdk.getChamber(readProvider as any);
+      console.log("[MIST] Chamber contract ready (via proxied RPC)");
 
       // 2. Verify the deposit exists
       const asset = await sdk.fetchTxAssets(chamber, key, recipientAddress);
