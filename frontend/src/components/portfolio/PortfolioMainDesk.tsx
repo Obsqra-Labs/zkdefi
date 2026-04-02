@@ -1437,6 +1437,7 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
   const [depositCheck, setDepositCheck] = useState<{
     checking: boolean;
     found: boolean | null;
+    legacyFormat?: boolean;
     amount: string;
     token: string;
     tokenSymbol: string;
@@ -1476,10 +1477,7 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
 
     try {
       // Dynamically load SDK and check deposit on-chain
-      const [sdk, config] = await Promise.all([
-        import("@mistcash/sdk"),
-        import("@mistcash/config"),
-      ]);
+      const sdk = await import("@mistcash/sdk");
       await sdk.initCore();
 
       const { RpcProvider } = await import("starknet");
@@ -1489,10 +1487,33 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
       const chamber = sdk.getChamber(readProvider as any);
       const asset = await sdk.fetchTxAssets(chamber, data.claimingKey, data.recipientAddress);
       const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
-      const found = assetAmount > BigInt(0);
 
-      setDepositCheck((prev) => prev ? { ...prev, checking: false, found } : null);
+      let found = assetAmount > BigInt(0);
+      let legacyFormat = false;
+
       if (!found) {
+        const legacyDepositSecret = sdk.txHash(
+          data.claimingKey,
+          data.recipientAddress,
+          data.tokenAddress,
+          data.amountWei,
+        );
+        const legacyAssetRaw = await (chamber as any).assets_from_secret(legacyDepositSecret);
+        const legacyAssetAmount = typeof legacyAssetRaw?.amount === "bigint"
+          ? legacyAssetRaw.amount
+          : BigInt(String(legacyAssetRaw?.amount ?? 0));
+        legacyFormat = legacyAssetAmount > BigInt(0);
+      }
+
+      setDepositCheck((prev) => prev ? { ...prev, checking: false, found, legacyFormat } : null);
+      if (!found) {
+        if (legacyFormat) {
+          setStatus(
+            "⚠ Deposit found in legacy chamber format caused by an earlier client hashing bug. " +
+            "Automatic ZK recovery is not supported for this deposit yet.",
+          );
+          return;
+        }
         if (data.depositTxHash) {
           setStatus(`✗ No deposit found on-chain. Check tx on explorer: ${data.depositTxHash.slice(0, 14)}…`);
         } else {
@@ -1562,7 +1583,7 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
     }
   }, [text, busy, onRecover]);
 
-  const withdrawDisabled = busy || !text || depositCheck?.checking || depositCheck?.found === false;
+  const withdrawDisabled = busy || !text || depositCheck?.checking || depositCheck?.found === false || depositCheck?.legacyFormat === true;
 
   return (
     <div className="rounded-2xl border border-zinc-700/60 bg-zinc-950/80 px-4 py-4 text-sm space-y-3">
@@ -1596,7 +1617,9 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
         <div className={`rounded-lg border px-3 py-2.5 ${
           depositCheck.checking
             ? "border-zinc-700 bg-zinc-900"
-            : depositCheck.found
+            : depositCheck.legacyFormat
+              ? "border-amber-500/30 bg-amber-500/10"
+              : depositCheck.found
               ? "border-emerald-500/30 bg-emerald-500/10"
               : "border-red-500/30 bg-red-500/10"
         }`}>
@@ -1604,24 +1627,49 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
             <div className="flex items-center gap-2">
               {depositCheck.checking ? (
                 <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+              ) : depositCheck.legacyFormat ? (
+                <span className="text-amber-400 text-xs">!</span>
               ) : depositCheck.found ? (
                 <span className="text-emerald-400 text-xs">✓</span>
               ) : (
                 <span className="text-red-400 text-xs">✗</span>
               )}
               <span className={`text-xs font-medium ${
-                depositCheck.checking ? "text-zinc-300" : depositCheck.found ? "text-emerald-300" : "text-red-300"
+                depositCheck.checking
+                  ? "text-zinc-300"
+                  : depositCheck.legacyFormat
+                    ? "text-amber-300"
+                    : depositCheck.found
+                      ? "text-emerald-300"
+                      : "text-red-300"
               }`}>
                 {depositCheck.amount} {depositCheck.tokenSymbol}
               </span>
             </div>
             <span className={`text-[10px] ${
-              depositCheck.checking ? "text-zinc-500" : depositCheck.found ? "text-emerald-400" : "text-red-400"
+              depositCheck.checking
+                ? "text-zinc-500"
+                : depositCheck.legacyFormat
+                  ? "text-amber-400"
+                  : depositCheck.found
+                    ? "text-emerald-400"
+                    : "text-red-400"
             }`}>
-              {depositCheck.checking ? "Verifying on-chain…" : depositCheck.found ? "Deposit found" : "Not on-chain"}
+              {depositCheck.checking
+                ? "Verifying on-chain…"
+                : depositCheck.legacyFormat
+                  ? "Legacy-format deposit"
+                  : depositCheck.found
+                    ? "Deposit found"
+                    : "Not on-chain"}
             </span>
           </div>
-          {!depositCheck.checking && !depositCheck.found && (
+          {!depositCheck.checking && depositCheck.legacyFormat && (
+            <p className="mt-1.5 text-[10px] text-amber-200/80">
+              This deposit was written under the wrong chamber key by an earlier client bug. It exists on-chain, but this recovery flow cannot generate a valid ZK withdrawal for it yet.
+            </p>
+          )}
+          {!depositCheck.checking && !depositCheck.found && !depositCheck.legacyFormat && (
             <p className="mt-1.5 text-[10px] text-zinc-500">
               The original deposit transaction likely failed or was never confirmed. Your tokens should still be in your wallet.
               Start a new privacy swap to try again.
@@ -1652,7 +1700,13 @@ function RecoveryPanel({ onRecover, walletAddress }: { onRecover: (json: string)
               depositCheck?.found ? "bg-emerald-600 hover:bg-emerald-500" : "bg-cyan-600 hover:bg-cyan-500"
             }`}
           >
-            {busy ? "Generating proof…" : depositCheck?.found === false ? "Deposit not found" : "Withdraw with this key"}
+            {busy
+              ? "Generating proof…"
+              : depositCheck?.legacyFormat
+                ? "Legacy deposit detected"
+                : depositCheck?.found === false
+                  ? "Deposit not found"
+                  : "Withdraw with this key"}
           </button>
         </>
       )}

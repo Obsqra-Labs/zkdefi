@@ -213,7 +213,8 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       const config = configModule!;
 
       const key = sdk.generateClaimingKey();
-      const commitment = sdk.txHash(key, recipientAddress, tokenAddress, amountWei);
+      // The chamber expects the raw tx secret here and hashes it with the asset internally.
+      const depositSecret = BigInt(sdk.txSecret(key, recipientAddress));
 
       const chamberAddress = config.CHAMBER_ADDR_MAINNET;
 
@@ -227,7 +228,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
 
       const chamberCd = new CallData(config.CHAMBER_ABI);
       const depositCalldata = chamberCd.compile("deposit", [
-        commitment, // hash: u256 — BigInt from txHash(), auto-split
+        depositSecret, // hash: u256 — raw tx secret, auto-split
         {
           amount: BigInt(amountWei), // u256 — auto-split
           addr: tokenAddress,        // ContractAddress
@@ -371,6 +372,17 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       const humanAmount = (Number(amountWei) / 10 ** tokenDecimals).toFixed(tokenDecimals <= 6 ? tokenDecimals : 6).replace(/\.?0+$/, "");
 
       if (!asset || assetAmount === BigInt(0)) {
+        const legacyDepositSecret = sdk.txHash(key, recipientAddress, tokenAddress, amountWei);
+        const legacyAssetRaw = await (chamber as any).assets_from_secret(legacyDepositSecret);
+        const legacyAssetAmount = typeof legacyAssetRaw?.amount === "bigint"
+          ? legacyAssetRaw.amount
+          : BigInt(String(legacyAssetRaw?.amount ?? 0));
+        if (legacyAssetAmount > BigInt(0)) {
+          throw new Error(
+            `Deposit of ${humanAmount} ${tokenSymbol} was found on-chain in a legacy chamber format created by an earlier client hashing bug. ` +
+            "Automatic ZK withdrawal is not supported for that deposit yet.",
+          );
+        }
         throw new Error(
           `Deposit of ${humanAmount} ${tokenSymbol} not found on-chain. ` +
           "The original deposit transaction may have failed or was never confirmed. " +
