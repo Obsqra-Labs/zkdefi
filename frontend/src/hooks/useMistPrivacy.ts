@@ -20,6 +20,7 @@ import type { AccountInterface, Call, ProviderInterface } from "starknet";
 let sdkModule: typeof import("@mistcash/sdk") | null = null;
 let configModule: typeof import("@mistcash/config") | null = null;
 let coreInitialized = false;
+const MIST_MERKLE_PROOF_DEPTH = 20;
 
 async function ensureMistCore() {
   if (coreInitialized) return;
@@ -280,6 +281,14 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         setClaimingKey(key);
         setDepositTxHash(result.transaction_hash);
 
+        const sdk = sdkModule!;
+        const readProvider = new RpcProvider({
+          nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET ||
+            process.env.NEXT_PUBLIC_RPC_URL ||
+            "/api/v1/zkdefi/starknet-rpc",
+        });
+        const chamber = sdk.getChamber(readProvider as any);
+
         setStep("waiting_confirmation");
         setMessage(`Deposit submitted (${result.transaction_hash.slice(0, 12)}...). Waiting for on-chain confirmation...`);
 
@@ -303,13 +312,20 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
             if (execStatus === "REJECTED") {
               throw new Error(`Deposit rejected by sequencer: ${result.transaction_hash}`);
             }
+            const asset = await sdk.fetchTxAssets(chamber, key, recipientAddress);
+            const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+            const assetAddr = String(asset?.addr ?? "").toLowerCase();
+            if (assetAmount > BigInt(0) && assetAddr === tokenAddress.toLowerCase()) {
+              confirmed = true;
+              break;
+            }
           } catch (pollErr) {
             if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
           }
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
         if (!confirmed) {
-          throw new Error("Deposit confirmation timed out after 60s. The transaction may still be pending.");
+          throw new Error("Deposit confirmation timed out after 90s. The transaction may still be pending.");
         }
 
         setStep("ready_to_swap");
@@ -436,6 +452,9 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       const proofWithRoot = sdk.calculateMerkleRootAndProof(leaves, txIndex);
       const root = proofWithRoot[proofWithRoot.length - 1];
       const proof = proofWithRoot.slice(0, -1);
+      const paddedProof = proof.length >= MIST_MERKLE_PROOF_DEPTH
+        ? proof.slice(0, MIST_MERKLE_PROOF_DEPTH)
+        : [...proof, ...Array.from({ length: MIST_MERKLE_PROOF_DEPTH - proof.length }, () => BigInt(0))];
       console.log("[MIST] Merkle root computed, proof length:", proof.length);
 
       // 5. Build witness for ZK circuit
@@ -445,7 +464,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         TxAsset: { Amount: amountWei, Addr: tokenAddress },
         Withdraw: { Amount: amountWei, Addr: tokenAddress },
         MerkleRoot: root.toString(),
-        MerkleProof: proof.map(String),
+        MerkleProof: paddedProof.map(String),
         Tx1Secret: sdk.txSecret(key, recipientAddress),
       };
 
@@ -569,33 +588,52 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
         setClaimingKey(key);
         setDepositTxHash(depositResult.transaction_hash);
 
+        const sdk = sdkModule!;
+        const readProvider = new RpcProvider({
+          nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET ||
+            process.env.NEXT_PUBLIC_RPC_URL ||
+            "/api/v1/zkdefi/starknet-rpc",
+        });
+        const chamber = sdk.getChamber(readProvider as any);
+
         setStep("waiting_confirmation");
         setMessage(
           `Deposit tx ${depositResult.transaction_hash.slice(0, 12)}... submitted. Waiting for on-chain confirmation...`,
         );
 
         // Poll for tx receipt instead of hardcoded sleep
-        const maxWaitMs = 60_000;
+        const maxWaitMs = 90_000;
         const pollIntervalMs = 3_000;
         const startTime = Date.now();
         let confirmed = false;
         while (Date.now() - startTime < maxWaitMs) {
           try {
             const receipt = await account.getTransactionReceipt(depositResult.transaction_hash);
-            if (receipt && (receipt as any).execution_status !== "REVERTED") {
+            const execStatus = (receipt as any)?.execution_status;
+            if (execStatus === "SUCCEEDED") {
               confirmed = true;
               break;
             }
-            if (receipt && (receipt as any).execution_status === "REVERTED") {
+            if (execStatus === "REVERTED") {
               throw new Error(`Deposit transaction reverted: ${depositResult.transaction_hash}`);
             }
+            if (execStatus === "REJECTED") {
+              throw new Error(`Deposit rejected by sequencer: ${depositResult.transaction_hash}`);
+            }
+            const asset = await sdk.fetchTxAssets(chamber, key, ownerAddress);
+            const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+            const assetAddr = String(asset?.addr ?? "").toLowerCase();
+            if (assetAmount > BigInt(0) && assetAddr === tokenAddress.toLowerCase()) {
+              confirmed = true;
+              break;
+            }
           } catch (pollErr) {
-            if (pollErr instanceof Error && pollErr.message.includes("reverted")) throw pollErr;
+            if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
           }
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
         if (!confirmed) {
-          throw new Error("Deposit confirmation timed out after 60s. The transaction may still be pending.");
+          throw new Error("Deposit confirmation timed out after 90s. The transaction may still be pending.");
         }
 
         // Step 2: Withdraw with ZK proof

@@ -1458,6 +1458,14 @@ export function usePortfolioPageShell() {
       const depTxHash = result.transaction_hash;
       setExecutionTxHash(depTxHash);
 
+      const sdk = await import("@mistcash/sdk");
+      await sdk.initCore();
+      const { RpcProvider } = await import("starknet");
+      const readProvider = new RpcProvider({
+        nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET || process.env.NEXT_PUBLIC_RPC_URL || "/api/v1/zkdefi/starknet-rpc",
+      });
+      const chamber = sdk.getChamber(readProvider as any);
+
       setExecutionNote(`🛡 Deposit submitted (${depTxHash.slice(0, 12)}...). Waiting for confirmation...`);
 
       // Poll for receipt — only accept SUCCEEDED, treat REVERTED/REJECTED as errors
@@ -1480,7 +1488,13 @@ export function usePortfolioPageShell() {
           if (execStatus === "REJECTED") {
             throw new Error(`Deposit rejected by sequencer (${depTxHash.slice(0, 14)}…). Try again.`);
           }
-          // Still PENDING or RECEIVED — keep polling
+          const asset = await sdk.fetchTxAssets(chamber, pending.claimingKey, pending.address);
+          const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+          const assetAddr = String(asset?.addr ?? "").toLowerCase();
+          if (assetAmount > BigInt(0) && assetAddr === pending.tokenAddr.toLowerCase()) {
+            confirmed = true;
+            break;
+          }
         } catch (pollErr) {
           if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
         }
