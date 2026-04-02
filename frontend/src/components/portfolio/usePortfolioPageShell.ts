@@ -1482,7 +1482,7 @@ export function usePortfolioPageShell() {
       }
 
       setExecutionNote(`🛡 Deposit confirmed. Generating ZK withdrawal proof...`);
-      const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
+      const withdrawTxHash = await mistPrivacy.submitWithdrawViaRelay(
         account,
         pending.address,
         pending.tokenAddr,
@@ -1490,9 +1490,8 @@ export function usePortfolioPageShell() {
         pending.claimingKey,
       );
 
-      setExecutionNote("🛡 Proof generated. Sign the private withdrawal + swap...");
-      const combinedCalls = [...withdrawCalls, ...pending.optimizedCalls];
-      const swapResult = await account.execute(combinedCalls);
+      setExecutionNote("🛡 Proof relayed. Executing swap...");
+      const swapResult = await account.execute(pending.optimizedCalls);
       setExecutionTxHash(swapResult.transaction_hash);
 
       const confirmPayload = await confirmPortfolioExecution(pending.address, pending.receiptId, swapResult.transaction_hash, {
@@ -1543,7 +1542,7 @@ export function usePortfolioPageShell() {
       setExecuting(true);
       setExecutionNote("🛡 Recovery: generating ZK withdrawal proof...");
 
-      const withdrawCalls = await mistPrivacy.buildWithdrawCalls(
+      const txHash = await mistPrivacy.submitWithdrawViaRelay(
         account,
         recipientAddress,
         tokenAddress,
@@ -1551,10 +1550,8 @@ export function usePortfolioPageShell() {
         claimingKey,
       );
 
-      setExecutionNote("🛡 Proof generated. Sign the recovery withdrawal...");
-      const result = await account.execute(withdrawCalls);
-      setExecutionTxHash(result.transaction_hash);
-      setExecutionNote(`🛡 Recovery withdrawal submitted. Tx ${result.transaction_hash.slice(0, 12)}...`);
+      setExecutionTxHash(txHash);
+      setExecutionNote(`🛡 Recovery withdrawal relayed. Tx ${txHash.slice(0, 12)}...`);
       setShowRecoveryPanel(false);
       if (address) await refreshData(address);
     } catch (err) {

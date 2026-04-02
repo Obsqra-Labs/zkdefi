@@ -602,33 +602,61 @@
     "last_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3"
   },
   "2026-04-01": {
-    "total": 196,
+    "total": 890,
     "by_gate": {
       "relayer": {
-        "allow": 0,
-        "advisory": 196,
+        "allow": 1,
+        "advisory": 889,
         "block": 0
       },
       "execution": {
         "allow": 0,
-        "advisory": 196,
+        "advisory": 890,
         "block": 0
       },
       "lending": {
-        "allow": 0,
-        "advisory": 196,
+        "allow": 1,
+        "advisory": 889,
         "block": 0
       }
     },
     "reason_counts": {
-      "tier_below_standard": 196,
-      "passport_low_confidence": 392,
-      "no_active_session": 143,
-      "passport_letter_below_c": 196,
-      "no_credit_line": 162,
-      "onboarding_incomplete": 15
+      "tier_below_standard": 889,
+      "passport_low_confidence": 1778,
+      "no_active_session": 500,
+      "passport_letter_below_c": 889,
+      "no_credit_line": 818,
+      "onboarding_incomplete": 1107
     },
-    "updated_at": "2026-04-01T06:37:06.513381+00:00",
+    "updated_at": "2026-04-01T23:57:15.243283+00:00",
+    "last_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3"
+  },
+  "2026-04-02": {
+    "total": 42,
+    "by_gate": {
+      "relayer": {
+        "allow": 0,
+        "advisory": 42,
+        "block": 0
+      },
+      "execution": {
+        "allow": 0,
+        "advisory": 42,
+        "block": 0
+      },
+      "lending": {
+        "allow": 0,
+        "advisory": 42,
+        "block": 0
+      }
+    },
+    "reason_counts": {
+      "tier_below_standard": 42,
+      "passport_low_confidence": 84,
+      "passport_letter_below_c": 42,
+      "no_credit_line": 41
+    },
+    "updated_at": "2026-04-02T02:02:17.822558+00:00",
     "last_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3"
   }
 }

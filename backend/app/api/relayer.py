@@ -50,21 +50,23 @@ def _default_state() -> dict[str, Any]:
         "claim_queue": {},
         "ledger_withdraw_queue": {},
         "wallet_payout_queue": {},
+        "mist_withdraw_queue": {},
         "next_request_id": 1,
         "next_deposit_id": 1,
         "next_claim_id": 1,
         "next_withdraw_id": 1,
         "next_wallet_payout_id": 1,
+        "next_mist_id": 1,
     }
 
 
 def _normalize_state(data: dict[str, Any]) -> dict[str, Any]:
     state = _default_state()
-    for key in ("relay_queue", "deposit_queue", "claim_queue", "ledger_withdraw_queue", "wallet_payout_queue"):
+    for key in ("relay_queue", "deposit_queue", "claim_queue", "ledger_withdraw_queue", "wallet_payout_queue", "mist_withdraw_queue"):
         value = data.get(key, {})
         if isinstance(value, dict):
             state[key] = value
-    for key in ("next_request_id", "next_deposit_id", "next_claim_id", "next_withdraw_id", "next_wallet_payout_id"):
+    for key in ("next_request_id", "next_deposit_id", "next_claim_id", "next_withdraw_id", "next_wallet_payout_id", "next_mist_id"):
         raw = data.get(key, state[key])
         try:
             parsed = int(raw)
@@ -212,6 +214,15 @@ def mark_wallet_payout_executed(payout_id: int, tx_hash: Optional[str] = None) -
     _mark_executed("wallet_payout_queue", "payout_id", payout_id, tx_hash=tx_hash)
 
 
+def get_ready_mist_withdraw_requests(limit: int = 20) -> list[dict[str, Any]]:
+    with _STATE_LOCK:
+        return _sorted_ready(_STATE.get("mist_withdraw_queue", {}), limit)
+
+
+def mark_mist_withdraw_executed(request_id: int, tx_hash: Optional[str] = None) -> None:
+    _mark_executed("mist_withdraw_queue", "request_id", request_id, tx_hash=tx_hash)
+
+
 def _get_user_tier(address: str) -> int:
     """Resolve user tier from reputation module if available, otherwise default to Tier 0."""
     try:
@@ -334,6 +345,12 @@ class WalletPayoutRequest(BaseModel):
     recipient: str
     asset: str = "STRK"
     reason: str = "ledger_transfer_out_wallet"
+
+
+class MistWithdrawRequest(BaseModel):
+    """Request to relay a MIST Chamber handle_zkp call via the funded relayer account."""
+    requester: str
+    proof_calldata: list[str] = Field(default_factory=list)
 
 
 class RelayExecuteRequest(BaseModel):
@@ -699,6 +716,58 @@ async def cancel_wallet_payout(request: RelayCancelRequest):
     return {"status": "cancelled", "payout_id": request.request_id}
 
 
+# ---------------------------------------------------------------------------
+# MIST Chamber relay (execution-privacy: relayer calls handle_zkp, not user)
+# ---------------------------------------------------------------------------
+
+_MIST_RELAY_FEE_BPS = int(os.getenv("MIST_RELAY_FEE_BPS", "0"))
+
+
+@router.post("/mist/withdraw")
+async def create_mist_withdraw_request(req: MistWithdrawRequest):
+    if not req.proof_calldata:
+        raise HTTPException(status_code=400, detail="proof_calldata is required.")
+    now = int(time.time())
+    entry = _enqueue(
+        "mist_withdraw_queue",
+        "next_mist_id",
+        "request_id",
+        {
+            "requester": _norm_addr(req.requester),
+            "proof_calldata": req.proof_calldata,
+            "fee_bps": _MIST_RELAY_FEE_BPS,
+            "request_time": now,
+            "ready_time": now,
+            "executed": False,
+            "cancelled": False,
+            "status": "pending",
+        },
+    )
+    return entry
+
+
+@router.get("/mist/status/{request_id}")
+async def get_mist_withdraw_status(request_id: int):
+    with _STATE_LOCK:
+        entry = _STATE.get("mist_withdraw_queue", {}).get(str(int(request_id)))
+        if not entry:
+            raise HTTPException(status_code=404, detail="Request not found")
+        status = "ready" if _queue_ready(entry) else "pending"
+        if entry.get("executed"):
+            status = "executed"
+        if entry.get("cancelled"):
+            status = "cancelled"
+        out = dict(entry)
+        out["status"] = status
+        return out
+
+
+@router.post("/cancel/mist-withdraw")
+async def cancel_mist_withdraw(request: RelayCancelRequest):
+    _mark_cancelled("mist_withdraw_queue", request.request_id, request.reason)
+    return {"status": "cancelled", "request_id": request.request_id}
+
+
 @router.get("/pending/{address}")
 async def pending_for_user(address: str):
     addr = _norm_addr(address)
@@ -728,6 +797,11 @@ async def pending_for_user(address: str):
             for r in _STATE.get("wallet_payout_queue", {}).values()
             if isinstance(r, dict) and _norm_addr(str(r.get("requester") or "")) == addr and _queue_pending(r)
         ]
+        pending_mist_withdraw = [
+            r
+            for r in _STATE.get("mist_withdraw_queue", {}).values()
+            if isinstance(r, dict) and _norm_addr(str(r.get("requester") or "")) == addr and _queue_pending(r)
+        ]
     return {
         "address": address,
         "withdraw_pending": len(pending_withdraw),
@@ -735,12 +809,14 @@ async def pending_for_user(address: str):
         "claim_pending": len(pending_claim),
         "ledger_withdraw_pending": len(pending_ledger_withdraw),
         "wallet_payout_pending": len(pending_wallet_payout),
+        "mist_withdraw_pending": len(pending_mist_withdraw),
         "requests": {
             "withdraw": pending_withdraw,
             "deposit": pending_deposit,
             "claim": pending_claim,
             "ledger_withdraw": pending_ledger_withdraw,
             "wallet_payout": pending_wallet_payout,
+            "mist_withdraw": pending_mist_withdraw,
         },
     }
 
@@ -783,10 +859,15 @@ async def get_relayer_stats():
         wallet_payout_pending = sum(
             1 for e in wallet_payout_queue.values() if isinstance(e, dict) and _queue_pending(e)
         )
+        mist_withdraw_queue = _STATE.get("mist_withdraw_queue", {})
+        mist_withdraw_pending = sum(
+            1 for e in mist_withdraw_queue.values() if isinstance(e, dict) and _queue_pending(e)
+        )
 
         withdraw_executed = sum(1 for e in relay_queue.values() if isinstance(e, dict) and e.get("executed"))
         deposit_executed = sum(1 for e in deposit_queue.values() if isinstance(e, dict) and e.get("executed"))
         claim_executed = sum(1 for e in claim_queue.values() if isinstance(e, dict) and e.get("executed"))
+        mist_withdraw_executed = sum(1 for e in mist_withdraw_queue.values() if isinstance(e, dict) and e.get("executed"))
 
     return {
         "relayer_address": os.getenv("RELAYER_ADDRESS"),
@@ -795,9 +876,11 @@ async def get_relayer_stats():
         "claim_pending": claim_pending,
         "ledger_withdraw_pending": ledger_withdraw_pending,
         "wallet_payout_pending": wallet_payout_pending,
+        "mist_withdraw_pending": mist_withdraw_pending,
         "withdraw_executed": withdraw_executed,
         "deposit_executed": deposit_executed,
         "claim_executed": claim_executed,
+        "mist_withdraw_executed": mist_withdraw_executed,
         "total_requests": (
             withdraw_pending
             + withdraw_executed
@@ -807,6 +890,8 @@ async def get_relayer_stats():
             + claim_executed
             + ledger_withdraw_pending
             + wallet_payout_pending
+            + mist_withdraw_pending
+            + mist_withdraw_executed
         ),
     }
 

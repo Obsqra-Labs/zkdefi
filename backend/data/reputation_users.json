@@ -694,5 +694,21 @@
     "first_interaction": 0,
     "successful_txns": 0,
     "collateral": 0
+  },
+  "0x03c33bbfa0042555fc7349124a4d0508a4975e9b2a192a3ee04de9613a86903f": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
+  },
+  "0x0430a74277723d1ebba7119339f0f8276ca946c1b2c73de7636fd9eba31e1c1f": {
+    "tier": 0,
+    "transaction_count": 0,
+    "total_volume": 0,
+    "first_interaction": 0,
+    "successful_txns": 0,
+    "collateral": 0
   }
 }

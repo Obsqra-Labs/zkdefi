@@ -136,6 +136,19 @@ export type UseMistPrivacyReturn = MistPrivacyState & {
     claimingKey?: string,
   ) => Promise<Call[]>;
   /**
+   * Generate ZK proof and submit withdrawal via the backend relayer.
+   * The relayer calls handle_zkp on MIST Chamber so the user's wallet
+   * never appears on-chain (execution privacy).
+   * Returns the relay tx hash once the relayer processes it.
+   */
+  submitWithdrawViaRelay: (
+    provider: ProviderInterface,
+    recipientAddress: string,
+    tokenAddress: string,
+    amountWei: string,
+    claimingKey?: string,
+  ) => Promise<string>;
+  /**
    * Execute the full privacy flow: deposit → withdraw to self.
    * This breaks the on-chain link while keeping tokens in the same wallet.
    * Returns after withdrawal tx is submitted.
@@ -411,6 +424,75 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
     [claimingKey],
   );
 
+  // ---- Submit withdraw via backend relayer (execution privacy) ----
+  const submitWithdrawViaRelay = useCallback(
+    async (
+      provider: ProviderInterface,
+      recipientAddress: string,
+      tokenAddress: string,
+      amountWei: string,
+      overrideKey?: string,
+    ): Promise<string> => {
+      // 1. Generate the proof (same as buildWithdrawCalls)
+      const calls = await buildWithdrawCalls(provider, recipientAddress, tokenAddress, amountWei, overrideKey);
+      const proofCalldata = calls[0]?.calldata as string[];
+      if (!proofCalldata || proofCalldata.length === 0) {
+        throw new Error("Failed to generate proof calldata for relay.");
+      }
+
+      // 2. POST to relay API
+      setStep("withdrawing");
+      setMessage("Submitting withdrawal via privacy relayer...");
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiBase}/api/v1/zkdefi/relayer/mist/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requester: recipientAddress,
+          proof_calldata: proofCalldata,
+        }),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(`Relay request failed (${res.status}): ${detail}`);
+      }
+      const entry = await res.json();
+      const requestId = entry.request_id;
+      console.log("[MIST] Relay request queued, request_id:", requestId);
+
+      // 3. Poll for execution (relayer runner picks it up)
+      setMessage("Waiting for relayer to submit on-chain (this may take a few seconds)...");
+      const pollUrl = `${apiBase}/api/v1/zkdefi/relayer/mist/status/${requestId}`;
+      const maxWaitMs = 120_000;
+      const pollIntervalMs = 2_000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxWaitMs) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        try {
+          const statusRes = await fetch(pollUrl);
+          if (!statusRes.ok) continue;
+          const statusData = await statusRes.json();
+          if (statusData.status === "executed") {
+            const txHash = statusData.tx_hash || "";
+            setWithdrawTxHash(txHash);
+            console.log("[MIST] Relay executed, tx_hash:", txHash);
+            return txHash;
+          }
+          if (statusData.status === "cancelled") {
+            throw new Error(`Relay request was cancelled: ${statusData.cancel_reason || "unknown reason"}`);
+          }
+        } catch (pollErr) {
+          if (pollErr instanceof Error && pollErr.message.includes("cancelled")) throw pollErr;
+          // transient error — keep polling
+        }
+      }
+      throw new Error("Relay withdrawal timed out after 120s. The relayer may still process it.");
+    },
+    [buildWithdrawCalls],
+  );
+
   // ---- Full privacy wrap: deposit → withdraw to same address ----
   const executePrivacyWrap = useCallback(
     async (
@@ -532,6 +614,7 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
     buildDepositCalls,
     executeDeposit,
     buildWithdrawCalls,
+    submitWithdrawViaRelay,
     executePrivacyWrap,
     reset,
   };

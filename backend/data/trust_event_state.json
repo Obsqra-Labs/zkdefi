@@ -1867,7 +1867,7 @@
     "credit.model_state": {
       "grade": "AAA",
       "rate_bps": 300,
-      "credit_line_eth": 0.001048,
+      "credit_line_eth": 0.00067,
       "model_name": "creditworthiness_mlp",
       "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     },
@@ -1916,6 +1916,56 @@
       "grade": "AAA",
       "rate_bps": 300,
       "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x03c33bbfa0042555fc7349124a4d0508a4975e9b2a192a3ee04de9613a86903f": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.0,
+      "model_name": "creditworthiness_mlp",
+      "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
+    },
+    "identity.binding_state": {
+      "active": false,
+      "status": "missing",
+      "session_id": null,
+      "linked_verified_count": 0
+    },
+    "execution.gate_state": {
+      "mode": "advisory",
+      "reason_codes": [
+        "onboarding_incomplete",
+        "no_active_session",
+        "passport_low_confidence"
+      ],
+      "active_sessions": 0
+    }
+  },
+  "0x0430a74277723d1ebba7119339f0f8276ca946c1b2c73de7636fd9eba31e1c1f": {
+    "governance.voting_power": 0.0,
+    "credit.model_state": {
+      "grade": "AAA",
+      "rate_bps": 300,
+      "credit_line_eth": 0.000342,
       "model_name": "creditworthiness_mlp",
       "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     },

@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Optional
 
 from starknet_py.contract import Contract
+from starknet_py.hash.selector import get_selector_from_name
 from starknet_py.net.account.account import Account
+from starknet_py.net.client_models import Call as StarknetCall
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.models.chains import StarknetChainId
 from starknet_py.net.signer.stark_curve_signer import KeyPair
@@ -106,6 +108,7 @@ class RelayerRunnerConfig:
     confidential_transfer_address: Optional[int]
     escrow_address: Optional[int]
     hashed_withdraw_pool_address: Optional[int]
+    mist_chamber_address: Optional[int]
     ledger_payout_mode: str
     use_cli: bool
     starkli_account: Optional[str]
@@ -135,6 +138,7 @@ class RelayerRunner:
         confidential_transfer_address = _parse_int(config.CONFIDENTIAL_TRANSFER_ADDRESS)
         escrow_address = _parse_int(config.TIER2H_ESCROW_ADDRESS)
         hashed_withdraw_pool_address = _parse_int(config.HASHED_WITHDRAW_POOL_ADDRESS)
+        mist_chamber_address = _parse_int(os.getenv("MIST_CHAMBER_ADDRESS"))
         ledger_payout_mode = config.LEDGER_PAYOUT_MODE
         use_cli = os.getenv("RELAYER_RUNNER_USE_CLI", "false").lower() == "true"
         starkli_account = os.getenv("RELAYER_STARKLI_ACCOUNT") or os.getenv("STARKNET_ACCOUNT")
@@ -152,6 +156,7 @@ class RelayerRunner:
             confidential_transfer_address=confidential_transfer_address,
             escrow_address=escrow_address,
             hashed_withdraw_pool_address=hashed_withdraw_pool_address,
+            mist_chamber_address=mist_chamber_address,
             ledger_payout_mode=ledger_payout_mode,
             use_cli=use_cli,
             starkli_account=starkli_account,
@@ -515,6 +520,35 @@ class RelayerRunner:
         ]
         return await self._cli_invoke(self.cfg.confidential_transfer_address, "private_deposit_u256", calldata)
 
+    async def _submit_mist_withdraw(self, req: dict) -> Optional[str]:
+        """Submit a MIST Chamber handle_zkp call via the relayer account.
+
+        This provides execution privacy: the relayer (not the user) appears on-chain.
+        """
+        proof = [_parse_int(p) for p in req.get("proof_calldata", [])]
+        if any(p is None for p in proof):
+            raise ValueError("Invalid proof calldata in MIST withdraw request.")
+        if self.cfg.dry_run:
+            _log.info("DRY RUN mist withdraw request_id=%s", req.get("request_id"))
+            return None
+        if not self.cfg.mist_chamber_address:
+            raise RuntimeError("MIST_CHAMBER_ADDRESS not configured.")
+        await self._ensure_account()
+        assert self._account is not None
+        if self.cfg.use_cli:
+            calldata = [str(len(proof)), *[str(int(p)) for p in proof]]
+            return await self._cli_invoke(self.cfg.mist_chamber_address, "handle_zkp", calldata)
+        call = StarknetCall(
+            to_addr=self.cfg.mist_chamber_address,
+            selector=get_selector_from_name("handle_zkp"),
+            calldata=[int(p) for p in proof],
+        )
+        result = await self._account.execute_v3(calls=[call], auto_estimate=True)
+        tx_hash = hex(result.hash)
+        if self.cfg.wait_for_tx:
+            await result.wait_for_acceptance()
+        return tx_hash
+
     async def _submit_ledger_withdraw(self, req: dict) -> Optional[str]:
         """Submit one ledger-withdraw as ConfidentialTransfer.private_deposit_u256."""
         amount = _parse_int(req.get("amount_wei"))
@@ -565,8 +599,25 @@ class RelayerRunner:
         ready_deposits = relayer_api.get_ready_deposit_requests(limit=self.cfg.max_batch)
         ready_claims = relayer_api.get_ready_claim_requests(limit=self.cfg.max_batch)
         ready_ledger_withdraws = relayer_api.get_ready_ledger_withdraw_requests(limit=self.cfg.max_batch)
+        ready_mist_withdraws = relayer_api.get_ready_mist_withdraw_requests(limit=self.cfg.max_batch)
         stop_after_submit = not self.cfg.wait_for_tx
         submitted = False
+
+        # MIST privacy withdrawals first (time-sensitive for user UX)
+        for req in ready_mist_withdraws:
+            request_id = req.get("request_id")
+            try:
+                tx_hash = await self._submit_mist_withdraw(req)
+                if tx_hash:
+                    _log.info("MIST withdraw %s tx=%s", request_id, tx_hash)
+                if not self.cfg.dry_run:
+                    relayer_api.mark_mist_withdraw_executed(int(request_id), tx_hash=tx_hash)
+                if stop_after_submit and tx_hash:
+                    submitted = True
+            except Exception as exc:
+                _log.error("MIST withdraw failed request_id=%s err=%s", request_id, exc)
+            if submitted:
+                return
 
         for req in ready_ledger_withdraws:
             withdraw_id = req.get("withdraw_id")

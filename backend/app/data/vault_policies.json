@@ -198,6 +198,106 @@
       "avnu"
     ]
   },
+  "0x3c33bbfa0042555fc7349124a4d0508a4975e9b2a192a3ee04de9613a86903f": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "rebalance_mode": "user",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_3887a2f169b76f7575cdd19a",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-04-01T07:34:39.846498+00:00",
+    "user_address": "0x3c33bbfa0042555fc7349124a4d0508a4975e9b2a192a3ee04de9613a86903f",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
+  "0x430a74277723d1ebba7119339f0f8276ca946c1b2c73de7636fd9eba31e1c1f": {
+    "disclosure_policy": {
+      "allow_balance_proof": true,
+      "allow_performance_proof": false,
+      "allow_risk_proof": true
+    },
+    "execution_policy": {
+      "allowed_strategies": [],
+      "cooldown_seconds": 300,
+      "emergency_pause": false,
+      "max_daily_notional_wei": 0,
+      "max_oracle_age_sec": 120,
+      "max_trade_notional_wei": 0,
+      "min_expected_edge_bps": 0,
+      "mode": "assist",
+      "rebalance_mode": "user",
+      "session_duration_hours": 24,
+      "session_max_notional_usd": 500
+    },
+    "mode": "personal",
+    "privacy_policy": {
+      "hide_amounts": true,
+      "hide_recipient": false,
+      "hide_sender": true,
+      "max_relayer_delay_seconds": 1200,
+      "preset": "unlinkable_basic",
+      "relay_mode": "optional",
+      "settlement_mode": "public_transfer",
+      "use_nullifier": true
+    },
+    "profile_id": "vpol_b04a98f63d9e355908a68e20",
+    "risk_budget": {
+      "max_daily_turnover_bps": 2000,
+      "max_drawdown_bps": 1500,
+      "max_position_pct": 35
+    },
+    "strategy_permissions": {
+      "enable_dca": true,
+      "enable_lp": true,
+      "enable_rebalance": true,
+      "enable_rotation": true
+    },
+    "token_allowlist": [],
+    "updated_at": "2026-04-01T12:22:01.321777+00:00",
+    "user_address": "0x430a74277723d1ebba7119339f0f8276ca946c1b2c73de7636fd9eba31e1c1f",
+    "venue_allowlist": [
+      "ekubo",
+      "avnu"
+    ]
+  },
   "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": {
     "disclosure_policy": {
       "allow_balance_proof": true,
