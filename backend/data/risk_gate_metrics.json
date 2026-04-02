@@ -632,31 +632,31 @@
     "last_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3"
   },
   "2026-04-02": {
-    "total": 42,
+    "total": 88,
     "by_gate": {
       "relayer": {
         "allow": 0,
-        "advisory": 42,
+        "advisory": 88,
         "block": 0
       },
       "execution": {
         "allow": 0,
-        "advisory": 42,
+        "advisory": 88,
         "block": 0
       },
       "lending": {
         "allow": 0,
-        "advisory": 42,
+        "advisory": 88,
         "block": 0
       }
     },
     "reason_counts": {
-      "tier_below_standard": 42,
-      "passport_low_confidence": 84,
-      "passport_letter_below_c": 42,
-      "no_credit_line": 41
+      "tier_below_standard": 88,
+      "passport_low_confidence": 176,
+      "passport_letter_below_c": 88,
+      "no_credit_line": 86
     },
-    "updated_at": "2026-04-02T02:02:17.822558+00:00",
+    "updated_at": "2026-04-02T04:34:30.579897+00:00",
     "last_address": "0x0348914bed4fdc65399d347c4498d778b75d5835d9276027a4357fe78b4a7eb3"
   }
 }

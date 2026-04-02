@@ -1867,7 +1867,7 @@
     "credit.model_state": {
       "grade": "AAA",
       "rate_bps": 300,
-      "credit_line_eth": 0.00067,
+      "credit_line_eth": 0.000666,
       "model_name": "creditworthiness_mlp",
       "model_hash": "be1ad11ff8bf6cdf83ee0fee15cfdf2723454116d19e4adb1c5b748620cc2812"
     },

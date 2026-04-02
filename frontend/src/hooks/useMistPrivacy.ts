@@ -346,10 +346,17 @@ export function useMistPrivacy(): UseMistPrivacyReturn {
       const chamber = sdk.getChamber(readProvider as any);
       console.log("[MIST] Chamber contract ready (via proxied RPC)");
 
-      // 2. Verify the deposit exists
+      // 2. Verify the deposit exists on-chain
+      // fetchTxAssets always returns {amount, addr} — check amount > 0 to detect missing deposits.
       const asset = await sdk.fetchTxAssets(chamber, key, recipientAddress);
-      console.log("[MIST] fetchTxAssets result:", asset);
-      if (!asset) throw new Error("Deposit not found in MIST Chamber. It may not be confirmed yet.");
+      console.log("[MIST] fetchTxAssets result:", JSON.stringify(asset, (_k, v) => typeof v === "bigint" ? v.toString() : v));
+      const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+      if (!asset || assetAmount === BigInt(0)) {
+        throw new Error(
+          "Deposit not found on-chain. The original deposit transaction may have failed or was never confirmed. " +
+          "Try depositing again with a new privacy swap.",
+        );
+      }
 
       // 3. Get Merkle tree state — retry up to 8 times (tree may not have indexed the deposit yet)
       // u256 may come back as BigInt or {low, high} — normalise robustly
