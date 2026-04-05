@@ -11,11 +11,9 @@ import {
   checkPortfolioIntent,
   confirmPortfolioExecution,
   executePortfolioIntent,
-  fetchPortfolioAuthTelemetrySummary,
   fetchPortfolioPageData,
   fetchPortfolioReceipts,
   fetchPortfolioRecommendation,
-  type PortfolioAuthTelemetrySummary,
   savePortfolioPolicy,
   setPortfolioGovernedExecutionState,
   togglePortfolioEmergencyStop,
@@ -30,6 +28,7 @@ import {
   optimizeWalletCallsForExecution,
 } from "./execution";
 import { formatAssetAmount, formatEditableAmount, formatUsd } from "./formatters";
+import { usePortfolioAuthTelemetry } from "./usePortfolioAuthTelemetry";
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -312,8 +311,14 @@ export function usePortfolioPageShell() {
   const [intentSet, setIntentSet] = useState(false);
   const recommendationJustAppliedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [authTelemetrySummary, setAuthTelemetrySummary] = useState<PortfolioAuthTelemetrySummary | null>(null);
-  const [authTelemetryLoading, setAuthTelemetryLoading] = useState(false);
+  const {
+    authTelemetrySummary,
+    authTelemetryLoading,
+    refreshAuthTelemetry,
+  } = usePortfolioAuthTelemetry({
+    address,
+    enabled: Boolean(address) && accountConnected,
+  });
   const [privateMode, setPrivateMode] = useState(() => {
     if (typeof window === "undefined") return false;
     try { return window.localStorage.getItem(`zkdefi_private_mode_${address ?? ""}`) === "true"; } catch { return false; }
@@ -1260,18 +1265,6 @@ export function usePortfolioPageShell() {
       setLoading(false);
     }
   };
-
-  const refreshAuthTelemetry = useCallback(async () => {
-    setAuthTelemetryLoading(true);
-    try {
-      const summary = await fetchPortfolioAuthTelemetrySummary(24 * 60 * 60);
-      setAuthTelemetrySummary(summary);
-    } catch {
-      // Keep the desk functional even if telemetry summary is unavailable.
-    } finally {
-      setAuthTelemetryLoading(false);
-    }
-  }, []);
 
   const setSwapAmountByPercent = (percent: number) => {
     if (!swapAvailableAmount) {
@@ -2722,20 +2715,11 @@ export function usePortfolioPageShell() {
       setPendingReceiptId(null);
       setPendingRouteLabel(null);
       setTxStatusMap({});
-      setAuthTelemetrySummary(null);
       setError(null);
       return;
     }
     void refreshData(address);
     void refreshAuthTelemetry();
-  }, [address, accountConnected, refreshAuthTelemetry]);
-
-  useEffect(() => {
-    if (!address || !accountConnected) return;
-    const interval = setInterval(() => {
-      void refreshAuthTelemetry();
-    }, 45_000);
-    return () => clearInterval(interval);
   }, [address, accountConnected, refreshAuthTelemetry]);
 
   // Auto-refresh portfolio 30s after execution to catch settled state

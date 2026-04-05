@@ -25,16 +25,22 @@ function chainLabel(chainId: string | bigint | undefined): string {
 }
 
 export function ConnectButton() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const accountConnected = Boolean(address);
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (isModalOpen && accountConnected) {
+      setIsModalOpen(false);
+    }
+  }, [isModalOpen, accountConnected]);
 
   // Match server/first paint: don't show wallet state until after hydration (avoids React #418)
-  const showConnected = mounted && isConnected && address;
+  const showConnected = mounted && accountConnected && address;
 
   const copyAddress = () => {
     if (address) {
@@ -55,6 +61,7 @@ export function ConnectButton() {
     return (
       <div className="relative">
         <button
+          type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 glass rounded-lg border border-zinc-700 hover:border-emerald-500/50 transition-all text-sm"
         >
@@ -77,6 +84,7 @@ export function ConnectButton() {
             <div className="absolute right-0 mt-2 w-56 glass rounded-lg border border-zinc-700 shadow-lg z-20">
               <div className="p-2">
                 <button
+                  type="button"
                   onClick={copyAddress}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
                 >
@@ -84,6 +92,7 @@ export function ConnectButton() {
                   <span>Copy address</span>
                 </button>
                 <button
+                  type="button"
                   onClick={viewOnExplorer}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-sm"
                 >
@@ -92,6 +101,7 @@ export function ConnectButton() {
                 </button>
                 <div className="h-px bg-zinc-700 my-1" />
                 <button
+                  type="button"
                   onClick={() => {
                     disconnect();
                     setIsDropdownOpen(false);
@@ -112,6 +122,7 @@ export function ConnectButton() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setIsModalOpen(true)}
         className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-all hover:shadow-lg hover:shadow-emerald-500/20"
       >

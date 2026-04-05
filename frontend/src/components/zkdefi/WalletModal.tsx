@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { useConnect } from "@starknet-react/core";
+import { useAccount, useConnect } from "@starknet-react/core";
+import { toastError } from "@/lib/toast";
 
 /* Inline SVG wallet icons — no external deps needed */
 function ArgentIcon() {
@@ -46,10 +49,116 @@ interface WalletModalProps {
   onClose: () => void;
 }
 
-export function WalletModal({ isOpen, onClose }: WalletModalProps) {
-  const { connect, connectors } = useConnect();
+const CONNECT_SLOW_NOTICE_MS = 15000;
+const CONNECT_HARD_TIMEOUT_MS = 60000;
 
-  return (
+export function WalletModal({ isOpen, onClose }: WalletModalProps) {
+  const { address } = useAccount();
+  const { connect, connectors, pendingConnector, error: connectHookError } = useConnect();
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [connectNotice, setConnectNotice] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const slowNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hardTimeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectAttemptIdRef = useRef(0);
+  // Treat "connected" as having a concrete address; status flags can be stale.
+  const accountConnected = Boolean(address);
+  const accountConnectedRef = useRef(accountConnected);
+
+  useEffect(() => {
+    accountConnectedRef.current = accountConnected;
+  }, [accountConnected]);
+
+  const clearConnectTimers = () => {
+    if (slowNoticeTimerRef.current) {
+      clearTimeout(slowNoticeTimerRef.current);
+      slowNoticeTimerRef.current = null;
+    }
+    if (hardTimeoutTimerRef.current) {
+      clearTimeout(hardTimeoutTimerRef.current);
+      hardTimeoutTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      clearConnectTimers();
+      setConnectError(null);
+      setConnectNotice(null);
+      setConnectingId(null);
+    }
+  }, [isOpen]);
+
+  // Some wallet connectors resolve `connectAsync` late even after account state is connected.
+  // Close the modal as soon as account state confirms connection.
+  useEffect(() => {
+    if (!isOpen || !accountConnected) return;
+    clearConnectTimers();
+    onClose();
+  }, [isOpen, accountConnected, onClose]);
+
+  useEffect(() => {
+    if (!isOpen || !connectingId || !connectHookError || accountConnectedRef.current) return;
+    const message =
+      connectHookError instanceof Error && connectHookError.message
+        ? connectHookError.message
+        : "Wallet connection failed.";
+    clearConnectTimers();
+    setConnectNotice(null);
+    setConnectError(message);
+    setConnectingId(null);
+  }, [isOpen, connectingId, connectHookError]);
+
+  const handleConnect = async (connectorId: string) => {
+    const connector = connectors.find((item) => item.id === connectorId);
+    if (!connector) return;
+
+    const attemptId = connectAttemptIdRef.current + 1;
+    connectAttemptIdRef.current = attemptId;
+
+    setConnectError(null);
+    setConnectNotice(null);
+    setConnectingId(connector.id);
+    clearConnectTimers();
+    try {
+      if (!connector.available()) {
+        throw new Error(`${connector.name} was not detected in this browser.`);
+      }
+      slowNoticeTimerRef.current = setTimeout(() => {
+        if (connectAttemptIdRef.current !== attemptId || accountConnectedRef.current) return;
+        setConnectNotice("Still waiting for wallet approval. Unlock/approve the wallet extension to continue.");
+      }, CONNECT_SLOW_NOTICE_MS);
+      hardTimeoutTimerRef.current = setTimeout(() => {
+        if (connectAttemptIdRef.current !== attemptId || accountConnectedRef.current) return;
+        const message = "Wallet extension did not respond. Unlock/approve the wallet and try again.";
+        setConnectNotice(null);
+        setConnectError(message);
+        setConnectingId(null);
+      }, CONNECT_HARD_TIMEOUT_MS);
+      connect({ connector });
+    } catch (error) {
+      if (accountConnectedRef.current) {
+        return;
+      }
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Wallet connection failed.";
+      setConnectError(message);
+      toastError(message);
+    }
+  };
+
+  if (!isMounted) {
+    return null;
+  }
+
+  const modal = (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -59,7 +168,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140]"
           />
 
           {/* Modal */}
@@ -67,7 +176,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[150] flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="glass rounded-2xl border border-zinc-800 p-6 w-full max-w-md">
@@ -86,13 +195,17 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
               </div>
 
               <div className="mt-4 space-y-2">
+                {connectors.length === 0 && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    No Starknet wallet detected. Install Argent X, Braavos, or another Starknet extension and refresh.
+                  </div>
+                )}
                 {connectors.map((connector) => (
                   <button
                     key={connector.id}
-                    onClick={() => {
-                      connect({ connector });
-                      onClose();
-                    }}
+                    type="button"
+                    onClick={() => void handleConnect(connector.id)}
+                    disabled={Boolean(connectingId) && connectingId !== connector.id}
                     className="w-full rounded-xl border border-zinc-800 hover:border-cyan-500/40 p-4 flex items-center gap-4 transition-all hover:bg-zinc-900/80 group"
                   >
                     <WalletIcon name={connector.name} />
@@ -106,10 +219,23 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
                             : "Starknet wallet"}
                       </div>
                     </div>
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-600 group-hover:text-zinc-400">Connect</span>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-600 group-hover:text-zinc-400">
+                      {connectingId === connector.id || pendingConnector?.id === connector.id ? "Connecting…" : "Connect"}
+                    </span>
                   </button>
                 ))}
               </div>
+
+              {connectError ? (
+                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                  {connectError}
+                </p>
+              ) : null}
+              {!connectError && connectNotice ? (
+                <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  {connectNotice}
+                </p>
+              ) : null}
 
               <p className="mt-5 text-xs text-zinc-600 text-center">
                 New to Starknet?{" "}
@@ -134,4 +260,6 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modal, document.body);
 }
