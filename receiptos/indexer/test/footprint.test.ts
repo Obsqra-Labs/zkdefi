@@ -82,7 +82,7 @@ describe("computeProtocolFootprint", () => {
         }
 
         if (
-          eventFilter.address === "0x0280d63e837e70ebdee7f7f2b314c6f24b4bbe6dd59dbfcc5038d07cdbe2e0f2"
+          eventFilter.address === "0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b"
           && eventSelector === ekuboSwapSelector
         ) {
           return [[]];
@@ -125,7 +125,7 @@ describe("computeProtocolFootprint", () => {
 
   it("computes public Ekubo route attribution and gross delta totals", async () => {
     const ekuboSwapSelector = selector.getSelectorFromName("swap");
-    const ekubo = "0x0280d63e837e70ebdee7f7f2b314c6f24b4bbe6dd59dbfcc5038d07cdbe2e0f2";
+    const ekubo = "0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b";
     const starkPrime = BigInt("0x800000000000011000000000000000000000000000000000000000000000001");
     const negativeDelta = (starkPrime - 5n).toString();
 

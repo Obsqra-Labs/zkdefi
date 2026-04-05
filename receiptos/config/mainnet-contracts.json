@@ -18,9 +18,9 @@
     "notes": "best effort fallback bridge"
   },
   "ekubo_core": {
-    "address": "0x0280d63e837e70ebdee7f7f2b314c6f24b4bbe6dd59dbfcc5038d07cdbe2e0f2",
+    "address": "0x00000005dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b",
     "verified": true,
-    "source": "Ekubo official documentation, verified block 8106427",
+    "source": "Ekubo official Starknet contracts reference (Core mainnet), verified via starknet_getClassHashAt at block 8486954 on 2026-04-05",
     "notes": "Core DEX contract for concentrated liquidity swaps"
   },
   "vesu_core": {
@@ -42,10 +42,10 @@
     "notes": "staking protocol address pending verification"
   },
   "mist_cash_contract": {
-    "address": "unresolved",
-    "verified": false,
-    "source": "",
-    "notes": "best effort in v0.1"
+    "address": "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
+    "verified": true,
+    "source": "README mainnet contract block and prior live-chain validation during 2026-04-04 mainnet footprint investigation",
+    "notes": "MIST Chamber deployment is verified. Event selectors and notional parsing are still pending before private-volume metrics can be claimed."
   },
   "starknet_id": {
     "address": "unresolved",
