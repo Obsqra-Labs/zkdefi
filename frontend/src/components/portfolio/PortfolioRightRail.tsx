@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, RefreshCcw, ShieldCheck } from "lucide-react";
 
 import { formatPercent, formatUsd } from "./formatters";
 import { MixBar } from "./PortfolioMainDesk";
 import type { ActivityItem, PolicyDraft, PolicySnapshot, SupportedAsset } from "./types";
+import type { PortfolioAuthTelemetrySummary } from "./api";
 
 type GateGuardResult = {
   passed: boolean;
@@ -58,6 +59,9 @@ type Props = {
   showPolicyEditor: boolean;
   policyDirty: boolean;
   checking: boolean;
+  authTelemetrySummary: PortfolioAuthTelemetrySummary | null;
+  authTelemetryLoading: boolean;
+  onRefreshAuthTelemetry: () => void;
   onTogglePolicyEditor: () => void;
   onPolicyFieldChange: (field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps" | "maxFeeSharePct", value: string) => void;
   onPolicyMinAmountChange: (asset: SupportedAsset, value: string) => void;
@@ -81,6 +85,9 @@ export function PortfolioRightRail({
   showPolicyEditor,
   policyDirty,
   checking,
+  authTelemetrySummary,
+  authTelemetryLoading,
+  onRefreshAuthTelemetry,
   onTogglePolicyEditor,
   onPolicyFieldChange,
   onPolicyMinAmountChange,
@@ -100,6 +107,20 @@ export function PortfolioRightRail({
     if (status === "ready to sign") return "text-amber-300";
     return "text-zinc-500";
   };
+
+  const privacyClassColor = (classification?: string | null) => {
+    if (classification === "private_execution") return "text-emerald-300";
+    if (classification === "private_settlement") return "text-cyan-300";
+    if (classification === "private_funding") return "text-amber-300";
+    return "text-zinc-500";
+  };
+
+  const telemetrySuccessRate = authTelemetrySummary?.totals.success_rate_pct;
+  const telemetryP95Total = authTelemetrySummary?.latency_ms.total.p95;
+  const telemetryP95Sign = authTelemetrySummary?.latency_ms.sign.p95;
+  const walletSignatureFailures = authTelemetrySummary?.failures.by_stage.wallet_signature ?? 0;
+  const api401 = authTelemetrySummary?.failures.by_status["401"] ?? 0;
+  const api404 = authTelemetrySummary?.failures.by_status["404"] ?? 0;
 
   return (
     <aside className="space-y-3 xl:sticky xl:top-6">
@@ -225,7 +246,54 @@ export function PortfolioRightRail({
         ) : null}
       </section>
 
-      {/* ── Section 3: Activity ── */}
+      {/* ── Section 3: Auth telemetry ── */}
+      <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Auth telemetry · 24h</p>
+          <button
+            type="button"
+            onClick={onRefreshAuthTelemetry}
+            className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          >
+            {authTelemetryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+            Refresh
+          </button>
+        </div>
+        <div className="mt-2 space-y-1">
+          <RailKeyValue
+            label="Success rate"
+            value={telemetrySuccessRate == null ? "—" : `${telemetrySuccessRate.toFixed(1)}%`}
+            valueClassName={telemetrySuccessRate != null && telemetrySuccessRate >= 90 ? "text-emerald-200" : "text-amber-200"}
+          />
+          <RailKeyValue
+            label="p95 total"
+            value={telemetryP95Total == null ? "—" : `${Math.round(telemetryP95Total)} ms`}
+            valueClassName={telemetryP95Total != null && telemetryP95Total > 5000 ? "text-amber-200" : "text-zinc-200"}
+          />
+          <RailKeyValue
+            label="p95 signature"
+            value={telemetryP95Sign == null ? "—" : `${Math.round(telemetryP95Sign)} ms`}
+            valueClassName={telemetryP95Sign != null && telemetryP95Sign > 3500 ? "text-amber-200" : "text-zinc-200"}
+          />
+          <RailKeyValue
+            label="Wallet-sign failures"
+            value={String(walletSignatureFailures)}
+            valueClassName={walletSignatureFailures > 2 ? "text-amber-200" : "text-zinc-300"}
+          />
+          <RailKeyValue
+            label="API 401 / 404"
+            value={`${api401} / ${api404}`}
+            valueClassName={api401 > 0 || api404 > 0 ? "text-amber-200" : "text-zinc-300"}
+          />
+        </div>
+        {authTelemetrySummary?.alerts?.length ? (
+          <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+            {authTelemetrySummary.alerts[0].message}
+          </div>
+        ) : null}
+      </section>
+
+      {/* ── Section 4: Activity ── */}
       <section className="rounded-[22px] border border-zinc-800/80 bg-zinc-950/88 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">Activity</p>
         <div className="mt-2 space-y-1.5">
@@ -237,7 +305,14 @@ export function PortfolioRightRail({
                   <span className="shrink-0 text-[10px] text-zinc-600">{item.timestamp}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className={`text-[10px] uppercase tracking-[0.14em] ${statusColor(item.status)}`}>{item.status}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] uppercase tracking-[0.14em] ${statusColor(item.status)}`}>{item.status}</span>
+                    {item.privacyLabel ? (
+                      <span className={`text-[10px] uppercase tracking-[0.14em] ${privacyClassColor(item.privacyClassification)}`}>
+                        {item.privacyLabel}
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="flex items-center gap-2 text-[11px]">
                     {item.receiptHref ? <a href={item.receiptHref} className="text-emerald-400 hover:text-emerald-300">Receipt</a> : null}
                     {item.txHref ? <a href={item.txHref} target="_blank" rel="noreferrer" className="text-cyan-300 hover:text-cyan-200">Tx</a> : null}

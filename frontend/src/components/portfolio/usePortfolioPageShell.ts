@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAccount } from "@starknet-react/core";
+import { useAccount, useSignTypedData } from "@starknet-react/core";
 import { useRouter } from "next/navigation";
 import type { Call } from "starknet";
 
@@ -11,9 +11,11 @@ import {
   checkPortfolioIntent,
   confirmPortfolioExecution,
   executePortfolioIntent,
+  fetchPortfolioAuthTelemetrySummary,
   fetchPortfolioPageData,
   fetchPortfolioReceipts,
   fetchPortfolioRecommendation,
+  type PortfolioAuthTelemetrySummary,
   savePortfolioPolicy,
   setPortfolioGovernedExecutionState,
   togglePortfolioEmergencyStop,
@@ -48,6 +50,8 @@ import {
   chainBadgeLabel,
   isMainnetChain,
   normalizeAllocationMap,
+  receiptPrivacyClassification,
+  receiptPrivacyLabel,
   normalizeReceiptStatus,
   proposalKeyForIntent,
   receiptEventGroup,
@@ -67,12 +71,26 @@ import type {
   Receipt,
   Recommendation,
   RecommendationRouteOption,
+  PrivacyExecutionMode,
   SupportedAsset,
   WorkflowMode,
 } from "./types";
 import { useRiskProfileV2 } from "@/hooks/useProfile";
 import { useMistPrivacy, downloadClaimingKeyFile } from "@/hooks/useMistPrivacy";
-import { getApiErrorMessage } from "@/lib/api/client";
+import { ApiError, apiFetchAuth, getApiErrorMessage } from "@/lib/api/client";
+import {
+  buildPortfolioSessionHeaders,
+  clearPortfolioSession,
+  ensurePortfolioSession,
+  getPortfolioSessionAuthorization,
+  normalizePortfolioAddress,
+} from "@/lib/portfolioSession";
+import {
+  connectManagedPrivateExecutionWallet,
+  disconnectManagedPrivateExecutionWallet,
+  getManagedPrivateExecutionSession,
+  type ManagedPrivateExecutionSession,
+} from "@/lib/privateExecutionWallet";
 import { parseAmountWei } from "./formatters";
 import { voyagerTxUrl } from "@/lib/explorer";
 import { getTxStatus, type TxSettlementStatus } from "@/lib/pendingTx";
@@ -83,9 +101,178 @@ const MAINNET_RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ||
   "";
 const PREPARED_WALLET_CALL_TTL_MS = 20_000;
+const SERVER_RECOVERY_BACKUP_ENABLED =
+  process.env.NEXT_PUBLIC_PRIVACY_RECOVERY_SERVER_BACKUP_ENABLED === "true";
+
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function storeRecoveryBackup(params: {
+  walletAddress: string;
+  recoveryPayload: string;
+  tokenAddress: string;
+  amountWei: string;
+  chamberAddress: string;
+}) {
+  if (!SERVER_RECOVERY_BACKUP_ENABLED) return;
+  const commitmentHash = await sha256Hex(params.recoveryPayload);
+  await apiFetchAuth("/api/v1/zkdefi/privacy/recovery/store", params.walletAddress, {
+    method: "POST",
+    timeoutMs: 15_000,
+    headers: buildPortfolioSessionHeaders(params.walletAddress),
+    body: JSON.stringify({
+      wallet_address: params.walletAddress,
+      encrypted_blob: btoa(params.recoveryPayload),
+      commitment_hash: commitmentHash,
+      token_address: params.tokenAddress,
+      amount_wei: params.amountWei,
+      chamber_address: params.chamberAddress,
+    }),
+  });
+}
+
+function normalizeAddressLike(value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  return normalizePortfolioAddress(raw);
+}
+
+function isLikelyStarknetAddress(value: string | null | undefined): boolean {
+  const text = String(value ?? "").trim();
+  return /^0x[0-9a-fA-F]+$/.test(text) && text.length > 10;
+}
+
+type PendingPrivateWrap = {
+  calls: import("starknet").Call[];
+  claimingKey: string;
+  tokenAddr: string;
+  amountWei: string;
+  ownerAddress: string;
+  recipientAddress: string;
+  walletCalls: import("starknet").Call[];
+  executionMode: PrivacyExecutionMode;
+  receiptId: string;
+};
+
+type PendingPrivateWrapResume = PendingPrivateWrap & {
+  depositTxHash: string;
+  stage: "waiting_deposit" | "ready_to_swap";
+  withdrawTxHash?: string | null;
+};
+
+type PrivateWrapProgressStep =
+  | "approving"
+  | "depositing"
+  | "waiting_confirmation"
+  | "generating_proof"
+  | "withdrawing"
+  | "ready_to_swap"
+  | "swapping"
+  | "withdraw_complete";
+
+type PrivateWrapProgress = {
+  step: PrivateWrapProgressStep;
+  message: string;
+  error: string | null;
+};
+
+type PrivateDepositStatus = "confirmed" | "pending" | "spent";
+
+function isMistSpentMessage(message: string): boolean {
+  return /transaction is spent|already spent/i.test(message);
+}
+
+function formatMistSpentMessage(): string {
+  return "This Chamber note is already spent. A private withdrawal appears to have succeeded earlier, so the same recovery file cannot be used again. Check your wallet balances and recent activity.";
+}
+
+function formatPrivateWrapFailureMessage(step: PrivateWrapProgressStep, rawMessage: string): string {
+  if (isMistSpentMessage(rawMessage)) {
+    return formatMistSpentMessage();
+  }
+
+  const isBalanceError = rawMessage.includes("u256_sub Overflow") || rawMessage.includes("u256_sub");
+  if (isBalanceError && step === "depositing") {
+    return "Insufficient token balance for the deposit amount. Lower the amount or add funds. Your recovery file is still valid if a deposit went through.";
+  }
+
+  if (step === "depositing" || step === "waiting_confirmation") {
+    return `${rawMessage}. Use your recovery file to withdraw manually if a deposit went through.`;
+  }
+
+  return rawMessage;
+}
+
+const ACTIVE_PRIVATE_WRAP_STORAGE_KEY = "zkdefi_portfolio_private_wrap_active";
+
+function matchesPrivateWrapParticipant(
+  pending: PendingPrivateWrapResume,
+  walletAddress: string | null | undefined,
+): boolean {
+  const normalized = normalizeAddressLike(walletAddress);
+  if (!normalized) return false;
+  return (
+    normalized === normalizeAddressLike(pending.ownerAddress)
+    || normalized === normalizeAddressLike(pending.recipientAddress)
+  );
+}
+
+function readPersistedPrivateWrap(): PendingPrivateWrapResume | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(ACTIVE_PRIVATE_WRAP_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingPrivateWrapResume> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.depositTxHash || !parsed.ownerAddress || !parsed.recipientAddress || !parsed.claimingKey) return null;
+    if (!parsed.tokenAddr || !parsed.amountWei || !parsed.receiptId) return null;
+    if (!Array.isArray(parsed.walletCalls)) return null;
+    if (parsed.stage !== "waiting_deposit" && parsed.stage !== "ready_to_swap") return null;
+    if (
+      parsed.executionMode !== "relayer"
+      && parsed.executionMode !== "fresh_address"
+      && parsed.executionMode !== "private_account"
+    ) {
+      return null;
+    }
+    return {
+      calls: Array.isArray(parsed.calls) ? parsed.calls : [],
+      claimingKey: parsed.claimingKey,
+      tokenAddr: parsed.tokenAddr,
+      amountWei: parsed.amountWei,
+      ownerAddress: parsed.ownerAddress,
+      recipientAddress: parsed.recipientAddress,
+      walletCalls: parsed.walletCalls,
+      executionMode: parsed.executionMode,
+      receiptId: parsed.receiptId,
+      depositTxHash: parsed.depositTxHash,
+      stage: parsed.stage,
+      withdrawTxHash: typeof parsed.withdrawTxHash === "string" ? parsed.withdrawTxHash : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistPrivateWrap(pending: PendingPrivateWrapResume | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!pending) {
+      window.sessionStorage.removeItem(ACTIVE_PRIVATE_WRAP_STORAGE_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(ACTIVE_PRIVATE_WRAP_STORAGE_KEY, JSON.stringify(pending));
+  } catch {
+    // no-op
+  }
+}
 
 export function usePortfolioPageShell() {
-  const { address, account, isConnected, chainId } = useAccount();
+  const { address, account, isConnected, chainId, status } = useAccount();
+  const accountConnected = Boolean(address) || isConnected || status === "connected";
+  const { signTypedDataAsync } = useSignTypedData({});
   const { profile } = useRiskProfileV2(address);
   const router = useRouter();
 
@@ -125,30 +312,105 @@ export function usePortfolioPageShell() {
   const [intentSet, setIntentSet] = useState(false);
   const recommendationJustAppliedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [authTelemetrySummary, setAuthTelemetrySummary] = useState<PortfolioAuthTelemetrySummary | null>(null);
+  const [authTelemetryLoading, setAuthTelemetryLoading] = useState(false);
   const [privateMode, setPrivateMode] = useState(() => {
     if (typeof window === "undefined") return false;
     try { return window.localStorage.getItem(`zkdefi_private_mode_${address ?? ""}`) === "true"; } catch { return false; }
   });
+  const [privacyExecutionMode, setPrivacyExecutionMode] = useState<PrivacyExecutionMode>(() => {
+    if (typeof window === "undefined") return "relayer";
+    try {
+      const stored = window.localStorage.getItem(`zkdefi_private_execution_mode_${address ?? ""}`);
+      return stored === "fresh_address" || stored === "private_account" ? stored : "relayer";
+    } catch {
+      return "relayer";
+    }
+  });
+  const [privacyFreshAddress, setPrivacyFreshAddress] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return window.localStorage.getItem(`zkdefi_private_fresh_address_${address ?? ""}`) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [managedPrivateExecutionSession, setManagedPrivateExecutionSession] = useState<ManagedPrivateExecutionSession | null>(null);
+  const [managedPrivateExecutionConnecting, setManagedPrivateExecutionConnecting] = useState(false);
+  const [managedPrivateExecutionError, setManagedPrivateExecutionError] = useState<string | null>(null);
   // Persist privacy preference
   useEffect(() => {
     if (!address) return;
     try { window.localStorage.setItem(`zkdefi_private_mode_${address}`, String(privateMode)); } catch { /* noop */ }
   }, [privateMode, address]);
+  useEffect(() => {
+    if (!address) return;
+    try {
+      window.localStorage.setItem(`zkdefi_private_execution_mode_${address}`, privacyExecutionMode);
+    } catch {
+      /* noop */
+    }
+  }, [privacyExecutionMode, address]);
+  useEffect(() => {
+    if (!address) return;
+    try {
+      window.localStorage.setItem(`zkdefi_private_fresh_address_${address}`, privacyFreshAddress);
+    } catch {
+      /* noop */
+    }
+  }, [privacyFreshAddress, address]);
+  useEffect(() => {
+    if (!address) {
+      setManagedPrivateExecutionSession(null);
+      setManagedPrivateExecutionError(null);
+      return;
+    }
+    setManagedPrivateExecutionSession(getManagedPrivateExecutionSession(address));
+    setManagedPrivateExecutionError(null);
+  }, [address]);
 
-  // MIST.cash privacy layer (deposit → ZK withdraw → break on-chain link)
+  // MIST.cash funding/privacy layer. Fresh-address mode can break wallet linkage;
+  // relayer mode only hides the handle_zkp sender before the final public swap.
   const mistPrivacy = useMistPrivacy();
   const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("manual");
 
   // Privacy key-download gate: pauses execution until user saves the recovery file
-  const [pendingKeyDownload, setPendingKeyDownload] = useState<{
-    calls: import("starknet").Call[];
-    claimingKey: string;
-    tokenAddr: string;
-    amountWei: string;
-    address: string;
-    optimizedCalls: import("starknet").Call[];
-    receiptId: string;
-  } | null>(null);
+  const [pendingKeyDownload, setPendingKeyDownload] = useState<PendingPrivateWrap | null>(null);
+  const [pendingPrivateWrapResume, setPendingPrivateWrapResume] = useState<PendingPrivateWrapResume | null>(null);
+  const [privateWrapProgress, setPrivateWrapProgress] = useState<PrivateWrapProgress | null>(null);
+
+  useEffect(() => {
+    persistPrivateWrap(pendingPrivateWrapResume);
+  }, [pendingPrivateWrapResume]);
+
+  useEffect(() => {
+    if (pendingPrivateWrapResume || !address) return;
+    const persisted = readPersistedPrivateWrap();
+    if (!persisted || !matchesPrivateWrapParticipant(persisted, address)) return;
+    setPrivateMode(true);
+    setPrivacyExecutionMode(persisted.executionMode);
+    if (persisted.executionMode === "fresh_address") {
+      setPrivacyFreshAddress(persisted.recipientAddress);
+    }
+    setPendingPrivateWrapResume(persisted);
+    setPrivateWrapProgress({
+      step: persisted.stage === "ready_to_swap" ? "ready_to_swap" : "waiting_confirmation",
+      message:
+        persisted.stage === "ready_to_swap"
+          ? persisted.executionMode === "private_account"
+            ? `Withdrawal settled to session key account ${persisted.recipientAddress}. Continue here to execute the sponsored Ekubo swap.`
+            : `Withdrawal settled to ${persisted.recipientAddress}. Connect that wallet to continue the Ekubo swap.`
+          : `Deposit submitted (${persisted.depositTxHash.slice(0, 12)}...). Waiting for confirmation...`,
+      error: null,
+    });
+    setExecutionNote(
+      persisted.stage === "ready_to_swap"
+        ? persisted.executionMode === "private_account"
+          ? `🛡 Funds already reached session key account ${persisted.recipientAddress}. Continue here to execute the sponsored Ekubo swap.`
+          : `🛡 Funds already reached ${persisted.recipientAddress}. Connect that wallet to continue the Ekubo swap.`
+        : `🛡 Resuming private wrap for deposit ${persisted.depositTxHash.slice(0, 12)}...`,
+    );
+  }, [address, pendingPrivateWrapResume]);
 
   // Recovery: let user paste a claiming key to withdraw stuck funds
   const [showRecoveryPanel, setShowRecoveryPanel] = useState(false);
@@ -170,6 +432,107 @@ export function usePortfolioPageShell() {
       ?.metadata?.portable_receipt?.registry_receipt_id;
     return registryReceiptId ? `/archive?receipt=${registryReceiptId}` : null;
   }, [receipts]);
+
+  const ensurePortfolioSessionAccess = useCallback(async () => {
+    if (!address || !accountConnected) {
+      throw new Error("Reconnect the wallet before authorizing portfolio actions.");
+    }
+    if (!isMainnetChain(chainId)) {
+      throw new Error("Portfolio actions require Starknet mainnet. Switch Argent to mainnet first.");
+    }
+    await ensurePortfolioSession({
+      address,
+      chainId,
+      signTypedDataAsync: async (typedData) =>
+        signTypedDataAsync(typedData as unknown as Parameters<typeof signTypedDataAsync>[0]),
+    });
+  }, [address, accountConnected, chainId, signTypedDataAsync]);
+
+  const withPortfolioSessionRetry = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      options?: { ensureSession?: boolean; silentUnauthorized?: boolean },
+    ): Promise<T | null> => {
+      if (options?.ensureSession !== false) {
+        await ensurePortfolioSessionAccess();
+      }
+      try {
+        return await operation();
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 401 || !address) {
+          throw err;
+        }
+        clearPortfolioSession(address);
+        if (options?.silentUnauthorized) {
+          return null;
+        }
+        await ensurePortfolioSessionAccess();
+        return await operation();
+      }
+    },
+    [address, ensurePortfolioSessionAccess],
+  );
+  const syncManagedPrivateExecutionState = useCallback(
+    async (next: ManagedPrivateExecutionSession | null) => {
+      if (!address) return;
+      await withPortfolioSessionRetry(
+        () =>
+          apiFetchAuth("/api/v1/zkdefi/onboarding/managed_private_execution", address, {
+            method: "POST",
+            headers: buildPortfolioSessionHeaders(address),
+            body: JSON.stringify({
+              user_address: address,
+              active: Boolean(next),
+              execution_address: next?.address ?? undefined,
+              strategy: next?.strategy ?? "cartridge",
+              provider: "starkzap_cartridge",
+              fee_mode: next?.feeMode ?? "sponsored",
+              username: next?.username ?? undefined,
+              connected_at: next ? Math.floor(next.connectedAt / 1000) : undefined,
+            }),
+          }),
+        { ensureSession: false },
+      );
+    },
+    [address, withPortfolioSessionRetry],
+  );
+  const connectManagedPrivateExecution = useCallback(async (): Promise<ManagedPrivateExecutionSession> => {
+    if (!address || !accountConnected) {
+      throw new Error("Reconnect the portfolio owner wallet before preparing the session key account.");
+    }
+    if (!isMainnetChain(chainId)) {
+      throw new Error("Managed private execution requires Starknet mainnet.");
+    }
+    setManagedPrivateExecutionConnecting(true);
+    setManagedPrivateExecutionError(null);
+    try {
+      const { session } = await connectManagedPrivateExecutionWallet(address);
+      await syncManagedPrivateExecutionState(session);
+      setManagedPrivateExecutionSession(session);
+      return session;
+    } catch (err) {
+      const message = getApiErrorMessage(err) || "Unable to connect the session key account.";
+      setManagedPrivateExecutionError(message);
+      throw new Error(message);
+    } finally {
+      setManagedPrivateExecutionConnecting(false);
+    }
+  }, [address, accountConnected, chainId, syncManagedPrivateExecutionState]);
+  const disconnectManagedPrivateExecution = useCallback(async () => {
+    if (!address) return;
+    setManagedPrivateExecutionConnecting(true);
+    setManagedPrivateExecutionError(null);
+    try {
+      await disconnectManagedPrivateExecutionWallet(address);
+      await syncManagedPrivateExecutionState(null);
+      setManagedPrivateExecutionSession(null);
+    } catch (err) {
+      const message = getApiErrorMessage(err) || "Unable to disconnect the session key account.";
+      setManagedPrivateExecutionError(message);
+    } finally {
+      setManagedPrivateExecutionConnecting(false);
+    }
+  }, [address, syncManagedPrivateExecutionState]);
 
   const assetSummary = useMemo(() => aggregateAssets(portfolio?.positions ?? []), [portfolio]);
   const totalTrackedValue = useMemo(
@@ -214,8 +577,9 @@ export function usePortfolioPageShell() {
         swapAmount,
         slippageBps,
         targetWeights,
+        adapterTarget: privateMode && actionType === "swap" ? "ekubo" : "best",
       }),
-    [actionType, swapAssetIn, swapAssetOut, swapAmount, slippageBps, targetWeights],
+    [actionType, swapAssetIn, swapAssetOut, swapAmount, slippageBps, targetWeights, privateMode],
   );
   const currentProposalKey = useMemo(() => proposalKeyForIntent(currentIntent), [currentIntent]);
   const hasFreshGateCheck = Boolean(gateResult && lastCheckedProposalKey === currentProposalKey);
@@ -788,6 +1152,8 @@ export function usePortfolioPageShell() {
           title: receiptEventTitle(receipt),
           summary: receiptEventSummary(receipt, status),
           status,
+          privacyClassification: receiptPrivacyClassification(receipt),
+          privacyLabel: receiptPrivacyLabel(receipt),
           timestamp: relativeTime(receipt.timestamp),
           txHref: receipt.tx_hash ? voyagerTxUrl(receipt.tx_hash) : null,
           receiptHref: registryId ? `/archive?receipt=${registryId}` : null,
@@ -853,14 +1219,37 @@ export function usePortfolioPageShell() {
   const refreshData = async (walletAddress: string) => {
     setLoading(true);
     setError(null);
+    const applyPayload = (payload: {
+      portfolio: PortfolioSnapshot;
+      policy: PolicySnapshot;
+      readiness: ExecutorReadiness;
+      receipts: Receipt[];
+    }) => {
+      setPortfolio(payload.portfolio);
+      setPolicy(payload.policy);
+      setReadiness(payload.readiness);
+      setReceipts(payload.receipts);
+    };
     try {
-      const { portfolio: portfolioPayload, policy: policyPayload, readiness: readinessPayload, receipts: receiptPayload } =
-        await fetchPortfolioPageData(walletAddress);
-      setPortfolio(portfolioPayload);
-      setPolicy(policyPayload);
-      setReadiness(readinessPayload);
-      setReceipts(receiptPayload);
-    } catch (err) {
+      applyPayload(await fetchPortfolioPageData(walletAddress));
+    } catch (initialErr) {
+      let err: unknown = initialErr;
+      const canRetryWithAuth =
+        initialErr instanceof ApiError
+        && initialErr.status === 401
+        && Boolean(address)
+        && accountConnected
+        && normalizeAddressLike(walletAddress) === normalizeAddressLike(address);
+      if (canRetryWithAuth && address) {
+        try {
+          clearPortfolioSession(address);
+          await ensurePortfolioSessionAccess();
+          applyPayload(await fetchPortfolioPageData(walletAddress));
+          return;
+        } catch (retryErr) {
+          err = retryErr;
+        }
+      }
       const message = getApiErrorMessage(err);
       setError(
         message
@@ -871,6 +1260,18 @@ export function usePortfolioPageShell() {
       setLoading(false);
     }
   };
+
+  const refreshAuthTelemetry = useCallback(async () => {
+    setAuthTelemetryLoading(true);
+    try {
+      const summary = await fetchPortfolioAuthTelemetrySummary(24 * 60 * 60);
+      setAuthTelemetrySummary(summary);
+    } catch {
+      // Keep the desk functional even if telemetry summary is unavailable.
+    } finally {
+      setAuthTelemetryLoading(false);
+    }
+  }, []);
 
   const setSwapAmountByPercent = (percent: number) => {
     if (!swapAvailableAmount) {
@@ -905,7 +1306,10 @@ export function usePortfolioPageShell() {
     }
   };
 
-  const runGateCheck = async (intentOverride?: Record<string, unknown>) => {
+  const runGateCheck = async (
+    intentOverride?: Record<string, unknown>,
+    options?: { ensureSession?: boolean },
+  ) => {
     if (!address) return;
     setChecking(true);
     setError(null);
@@ -917,7 +1321,14 @@ export function usePortfolioPageShell() {
     setPendingPreparedAt(null);
     try {
       const intent = intentOverride ?? currentIntent;
-      const payload = await checkPortfolioIntent(address, intent);
+      const payload = await withPortfolioSessionRetry(
+        () => checkPortfolioIntent(address, intent),
+        {
+          ensureSession: options?.ensureSession,
+          silentUnauthorized: options?.ensureSession === false,
+        },
+      );
+      if (!payload) return;
       setGateResult(payload);
       setLastCheckedProposalKey(proposalKeyForIntent(intent));
       setLastPreparedAdapter(payload.execution_preview?.execution_adapter ?? null);
@@ -1021,6 +1432,12 @@ export function usePortfolioPageShell() {
       setExecutionNote("Quote expired. Review rebalance again before signing.");
       return;
     }
+    try {
+      await ensurePortfolioSessionAccess();
+    } catch (err) {
+      setExecutionNote(getApiErrorMessage(err) || "Portfolio authorization failed.");
+      return;
+    }
     setExecuting(true);
     setError(null);
     setExecutionNote("Signing rebalance with wallet...");
@@ -1041,7 +1458,10 @@ export function usePortfolioPageShell() {
       setExecutionReceipt(null);
       if (pendingReceiptId) {
         try {
-          const confirmPayload = await confirmPortfolioExecution(address, pendingReceiptId, result.transaction_hash);
+          const confirmPayload = await withPortfolioSessionRetry(
+            () => confirmPortfolioExecution(address, pendingReceiptId, result.transaction_hash),
+            { ensureSession: false },
+          );
           if (confirmPayload?.portable_receipt?.cid) {
             setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
             setExecutionReceipt(confirmPayload.portable_receipt);
@@ -1089,6 +1509,12 @@ export function usePortfolioPageShell() {
       setExecutionNote("Run Gate Check on the current proposal before executing.");
       return;
     }
+    try {
+      await ensurePortfolioSessionAccess();
+    } catch (err) {
+      setError(getApiErrorMessage(err) || "Portfolio authorization failed.");
+      return;
+    }
     setExecuting(true);
     setError(null);
     setLastPreparedAdapter(null);
@@ -1113,19 +1539,26 @@ export function usePortfolioPageShell() {
         setExecutionNote("Wallet is connected on Sepolia. Switch Argent to Starknet mainnet first.");
         return;
       }
-      const payload = await executePortfolioIntent(address, currentIntent, actionType, options);
+      const payload = await withPortfolioSessionRetry(
+        () => executePortfolioIntent(address, currentIntent, actionType, options),
+        { ensureSession: false },
+      );
+      if (!payload) return;
       setGateResult(payload.gate);
       setLastPreparedAdapter(payload.execution_adapter ?? null);
       setPendingRouteLabel(payload.execution_adapter ?? null);
 
       if (payload.tx_hash) {
-        setExecutionTxHash(payload.tx_hash);
+        const submittedTxHash = payload.tx_hash;
+        setExecutionTxHash(submittedTxHash);
         setExecutionReceiptCid(null);
         setExecutionReceipt(null);
-        setExecutionNote(`Submitted. Tx ${payload.tx_hash.slice(0, 12)}...`);
+        setExecutionNote(`Submitted. Tx ${submittedTxHash.slice(0, 12)}...`);
         if (payload.receipt_id) {
           try {
-            const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, payload.tx_hash);
+            const confirmPayload = await withPortfolioSessionRetry(() =>
+              confirmPortfolioExecution(address, payload.receipt_id, submittedTxHash),
+            );
             if (confirmPayload?.portable_receipt?.cid) {
               setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
               setExecutionReceipt(confirmPayload.portable_receipt);
@@ -1183,6 +1616,7 @@ export function usePortfolioPageShell() {
             address,
             readiness?.rpc_url || MAINNET_RPC_URL || undefined,
           );
+          const executionAdapter = String(payload.execution_adapter ?? "").trim().toLowerCase();
           setExecutionNote(
             optimized.skippedApprovals
               ? `Prepared via ${adapterLabel}. Skipped ${optimized.skippedApprovals} existing approval${optimized.skippedApprovals === 1 ? "" : "s"}. Awaiting wallet signature in Argent...`
@@ -1196,16 +1630,53 @@ export function usePortfolioPageShell() {
           //   2. wait for Merkle tree update
           //   3. generate ZK proof + withdraw       (handle_zkp tx)
           //   4. then execute the original swap
-          // This breaks the on-chain link between the user's source
-          // funds and the swap transaction.
+          // Fresh-address mode can break source-wallet linkage before the final swap.
+          // Relayer mode is weaker: it hides the chamber withdrawal sender, but the
+          // final Ekubo swap still executes from the connected wallet.
           if (privateMode && actionType === "swap" && swapAssetIn !== "WBTC") {
+            if (executionAdapter && executionAdapter !== "ekubo") {
+              setExecutionNote(
+                `Privacy execution requires an Ekubo-direct route. This preview resolved to ${adapterLabel}, so the desk stopped before any public swap call was signed.`,
+              );
+              setExecuting(false);
+              return;
+            }
             const tokenAddr = MAINNET_TOKEN_BY_SYMBOL[swapAssetIn];
             const decimals = ASSET_DECIMALS[swapAssetIn];
+            let managedSession: ManagedPrivateExecutionSession | null = null;
+            if (privacyExecutionMode === "private_account") {
+              setExecutionNote("🛡 Connecting managed private execution account...");
+              managedSession = await connectManagedPrivateExecution();
+            }
+            const recipientAddress =
+              privacyExecutionMode === "fresh_address"
+                ? privacyFreshAddress.trim()
+                : privacyExecutionMode === "private_account"
+                  ? managedSession?.address ?? managedPrivateExecutionSession?.address ?? ""
+                  : address;
             // BigInt-safe amount parsing — avoids precision loss for 18-decimal tokens
             // (Number can only hold ~15 significant digits; 1.14 STRK = 1.14e18 exceeds Number.MAX_SAFE_INTEGER)
             const amountWei = parseAmountWei(swapAmount || "0", decimals);
             if (amountWei !== "0") {
               try {
+                if (!recipientAddress || !isLikelyStarknetAddress(recipientAddress)) {
+                  setExecutionNote(
+                    privacyExecutionMode === "fresh_address"
+                      ? "Enter a valid fresh Starknet address before using fresh-address privacy mode."
+                      : "Missing recipient address for the privacy path.",
+                  );
+                  setExecuting(false);
+                  return;
+                }
+                if (
+                  privacyExecutionMode === "fresh_address"
+                  && normalizeAddressLike(recipientAddress) === normalizeAddressLike(address)
+                ) {
+                  setExecutionNote("Fresh-address privacy mode needs a different destination address than the current wallet.");
+                  setExecuting(false);
+                  return;
+                }
+
                 // Pre-flight balance check — avoids cryptic u256_sub Overflow
                 try {
                   const balResult = await account.callContract({
@@ -1230,13 +1701,13 @@ export function usePortfolioPageShell() {
                 }
 
                 await mistPrivacy.initialize();
-                setExecutionNote("🛡 Private mode: preparing deposit...");
+                setExecutionNote("🛡 Privacy path: preparing MIST deposit...");
 
                 // Build deposit calls to get the claiming key BEFORE executing
                 const { calls: depositCalls, claimingKey: key } = await mistPrivacy.buildDepositCalls(
                   tokenAddr,
                   amountWei,
-                  address,
+                  recipientAddress,
                 );
 
                 // Gate: require user to download the recovery file before proceeding
@@ -1245,34 +1716,24 @@ export function usePortfolioPageShell() {
                   claimingKey: key,
                   tokenAddress: tokenAddr,
                   amountWei,
-                  recipientAddress: address,
+                  recipientAddress,
                   chamberAddress: config.CHAMBER_ADDR_MAINNET,
                 });
 
-                // Fire-and-forget: backup recovery key to backend
+                // Optional server backup, disabled by default until client-side encryption exists.
                 try {
                   const recoveryPayload = JSON.stringify({
                     claimingKey: key, tokenAddress: tokenAddr,
-                    amountWei, recipientAddress: address,
+                    amountWei, recipientAddress,
                     chamberAddress: config.CHAMBER_ADDR_MAINNET,
                   });
-                  const commitmentHash = Array.from(
-                    new Uint8Array(
-                      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(recoveryPayload)),
-                    ),
-                  ).map((b) => b.toString(16).padStart(2, "0")).join("");
-                  fetch("/api/v1/zkdefi/privacy/recovery/store", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      wallet_address: address,
-                      encrypted_blob: btoa(recoveryPayload),
-                      commitment_hash: commitmentHash,
-                      token_address: tokenAddr,
-                      amount_wei: amountWei,
-                      chamber_address: config.CHAMBER_ADDR_MAINNET,
-                    }),
-                  }).catch((e) => console.warn("[MIST] L3 backup failed (non-critical):", e));
+                  void storeRecoveryBackup({
+                    walletAddress: address,
+                    recoveryPayload,
+                    tokenAddress: tokenAddr,
+                    amountWei,
+                    chamberAddress: config.CHAMBER_ADDR_MAINNET,
+                  }).catch((e) => console.warn("[MIST] Recovery backup failed (non-critical):", e));
                 } catch { /* non-critical */ }
 
                 // Pause execution — store the pending state so the UI can show a
@@ -1282,12 +1743,28 @@ export function usePortfolioPageShell() {
                   claimingKey: key,
                   tokenAddr,
                   amountWei,
-                  address,
-                  optimizedCalls: optimized.calls,
+                  ownerAddress: address,
+                  recipientAddress,
+                  walletCalls: walletExecution.calls,
+                  executionMode: privacyExecutionMode,
                   receiptId: payload.receipt_id,
                 });
+                setPrivateWrapProgress({
+                  step: "approving",
+                  message:
+                    privacyExecutionMode === "fresh_address"
+                      ? `Recovery file downloaded. Confirm it is saved, then the desk will withdraw to ${recipientAddress}.`
+                      : privacyExecutionMode === "private_account"
+                        ? `Recovery file downloaded. Confirm it is saved, then the desk will withdraw to session key account ${recipientAddress}.`
+                      : "Recovery file downloaded. Confirm you saved it to continue.",
+                  error: null,
+                });
                 setExecutionNote(
-                  "🛡 Recovery file downloaded. Confirm you saved it to continue.",
+                  privacyExecutionMode === "fresh_address"
+                    ? `🛡 Recovery file downloaded. Confirm it is saved, then the desk will withdraw to ${recipientAddress}.`
+                    : privacyExecutionMode === "private_account"
+                      ? `🛡 Recovery file downloaded. Confirm it is saved, then the desk will withdraw to session key account ${recipientAddress}.`
+                    : "🛡 Recovery file downloaded. Confirm you saved it to continue.",
                 );
                 // Don't set executing=false — the UI will show the confirmation button
                 // while the execution overlay remains visible.
@@ -1307,7 +1784,9 @@ export function usePortfolioPageShell() {
 
           const result = await account.execute(optimized.calls);
           setExecutionTxHash(result.transaction_hash);
-          const confirmPayload = await confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash);
+          const confirmPayload = await withPortfolioSessionRetry(() =>
+            confirmPortfolioExecution(address, payload.receipt_id, result.transaction_hash),
+          );
           if (confirmPayload?.portable_receipt?.cid) {
             setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
             setExecutionReceipt(confirmPayload.portable_receipt);
@@ -1368,6 +1847,9 @@ export function usePortfolioPageShell() {
     setPendingReceiptId(null);
     setPendingRouteLabel(null);
     setPendingPreparedAt(null);
+    setPendingKeyDownload(null);
+    setPendingPrivateWrapResume(null);
+    setPrivateWrapProgress(null);
     setError(null);
     recommendationJustAppliedRef.current = false;
   };
@@ -1377,12 +1859,414 @@ export function usePortfolioPageShell() {
     await runGateCheck(recommendation.intent);
   };
 
+  const waitForPrivateDepositConfirmation = async (
+    pending: PendingPrivateWrap,
+    depositTxHash: string,
+  ): Promise<PrivateDepositStatus> => {
+    const sdk = await import("@mistcash/sdk");
+    await sdk.initCore();
+    const { RpcProvider } = await import("starknet");
+
+    const nodeUrl = readiness?.rpc_url || MAINNET_RPC_URL || "/api/v1/zkdefi/starknet-rpc";
+    const readProvider = new RpcProvider({ nodeUrl });
+    const chamber = sdk.getChamber(readProvider as any);
+
+    const nullifier = BigInt(
+      sdk.txHash(
+        (BigInt(pending.claimingKey) + BigInt(1)).toString(),
+        pending.recipientAddress,
+        pending.tokenAddr,
+        pending.amountWei,
+      ),
+    );
+    const isSpent = async (): Promise<boolean> => {
+      try {
+        const raw = await (chamber as any).nullifiers_spent([nullifier]);
+        const first = Array.isArray(raw) ? raw[0] : raw;
+        if (typeof first === "boolean") return first;
+        if (typeof first === "bigint") return first !== BigInt(0);
+        if (typeof first === "number") return first !== 0;
+        if (typeof first === "string") return first !== "0" && first.toLowerCase() !== "false";
+        return Boolean(first && typeof first === "object" && "True" in (first as Record<string, unknown>));
+      } catch {
+        return false;
+      }
+    };
+
+    const maxWaitMs = 90_000;
+    const pollIntervalMs = 3_000;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitMs) {
+      try {
+        const [status, receipt] = await Promise.all([
+          getTxStatus(depositTxHash, nodeUrl),
+          readProvider.getTransactionReceipt(depositTxHash).catch(() => null),
+        ]);
+
+        const execStatus = (receipt as any)?.execution_status;
+        if (execStatus === "SUCCEEDED" || status === "accepted" || status === "confirmed") {
+          return "confirmed";
+        }
+        if (execStatus === "REVERTED") {
+          const revertReason = (receipt as any)?.revert_reason || "unknown reason";
+          throw new Error(`Deposit reverted (${depositTxHash.slice(0, 14)}...): ${revertReason}`);
+        }
+        if (execStatus === "REJECTED" || status === "rejected") {
+          throw new Error(`Deposit rejected by sequencer (${depositTxHash.slice(0, 14)}...). Try again.`);
+        }
+
+        const asset = await sdk.fetchTxAssets(chamber, pending.claimingKey, pending.recipientAddress);
+        const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
+        const assetAddr = String(asset?.addr ?? "").toLowerCase();
+        if (assetAmount > BigInt(0) && assetAddr === pending.tokenAddr.toLowerCase()) {
+          return "confirmed";
+        }
+
+        if (await isSpent()) {
+          return "spent";
+        }
+      } catch (pollErr) {
+        if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) {
+          throw pollErr;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    return await isSpent() ? "spent" : "pending";
+  };
+
+  const waitForPrivateWithdrawalConfirmation = async (
+    withdrawTxHash: string,
+  ): Promise<"confirmed" | "pending"> => {
+    const { RpcProvider } = await import("starknet");
+
+    const nodeUrl = readiness?.rpc_url || MAINNET_RPC_URL || "/api/v1/zkdefi/starknet-rpc";
+    const readProvider = new RpcProvider({ nodeUrl });
+
+    const maxWaitMs = 90_000;
+    const pollIntervalMs = 3_000;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitMs) {
+      try {
+        const [status, receipt] = await Promise.all([
+          getTxStatus(withdrawTxHash, nodeUrl),
+          readProvider.getTransactionReceipt(withdrawTxHash).catch(() => null),
+        ]);
+
+        const execStatus = (receipt as any)?.execution_status;
+        if (execStatus === "SUCCEEDED" || status === "accepted" || status === "confirmed") {
+          return "confirmed";
+        }
+        if (execStatus === "REVERTED") {
+          const revertReason = (receipt as any)?.revert_reason || "unknown reason";
+          throw new Error(`Private withdrawal reverted (${withdrawTxHash.slice(0, 14)}...): ${revertReason}`);
+        }
+        if (execStatus === "REJECTED" || status === "rejected") {
+          throw new Error(`Private withdrawal rejected by sequencer (${withdrawTxHash.slice(0, 14)}...).`);
+        }
+      } catch (pollErr) {
+        if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) {
+          throw pollErr;
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    return "pending";
+  };
+
+  const clearPreparedExecutionState = () => {
+    setLastPreparedAdapter(null);
+    setPendingPreparedCalls(null);
+    setPendingWalletCalls(null);
+    setPendingReceiptId(null);
+    setPendingRouteLabel(null);
+    setPendingPreparedAt(null);
+    setGateResult(null);
+    setLastCheckedProposalKey(null);
+  };
+
+  const setPrivateWithdrawalCompleteState = (detail?: string) => {
+    clearPreparedExecutionState();
+    setPendingPrivateWrapResume(null);
+    setExecutionTxHash(null);
+    setExecutionReceiptCid(null);
+    setExecutionReceipt(null);
+
+    const baseMessage =
+      "The MIST withdrawal completed, but this session did not record the final swap. Funds should already be available at the withdrawal destination. Run a fresh gate check before signing another route.";
+    const message = detail ? `${baseMessage} ${detail}` : baseMessage;
+
+    setPrivateWrapProgress({
+      step: "withdraw_complete",
+      message,
+      error: null,
+    });
+    setExecutionNote("🛡 MIST withdrawal complete. No final swap transaction was recorded for this session.");
+  };
+
+  const executePendingPrivateSwap = async (
+    pending: PendingPrivateWrap,
+    depositTxHash: string,
+    withdrawTxHash: string,
+  ) => {
+    if (pending.executionMode !== "private_account" && !account) {
+      throw new Error("Wallet not connected.");
+    }
+    if (!isLikelyStarknetAddress(pending.recipientAddress)) {
+      setPrivateWrapProgress({
+        step: "ready_to_swap",
+        message: "Private execution paused.",
+        error: "Recipient address is missing or invalid. Set a valid recipient before continuing.",
+      });
+      setExecutionNote("🛡 Private execution paused: recipient address is invalid.");
+      return;
+    }
+    if (
+      pending.executionMode === "fresh_address"
+      && normalizeAddressLike(pending.recipientAddress) === normalizeAddressLike(pending.ownerAddress)
+    ) {
+      setPrivateWrapProgress({
+        step: "ready_to_swap",
+        message: "Private execution paused.",
+        error: "Fresh-address mode requires a different recipient wallet than the portfolio owner.",
+      });
+      setExecutionNote("🛡 Fresh-address mode misconfigured. Choose a recipient wallet different from the owner address.");
+      return;
+    }
+
+    if (
+      pending.executionMode === "fresh_address"
+      && account
+      && normalizeAddressLike(account.address) !== normalizeAddressLike(pending.recipientAddress)
+    ) {
+      setPendingPrivateWrapResume({
+        ...pending,
+        depositTxHash,
+        withdrawTxHash,
+        stage: "ready_to_swap",
+      });
+      setPrivateWrapProgress({
+        step: "ready_to_swap",
+        message: `Withdrawal settled to ${pending.recipientAddress}. Connect that address to sign the Ekubo swap.`,
+        error: null,
+      });
+      setExecutionNote(
+        `🛡 Funds moved to fresh address ${pending.recipientAddress}. Connect that wallet and continue to execute the Ekubo swap.`,
+      );
+      await refreshData(pending.ownerAddress);
+      return;
+    }
+
+    setPendingPrivateWrapResume(null);
+    setPrivateWrapProgress({
+      step: "swapping",
+      message:
+        pending.executionMode === "fresh_address"
+          ? "Fresh address connected. Executing Ekubo swap..."
+          : pending.executionMode === "private_account"
+            ? "Session key account ready. Executing sponsored Ekubo swap..."
+          : "MIST withdrawal confirmed. Executing Ekubo swap from the connected wallet...",
+      error: null,
+    });
+    setExecutionNote(
+      pending.executionMode === "fresh_address"
+        ? "🛡 Fresh address connected. Executing Ekubo swap..."
+        : pending.executionMode === "private_account"
+          ? "🛡 Session key account ready. Executing sponsored Ekubo swap..."
+        : "🛡 MIST withdrawal confirmed. Executing Ekubo swap from the connected wallet...",
+    );
+
+    let executionAccountAddress = account?.address ?? pending.recipientAddress;
+    let executionWalletStrategy = pending.executionMode === "private_account" ? "cartridge" : "wallet";
+    let swapTxHash = "";
+    try {
+      if (pending.executionMode === "private_account") {
+        const { wallet, session } = await connectManagedPrivateExecutionWallet(pending.ownerAddress);
+        setManagedPrivateExecutionSession(session);
+        executionAccountAddress = session.address;
+        await wallet.ensureReady({
+          deploy: "if_needed",
+          feeMode: "sponsored",
+        });
+        const optimized = await optimizeWalletCallsForExecution(
+          pending.walletCalls,
+          session.address,
+          readiness?.rpc_url || MAINNET_RPC_URL || undefined,
+        );
+        const result = await wallet.execute(optimized.calls, { feeMode: "sponsored" });
+        swapTxHash = result.hash;
+      } else {
+        const optimized = await optimizeWalletCallsForExecution(
+          pending.walletCalls,
+          account!.address,
+          readiness?.rpc_url || MAINNET_RPC_URL || undefined,
+        );
+        const result = await account!.execute(optimized.calls);
+        swapTxHash = result.transaction_hash;
+      }
+    } catch (err) {
+      const rawMessage = getApiErrorMessage(err) || (err instanceof Error ? err.message : String(err));
+      setPrivateWithdrawalCompleteState(rawMessage ? `Wallet response: ${rawMessage}` : undefined);
+      await refreshData(pending.ownerAddress);
+      return;
+    }
+
+    setExecutionTxHash(swapTxHash);
+    setExecutionNote(
+      pending.executionMode === "fresh_address"
+        ? `🛡 Fresh-address Ekubo swap submitted. Withdraw: ${withdrawTxHash.slice(0, 12)}… · Swap: ${swapTxHash.slice(0, 12)}…`
+        : pending.executionMode === "private_account"
+          ? `🛡 Managed-account Ekubo swap submitted. Withdraw: ${withdrawTxHash.slice(0, 12)}… · Swap: ${swapTxHash.slice(0, 12)}…`
+          : `🛡 Ekubo swap submitted after MIST withdrawal. Withdraw: ${withdrawTxHash.slice(0, 12)}… · Swap: ${swapTxHash.slice(0, 12)}…`,
+    );
+
+    try {
+      const confirmPayload = await confirmPortfolioExecution(
+        pending.ownerAddress,
+        pending.receiptId,
+        swapTxHash,
+        {
+          deposit_tx_hash: depositTxHash,
+          chamber: "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
+          token: pending.tokenAddr,
+          execution_mode: pending.executionMode,
+          recipient: pending.recipientAddress,
+          withdraw_tx_hash: withdrawTxHash,
+          execution_account: executionAccountAddress,
+          execution_wallet_strategy: executionWalletStrategy,
+        },
+      );
+      if (confirmPayload?.portable_receipt?.cid) {
+        setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
+        setExecutionReceipt(confirmPayload.portable_receipt);
+        setExecutionNote("🛡 Ekubo swap complete. Receipt saved to IPFS.");
+      } else {
+        setExecutionNote(`🛡 Ekubo swap submitted. Tx ${swapTxHash.slice(0, 12)}...`);
+      }
+    } catch (confirmErr) {
+      const confirmMessage = getApiErrorMessage(confirmErr) || (confirmErr instanceof Error ? confirmErr.message : String(confirmErr));
+      if (confirmErr instanceof ApiError && confirmErr.status === 400) {
+        setExecutionNote(
+          `🛡 Ekubo swap submitted, but receipt sync was rejected: ${confirmMessage}`,
+        );
+        setPrivateWrapProgress({
+          step: "withdraw_complete",
+          message: "Swap submitted, but receipt metadata validation failed.",
+          error: confirmMessage,
+        });
+        await refreshData(pending.ownerAddress);
+        return;
+      }
+      const delayedReason =
+        confirmErr instanceof ApiError && confirmErr.status === 401
+          ? pending.executionMode === "fresh_address" || pending.executionMode === "private_account"
+            ? " Receipt sync is delayed until you reconnect the original portfolio wallet."
+            : " Receipt sync is delayed because the portfolio session expired."
+          : "";
+      setExecutionNote(
+        `🛡 Ekubo swap submitted. Tx ${swapTxHash.slice(0, 12)}...${delayedReason}`,
+      );
+    }
+
+    setPrivateWrapProgress(null);
+    mistPrivacy.reset();
+    await refreshData(pending.ownerAddress);
+  };
+
+  const continuePrivateWrapAfterDeposit = async (
+    pending: PendingPrivateWrap,
+    depositTxHash: string,
+  ) => {
+    if (!account) {
+      throw new Error("Wallet not connected.");
+    }
+
+    let failureStep: PrivateWrapProgressStep = "generating_proof";
+
+    try {
+      await ensurePortfolioSessionAccess();
+      setPendingPrivateWrapResume(null);
+      setPrivateWrapProgress({
+        step: "generating_proof",
+        message: "Deposit confirmed. Generating ZK withdrawal proof...",
+        error: null,
+      });
+      setExecutionNote("🛡 Deposit confirmed. Generating ZK withdrawal proof...");
+
+      const withdrawTxHash = await withPortfolioSessionRetry(
+        () =>
+          mistPrivacy.submitWithdrawViaRelay(
+            account,
+            pending.ownerAddress,
+            pending.recipientAddress,
+            pending.tokenAddr,
+            pending.amountWei,
+            pending.claimingKey,
+          ),
+        { ensureSession: false },
+      );
+      if (!withdrawTxHash) {
+        throw new Error("Portfolio authorization expired before private withdrawal could be submitted.");
+      }
+
+      failureStep = "withdrawing";
+
+      // The chamber phase is done here; keep the shell-owned progress visible
+      // for the swap and clear the hook state so its stepper can't get stranded.
+      mistPrivacy.reset();
+      setPrivateWrapProgress({
+        step: "withdrawing",
+        message: `MIST withdrawal submitted (${withdrawTxHash.slice(0, 12)}...). Waiting for settlement before the Ekubo swap...`,
+        error: null,
+      });
+      setExecutionNote(`🛡 MIST withdrawal submitted (${withdrawTxHash.slice(0, 12)}...). Waiting for settlement before the Ekubo swap...`);
+
+      const withdrawalStatus = await waitForPrivateWithdrawalConfirmation(withdrawTxHash);
+      if (withdrawalStatus === "pending") {
+        setPrivateWithdrawalCompleteState(
+          `The MIST withdrawal is still settling on mainnet (${withdrawTxHash.slice(0, 12)}...). Wait for funds to arrive at the destination address, then continue the Ekubo swap.`,
+        );
+        await refreshData(pending.ownerAddress);
+        return;
+      }
+
+      failureStep = "swapping";
+      await executePendingPrivateSwap(pending, depositTxHash, withdrawTxHash);
+    } catch (err) {
+      const rawMessage = getApiErrorMessage(err) || (err instanceof Error ? err.message : String(err));
+      const message = formatPrivateWrapFailureMessage(failureStep, rawMessage);
+      setPrivateWrapProgress({
+        step: failureStep,
+        message,
+        error: message,
+      });
+      setExecutionNote(`🛡 Privacy wrap failed: ${message}`);
+    }
+  };
+
   const savePolicy = async () => {
     if (!address || !policyDraft) return;
+    try {
+      await ensurePortfolioSessionAccess();
+    } catch (err) {
+      setError(getApiErrorMessage(err) || "Portfolio authorization failed.");
+      return;
+    }
     setChecking(true);
     setError(null);
     try {
-      setPolicy(await savePortfolioPolicy(address, policyDraft));
+      const snapshot = await withPortfolioSessionRetry(
+        () => savePortfolioPolicy(address, policyDraft),
+        { ensureSession: false },
+      );
+      if (!snapshot) return;
+      setPolicy(snapshot);
       setPolicyDirty(false);
     } catch (err) {
       const message = getApiErrorMessage(err);
@@ -1398,10 +2282,20 @@ export function usePortfolioPageShell() {
 
   const toggleEmergencyStop = async () => {
     if (!address || !policy) return;
+    try {
+      await ensurePortfolioSessionAccess();
+    } catch (err) {
+      setError(getApiErrorMessage(err) || "Portfolio authorization failed.");
+      return;
+    }
     setChecking(true);
     setError(null);
     try {
-      const snapshot = await togglePortfolioEmergencyStop(address, policy);
+      const snapshot = await withPortfolioSessionRetry(
+        () => togglePortfolioEmergencyStop(address, policy),
+        { ensureSession: false },
+      );
+      if (!snapshot) return;
       setPolicy(snapshot);
       setPolicyDraft(buildPolicyDraft(snapshot));
       setPolicyDirty(false);
@@ -1420,10 +2314,20 @@ export function usePortfolioPageShell() {
 
   const setGovernedExecutionControl = async (state: "armed" | "disarmed") => {
     if (!address) return;
+    try {
+      await ensurePortfolioSessionAccess();
+    } catch (err) {
+      setError(getApiErrorMessage(err) || "Portfolio authorization failed.");
+      return;
+    }
     setChecking(true);
     setError(null);
     try {
-      const snapshot = await setPortfolioGovernedExecutionState(address, state);
+      const snapshot = await withPortfolioSessionRetry(
+        () => setPortfolioGovernedExecutionState(address, state),
+        { ensureSession: false },
+      );
+      if (!snapshot) return;
       setPolicy(snapshot);
       setPolicyDraft(buildPolicyDraft(snapshot));
       setPolicyDirty(false);
@@ -1447,64 +2351,53 @@ export function usePortfolioPageShell() {
     setPendingKeyDownload(null);
 
     if (!account) {
+      setPrivateWrapProgress({
+        step: "approving",
+        message: "Reconnect your wallet to continue the private wrap.",
+        error: "Wallet not connected.",
+      });
       setExecutionNote("Wallet not connected.");
       setExecuting(false);
       return;
     }
 
+    let failureStep: PrivateWrapProgressStep = "depositing";
+
     try {
+      setExecuting(true);
+      setPrivateWrapProgress({ step: "depositing", message: "Depositing into the MIST Chamber...", error: null });
       setExecutionNote("🛡 Depositing into MIST Chamber...");
       const result = await account.execute(pending.calls);
       const depTxHash = result.transaction_hash;
-      setExecutionTxHash(depTxHash);
+      setPendingPrivateWrapResume({ ...pending, depositTxHash: depTxHash, stage: "waiting_deposit" });
+      failureStep = "waiting_confirmation";
 
-      const sdk = await import("@mistcash/sdk");
-      await sdk.initCore();
-      const { RpcProvider } = await import("starknet");
-      const readProvider = new RpcProvider({
-        nodeUrl: process.env.NEXT_PUBLIC_RPC_URL_MAINNET || process.env.NEXT_PUBLIC_RPC_URL || "/api/v1/zkdefi/starknet-rpc",
+      setPrivateWrapProgress({
+        step: "waiting_confirmation",
+        message: `Deposit submitted (${depTxHash.slice(0, 12)}...). Waiting for confirmation...`,
+        error: null,
       });
-      const chamber = sdk.getChamber(readProvider as any);
-
       setExecutionNote(`🛡 Deposit submitted (${depTxHash.slice(0, 12)}...). Waiting for confirmation...`);
 
-      // Poll for receipt — only accept SUCCEEDED, treat REVERTED/REJECTED as errors
-      const maxWaitMs = 90_000;
-      const pollIntervalMs = 3_000;
-      const startTime = Date.now();
-      let confirmed = false;
-      while (Date.now() - startTime < maxWaitMs) {
-        try {
-          const receipt = await account.getTransactionReceipt(depTxHash);
-          const execStatus = (receipt as any)?.execution_status;
-          if (execStatus === "SUCCEEDED") {
-            confirmed = true;
-            break;
-          }
-          if (execStatus === "REVERTED") {
-            const revertReason = (receipt as any)?.revert_reason || "unknown reason";
-            throw new Error(`Deposit reverted (${depTxHash.slice(0, 14)}…): ${revertReason}`);
-          }
-          if (execStatus === "REJECTED") {
-            throw new Error(`Deposit rejected by sequencer (${depTxHash.slice(0, 14)}…). Try again.`);
-          }
-          const asset = await sdk.fetchTxAssets(chamber, pending.claimingKey, pending.address);
-          const assetAmount = typeof asset?.amount === "bigint" ? asset.amount : BigInt(String(asset?.amount ?? 0));
-          const assetAddr = String(asset?.addr ?? "").toLowerCase();
-          if (assetAmount > BigInt(0) && assetAddr === pending.tokenAddr.toLowerCase()) {
-            confirmed = true;
-            break;
-          }
-        } catch (pollErr) {
-          if (pollErr instanceof Error && (pollErr.message.includes("reverted") || pollErr.message.includes("rejected"))) throw pollErr;
-        }
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-      }
-      if (!confirmed) {
-        throw new Error(`Deposit not confirmed after 90s (${depTxHash.slice(0, 14)}…). Your recovery file has the claiming key — use it to withdraw once confirmed.`);
+      const confirmationStatus = await waitForPrivateDepositConfirmation(pending, depTxHash);
+      if (confirmationStatus === "pending") {
+        setPrivateWrapProgress({
+          step: "waiting_confirmation",
+          message: `Deposit submitted (${depTxHash.slice(0, 12)}...). Mainnet confirmation is taking longer than usual.`,
+          error: null,
+        });
+        setExecutionNote(
+          `🛡 Deposit submitted (${depTxHash.slice(0, 12)}...). Mainnet confirmation can take longer than 90s. Use “Check deposit and continue” once it settles.`,
+        );
+        return;
       }
 
-      setExecutionNote(`🛡 Deposit confirmed. Generating ZK withdrawal proof...`);
+      if (confirmationStatus === "spent") {
+        mistPrivacy.reset();
+        setPrivateWithdrawalCompleteState();
+        await refreshData(pending.ownerAddress);
+        return;
+      }
 
       // Re-download recovery file v2 with depositTxHash for reliable future recovery
       try {
@@ -1513,67 +2406,122 @@ export function usePortfolioPageShell() {
           claimingKey: pending.claimingKey,
           tokenAddress: pending.tokenAddr,
           amountWei: pending.amountWei,
-          recipientAddress: pending.address,
+          recipientAddress: pending.recipientAddress,
           chamberAddress: config2.CHAMBER_ADDR_MAINNET,
           depositTxHash: depTxHash,
         });
-        // Also update server backup with tx hash
+        // Also update the optional server backup with the deposit hash.
         const recoveryPayloadV2 = JSON.stringify({
           claimingKey: pending.claimingKey, tokenAddress: pending.tokenAddr,
-          amountWei: pending.amountWei, recipientAddress: pending.address,
+          amountWei: pending.amountWei, recipientAddress: pending.recipientAddress,
           chamberAddress: config2.CHAMBER_ADDR_MAINNET, depositTxHash: depTxHash,
         });
-        const commitHash = Array.from(
-          new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(recoveryPayloadV2))),
-        ).map((b) => b.toString(16).padStart(2, "0")).join("");
-        fetch("/api/v1/zkdefi/privacy/recovery/store", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet_address: pending.address,
-            encrypted_blob: btoa(recoveryPayloadV2),
-            commitment_hash: commitHash,
-            token_address: pending.tokenAddr,
-            amount_wei: pending.amountWei,
-            chamber_address: config2.CHAMBER_ADDR_MAINNET,
-          }),
+        void storeRecoveryBackup({
+          walletAddress: pending.ownerAddress,
+          recoveryPayload: recoveryPayloadV2,
+          tokenAddress: pending.tokenAddr,
+          amountWei: pending.amountWei,
+          chamberAddress: config2.CHAMBER_ADDR_MAINNET,
         }).catch(() => {});
       } catch { /* non-critical: original recovery file still works */ }
 
-      const withdrawTxHash = await mistPrivacy.submitWithdrawViaRelay(
-        account,
-        pending.address,
-        pending.tokenAddr,
-        pending.amountWei,
-        pending.claimingKey,
-      );
-
-      setExecutionNote("🛡 Proof relayed. Executing swap...");
-      const swapResult = await account.execute(pending.optimizedCalls);
-      // Keep deposit tx hash visible — don't overwrite with swap hash
-      // setExecutionTxHash already set to depTxHash above
-      setExecutionNote(`🛡 Private swap submitted. Deposit: ${depTxHash.slice(0, 12)}… · Swap: ${swapResult.transaction_hash.slice(0, 12)}…`);
-
-      const confirmPayload = await confirmPortfolioExecution(pending.address, pending.receiptId, swapResult.transaction_hash, {
-        deposit_tx_hash: depTxHash,
-        chamber: "0x06f8dcc500131b6be6b33f4534ec6d33df33e61083ec2b051555d52e75654444",
-        token: pending.tokenAddr,
-      });
-      if (confirmPayload?.portable_receipt?.cid) {
-        setExecutionReceiptCid(confirmPayload.portable_receipt.cid);
-        setExecutionReceipt(confirmPayload.portable_receipt);
-        setExecutionNote("🛡 Private swap complete. Receipt saved to IPFS.");
-      } else {
-        setExecutionNote(`🛡 Private swap submitted. Tx ${swapResult.transaction_hash.slice(0, 12)}...`);
-      }
-      if (pending.address) await refreshData(pending.address);
+      await continuePrivateWrapAfterDeposit(pending, depTxHash);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isBalanceError = msg.includes("u256_sub Overflow") || msg.includes("u256_sub");
-      const userMsg = isBalanceError
-        ? "Insufficient token balance for the deposit amount. Lower the amount or add funds. Your recovery file is still valid if a deposit went through."
-        : `${msg}. Use your recovery file to withdraw manually if a deposit went through.`;
+      const rawMessage = getApiErrorMessage(err) || (err instanceof Error ? err.message : String(err));
+      const userMsg = formatPrivateWrapFailureMessage(failureStep, rawMessage);
+      setPrivateWrapProgress({
+        step: failureStep,
+        message: userMsg,
+        error: userMsg,
+      });
       setExecutionNote(`🛡 Privacy wrap failed: ${userMsg}`);
+      setPendingPrivateWrapResume(null);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const resumePendingPrivateWrap = async () => {
+    const pending = pendingPrivateWrapResume;
+    if (!pending) return;
+
+    if (!account && !(pending.stage === "ready_to_swap" && pending.executionMode === "private_account")) {
+      setPrivateWrapProgress({
+        step: "waiting_confirmation",
+        message: "Reconnect your wallet to continue after the deposit confirms.",
+        error: "Wallet not connected.",
+      });
+      setExecutionNote("Wallet not connected.");
+      return;
+    }
+
+    try {
+      setExecuting(true);
+      if (pending.stage === "ready_to_swap") {
+        if (
+          pending.executionMode !== "private_account"
+          && account
+          && (
+          normalizeAddressLike(account.address) !== normalizeAddressLike(pending.recipientAddress)
+          )
+        ) {
+          setPrivateWrapProgress({
+            step: "ready_to_swap",
+            message: `Connect ${pending.recipientAddress} to continue the Ekubo swap.`,
+            error: null,
+          });
+          setExecutionNote(`Connect ${pending.recipientAddress} to continue the Ekubo swap.`);
+          return;
+        }
+        await executePendingPrivateSwap(pending, pending.depositTxHash, pending.withdrawTxHash ?? "");
+        return;
+      }
+      setPrivateWrapProgress({
+        step: "waiting_confirmation",
+        message: `Checking deposit confirmation for ${pending.depositTxHash.slice(0, 12)}...`,
+        error: null,
+      });
+
+      const confirmationStatus = await waitForPrivateDepositConfirmation(pending, pending.depositTxHash);
+      if (confirmationStatus === "pending") {
+        setPrivateWrapProgress({
+          step: "waiting_confirmation",
+          message: `Deposit submitted (${pending.depositTxHash.slice(0, 12)}...). Still pending confirmation.`,
+          error: null,
+        });
+        setExecutionNote(
+          `🛡 Deposit submitted (${pending.depositTxHash.slice(0, 12)}...). It is still settling on mainnet. Try again once the chamber deposit is confirmed.`,
+        );
+        return;
+      }
+
+      if (confirmationStatus === "spent") {
+        mistPrivacy.reset();
+        setPrivateWithdrawalCompleteState();
+        await refreshData(pending.ownerAddress);
+        return;
+      }
+
+      try {
+        const config2 = await import("@mistcash/config");
+        downloadClaimingKeyFile({
+          claimingKey: pending.claimingKey,
+          tokenAddress: pending.tokenAddr,
+          amountWei: pending.amountWei,
+          recipientAddress: pending.recipientAddress,
+          chamberAddress: config2.CHAMBER_ADDR_MAINNET,
+          depositTxHash: pending.depositTxHash,
+        });
+      } catch {
+        // non-critical
+      }
+
+      await continuePrivateWrapAfterDeposit(pending, pending.depositTxHash);
+    } catch (err) {
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      const msg = isMistSpentMessage(rawMsg) ? formatMistSpentMessage() : rawMsg;
+      setPrivateWrapProgress({ step: "waiting_confirmation", message: msg, error: msg });
+      setExecutionNote(`🛡 Privacy wrap failed: ${msg}`);
     } finally {
       setExecuting(false);
     }
@@ -1582,6 +2530,7 @@ export function usePortfolioPageShell() {
   // ---- Privacy: cancel the pending deposit (user didn't want to proceed) ----
   const cancelKeyDownload = () => {
     setPendingKeyDownload(null);
+    setPrivateWrapProgress(null);
     setExecutionNote(null);
     setExecuting(false);
   };
@@ -1593,6 +2542,7 @@ export function usePortfolioPageShell() {
       throw new Error("Wallet not connected.");
     }
     try {
+      await ensurePortfolioSessionAccess();
       const data = JSON.parse(recoveryJson);
       const { claimingKey, tokenAddress, amountWei, recipientAddress } = data;
       if (!claimingKey || !tokenAddress || !amountWei || !recipientAddress) {
@@ -1602,22 +2552,33 @@ export function usePortfolioPageShell() {
       setExecuting(true);
       setExecutionNote("🛡 Recovery: generating ZK withdrawal proof...");
 
-      const txHash = await mistPrivacy.submitWithdrawViaRelay(
-        account,
-        recipientAddress,
-        tokenAddress,
-        amountWei,
-        claimingKey,
+      const txHash = await withPortfolioSessionRetry(
+        () =>
+          mistPrivacy.submitWithdrawViaRelay(
+            account,
+            account.address,
+            recipientAddress,
+            tokenAddress,
+            amountWei,
+            claimingKey,
+          ),
+        { ensureSession: false },
       );
+      if (!txHash) {
+        throw new Error("Portfolio authorization expired before recovery withdrawal could be submitted.");
+      }
 
       setExecutionTxHash(txHash);
-      setExecutionNote(`🛡 Recovery withdrawal relayed. Tx ${txHash.slice(0, 12)}...`);
+      setExecutionNote(`🛡 Recovery withdrawal submitted. Tx ${txHash.slice(0, 12)}...`);
       setShowRecoveryPanel(false);
+      mistPrivacy.reset();
       if (address) await refreshData(address);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      const msg = isMistSpentMessage(rawMsg) ? formatMistSpentMessage() : rawMsg;
       setExecutionNote(`🛡 Recovery failed: ${msg}`);
-      throw err;
+      mistPrivacy.reset();
+      throw new Error(msg);
     } finally {
       setExecuting(false);
     }
@@ -1694,18 +2655,20 @@ export function usePortfolioPageShell() {
     // Don't auto-gate-check until the user has set an intent
     // (except automated mode which runs off policy).
     if (!intentSet && workflowMode !== "automated") return;
+    if (pendingKeyDownload || pendingPrivateWrapResume) return;
     if (actionType === "rebalance" && pendingWalletCalls?.length) return;
     if (lastCheckedProposalKey === currentProposalKey) return;
     if (executionTxHash) return;
+    if (!getPortfolioSessionAuthorization(address)) return;
     // After a recommendation is applied, run the gate check immediately instead of
     // waiting 700ms so the user doesn't stare at a disabled button.
     const delay = recommendationJustAppliedRef.current ? 100 : 700;
     const timeoutId = window.setTimeout(() => {
       recommendationJustAppliedRef.current = false;
-      void runGateCheck();
+      void runGateCheck(undefined, { ensureSession: false });
     }, delay);
     return () => window.clearTimeout(timeoutId);
-  }, [address, actionType, currentProposalKey, lastCheckedProposalKey, checking, executing, pendingWalletCalls, executionTxHash, intentSet, workflowMode]);
+  }, [address, actionType, currentProposalKey, lastCheckedProposalKey, checking, executing, pendingKeyDownload, pendingPrivateWrapResume, pendingWalletCalls, executionTxHash, intentSet, workflowMode]);
 
   useEffect(() => {
     const hashes = Array.from(
@@ -1738,7 +2701,7 @@ export function usePortfolioPageShell() {
   }, [receipts, readiness]);
 
   useEffect(() => {
-    if (!address || !isConnected) {
+    if (!address || !accountConnected) {
       setPortfolio(null);
       setPolicy(null);
       setPolicyDraft(null);
@@ -1759,11 +2722,21 @@ export function usePortfolioPageShell() {
       setPendingReceiptId(null);
       setPendingRouteLabel(null);
       setTxStatusMap({});
+      setAuthTelemetrySummary(null);
       setError(null);
       return;
     }
     void refreshData(address);
-  }, [address, isConnected]);
+    void refreshAuthTelemetry();
+  }, [address, accountConnected, refreshAuthTelemetry]);
+
+  useEffect(() => {
+    if (!address || !accountConnected) return;
+    const interval = setInterval(() => {
+      void refreshAuthTelemetry();
+    }, 45_000);
+    return () => clearInterval(interval);
+  }, [address, accountConnected, refreshAuthTelemetry]);
 
   // Auto-refresh portfolio 30s after execution to catch settled state
   useEffect(() => {
@@ -1823,6 +2796,28 @@ export function usePortfolioPageShell() {
     workflowMode,
     onWorkflowModeChange: setWorkflowMode,
   };
+
+  const effectiveMistPrivacyStep = privateWrapProgress?.step
+    ?? (
+      pendingKeyDownload
+        ? "approving"
+        : pendingPrivateWrapResume
+          ? pendingPrivateWrapResume.stage === "ready_to_swap"
+            ? "ready_to_swap"
+            : "waiting_confirmation"
+          : mistPrivacy.step
+    );
+  const effectiveMistPrivacyMessage = privateWrapProgress?.message
+    ?? (pendingKeyDownload
+      ? "Recovery file downloaded. Confirm you saved it to continue."
+      : pendingPrivateWrapResume
+        ? pendingPrivateWrapResume.stage === "ready_to_swap"
+          ? pendingPrivateWrapResume.executionMode === "private_account"
+            ? `Withdrawal settled to session key account ${pendingPrivateWrapResume.recipientAddress}. Continue here to execute the sponsored Ekubo swap.`
+            : `Withdrawal settled to ${pendingPrivateWrapResume.recipientAddress}. Connect that wallet to continue the Ekubo swap.`
+          : `Deposit submitted (${pendingPrivateWrapResume.depositTxHash.slice(0, 12)}...). Waiting for confirmation...`
+        : mistPrivacy.message);
+  const effectiveMistPrivacyError = privateWrapProgress?.error ?? mistPrivacy.error;
 
   const mainDeskProps = {
     checking,
@@ -1900,7 +2895,7 @@ export function usePortfolioPageShell() {
     executionTxHash,
     quoteSecondsLeft,
     executionLink: executionTxHash ? voyagerTxUrl(executionTxHash) : null,
-    portableReceiptLink: executionTxHash ? portableReceiptHref : null,
+    portableReceiptLink: portableReceiptHref,
     passedGateCount,
     failedGateConstraints,
     warningGateConstraints,
@@ -1935,20 +2930,54 @@ export function usePortfolioPageShell() {
     onUseRecommendedSwapStarter: applyRecommendedSwapStarter,
     onUseRecommendedSwapAlternative: applyRecommendedSwapOption,
     privateMode,
+    privacyExecutionMode,
+    onPrivacyExecutionModeChange: setPrivacyExecutionMode,
+    privacyFreshAddress,
+    onPrivacyFreshAddressChange: setPrivacyFreshAddress,
+    managedPrivateExecutionSession,
+    managedPrivateExecutionConnecting,
+    managedPrivateExecutionError,
+    onConnectManagedPrivateExecution: async () => {
+      try {
+        const session = await connectManagedPrivateExecution();
+        setExecutionNote(
+          session.username
+            ? `Session key account ready: ${session.username} (${session.address.slice(0, 12)}...).`
+            : `Session key account ready: ${session.address.slice(0, 12)}...`,
+        );
+      } catch (err) {
+        const message = getApiErrorMessage(err) || "Unable to connect the session key account.";
+        setExecutionNote(message);
+      }
+    },
+    onDisconnectManagedPrivateExecution: async () => {
+      await disconnectManagedPrivateExecution();
+      setExecutionNote("Session key account disconnected.");
+    },
     privacyUnavailableReason: privateMode && actionType === "swap" && swapAssetIn === "WBTC"
       ? "MIST.cash does not support WBTC yet"
       : null,
     onTogglePrivateMode: () => setPrivateMode((v) => !v),
-    mistPrivacyStep: mistPrivacy.step,
-    mistPrivacyMessage: mistPrivacy.message,
-    mistPrivacyBusy: mistPrivacy.busy,
-    mistPrivacyError: mistPrivacy.error,
+    mistPrivacyStep: effectiveMistPrivacyStep,
+    mistPrivacyMessage: effectiveMistPrivacyMessage,
+    mistPrivacyBusy: Boolean(privateWrapProgress && privateWrapProgress.step !== "withdraw_complete") || mistPrivacy.busy,
+    mistPrivacyError: effectiveMistPrivacyError,
     pendingKeyDownload: !!pendingKeyDownload,
+    pendingPrivacyResume: !!pendingPrivateWrapResume,
+    pendingPrivacyResumeStage: pendingPrivateWrapResume?.stage ?? null,
+    pendingPrivacyExecutionMode: pendingPrivateWrapResume?.executionMode ?? null,
+    pendingPrivacyRecipientAddress: pendingPrivateWrapResume?.recipientAddress ?? null,
+    pendingPrivacyDepositTxHash: pendingPrivateWrapResume?.depositTxHash ?? null,
+    pendingPrivacyDepositLink: pendingPrivateWrapResume
+      ? voyagerTxUrl(pendingPrivateWrapResume.depositTxHash)
+      : null,
     onConfirmKeyDownloaded: confirmKeyDownloaded,
+    onResumePrivateWrap: resumePendingPrivateWrap,
     onCancelKeyDownload: cancelKeyDownload,
     showRecoveryPanel,
     onToggleRecoveryPanel: () => setShowRecoveryPanel((v) => !v),
     onRecoverFromKey: recoverFromKey,
+    onEnsurePortfolioSession: () => ensurePortfolioSessionAccess(),
     showSessionKeyModal,
     onDismissSessionKeyModal: () => setShowSessionKeyModal(false),
     onSessionKeyGranted: (sessionId: string) => {
@@ -1971,6 +3000,11 @@ export function usePortfolioPageShell() {
     showPolicyEditor,
     policyDirty,
     checking,
+    authTelemetrySummary,
+    authTelemetryLoading,
+    onRefreshAuthTelemetry: () => {
+      void refreshAuthTelemetry();
+    },
     onTogglePolicyEditor: () => setShowPolicyEditor((current) => !current),
     onPolicyFieldChange: (
       field: "maxValueUsd" | "maxSlippageBps" | "cooldownSeconds" | "maxSwaps" | "maxFeeSharePct",

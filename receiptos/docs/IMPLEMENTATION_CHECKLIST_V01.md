@@ -63,6 +63,71 @@ Gate: each wallet completes in under 30s and under target RPC budget.
 
 Status (2026-03-25): COMPLETE. max=25.9s, total_rpc_requests=413, 10/10 OK. See _benchmark.json.
 
+## Phase 1.5: Mainnet Footprint
+
+1. Run the protocol-footprint CLI against verified mainnet addresses only.
+Command snippet:
+```bash
+cd receiptos/indexer
+npm run footprint -- --from-block 0
+```
+Gate: output shows deployed status for `receipt_registry_v01`, `receipt_archive_v01`, and `mist_chamber`.
+
+2. Persist the latest full-history snapshot for repeatable review.
+Command snippet:
+```bash
+cd receiptos/indexer
+npm run footprint:full
+```
+Gate: `out/mainnet-footprint.latest.json` is written successfully.
+
+3. Verify receipt event coverage before any user-facing protocol KPI claim.
+Gate: receipt metrics are event-derived; public notional is route-attributed from Ekubo swap deltas in raw felt units; private notional is trace-derived from MIST chamber calldata.
+
+Status (2026-04-05): COMPLETE for v0.1 event footprint + route attribution slice.
+- CLI added at `receiptos/indexer/src/footprint/cli.ts`.
+- Full-history live scan returned 3 deployed contracts, 12 `ReceiptIssued`, 0 `ReceiptConsumed`, 12 `CidAnchored`, and 12 unique receipt IDs touched.
+- Snapshot now includes `gross_public_execution_notional` from Ekubo route attribution in raw felt units.
+- USD normalization and cross-venue aggregation remain pending.
+
+4. Run bounded MIST chamber trace windows to compute private deposit and recovery-withdraw raw totals.
+Command snippet:
+```bash
+cd receiptos/indexer
+FOOTPRINT_TRACE_MAX_BLOCKS=500 npm run footprint -- --from-block 8433000 --to-block 8433500
+```
+Gate: `private_mist_notional` is present when the scanned window is within the configured trace bound.
+
+Status (2026-04-04): PARTIAL.
+- Chamber ABI verified from installed `@mistcash/config` package.
+- Chamber-specific events do not exist; trace scanning is required.
+- Bounded trace support is implemented in the indexer, but full-history private-volume remains blocked without an archival trace index.
+
+5. Run chunked MIST chamber trace aggregation when the desired window exceeds the default trace bound.
+Command snippet:
+```bash
+cd receiptos/indexer
+npx tsx src/footprint/cli.ts --from-block 8433000 --to-block 8433600 --trace-chunk-size 100 --trace-checkpoint-dir out/mist-trace-checkpoints
+```
+Gate: `mist_chamber.trace_window` remains computed for multi-chunk runs and one checkpoint file is written per processed chunk.
+
+Status (2026-04-04): COMPLETE for chunked aggregation support.
+- CLI supports `--trace-chunk-size` and `--trace-checkpoint-dir`.
+- MIST totals aggregate across multiple bounded trace chunks instead of forcing a single small window.
+- Snapshot payload now includes normalized token totals using `receiptos/config/mist-token-metadata.json` so private MIST amounts are presentation-ready.
+
+6. Resume an interrupted chunked MIST scan from its saved manifest and checkpoints.
+Command snippet:
+```bash
+cd receiptos/indexer
+npx tsx src/footprint/cli.ts --from-block 8433000 --to-block 8433600 --trace-chunk-size 100 --trace-checkpoint-dir out/mist-trace-checkpoints --trace-manifest-path out/mist-trace-checkpoints/manifest.json --resume-trace-manifest
+```
+Gate: previously completed chunks are loaded from disk and not traced again, while the final snapshot still covers the full requested window.
+
+Status (2026-04-04): COMPLETE for local resume support.
+- CLI can persist a manifest at `--trace-manifest-path`.
+- Resume mode reloads saved checkpoints and skips rescanning matching chunks.
+
 ## Phase 2: Attester + Contract
 
 1. Build and test attester.

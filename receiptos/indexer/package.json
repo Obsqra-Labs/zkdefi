@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "footprint": "tsx src/footprint/cli.ts",
+    "footprint:full": "tsx src/footprint/cli.ts --from-block 0 --out out/mainnet-footprint.latest.json",
     "start": "tsx src/index.ts",
     "test": "vitest run test/"
   },

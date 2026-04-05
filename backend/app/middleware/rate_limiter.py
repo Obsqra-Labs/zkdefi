@@ -18,6 +18,17 @@ from starlette.responses import JSONResponse
 logger = logging.getLogger(__name__)
 
 _RATE_LIMITS: dict[str, tuple[int, int]] = {
+    # Portfolio auth flow can legitimately burst when wallet extensions are slow.
+    # Keep a dedicated, higher budget so retries do not lock users out.
+    "/api/v1/portfolio/auth/session/start": (120, 60),
+    "/api/v1/portfolio/auth/session/complete": (120, 60),
+    "/api/v1/portfolio/auth/session/verify": (240, 60),
+    "/api/v1/portfolio/auth/telemetry": (240, 60),
+    "/api/v1/portfolio/auth/telemetry/summary": (120, 60),
+    # Legacy dual-wallet auth session flow.
+    "/api/v1/zkdefi/auth/session/start": (120, 60),
+    "/api/v1/zkdefi/auth/session/complete": (120, 60),
+    "/api/v1/zkdefi/auth/session/": (240, 60),
     "/api/v1/zkdefi/privacy/vault/deposit": (10, 60),
     "/api/v1/zkdefi/privacy/vault/withdraw": (10, 60),
     "/api/v1/zkdefi/credit/lines/open": (5, 60),
