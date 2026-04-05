@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import time
 import uuid
+import math
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any
@@ -30,7 +31,8 @@ def _percentile(values: list[float], q: float) -> float | None:
         return float(values[0])
     if q >= 1:
         return float(values[-1])
-    idx = int((len(values) - 1) * q)
+    # Nearest-rank percentile keeps p95 aligned with tail behavior for small samples.
+    idx = max(0, math.ceil(q * len(values)) - 1)
     return float(values[idx])
 
 

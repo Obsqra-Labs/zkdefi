@@ -219,7 +219,7 @@ def test_portfolio_auth_telemetry_summary_exposes_latency_breakdown(tmp_path, mo
     assert summary["totals"]["successes"] == 2
     assert summary["totals"]["failures"] == 1
     assert summary["latency_ms"]["total"]["samples"] == 3
-    assert summary["latency_ms"]["sign"]["p95"] == 500.0
+    assert summary["latency_ms"]["sign"]["p95"] == 650.0
     assert summary["failures"]["by_stage"]["wallet_signature"] == 1
     assert summary["failures"]["by_status"]["401"] == 1
 
@@ -252,3 +252,7 @@ def test_portfolio_auth_telemetry_summary_reports_spike_alerts(tmp_path, monkeyp
     summary = summary_response.json()
     alert_ids = {alert["id"] for alert in summary["alerts"]}
     assert "wallet_signature_spike" in alert_ids
+
+
+def test_portfolio_auth_percentile_uses_tail_for_small_samples():
+    assert portfolio_auth_telemetry_mod._percentile([100.0, 900.0], 0.95) == 900.0
