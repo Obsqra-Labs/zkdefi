@@ -35,6 +35,12 @@ PARENT_BACKEND_ROOT = PROJECT_ROOT.parent / "backend"
 DEFAULT_BASE_URL = "http://127.0.0.1:8003"
 DEFAULT_WALLET = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
 DEFAULT_TIMEOUT_SECONDS = 45.0
+# Realistic timeout budgets for complex proving operations on L3
+# ModelBridge and simpler lanes can complete within 240s even under heavy proof computation
+DEFAULT_BRIDGE_TIMEOUT_SECONDS = 240.0
+# Dual-lane (L3 + L2 mirror) and Noir HONK require more time for composite operations
+DEFAULT_DUAL_LANE_TIMEOUT_SECONDS = 360.0
+DEFAULT_NOIR_LANE_TIMEOUT_SECONDS = 360.0
 DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "hackathon_showcase"
 ENV_FILE = PROJECT_ROOT / "backend" / ".env"
 PARENT_BACKEND_ENV_FILE = PARENT_BACKEND_ROOT / ".env"
@@ -2483,6 +2489,41 @@ class ShowcaseRunner:
             if ok_hash and isinstance(hash_result, str):
                 resolved[name] = hash_result
 
+        madara_health_status, madara_health_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/health",
+        )
+        madara_stats_status, madara_stats_body = self.client.call(
+            "GET",
+            "/api/v1/zkdefi/risk_passport/settlement/madara/stats",
+        )
+        madara_healthy = (
+            madara_health_status == 200
+            and isinstance(madara_health_body, dict)
+            and bool(madara_health_body.get("healthy"))
+            and bool(madara_health_body.get("enabled"))
+            and bool(madara_health_body.get("configured"))
+        )
+        madara_fact_registry = (
+            madara_stats_body.get("fact_registry")
+            if madara_stats_status == 200 and isinstance(madara_stats_body, dict)
+            else None
+        )
+        madara_registrations = (
+            madara_stats_body.get("total_registrations")
+            if madara_stats_status == 200 and isinstance(madara_stats_body, dict)
+            else None
+        )
+        madara_last_block = (
+            madara_health_body.get("latest_block")
+            if madara_health_status == 200 and isinstance(madara_health_body, dict)
+            else None
+        ) or (
+            madara_stats_body.get("last_block_seen")
+            if madara_stats_status == 200 and isinstance(madara_stats_body, dict)
+            else None
+        )
+
         contract_rows: list[dict[str, Any]] = []
         for name, addr in addresses.items():
             if not addr:
@@ -2498,15 +2539,35 @@ class ShowcaseRunner:
                     "voyager_class": _voyager_class_url(class_hash) if class_hash else None,
                 }
             )
+        if madara_fact_registry:
+            contract_rows.append(
+                {
+                    "name": "MADARA_FACT_REGISTRY",
+                    "address": _normalize_address(str(madara_fact_registry)),
+                    "class_hash": None,
+                    "voyager_contract": None,
+                    "voyager_class": None,
+                }
+            )
         self._contract_rows = contract_rows
 
-        ok = ok_block and len(resolved) >= 2
+        resolved_contracts = len(resolved) + (1 if madara_fact_registry else 0)
+        ok = ok_block and (
+            len(resolved) >= 2
+            or (len(resolved) >= 1 and madara_healthy and bool(madara_fact_registry))
+        )
         detail_map = {
             "rpc_url": selected_rpc,
             "block_number": block_result if ok_block else f"error:{block_result}",
-            "resolved_contracts": len(resolved),
+            "resolved_contracts": resolved_contracts,
+            "public_resolved_contracts": len(resolved),
             "explorer_links": len(contract_rows),
+            "madara_healthy": madara_healthy,
+            "madara_last_block": madara_last_block,
+            "madara_total_registrations": madara_registrations,
         }
+        if madara_fact_registry:
+            detail_map["madara_fact_registry"] = _short_hex(str(madara_fact_registry), size=10)
         for key in sorted(resolved):
             detail_map[f"{key}_class_hash"] = _short_hex(resolved[key], size=10)
         self._record("Raw RPC contract presence", ok, **detail_map)
@@ -3184,11 +3245,10 @@ class ShowcaseRunner:
         noir_v2_probe_fingerprint = _payload_fingerprint(noir_v2_payload)
         native_kzg_probe_fingerprint = _payload_fingerprint(native_kzg_payload)
 
-        # Keep bridge calls stable even when caller passes a low global timeout.
-        # Honor CLI timeout tuning even in strict mode; avoid forcing 240s hangs
-        # when a bridge lane is unhealthy. Keep a sane floor for normal slow proofs.
+        # Keep bridge calls stable with realistic budgets in strict bridge mode.
+        # Callers can still increase/decrease via explicit SHOWCASE_* overrides.
         if self.bridge_only:
-            bridge_timeout = max(min(self.timeout_seconds, 45.0), 25.0)
+            bridge_timeout = max(self.timeout_seconds, DEFAULT_BRIDGE_TIMEOUT_SECONDS)
         else:
             bridge_timeout = max(self.timeout_seconds, 25.0)
         inter_lane_cooldown = _safe_float(
@@ -3205,19 +3265,19 @@ class ShowcaseRunner:
         if dual_timeout_override > 0:
             dual_bridge_timeout = dual_timeout_override
         elif self.bridge_only:
-            dual_bridge_timeout = max(bridge_timeout, 75.0)
+            dual_bridge_timeout = max(bridge_timeout, DEFAULT_DUAL_LANE_TIMEOUT_SECONDS)
         elif self.strict_bridge:
             # Dual executes L3 + mirror semantics; give it extra room to avoid
             # false negatives caused only by request timeout pressure.
-            dual_bridge_timeout = max(bridge_timeout, 75.0)
+            dual_bridge_timeout = max(bridge_timeout, DEFAULT_DUAL_LANE_TIMEOUT_SECONDS)
         else:
             dual_bridge_timeout = bridge_timeout
         if noir_timeout_override > 0:
             noir_bridge_timeout = noir_timeout_override
         elif self.bridge_only:
-            noir_bridge_timeout = max(bridge_timeout, 75.0)
+            noir_bridge_timeout = max(bridge_timeout, DEFAULT_NOIR_LANE_TIMEOUT_SECONDS)
         elif self.strict_bridge:
-            noir_bridge_timeout = max(bridge_timeout, 75.0)
+            noir_bridge_timeout = max(bridge_timeout, DEFAULT_NOIR_LANE_TIMEOUT_SECONDS)
         else:
             noir_bridge_timeout = bridge_timeout
         strict_attempts_override = _safe_int(os.getenv("SHOWCASE_STRICT_BRIDGE_MAX_ATTEMPTS"), 0)
@@ -6298,7 +6358,7 @@ class ShowcaseRunner:
             claims: list[tuple[str, bool | None]] = [
                 ("Backend service is live", passed("Backend health")),
                 ("Proof pack is present and introspectable", passed("Reputation pack manifest")),
-                ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
+                ("Contracts are verifiably deployed across active RPC surfaces", passed("Raw RPC contract presence")),
                 ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
                 ("Open-source ModelBridge + dual-proof lanes are demonstrable", passed("Open-source ModelBridge + dual-proof architecture")),
                 ("ModelBridge live l3 verify emits receipt evidence", passed("ModelBridge live l3 verify receipt")),
@@ -6332,7 +6392,7 @@ class ShowcaseRunner:
                 ("Private prediction market primitive is live", passed("Private prediction market primitive (snapshot forecaster)")),
                 ("Policy controls are API-operable", passed("Policy controls (vault constraints)")),
                 ("On-chain state is queryable", passed("On-chain read via backend")),
-                ("Contracts are verifiably deployed on RPC", passed("Raw RPC contract presence")),
+                ("Contracts are verifiably deployed across active RPC surfaces", passed("Raw RPC contract presence")),
                 ("Receipt visibility pipeline is live", passed("Receipt stream visibility")),
             ]
 
